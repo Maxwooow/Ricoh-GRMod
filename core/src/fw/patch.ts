@@ -6,7 +6,8 @@
  * names and to single-icon edits. The ORDER of operations below is what makes the output
  * byte-identical to the Python-built files that were installed on a camera; do not reorder.
  */
-import { build, sectionData, sectionsOf, sha256Hex, sum32 } from './container';
+import { build, buildGrown, sectionData, sectionsOf, sha256Hex, sum32 } from './container';
+import type { Firmware } from './container';
 import { FirmwareError } from './types';
 import type { Range } from './types';
 import { COMP_OFFSET, ICONBIN_LENGTH, ICONBIN_OFFSET, ICON_BYTES, LEN, RTOS_LENGTH, RTOS_OFFSET, SLOTS, foff, openOfficial, resolveLayout, slotDef } from './profile';
@@ -14,7 +15,10 @@ import type { SlotId, SlotInfo } from './profile';
 import { LANGS, applyName, nameRanges, validateName } from './names';
 import type { LangCode } from './names';
 import { normalizeIcon, readIcon } from './icons';
-import { countChangedBytes, selfCheck } from './selfcheck';
+import { countChangedBytes, selfCheck, selfCheckGrown } from './selfcheck';
+import { gr4Sizes, installRatios, planRatios, ratioText } from './aspect';
+import type { RatioSpec } from './aspect';
+import { grownRanges, growPayload } from './aspect/package';
 
 export type { Range } from './types';
 
@@ -46,6 +50,21 @@ export interface BuildResult {
   ranges: Range[];
   /** The self-check results; all true (otherwise `buildFirmware` throws). */
   checks: Record<string, boolean>;
+  /** The aspect ratios that were added, in menu order (empty when none). */
+  ratios: BuiltRatio[];
+}
+
+/** One added aspect ratio as it will behave in the camera. */
+export interface BuiltRatio {
+  /** Identity stored in the camera's settings and in each photo. */
+  id: number;
+  name: string;
+  /** As requested. */
+  ratio: string;
+  /** What the pixel grid makes of it, reduced: e.g. `30:11` for a requested 65:24. */
+  actual: string;
+  /** JPEG sizes L, M, S, XS on a GR IV without crop. */
+  sizes: [number, number][];
 }
 
 const SLOT_ORDER: readonly SlotId[] = SLOTS.map((s) => s.id);
@@ -109,7 +128,77 @@ function transparentPixels(icon: Uint8Array): number[] {
  * Throws `FirmwareError` on any invalid input or failed assertion; never returns a file that did
  * not pass the self-check.
  */
-export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[]): Promise<BuildResult> {
+export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = []): Promise<BuildResult> {
+  const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits);
+  if (ratios.length > 0) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios);
+
+  // 7. Container.
+  const built = build(fw, img);
+
+  // 8. Independent self-check.
+  const checks = selfCheck(officialRaw, built.out, ranges, img);
+  const failed = Object.keys(checks).filter((k) => checks[k] !== true);
+  if (failed.length > 0) throw new FirmwareError('selfcheck-failed', failed.join(', '), checks);
+
+  return {
+    file: built.out,
+    sha256: await sha256Hex(built.out),
+    decoded: img,
+    decodedSha256: await sha256Hex(img),
+    changedFrames: built.reencoded,
+    changedBytes: countChangedBytes(DEC, img),
+    ranges,
+    checks,
+    ratios: [],
+  };
+}
+
+/**
+ * The same, plus added aspect ratios: the RTOS and ICONBIN sections grow (see `aspect/`), so the
+ * container is rebuilt with `buildGrown` and checked with `selfCheckGrown`.
+ */
+async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8Array, img: Uint8Array, ranges: Range[], ratios: readonly RatioSpec[]): Promise<BuildResult> {
+  const specs = ratios.map((r) => ({ name: r.name, ratio: r.ratio.trim() }));
+  const plan = planRatios(specs);
+  const aspect = installRatios(img.slice(RTOS_OFFSET, RTOS_OFFSET + RTOS_LENGTH), img.slice(ICONBIN_OFFSET, ICONBIN_OFFSET + ICONBIN_LENGTH), plan);
+  const grown = growPayload(img, aspect, specs);
+  // Edits made before growing keep their place in RTOS; those in ICONBIN move with it.
+  const all: Range[] = ranges.map((r) => (r.offset >= ICONBIN_OFFSET ? { ...r, offset: r.offset + grown.rtosGrowth } : r));
+  const added = grownRanges(grown, aspect);
+  const hooks = added.filter((r) => r.length === 4 && r.what.startsWith('ratio hook'));
+  for (const h of hooks) {
+    for (const r of ranges) {
+      if (r.offset < h.offset + h.length && h.offset < r.offset + r.length) bad('assert-failed', `${h.what} overlaps ${r.what}`);
+    }
+  }
+  all.push(...added);
+  if (sum32(grown.decoded) !== 0) bad('assert-failed', 'payload word sum is not zero');
+  for (let i = 1; i <= 4; i++) {
+    if (grown.decoded[grown.decoded.length - i] !== DEC[DEC.length - i]) bad('assert-failed', 'last payload word changed');
+  }
+
+  const built = buildGrown(fw, grown.decoded, grown.insertions);
+  const checks = selfCheckGrown(officialRaw, built.out, all, grown.decoded);
+  const failed = Object.keys(checks).filter((k) => checks[k] !== true);
+  if (failed.length > 0) throw new FirmwareError('selfcheck-failed', failed.join(', '), checks);
+
+  let hookBytes = 0;
+  for (const h of hooks) for (let i = 0; i < 4; i++) if (grown.decoded[h.offset + i] !== img[h.offset + i]) hookBytes++;
+  return {
+    file: built.out,
+    sha256: await sha256Hex(built.out),
+    decoded: grown.decoded,
+    decodedSha256: await sha256Hex(grown.decoded),
+    changedFrames: built.reencoded,
+    changedBytes: countChangedBytes(DEC, img) + hookBytes + grown.rtosGrowth + grown.iconGrowth + 8,
+    ranges: all,
+    checks,
+    ratios: plan.map((r) => ({ id: r.id, name: r.name, ratio: r.ratio, actual: ratioText(r.geometry.actual.n, r.geometry.actual.d), sizes: gr4Sizes(r.geometry) })),
+  };
+}
+
+/** Steps 1-6: open the official file and apply the same-length slot edits to a copy of its payload. */
+async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[]): Promise<{ fw: Firmware; DEC: Uint8Array; img: Uint8Array; ranges: Range[] }> {
   // 1. Open the official file, copy the payload.
   const { fw, decoded: DEC } = await openOfficial(officialRaw);
   const sorted = sortEdits(edits);
@@ -269,24 +358,7 @@ export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[]):
     if (sum32(sectionData(DEC, so[i])) !== sum32(sectionData(img, sn[i]))) bad('assert-failed', `section ${so[i].name} word sum changed`);
   }
 
-  // 7. Container.
-  const built = build(fw, img);
-
-  // 8. Independent self-check.
-  const checks = selfCheck(officialRaw, built.out, ranges, img);
-  const failed = Object.keys(checks).filter((k) => checks[k] !== true);
-  if (failed.length > 0) throw new FirmwareError('selfcheck-failed', failed.join(', '), checks);
-
-  return {
-    file: built.out,
-    sha256: await sha256Hex(built.out),
-    decoded: img,
-    decodedSha256: await sha256Hex(img),
-    changedFrames: built.reencoded,
-    changedBytes: countChangedBytes(DEC, img),
-    ranges,
-    checks,
-  };
+  return { fw, DEC, img, ranges };
 }
 
 /**

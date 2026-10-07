@@ -6,7 +6,9 @@ export {
   HDR,
   MAGIC,
   Firmware,
+  FRAME_SIZE,
   build,
+  buildGrown,
   equalRange,
   parseFrames,
   sectionData,
@@ -17,7 +19,7 @@ export {
   verifyContainer,
   wrapStream,
 } from './container';
-export type { BuildOutput, Frame, ParseResult, Section, VerifyResult } from './container';
+export type { BuildOutput, Frame, Insertion, ParseResult, Section, VerifyResult } from './container';
 
 export {
   COMP_OFFSET,
@@ -64,12 +66,17 @@ export { CONTENT_AREA, ICON_H, ICON_W, TILE_BG, TILE_BORDER, composeIcon, normal
 export type { TileStyle } from './icons';
 
 export { buildFirmware, editableRanges } from './patch';
-export type { BuildResult, ColorData, SlotEdit } from './patch';
+export type { BuildResult, BuiltRatio, ColorData, SlotEdit } from './patch';
 
-export { SELF_CHECK_NAMES, countChangedBytes, selfCheck } from './selfcheck';
+export { SELF_CHECK_GROWN_NAMES, SELF_CHECK_NAMES, countChangedBytes, selfCheck, selfCheckGrown } from './selfcheck';
 
 export { findResource, listResources } from "./resources";
 export type { ResourceFile } from "./resources";
 
 export { modeSetKeywords, readFactoryEntry } from './factory';
 export type { FactoryEntry } from './factory';
+
+export * as aspect from './aspect';
+export { MAX_CUSTOM_RATIOS, MAX_NAME_LENGTH, gr4Sizes, planRatio, planRatios, ratioText, validateRatioName } from './aspect';
+export type { RatioEntry, RatioGeometry, RatioSpec } from './aspect';
+export { readRatioRecord } from './aspect/package';

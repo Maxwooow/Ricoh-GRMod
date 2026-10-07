@@ -3,3 +3,4 @@ dist
 *.exe
 core/testdata/private
 shell/web
+scratch

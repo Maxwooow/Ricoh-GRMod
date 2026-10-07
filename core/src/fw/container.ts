@@ -408,6 +408,165 @@ export function build(fw: Firmware, newDecoded: Uint8Array): BuildOutput {
   return { out, reencoded };
 }
 
+/**
+ * Decode one compressed (not stored) frame of a known-good file into `out` at `op`, with whatever
+ * `out` holds before `op` as history. Returns the new write position, or -1 when a back-reference
+ * reaches before the start of `out` or the output would not fit.
+ */
+function decodeCompressedFrame(src: Uint8Array, f: Frame, out: Uint8Array, op: number): number {
+  if (f.stored) return -1;
+  let pos = f.start + 2;
+  const end = f.end;
+  while (pos < end) {
+    const flags = (src[pos] << 8) | src[pos + 1];
+    pos += 2;
+    for (let bit = 15; bit >= 0; bit--) {
+      if (pos >= end) break;
+      if (!(flags & (1 << bit))) {
+        if (op >= out.length) return -1;
+        out[op++] = src[pos++];
+        continue;
+      }
+      const first = src[pos];
+      const second = src[pos + 1];
+      pos += 2;
+      const dist = ((first & 0xf8) << 5) + second;
+      let cnt = first & 7;
+      if (cnt === 7) {
+        let ext = src[pos++];
+        cnt += ext;
+        while (ext === 255) {
+          ext = src[pos++];
+          cnt += ext;
+        }
+      }
+      if (!dist) break;
+      if (dist > op) return -1;
+      const run = cnt + 3;
+      if (op + run > out.length) return -1;
+      let from = op - dist;
+      for (let k = 0; k < run; k++) out[op++] = out[from++];
+    }
+  }
+  return op;
+}
+
+/** `length` bytes that the new payload has in front of the byte at official decoded offset `at`. */
+export interface Insertion {
+  at: number;
+  length: number;
+}
+
+/** Decoded size of every frame except the first and the last, and of every stored frame this program writes. */
+export const FRAME_SIZE = 0x6000;
+
+/**
+ * Like `build`, for a payload that is LONGER than the official one because whole blocks of
+ * `FRAME_SIZE` bytes were inserted (at the end of a section). Every official frame is kept as it is
+ * when it still decodes to the wanted bytes at its new place; the frame an insertion falls into,
+ * and any frame that no longer decodes correctly, is written as full-length stored frames. So the
+ * result consists only of official frames and of stored frames of exactly `FRAME_SIZE` bytes: the
+ * two forms a camera has already been seen to accept.
+ */
+export function buildGrown(fw: Firmware, newDecoded: Uint8Array, insertions: readonly Insertion[]): BuildOutput {
+  const ins = [...insertions].sort((a, b) => a.at - b.at);
+  let total = 0;
+  for (const [k, x] of ins.entries()) {
+    if (!(Number.isInteger(x.at) && Number.isInteger(x.length) && x.length > 0 && x.length % FRAME_SIZE === 0 && x.at > 0 && x.at < fw.decoded.length)) {
+      throw new FirmwareError('bad-insertion', 'an insertion must be a positive multiple of the frame size inside the payload');
+    }
+    if (k > 0 && ins[k - 1].at === x.at) throw new FirmwareError('bad-insertion', 'two insertions at the same place');
+    total += x.length;
+  }
+  if (newDecoded.length !== fw.decoded.length + total) throw new FirmwareError('size-mismatch', 'the payload length does not match the insertions');
+  if (sum32(newDecoded) !== 0) throw new FirmwareError('payload-sum-nonzero', 'the payload word sum must be zero before building');
+
+  /** One output frame: an official frame (by index) kept as is, or a stored frame. */
+  interface Planned { orig: number; newStart: number; len: number; stored: boolean }
+  const frames = fw.frames;
+  const plan: Planned[] = [];
+  let shift = 0;
+  let next = 0;
+  for (let i = 0; i < frames.length; i++) {
+    const f = frames[i];
+    let grown = 0;
+    while (next < ins.length && ins[next].at < f.outStart + f.outLen) {
+      if (ins[next].at < f.outStart) throw new FirmwareError('internal', 'insertion order');
+      grown += ins[next].length;
+      next++;
+    }
+    const newStart = f.outStart + shift;
+    if (grown === 0) {
+      plan.push({ orig: i, newStart, len: f.outLen, stored: !equalRange(newDecoded, newStart, fw.decoded, f.outStart, f.outLen) });
+    } else {
+      if (f.outLen !== FRAME_SIZE) throw new FirmwareError('needs-compressor', 'an insertion falls into a frame of unusual size');
+      for (let k = 0; k < (f.outLen + grown) / FRAME_SIZE; k++) plan.push({ orig: -1, newStart: newStart + k * FRAME_SIZE, len: FRAME_SIZE, stored: true });
+      shift += grown;
+    }
+  }
+  if (next !== ins.length) throw new FirmwareError('internal', 'insertion past the last frame');
+
+  // Decide frame by frame, decoding each kept frame against the output produced so far: a kept
+  // frame whose back-references now reach changed bytes no longer gives the wanted output and
+  // becomes a stored frame too.
+  const work = new Uint8Array(newDecoded.length);
+  let op = 0;
+  for (const p of plan) {
+    if (op !== p.newStart) throw new FirmwareError('internal', 'frame plan has a gap');
+    if (!p.stored && !frames[p.orig].stored) {
+      const end = decodeCompressedFrame(fw.raw, frames[p.orig], work, op);
+      if (end !== op + p.len || !equalRange(work, op, newDecoded, op, p.len)) p.stored = true;
+    } else if (!p.stored) {
+      // An official stored frame with unchanged content: its bytes are the content.
+      work.set(newDecoded.subarray(op, op + p.len), op);
+    }
+    if (p.stored) {
+      if (p.len !== FRAME_SIZE) throw new FirmwareError('needs-compressor', `frame at 0x${p.newStart.toString(16)} needs a real compressor`);
+      work.set(newDecoded.subarray(op, op + p.len), op);
+    }
+    op += p.len;
+  }
+  if (op !== newDecoded.length) throw new FirmwareError('internal', 'frame plan does not cover the payload');
+
+  let streamLen = 2;
+  for (const p of plan) streamLen += p.stored ? 2 + p.len : frames[p.orig].end - frames[p.orig].start;
+  const out = new Uint8Array(containerSize(fw, streamLen));
+  out.set(fw.header, 0);
+  let pos = HDR;
+  for (const p of plan) {
+    if (p.stored) {
+      const prefix = 0x8000 | p.len;
+      out[pos] = prefix >>> 8;
+      out[pos + 1] = prefix & 0xff;
+      out.set(newDecoded.subarray(p.newStart, p.newStart + p.len), pos + 2);
+      pos += 2 + p.len;
+    } else {
+      const f = frames[p.orig];
+      out.set(fw.raw.subarray(f.start, f.end), pos);
+      pos += f.end - f.start;
+    }
+  }
+  out[pos] = 0;
+  out[pos + 1] = 0;
+  pos += 2;
+  if (pos !== HDR + streamLen) throw new FirmwareError('internal', 'stream size computation is off');
+  // Independent check with the ordinary parser, from an empty history.
+  const re = parseFrames(out.subarray(0, HDR + streamLen), newDecoded.length);
+  if (re.frames.length !== plan.length) throw new FirmwareError('frame-count-changed', 're-decoded stream has a different number of frames');
+  for (let k = 0; k < plan.length; k++) {
+    const g = re.frames[k];
+    const stored = plan[k].stored || frames[plan[k].orig].stored;
+    if (g.outStart !== plan[k].newStart || g.outLen !== plan[k].len || g.stored !== stored) throw new FirmwareError('internal', 're-decoded frame layout differs');
+  }
+  if (re.decoded.length !== newDecoded.length || !equalRange(re.decoded, 0, newDecoded, 0, newDecoded.length)) throw new FirmwareError('stored-frame-mismatch', 're-decoded payload differs');
+  finishContainer(out, fw, streamLen, newDecoded.length);
+  const reencoded: number[] = [];
+  plan.forEach((p, k) => {
+    if (p.stored) reencoded.push(k);
+  });
+  return { out, reencoded };
+}
+
 export interface VerifyResult {
   /** Named checks; all must be true. `stream_len_matches` is absent for a raw (unframed) payload. */
   checks: Record<string, boolean>;
