@@ -117,6 +117,8 @@ export interface RatioPreview {
   sizes?: [number, number][];
   /** 60x40 RGBA menu icon. */
   icon?: Uint8Array;
+  /** The ratio as written on the icon; also the default menu name. */
+  label?: string;
   /** With `ratio-quick-view`: the closest ratios that do work, wider first (at most two). */
   nearest?: string[];
 }
@@ -419,6 +421,7 @@ export class Engine {
         screen: { ...g.screen },
         sizes: gr4Sizes(g),
         icon: aspect.drawRatioIcon(ratio),
+        label: aspect.ratioLabel(ratio),
       };
     } catch (e) {
       if (e instanceof FirmwareError) {

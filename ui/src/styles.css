@@ -253,3 +253,34 @@ select.side-value option { color: #222; background: #fff; }
 .copy-sub .chip b { font-weight: 600; flex: none; }
 .copy-size { flex: none; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .btn.danger { color: var(--red); }
+
+/* Added aspect ratios: a short list on the left, the frame of the selected one on the right. */
+.ratio { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(384px, 46%) minmax(0, 1fr); gap: 24px; }
+.ratio-list { display: flex; flex-direction: column; gap: 4px; min-height: 0; min-width: 0; overflow: hidden; }
+.ratio-factory { flex: none; display: flex; align-items: center; gap: 6px; height: 30px; padding: 0 8px; margin-bottom: 2px; }
+.ratio-factory .small { margin-right: 4px; }
+.ratio-row { flex: none; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 2px 0 8px; border: 1px solid transparent; border-radius: 8px; }
+.ratio-row:hover { background: var(--hover); }
+.ratio-row.on { border-color: var(--line2); background: var(--side); }
+.ratio-icon { border-radius: 5px; overflow: hidden; }
+.ratio-icon canvas { display: block; }
+.ratio-in { width: 78px; flex: none; font-variant-numeric: tabular-nums; font-weight: 600; }
+.ratio-name { flex: 1; min-width: 56px; width: 0; }
+.input.bad { border-color: var(--red); color: var(--red); }
+.ratio-size { width: 86px; flex: none; display: flex; justify-content: flex-end; align-items: center; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 0; }
+.ratio-size.bad { color: var(--red); }
+.ratio-x { opacity: 0; flex: none; }
+.ratio-row:hover .ratio-x, .ratio-row.on .ratio-x, .ratio-x:focus-visible { opacity: 1; }
+.ratio-add { flex: none; display: grid; gap: 6px; margin-top: 4px; padding: 0 2px; }
+.ratio-add .btn.ghost.small { font-variant-numeric: tabular-nums; }
+.ratio-pane .pane-head { height: 40px; gap: 12px; }
+.ratio-title { font-size: 17px; font-weight: 600; }
+.ratio-body { flex: 1; min-height: 0; container-type: size; display: flex; flex-direction: column; align-items: flex-start; }
+.ratio-frame { position: relative; flex: none; width: min(100cqw, calc((100cqh - 44px) * 1.5)); aspect-ratio: 3 / 2; border-radius: 8px; overflow: hidden; background: var(--stage); box-shadow: 0 0 0 1px var(--line); }
+.ratio-photo { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
+.ratio-shade { position: absolute; background: rgba(0, 0, 0, 0.72); pointer-events: none; }
+.ratio-window { position: absolute; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.92); pointer-events: none; }
+.ratio-out { flex: none; min-height: 24px; margin-top: 12px; }
+.ratio-out.sizes { display: grid; grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); width: min(100cqw, 520px); }
+.ratio-out.sizes .chip { font-variant-numeric: tabular-nums; }
+.ratio-out .chip b { font-weight: 600; color: var(--muted); }

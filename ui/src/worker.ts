@@ -1,12 +1,13 @@
 /// <reference lib="webworker" />
 import { Engine } from '@grmod/core';
-import type { CameraModel, SlotRequest } from '@grmod/core';
+import type { CameraModel, RatioSpec, SlotRequest } from '@grmod/core';
 
 let engine: Engine | null = null;
 type Req =
   | { id: number; type: 'open'; raw: ArrayBuffer }
   | { id: number; type: 'convert'; kind: 'xmp' | 'cube'; text: string }
-  | { id: number; type: 'build'; requests: SlotRequest[] }
+  | { id: number; type: 'build'; requests: SlotRequest[]; ratios?: RatioSpec[] }
+  | { id: number; type: 'ratio'; ratio: string; others: string[] }
   | { id: number; type: 'encode'; rgb: ArrayBuffer; model: CameraModel }
   | { id: number; type: 'script'; model: CameraModel; count: number }
   | { id: number; type: 'inspect'; raw: ArrayBuffer }
@@ -27,7 +28,7 @@ ctx.onmessage = async (ev: MessageEvent<Req>) => {
       }
       case 'convert': ctx.postMessage({ id: m.id, ok: true, result: need().convertPreset(m.kind, m.text, progress) }); break;
       case 'build': {
-        const r = await need().buildFirmware(m.requests);
+        const r = await need().buildFirmware(m.requests, m.ratios || []);
         ctx.postMessage({ id: m.id, ok: true, result: r }, [r.file.buffer as ArrayBuffer]);
         break;
       }
@@ -36,6 +37,7 @@ ctx.onmessage = async (ev: MessageEvent<Req>) => {
         ctx.postMessage({ id: m.id, ok: true, result: r }, [r.data.buffer as ArrayBuffer, r.preview.buffer as ArrayBuffer]);
         break;
       }
+      case 'ratio': ctx.postMessage({ id: m.id, ok: true, result: need().previewRatio(m.ratio, m.others) }); break;
       case 'script': ctx.postMessage({ id: m.id, ok: true, result: need().rotationScript(m.model, m.count) }); break;
       case 'inspect': ctx.postMessage({ id: m.id, ok: true, result: await need().inspect(new Uint8Array(m.raw)) }); break;
       case 'heartbeat': {

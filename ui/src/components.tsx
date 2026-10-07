@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { ICON_H, ICON_W } from '@grmod/core';
+import { ICON_H, ICON_W, RATIO_ICON_H, RATIO_ICON_W } from '@grmod/core';
 import { rgbToCanvas, rgbaToCanvas } from './pixels';
 import { answerConfirm, dismissToast, useStore } from './store';
 import { t } from './i18n';
@@ -21,6 +21,7 @@ export const Ico = {
   tool: <svg viewBox="0 0 20 20" {...P}><path d="M12.4 3.1a4.1 4.1 0 0 0-4.8 5.4l-4.5 4.5a1.65 1.65 0 0 0 2.3 2.3l4.5-4.5a4.1 4.1 0 0 0 5.4-4.8l-2.5 2.5-2.2-.6-.6-2.2z" /></svg>,
   archive: <svg viewBox="0 0 20 20" {...P}><rect x="2.8" y="3.6" width="14.4" height="4" rx="1.2" /><path d="M4 7.6v7.3a1.5 1.5 0 0 0 1.5 1.5h9a1.5 1.5 0 0 0 1.5-1.5V7.6M8 10.8h4" /></svg>,
   trash: <svg viewBox="0 0 20 20" {...P}><path d="M3.8 5.6h12.4M8 5.6V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.6M5.4 5.6l.7 9.6a1.5 1.5 0 0 0 1.5 1.4h4.8a1.5 1.5 0 0 0 1.5-1.4l.7-9.6M8.4 8.6v5M11.6 8.6v5" /></svg>,
+  ratio: <svg viewBox="0 0 20 20" {...P}><rect x="2.8" y="3.6" width="14.4" height="12.8" rx="2" /><path d="M2.8 7.4h14.4M2.8 12.6h14.4" /></svg>,
   file: <svg viewBox="0 0 20 20" {...P}><path d="M6 2.8h5.2L15 6.6v9.1a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5V4.3A1.5 1.5 0 0 1 6 2.8z" /><path d="M11 3v3.8h3.8" /></svg>,
 };
 
@@ -80,6 +81,14 @@ export function IconCanvas({ pixels, scale = 2 }: { pixels: Uint8Array; scale?: 
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => { if (ref.current) rgbaToCanvas(ref.current, pixels, ICON_W, ICON_H); }, [pixels]);
   return <span className="icon-frame" style={{ width: ICON_W * scale + 8, height: ICON_H * scale + 8 }}><canvas ref={ref} className="pixel" style={{ width: ICON_W * scale, height: ICON_H * scale }} /></span>;
+}
+
+/** A ratio's menu icon (60x40 RGBA), or an empty tile of the same size. */
+export function RatioIcon({ pixels, width = RATIO_ICON_W }: { pixels?: Uint8Array; width?: number }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => { if (ref.current && pixels) rgbaToCanvas(ref.current, pixels, RATIO_ICON_W, RATIO_ICON_H); }, [pixels]);
+  const height = Math.round((width * RATIO_ICON_H) / RATIO_ICON_W);
+  return <span className="icon-frame ratio-icon" style={{ width, height }}>{pixels && <canvas ref={ref} style={{ width, height }} />}</span>;
 }
 
 export function RgbCanvas({ rgb, w, h, className }: { rgb: Uint8Array; w: number; h: number; className?: string }) {

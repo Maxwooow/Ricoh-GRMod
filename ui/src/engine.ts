@@ -1,4 +1,4 @@
-import type { CameraModel, FirmwareBuild, FirmwareInfo, FirmwareSummary, PresetResult, ShutdownImage, SlotRequest } from '@grmod/core';
+import type { CameraModel, FirmwareBuild, FirmwareInfo, FirmwareSummary, PresetResult, RatioPreview, RatioSpec, ShutdownImage, SlotRequest } from '@grmod/core';
 
 export class EngineError extends Error {
   code: string; details?: Record<string, number>;
@@ -27,7 +27,9 @@ function call<T>(msg: Record<string, unknown>, transfer: Transferable[] = [], on
 export const engine = {
   open: (raw: Uint8Array) => call<FirmwareInfo>({ type: 'open', raw: raw.slice().buffer }),
   convert: (kind: 'xmp' | 'cube', text: string) => call<PresetResult>({ type: 'convert', kind, text }),
-  build: (requests: SlotRequest[]) => call<FirmwareBuild>({ type: 'build', requests }),
+  build: (requests: SlotRequest[], ratios: RatioSpec[] = []) => call<FirmwareBuild>({ type: 'build', requests, ratios }),
+  /** What a ratio would become in the camera, given the ratios already in the list. */
+  ratio: (ratio: string, others: string[]) => call<RatioPreview>({ type: 'ratio', ratio, others }),
   encode: (rgb: Uint8Array, model: CameraModel) => { const copy = rgb.slice(); return call<ShutdownImage>({ type: 'encode', rgb: copy.buffer, model }, [copy.buffer]); },
   script: (model: CameraModel, count: number) => call<string>({ type: 'script', model, count }),
   /** What a firmware file is; the buffer is handed over to the worker. */

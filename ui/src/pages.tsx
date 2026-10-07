@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { color, SHUTDOWN_H, SHUTDOWN_W } from '@grmod/core';
+import { color, MAX_CUSTOM_RATIOS, SHUTDOWN_H, SHUTDOWN_W } from '@grmod/core';
 import type { SlotId } from '@grmod/core';
-import { DropZone, FileButton, Ico, IconCanvas, Menu, Prop, RgbCanvas, Segmented } from './components';
+import { DropZone, FileButton, Ico, IconCanvas, Menu, Prop, RatioIcon, RgbCanvas, Segmented } from './components';
 import { t } from './i18n';
 import type { Key } from './i18n';
 import type { Crop } from './pixels';
 import { onUiScale, uiScale } from './fit';
 import { applySlot } from './preview';
 import {
-  addFactoryWall, addWallFiles, loadFirmwareFile, loadIconImage, loadPresetFile, loadPreviewFile, moveWall, nameProblem, openCrop, outputFirmware, previewPhoto, removePreset, removeWall,
-  setActiveSlot, setCrop, setIcon, setName, setPreviewMode, useStore, wallBitmap,
+  addFactoryWall, addRatio, addWallFiles, loadFirmwareFile, loadIconImage, loadPresetFile, loadPreviewFile, moveWall, nameProblem, openCrop, outputFirmware, previewPhoto, removePreset, removeWall,
+  ratioName, ratioProblem, removeRatio, setActiveRatio, setActiveSlot, setCrop, setIcon, setName, setPreviewMode, setRatio, useStore, wallBitmap,
 } from './store';
-import type { WallItem } from './store';
+import type { RatioItem, WallItem } from './store';
 
 const isPreset = (f: File): boolean => /\.(xmp|cube)$/i.test(f.name);
 const isFirmware = (f: File): boolean => /\.bin$/i.test(f.name);
@@ -204,6 +204,121 @@ export function ImageControlPage() {
         </div>
       )}
       {info && model === 'MONO' && <p className="muted">{t('monoNoSlots')}</p>}
+    </DropZone>
+  );
+}
+
+// ---------------------------------------------------------------- added aspect ratios
+const FACTORY_RATIOS = ['3:2', '4:3', '16:9', '1:1'];
+const COMMON_RATIOS = ['65:24', '2.39:1', '2:1', '5:4', '7:6', '4:5'];
+const size = (s: [number, number]): string => `${s[0]}×${s[1]}`;
+
+function RatioRow({ r, active }: { r: RatioItem; active: boolean }) {
+  const problem = ratioProblem(r);
+  const p = r.preview;
+  const busy = !!r.ratio.trim() && !p;
+  return (
+    <div className={`ratio-row ${active ? 'on' : ''}`} onPointerDownCapture={() => setActiveRatio(r.id)} onFocusCapture={() => setActiveRatio(r.id)}>
+      <RatioIcon pixels={p?.icon} width={48} />
+      <input
+        className={`input ratio-in ${p?.problem ? 'bad' : ''}`} value={r.ratio} maxLength={16} spellCheck={false} placeholder="65:24" aria-label={t('navRatio')}
+        autoFocus={!r.ratio} onChange={(e) => setRatio(r.id, { ratio: e.target.value.replace(/[^0-9:.：/xX×]/g, '').replace(/[：/xX×]/g, ':') })}
+      />
+      <input
+        className={`input ratio-name ${problem && !p?.problem ? 'bad' : ''}`} value={r.name} maxLength={24} spellCheck={false} placeholder={p?.label || t('name')} aria-label={t('name')}
+        onChange={(e) => setRatio(r.id, { name: e.target.value })}
+      />
+      <span className={`ratio-size ${problem ? 'bad' : ''}`} title={problem || undefined}>
+        {busy ? <span className="spinner small" /> : problem ? <span className="ellipsis">{problem}</span> : p?.sizes ? size(p.sizes[0]) : ''}
+      </span>
+      <button className="btn ghost icon-only ratio-x" title={t('remove')} aria-label={t('remove')} onClick={() => removeRatio(r.id)}>{Ico.x}</button>
+    </div>
+  );
+}
+
+/** The 3:2 picture area with the part an added ratio keeps; the rest is what the camera masks. */
+function RatioPane({ r }: { r?: RatioItem }) {
+  const rev = useStore((s) => s.photoRev);
+  const photo = useMemo(() => previewPhoto(), [rev]); // eslint-disable-line react-hooks/exhaustive-deps
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c || !photo) return;
+    c.width = photo.width; c.height = photo.height; c.getContext('2d')!.putImageData(photo, 0, 0);
+  }, [photo]);
+  const p = r?.preview;
+  const sc = p?.screen;
+  const pct = (v: number, of: number): string => `${((v / of) * 100).toFixed(3)}%`;
+  const labels = ['L', 'M', 'S', 'XS'];
+  return (
+    <div className="pane ratio-pane">
+      <div className="pane-head">
+        {p?.icon && r && <><RatioIcon pixels={p.icon} /><b className="ratio-title ellipsis">{ratioName(r)}</b></>}
+        <span className="grow" />
+        {p?.actual && Math.abs(p.errorPercent || 0) > 0.005 && <span className="chip muted" title={`${(p.errorPercent || 0) > 0 ? '+' : ''}${(p.errorPercent || 0).toFixed(2)}%`}>{t('ratioActual', { r: p.actual })}</span>}
+      </div>
+      <div className="ratio-body">
+        <div className="ratio-frame">
+          {photo && <canvas ref={ref} className="ratio-photo" />}
+          {sc && (
+            <>
+              <div className="ratio-shade" style={{ left: 0, top: 0, width: '100%', height: pct(sc.top, 480) }} />
+              <div className="ratio-shade" style={{ left: 0, bottom: 0, width: '100%', height: pct(480 - sc.top - sc.height, 480) }} />
+              <div className="ratio-shade" style={{ left: 0, top: pct(sc.top, 480), width: pct(sc.left, 720), height: pct(sc.height, 480) }} />
+              <div className="ratio-shade" style={{ right: 0, top: pct(sc.top, 480), width: pct(720 - sc.left - sc.width, 720), height: pct(sc.height, 480) }} />
+              <div className="ratio-window" style={{ left: pct(sc.left, 720), top: pct(sc.top, 480), width: pct(sc.width, 720), height: pct(sc.height, 480) }} />
+            </>
+          )}
+        </div>
+        <div className={`chips ratio-out ${p?.sizes ? 'sizes' : ''}`}>
+          {p?.sizes && p.sizes.map((s, i) => <span key={i} className="chip"><b>{labels[i]}</b>{size(s)}</span>)}
+          {p?.problem && <span className="chip bad">{r ? ratioProblem(r) : ''}</span>}
+          {p?.problem && r && (p.nearest || []).map((n) => <button key={n} className="btn small" onClick={() => setRatio(r.id, { ratio: n })}>{n}</button>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function RatioPage() {
+  const info = useStore((s) => s.info);
+  const ratios = useStore((s) => s.ratios);
+  const activeId = useStore((s) => s.activeRatio);
+  const active = ratios.find((r) => r.id === activeId) || ratios[0];
+  const full = ratios.length >= MAX_CUSTOM_RATIOS;
+  const used = new Set(ratios.map((r) => r.ratio.trim()));
+  return (
+    <DropZone className="page" accept={isFirmware} onFiles={(f) => { void loadFirmwareFile(f[0]); }}>
+      <header className="page-head">
+        <span className="page-icon">{Ico.ratio}</span>
+        <h1>{t('navRatio')}</h1>
+        {info && <div className="head-right"><span className="chip">{ratios.filter((r) => r.ratio.trim()).length}/{MAX_CUSTOM_RATIOS}</span></div>}
+      </header>
+      {!info && (
+        <FileButton className="hero-drop" accept=".bin" onFiles={(f) => { void loadFirmwareFile(f[0]); }}>
+          <span className="hero-ico">{Ico.chip}</span><b>{t('dropFirmware')}</b><small>{t('dropFirmwareSub')}</small>
+        </FileButton>
+      )}
+      {info && (
+        <div className="ratio">
+          <div className="ratio-list">
+            <div className="ratio-factory">
+              <span className="muted small">{t('ratioFactory')}</span>
+              {FACTORY_RATIOS.map((f) => <span key={f} className="chip muted">{f}</span>)}
+            </div>
+            {ratios.map((r) => <RatioRow key={r.id} r={r} active={r.id === active?.id} />)}
+            {!full && (
+              <div className="ratio-add">
+                <button className="btn dashed fill" onClick={() => addRatio()}>{Ico.plus}<span>{t('ratioAdd')}</span></button>
+                <div className="chips">
+                  {COMMON_RATIOS.filter((c) => !used.has(c)).map((c) => <button key={c} className="btn ghost small" onClick={() => addRatio(c)}>{c}</button>)}
+                </div>
+              </div>
+            )}
+          </div>
+          <RatioPane r={active} />
+        </div>
+      )}
     </DropZone>
   );
 }

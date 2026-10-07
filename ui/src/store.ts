@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import { card, LANGS } from '@grmod/core';
-import type { CameraModel, FirmwareInfo, FirmwareSummary, LangCode, PresetResult, SlotId, SlotRequest } from '@grmod/core';
+import { card, LANGS, MAX_CUSTOM_RATIOS, validateRatioName } from '@grmod/core';
+import type { CameraModel, FirmwareInfo, FirmwareSummary, LangCode, PresetResult, RatioPreview, RatioSpec, SlotId, SlotRequest } from '@grmod/core';
 import { engine, EngineError } from './engine';
 import { host, HostError, sha256Hex } from './host';
 import type { ParkedEntry, Volume } from './host';
@@ -10,7 +10,9 @@ import { cropToRgb, defaultCrop, ensureIconFont, imageIcon, loadBitmap, textIcon
 import type { Crop } from './pixels';
 import { decodePreview } from './preview';
 
-export type Page = 'ic' | 'wall' | 'script' | 'copies';
+export type Page = 'ic' | 'ratio' | 'wall' | 'script' | 'copies';
+/** One added aspect ratio as typed; `preview` is what the camera would make of it (absent while that is worked out). */
+export interface RatioItem { id: string; ratio: string; name: string; preview?: RatioPreview }
 export interface PresetState { fileName: string; kind: 'xmp' | 'cube'; text: string; busy: boolean; result?: PresetResult; error?: string }
 export interface IconState { mode: 'keep' | 'text' | 'image'; text: string; style: 'film' | 'plain'; image?: string; pixels?: Uint8Array }
 export interface SlotState { preset?: PresetState; names: Partial<Record<LangCode, string>>; icon: IconState }
@@ -34,6 +36,7 @@ export interface State {
   model: CameraModel; lang: LangCode;
   slots: Record<SlotId, SlotState>;
   wall: WallItem[];
+  ratios: RatioItem[]; activeRatio?: string;
   previewMode: PreviewMode; photoRev: number; cardWall?: CardWall; activeSlot: SlotId;
   volumes: Volume[]; showAll: boolean; volumeId?: string; role?: card.CardRole; entryOnCard: boolean;
   copySource: CopySource; parked: ParkedEntry[]; backups: ParkedEntry[]; copySel: string[]; copyInfo: Record<string, CopyInfo>; builds: BuildRecord[];
@@ -44,7 +47,7 @@ const SLOT_IDS: SlotId[] = ['CY', 'CG'];
 const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '', style: 'film' } });
 let state: State = {
   ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: 'zh-CN',
-  slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false,
+  slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], ratios: [], previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false,
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [],
 };
 const listeners = new Set<() => void>();
@@ -99,6 +102,7 @@ async function saveProject(): Promise<void> {
       icon: { mode: s.slots[id].icon.mode, text: s.slots[id].icon.text, style: s.slots[id].icon.style, image: s.slots[id].icon.image },
     }])),
     wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: w.kind, width: w.width, height: w.height, crop: w.crop })),
+    ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
   };
   try { await host.storeSet('project.json', JSON.stringify(doc)); } catch (e) { console.warn('save failed', e); }
 }
@@ -120,7 +124,10 @@ export async function init(): Promise<void> {
         slots[id].names = d.names || {};
         if (d.icon) slots[id].icon = { mode: d.icon.mode || 'keep', text: d.icon.text || '', style: d.icon.style || 'film', image: d.icon.image };
       }
-      set({ page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' ? doc.page : 'ic', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', cardWall: validCardWall(doc.cardWall) });
+      const ratios: RatioItem[] = (Array.isArray(doc.ratios) ? doc.ratios : []).slice(0, MAX_CUSTOM_RATIOS)
+        .filter((r: RatioItem) => r && typeof r.id === 'string' && typeof r.ratio === 'string')
+        .map((r: RatioItem) => ({ id: r.id, ratio: r.ratio.slice(0, 24), name: String(r.name || '').slice(0, 80) }));
+      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' ? doc.page : 'ic', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', cardWall: validCardWall(doc.cardWall) });
       const fwRaw = await host.storeGet('firmware.bin');
       if (fwRaw) await openFirmware(fwRaw, doc.fwName || 'fwdc248b.bin', false);
       for (const id of SLOT_IDS) {
@@ -168,6 +175,7 @@ async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Pr
       if (p && !p.result && !p.busy) void runPreset(id, p.fileName, p.kind, p.text);
     }
     for (const w of state.wall) void encodeWall(w.id);
+    void refreshRatios();
   } catch (e) {
     set({ fwBusy: false });
     if (e instanceof EngineError && (e.code === 'unsupported-firmware' || e.code.startsWith('bad-') || e.code === 'too-short')) toast(t('badFirmware'), 'error');
@@ -343,6 +351,69 @@ export function moveWall(id: string, toIndex: number): void {
 }
 export function openCrop(id: string | undefined): void { set({ cropId: id }); }
 export function setCrop(id: string, crop: Crop): void { setWall(id, { crop }); set({ cropId: undefined }); void encodeWall(id); scheduleSave(); }
+
+// ------------------------------------------------------------------ added aspect ratios
+const RATIO_PROBLEMS: Record<NonNullable<RatioPreview['problem']>, Key> = {
+  'bad-ratio': 'ratioBad', 'ratio-factory': 'ratioIsFactory', 'ratio-too-extreme': 'ratioExtreme', 'ratio-quick-view': 'ratioQuick',
+  'ratio-metering': 'ratioMetering', 'ratio-conflict': 'ratioConflict', 'ratio-duplicate': 'ratioDup',
+};
+const NAME_PROBLEMS: Record<string, Key> = { 'too-long': 'ratioNameLong', 'bad-char': 'ratioNameBad', empty: 'ratioNameBad' };
+/** Why a row cannot be built (shown in the row), or null. A row without a ratio is simply not built. */
+export function ratioProblem(r: RatioItem): string | null {
+  if (!r.ratio.trim()) return null;
+  if (r.preview?.problem) return t(RATIO_PROBLEMS[r.preview.problem]);
+  const n = r.name.trim() ? validateRatioName(r.name.trim()) : null;
+  return n ? t(NAME_PROBLEMS[n]) : null;
+}
+/** The menu name a row gets: what was typed, else the ratio as written on its icon. */
+export const ratioName = (r: RatioItem): string => r.name.trim() || r.preview?.label || r.ratio.trim();
+/** The rows that will be built into the firmware, in menu order. */
+export function ratioSpecs(s: State = state): RatioSpec[] {
+  return s.ratios.filter((r) => r.ratio.trim() && r.preview && !ratioProblem(r)).map((r) => ({ name: ratioName(r), ratio: r.ratio.trim() }));
+}
+/** True while a filled row is wrong or still being looked at: nothing is written then. */
+export function hasRatioErrors(s: State = state): boolean {
+  return s.ratios.some((r) => r.ratio.trim() && (!r.preview || !!ratioProblem(r)));
+}
+let ratioGen = 0; let ratioTimer: ReturnType<typeof setTimeout> | undefined;
+/** Work out every row again: whether a row is acceptable depends on the rows before it. */
+async function refreshRatios(): Promise<void> {
+  const gen = ++ratioGen;
+  if (!state.info) return;
+  const rows = state.ratios.map((r) => ({ id: r.id, ratio: r.ratio.trim() }));
+  const good: string[] = []; const previews = new Map<string, RatioPreview | undefined>();
+  for (const r of rows) {
+    if (!r.ratio) { previews.set(r.id, undefined); continue; }
+    let p: RatioPreview;
+    try { p = await engine.ratio(r.ratio, good); } catch { p = { problem: 'bad-ratio' }; }
+    if (gen !== ratioGen) return;
+    previews.set(r.id, p);
+    if (!p.problem) good.push(r.ratio);
+  }
+  set((s) => ({ ratios: s.ratios.map((r) => (previews.has(r.id) && r.ratio.trim() === rows.find((x) => x.id === r.id)?.ratio ? { ...r, preview: previews.get(r.id) } : r)) }));
+}
+function ratiosChanged(now = false): void {
+  scheduleSave();
+  clearTimeout(ratioTimer);
+  if (now) void refreshRatios(); else ratioTimer = setTimeout(() => { void refreshRatios(); }, 160);
+}
+export function addRatio(ratio = ''): void {
+  if (state.ratios.length >= MAX_CUSTOM_RATIOS) { toast(t('ratioMax', { n: MAX_CUSTOM_RATIOS }), 'info'); return; }
+  const empty = state.ratios.find((r) => !r.ratio.trim() && !r.name.trim());
+  if (empty && !ratio) { set({ activeRatio: empty.id }); return; }
+  const id = Math.random().toString(36).slice(2, 10);
+  set((s) => ({ ratios: empty ? s.ratios.map((r) => (r.id === empty.id ? { ...r, ratio } : r)) : [...s.ratios, { id, ratio, name: '' }], activeRatio: empty ? empty.id : id }));
+  ratiosChanged(true);
+}
+export function setRatio(id: string, patch: { ratio?: string; name?: string }): void {
+  set((s) => ({ ratios: s.ratios.map((r) => (r.id === id ? { ...r, ...patch, preview: patch.ratio !== undefined && patch.ratio.trim() !== r.ratio.trim() ? undefined : r.preview } : r)), activeRatio: id }));
+  if (patch.ratio !== undefined) ratiosChanged(); else scheduleSave();
+}
+export function removeRatio(id: string): void {
+  set((s) => { const ratios = s.ratios.filter((r) => r.id !== id); return { ratios, activeRatio: s.activeRatio === id ? ratios[0]?.id : s.activeRatio }; });
+  ratiosChanged(true);
+}
+export function setActiveRatio(id: string): void { if (state.activeRatio !== id) set({ activeRatio: id }); }
 
 // ------------------------------------------------------------------ preview photo
 const PREVIEW_KEY = 'preview.jpg'; const PREVIEW_CACHE = 'preview-default.jpg';
@@ -545,10 +616,13 @@ async function firmwareToCard(volume: Volume, file: Uint8Array): Promise<{ moved
 export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   if (state.busy || !state.info || !state.raw) return;
   const changes = stock ? [] : pendingChanges();
-  if (!stock && changes.length === 0) { toast(t('nothingToDo'), 'info'); return; }
+  const ratios = stock ? [] : ratioSpecs();
+  if (!stock && (hasNameErrors() || hasRatioErrors())) return;
+  if (!stock && changes.length === 0 && ratios.length === 0) { toast(t('nothingToDo'), 'info'); return; }
   if (dest.kind === 'card') {
     const lines = stock ? [] : changes.map((c) => `${t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
-    if (!(await ask(t('confirmTitle'), stock ? t('confirmStock') : t('confirmBody'), lines, t('confirmOk')))) return;
+    if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
+    if (!(await ask(t('confirmTitle'), stock ? t('confirmStock') : ratios.length ? t('confirmRatio') : t('confirmBody'), lines, t('confirmOk')))) return;
   }
   const target = await destination(dest);
   if (!target) return;
@@ -557,7 +631,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (stock) file = state.raw;
     else {
       set({ busy: t('building') });
-      const built = await engine.build(changes.map((c) => c.request));
+      const built = await engine.build(changes.map((c) => c.request), ratios);
       if (!Object.values(built.checks).every((v) => v === true)) throw new EngineError('selfcheck-failed', 'self-check');
       file = built.file;
       void recordBuild(file, changes);
@@ -757,11 +831,13 @@ export function writableCopy(s: State = state): { entry: ParkedEntry; summary: F
 export function describeCopy(summary: FirmwareSummary, s: State = state): string[] {
   if (summary.kind === 'official') return [t('copyOfficial')];
   const build = s.builds.find((b) => b.sha256 === summary.sha256);
-  return summary.slots.map((sl) => {
+  const lines = summary.slots.map((sl) => {
     const preset = build?.slots.find((x) => x.id === sl.id)?.preset;
     const parts = [sl.colorChanged ? preset || t('copyColor') : '', sl.iconChanged ? t('copyIcon') : '', sl.nameChanged ? t('copyName') : ''].filter(Boolean);
     return `${sl.names[s.lang]}  ·  ${parts.join(' / ') || t('original')}`;
   });
+  if (summary.ratios.length) lines.push(t('ratioLine', { n: summary.ratios.length, l: summary.ratios.map((r) => r.name).join(' / ') }));
+  return lines;
 }
 /** Put the selected firmware copy (from the card's parked files or from a backup) on the card as the firmware to install. */
 export async function writeCopy(): Promise<void> {
@@ -770,7 +846,7 @@ export async function writeCopy(): Promise<void> {
   if (state.busy || !pick || !state.info) return;
   if (!v) { toast(t('noCard'), 'error'); return; }
   const official = pick.summary.kind === 'official';
-  if (!(await ask(t('confirmTitle'), official ? t('confirmStock') : t('confirmBody'), describeCopy(pick.summary), t('confirmOk')))) return;
+  if (!(await ask(t('confirmTitle'), official ? t('confirmStock') : pick.summary.ratios.length ? t('confirmRatio') : t('confirmBody'), describeCopy(pick.summary), t('confirmOk')))) return;
   try {
     set({ busy: t('opening') });
     const file = source === 'card' ? await host.parkedRead(v.id, pick.entry.path) : await host.backupRead(pick.entry.path);

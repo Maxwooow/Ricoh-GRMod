@@ -1,7 +1,12 @@
 # SPDX-License-Identifier: GPL-2.0-only
 """Independent look at a firmware file GR Mod produced with added ratios.
 
-  python3 verify_file.py FILE [--boot]
+  python3 verify_file.py FILE [--boot] [--base BASE]
+
+BASE is for a file that also carries Image Control edits: a firmware built by GR Mod with the
+same edits but without added ratios. The comparisons that say "nothing else changed" are then
+made against BASE instead of the official file (the factory ratios' geometry is still compared
+with the official firmware).
 
 1. Opens FILE with the reference tool's own strict container reader (checksums, section order,
    component versions) and compares every section with the official file.
@@ -28,6 +33,13 @@ def main():
     data = open(path, 'rb').read()
     image = _load_bytes(data)
     official = common.image()
+    truly_official = official
+    if '--base' in sys.argv:
+        base = _load_bytes(open(sys.argv[sys.argv.index('--base') + 1], 'rb').read())
+        assert [(r['name'], r['end'] - r['start']) for r in base.sections] == [(r['name'], r['end'] - r['start']) for r in official.sections], 'BASE is not of official layout'
+        changed = [r['name'] for r, o in zip(base.sections, official.sections) if base.decoded[r['start']:r['end']] != official.decoded[o['start']:o['end']]]
+        print('base: official layout; sections with Image Control edits:', changed)
+        official = base
     print('container: ok, version', image.internal_version, 'frames', image.layout_proof['frames'])
     by_name = {row['name']: row for row in official.sections}
     for row in image.sections:
@@ -41,7 +53,7 @@ def main():
             print(f"  {row['name']}: +{grown} bytes, {diff} words changed in the official part")
         else:
             assert new_bytes == old_bytes, 'section changed: ' + row['name']
-    assert image.version == official.version
+    assert image.version == truly_official.version
 
     rows, inspection = read_crops(image.rtos)
     if inspection.get('native_readback') != 'passed':

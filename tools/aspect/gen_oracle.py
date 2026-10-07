@@ -3,6 +3,7 @@
 
   python3 gen_oracle.py single [start [stop]]   every possible screen geometry, one ratio each (299)
   python3 gen_oracle.py multi N [seed]          N random lists of 1..8 ratios with assorted names
+  python3 gen_oracle.py valid N [seed]          N random lists of 2..8 ratios that are each buildable
   python3 gen_oracle.py fixture                 merge the logs into core/test/fw-helpers/aspect-oracle.json
 
 Results are appended to tools/aspect/out/*.jsonl as they finish, so a run can be interrupted and
@@ -102,9 +103,30 @@ def multi_cases(count, seed):
     return cases
 
 
+def valid_cases(count, seed):
+    """Lists made only of ratios the single run accepted, so that most lists build (long ones too)."""
+    rng = random.Random(1000 + seed)
+    good = []
+    for line in (OUT / 'single.jsonl').read_text(encoding='utf-8').splitlines():
+        row = json.loads(line)
+        if row['ok'] and row['ratios'][0][1] not in ('720:480', '640:480', '480:480'):
+            good.append(row['ratios'][0][1])
+    extra = ['65:24', '2.39:1', '2.35:1', '16:10', '5:4', '7:6', '6:7', '4:5', '2:1', '6:17', '17:6', '21:9', '5:3', '2:3', '3:4', '9:16']
+    cases = []
+    while len(cases) < count:
+        size = rng.choice([2, 3, 4, 5, 6, 7, 8, 8])
+        ratios = []
+        for _ in range(size):
+            ratio = rng.choice(extra) if rng.random() < 0.4 else rng.choice(good)
+            name = ratio if rng.random() < 0.5 else rng.choice(NAME_POOL)
+            ratios.append((name, ratio))
+        cases.append(ratios)
+    return cases
+
+
 def fixture():
     rows = []
-    for name in ('single', 'multi'):
+    for name in ('single', 'multi', 'valid'):
         log = OUT / (name + '.jsonl')
         if log.exists():
             rows += [json.loads(line) for line in log.read_text(encoding='utf-8').splitlines() if line.strip()]
@@ -131,6 +153,14 @@ if __name__ == '__main__':
         seed = int(sys.argv[3]) if len(sys.argv) > 3 else 1
         for index, ratios in enumerate(multi_cases(int(sys.argv[2]), seed)):
             key = f'm{seed}-{index}'
+            if key not in seen:
+                run(key, ratios, log)
+    elif mode == 'valid':
+        log = OUT / 'valid.jsonl'
+        seen = done(log)
+        seed = int(sys.argv[3]) if len(sys.argv) > 3 else 1
+        for index, ratios in enumerate(valid_cases(int(sys.argv[2]), seed)):
+            key = f'v{seed}-{index}'
             if key not in seen:
                 run(key, ratios, log)
     elif mode == 'fixture':

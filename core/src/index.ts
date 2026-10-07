@@ -12,4 +12,6 @@ export type { CameraModel } from './wallpaper';
 export type { Sampling } from './jpeg';
 export { LANGS, SLOTS, ICON_W, ICON_H } from './fw';
 export type { BuiltRatio, RatioSpec } from './fw';
-export { MAX_CUSTOM_RATIOS, MAX_NAME_LENGTH } from './fw';
+export { MAX_CUSTOM_RATIOS, MAX_NAME_LENGTH, validateRatioName } from './fw';
+export { RATIO_ICON_H, RATIO_ICON_W } from './fw/aspect';
+export type { RatioPreview } from './app';
