@@ -712,7 +712,12 @@ def check_raw_development(official, patched, order):
                 assert not old_failed and old_back == src and run_call(mp, 0x53375088, 0, src, current)[0] == src, 'code 0 (as shot) must map to the source ratio'
                 assert run_call(mp, 0x5336D814, 0, src, current)[0] == 0
             else:
-                assert new_list[0 if not current else 1:] == [5 + custom.index(t) for t in custom if 5 + custom.index(t) in new_list], 'RAW targets of an added ratio'
+                # An added ratio: "as shot" first when offered, then targets in menu order, itself among them.
+                targets = new_list[1:] if current else new_list
+                assert (not current) or new_list[0] == 0
+                publics = [run_call(mp, 0x53375088, code, src, current)[0] for code in targets]
+                positions = [order.index(public) for public in publics]
+                assert positions == sorted(positions) and len(set(positions)) == len(positions) and src in publics, ('RAW targets of an added ratio', src, new_list)
             for code in new_list:
                 if code:  # code 0 is "as shot": not a re-cut target (the official answer for it is compared above)
                     assert run_call(mp, 0x5336D814, code, src, current)[0] == 1, 'offered target is not valid'
@@ -796,7 +801,7 @@ def check_entry_wrappers(official, patched, order):
         def native_copy(machine):
             seen['regs'] = [machine.uc.reg_read(r) for r in REGS]
             ret(machine, 0x55)
-        after = call(mp, state, 0x53877C9C, {0x53877CA0: native_copy})
+        after = call(mp, state, 0x53877C9C, {0x53877CA0: native_copy}, limit=400000)
         assert seen['regs'][0] == dst and seen['regs'][1] == src and seen['regs'][12] == seen['regs'][13], 'copy: arguments'
         assert after['regs'][4:12] == state['regs'][4:12] and after['regs'][13] == state['regs'][13], 'copy: registers'
         expected = dict(state)

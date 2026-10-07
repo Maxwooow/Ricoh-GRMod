@@ -11,3 +11,5 @@ export type { LangCode, SlotId, NameValidation } from './fw';
 export type { CameraModel } from './wallpaper';
 export type { Sampling } from './jpeg';
 export { LANGS, SLOTS, ICON_W, ICON_H } from './fw';
+export type { BuiltRatio, RatioSpec } from './fw';
+export { MAX_CUSTOM_RATIOS, MAX_NAME_LENGTH } from './fw';

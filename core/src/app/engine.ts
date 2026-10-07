@@ -6,29 +6,45 @@ import {
   CONTENT_AREA,
   DECODED_SIZE,
   FIRMWARE_VERSION,
+  FRAME_SIZE,
   Firmware,
   FirmwareError,
+  ICONBIN_LENGTH,
+  ICONBIN_OFFSET,
   LANGS,
   LEN,
+  MAX_CUSTOM_RATIOS,
+  RTOS_LENGTH,
+  RTOS_OFFSET,
   SLOTS,
   allowedChars,
+  aspect,
   buildFirmware,
   countChangedBytes,
   editableRanges,
   equalRange,
   foff,
+  gr4Sizes,
   listResources,
   openOfficial,
+  planRatio,
+  planRatios,
+  ratioText,
   readIcon,
   readFactoryEntry,
   readName,
+  readRatioRecord,
   resolveLayout,
+  sectionsOf,
   selfCheck,
+  selfCheckGrown,
   sha256Hex,
   tileTemplate,
   validateName,
+  validateRatioName,
 } from '../fw';
-import type { BuildResult, FactoryEntry, LangCode, Layout, NameValidation, Range, SlotEdit, SlotId } from '../fw';
+import type { BuildResult, BuiltRatio, FactoryEntry, LangCode, Layout, NameValidation, Range, RatioSpec, SlotEdit, SlotId } from '../fw';
+import { grownRanges, growPayload } from '../fw/aspect/package';
 import { convertCube, convertXmp, quantizeSlot } from '../color';
 import type { SlotParams } from '../color';
 import { JpegError, checkShutdownJpeg, decodeBaselineJpeg, encodeExactJpeg, inspectJpeg } from '../jpeg';
@@ -88,6 +104,23 @@ export interface SlotRequest {
 
 export type FirmwareBuild = Omit<BuildResult, 'decoded'>;
 
+/** What adding a ratio would give, for the UI; `problem` is set (and the rest absent) when it cannot be added. */
+export interface RatioPreview {
+  problem?: 'bad-ratio' | 'ratio-factory' | 'ratio-too-extreme' | 'ratio-quick-view' | 'ratio-metering' | 'ratio-conflict' | 'ratio-duplicate';
+  /** The ratio the pixel grid really gives, reduced (e.g. `30:11` for 65:24). */
+  actual?: string;
+  /** Relative difference between the actual and the requested ratio, in percent. */
+  errorPercent?: number;
+  /** Crop of the 720x480 screen image: also the shape of the live-view frame. */
+  screen?: { left: number; top: number; width: number; height: number };
+  /** JPEG sizes L, M, S, XS on a GR IV without crop. */
+  sizes?: [number, number][];
+  /** 60x40 RGBA menu icon. */
+  icon?: Uint8Array;
+  /** With `ratio-quick-view`: the closest ratios that do work, wider first (at most two). */
+  nearest?: string[];
+}
+
 /** What a firmware file found on a card (or in a backup) is, compared with the official one. */
 export interface FirmwareSummary {
   sha256: string;
@@ -110,6 +143,8 @@ export interface FirmwareSummary {
     nameChanged: boolean;
     iconChanged: boolean;
   }[];
+  /** Aspect ratios this file adds to the camera (empty when none, or when they cannot be read). */
+  ratios: BuiltRatio[];
 }
 
 export interface ShutdownImage {
@@ -267,17 +302,161 @@ export class Engine {
         const iconChanged = !equalRange(d, s.iconOffset, this.decoded, s.iconOffset, icon.length);
         return { id: s.id, names, icon, colorChanged, nameChanged, iconChanged };
       });
-    if (sha256 === this.info.sha256) return { sha256, kind: 'official', changedBytes: 0, verified: true, slots: describe(this.decoded) };
+    if (sha256 === this.info.sha256) return { sha256, kind: 'official', changedBytes: 0, verified: true, slots: describe(this.decoded), ratios: [] };
     try {
       const fw = new Firmware(raw);
-      if (fw.decoded.length !== DECODED_SIZE || !equalRange(fw.header, 0, this.raw, 0, fw.header.length)) throw new Error('not 1.11');
+      if (!equalRange(fw.header, 0, this.raw, 0, fw.header.length)) throw new Error('not 1.11');
       if (!this.editable) this.editable = editableRanges(this.decoded);
+      if (fw.decoded.length !== DECODED_SIZE) return this.inspectGrown(sha256, raw, fw.decoded, describe);
       const checks = selfCheck(this.raw, raw, this.editable);
       const verified = Object.values(checks).every((v) => v === true);
-      return { sha256, kind: 'modified', changedBytes: countChangedBytes(fw.decoded, this.decoded), verified, slots: describe(fw.decoded) };
+      return { sha256, kind: 'modified', changedBytes: countChangedBytes(fw.decoded, this.decoded), verified, slots: describe(fw.decoded), ratios: [] };
     } catch {
-      return { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [] };
+      return { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [] };
     }
+  }
+
+  /**
+   * A file whose payload is longer than the official one: recognised when RTOS and ICONBIN grew
+   * by whole frames and the end of RTOS carries this program's record of added ratios. It is
+   * `verified` when building the same ratios (on top of the same slot edits) gives exactly this
+   * payload, and the file passes the self-check for grown files.
+   */
+  private inspectGrown(sha256: string, raw: Uint8Array, dec: Uint8Array, describe: (d: Uint8Array) => FirmwareSummary['slots']): FirmwareSummary {
+    const unknown: FirmwareSummary = { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [] };
+    const so = sectionsOf(this.decoded);
+    const sn = sectionsOf(dec);
+    if (so.length !== sn.length) return unknown;
+    let rtosGrowth = 0;
+    let iconGrowth = 0;
+    for (let i = 0; i < so.length; i++) {
+      if (so[i].name !== sn[i].name) return unknown;
+      if (so[i].name === 'RES') continue;
+      const grown = sn[i].size - so[i].size;
+      if (so[i].name === 'RTOS') rtosGrowth = grown;
+      else if (so[i].name === 'ICONBIN') iconGrowth = grown;
+      else if (grown !== 0) return unknown;
+    }
+    if (!(rtosGrowth > 0 && iconGrowth > 0 && rtosGrowth % FRAME_SIZE === 0 && iconGrowth % FRAME_SIZE === 0 && dec.length === DECODED_SIZE + rtosGrowth + iconGrowth)) return unknown;
+    // The payload with the added blocks taken out again: official layout.
+    const aligned = new Uint8Array(DECODED_SIZE);
+    const rtosEnd = RTOS_OFFSET + RTOS_LENGTH;
+    const iconEnd = ICONBIN_OFFSET + ICONBIN_LENGTH;
+    aligned.set(dec.subarray(0, rtosEnd), 0);
+    aligned.set(dec.subarray(rtosEnd + rtosGrowth, iconEnd + rtosGrowth), rtosEnd);
+    aligned.set(dec.subarray(iconEnd + rtosGrowth + iconGrowth), iconEnd);
+    aligned.set(this.decoded.subarray(RTOS_OFFSET - 4, RTOS_OFFSET), RTOS_OFFSET - 4);
+    aligned.set(this.decoded.subarray(ICONBIN_OFFSET - 4, ICONBIN_OFFSET), ICONBIN_OFFSET - 4);
+    const specs = readRatioRecord(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth));
+    const modified = (verified: boolean, ratios: BuiltRatio[], slotsFrom: Uint8Array): FirmwareSummary => ({
+      sha256, kind: 'modified', changedBytes: countChangedBytes(aligned, this.decoded) + rtosGrowth + iconGrowth, verified, slots: describe(slotsFrom), ratios,
+    });
+    if (!specs) return modified(false, [], aligned);
+    let ratios: BuiltRatio[] = [];
+    try {
+      const plan = planRatios(specs);
+      ratios = plan.map((r) => ({ id: r.id, name: r.name, ratio: r.ratio, actual: ratioText(r.geometry.actual.n, r.geometry.actual.d), sizes: gr4Sizes(r.geometry) }));
+      // Undo the hook words (their places are the same for every list of ratios of this length
+      // or any other: they are found by building once on the official image).
+      const probe = aspect.installRatios(this.decoded.slice(RTOS_OFFSET, rtosEnd), this.decoded.slice(ICONBIN_OFFSET, iconEnd), plan);
+      for (const w of probe.words) {
+        const o = RTOS_OFFSET + (w.address - 0x53000000);
+        aligned.set(this.decoded.subarray(o, o + 4), o);
+      }
+      // What is left must be this program's same-length edits only...
+      const editable = this.editable as Range[];
+      const sorted = [...editable].sort((a, b) => a.offset - b.offset);
+      let ri = 0;
+      let cover = -1;
+      for (let i = 0; i < DECODED_SIZE; i++) {
+        if (aligned[i] === this.decoded[i]) continue;
+        while (ri < sorted.length && sorted[ri].offset <= i) {
+          cover = Math.max(cover, sorted[ri].offset + sorted[ri].length);
+          ri++;
+        }
+        if (i >= cover) return modified(false, ratios, aligned);
+      }
+      // ... and building the ratios on top of them must give this very payload.
+      const built = aspect.installRatios(aligned.slice(RTOS_OFFSET, rtosEnd), aligned.slice(ICONBIN_OFFSET, iconEnd), plan);
+      const grown = growPayload(aligned, built, specs);
+      const same = grown.decoded.length === dec.length && equalRange(grown.decoded, 0, dec, 0, dec.length);
+      if (!same) return modified(false, ratios, aligned);
+      const ranges: Range[] = editable.map((r) => (r.offset >= ICONBIN_OFFSET ? { ...r, offset: r.offset + grown.rtosGrowth } : r));
+      ranges.push(...grownRanges(grown, built));
+      const checks = selfCheckGrown(this.raw, raw, ranges, grown.decoded);
+      return modified(Object.values(checks).every((v) => v === true), ratios, aligned);
+    } catch {
+      return modified(false, ratios, aligned);
+    }
+  }
+
+  /**
+   * What a ratio would become in the camera. `others` are the ratios already in the list (the
+   * new one must not collide with them). Never throws.
+   */
+  previewRatio(ratio: string, others: readonly string[] = []): RatioPreview {
+    try {
+      const g = planRatio(ratio);
+      for (const o of others) {
+        let og;
+        try {
+          og = planRatio(o);
+        } catch {
+          continue;
+        }
+        if (og.screen.width === g.screen.width && og.screen.height === g.screen.height) return { problem: 'ratio-duplicate' };
+      }
+      const all: RatioSpec[] = [...others, ratio].map((r, i) => ({ name: `r${i}`, ratio: r }));
+      try {
+        if (all.length <= MAX_CUSTOM_RATIOS) planRatios(all);
+      } catch (e) {
+        if (e instanceof FirmwareError && e.code === 'ratio-conflict') return { problem: 'ratio-conflict' };
+      }
+      const requested = g.requested.toNumber();
+      return {
+        actual: ratioText(g.actual.n, g.actual.d),
+        errorPercent: (g.actual.toNumber() / requested - 1) * 100,
+        screen: { ...g.screen },
+        sizes: gr4Sizes(g),
+        icon: aspect.drawRatioIcon(ratio),
+      };
+    } catch (e) {
+      if (e instanceof FirmwareError) {
+        const known = ['bad-ratio', 'ratio-factory', 'ratio-too-extreme', 'ratio-quick-view', 'ratio-metering', 'ratio-conflict'];
+        const problem = (known.includes(e.code) ? e.code : 'bad-ratio') as RatioPreview['problem'];
+        if (problem !== 'ratio-quick-view') return { problem };
+        // Step the screen rectangle 4 pixels at a time in both directions until a ratio works.
+        const nearest: string[] = [];
+        try {
+          const want = aspect.parseRatio(ratio);
+          const screen = aspect.alignedCrop(aspect.SCREEN_W, aspect.SCREEN_H, want);
+          if (screen) {
+            const wideFrame = screen.width === aspect.SCREEN_W;
+            for (const direction of [-1, 1]) {
+              for (let k = 1; k <= 12; k++) {
+                const w = wideFrame ? aspect.SCREEN_W : screen.width - direction * 4 * k;
+                const h = wideFrame ? screen.height + direction * 4 * k : aspect.SCREEN_H;
+                if (!(w >= 4 && w <= aspect.SCREEN_W && h >= 4 && h <= aspect.SCREEN_H)) break;
+                const candidate = ratioText(w, h);
+                if (this.previewRatio(candidate, others).problem === undefined) {
+                  nearest.push(candidate);
+                  break;
+                }
+              }
+            }
+          }
+        } catch {
+          /* no suggestion */
+        }
+        return { problem, nearest };
+      }
+      return { problem: 'bad-ratio' };
+    }
+  }
+
+  /** Null when `name` can be a ratio's menu name. */
+  validateRatioName(name: string): 'empty' | 'too-long' | 'bad-char' | null {
+    return validateRatioName(name);
   }
 
   /** The official file, for "write factory firmware". */
@@ -298,7 +477,7 @@ export class Engine {
   }
 
   /** Build a firmware file. The result has passed the built-in self-check (otherwise this throws). */
-  async buildFirmware(requests: SlotRequest[]): Promise<FirmwareBuild> {
+  async buildFirmware(requests: SlotRequest[], ratios: readonly RatioSpec[] = []): Promise<FirmwareBuild> {
     const edits: SlotEdit[] = [];
     for (const r of requests) {
       const e: SlotEdit = { slot: r.slot };
@@ -307,8 +486,8 @@ export class Engine {
       if (r.names && Object.keys(r.names).length > 0) e.names = r.names;
       if (e.color || e.icon || e.names) edits.push(e);
     }
-    if (edits.length === 0) throw new FirmwareError('bad-edit', 'nothing to change');
-    const { decoded: _decoded, ...rest } = await buildFirmware(this.raw, edits);
+    if (edits.length === 0 && ratios.length === 0) throw new FirmwareError('bad-edit', 'nothing to change');
+    const { decoded: _decoded, ...rest } = await buildFirmware(this.raw, edits, ratios);
     return rest;
   }
 
