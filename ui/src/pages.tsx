@@ -9,7 +9,7 @@ import { onUiScale, uiScale } from './fit';
 import { applySlot } from './preview';
 import {
   addFactoryWall, addRatio, addWallFiles, loadFirmwareFile, loadIconImage, loadPresetFile, loadPreviewFile, moveWall, nameProblem, openCrop, outputFirmware, previewPhoto, removePreset, removeWall,
-  ratioName, ratioProblem, removeRatio, setActiveRatio, setActiveSlot, setCrop, setIcon, setName, setPreviewMode, setRatio, useStore, wallBitmap,
+  ratioName, ratioProblem, removeRatio, setActiveRatio, setActiveSlot, setCrop, setIcon, setName, setPreviewMode, setRatio, setRatioBackdrop, useStore, wallBitmap,
 } from './store';
 import type { RatioItem, WallItem } from './store';
 
@@ -240,27 +240,29 @@ function RatioRow({ r, active }: { r: RatioItem; active: boolean }) {
 /** The 3:2 picture area with the part an added ratio keeps; the rest is what the camera masks. */
 function RatioPane({ r }: { r?: RatioItem }) {
   const rev = useStore((s) => s.photoRev);
+  const backdrop = useStore((s) => s.ratioBackdrop);
   const photo = useMemo(() => previewPhoto(), [rev]); // eslint-disable-line react-hooks/exhaustive-deps
   const ref = useRef<HTMLCanvasElement>(null);
+  const showPhoto = backdrop === 'photo' && !!photo;
   useEffect(() => {
     const c = ref.current;
-    if (!c || !photo) return;
+    if (!c || !photo || !showPhoto) return;
     c.width = photo.width; c.height = photo.height; c.getContext('2d')!.putImageData(photo, 0, 0);
-  }, [photo]);
+  }, [photo, showPhoto]);
   const p = r?.preview;
   const sc = p?.screen;
   const pct = (v: number, of: number): string => `${((v / of) * 100).toFixed(3)}%`;
   const labels = ['L', 'M', 'S', 'XS'];
   return (
-    <div className="pane ratio-pane">
+    <DropZone className="pane ratio-pane" accept={isImage} onFiles={(f) => { void loadPreviewFile(f[0]); }}>
       <div className="pane-head">
-        {p?.icon && r && <><RatioIcon pixels={p.icon} /><b className="ratio-title ellipsis">{ratioName(r)}</b></>}
+        {p?.icon && r && <><RatioIcon pixels={p.icon} width={42} /><b className="ratio-title ellipsis">{ratioName(r)}</b></>}
         <span className="grow" />
-        {p?.actual && Math.abs(p.errorPercent || 0) > 0.005 && <span className="chip muted" title={`${(p.errorPercent || 0) > 0 ? '+' : ''}${(p.errorPercent || 0).toFixed(2)}%`}>{t('ratioActual', { r: p.actual })}</span>}
+        <Segmented value={backdrop} onChange={setRatioBackdrop} options={[{ value: 'photo', label: t('previewPhoto') }, { value: 'gray', label: t('ratioGray') }]} />
       </div>
       <div className="ratio-body">
-        <div className="ratio-frame">
-          {photo && <canvas ref={ref} className="ratio-photo" />}
+        <div className={`ratio-frame ${showPhoto ? '' : 'gray'}`}>
+          {showPhoto && <canvas ref={ref} className="ratio-photo" />}
           {sc && (
             <>
               <div className="ratio-shade" style={{ left: 0, top: 0, width: '100%', height: pct(sc.top, 480) }} />
@@ -270,6 +272,7 @@ function RatioPane({ r }: { r?: RatioItem }) {
               <div className="ratio-window" style={{ left: pct(sc.left, 720), top: pct(sc.top, 480), width: pct(sc.width, 720), height: pct(sc.height, 480) }} />
             </>
           )}
+          {showPhoto && <FileButton className="btn mini compare-swap" accept="image/*" title={t('changePhoto')} onFiles={(f) => { void loadPreviewFile(f[0]); }}>{Ico.image}</FileButton>}
         </div>
         <div className={`chips ratio-out ${p?.sizes ? 'sizes' : ''}`}>
           {p?.sizes && p.sizes.map((s, i) => <span key={i} className="chip"><b>{labels[i]}</b>{size(s)}</span>)}
@@ -277,7 +280,7 @@ function RatioPane({ r }: { r?: RatioItem }) {
           {p?.problem && r && (p.nearest || []).map((n) => <button key={n} className="btn small" onClick={() => setRatio(r.id, { ratio: n })}>{n}</button>)}
         </div>
       </div>
-    </div>
+    </DropZone>
   );
 }
 

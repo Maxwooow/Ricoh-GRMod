@@ -273,10 +273,13 @@ select.side-value option { color: #222; background: #fff; }
 .ratio-row:hover .ratio-x, .ratio-row.on .ratio-x, .ratio-x:focus-visible { opacity: 1; }
 .ratio-add { flex: none; display: grid; gap: 6px; margin-top: 4px; padding: 0 2px; }
 .ratio-add .btn.ghost.small { font-variant-numeric: tabular-nums; }
-.ratio-pane .pane-head { height: 40px; gap: 12px; }
-.ratio-title { font-size: 17px; font-weight: 600; }
+/* same head as the Image Control preview, so that the frame and its switch sit in the same place on both pages */
+.ratio-pane .pane-head { gap: 10px; }
+.ratio-title { font-size: 15px; font-weight: 600; }
 .ratio-body { flex: 1; min-height: 0; container-type: size; display: flex; flex-direction: column; align-items: flex-start; }
 .ratio-frame { position: relative; flex: none; width: min(100cqw, calc((100cqh - 44px) * 1.5)); aspect-ratio: 3 / 2; border-radius: 8px; overflow: hidden; background: var(--stage); box-shadow: 0 0 0 1px var(--line); }
+.ratio-frame.gray { background: #808080; }
+.ratio-frame:hover .compare-swap { opacity: 1; }
 .ratio-photo { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
 .ratio-shade { position: absolute; background: rgba(0, 0, 0, 0.72); pointer-events: none; }
 .ratio-window { position: absolute; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.92); pointer-events: none; }

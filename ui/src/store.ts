@@ -9,6 +9,7 @@ import type { Key } from './i18n';
 import { cropToRgb, defaultCrop, ensureIconFont, imageIcon, loadBitmap, textIcon, workingCopy } from './pixels';
 import type { Crop } from './pixels';
 import { decodePreview } from './preview';
+import defaultPhotoUrl from './assets/preview.jpg';
 
 export type Page = 'ic' | 'ratio' | 'wall' | 'script' | 'copies';
 /** One added aspect ratio as typed; `preview` is what the camera would make of it (absent while that is worked out). */
@@ -24,6 +25,8 @@ export interface Toast { id: number; text: string; kind: 'ok' | 'error' | 'info'
 /** The power-off image setup last seen on (or written to) a card; the files themselves are in the host store. */
 export interface CardWall { names: string[]; hasIndex: boolean; savedAt: number; label: string }
 export type PreviewMode = 'photo' | 'swatch';
+/** What the frame of an added ratio is drawn on. */
+export type RatioBackdrop = 'photo' | 'gray';
 /** Where the copies page looks: files moved aside on the selected card, or their backups on this computer. */
 export type CopySource = 'card' | 'pc';
 export interface CopyInfo { busy?: boolean; summary?: FirmwareSummary; failed?: boolean }
@@ -36,7 +39,7 @@ export interface State {
   model: CameraModel; lang: LangCode;
   slots: Record<SlotId, SlotState>;
   wall: WallItem[];
-  ratios: RatioItem[]; activeRatio?: string;
+  ratios: RatioItem[]; activeRatio?: string; ratioBackdrop: RatioBackdrop;
   previewMode: PreviewMode; photoRev: number; cardWall?: CardWall; activeSlot: SlotId;
   volumes: Volume[]; showAll: boolean; volumeId?: string; role?: card.CardRole; entryOnCard: boolean;
   copySource: CopySource; parked: ParkedEntry[]; backups: ParkedEntry[]; copySel: string[]; copyInfo: Record<string, CopyInfo>; builds: BuildRecord[];
@@ -47,7 +50,7 @@ const SLOT_IDS: SlotId[] = ['CY', 'CG'];
 const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '', style: 'film' } });
 let state: State = {
   ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: 'zh-CN',
-  slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], ratios: [], previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false,
+  slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], ratios: [], ratioBackdrop: 'photo', previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false,
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [],
 };
 const listeners = new Set<() => void>();
@@ -95,7 +98,7 @@ function scheduleSave(): void {
 async function saveProject(): Promise<void> {
   const s = state;
   const doc = {
-    v: 1, page: s.page, model: s.model, lang: s.lang, fwName: s.fwName, showAll: s.showAll, previewMode: s.previewMode, cardWall: s.cardWall || null,
+    v: 1, page: s.page, model: s.model, lang: s.lang, fwName: s.fwName, showAll: s.showAll, previewMode: s.previewMode, ratioBackdrop: s.ratioBackdrop, cardWall: s.cardWall || null,
     slots: Object.fromEntries(SLOT_IDS.map((id) => [id, {
       preset: s.slots[id].preset ? { fileName: s.slots[id].preset!.fileName, kind: s.slots[id].preset!.kind } : null,
       names: s.slots[id].names,
@@ -127,7 +130,7 @@ export async function init(): Promise<void> {
       const ratios: RatioItem[] = (Array.isArray(doc.ratios) ? doc.ratios : []).slice(0, MAX_CUSTOM_RATIOS)
         .filter((r: RatioItem) => r && typeof r.id === 'string' && typeof r.ratio === 'string')
         .map((r: RatioItem) => ({ id: r.id, ratio: r.ratio.slice(0, 24), name: String(r.name || '').slice(0, 80) }));
-      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' ? doc.page : 'ic', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', cardWall: validCardWall(doc.cardWall) });
+      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' ? doc.page : 'ic', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo', cardWall: validCardWall(doc.cardWall) });
       const fwRaw = await host.storeGet('firmware.bin');
       if (fwRaw) await openFirmware(fwRaw, doc.fwName || 'fwdc248b.bin', false);
       for (const id of SLOT_IDS) {
@@ -416,21 +419,16 @@ export function removeRatio(id: string): void {
 export function setActiveRatio(id: string): void { if (state.activeRatio !== id) set({ activeRatio: id }); }
 
 // ------------------------------------------------------------------ preview photo
-const PREVIEW_KEY = 'preview.jpg'; const PREVIEW_CACHE = 'preview-default.jpg';
+const PREVIEW_KEY = 'preview.jpg';
 let photo: ImageData | null = null;
 /** The picture the slot previews are drawn on; changes whenever `photoRev` does. */
 export const previewPhoto = (): ImageData | null => photo;
 async function loadPreviewPhoto(): Promise<void> {
   try {
-    // the user's own choice first, then a `preview.jpg` kept next to the program
+    // the user's own choice first, then a `preview.jpg` kept next to the program, then the sample built in
     let bytes = await host.storeGet(PREVIEW_KEY).catch(() => null);
-    if (!bytes) {
-      bytes = await host.sidecar(PREVIEW_KEY);
-      // keep a copy, so the preview survives the program being moved away from that file
-      if (bytes) void host.storeSet(PREVIEW_CACHE, bytes).catch(() => undefined);
-      else bytes = await host.storeGet(PREVIEW_CACHE).catch(() => null);
-    }
-    if (!bytes) return;
+    if (!bytes) bytes = await host.sidecar(PREVIEW_KEY).catch(() => null);
+    if (!bytes) bytes = new Uint8Array(await (await fetch(defaultPhotoUrl)).arrayBuffer());
     photo = await decodePreview(bytes);
     set((s) => ({ photoRev: s.photoRev + 1 }));
   } catch (e) { console.warn('preview photo', e); }
@@ -441,12 +439,13 @@ export async function loadPreviewFile(file: File): Promise<void> {
     const wc = await workingCopy(bmp, 1600);
     bmp.close();
     photo = await decodePreview(wc.blob);
-    set((s) => ({ photoRev: s.photoRev + 1, previewMode: 'photo' }));
+    set((s) => ({ photoRev: s.photoRev + 1, previewMode: 'photo', ratioBackdrop: 'photo' }));
     if (host.available) await host.storeSet(PREVIEW_KEY, new Uint8Array(await wc.blob.arrayBuffer())).catch(() => undefined);
     scheduleSave();
   } catch (e) { fail(e); }
 }
 export function setPreviewMode(previewMode: PreviewMode): void { set({ previewMode }); scheduleSave(); }
+export function setRatioBackdrop(ratioBackdrop: RatioBackdrop): void { set({ ratioBackdrop }); scheduleSave(); }
 /** The slot the preview on the right shows. */
 export function setActiveSlot(id: SlotId): void { if (state.activeSlot !== id) set({ activeSlot: id }); }
 

@@ -1,7 +1,7 @@
 const zh = {
   app: 'GR Mod',
   navIC: '影像控制', navWall: '关机画面', navScript: '开启工厂菜单', navCopies: '固件副本',
-  navRatio: '长宽比', ratioAdd: '添加比例', ratioFactory: '原厂', ratioActual: '实际 {r}', ratioMax: '最多 {n} 个', ratioLine: '新增长宽比 {n}  ·  {l}',
+  navRatio: '长宽比', ratioAdd: '添加比例', ratioFactory: '原厂', ratioGray: '灰色', ratioMax: '最多 {n} 个', ratioLine: '新增长宽比 {n}  ·  {l}',
   ratioBad: '无法识别', ratioIsFactory: '原厂已有', ratioExtreme: '太窄', ratioQuick: '回看不支持', ratioMetering: '测光不支持', ratioConflict: '与其他比例冲突', ratioDup: '重复',
   ratioNameBad: '仅限英文、数字、符号', ratioNameLong: '名称太长',
   confirmRatio: '新增长宽比会改写相机主程序，尚未在真机上验证，存在相机无法开机的风险。请先备好官方 1.11 固件卡。',
@@ -40,12 +40,12 @@ const zh = {
   changes: '改动', parked: '已移开 {n} 个文件',
   monoNoSlots: 'Monochrome 机型没有这两个彩色槽位',
   aboutBody: '非理光官方软件。修改固件和机内文件有风险，由使用者自行承担。固件文件由使用者自行提供，软件不附带固件。',
-  aboutCredits: '关机画面的写入方法参考了 radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion 的公开研究。图标字体 Barlow Condensed（SIL OFL 1.1）。长宽比功能移植自 DoYitNow/gr-custom-tool（GPL-2.0-only）。',
+  aboutCredits: '关机画面的写入方法参考了 radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion 的公开研究。图标字体 Barlow Condensed（SIL OFL 1.1）。预览样张是 DPReview 的测试场景，经授权使用。长宽比功能移植自 DoYitNow/gr-custom-tool（GPL-2.0-only）。',
 };
 const en: typeof zh = {
   app: 'GR Mod',
   navIC: 'Image Control', navWall: 'Power-off image', navScript: 'Open factory menu', navCopies: 'Firmware copies',
-  navRatio: 'Aspect ratio', ratioAdd: 'Add ratio', ratioFactory: 'Factory', ratioActual: 'Actual {r}', ratioMax: 'At most {n}', ratioLine: 'Added aspect ratios {n}  ·  {l}',
+  navRatio: 'Aspect ratio', ratioAdd: 'Add ratio', ratioFactory: 'Factory', ratioGray: 'Gray', ratioMax: 'At most {n}', ratioLine: 'Added aspect ratios {n}  ·  {l}',
   ratioBad: 'Not a ratio', ratioIsFactory: 'Already a factory ratio', ratioExtreme: 'Too narrow', ratioQuick: 'Playback cannot show it', ratioMetering: 'Metering cannot follow it', ratioConflict: 'Clashes with another ratio', ratioDup: 'Duplicate',
   ratioNameBad: 'Letters, digits and symbols only', ratioNameLong: 'Name too long',
   confirmRatio: 'Added aspect ratios rewrite the camera\'s main program. This has not been tried on a camera and may leave it unable to start. Keep a card with the official 1.11 firmware ready.',
@@ -84,7 +84,7 @@ const en: typeof zh = {
   changes: 'Changes', parked: '{n} file(s) moved aside',
   monoNoSlots: 'The Monochrome model does not have these two colour slots',
   aboutBody: 'Not a Ricoh product. Modifying firmware and internal files is at your own risk. You supply the firmware file; none is included.',
-  aboutCredits: 'The power-off image method builds on the public research in radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion. Icon font: Barlow Condensed (SIL OFL 1.1). The aspect-ratio feature is a port of DoYitNow/gr-custom-tool (GPL-2.0-only).',
+  aboutCredits: 'The power-off image method builds on the public research in radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion. Icon font: Barlow Condensed (SIL OFL 1.1). The sample picture is the DPReview studio test scene, used with permission. The aspect-ratio feature is a port of DoYitNow/gr-custom-tool (GPL-2.0-only).',
 };
 export type Key = keyof typeof zh;
 const dict = (navigator.language || 'zh').toLowerCase().startsWith('zh') ? zh : en;
