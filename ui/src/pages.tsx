@@ -209,7 +209,8 @@ export function ImageControlPage() {
 }
 
 // ---------------------------------------------------------------- added aspect ratios
-const FACTORY_RATIOS = ['3:2', '4:3', '16:9', '1:1'];
+// in the camera's menu order
+const FACTORY_RATIOS = ['3:2', '4:3', '1:1', '16:9'];
 const COMMON_RATIOS = ['65:24', '2.39:1', '2:1', '5:4', '7:6', '4:5'];
 const size = (s: [number, number]): string => `${s[0]}×${s[1]}`;
 
