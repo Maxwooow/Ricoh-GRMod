@@ -1,0 +1,11 @@
+{
+  "name": "grmod",
+  "private": true,
+  "version": "0.1.7",
+  "type": "module",
+  "workspaces": ["core", "ui"],
+  "scripts": {
+    "test": "npm -w core test",
+    "build": "npm -w ui run build"
+  }
+}

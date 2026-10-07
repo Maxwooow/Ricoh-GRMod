@@ -1,0 +1,139 @@
+import { LANGS } from '@grmod/core';
+import type { CameraModel, LangCode } from '@grmod/core';
+import { useState } from 'react';
+import { Busy, ConfirmDialog, FileButton, Ico, Toasts } from './components';
+import { host } from './host';
+import { LANG_LABEL, t } from './i18n';
+import type { Key } from './i18n';
+import { CopiesPage } from './copies';
+import { CropEditor, ImageControlPage, ScriptPage, WallpaperPage } from './pages';
+import {
+  backupCopies, canRestoreWall, copyList, deleteCopies, hasNameErrors, revealBackups, writableCopy, writeCopy, loadFirmwareFile, outputEntry, outputFirmware, outputWallpaper, pendingChanges, refreshVolumes, restoreCardWall, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
+} from './store';
+
+const gb = (n: number): string => (n >= 1e9 ? `${(n / 1e9).toFixed(n >= 1e10 ? 0 : 1)} GB` : `${Math.max(1, Math.round(n / 1e6))} MB`);
+
+function Sidebar() {
+  const page = useStore((s) => s.page);
+  const info = useStore((s) => s.info);
+  const model = useStore((s) => s.model);
+  const lang = useStore((s) => s.lang);
+  const [about, setAbout] = useState(false);
+  return (
+    <aside className="sidebar">
+      <nav>
+        <button className={`nav ${page === 'script' ? 'on' : ''}`} onClick={() => setPage('script')}>{Ico.tool}<span>{t('navScript')}</span></button>
+        <button className={`nav ${page === 'ic' ? 'on' : ''}`} onClick={() => setPage('ic')}>{Ico.aperture}<span>{t('navIC')}</span></button>
+        <button className={`nav ${page === 'wall' ? 'on' : ''}`} onClick={() => setPage('wall')}>{Ico.image}<span>{t('navWall')}</span></button>
+      </nav>
+      <div className="grow" />
+      <button className={`nav low ${page === 'copies' ? 'on' : ''}`} onClick={() => setPage('copies')}>{Ico.archive}<span>{t('navCopies')}</span></button>
+      <div className="side-props">
+        <div className="side-row">
+          <span className="side-label">{t('firmware')}</span>
+          <FileButton className="side-value link" accept=".bin" onFiles={(f) => { void loadFirmwareFile(f[0]); }} title={t('replaceFirmware')}>
+            {info ? <>{info.version}<i className="dot ok" /></> : <>{t('noFirmware')}<i className="dot" /></>}
+          </FileButton>
+        </div>
+        <label className="side-row">
+          <span className="side-label">{t('model')}</span>
+          <select className="side-value" value={model} onChange={(e) => setModel(e.target.value as CameraModel)}>
+            {(['HDF', 'STANDARD', 'MONO'] as const).map((m) => <option key={m} value={m}>{t(('model' + m) as Key)}</option>)}
+          </select>
+        </label>
+        <label className="side-row">
+          <span className="side-label">{t('language')}</span>
+          <select className="side-value" value={lang} onChange={(e) => setLang(e.target.value as LangCode)}>
+            {LANGS.map((l) => <option key={l} value={l}>{LANG_LABEL[l] || l}</option>)}
+          </select>
+        </label>
+      </div>
+      <button className="about-link" onClick={() => setAbout(true)}>v{host.info?.version || ''}</button>
+      {about && (
+        <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setAbout(false); }}>
+          <div className="dialog about" role="dialog" aria-modal="true">
+            <h3>GR Mod <small>v{host.info?.version}</small></h3>
+            <p>{t('aboutBody')}</p>
+            <p className="muted small">{t('aboutCredits')}</p>
+            <div className="dialog-actions"><button className="btn" onClick={() => setAbout(false)}>{t('done')}</button></div>
+          </div>
+        </div>
+      )}
+    </aside>
+  );
+}
+
+const ALL = '__all__';
+
+/** What the bottom bar offers on the copies page. */
+function CopyActions() {
+  const source = useStore((s) => s.copySource);
+  const count = useStore((s) => copyList(s).length);
+  const n = useStore((s) => s.copySel.length);
+  const busy = useStore((s) => !!s.busy);
+  const writable = useStore((s) => !!writableCopy(s) && s.volumes.some((v) => v.id === s.volumeId));
+  return (
+    <>
+      {source === 'pc' && <button className="btn" title={t('copiesOpenFolder')} onClick={() => revealBackups()}>{Ico.folder}<span className="out-label">{t('copiesOpenFolder')}</span></button>}
+      <button className="btn" disabled={busy || count === 0} onClick={() => { void deleteCopies(true); }}>{t('copiesDeleteAll')}</button>
+      <button className="btn danger" disabled={busy || n === 0} onClick={() => { void deleteCopies(false); }}>{Ico.trash}<span>{t('copiesDelete')}{n ? ` ${n}` : ''}</span></button>
+      {source === 'card' && <button className="btn" disabled={busy || n === 0} onClick={() => { void backupCopies(); }}>{t('copiesBackup')}{n ? ` ${n}` : ''}</button>}
+      <button className="btn primary" disabled={busy || !writable} title={writable ? undefined : t('copiesPickOne')} onClick={() => { void writeCopy(); }}>{t('writeCard')}</button>
+    </>
+  );
+}
+
+function OutputBar() {
+  const s = useStore((x) => x);
+  const vol = s.volumes.find((v) => v.id === s.volumeId);
+  const isIC = s.page === 'ic'; const isWall = s.page === 'wall';
+  const can = !!s.info && !s.busy && (isIC ? pendingChanges(s).length > 0 && !hasNameErrors(s) : isWall ? wallReady(s) : true);
+  const role: Key | '' = s.role === 'firmware' ? 'roleFirmware' : s.role === 'wallpaper' ? 'roleWallpaper' : s.role === 'mixed' ? 'roleMixed' : s.role === 'empty' ? 'roleEmpty' : '';
+  const run = (kind: 'card' | 'folder'): void => { void (isIC ? outputFirmware({ kind }) : isWall ? outputWallpaper({ kind }) : outputEntry({ kind })); };
+  return (
+    <footer className="outbar">
+      <span className="out-ico">{Ico.card}</span>
+      <select
+        className="select out-select" value={s.volumeId || ''} aria-label={t('card')}
+        onChange={(e) => { if (e.target.value === ALL) setShowAll(!s.showAll); else selectVolume(e.target.value); }}
+      >
+        {s.volumes.length === 0 && <option value="" disabled>{t('noCard')}</option>}
+        {s.volumes.map((v) => <option key={v.id} value={v.id}>{`${v.id}${v.label && v.label !== v.id ? '  ' + v.label : ''}  ·  ${gb(v.total)}${v.fs && v.fs !== 'DEV' ? '  ·  ' + v.fs : ''}`}</option>)}
+        <option disabled>──────────</option>
+        <option value={ALL}>{s.showAll ? t('showCardsOnly') : t('showAll')}</option>
+      </select>
+      <button className="btn ghost icon-only" title={t('refresh')} aria-label={t('refresh')} onClick={() => { void refreshVolumes(); }}>{Ico.refresh}</button>
+      <div className="out-chips">
+        {vol && role && <span className="chip">{t(role)}</span>}
+        {vol && s.entryOnCard && <span className="chip">{t('entryChip')}</span>}
+        {isWall && vol && vol.fs && vol.fs !== 'FAT32' && vol.fs !== 'DEV' && <span className="chip warn">{t('notFat32')}</span>}
+      </div>
+      <span className="grow" />
+      {s.page === 'copies' && <CopyActions />}
+      {s.page !== 'copies' && canRestoreWall(s) && s.cardWall && (
+        <button className="btn" title={`${t('restoreWall')} · ${t('restoreWallTip', { n: s.cardWall.names.length, d: new Date(s.cardWall.savedAt).toLocaleDateString(), c: s.cardWall.label })}`} onClick={() => { void restoreCardWall(); }}>{Ico.image}<span className="out-label">{t('restoreWall')}</span></button>
+      )}
+      {s.page !== 'copies' && <button className="btn" disabled={!can} title={t('exportFolder')} onClick={() => run('folder')}>{Ico.folder}<span className="out-label">{t('exportFolder')}</span></button>}
+      {s.page !== 'copies' && <button className="btn primary" disabled={!can || !vol} onClick={() => run('card')}>{t('writeCard')}</button>}
+    </footer>
+  );
+}
+
+export function App() {
+  const page = useStore((s) => s.page);
+  const ready = useStore((s) => s.ready);
+  if (!host.available) return <div className="nohost">{t('hostMissing')}</div>;
+  return (
+    <div className="app" onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }} onDrop={(e) => e.preventDefault()}>
+      <Sidebar />
+      <main className="main">
+        <div className="stage">{ready ? (page === 'ic' ? <ImageControlPage /> : page === 'wall' ? <WallpaperPage /> : page === 'copies' ? <CopiesPage /> : <ScriptPage />) : <div className="page"><span className="spinner" /></div>}</div>
+        <OutputBar />
+      </main>
+      <CropEditor />
+      <ConfirmDialog />
+      <Busy />
+      <Toasts />
+    </div>
+  );
+}
