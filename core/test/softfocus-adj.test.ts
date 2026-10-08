@@ -105,12 +105,29 @@ describe.skipIf(!have)('ADJ soft focus: firmware files', () => {
     const R = 0x17d10;
     const e = aspect.installExtensions(official.slice(R, R + aspect.OFFICIAL_RTOS_LENGTH), official.slice(0x2e93af0, 0x2e93af0 + aspect.OFFICIAL_ICONBIN_LENGTH), [], { adjSoftFocus: true });
     const soft = e.words.filter((w) => w.reason.startsWith('ADJ soft focus'));
-    expect(soft.length).toBe(22 * 2 + 3 + 2 + 3);
+    // Record 0x0A of the ADJ table in place (enter, draw, is current, set, count, flag,
+    // availability: 7), the menu list (3), name (1), icon (1), image processing (3), the
+    // digital-filter step gate (2), the slot getters (5).
+    expect(soft.length).toBe(7 + 3 + 1 + 1 + 3 + 2 + 5);
     const at = new Set(soft.map((w) => w.address));
-    for (const a of [0x5337ff48, 0x533818a0, 0x53701de8, 0x538a2000, 0x538a2634, 0x531dae30, 0x531dae40, 0x531dae5c]) expect(at.has(a)).toBe(true);
+    for (const a of [0x5337ff98, 0x53381858, 0x53701de8, 0x538a2000, 0x538a2634, 0x531dae30, 0x531dae40, 0x531dae5c]) expect(at.has(a)).toBe(true);
+    const record = 0x53d9f714 + 0x0a * 0x5c;
+    expect(soft.filter((w) => w.reason === 'ADJ soft focus: ADJ table record').map((w) => w.address - record)).toEqual([0x10, 0x18, 0x20, 0x28, 0x30, 0x38, 0x3c]);
+    // The table is not moved: no MOVW/MOVT that addresses it is touched.
+    for (const w of e.words) expect(w.address >= 0x531bb000 && w.address < 0x531c1000).toBe(false);
     // The scaffold: icon catalog (2), icon bounds (2), text catalog (4), text bound helpers (2),
-    // settings save/load continuations (2); then the icon bounds raised again for icon 768 (2).
+    // settings save/load continuations (2); then the icon bounds raised again for icon 720 (2).
     expect(e.words.length).toBe(soft.length + 14);
-    expect(e.words.filter((w) => w.reason === 'icon upper bound').map((w) => w.after & 0xfff)).toEqual([662, 662, 768, 768].map((v) => v & 0xfff));
+    const bound = (w: number): number => ((w >>> 4) & 0xf000) | (w & 0xfff);
+    expect(e.words.filter((w) => w.reason === 'icon upper bound').map((w) => bound(w.after))).toEqual([662, 662, 720, 720]);
+  });
+  it('with added ratios the icon bound is exactly what the ratios alone give', async () => {
+    const official = new fw.Firmware(new Uint8Array(readFileSync(P + 'official.bin'))).decoded;
+    const R = 0x17d10;
+    const plan = fw.planRatios([{ name: 'XPan', ratio: '65:24' }]);
+    const a = aspect.installExtensions(official.slice(R, R + aspect.OFFICIAL_RTOS_LENGTH), official.slice(0x2e93af0, 0x2e93af0 + aspect.OFFICIAL_ICONBIN_LENGTH), plan, {});
+    const e = aspect.installExtensions(official.slice(R, R + aspect.OFFICIAL_RTOS_LENGTH), official.slice(0x2e93af0, 0x2e93af0 + aspect.OFFICIAL_ICONBIN_LENGTH), plan, { adjSoftFocus: true });
+    const at = (r: Uint8Array, va: number): number => new DataView(r.buffer, r.byteOffset).getUint32(va - 0x53000000, true);
+    for (const site of [0x5323dbb4, 0x5323e40c]) expect(at(e.rtos, site)).toBe(at(a.rtos, site));
   });
 });
