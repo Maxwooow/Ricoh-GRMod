@@ -9,7 +9,8 @@ thumbnail with black bars) for every value of the setting byte, and checks:
   - byte 1 ('YY MM DD) and 3 (YYYY.MM.DD hh:mm): the imprint lands bottom right, inside the photo
     area of every picture, in orange (light only on a black-and-white photo), and the long style is
     wider than the short one;
-  - an invalid clock (month 13) draws nothing.
+  - an invalid clock (month 13) draws nothing;
+  - a main picture at 0xB1xxxxxx (RAW+JPEG, smaller JPEG sizes) is drawn, one at 0xC0000000 is not.
 
     python3 render_check.py [OUTDIR]     # OUTDIR: also writes a PNG per scenario
 
@@ -31,13 +32,13 @@ ORG = 0x10000
 STRIDE, BUF_H = 6208, 4128
 
 
-def run(setting, main_w, main_h, src_w, src_h, mono=False, clock=(2026, 10, 8, 17, 34, 53)):
+def run(setting, main_w, main_h, src_w, src_h, mono=False, clock=(2026, 10, 8, 17, 34, 53), base=0x80000000):
     mu = Uc(UC_ARCH_ARM, UC_MODE_ARM)
     mu.mem_map(ORG, 0x10000)
     mu.mem_write(ORG, CODE)
     mu.mem_map(0x60000000, 0x100000)
     mu.mem_map(0x70000000, 0x100000)
-    YA = 0x80000000
+    YA = base
     CA = YA + STRIDE * BUF_H
     mu.mem_map(YA, (STRIDE * BUF_H * 2 + 0xfff) & ~0xfff)
     mu.mem_write(YA, bytes([70]) * (STRIDE * BUF_H))
@@ -208,6 +209,16 @@ def main():
         if bbox_rows(r['main'], mw, 70):
             failures.append(f'{name}: invalid clock drew something')
         print(name, 'widths', widths)
+    # RAW+JPEG: the camera keeps the scaled main picture of the smaller sizes above 0xA0000000
+    # (seen at 0xB1069CC0). Pictures up to 0xBFFFFFFF are drawn, from 0xC0000000 on they are not.
+    r = run(1, 4944, 3296, 6192, 4128, base=0xb1000000)
+    check_high = bbox_rows(r['main'], 4944, 70)
+    if not check_high:
+        failures.append('main picture at 0xB1xxxxxx (RAW+JPEG) got no imprint')
+    r = run(1, 4944, 3296, 6192, 4128, base=0xc0000000)
+    if bbox_rows(r['main'], 4944, 70):
+        failures.append('main picture at 0xC0000000 got an imprint')
+    print('RAW+JPEG main picture at 0xB1xxxxxx:', 'imprinted' if check_high else 'MISSING')
     print('module', len(CODE), 'bytes;', 'FAILED:\n  ' + '\n  '.join(failures) if failures else 'all checks passed')
     sys.exit(1 if failures else 0)
 

@@ -115,10 +115,12 @@ static u32 digit_hit(u32 seg, s32 qx, s32 qy, s32 w, s32 h, s32 t) {
 
 #define MAXGLYPH 64
 
-/* Plausible RAM address (the camera's DDR); anything else is not dereferenced. */
+/* Plausible RAM address (the camera's DDR, 0x40000000..0xBFFFFFFF); anything else is not
+ * dereferenced. With RAW+JPEG the scaled-down main picture of the smaller sizes lives above
+ * 0xA0000000 (seen at 0xB1069CC0, test firmware 015). */
 static int ram(const void *p) {
   u32 a = (u32)p;
-  return a >= 0x40000000u && a < 0xa0000000u && (a & 3) == 0;
+  return a >= 0x40000000u && a < 0xc0000000u && (a & 3) == 0;
 }
 
 static void sync(const struct ctx *k, void *cache, struct picture *p, u32 y0, u32 y1, int clean) {
@@ -255,32 +257,73 @@ static void hex_word_le(u32 v, u8 *out) {
   s32 i;
   for (i = 7; i >= 0; i--) { out[i] = v & 15; v >>= 4; }
 }
-static void diag(const struct ctx *k, void *cache, struct picture *p, u32 *config) {
+static int wide_ram(const void *p) {
+  u32 a = (u32)p;
+  return a >= 0x40000000u && a < 0xc0000000u;
+}
+/* Why picture_ok refuses a picture, as a hex digit: 1 format, 2 planes outside 0x40000000..0xc0000000,
+ * 4 size, 8 stride / CbCr height. 0 = accepted. */
+static u32 refusal(const struct picture *p) {
+  u32 r = 0, w = p->width, h = p->height;
+  if (p->format != 1) r |= 1;
+  if (!ram(p->y) || !ram(p->c)) r |= 2;
+  if (w < 120 || h < 80 || w > 12000 || h > 12000) r |= 4;
+  if (p->stride < w || p->c_height < h) r |= 8;
+  return r;
+}
+/* Called first thing on every Execute, whatever the pictures are: the dump goes on every
+ * 720-pixel-wide picture of the configuration whose planes look like memory at all. Row 0:
+ * marker "A" then per slot the refusal digit (F = no picture). */
+static void diag(const struct ctx *k, void *cache, u32 *config) {
   u8 line[MAXGLYPH];
-  u32 row = 0, n, i, j;
+  u32 row, n, i, j, s;
   s32 Hd = 16, step = 22;
   struct colour white = { 250, 128, 128 };
-  if (!picture_ok(p) || p->width != 720 || p->height < 400) return;
-  sync(k, cache, p, 0, 300, 0);
-  for (j = 0; j < 3; j++) {
+  for (s = 0; s < 4; s++) {
+    struct picture *p = (struct picture *)config[(0x3c >> 2) + s];
+    s32 Hm;
+    if (!ram(p) || p->width < 160 || p->height < 100 || p->width > 12000 || p->stride < p->width || !wide_ram(p->y) || !wide_ram(p->c)) continue;
+    for (j = 0; j < s; j++) {
+      struct picture *q = (struct picture *)config[(0x3c >> 2) + j];
+      if (ram(q) && q->y == p->y) break;
+    }
+    if (j < s) continue;
+    row = 0;
+    Hm = p->width == 720 ? Hd : (s32)(p->width >> 6);
+    if (Hm < 16) Hm = 16;
+    if (p->height < (u32)(Hm + 8)) continue;
+    sync(k, cache, p, 0, (u32)(Hm + 8), 0);
     n = 0;
-    for (i = 0; i < 4; i++) { hex_word_le(config[(0x30 >> 2) + j * 4 + i], line + n); n += 8; line[n++] = 17; }
-    text_at(p, line, n - 1, 4, 4 + (s32)row * step, Hd, white, 1); row++;
-  }
-  for (j = 0; j < 4; j++) {
-    const u8 *q = (const u8 *)config[(0x3c >> 2) + j];
-    if (!ram(q)) { line[0] = 15; line[1] = 15; text_at(p, line, 2, 4, 4 + (s32)row * step, Hd, white, 1); row += 2; continue; }
-    n = hex_bytes(q, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
-    n = hex_bytes(q + 16, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
-  }
-  {
-    const u8 *q = (const u8 *)config[0x38 >> 2];
-    if (ram(q)) {
+    line[n++] = 10; line[n++] = 17;
+    for (i = 0; i < 4; i++) {
+      struct picture *q = (struct picture *)config[(0x3c >> 2) + i];
+      line[n++] = ram(q) ? (u8)refusal(q) : 15;
+    }
+    line[n++] = 17; line[n++] = (u8)s;
+    text_at(p, line, n, 4, 4, Hm, white, 1); row++;
+    sync(k, cache, p, 0, (u32)(Hm + 8), 1);
+    if (p->width != 720 || p->height < 400) continue;
+    sync(k, cache, p, 0, 340, 0);
+    for (j = 0; j < 3; j++) {
+      n = 0;
+      for (i = 0; i < 4; i++) { hex_word_le(config[(0x30 >> 2) + j * 4 + i], line + n); n += 8; line[n++] = 17; }
+      text_at(p, line, n - 1, 4, 4 + (s32)row * step, Hd, white, 1); row++;
+    }
+    for (j = 0; j < 4; j++) {
+      const u8 *q = (const u8 *)config[(0x3c >> 2) + j];
+      if (!ram(q)) { line[0] = 15; line[1] = 15; text_at(p, line, 2, 4, 4 + (s32)row * step, Hd, white, 1); row += 2; continue; }
       n = hex_bytes(q, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
       n = hex_bytes(q + 16, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
     }
+    {
+      const u8 *q = (const u8 *)config[0x38 >> 2];
+      if (ram(q)) {
+        n = hex_bytes(q, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
+        n = hex_bytes(q + 16, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
+      }
+    }
+    sync(k, cache, p, 0, 340, 1);
   }
-  sync(k, cache, p, 0, 300, 1);
 }
 #endif
 
@@ -301,6 +344,9 @@ void datestamp(const struct ctx *k, u32 *config) {
   void *cache, *platform;
   setting = *k->setting;
   if (setting > (SETTING_ON | SETTING_LONG) || !(setting & SETTING_ON) || !ram(config)) return;
+#ifdef DIAG
+  diag(k, k->cache(), config);
+#endif
   for (i = 0; i < 16; i++) time[i] = 0;
   platform = k->platform();
   if (!platform) return;
@@ -370,10 +416,4 @@ void datestamp(const struct ctx *k, u32 *config) {
       draw(k, cache, p, (pw - rw) >> 1, (ph - rh) >> 1, rw, rh, glyphs, n, orange());
     }
   }
-#ifdef DIAG
-  for (i = 0; i < 4; i++) {
-    for (j = 0; j < i; j++) if (seen[j] && seen[i] && seen[j]->y == seen[i]->y) break;
-    if (seen[i] && j == i) diag(k, cache, seen[i], config);
-  }
-#endif
 }

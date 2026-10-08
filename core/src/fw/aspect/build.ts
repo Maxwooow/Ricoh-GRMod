@@ -30,6 +30,7 @@ import { linkNative } from './native-link';
 import { installAdjSoftFocus } from './softfocus';
 import { DATESTAMP_BYTE, installDateStamp } from './datestamp';
 import { installDateStampMenu } from './datestamp-menu';
+import { installMonoUnlock } from './monounlock';
 
 export const BASE = 0x53000000;
 export const OFFICIAL_RTOS_LENGTH = 0x13d2ac0;
@@ -105,6 +106,8 @@ export interface ExtensionFeatures {
   adjSoftFocus?: boolean;
   /** Date imprint on the JPEG (see `datestamp.ts`). */
   dateStamp?: boolean;
+  /** The six looks of the GR IV Monochrome (see `monounlock.ts`). */
+  monoUnlock?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -962,7 +965,7 @@ export function installRatios(rtos: Uint8Array, iconbin: Uint8Array, ratios: rea
  * features this is `installRatios`, byte for byte. With features the revision is 3.
  */
 export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
-  const extra = !!features.adjSoftFocus || !!features.dateStamp;
+  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock;
   if (extra) revision = 3;
   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
@@ -990,6 +993,7 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
     if (revision >= 2) installPlaybackDecode(patch);
   }
   if (features.adjSoftFocus) icons = installAdjSoftFocus(patch, icons);
+  if (features.monoUnlock) installMonoUnlock(patch);
   if (features.dateStamp) {
     const fixed = test.dateStampFixed;
     installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : DATESTAMP_BYTE, !!test.dateStampDiag);
@@ -997,5 +1001,5 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   }
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}) } };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}) } };
 }
