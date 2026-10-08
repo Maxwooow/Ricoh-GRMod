@@ -17,7 +17,7 @@ import type { LangCode } from './names';
 import { normalizeIcon, readIcon } from './icons';
 import { countChangedBytes, selfCheck, selfCheckGrown } from './selfcheck';
 import { gr4Sizes, installExtensions, planRatios, ratioText } from './aspect';
-import type { ExtensionFeatures } from './aspect';
+import type { ExtensionFeatures, TestOptions } from './aspect';
 import type { RatioSpec } from './aspect';
 import { grownRanges, growPayload } from './aspect/package';
 import { CLARITY_BYTES, CLARITY_OFFSET, clarityBytes, hasOfficialClarity } from './clarity';
@@ -133,9 +133,9 @@ function transparentPixels(icon: Uint8Array): number[] {
  * Throws `FirmwareError` on any invalid input or failed assertion; never returns a file that did
  * not pass the self-check.
  */
-export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = [], clarity: readonly ClarityEdit[] = [], features: ExtensionFeatures = {}): Promise<BuildResult> {
+export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = [], clarity: readonly ClarityEdit[] = [], features: ExtensionFeatures = {}, test: TestOptions = {}): Promise<BuildResult> {
   const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity);
-  if (ratios.length > 0 || features.adjSoftFocus) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios, features);
+  if (ratios.length > 0 || features.adjSoftFocus || features.dateStamp) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios, features, test);
 
   // 7. Container.
   const built = build(fw, img);
@@ -164,10 +164,10 @@ export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], 
  * sections grow (see `aspect/`), so the container is rebuilt with `buildGrown` and checked with
  * `selfCheckGrown`.
  */
-async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8Array, img: Uint8Array, ranges: Range[], ratios: readonly RatioSpec[], features: ExtensionFeatures = {}): Promise<BuildResult> {
+async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8Array, img: Uint8Array, ranges: Range[], ratios: readonly RatioSpec[], features: ExtensionFeatures = {}, test: TestOptions = {}): Promise<BuildResult> {
   const specs = ratios.map((r) => ({ name: r.name, ratio: r.ratio.trim() }));
   const plan = planRatios(specs);
-  const aspect = installExtensions(img.slice(RTOS_OFFSET, RTOS_OFFSET + RTOS_LENGTH), img.slice(ICONBIN_OFFSET, ICONBIN_OFFSET + ICONBIN_LENGTH), plan, features);
+  const aspect = installExtensions(img.slice(RTOS_OFFSET, RTOS_OFFSET + RTOS_LENGTH), img.slice(ICONBIN_OFFSET, ICONBIN_OFFSET + ICONBIN_LENGTH), plan, features, undefined, test);
   const grown = growPayload(img, aspect, specs);
   // Edits made before growing keep their place in RTOS; those in ICONBIN move with it.
   const all: Range[] = ranges.map((r) => (r.offset >= ICONBIN_OFFSET ? { ...r, offset: r.offset + grown.rtosGrowth } : r));

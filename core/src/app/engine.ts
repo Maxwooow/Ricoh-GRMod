@@ -169,6 +169,12 @@ export interface FirmwareSummary {
 export interface BuildOptions {
   /** Put soft focus (off / weak / medium / strong) on the ADJ lever. */
   adjSoftFocus?: boolean;
+  /** Date imprint on the JPEG, switched in the camera's menu. */
+  dateStamp?: boolean;
+  /** Test builds only: imprint always on in this colour (1 orange .. 5 black). */
+  dateStampFixed?: number;
+  /** Test builds only: print the encoder configuration on the 720x480 picture. */
+  dateStampDiag?: boolean;
 }
 
 export interface ShutdownImage {
@@ -521,9 +527,13 @@ export class Engine {
       return { level: f.level, gains: SOFT_FOCUS_GAINS[f.strength] };
     });
     const adjSoftFocus = !!(options && options.adjSoftFocus);
+    const dateStamp = !!(options && options.dateStamp);
     if (adjSoftFocus && clarity.length > 0) throw new FirmwareError('bad-clarity', 'soft focus on the ADJ lever and on the clarity table cannot be combined');
-    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus) throw new FirmwareError('bad-edit', 'nothing to change');
-    const { decoded: _decoded, ...rest } = await buildFirmware(this.raw, edits, ratios, clarity, { adjSoftFocus });
+    if (dateStamp && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the date imprint cannot be combined with the clarity-table soft focus of 0.4.x');
+    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp) throw new FirmwareError('bad-edit', 'nothing to change');
+    const features = { adjSoftFocus, ...(dateStamp ? { dateStamp } : {}) };
+    const test = options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {};
+    const { decoded: _decoded, ...rest } = await buildFirmware(this.raw, edits, ratios, clarity, features, test);
     return rest;
   }
 

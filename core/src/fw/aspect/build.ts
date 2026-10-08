@@ -28,6 +28,7 @@ import type { RatioGeometry } from './geometry';
 import { RATIO_ICON_BYTES, RATIO_ICON_H, RATIO_ICON_W, drawRatioIcon } from './icon';
 import { linkNative } from './native-link';
 import { installAdjSoftFocus } from './softfocus';
+import { DATESTAMP_BYTE, installDateStamp } from './datestamp';
 
 export const BASE = 0x53000000;
 export const OFFICIAL_RTOS_LENGTH = 0x13d2ac0;
@@ -101,6 +102,15 @@ export const BUILD_REVISION: BuildRevision = 2;
 export interface ExtensionFeatures {
   /** Soft focus as a function of the ADJ lever (see `softfocus.ts`). */
   adjSoftFocus?: boolean;
+  /** Date imprint on the JPEG (see `datestamp.ts`). */
+  dateStamp?: boolean;
+}
+
+/** For test builds only: imprint always on in this colour (1..5) instead of following the camera setting. */
+export interface TestOptions {
+  dateStampFixed?: number;
+  /** Also print the encoder configuration on the 720x480 picture. */
+  dateStampDiag?: boolean;
 }
 
 export interface AspectResult {
@@ -950,8 +960,8 @@ export function installRatios(rtos: Uint8Array, iconbin: Uint8Array, ratios: rea
  * catalogs), then the added ratios (if any), then the other additions in `features`. With no
  * features this is `installRatios`, byte for byte. With features the revision is 3.
  */
-export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION): AspectResult {
-  const extra = !!features.adjSoftFocus;
+export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
+  const extra = !!features.adjSoftFocus || !!features.dateStamp;
   if (extra) revision = 3;
   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
@@ -979,7 +989,11 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
     if (revision >= 2) installPlaybackDecode(patch);
   }
   if (features.adjSoftFocus) icons = installAdjSoftFocus(patch, icons);
+  if (features.dateStamp) {
+    const fixed = test.dateStampFixed;
+    installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : DATESTAMP_BYTE, !!test.dateStampDiag);
+  }
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus } };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}) } };
 }
