@@ -56,7 +56,7 @@ export interface State {
 const SLOT_IDS: SlotId[] = ['CY', 'CG'];
 const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '', style: 'film' } });
 let state: State = {
-  ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: 'zh-CN',
+  ready: false, page: 'script', fwBusy: false, model: 'HDF', lang: 'zh-CN',
   slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], ratios: [], ratioBackdrop: 'photo', previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false,
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
@@ -138,7 +138,7 @@ export async function init(): Promise<void> {
       const ratios: RatioItem[] = (Array.isArray(doc.ratios) ? doc.ratios : []).slice(0, MAX_CUSTOM_RATIOS)
         .filter((r: RatioItem) => r && typeof r.id === 'string' && typeof r.ratio === 'string')
         .map((r: RatioItem) => ({ id: r.id, ratio: r.ratio.slice(0, 24), name: String(r.name || '').slice(0, 80) }));
-      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' ? doc.page : 'ic', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo', cardWall: validCardWall(doc.cardWall),
+      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : 'script', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo', cardWall: validCardWall(doc.cardWall),
         toursSeen: TOUR_IDS.filter((id) => Array.isArray(doc.tours) && doc.tours.includes(id)) });
       const fwRaw = await host.storeGet('firmware.bin');
       if (fwRaw) await openFirmware(fwRaw, doc.fwName || 'fwdc248b.bin', false);

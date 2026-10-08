@@ -10,17 +10,20 @@ import { endTour, getState, startTour, tourStep, useStore } from './store';
 import type { TourId } from './store';
 
 type Side = 'right' | 'left' | 'top' | 'bottom';
-/** `target` is a `data-tour` name in the interface (none: a card in the middle of the window); `side` is where the card goes if there is room. */
-interface Step { target?: string; title: Key; body: Key; side?: Side }
-const step = (target: string | undefined, name: string, side?: Side): Step => ({ target, title: `t${name}T` as Key, body: `t${name}B` as Key, side });
+/**
+ * `target` is a `data-tour` name in the interface, or several lit as one box (none: a card in the
+ * middle of the window); `side` is where the card goes if there is room.
+ */
+interface Step { target?: string | string[]; title: Key; body: Key; side?: Side }
+const step = (target: string | string[] | undefined, name: string, side?: Side): Step => ({ target, title: `t${name}T` as Key, body: `t${name}B` as Key, side });
+const names = (target: Step['target']): string[] => (target === undefined ? [] : Array.isArray(target) ? target : [target]);
 
 /** A step whose target is not on screen is left out (no rows yet, a button the page does not have, ...). */
 export const TOURS: Record<TourId, Step[]> = {
   overview: [
     step(undefined, 'OvWelcome'),
     step('card', 'OvCard', 'top'),
-    step('firmware', 'OvFirmware'),
-    step('model', 'OvModel'),
+    step(['firmware', 'model'], 'OvFirmware'),
     step('language', 'OvLang'),
     step('nav-script', 'OvScript'),
     step('nav-ic', 'OvIc'),
@@ -84,7 +87,7 @@ export function beginTour(id: TourId, replay: boolean): boolean {
   if (getState().tour) return false;
   if (id !== 'overview' && !document.querySelector(`.app [data-tour-page="${id}"]`)) return false;
   const steps: number[] = [];
-  TOURS[id].forEach((st, i) => { if (!st.target || find(st.target)) steps.push(i); });
+  TOURS[id].forEach((st, i) => { if (names(st.target).every((n) => find(n))) steps.push(i); });
   if (steps.length === 0) return false;
   if (id === 'copies') document.querySelector('.app .copies-list')?.scrollTo(0, 0);
   startTour(id, steps, replay);
@@ -184,14 +187,14 @@ function TourLayer() {
   // moves with the window (and with pictures that finish loading).
   useLayoutEffect(() => {
     if (!current) return;
-    const el = current.target ? find(current.target) : null;
-    el?.setAttribute('data-tour-on', '');
+    const els = names(current.target).map(find).filter((e): e is HTMLElement => !!e);
+    for (const e of els) e.setAttribute('data-tour-on', '');
     let last = '';
     const measure = (): void => {
       const vw = window.innerWidth; const vh = window.innerHeight;
       let r: Rect | null = null;
-      if (el && el.isConnected) {
-        const b = boxOf(el);
+      if (els.length && els.every((e) => e.isConnected)) {
+        const b = els.map(boxOf).reduce((a, c) => ({ left: Math.min(a.left, c.left), top: Math.min(a.top, c.top), right: Math.max(a.right, c.right), bottom: Math.max(a.bottom, c.bottom) }));
         const x = Math.max(4, b.left - PAD); const y = Math.max(4, b.top - PAD);
         r = { x, y, w: Math.min(vw - 4, b.right + PAD) - x, h: Math.min(vh - 4, b.bottom + PAD) - y };
         r = { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.w), h: Math.round(r.h) };
@@ -203,7 +206,7 @@ function TourLayer() {
     measure();
     const timer = setInterval(measure, 120);
     window.addEventListener('resize', measure);
-    return () => { clearInterval(timer); window.removeEventListener('resize', measure); el?.removeAttribute('data-tour-on'); };
+    return () => { clearInterval(timer); window.removeEventListener('resize', measure); for (const e of els) e.removeAttribute('data-tour-on'); };
   }, [id, index]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Enter goes on: the button for that has the focus (it can only take it once the card is placed and visible)
