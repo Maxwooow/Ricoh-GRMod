@@ -286,18 +286,17 @@ svg { width: 18px; height: 18px; flex: none; }
 .ratio-out.sizes .chip { font-variant-numeric: tabular-nums; }
 .ratio-out .chip b { font-weight: 600; color: var(--muted); }
 
-/* soft focus */
-.soft { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(340px, 40%) minmax(0, 1fr); gap: 24px; }
-.soft-list { display: flex; flex-direction: column; gap: 4px; min-height: 0; min-width: 0; }
-.soft-rows { display: flex; flex-direction: column; gap: 4px; }
-.soft-row { flex: none; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 6px 0 10px; border: 1px solid transparent; border-radius: 8px; }
-.soft-row:hover { background: var(--hover); }
-.soft-row.on { border-color: var(--line2); background: var(--side); }
-.soft-level { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.soft-quick { display: flex; padding: 4px 2px 0; }
-.soft-hint { margin: 8px 10px 0; line-height: 1.55; }
-.soft-pane .pane-head { gap: 10px; }
-.soft-title { font-size: 15px; font-weight: 600; min-width: 0; }
+/* soft focus switch (Image Control page) */
+.soft-switch { display: flex; align-items: center; gap: 12px; padding: 10px 14px; }
+.soft-switch .soft-ico { width: 32px; height: 32px; flex: none; }
+.soft-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.soft-text b { font-weight: 600; }
+.mono-ic { display: flex; flex-direction: column; gap: 12px; max-width: 440px; }
+.switch { flex: none; position: relative; width: 34px; height: 20px; padding: 0; border: 0; border-radius: 10px; background: var(--line2); cursor: pointer; transition: background 0.18s; }
+.switch i { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform 0.18s cubic-bezier(0.22, 0.8, 0.24, 1); }
+.switch.on { background: var(--blue); }
+.switch.on i { transform: translateX(14px); }
+.switch:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
 /* Choosers and menus that pop up next to their button: firmware, model, camera language, card. */
 .sel { position: relative; min-width: 0; }

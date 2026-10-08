@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import { card, LANGS, MAX_CUSTOM_RATIOS, SOFT_FOCUS_LEVELS, SOFT_FOCUS_STRENGTHS, validateRatioName } from '@grmod/core';
-import type { CameraModel, ClarityChange, FirmwareInfo, FirmwareSummary, LangCode, PresetResult, RatioPreview, RatioSpec, SlotId, SlotRequest, SoftFocusLevel, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
+import { card, LANGS, MAX_CUSTOM_RATIOS, validateRatioName } from '@grmod/core';
+import type { CameraModel, ClarityChange, FirmwareInfo, FirmwareSummary, LangCode, PresetResult, RatioPreview, RatioSpec, SlotId, SlotRequest, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
 import { engine, EngineError } from './engine';
 import { host, HostError, sha256Hex } from './host';
 import type { ParkedEntry, Volume } from './host';
@@ -11,10 +11,7 @@ import type { Crop } from './pixels';
 import { decodePreview } from './preview';
 import defaultPhotoUrl from './assets/preview.jpg';
 
-export type Page = 'ic' | 'ratio' | 'soft' | 'wall' | 'script' | 'copies';
-/** JPEG size the soft focus preview stands for (the camera's bands are measured in pixels of the photo). */
-export type SoftSize = 'L' | 'M' | 'S';
-export const SOFT_SIZES: readonly SoftSize[] = ['L', 'M', 'S'];
+export type Page = 'ic' | 'ratio' | 'wall' | 'script' | 'copies';
 /** One added aspect ratio as typed; `preview` is what the camera would make of it (absent while that is worked out). */
 export interface RatioItem { id: string; ratio: string; name: string; preview?: RatioPreview }
 export interface PresetState { fileName: string; kind: 'xmp' | 'cube'; text: string; busy: boolean; result?: PresetResult; error?: string }
@@ -38,7 +35,7 @@ export interface BuildRecord { sha256: string; time: number; slots: { id: SlotId
 /** `warn` is an optional caution shown under the lines (used where something is deleted for good). */
 /** A guided tour: `overview` is the one of the first start, the others belong to a page. */
 export type TourId = 'overview' | Page;
-export const TOUR_IDS: readonly TourId[] = ['overview', 'script', 'ic', 'ratio', 'soft', 'wall', 'copies'];
+export const TOUR_IDS: readonly TourId[] = ['overview', 'script', 'ic', 'ratio', 'wall', 'copies'];
 /** The tour being shown: `steps` are the indices of its steps that have something to point at; a replay can be skipped. */
 export interface TourState { id: TourId; steps: number[]; index: number; replay: boolean }
 export interface Confirm { title: string; warn?: string; lines: string[]; ok: string; resolve: (v: boolean) => void }
@@ -49,7 +46,7 @@ export interface State {
   slots: Record<SlotId, SlotState>;
   wall: WallItem[];
   ratios: RatioItem[]; activeRatio?: string; ratioBackdrop: RatioBackdrop;
-  softFocus: Partial<Record<SoftFocusLevel, SoftFocusStrength>>; softActive: SoftFocusLevel; softSize: SoftSize;
+  soft: boolean;
   previewMode: PreviewMode; photoRev: number; cardWall?: CardWall; activeSlot: SlotId;
   volumes: Volume[]; showAll: boolean; volumeId?: string; role?: card.CardRole; entryOnCard: boolean;
   copySource: CopySource; parked: ParkedEntry[]; backups: ParkedEntry[]; copySel: string[]; copyInfo: Record<string, CopyInfo>; builds: BuildRecord[];
@@ -61,7 +58,7 @@ const SLOT_IDS: SlotId[] = ['CY', 'CG'];
 const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '', style: 'film' } });
 let state: State = {
   ready: false, page: 'script', fwBusy: false, model: 'HDF', lang: 'zh-CN',
-  slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], ratios: [], ratioBackdrop: 'photo', softFocus: {}, softActive: -2, softSize: 'L', previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false,
+  slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false,
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
@@ -117,7 +114,7 @@ async function saveProject(): Promise<void> {
     }])),
     wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: w.kind, width: w.width, height: w.height, crop: w.crop })),
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
-    softFocus: s.softFocus, softSize: s.softSize,
+    soft: s.soft,
     tours: s.toursSeen,
   };
   try { await host.storeSet('project.json', JSON.stringify(doc)); } catch (e) { console.warn('save failed', e); }
@@ -143,8 +140,8 @@ export async function init(): Promise<void> {
       const ratios: RatioItem[] = (Array.isArray(doc.ratios) ? doc.ratios : []).slice(0, MAX_CUSTOM_RATIOS)
         .filter((r: RatioItem) => r && typeof r.id === 'string' && typeof r.ratio === 'string')
         .map((r: RatioItem) => ({ id: r.id, ratio: r.ratio.slice(0, 24), name: String(r.name || '').slice(0, 80) }));
-      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'soft' || doc.page === 'ic' ? doc.page : 'script', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo', cardWall: validCardWall(doc.cardWall),
-        softFocus: validSoftFocus(doc.softFocus), softSize: (SOFT_SIZES as readonly string[]).includes(doc.softSize) ? doc.softSize : 'L',
+      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : doc.page === 'soft' ? 'ic' : 'script', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo', cardWall: validCardWall(doc.cardWall),
+        soft: doc.soft === true || (!!doc.softFocus && typeof doc.softFocus === 'object' && Object.keys(doc.softFocus).length > 0),
         toursSeen: TOUR_IDS.filter((id) => Array.isArray(doc.tours) && doc.tours.includes(id)) });
       const fwRaw = await host.storeGet('firmware.bin');
       if (fwRaw) await openFirmware(fwRaw, doc.fwName || 'fwdc248b.bin', false);
@@ -404,34 +401,12 @@ export function openCrop(id: string | undefined): void { set({ cropId: id }); }
 export function setCrop(id: string, crop: Crop): void { setWall(id, { crop }); set({ cropId: undefined }); void encodeWall(id); scheduleSave(); }
 
 // ------------------------------------------------------------------ soft focus (rows of the clarity table)
-function validSoftFocus(v: unknown): Partial<Record<SoftFocusLevel, SoftFocusStrength>> {
-  const out: Partial<Record<SoftFocusLevel, SoftFocusStrength>> = {};
-  if (!v || typeof v !== 'object') return out;
-  for (const level of SOFT_FOCUS_LEVELS) {
-    const x = (v as Record<string, unknown>)[String(level)];
-    if (typeof x === 'string' && (SOFT_FOCUS_STRENGTHS as readonly string[]).includes(x)) out[level] = x as SoftFocusStrength;
-  }
-  return out;
-}
-/** Soft focus on `level`, or the camera's own clarity there (`null`). */
-export function setSoftFocus(level: SoftFocusLevel, strength: SoftFocusStrength | null): void {
-  set((s) => { const softFocus = { ...s.softFocus }; if (strength) softFocus[level] = strength; else delete softFocus[level]; return { softFocus, softActive: level }; });
-  scheduleSave();
-}
-/** -2 weak, -3 medium, -4 strong; -1 stays as it is. */
-export function setSoftRecommended(): void {
-  set((s) => ({ softFocus: { ...(s.softFocus[-1] ? { [-1]: s.softFocus[-1] } : {}), [-2]: 'weak', [-3]: 'medium', [-4]: 'strong' }, softActive: -3 }));
-  scheduleSave();
-}
-export function setSoftActive(level: SoftFocusLevel): void { if (state.softActive !== level) set({ softActive: level }); }
-export function setSoftSize(softSize: SoftSize): void { set({ softSize }); scheduleSave(); }
-/** The soft focus that will be built into the firmware, -1 first. */
-export function softSpecs(s: State = state): SoftFocusRequest[] {
-  return SOFT_FOCUS_LEVELS.filter((l) => s.softFocus[l]).map((level) => ({ level, strength: s.softFocus[level]! }));
-}
+/** What the soft focus switch writes: fixed strengths on three clarity steps, -1 stays as it is. */
+export const SOFT_FIXED: readonly SoftFocusRequest[] = [{ level: -2, strength: 'weak' }, { level: -3, strength: 'medium' }, { level: -4, strength: 'strong' }];
+export function setSoft(soft: boolean): void { set({ soft }); scheduleSave(); }
+export function softSpecs(s: State = state): SoftFocusRequest[] { return s.soft ? [...SOFT_FIXED] : []; }
 const MINUS = '\u2212';
-export const clarityLabel = (level: number): string => `${t('clarity')} ${level < 0 ? MINUS : '+'}${Math.abs(level)}`;
-export const strengthLabel = (st: SoftFocusStrength | 'custom'): string => t(st === 'weak' ? 'softWeak' : st === 'medium' ? 'softMedium' : st === 'strong' ? 'softStrong' : 'softCustom');
+const strengthLabel = (st: SoftFocusStrength | 'custom'): string => t(st === 'weak' ? 'softWeak' : st === 'medium' ? 'softMedium' : st === 'strong' ? 'softStrong' : 'softCustom');
 /** "−2 weak / −3 medium" (−1 first), for confirmations and the copies page. */
 export function softText(list: readonly (SoftFocusRequest | ClarityChange)[]): string {
   return [...list].sort((a, b) => b.level - a.level).map((f) => `${f.level < 0 ? MINUS : '+'}${Math.abs(f.level)} ${strengthLabel(f.strength)}`).join(' / ');

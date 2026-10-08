@@ -32,6 +32,11 @@ export const Ico = {
   external: <svg viewBox="0 0 20 20" {...P}><path d="M8 5H5.5A1.5 1.5 0 0 0 4 6.5v8A1.5 1.5 0 0 0 5.5 16h8a1.5 1.5 0 0 0 1.5-1.5V12M11 4h5v5M16 4l-7 7" /></svg>,
 };
 
+/** An on / off switch. */
+export function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+  return <button type="button" role="switch" aria-checked={checked} aria-label={label} className={`switch ${checked ? 'on' : ''}`} onClick={() => onChange(!checked)}><i /></button>;
+}
+
 export function Segmented<T extends string>({ value, options, onChange, tour }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; tour?: string }) {
   return (
     <div className="seg" role="tablist" data-tour={tour}>

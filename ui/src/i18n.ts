@@ -78,14 +78,8 @@ const zh = {
   tCopiesActionsT: '操作', tCopiesActionsB: '备份到电脑、删除（删除后无法恢复），或者只勾选一个通过校验的固件，把它写回存储卡。',
   aboutBody: '修改固件和机内文件有风险，由使用者自行承担。',
   aboutCredits: '特别鸣谢：radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion；DoYitNow/gr-custom-tool；样张来源DPReview；图标字体 Barlow Condensed',
-  navSoft: '柔焦', clarity: '清晰度', softOff: '原厂', softWeak: '弱', softMedium: '中', softStrong: '强', softCustom: '自定义', softRecommended: '推荐设置',
-  softHint: '刷入后，在影像控制里把清晰度调到对应的负档即为柔焦', softLine: '柔焦  ·  清晰度 {l}', softPreviewOff: '原厂', softApprox: '近似效果',
-  tOvSoftT: '柔焦', tOvSoftB: '改写相机清晰度的负档，在影像控制里把清晰度调低即可拍出柔焦效果。',
-  tSoftLevelsT: '柔焦档位', tSoftLevelsB: '为清晰度 −1 至 −4 分别选择柔焦强度，选“原厂”的档位保持相机原本的效果。点击某一档可在右侧预览。',
-  tSoftQuickT: '推荐设置', tSoftQuickB: '一键设为 −2 弱、−3 中、−4 强，−1 保持原厂。',
-  tSoftSizeT: '照片尺寸', tSoftSizeB: '柔化范围按像素计算，同一档在 M、S 尺寸上显得更柔。预览会按所选尺寸模拟。',
-  tSoftPreviewT: '预览', tSoftPreviewB: '左边为原图，右边为所选档位的近似效果，中间分割线可以拖动，双击回到中间。用户可以导入自己的照片。',
-  tSoftWriteT: '写入存储卡', tSoftWriteB: '生成固件并写入。写入后，将相机关机，插入存储卡，按住 MENU 的同时开机执行升级。影像控制、长宽比和柔焦的改动将写在同一个固件里，移除存储卡后依然生效。',
+  navSoft: '柔焦', softWeak: '弱', softMedium: '中', softStrong: '强', softCustom: '自定义', softLine: '柔焦  ·  清晰度 {l}', softLevels: '清晰度 {l}',
+  tIcSoftT: '柔焦', tIcSoftB: '打开后，相机清晰度的 −2、−3、−4 三档会变成强度固定的弱、中、强柔焦，−1 保持原样。拍摄时在影像控制里调清晰度即可切换。',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -167,14 +161,8 @@ const en: typeof zh = {
   tCopiesActionsT: 'Actions', tCopiesActionsB: 'Back up to the computer, delete (cannot be undone), or tick one verified firmware and write it back to the card.',
   aboutBody: 'Modifying firmware and internal files is at your own risk.',
   aboutCredits: 'Special thanks: radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion; DoYitNow/gr-custom-tool; sample picture from DPReview; icon font Barlow Condensed',
-  navSoft: 'Soft focus', clarity: 'Clarity', softOff: 'Factory', softWeak: 'Weak', softMedium: 'Medium', softStrong: 'Strong', softCustom: 'Custom', softRecommended: 'Recommended',
-  softHint: 'After installing, set Clarity in Image Control to one of these negative steps for soft focus', softLine: 'Soft focus  ·  Clarity {l}', softPreviewOff: 'Factory', softApprox: 'Approximation',
-  tOvSoftT: 'Soft focus', tOvSoftB: 'Rewrites the camera\'s negative Clarity steps: turn Clarity down in Image Control to shoot with soft focus.',
-  tSoftLevelsT: 'Soft focus steps', tSoftLevelsB: 'Pick a soft focus strength for Clarity −1 to −4; steps left on “Factory” keep the camera\'s own effect. Click a step to preview it on the right.',
-  tSoftQuickT: 'Recommended', tSoftQuickB: 'Sets −2 weak, −3 medium and −4 strong in one go; −1 stays as it is.',
-  tSoftSizeT: 'Photo size', tSoftSizeB: 'The softening is measured in pixels, so the same step looks softer at M and S. The preview follows the size chosen here.',
-  tSoftPreviewT: 'Preview', tSoftPreviewB: 'Original on the left, an approximation of the chosen step on the right. Drag the divider, double-click to centre it. You can drop your own photo.',
-  tSoftWriteT: 'Write to card', tSoftWriteB: 'Builds the firmware and writes it. Then switch the camera off, insert the card and switch on with MENU held to install. Image Control, aspect ratio and soft focus changes go into the same firmware and stay after the card is removed.',
+  navSoft: 'Soft focus', softWeak: 'weak', softMedium: 'medium', softStrong: 'strong', softCustom: 'custom', softLine: 'Soft focus  ·  Clarity {l}', softLevels: 'Clarity {l}',
+  tIcSoftT: 'Soft focus', tIcSoftB: 'When on, the camera\'s Clarity −2, −3 and −4 become soft focus of fixed strength (weak, medium, strong); −1 stays as it is. Switch between them with Clarity in Image Control.',
 };
 export type Key = keyof typeof zh;
 const dict = (navigator.language || 'zh').toLowerCase().startsWith('zh') ? zh : en;
