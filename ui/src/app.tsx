@@ -104,7 +104,7 @@ function OutputBar() {
       <div className="out-chips">
         {vol && role && <span className="chip">{t(role)}</span>}
         {vol && s.entryOnCard && <span className="chip">{t('entryChip')}</span>}
-        {isWall && vol && vol.fs && vol.fs !== 'FAT32' && vol.fs !== 'DEV' && <span className="chip warn">{t('notFat32')}</span>}
+        {isWall && vol && vol.fs !== 'DEV' && ((!!vol.fs && vol.fs !== 'FAT32') || vol.total > 34e9) && <span className="chip warn">{t('notFat32')}</span>}
       </div>
       <span className="grow" />
       {s.page === 'copies' && <CopyActions />}
