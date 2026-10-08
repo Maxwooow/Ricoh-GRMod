@@ -165,11 +165,10 @@ function SlotCard({ id }: { id: SlotId }) {
                   <FileButton className="file-main" accept=".xmp,.cube" title={t('replace')} onFiles={(f) => { void loadPresetFile(id, f[0]); }}>{Ico.file}<span className="ellipsis">{p.result?.title || p.fileName}</span></FileButton>
                   <button className="file-x" title={t('remove')} aria-label={t('remove')} onClick={() => removePreset(id)}>{Ico.x}</button>
                 </div>
-                {(p.busy || p.error || (p.result && p.result.warnings.length > 0)) && (
+                {(p.busy || p.error) && (
                   <div className="chips">
                     {p.busy && <span className="chip muted"><span className="spinner small" />{t('converting')}</span>}
                     {p.error && <span className="chip bad" title={p.error}><span className="ellipsis">{p.error}</span></span>}
-                    {p.result && p.result.warnings.length > 0 && <span className="chip warn" title={p.result.warnings.join(', ')}>{t('warnApprox')}</span>}
                   </div>
                 )}
               </div>
