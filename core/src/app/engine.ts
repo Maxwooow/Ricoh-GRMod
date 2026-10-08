@@ -171,7 +171,7 @@ export interface BuildOptions {
   adjSoftFocus?: boolean;
   /** Date imprint on the JPEG, switched in the camera's menu. */
   dateStamp?: boolean;
-  /** Test builds only: imprint always on in this colour (1 orange .. 5 black). */
+  /** Test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
   dateStampFixed?: number;
   /** Test builds only: print the encoder configuration on the 720x480 picture. */
   dateStampDiag?: boolean;

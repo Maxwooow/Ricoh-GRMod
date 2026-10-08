@@ -4,3 +4,4 @@ dist
 core/testdata/private
 shell/web
 scratch
+__pycache__/

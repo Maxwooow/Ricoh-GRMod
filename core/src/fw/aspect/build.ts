@@ -29,6 +29,7 @@ import { RATIO_ICON_BYTES, RATIO_ICON_H, RATIO_ICON_W, drawRatioIcon } from './i
 import { linkNative } from './native-link';
 import { installAdjSoftFocus } from './softfocus';
 import { DATESTAMP_BYTE, installDateStamp } from './datestamp';
+import { installDateStampMenu } from './datestamp-menu';
 
 export const BASE = 0x53000000;
 export const OFFICIAL_RTOS_LENGTH = 0x13d2ac0;
@@ -106,7 +107,7 @@ export interface ExtensionFeatures {
   dateStamp?: boolean;
 }
 
-/** For test builds only: imprint always on in this colour (1..5) instead of following the camera setting. */
+/** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
 export interface TestOptions {
   dateStampFixed?: number;
   /** Also print the encoder configuration on the 720x480 picture. */
@@ -992,6 +993,7 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   if (features.dateStamp) {
     const fixed = test.dateStampFixed;
     installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : DATESTAMP_BYTE, !!test.dateStampDiag);
+    if (!fixed) icons = installDateStampMenu(patch, icons);
   }
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');

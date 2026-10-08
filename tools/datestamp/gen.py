@@ -4,10 +4,11 @@
 The module is position independent (-fropi -frwpi, no global data, every address passed in through
 its context argument), so the bytes do not depend on where they are placed. This is checked by
 linking it at two addresses and comparing. Compiler: clang if present, else `python3 -m ziglang cc`
-(pip install ziglang); flags as for the ratio modules (cortex-a9, ARM, soft float, -Os, no library).
+(pip install ziglang; set GRMOD_ZIG=1 to use it even when clang is installed); flags as for the ratio modules (cortex-a9, ARM, soft float, -Os, no library).
 """
 import base64
 import hashlib
+import os
 import shutil
 import subprocess
 import sys
@@ -18,13 +19,14 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
 SRC = HERE / 'datestamp.c'
 OUT = ROOT / 'core' / 'src' / 'fw' / 'aspect' / 'datestamp-code.ts'
-FLAGS = ['-mcpu=cortex-a9' if shutil.which('clang') else '-mcpu=cortex_a9', '-marm', '-mfloat-abi=soft', '-Os',
+USE_ZIG = bool(os.environ.get('GRMOD_ZIG')) or not (shutil.which('clang') and shutil.which('ld.lld') and shutil.which('llvm-objcopy'))
+FLAGS = ['-mcpu=cortex_a9' if USE_ZIG else '-mcpu=cortex-a9', '-marm', '-mfloat-abi=soft', '-Os',
          '-ffreestanding', '-fno-builtin', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-nostdlib',
          '-fropi', '-frwpi', '-fno-jump-tables', '-Wall', '-Wextra', '-Werror']
 
 
 def tools():
-    if shutil.which('clang') and shutil.which('ld.lld') and shutil.which('llvm-objcopy'):
+    if not USE_ZIG:
         return ['clang', '-target', 'armv7-none-eabi'], ['ld.lld'], ['llvm-objcopy']
     z = [sys.executable, '-m', 'ziglang']
     return z + ['cc', '-target', 'arm-freestanding-eabi'], z + ['ld.lld'], z + ['objcopy']

@@ -4,8 +4,8 @@
  *
  * Called at the start of JpegEncodeMacroProcess::Execute with the process configuration. The
  * configuration lists the YCbCr 4:2:2 pictures the JPEG encoder is about to compress (main picture,
- * screennail, thumbnail, ...). The date is drawn into each of them, bottom right, as a
- * seven-segment "'YY MM DD", scaled to the picture.
+ * screennail, thumbnail, ...). The date is drawn into each of them, bottom right, in orange
+ * seven-segment digits scaled to the picture, as "'YY MM DD" or "YYYY.MM.DD hh:mm".
  *
  * Position-independent: no global data, every address comes in through `struct ctx`. No division
  * (the module must not need a run-time library).
@@ -33,21 +33,47 @@ struct ctx {
   void (*clean)(void *cache, u32 addr, u32 n);       /* 0x538f04c4 */
   void *(*platform)(void);                           /* 0x538f21a0 */
   void (*get_time)(void *clock, u8 *time);           /* 0x538ea9b0 */
-  const u8 *setting;                                 /* bit 0..2: colour + 1 (0 = off) */
+  const u8 *setting;                                 /* bit 0: on, bit 1: with year and time */
 };
+
+/* The setting byte (see `datestamp.ts`): anything above 3 counts as off. */
+#define SETTING_ON 1u
+#define SETTING_LONG 2u
+
+/* Glyph codes besides the digits 0..15. */
+#define G_APOSTROPHE 16
+#define G_SPACE 17
+#define G_DOT 18
+#define G_COLON 19
 
 struct colour { u8 y, cb, cr; };
 
-static struct colour colour_of(u32 index) {
+/* The imprint colour: the orange of a film camera's date back. */
+static struct colour orange(void) {
   struct colour c;
-  switch (index) {
-  case 1: c.y = 250; c.cb = 128; c.cr = 128; break;  /* white */
-  case 2: c.y = 205; c.cb = 16; c.cr = 160; break;   /* yellow */
-  case 3: c.y = 84; c.cb = 94; c.cr = 228; break;    /* red */
-  case 4: c.y = 12; c.cb = 128; c.cr = 128; break;   /* black */
-  default: c.y = 150; c.cb = 56; c.cr = 204; break;  /* orange */
-  }
+  c.y = 150; c.cb = 56; c.cr = 204;
   return c;
+}
+
+static int narrow(u32 g) { return g == G_APOSTROPHE || g == G_DOT || g == G_COLON; }
+static int punct(u32 g) { return g == G_DOT || g == G_COLON; }
+
+/* Left edge and width of each glyph at digit height H, starting at 0; returns the advance of the
+ * whole run (without a gap after the last glyph). The marks ' . : are T wide; . and : sit closer to
+ * their neighbours (half the gap). A space advances H/2. */
+static s32 layout(const u8 *glyphs, u32 count, s32 H, s32 *left, s32 *width) {
+  s32 W = (H * 9) >> 4, T = (H * 9) >> 6, gap = (H * 5) >> 4, x = 0, end = 0;
+  u32 i;
+  if (T < 2) T = 2;
+  for (i = 0; i < count; i++) {
+    u32 g = glyphs[i];
+    if (i > 0 && (punct(g) || punct(glyphs[i - 1]))) x -= gap >> 1;
+    left[i] = x;
+    width[i] = g == G_SPACE ? 0 : narrow(g) ? T : W;
+    end = x + width[i];
+    x += (g == G_SPACE ? (H >> 1) : width[i]) + gap;
+  }
+  return end;
 }
 
 /* Segments a..g as bits 0..6. */
@@ -105,25 +131,20 @@ static void sync(const struct ctx *k, void *cache, struct picture *p, u32 y0, u3
   if (clean) k->clean(cache, a, b - a); else k->invalidate(cache, a, b - a);
 }
 
-/* Draw `count` glyphs (0..15 hex digit, 16 apostrophe, 17 space) with their top left corner at
+/* Draw `count` glyphs (0..15 hex digit, then ' space . :) with their top left corner at
  * (x0, y0), digit height H. With `bg`, the box behind them is filled with black first. The caller
  * has checked that the box lies inside the picture and handles the cache. */
 static void text_at(struct picture *p, const u8 *glyphs, u32 count, s32 x0, s32 y0, s32 H, struct colour col, int bg) {
-  s32 W, T, gap, x, total;
+  s32 W, T, total;
   s32 left[MAXGLYPH], width[MAXGLYPH];
   u32 i;
-  W = (H * 9) >> 4;            /* 0.56 H */
-  T = (H * 9) >> 6;            /* bar thickness 0.14 H */
+  /* Digit 0.56 H wide, bars 0.14 H thick, 0.31 H between digits (see `layout`). */
+  W = (H * 9) >> 4;
+  T = (H * 9) >> 6;
   if (T < 2) T = 2;
-  gap = (H * 5) >> 4;          /* 0.31 H between digits */
-  x = x0; total = 0;
-  for (i = 0; i < count; i++) {
-    u8 g = glyphs[i];
-    width[i] = g == 16 ? T : g == 17 ? 0 : W;
-    left[i] = x;
-    x += g == 17 ? (H >> 1) : width[i] + gap;
-  }
-  total = x - x0;
+  if (count > MAXGLYPH) return;
+  total = layout(glyphs, count, H, left, width);
+  for (i = 0; i < count; i++) left[i] += x0;
   if (bg) {
     s32 py, px;
     for (py = -2; py < H + 2; py++) {
@@ -141,14 +162,18 @@ static void text_at(struct picture *p, const u8 *glyphs, u32 count, s32 x0, s32 
       for (i = 0; i < count; i++) {
         u8 g = glyphs[i];
         u32 seg;
-        if (g == 17) continue;
-        seg = g == 16 ? 0 : segments(g);
+        if (g == G_SPACE) continue;
+        seg = g >= G_APOSTROPHE ? 0 : segments(g);
         for (px = 0; px < width[i]; px++) {
           u32 cov = 0, sx, sy;
           for (sy = 0; sy < 2; sy++) for (sx = 0; sx < 2; sx++) {
             s32 qx = px * 4 + 1 + (s32)sx * 2, qy = py * 4 + 1 + (s32)sy * 2;
-            if (g == 16) { /* apostrophe: short bar at the top */
+            if (g == G_APOSTROPHE) { /* short bar at the top */
               if (qy < (qH * 5) >> 4 && abs32(qx - (T * 2)) <= qT) cov++;
+            } else if (g == G_DOT) { /* square on the baseline */
+              if (qy >= qH - 2 * qT && abs32(qx - (T * 2)) <= qT) cov++;
+            } else if (g == G_COLON) { /* two squares, at 1/3 and 2/3 of the height */
+              if (abs32(qx - (T * 2)) <= qT && (abs32(qy - ((qH * 5) >> 4)) <= qT || abs32(qy - ((qH * 11) >> 4)) <= qT)) cov++;
             } else if (digit_hit(seg, qx, qy, qW, qH, qT)) cov++;
           }
           if (cov) {
@@ -166,11 +191,9 @@ static void text_at(struct picture *p, const u8 *glyphs, u32 count, s32 x0, s32 
 
 /* Width of a run of glyphs drawn at height H (same arithmetic as text_at). */
 static s32 text_width(const u8 *glyphs, u32 count, s32 H) {
-  s32 W = (H * 9) >> 4, T = (H * 9) >> 6, gap = (H * 5) >> 4, total = 0;
-  u32 i;
-  if (T < 2) T = 2;
-  for (i = 0; i < count; i++) total += glyphs[i] == 17 ? (H >> 1) : (glyphs[i] == 16 ? T : W) + gap;
-  return total - gap;
+  s32 left[MAXGLYPH], width[MAXGLYPH];
+  if (count > MAXGLYPH) return 1 << 20;
+  return layout(glyphs, count, H, left, width);
 }
 
 /* The picture is a window into a larger buffer: the planes start at the window's top left, `stride`
@@ -276,21 +299,35 @@ void datestamp(const struct ctx *k, u32 *config) {
   u32 n = 0, i, j, setting;
   struct picture *seen[4];
   void *cache, *platform;
-  setting = *k->setting & 7;
-  if (setting == 0 || setting > 5 || !ram(config)) return;
+  setting = *k->setting;
+  if (setting > (SETTING_ON | SETTING_LONG) || !(setting & SETTING_ON) || !ram(config)) return;
   for (i = 0; i < 16; i++) time[i] = 0;
   platform = k->platform();
   if (!platform) return;
   k->get_time(((void **)platform)[1], time);
   {
-    u32 year = time[0] | (u32)time[1] << 8, month = time[2], day = time[3];
+    u32 year = time[0] | (u32)time[1] << 8, month = time[2], day = time[3], hour = time[4], minute = time[5];
     if (year < 2000 || year > 2099 || month < 1 || month > 12 || day < 1 || day > 31) return;
-    glyphs[n++] = 16;                  /* ' */
-    n += two_digits(year, glyphs + n);
-    glyphs[n++] = 17;                  /* space */
-    n += two_digits(month, glyphs + n);
-    glyphs[n++] = 17;
-    n += two_digits(day, glyphs + n);
+    if (setting & SETTING_LONG) {      /* 2026.10.08 17:34 */
+      if (hour > 23 || minute > 59) return;
+      glyphs[n++] = 2; glyphs[n++] = 0;
+      n += two_digits(year, glyphs + n);
+      glyphs[n++] = G_DOT;
+      n += two_digits(month, glyphs + n);
+      glyphs[n++] = G_DOT;
+      n += two_digits(day, glyphs + n);
+      glyphs[n++] = G_SPACE;
+      n += two_digits(hour, glyphs + n);
+      glyphs[n++] = G_COLON;
+      n += two_digits(minute, glyphs + n);
+    } else {                           /* '26 10 08 */
+      glyphs[n++] = G_APOSTROPHE;
+      n += two_digits(year, glyphs + n);
+      glyphs[n++] = G_SPACE;
+      n += two_digits(month, glyphs + n);
+      glyphs[n++] = G_SPACE;
+      n += two_digits(day, glyphs + n);
+    }
   }
   cache = k->cache();
   /* The pictures, one per buffer. The first one is the main picture the encoder compresses: for
@@ -330,7 +367,7 @@ void datestamp(const struct ctx *k, u32 *config) {
           rh = (s32)q;
         }
       }
-      draw(k, cache, p, (pw - rw) >> 1, (ph - rh) >> 1, rw, rh, glyphs, n, colour_of(setting - 1));
+      draw(k, cache, p, (pw - rw) >> 1, (ph - rh) >> 1, rw, rh, glyphs, n, orange());
     }
   }
 #ifdef DIAG

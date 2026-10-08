@@ -10,4 +10,5 @@ export {
 } from './build';
 export { ADJ_SOFT_FOCUS, SOFT_FOCUS_BYTE, SOFT_FOCUS_ICON_ID, SOFT_FOCUS_NAMES, SOFT_FOCUS_TEXT_ID, drawSoftFocusIcon, softFocusRows } from './softfocus';
 export type { AspectResult, BuildRevision, ExtensionFeatures, PatchedWord, RatioEntry, RatioSpec, TestOptions } from './build';
-export { DATESTAMP_BYTE, DATESTAMP_COLOURS, JPEG_EXECUTE, datestampModule, installDateStamp } from './datestamp';
+export { DATESTAMP_BYTE, DATESTAMP_LONG, DATESTAMP_ON, JPEG_EXECUTE, datestampModule, installDateStamp } from './datestamp';
+export { DATESTAMP_ICON_IDS, DATESTAMP_MENU_ID, DATESTAMP_STYLE_ID, DATESTAMP_SWITCH_ID, DATESTAMP_TEXT_IDS, drawStyleIcon, installDateStampMenu } from './datestamp-menu';

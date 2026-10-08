@@ -17,7 +17,9 @@
  * does before the CPU reads a picture), draws, and cleans them back to memory (0x538F04C4) for
  * the encoder. Pictures of another format or of odd sizes are left alone.
  *
- * `setting` is the address of one byte: 0 = off, 1..5 = on in orange, white, yellow, red, black.
+ * `setting` is the address of one byte: bit 0 on, bit 1 the long style ("2026.10.08 17:34"
+ * instead of "'26 10 08"); a value above 3 counts as off. The imprint is orange (light only on a
+ * black-and-white photo). The camera menu entry that sets the byte is in `datestamp-menu.ts`.
  */
 import { FirmwareError } from '../types';
 import { assembleWords } from './arm';
@@ -40,8 +42,9 @@ const GET_TIME = 0x538ea9b0;
  */
 export const DATESTAMP_BYTE = 0x55084dd8 + 4 + 0x94b;
 
-/** Colours in the order of the module (setting byte - 1). */
-export const DATESTAMP_COLOURS = ['orange', 'white', 'yellow', 'red', 'black'] as const;
+/** Bits of the setting byte. */
+export const DATESTAMP_ON = 1;
+export const DATESTAMP_LONG = 2;
 
 function fail(code: string, message: string): never {
   throw new FirmwareError(code, message);
