@@ -10,7 +10,7 @@ import { FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
 import { CropEditor, ImageControlPage, RatioPage, ScriptPage, WallpaperPage } from './pages';
 import { Tour, replayTour } from './tour';
 import {
-  backupCopies, softOn, canRestoreWall, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, outputEntry, outputFirmware, outputWallpaper, pendingChanges, refreshVolumes, restoreCardWall, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
+  backupCopies, extrasOn, canRestoreWall, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, outputEntry, outputFirmware, outputWallpaper, pendingChanges, refreshVolumes, restoreCardWall, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
 } from './store';
 
 const gb = (n: number): string => (n >= 1e9 ? `${(n / 1e9).toFixed(n >= 1e10 ? 0 : 1)} GB` : `${Math.max(1, Math.round(n / 1e6))} MB`);
@@ -81,9 +81,9 @@ function CopyActions() {
 function OutputBar() {
   const s = useStore((x) => x);
   const vol = s.volumes.find((v) => v.id === s.volumeId);
-  // Image Control (with soft focus) and the added ratios go into one firmware file: both pages write the same thing.
+  // Image Control (with its switches) and the added ratios go into one firmware file: both pages write the same thing.
   const isIC = s.page === 'ic' || s.page === 'ratio'; const isWall = s.page === 'wall';
-  const can = !!s.info && !s.busy && (isIC ? (pendingChanges(s).length + ratioSpecs(s).length > 0 || softOn(s)) && !hasNameErrors(s) && !hasRatioErrors(s) : isWall ? wallReady(s) : true);
+  const can = !!s.info && !s.busy && (isIC ? (pendingChanges(s).length + ratioSpecs(s).length > 0 || extrasOn(s)) && !hasNameErrors(s) && !hasRatioErrors(s) : isWall ? wallReady(s) : true);
   const role: Key | '' = s.role === 'firmware' ? 'roleFirmware' : s.role === 'wallpaper' ? 'roleWallpaper' : s.role === 'mixed' ? 'roleMixed' : s.role === 'empty' ? 'roleEmpty' : '';
   const run = (kind: 'card' | 'folder'): void => { void (isIC ? outputFirmware({ kind }) : isWall ? outputWallpaper({ kind }) : outputEntry({ kind })); };
   return (

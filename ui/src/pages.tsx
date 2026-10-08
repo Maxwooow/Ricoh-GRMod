@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { color, MAX_CUSTOM_RATIOS, SHUTDOWN_H, SHUTDOWN_W } from '@grmod/core';
 import type { SlotId } from '@grmod/core';
+import type { ReactNode } from 'react';
 import { DropZone, FileButton, Ico, IconCanvas, Menu, Prop, RatioIcon, RgbCanvas, Segmented, Switch } from './components';
 import { FirmwareHero } from './firmware';
 import { t } from './i18n';
@@ -12,6 +13,8 @@ import {
   addFactoryWall, addRatio, addWallFiles, loadFirmwareFile, loadIconImage, loadPresetFile, loadPreviewFile, moveWall, nameProblem, openCrop, outputFirmware, previewPhoto, removePreset, removeWall,
   ratioName, ratioProblem, removeRatio, setActiveRatio, setActiveSlot, setCrop, setIcon, setName, setPreviewMode, setRatio, setRatioBackdrop, useStore, wallBitmap,
   setSoft,
+  setDateStamp,
+  setMonoUnlock,
 } from './store';
 import type { RatioItem, WallItem } from './store';
 
@@ -184,17 +187,33 @@ function SlotCard({ id }: { id: SlotId }) {
   );
 }
 
-/** Soft focus: on or off; on puts it on the ADJ lever with fixed strengths (off / weak / medium / strong). */
-function SoftSwitch() {
-  const on = useStore((s) => s.soft);
+/** One switch of the firmware additions: icon, name, one line of detail. */
+function FeatureRow({ icon, title, sub, on, onChange }: { icon: ReactNode; title: string; sub: string; on: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className={`card soft-switch ${on ? 'on' : ''}`} data-tour="ic-soft">
-      <span className="page-icon soft-ico">{Ico.soft}</span>
+    <div className={`soft-switch ${on ? 'on' : ''}`}>
+      <span className="page-icon soft-ico">{icon}</span>
       <div className="soft-text">
-        <b>{t('navSoft')}</b>
-        <span className="muted small ellipsis">{t('softAdjSub')}</span>
+        <b>{title}</b>
+        <span className="muted small ellipsis">{sub}</span>
       </div>
-      <Switch checked={on} onChange={setSoft} label={t('navSoft')} />
+      <Switch checked={on} onChange={onChange} label={title} />
+    </div>
+  );
+}
+
+/**
+ * The additions that are not slots: soft focus on the ADJ lever (off / weak / medium / strong),
+ * the date imprint with its menu, and the six monochrome looks (colour models only).
+ */
+function FeatureSwitches({ mono }: { mono: boolean }) {
+  const soft = useStore((s) => s.soft);
+  const date = useStore((s) => s.dateStamp);
+  const looks = useStore((s) => s.monoUnlock);
+  return (
+    <div className="card extras" data-tour="ic-soft">
+      <FeatureRow icon={Ico.soft} title={t('navSoft')} sub={t('softAdjSub')} on={soft} onChange={setSoft} />
+      <FeatureRow icon={Ico.date} title={t('navDate')} sub={t('dateSub')} on={date} onChange={setDateStamp} />
+      {!mono && <FeatureRow icon={Ico.mono} title={t('navMono')} sub={t('monoSub')} on={looks} onChange={setMonoUnlock} />}
     </div>
   );
 }
@@ -221,11 +240,11 @@ export function ImageControlPage() {
       {!info && <FirmwareHero />}
       {info && model !== 'MONO' && (
         <div className="ic" data-tour-page="ic">
-          <div className="cards"><SlotCard id="CY" /><SlotCard id="CG" /><SoftSwitch /></div>
+          <div className="cards"><SlotCard id="CY" /><SlotCard id="CG" /><FeatureSwitches mono={false} /></div>
           <PreviewPane />
         </div>
       )}
-      {info && model === 'MONO' && <div className="mono-ic" data-tour-page="ic"><p className="muted">{t('monoNoSlots')}</p><SoftSwitch /></div>}
+      {info && model === 'MONO' && <div className="mono-ic" data-tour-page="ic"><p className="muted">{t('monoNoSlots')}</p><FeatureSwitches mono /></div>}
     </DropZone>
   );
 }

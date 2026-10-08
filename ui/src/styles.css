@@ -291,6 +291,9 @@ svg { width: 18px; height: 18px; flex: none; }
 .soft-switch .soft-ico { width: 32px; height: 32px; flex: none; }
 .soft-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .soft-text b { font-weight: 600; }
+.extras { display: flex; flex-direction: column; padding: 0; flex: none; }
+.extras .soft-switch { padding: 8px 14px; }
+.extras .soft-switch + .soft-switch { border-top: 1px solid var(--line); }
 .mono-ic { display: flex; flex-direction: column; gap: 12px; max-width: 440px; }
 .switch { flex: none; position: relative; width: 34px; height: 20px; padding: 0; border: 0; border-radius: 10px; background: var(--line2); cursor: pointer; transition: background 0.18s; }
 .switch i { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform 0.18s cubic-bezier(0.22, 0.8, 0.24, 1); }
@@ -363,7 +366,7 @@ button.fw-rel:disabled { cursor: default; }
 .tour-text { animation: tour-text 0.32s ease-out both; }
 @keyframes tour-text { from { opacity: 0; transform: translateY(5px); } }
 .tour-text b { display: block; margin-bottom: 5px; font-size: 15px; font-weight: 650; }
-.tour-text p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); user-select: text; }
+.tour-text p { margin: 0; font-size: 13.5px; line-height: 1.6; white-space: pre-line; color: var(--muted); user-select: text; }
 .tour-foot { display: flex; align-items: center; gap: 6px; margin-top: 14px; }
 .tour-foot .btn:focus-visible { outline: 2px solid var(--blue-bg); outline-offset: 1px; }
 .tour-count { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }

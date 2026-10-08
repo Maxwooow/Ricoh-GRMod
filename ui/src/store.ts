@@ -46,7 +46,7 @@ export interface State {
   slots: Record<SlotId, SlotState>;
   wall: WallItem[];
   ratios: RatioItem[]; activeRatio?: string; ratioBackdrop: RatioBackdrop;
-  soft: boolean;
+  soft: boolean; dateStamp: boolean; monoUnlock: boolean;
   previewMode: PreviewMode; photoRev: number; cardWall?: CardWall; activeSlot: SlotId;
   volumes: Volume[]; showAll: boolean; volumeId?: string; role?: card.CardRole; entryOnCard: boolean;
   copySource: CopySource; parked: ParkedEntry[]; backups: ParkedEntry[]; copySel: string[]; copyInfo: Record<string, CopyInfo>; builds: BuildRecord[];
@@ -58,7 +58,7 @@ const SLOT_IDS: SlotId[] = ['CY', 'CG'];
 const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '', style: 'film' } });
 let state: State = {
   ready: false, page: 'script', fwBusy: false, model: 'HDF', lang: 'zh-CN',
-  slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false,
+  slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false,
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
@@ -114,7 +114,7 @@ async function saveProject(): Promise<void> {
     }])),
     wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: w.kind, width: w.width, height: w.height, crop: w.crop })),
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
-    soft: s.soft,
+    soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock,
     tours: s.toursSeen,
   };
   try { await host.storeSet('project.json', JSON.stringify(doc)); } catch (e) { console.warn('save failed', e); }
@@ -142,6 +142,7 @@ export async function init(): Promise<void> {
         .map((r: RatioItem) => ({ id: r.id, ratio: r.ratio.slice(0, 24), name: String(r.name || '').slice(0, 80) }));
       set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : doc.page === 'soft' ? 'ic' : 'script', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo', cardWall: validCardWall(doc.cardWall),
         soft: doc.soft === true || (!!doc.softFocus && typeof doc.softFocus === 'object' && Object.keys(doc.softFocus).length > 0),
+        dateStamp: doc.dateStamp === true, monoUnlock: doc.monoUnlock === true,
         toursSeen: TOUR_IDS.filter((id) => Array.isArray(doc.tours) && doc.tours.includes(id)) });
       const fwRaw = await host.storeGet('firmware.bin');
       if (fwRaw) await openFirmware(fwRaw, doc.fwName || 'fwdc248b.bin', false);
@@ -408,6 +409,15 @@ export function setCrop(id: string, crop: Crop): void { setWall(id, { crop }); s
  */
 export function setSoft(soft: boolean): void { set({ soft }); scheduleSave(); }
 export function softOn(s: State = state): boolean { return !!s.soft; }
+
+// ------------------------------------------------------------------ date imprint, monochrome looks
+/** Date imprint: the firmware gets the imprint and its menu (Shooting Assist > Date Imprint); it starts off. */
+export function setDateStamp(dateStamp: boolean): void { set({ dateStamp }); scheduleSave(); }
+/** The six looks of the GR IV Monochrome on a colour GR IV. Nothing to unlock on the Monochrome. */
+export function setMonoUnlock(monoUnlock: boolean): void { set({ monoUnlock }); scheduleSave(); }
+export function monoUnlockOn(s: State = state): boolean { return !!s.monoUnlock && s.model !== 'MONO'; }
+/** Any addition that is not a slot or a ratio. */
+export function extrasOn(s: State = state): boolean { return softOn(s) || !!s.dateStamp || monoUnlockOn(s); }
 const MINUS = '\u2212';
 const strengthLabel = (st: SoftFocusStrength | 'custom'): string => t(st === 'weak' ? 'softWeak' : st === 'medium' ? 'softMedium' : st === 'strong' ? 'softStrong' : 'softCustom');
 /** "−2 weak / −3 medium" (−1 first), for confirmations and the copies page. */
@@ -677,12 +687,16 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const changes = stock ? [] : pendingChanges();
   const ratios = stock ? [] : ratioSpecs();
   const soft = !stock && softOn();
+  const dateStamp = !stock && !!state.dateStamp;
+  const monoUnlock = !stock && monoUnlockOn();
   if (!stock && (hasNameErrors() || hasRatioErrors())) return;
-  if (!stock && changes.length === 0 && ratios.length === 0 && !soft) { toast(t('nothingToDo'), 'info'); return; }
+  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock) { toast(t('nothingToDo'), 'info'); return; }
   if (dest.kind === 'card') {
     const lines = stock ? [t('copyOfficial')] : changes.map((c) => `${t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
     if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
     if (soft) lines.push(t('softAdjLine'));
+    if (dateStamp) lines.push(t('dateLine'));
+    if (monoUnlock) lines.push(t('monoLine'));
     if (!(await ask(t('confirmTitle'), lines, t('confirmOk')))) return;
   }
   const target = await destination(dest);
@@ -692,7 +706,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (stock) file = state.raw;
     else {
       set({ busy: t('building') });
-      const built = await engine.build(changes.map((c) => c.request), ratios, [], { adjSoftFocus: soft });
+      const built = await engine.build(changes.map((c) => c.request), ratios, [], { adjSoftFocus: soft, dateStamp, monoUnlock });
       if (!Object.values(built.checks).every((v) => v === true)) throw new EngineError('selfcheck-failed', 'self-check');
       file = built.file;
       void recordBuild(file, changes);
@@ -899,6 +913,8 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
   });
   if (summary.ratios.length) lines.push(t('ratioLine', { n: summary.ratios.length, l: summary.ratios.map((r) => r.name).join(' / ') }));
   if (summary.adjSoftFocus) lines.push(t('softAdjLine'));
+  if (summary.dateStamp) lines.push(t('dateLine'));
+  if (summary.monoUnlock) lines.push(t('monoLine'));
   if (summary.softFocus?.length) lines.push(t('softLine', { l: softText(summary.softFocus) }));
   return lines;
 }

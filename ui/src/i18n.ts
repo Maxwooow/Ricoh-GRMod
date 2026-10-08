@@ -80,7 +80,9 @@ const zh = {
   aboutCredits: '特别鸣谢：radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion；DoYitNow/gr-custom-tool；样张来源DPReview；图标字体 Barlow Condensed',
   navSoft: '柔焦', softWeak: '弱', softMedium: '中', softStrong: '强', softCustom: '自定义', softLine: '柔焦  ·  清晰度 {l}', softLevels: '清晰度 {l}',
   softAdjSub: 'ADJ 拨杆：关 / 弱 / 中 / 强', softAdjLine: '柔焦  ·  ADJ 拨杆（关 / 弱 / 中 / 强）',
-  tIcSoftT: '柔焦', tIcSoftB: '打开后，固件在 ADJ 拨杆里加一项“柔焦”，有关、弱、中、强四档，强度固定，关机后记住。刷入后在菜单的“ADJ 模式设定”里把它放到一个位置。效果在拍下的照片上，实时取景里看不到。打开柔焦时，清晰度暂时不起作用。它占用的是 GR IV 本来就不能放进 ADJ 的“闪光灯曝光补偿”一项，菜单里的闪光灯曝光补偿照常可用。回刷原厂固件之前，先把 ADJ 里的柔焦换成别的功能。',
+  navDate: '日期印字', dateSub: '菜单 › 拍摄辅助 › 拍摄时间戳', dateLine: '日期印字  ·  拍摄辅助 › 拍摄时间戳（\'26 10 08 / 2026.10.08 17:34）',
+  navMono: '黑白风格', monoSub: '解锁 GR IV Monochrome 的 6 个黑白风格', monoLine: '黑白风格  ·  解锁 6 个黑白影像风格',
+  tIcSoftT: '附加功能', tIcSoftB: '柔焦：打开后，固件在 ADJ 拨杆里加一项“柔焦”，有关、弱、中、强四档，强度固定，关机后记住。刷入后在菜单的“ADJ 模式设定”里把它放到一个位置。效果在拍下的照片上，实时取景里看不到。打开柔焦时，清晰度暂时不起作用。它占用的是 GR IV 本来就不能放进 ADJ 的“闪光灯曝光补偿”一项，菜单里的闪光灯曝光补偿照常可用。回刷原厂固件之前，先把 ADJ 里的柔焦换成别的功能。\n日期印字：在照片右下角印上橙色七段数码管风格的日期。刷入后默认关闭，在“拍摄辅助 › 拍摄时间戳”里打开，可选 \'26 10 08 或 2026.10.08 17:34 两种样式。JPEG 和 RAW+JPEG 的 JPG 都会印，黑白照片印浅灰色；RAW 原始数据不印。\n黑白风格：彩色 GR IV（含 HDF）也能在影像控制里选 Monochrome 机型的 6 个黑白风格。',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -164,7 +166,9 @@ const en: typeof zh = {
   aboutCredits: 'Special thanks: radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion; DoYitNow/gr-custom-tool; sample picture from DPReview; icon font Barlow Condensed',
   navSoft: 'Soft focus', softWeak: 'weak', softMedium: 'medium', softStrong: 'strong', softCustom: 'custom', softLine: 'Soft focus  ·  Clarity {l}', softLevels: 'Clarity {l}',
   softAdjSub: 'ADJ lever: off / low / medium / high', softAdjLine: 'Soft focus  ·  ADJ lever (off / low / medium / high)',
-  tIcSoftT: 'Soft focus', tIcSoftB: 'When on, the firmware adds "Soft Focus" to the ADJ lever: off, low, medium or high, fixed strengths, kept after power-off. After flashing, put it on a slot in the menu under ADJ Mode Setting. It shows on the recorded picture, not in live view. While soft focus is on, Clarity has no effect. It takes the place of "Flash Exposure Comp.", which the GR IV never offers on the ADJ lever; the menu setting itself still works. Before flashing the official firmware back, put another function on that ADJ slot.',
+  navDate: 'Date imprint', dateSub: 'Menu › Shooting Assist › Date Imprint', dateLine: 'Date imprint  ·  Shooting Assist › Date Imprint (\'26 10 08 / 2026.10.08 17:34)',
+  navMono: 'B&W looks', monoSub: 'The 6 looks of the GR IV Monochrome', monoLine: 'B&W looks  ·  the 6 monochrome looks unlocked',
+  tIcSoftT: 'Additions', tIcSoftB: 'Soft focus: when on, the firmware adds "Soft Focus" to the ADJ lever: off, low, medium or high, fixed strengths, kept after power-off. After flashing, put it on a slot in the menu under ADJ Mode Setting. It shows on the recorded picture, not in live view. While soft focus is on, Clarity has no effect. It takes the place of "Flash Exposure Comp.", which the GR IV never offers on the ADJ lever; the menu setting itself still works. Before flashing the official firmware back, put another function on that ADJ slot.\nDate imprint: an orange seven-segment date in the bottom right corner of the photo. It is off after flashing; turn it on under Shooting Assist › Date Imprint, styles \'26 10 08 or 2026.10.08 17:34. Printed on JPEG and on the JPG of RAW+JPEG, light grey on black-and-white photos; never on the RAW data.\nB&W looks: a colour GR IV (also the HDF) can choose the 6 looks of the GR IV Monochrome in Image Control.',
 };
 export type Key = keyof typeof zh;
 const dict = (navigator.language || 'zh').toLowerCase().startsWith('zh') ? zh : en;
