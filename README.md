@@ -51,5 +51,8 @@ Anything that appends code or icons (ratios, ADJ soft focus, date imprint) gives
 
 ## Licence
 
-The files under `core/src/fw/aspect/` (including `softfocus.ts`, `datestamp.ts`, `datestamp-menu.ts` and `monounlock.ts`, which build on the same patch machinery), `tools/aspect/`, `tools/softfocus/` and `third_party/gr-custom-tool/`, and the aspect-ratio tests, are derived from gr-custom-tool and are GPL-2.0-only (see the SPDX line in each file and `third_party/gr-custom-tool/LICENSE`). They are compiled into the program, so a build that is given to anyone else has to be distributed under GPL-2.0 together with its complete source.
+GR Mod is free software, licensed under the GNU General Public License version 2 only (SPDX: `GPL-2.0-only`); the full text is in `LICENSE`. A build given to anyone else has to come with its complete source under the same licence.
 
+- The aspect-ratio compiler under `core/src/fw/aspect/` and `tools/aspect/` is a port of [DoYitNow/gr-custom-tool](https://github.com/DoYitNow/gr-custom-tool) (GPL-2.0-only); `third_party/gr-custom-tool/NOTICE.md` lists what is derived from it, and the C sources in `third_party/gr-custom-tool/native/` keep their own copyright lines.
+- The monochrome looks follow the method of [lemonadesaltbagel/GR4-MonoUnlock](https://github.com/lemonadesaltbagel/GR4-MonoUnlock); no code of that project is included.
+- Not covered by the licence: the sample picture `ui/src/assets/preview.jpg` (DPReview's studio test scene, included with DPReview's permission), and Ricoh's firmware, which is not part of this repository (the program reads it from the user or downloads it from Ricoh's site under Ricoh's own licence terms).
