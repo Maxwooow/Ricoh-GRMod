@@ -22,6 +22,7 @@ import {
   buildFirmware,
   countChangedBytes,
   editableRanges,
+  monoUnlockWords,
   equalRange,
   foff,
   gr4Sizes,
@@ -163,6 +164,10 @@ export interface FirmwareSummary {
   softFocus: ClarityChange[];
   /** True when the file adds soft focus to the ADJ lever (GR Mod 0.5 and later). */
   adjSoftFocus: boolean;
+  /** True when the file adds the date imprint (with its camera-menu entry). */
+  dateStamp: boolean;
+  /** True when the file unlocks the six looks of the GR IV Monochrome. */
+  monoUnlock: boolean;
 }
 
 /** Additions besides the slots and the ratios. */
@@ -257,6 +262,7 @@ export class Engine {
   private readonly mStdQ13: Int16Array;
   private readonly layout: Layout;
   private editable: Range[] | null = null;
+  private monoWords: { offset: number; bytes: Uint8Array }[] | null = null;
 
   private constructor(raw: Uint8Array, decoded: Uint8Array, info: FirmwareInfo, mStd: Int16Array, layout: Layout) {
     this.raw = raw;
@@ -334,17 +340,21 @@ export class Engine {
         const iconChanged = !equalRange(d, s.iconOffset, this.decoded, s.iconOffset, icon.length);
         return { id: s.id, names, icon, colorChanged, nameChanged, iconChanged };
       });
-    if (sha256 === this.info.sha256) return { sha256, kind: 'official', changedBytes: 0, verified: true, slots: describe(this.decoded), ratios: [], softFocus: [], adjSoftFocus: false };
+    if (sha256 === this.info.sha256) return { sha256, kind: 'official', changedBytes: 0, verified: true, slots: describe(this.decoded), ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false };
     try {
       const fw = new Firmware(raw);
       if (!equalRange(fw.header, 0, this.raw, 0, fw.header.length)) throw new Error('not 1.11');
       if (!this.editable) this.editable = editableRanges(this.decoded);
       if (fw.decoded.length !== DECODED_SIZE) return this.inspectGrown(sha256, raw, fw.decoded, describe);
-      const checks = selfCheck(this.raw, raw, this.editable);
+      // The monochrome looks on their own are written in place: all of their words, or none.
+      if (!this.monoWords) this.monoWords = monoUnlockWords(this.decoded);
+      const monoUnlock = this.monoWords.every((w) => equalRange(fw.decoded, w.offset, w.bytes, 0, 4));
+      const allowed = monoUnlock ? [...this.editable, ...this.monoWords.map((w) => ({ what: 'monochrome looks', offset: w.offset, length: 4 }))] : this.editable;
+      const checks = selfCheck(this.raw, raw, allowed);
       const verified = Object.values(checks).every((v) => v === true);
-      return { sha256, kind: 'modified', changedBytes: countChangedBytes(fw.decoded, this.decoded), verified, slots: describe(fw.decoded), ratios: [], softFocus: clarityChanges(fw.decoded), adjSoftFocus: false };
+      return { sha256, kind: 'modified', changedBytes: countChangedBytes(fw.decoded, this.decoded), verified, slots: describe(fw.decoded), ratios: [], softFocus: clarityChanges(fw.decoded), adjSoftFocus: false, dateStamp: false, monoUnlock };
     } catch {
-      return { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [], adjSoftFocus: false };
+      return { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false };
     }
   }
 
@@ -355,7 +365,7 @@ export class Engine {
    * payload, and the file passes the self-check for grown files.
    */
   private inspectGrown(sha256: string, raw: Uint8Array, dec: Uint8Array, describe: (d: Uint8Array) => FirmwareSummary['slots']): FirmwareSummary {
-    const unknown: FirmwareSummary = { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [], adjSoftFocus: false };
+    const unknown: FirmwareSummary = { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false };
     const so = sectionsOf(this.decoded);
     const sn = sectionsOf(dec);
     if (so.length !== sn.length) return unknown;
@@ -369,7 +379,8 @@ export class Engine {
       else if (so[i].name === 'ICONBIN') iconGrowth = grown;
       else if (grown !== 0) return unknown;
     }
-    if (!(rtosGrowth > 0 && iconGrowth > 0 && rtosGrowth % FRAME_SIZE === 0 && iconGrowth % FRAME_SIZE === 0 && dec.length === DECODED_SIZE + rtosGrowth + iconGrowth)) return unknown;
+    // ICONBIN grows only when icons were added (a build that only appends code leaves it as it is).
+    if (!(rtosGrowth > 0 && iconGrowth >= 0 && rtosGrowth % FRAME_SIZE === 0 && iconGrowth % FRAME_SIZE === 0 && dec.length === DECODED_SIZE + rtosGrowth + iconGrowth)) return unknown;
     // The payload with the added blocks taken out again: official layout.
     const aligned = new Uint8Array(DECODED_SIZE);
     const rtosEnd = RTOS_OFFSET + RTOS_LENGTH;
@@ -386,6 +397,8 @@ export class Engine {
     const modified = (verified: boolean, ratios: BuiltRatio[], slotsFrom: Uint8Array): FirmwareSummary => ({
       sha256, kind: 'modified', changedBytes: countChangedBytes(aligned, this.decoded) + rtosGrowth + iconGrowth, verified, slots: describe(slotsFrom), ratios, softFocus: clarityChanges(slotsFrom),
       adjSoftFocus: !!features.adjSoftFocus,
+      dateStamp: !!features.dateStamp,
+      monoUnlock: !!features.monoUnlock,
     });
     if (!specs) return modified(false, [], aligned);
     let ratios: BuiltRatio[] = [];

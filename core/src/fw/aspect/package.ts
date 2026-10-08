@@ -2,7 +2,8 @@
 /**
  * Put an RTOS image and ICONBIN data that have grown (see `build.ts`) into the decoded payload.
  *
- * Both sections grow by a whole number of container frames (0x6000 bytes), zero-padded, so that
+ * RTOS, and ICONBIN when icons were added, grow by a whole number of container frames (0x6000
+ * bytes; ICONBIN may also stay as it is), zero-padded, so that
  * the container can be rebuilt from official frames and full-length stored frames only. The end of
  * the new RTOS section holds, in this order: zero padding, a small record of the added ratios
  * (so that the program can recognise and re-create its own files), and one word that keeps the
@@ -13,7 +14,7 @@
  * <n> is the build revision (`BuildRevision` in `build.ts`): which additions of this program the
  * appended code holds. Up to revision 2 the record lists 1 to 8 ratios. From revision 3 it may list
  * none, and one more byte follows the ratios: the other additions (bit 0: soft focus on the ADJ
- * lever).
+ * lever, bit 1: date imprint, bit 2: monochrome looks).
  */
 import { FRAME_SIZE, sectionsOf, sum32 } from '../container';
 import type { Insertion, Section } from '../container';
@@ -168,7 +169,9 @@ export function growPayload(payload: Uint8Array, aspect: AspectResult, specs: re
   const rtos = section(sections, 'RTOS');
   const icon = section(sections, 'ICONBIN');
   if (rtos.size !== OFFICIAL_RTOS_LENGTH || icon.size !== OFFICIAL_ICONBIN_LENGTH || !(rtos.offset < icon.offset)) fail('unexpected-layout', 'payload sections are not the official ones');
-  if (aspect.rtos.length <= OFFICIAL_RTOS_LENGTH || aspect.rtos.length % 4 !== 0 || aspect.iconbin.length <= OFFICIAL_ICONBIN_LENGTH) fail('internal', 'nothing was appended');
+  // RTOS always grows (at least by the record at its end); ICONBIN only when icons were added
+  // (an addition that only adds code, like the date imprint of a test build, leaves it as it is).
+  if (aspect.rtos.length <= OFFICIAL_RTOS_LENGTH || aspect.rtos.length % 4 !== 0 || aspect.iconbin.length < OFFICIAL_ICONBIN_LENGTH) fail('internal', 'nothing was appended');
   if (specs.length !== aspect.ratios.length) fail('internal', 'ratio list does not match the build');
   for (let i = 0; i < OFFICIAL_ICONBIN_LENGTH; i += 4096) {
     // The official part of ICONBIN is passed through untouched; a cheap spot check of that.
@@ -191,7 +194,7 @@ export function growPayload(payload: Uint8Array, aspect: AspectResult, specs: re
   out.set(payload.subarray(iconEnd), iconEnd + rtosGrowth + iconGrowth);
   // Section sizes (the u32 before each section's data).
   putU32(out, rtos.offset - 4, OFFICIAL_RTOS_LENGTH + rtosGrowth);
-  putU32(out, iconOffset - 4, OFFICIAL_ICONBIN_LENGTH + iconGrowth);
+  if (iconGrowth > 0) putU32(out, iconOffset - 4, OFFICIAL_ICONBIN_LENGTH + iconGrowth);
   // Record, its length, the magic, and the sum word at the very end of the RTOS section.
   const newRtosEnd = rtos.offset + OFFICIAL_RTOS_LENGTH + rtosGrowth;
   let p = newRtosEnd - TRAILER_FIXED - record.length;
@@ -207,7 +210,7 @@ export function growPayload(payload: Uint8Array, aspect: AspectResult, specs: re
   if (sum32(out) !== 0) fail('internal', 'payload word sum is not zero');
   return {
     decoded: out,
-    insertions: [{ at: rtosEnd, length: rtosGrowth }, { at: iconEnd, length: iconGrowth }],
+    insertions: iconGrowth > 0 ? [{ at: rtosEnd, length: rtosGrowth }, { at: iconEnd, length: iconGrowth }] : [{ at: rtosEnd, length: rtosGrowth }],
     rtosGrowth, iconGrowth, rtosOffset: rtos.offset, iconOffset,
   };
 }
@@ -218,7 +221,9 @@ export function grownRanges(g: GrownPayload, aspect: AspectResult): Range[] {
   for (const w of aspect.words) out.push({ what: `ratio hook 0x${w.address.toString(16)}`, offset: g.rtosOffset + (w.address - 0x53000000), length: 4 });
   out.push({ what: 'RTOS section size', offset: g.rtosOffset - 4, length: 4 });
   out.push({ what: 'RTOS appended area', offset: g.rtosOffset + OFFICIAL_RTOS_LENGTH, length: g.rtosGrowth });
-  out.push({ what: 'ICONBIN section size', offset: g.iconOffset - 4, length: 4 });
-  out.push({ what: 'ICONBIN appended icons', offset: g.iconOffset + OFFICIAL_ICONBIN_LENGTH, length: g.iconGrowth });
+  if (g.iconGrowth > 0) {
+    out.push({ what: 'ICONBIN section size', offset: g.iconOffset - 4, length: 4 });
+    out.push({ what: 'ICONBIN appended icons', offset: g.iconOffset + OFFICIAL_ICONBIN_LENGTH, length: g.iconGrowth });
+  }
   return out;
 }

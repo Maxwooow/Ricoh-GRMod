@@ -20,6 +20,8 @@ import { gr4Sizes, installExtensions, planRatios, ratioText } from './aspect';
 import type { ExtensionFeatures, TestOptions } from './aspect';
 import type { RatioSpec } from './aspect';
 import { grownRanges, growPayload } from './aspect/package';
+import { Patch } from './aspect/build';
+import { installMonoUnlock } from './aspect/monounlock';
 import { CLARITY_BYTES, CLARITY_OFFSET, clarityBytes, hasOfficialClarity } from './clarity';
 import type { ClarityEdit } from './clarity';
 
@@ -134,8 +136,12 @@ function transparentPixels(icon: Uint8Array): number[] {
  * not pass the self-check.
  */
 export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = [], clarity: readonly ClarityEdit[] = [], features: ExtensionFeatures = {}, test: TestOptions = {}): Promise<BuildResult> {
-  const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity);
-  if (ratios.length > 0 || features.adjSoftFocus || features.dateStamp || features.monoUnlock) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios, features, test);
+  // Additions that append code or icons need the grown layout. The monochrome looks change 13
+  // words in place: on their own (or with only same-length edits) the file keeps the official layout.
+  const grows = ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp;
+  const inPlaceMono = !grows && !!features.monoUnlock;
+  const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity, inPlaceMono);
+  if (grows) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios, features, test);
 
   // 7. Container.
   const built = build(fw, img);
@@ -155,8 +161,25 @@ export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], 
     ranges,
     checks,
     ratios: [],
-    features: {},
+    features: inPlaceMono ? { adjSoftFocus: false, monoUnlock: true } : {},
   };
+}
+
+/**
+ * The words the monochrome looks change (see `aspect/monounlock.ts`), as payload offsets of an
+ * official-layout payload and their new bytes. `official` is such a payload (decoded).
+ */
+export function monoUnlockWords(official: Uint8Array): { offset: number; bytes: Uint8Array }[] {
+  const patch = new Patch(official.slice(RTOS_OFFSET, RTOS_OFFSET + RTOS_LENGTH));
+  installMonoUnlock(patch);
+  // A word of the availability table is written once per flag in it: keep its final value.
+  const last = new Map<number, number>();
+  for (const w of patch.words) last.set(w.address, w.after);
+  return [...last.entries()].sort((a, b) => a[0] - b[0]).map(([address, after]) => {
+    const bytes = new Uint8Array(4);
+    new DataView(bytes.buffer).setUint32(0, after, true);
+    return { offset: RTOS_OFFSET + (address - 0x53000000), bytes };
+  });
 }
 
 /**
@@ -206,7 +229,7 @@ async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8
 }
 
 /** Steps 1-6: open the official file and apply the same-length slot (and clarity) edits to a copy of its payload. */
-async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: readonly ClarityEdit[] = []): Promise<{ fw: Firmware; DEC: Uint8Array; img: Uint8Array; ranges: Range[] }> {
+async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: readonly ClarityEdit[] = [], monoUnlock = false): Promise<{ fw: Firmware; DEC: Uint8Array; img: Uint8Array; ranges: Range[] }> {
   // 1. Open the official file, copy the payload.
   const { fw, decoded: DEC } = await openOfficial(officialRaw);
   const sorted = sortEdits(edits);
@@ -274,6 +297,15 @@ async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: 
   if (clarity.length > 0) {
     if (!hasOfficialClarity(DEC)) bad('unexpected-layout', 'the clarity table is not where it is expected');
     write('clarity table', CLARITY_OFFSET, clarityBytes(clarity), CLARITY_BYTES);
+    rtosTouched = true;
+  }
+
+  // 3c. Monochrome looks in place (13 words of code and data; only when nothing grows).
+  if (monoUnlock) {
+    for (const w of monoUnlockWords(DEC)) {
+      for (const r of ranges) if (r.offset < w.offset + 4 && w.offset < r.offset + r.length) bad('assert-failed', `monochrome looks overlap ${r.what}`);
+      write(`monochrome looks 0x${(w.offset - RTOS_OFFSET + 0x53000000).toString(16)}`, w.offset, w.bytes, 4);
+    }
     rtosTouched = true;
   }
 

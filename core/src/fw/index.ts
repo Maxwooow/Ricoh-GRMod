@@ -65,7 +65,7 @@ export type { LangCode, NameInfo, NameValidation } from './names';
 export { CONTENT_AREA, ICON_H, ICON_W, TILE_BG, TILE_BORDER, composeIcon, normalizeIcon, readIcon, tileTemplate } from './icons';
 export type { TileStyle } from './icons';
 
-export { buildFirmware, editableRanges } from './patch';
+export { buildFirmware, editableRanges, monoUnlockWords } from './patch';
 
 export { CLARITY_BANDS, CLARITY_BYTES, CLARITY_GAIN_MAX, CLARITY_OFFSET, CLARITY_ROWS, CLARITY_VA, OFFICIAL_CLARITY, SOFT_FOCUS_GAINS, SOFT_FOCUS_LEVELS, SOFT_FOCUS_STRENGTHS, clarityBytes, clarityChanges, hasOfficialClarity, readClarity } from './clarity';
 export type { ClarityChange, ClarityEdit, SoftFocusLevel, SoftFocusStrength } from './clarity';
