@@ -92,7 +92,7 @@ function OutputBar() {
       <span className="out-ico">{Ico.card}</span>
       <Hint label={t('cardReqTitle')}>
         <b>{t('cardReqTitle')}</b>
-        <span>{t('cardReq1')}</span><span>{t('cardReq2')}</span><span>{t('cardReq3')}</span><span>{t('cardReq4')}</span>
+        <span>{t('cardReq1')}</span><span>{t('cardReq2')}</span>
       </Hint>
       <Select<string>
         variant="box" label={t('card')} value={vol?.id} placeholder={t('noCard')} onChange={selectVolume}

@@ -165,12 +165,10 @@ function SlotCard({ id }: { id: SlotId }) {
                   <FileButton className="file-main" accept=".xmp,.cube" title={t('replace')} onFiles={(f) => { void loadPresetFile(id, f[0]); }}>{Ico.file}<span className="ellipsis">{p.result?.title || p.fileName}</span></FileButton>
                   <button className="file-x" title={t('remove')} aria-label={t('remove')} onClick={() => removePreset(id)}>{Ico.x}</button>
                 </div>
-                {(p.busy || p.error || p.result) && (
+                {(p.busy || p.error || (p.result && p.result.warnings.length > 0)) && (
                   <div className="chips">
                     {p.busy && <span className="chip muted"><span className="spinner small" />{t('converting')}</span>}
                     {p.error && <span className="chip bad" title={p.error}><span className="ellipsis">{p.error}</span></span>}
-                    {p.result && <span className="chip" title="CIE76">{t('deltaE')} {p.result.meanDE.toFixed(1)}</span>}
-                    {p.result && p.result.unsupported.length > 0 && <span className="chip warn" title={p.result.unsupported.join(', ')}>{t('warnUnsupported')} {p.result.unsupported.length}</span>}
                     {p.result && p.result.warnings.length > 0 && <span className="chip warn" title={p.result.warnings.join(', ')}>{t('warnApprox')}</span>}
                   </div>
                 )}
