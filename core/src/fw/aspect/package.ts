@@ -11,14 +11,16 @@
  *   ... appended code and data | 00 .. 00 | record | u32 record length | "GRMODAR<n>" | u32 sum word
  *
  * <n> is the build revision (`BuildRevision` in `build.ts`): which additions of this program the
- * appended code holds. The record itself has the same form in every revision.
+ * appended code holds. Up to revision 2 the record lists 1 to 8 ratios. From revision 3 it may list
+ * none, and one more byte follows the ratios: the other additions (bit 0: soft focus on the ADJ
+ * lever).
  */
 import { FRAME_SIZE, sectionsOf, sum32 } from '../container';
 import type { Insertion, Section } from '../container';
 import { FirmwareError } from '../types';
 import type { Range } from '../types';
 import { MAX_CUSTOM_RATIOS, OFFICIAL_ICONBIN_LENGTH, OFFICIAL_RTOS_LENGTH } from './build';
-import type { AspectResult, BuildRevision, RatioSpec } from './build';
+import type { AspectResult, BuildRevision, ExtensionFeatures, RatioSpec } from './build';
 
 const MAGIC_STEM = 'GRMODAR';
 const MAGIC_LENGTH = MAGIC_STEM.length + 1;
@@ -39,8 +41,13 @@ function ascii(text: string): Uint8Array {
   return out;
 }
 
-/** `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, zero-padded to 4 bytes. */
-function encodeRecord(specs: readonly RatioSpec[]): Uint8Array {
+const FEATURE_ADJ_SOFT_FOCUS = 1;
+
+/**
+ * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
+ * zero-padded to 4 bytes.
+ */
+function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, features: ExtensionFeatures): Uint8Array {
   const bytes: number[] = [specs.length];
   for (const s of specs) {
     const r = ascii(s.ratio.trim());
@@ -48,6 +55,7 @@ function encodeRecord(specs: readonly RatioSpec[]): Uint8Array {
     if (r.length > 64 || n.length > 80 || r.length === 0 || n.length === 0) fail('bad-ratio', 'ratio or name too long to record');
     bytes.push(r.length, ...r, n.length, ...n);
   }
+  if (revision >= 3) bytes.push(features.adjSoftFocus ? FEATURE_ADJ_SOFT_FOCUS : 0);
   while (bytes.length % 4) bytes.push(0);
   return Uint8Array.from(bytes);
 }
@@ -58,19 +66,24 @@ export function readBuildRevision(rtos: Uint8Array): BuildRevision | null {
   const at = rtos.length - 4 - MAGIC_LENGTH;
   for (let i = 0; i < MAGIC_STEM.length; i++) if (rtos[at + i] !== MAGIC_STEM.charCodeAt(i)) return null;
   const digit = rtos[at + MAGIC_STEM.length] - 0x30;
-  return digit === 1 || digit === 2 ? digit : null;
+  return digit === 1 || digit === 2 || digit === 3 ? digit : null;
 }
 
-/** The ratios recorded at the end of a grown RTOS section, or null when there is no (valid) record. */
-export function readRatioRecord(rtos: Uint8Array): RatioSpec[] | null {
-  if (readBuildRevision(rtos) === null) return null;
+interface ParsedRecord {
+  specs: RatioSpec[];
+  features: ExtensionFeatures;
+}
+
+function parseRecord(rtos: Uint8Array): ParsedRecord | null {
+  const revision = readBuildRevision(rtos);
+  if (revision === null) return null;
   const end = rtos.length - 4;
   const lp = end - MAGIC_LENGTH - 4;
   const length = (rtos[lp] | (rtos[lp + 1] << 8) | (rtos[lp + 2] << 16) | (rtos[lp + 3] << 24)) >>> 0;
   if (length % 4 !== 0 || length < 4 || lp - length < OFFICIAL_RTOS_LENGTH) return null;
   const rec = rtos.subarray(lp - length, lp);
   const count = rec[0];
-  if (!(count >= 1 && count <= MAX_CUSTOM_RATIOS)) return null;
+  if (!(count >= (revision >= 3 ? 0 : 1) && count <= MAX_CUSTOM_RATIOS)) return null;
   let p = 1;
   const text = (): string | null => {
     if (p >= rec.length) return null;
@@ -92,8 +105,28 @@ export function readRatioRecord(rtos: Uint8Array): RatioSpec[] | null {
     if (ratio === null || name === null) return null;
     out.push({ name, ratio });
   }
+  const features: ExtensionFeatures = {};
+  if (revision >= 3) {
+    if (p >= rec.length) return null;
+    const f = rec[p++];
+    if ((f & ~FEATURE_ADJ_SOFT_FOCUS) !== 0) return null;
+    if (f & FEATURE_ADJ_SOFT_FOCUS) features.adjSoftFocus = true;
+    if (count === 0 && !features.adjSoftFocus) return null;
+  }
   for (; p < rec.length; p++) if (rec[p] !== 0) return null;
-  return out;
+  return { specs: out, features };
+}
+
+/** The ratios recorded at the end of a grown RTOS section (possibly none, from revision 3), or null when there is no (valid) record. */
+export function readRatioRecord(rtos: Uint8Array): RatioSpec[] | null {
+  const r = parseRecord(rtos);
+  return r ? r.specs : null;
+}
+
+/** This program's other additions recorded at the end of a grown RTOS section, or null when there is no (valid) record. */
+export function readExtensionFeatures(rtos: Uint8Array): ExtensionFeatures | null {
+  const r = parseRecord(rtos);
+  return r ? r.features : null;
 }
 
 const roundUp = (n: number, unit: number): number => Math.ceil(n / unit) * unit;
@@ -137,7 +170,7 @@ export function growPayload(payload: Uint8Array, aspect: AspectResult, specs: re
     // The official part of ICONBIN is passed through untouched; a cheap spot check of that.
     if (aspect.iconbin[i] !== payload[icon.offset + i]) fail('internal', 'ICONBIN prefix changed');
   }
-  const record = encodeRecord(specs);
+  const record = encodeRecord(specs, aspect.revision, aspect.features ?? {});
   const appended = aspect.rtos.length - OFFICIAL_RTOS_LENGTH;
   const rtosGrowth = roundUp(appended + record.length + TRAILER_FIXED, FRAME_SIZE);
   const iconGrowth = roundUp(aspect.iconbin.length - OFFICIAL_ICONBIN_LENGTH, FRAME_SIZE);

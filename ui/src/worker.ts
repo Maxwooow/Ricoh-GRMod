@@ -1,12 +1,12 @@
 /// <reference lib="webworker" />
 import { Engine } from '@grmod/core';
-import type { CameraModel, RatioSpec, SlotRequest, SoftFocusRequest } from '@grmod/core';
+import type { BuildOptions, CameraModel, RatioSpec, SlotRequest, SoftFocusRequest } from '@grmod/core';
 
 let engine: Engine | null = null;
 type Req =
   | { id: number; type: 'open'; raw: ArrayBuffer }
   | { id: number; type: 'convert'; kind: 'xmp' | 'cube'; text: string }
-  | { id: number; type: 'build'; requests: SlotRequest[]; ratios?: RatioSpec[]; softFocus?: SoftFocusRequest[] }
+  | { id: number; type: 'build'; requests: SlotRequest[]; ratios?: RatioSpec[]; softFocus?: SoftFocusRequest[]; options?: BuildOptions }
   | { id: number; type: 'ratio'; ratio: string; others: string[] }
   | { id: number; type: 'encode'; rgb: ArrayBuffer; model: CameraModel }
   | { id: number; type: 'script'; model: CameraModel; count: number }
@@ -28,7 +28,7 @@ ctx.onmessage = async (ev: MessageEvent<Req>) => {
       }
       case 'convert': ctx.postMessage({ id: m.id, ok: true, result: need().convertPreset(m.kind, m.text, progress) }); break;
       case 'build': {
-        const r = await need().buildFirmware(m.requests, m.ratios || [], m.softFocus || []);
+        const r = await need().buildFirmware(m.requests, m.ratios || [], m.softFocus || [], m.options || {});
         ctx.postMessage({ id: m.id, ok: true, result: r }, [r.file.buffer as ArrayBuffer]);
         break;
       }

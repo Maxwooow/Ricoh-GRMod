@@ -16,7 +16,8 @@ import { LANGS, applyName, nameRanges, validateName } from './names';
 import type { LangCode } from './names';
 import { normalizeIcon, readIcon } from './icons';
 import { countChangedBytes, selfCheck, selfCheckGrown } from './selfcheck';
-import { gr4Sizes, installRatios, planRatios, ratioText } from './aspect';
+import { gr4Sizes, installExtensions, planRatios, ratioText } from './aspect';
+import type { ExtensionFeatures } from './aspect';
 import type { RatioSpec } from './aspect';
 import { grownRanges, growPayload } from './aspect/package';
 import { CLARITY_BYTES, CLARITY_OFFSET, clarityBytes, hasOfficialClarity } from './clarity';
@@ -54,6 +55,8 @@ export interface BuildResult {
   checks: Record<string, boolean>;
   /** The aspect ratios that were added, in menu order (empty when none). */
   ratios: BuiltRatio[];
+  /** The other additions of this program that were installed. */
+  features: ExtensionFeatures;
 }
 
 /** One added aspect ratio as it will behave in the camera. */
@@ -130,9 +133,9 @@ function transparentPixels(icon: Uint8Array): number[] {
  * Throws `FirmwareError` on any invalid input or failed assertion; never returns a file that did
  * not pass the self-check.
  */
-export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = [], clarity: readonly ClarityEdit[] = []): Promise<BuildResult> {
+export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = [], clarity: readonly ClarityEdit[] = [], features: ExtensionFeatures = {}): Promise<BuildResult> {
   const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity);
-  if (ratios.length > 0) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios);
+  if (ratios.length > 0 || features.adjSoftFocus) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios, features);
 
   // 7. Container.
   const built = build(fw, img);
@@ -152,17 +155,19 @@ export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], 
     ranges,
     checks,
     ratios: [],
+    features: {},
   };
 }
 
 /**
- * The same, plus added aspect ratios: the RTOS and ICONBIN sections grow (see `aspect/`), so the
- * container is rebuilt with `buildGrown` and checked with `selfCheckGrown`.
+ * The same, plus added aspect ratios and/or soft focus on the ADJ lever: the RTOS and ICONBIN
+ * sections grow (see `aspect/`), so the container is rebuilt with `buildGrown` and checked with
+ * `selfCheckGrown`.
  */
-async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8Array, img: Uint8Array, ranges: Range[], ratios: readonly RatioSpec[]): Promise<BuildResult> {
+async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8Array, img: Uint8Array, ranges: Range[], ratios: readonly RatioSpec[], features: ExtensionFeatures = {}): Promise<BuildResult> {
   const specs = ratios.map((r) => ({ name: r.name, ratio: r.ratio.trim() }));
   const plan = planRatios(specs);
-  const aspect = installRatios(img.slice(RTOS_OFFSET, RTOS_OFFSET + RTOS_LENGTH), img.slice(ICONBIN_OFFSET, ICONBIN_OFFSET + ICONBIN_LENGTH), plan);
+  const aspect = installExtensions(img.slice(RTOS_OFFSET, RTOS_OFFSET + RTOS_LENGTH), img.slice(ICONBIN_OFFSET, ICONBIN_OFFSET + ICONBIN_LENGTH), plan, features);
   const grown = growPayload(img, aspect, specs);
   // Edits made before growing keep their place in RTOS; those in ICONBIN move with it.
   const all: Range[] = ranges.map((r) => (r.offset >= ICONBIN_OFFSET ? { ...r, offset: r.offset + grown.rtosGrowth } : r));
@@ -196,6 +201,7 @@ async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8
     ranges: all,
     checks,
     ratios: plan.map((r) => ({ id: r.id, name: r.name, ratio: r.ratio, actual: ratioText(r.geometry.actual.n, r.geometry.actual.d), sizes: gr4Sizes(r.geometry) })),
+    features: { ...aspect.features },
   };
 }
 

@@ -1,4 +1,4 @@
-import type { CameraModel, FirmwareBuild, FirmwareInfo, FirmwareSummary, PresetResult, RatioPreview, RatioSpec, ShutdownImage, SlotRequest, SoftFocusRequest } from '@grmod/core';
+import type { BuildOptions, CameraModel, FirmwareBuild, FirmwareInfo, FirmwareSummary, PresetResult, RatioPreview, RatioSpec, ShutdownImage, SlotRequest, SoftFocusRequest } from '@grmod/core';
 
 export class EngineError extends Error {
   code: string; details?: Record<string, number>;
@@ -27,7 +27,7 @@ function call<T>(msg: Record<string, unknown>, transfer: Transferable[] = [], on
 export const engine = {
   open: (raw: Uint8Array) => call<FirmwareInfo>({ type: 'open', raw: raw.slice().buffer }),
   convert: (kind: 'xmp' | 'cube', text: string) => call<PresetResult>({ type: 'convert', kind, text }),
-  build: (requests: SlotRequest[], ratios: RatioSpec[] = [], softFocus: SoftFocusRequest[] = []) => call<FirmwareBuild>({ type: 'build', requests, ratios, softFocus }),
+  build: (requests: SlotRequest[], ratios: RatioSpec[] = [], softFocus: SoftFocusRequest[] = [], options: BuildOptions = {}) => call<FirmwareBuild>({ type: 'build', requests, ratios, softFocus, options }),
   /** What a ratio would become in the camera, given the ratios already in the list. */
   ratio: (ratio: string, others: string[]) => call<RatioPreview>({ type: 'ratio', ratio, others }),
   encode: (rgb: Uint8Array, model: CameraModel) => { const copy = rgb.slice(); return call<ShutdownImage>({ type: 'encode', rgb: copy.buffer, model }, [copy.buffer]); },

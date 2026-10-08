@@ -400,11 +400,14 @@ export function moveWall(id: string, toIndex: number): void {
 export function openCrop(id: string | undefined): void { set({ cropId: id }); }
 export function setCrop(id: string, crop: Crop): void { setWall(id, { crop }); set({ cropId: undefined }); void encodeWall(id); scheduleSave(); }
 
-// ------------------------------------------------------------------ soft focus (rows of the clarity table)
-/** What the soft focus switch writes: fixed strengths on three clarity steps, -1 stays as it is. */
-export const SOFT_FIXED: readonly SoftFocusRequest[] = [{ level: -2, strength: 'weak' }, { level: -3, strength: 'medium' }, { level: -4, strength: 'strong' }];
+// ------------------------------------------------------------------ soft focus
+/**
+ * The soft focus switch: on, the firmware gets soft focus as a function of the ADJ lever (off /
+ * weak / medium / strong, fixed strengths). The clarity table stays official. (GR Mod 0.4.x put
+ * fixed strengths on clarity -2 / -3 / -4 instead; such files are still recognised, see `softText`.)
+ */
 export function setSoft(soft: boolean): void { set({ soft }); scheduleSave(); }
-export function softSpecs(s: State = state): SoftFocusRequest[] { return s.soft ? [...SOFT_FIXED] : []; }
+export function softOn(s: State = state): boolean { return !!s.soft; }
 const MINUS = '\u2212';
 const strengthLabel = (st: SoftFocusStrength | 'custom'): string => t(st === 'weak' ? 'softWeak' : st === 'medium' ? 'softMedium' : st === 'strong' ? 'softStrong' : 'softCustom');
 /** "−2 weak / −3 medium" (−1 first), for confirmations and the copies page. */
@@ -673,13 +676,13 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   if (state.busy || !state.info || !state.raw) return;
   const changes = stock ? [] : pendingChanges();
   const ratios = stock ? [] : ratioSpecs();
-  const soft = stock ? [] : softSpecs();
+  const soft = !stock && softOn();
   if (!stock && (hasNameErrors() || hasRatioErrors())) return;
-  if (!stock && changes.length === 0 && ratios.length === 0 && soft.length === 0) { toast(t('nothingToDo'), 'info'); return; }
+  if (!stock && changes.length === 0 && ratios.length === 0 && !soft) { toast(t('nothingToDo'), 'info'); return; }
   if (dest.kind === 'card') {
     const lines = stock ? [t('copyOfficial')] : changes.map((c) => `${t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
     if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
-    if (soft.length) lines.push(t('softLine', { l: softText(soft) }));
+    if (soft) lines.push(t('softAdjLine'));
     if (!(await ask(t('confirmTitle'), lines, t('confirmOk')))) return;
   }
   const target = await destination(dest);
@@ -689,7 +692,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (stock) file = state.raw;
     else {
       set({ busy: t('building') });
-      const built = await engine.build(changes.map((c) => c.request), ratios, soft);
+      const built = await engine.build(changes.map((c) => c.request), ratios, [], { adjSoftFocus: soft });
       if (!Object.values(built.checks).every((v) => v === true)) throw new EngineError('selfcheck-failed', 'self-check');
       file = built.file;
       void recordBuild(file, changes);
@@ -895,6 +898,7 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
     return `${sl.names[s.lang]}  ·  ${parts.join(' / ') || t('original')}`;
   });
   if (summary.ratios.length) lines.push(t('ratioLine', { n: summary.ratios.length, l: summary.ratios.map((r) => r.name).join(' / ') }));
+  if (summary.adjSoftFocus) lines.push(t('softAdjLine'));
   if (summary.softFocus?.length) lines.push(t('softLine', { l: softText(summary.softFocus) }));
   return lines;
 }

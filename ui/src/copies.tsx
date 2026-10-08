@@ -47,6 +47,7 @@ function FirmwareLine({ info, builds, lang, name }: { info: CopyInfo | undefined
             return parts.length ? <span key={sl.id} className="chip tiny" title={parts.join(' · ')}><b>{t(('slotShort' + sl.id) as Key)}</b><span className="ellipsis">{parts.join(' · ')}</span></span> : null;
           })}
           {s.ratios.length > 0 && <span className="chip tiny" title={s.ratios.map((r) => `${r.name}  ${r.sizes[0][0]}×${r.sizes[0][1]}`).join('\n')}><b>{t('navRatio')}</b><span className="ellipsis">{s.ratios.map((r) => r.name).join(' · ')}</span></span>}
+          {s.adjSoftFocus && <span className="chip tiny" title={t('softAdjLine')}><b>{t('navSoft')}</b><span className="ellipsis">ADJ</span></span>}
           {s.softFocus?.length > 0 && <span className="chip tiny" title={softText(s.softFocus)}><b>{t('navSoft')}</b><span className="ellipsis">{softText(s.softFocus)}</span></span>}
         </div>
       </div>

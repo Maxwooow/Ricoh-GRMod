@@ -34,6 +34,7 @@ import {
   readFactoryEntry,
   readName,
   readBuildRevision,
+  readExtensionFeatures,
   readRatioRecord,
   resolveLayout,
   sectionsOf,
@@ -158,8 +159,16 @@ export interface FirmwareSummary {
   }[];
   /** Aspect ratios this file adds to the camera (empty when none, or when they cannot be read). */
   ratios: BuiltRatio[];
-  /** Clarity settings whose row of the clarity table differs from the official one (soft focus). */
+  /** Clarity settings whose row of the clarity table differs from the official one (soft focus of GR Mod 0.4.x). */
   softFocus: ClarityChange[];
+  /** True when the file adds soft focus to the ADJ lever (GR Mod 0.5 and later). */
+  adjSoftFocus: boolean;
+}
+
+/** Additions besides the slots and the ratios. */
+export interface BuildOptions {
+  /** Put soft focus (off / weak / medium / strong) on the ADJ lever. */
+  adjSoftFocus?: boolean;
 }
 
 export interface ShutdownImage {
@@ -317,7 +326,7 @@ export class Engine {
         const iconChanged = !equalRange(d, s.iconOffset, this.decoded, s.iconOffset, icon.length);
         return { id: s.id, names, icon, colorChanged, nameChanged, iconChanged };
       });
-    if (sha256 === this.info.sha256) return { sha256, kind: 'official', changedBytes: 0, verified: true, slots: describe(this.decoded), ratios: [], softFocus: [] };
+    if (sha256 === this.info.sha256) return { sha256, kind: 'official', changedBytes: 0, verified: true, slots: describe(this.decoded), ratios: [], softFocus: [], adjSoftFocus: false };
     try {
       const fw = new Firmware(raw);
       if (!equalRange(fw.header, 0, this.raw, 0, fw.header.length)) throw new Error('not 1.11');
@@ -325,9 +334,9 @@ export class Engine {
       if (fw.decoded.length !== DECODED_SIZE) return this.inspectGrown(sha256, raw, fw.decoded, describe);
       const checks = selfCheck(this.raw, raw, this.editable);
       const verified = Object.values(checks).every((v) => v === true);
-      return { sha256, kind: 'modified', changedBytes: countChangedBytes(fw.decoded, this.decoded), verified, slots: describe(fw.decoded), ratios: [], softFocus: clarityChanges(fw.decoded) };
+      return { sha256, kind: 'modified', changedBytes: countChangedBytes(fw.decoded, this.decoded), verified, slots: describe(fw.decoded), ratios: [], softFocus: clarityChanges(fw.decoded), adjSoftFocus: false };
     } catch {
-      return { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [] };
+      return { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [], adjSoftFocus: false };
     }
   }
 
@@ -338,7 +347,7 @@ export class Engine {
    * payload, and the file passes the self-check for grown files.
    */
   private inspectGrown(sha256: string, raw: Uint8Array, dec: Uint8Array, describe: (d: Uint8Array) => FirmwareSummary['slots']): FirmwareSummary {
-    const unknown: FirmwareSummary = { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [] };
+    const unknown: FirmwareSummary = { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [], adjSoftFocus: false };
     const so = sectionsOf(this.decoded);
     const sn = sectionsOf(dec);
     if (so.length !== sn.length) return unknown;
@@ -363,10 +372,12 @@ export class Engine {
     aligned.set(this.decoded.subarray(RTOS_OFFSET - 4, RTOS_OFFSET), RTOS_OFFSET - 4);
     aligned.set(this.decoded.subarray(ICONBIN_OFFSET - 4, ICONBIN_OFFSET), ICONBIN_OFFSET - 4);
     const specs = readRatioRecord(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth));
+    const features = readExtensionFeatures(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? {};
     // Files of GR Mod 0.2.x are revision 1; they are checked against what that revision builds.
     const revision = readBuildRevision(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? 1;
     const modified = (verified: boolean, ratios: BuiltRatio[], slotsFrom: Uint8Array): FirmwareSummary => ({
       sha256, kind: 'modified', changedBytes: countChangedBytes(aligned, this.decoded) + rtosGrowth + iconGrowth, verified, slots: describe(slotsFrom), ratios, softFocus: clarityChanges(slotsFrom),
+      adjSoftFocus: !!features.adjSoftFocus,
     });
     if (!specs) return modified(false, [], aligned);
     let ratios: BuiltRatio[] = [];
@@ -375,7 +386,7 @@ export class Engine {
       ratios = plan.map((r) => ({ id: r.id, name: r.name, ratio: r.ratio, actual: ratioText(r.geometry.actual.n, r.geometry.actual.d), sizes: gr4Sizes(r.geometry) }));
       // Undo the hook words (their places are the same for every list of ratios of this length
       // or any other: they are found by building once on the official image).
-      const probe = aspect.installRatios(this.decoded.slice(RTOS_OFFSET, rtosEnd), this.decoded.slice(ICONBIN_OFFSET, iconEnd), plan, revision);
+      const probe = aspect.installExtensions(this.decoded.slice(RTOS_OFFSET, rtosEnd), this.decoded.slice(ICONBIN_OFFSET, iconEnd), plan, features, revision);
       for (const w of probe.words) {
         const o = RTOS_OFFSET + (w.address - 0x53000000);
         aligned.set(this.decoded.subarray(o, o + 4), o);
@@ -394,7 +405,7 @@ export class Engine {
         if (i >= cover) return modified(false, ratios, aligned);
       }
       // ... and building the ratios on top of them must give this very payload.
-      const built = aspect.installRatios(aligned.slice(RTOS_OFFSET, rtosEnd), aligned.slice(ICONBIN_OFFSET, iconEnd), plan, revision);
+      const built = aspect.installExtensions(aligned.slice(RTOS_OFFSET, rtosEnd), aligned.slice(ICONBIN_OFFSET, iconEnd), plan, features, revision);
       const grown = growPayload(aligned, built, specs);
       const same = grown.decoded.length === dec.length && equalRange(grown.decoded, 0, dec, 0, dec.length);
       if (!same) return modified(false, ratios, aligned);
@@ -495,7 +506,7 @@ export class Engine {
   }
 
   /** Build a firmware file. The result has passed the built-in self-check (otherwise this throws). */
-  async buildFirmware(requests: SlotRequest[], ratios: readonly RatioSpec[] = [], softFocus: readonly SoftFocusRequest[] = []): Promise<FirmwareBuild> {
+  async buildFirmware(requests: SlotRequest[], ratios: readonly RatioSpec[] = [], softFocus: readonly SoftFocusRequest[] = [], options: BuildOptions = {}): Promise<FirmwareBuild> {
     const edits: SlotEdit[] = [];
     for (const r of requests) {
       const e: SlotEdit = { slot: r.slot };
@@ -509,8 +520,10 @@ export class Engine {
       if (!SOFT_FOCUS_STRENGTHS.includes(f.strength)) throw new FirmwareError('bad-clarity', `unknown soft focus strength ${String(f.strength)}`);
       return { level: f.level, gains: SOFT_FOCUS_GAINS[f.strength] };
     });
-    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0) throw new FirmwareError('bad-edit', 'nothing to change');
-    const { decoded: _decoded, ...rest } = await buildFirmware(this.raw, edits, ratios, clarity);
+    const adjSoftFocus = !!(options && options.adjSoftFocus);
+    if (adjSoftFocus && clarity.length > 0) throw new FirmwareError('bad-clarity', 'soft focus on the ADJ lever and on the clarity table cannot be combined');
+    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus) throw new FirmwareError('bad-edit', 'nothing to change');
+    const { decoded: _decoded, ...rest } = await buildFirmware(this.raw, edits, ratios, clarity, { adjSoftFocus });
     return rest;
   }
 

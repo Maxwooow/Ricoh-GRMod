@@ -27,6 +27,7 @@ import { playbackRectangles, planRatio, sourceRectangles } from './geometry';
 import type { RatioGeometry } from './geometry';
 import { RATIO_ICON_BYTES, RATIO_ICON_H, RATIO_ICON_W, drawRatioIcon } from './icon';
 import { linkNative } from './native-link';
+import { installAdjSoftFocus } from './softfocus';
 
 export const BASE = 0x53000000;
 export const OFFICIAL_RTOS_LENGTH = 0x13d2ac0;
@@ -42,10 +43,10 @@ export const TEXT_CATALOG = 0x543d4ac0;
 const ICON_COUNT = 663;
 const TEXT_COUNT = 837;
 const TEXT_CAPACITY = 896;
-const LANGUAGES = 21;
+export const LANGUAGES = 21;
 const ROW_STRIDE = TEXT_CAPACITY * 4;
 const NATIVE_ICON_CATALOG = 0x55013410;
-const NATIVE_TEXT_ROOTS = 0x55002118;
+export const NATIVE_TEXT_ROOTS = 0x55002118;
 
 export const ORDER_SITES = [0x531baf88, 0x531bb26c, 0x531be31c, 0x531d0ce8, 0x531d2f88, 0x531d48a0, 0x5325ae2c] as const;
 export const COUNT_SITES = [0x531ba14c, 0x531cf298] as const;
@@ -89,10 +90,18 @@ export interface PatchedWord { address: number; before: number; after: number; r
 
 /**
  * What a build holds besides the port of the reference: 1 = nothing (GR Mod 0.2.x), 2 = also the
- * playback decode buffer fix. Recorded at the end of the RTOS section (see `package.ts`).
+ * playback decode buffer fix, 3 = the record at the end also lists this program's other additions
+ * (see `ExtensionFeatures`), and there may be no added ratio at all. Recorded at the end of the
+ * RTOS section (see `package.ts`). A build with added ratios only is still written as revision 2.
  */
-export type BuildRevision = 1 | 2;
+export type BuildRevision = 1 | 2 | 3;
 export const BUILD_REVISION: BuildRevision = 2;
+
+/** Additions of this program that are not aspect ratios. */
+export interface ExtensionFeatures {
+  /** Soft focus as a function of the ADJ lever (see `softfocus.ts`). */
+  adjSoftFocus?: boolean;
+}
 
 export interface AspectResult {
   revision: BuildRevision;
@@ -103,6 +112,8 @@ export interface AspectResult {
   ratios: RatioEntry[];
   /** Every word changed inside the official part of the image, in the order they were written. */
   words: PatchedWord[];
+  /** The other additions that were installed. */
+  features: ExtensionFeatures;
 }
 
 function fail(code: string, message: string): never {
@@ -110,7 +121,7 @@ function fail(code: string, message: string): never {
 }
 
 /** A growable RTOS image with the reference's `_Patch` interface. */
-class Patch {
+export class Patch {
   private buf: Uint8Array;
   private len: number;
   readonly words: PatchedWord[] = [];
@@ -205,11 +216,11 @@ class Patch {
   }
 }
 
-function u32le(values: readonly number[]): Uint8Array {
+export function u32le(values: readonly number[]): Uint8Array {
   return wordsToBytes(values);
 }
 
-function u16le(values: readonly number[]): Uint8Array {
+export function u16le(values: readonly number[]): Uint8Array {
   const out = new Uint8Array(values.length * 2);
   values.forEach((v, i) => {
     if (!(Number.isInteger(v) && v >= 0 && v <= 0xffff)) fail('internal', 'value does not fit 16 bits');
@@ -219,7 +230,7 @@ function u16le(values: readonly number[]): Uint8Array {
   return out;
 }
 
-function concat(parts: readonly Uint8Array[]): Uint8Array {
+export function concat(parts: readonly Uint8Array[]): Uint8Array {
   const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
   let o = 0;
   for (const p of parts) {
@@ -229,7 +240,7 @@ function concat(parts: readonly Uint8Array[]): Uint8Array {
   return out;
 }
 
-function expectWord(patch: Patch, address: number, value: number): void {
+export function expectWord(patch: Patch, address: number, value: number): void {
   if (patch.word(address) !== value >>> 0) fail('unexpected-layout', `unexpected instruction at 0x${address.toString(16)}`);
 }
 
@@ -293,7 +304,7 @@ function initializeScaffold(patch: Patch): void {
 // --------------------------------------------------------------------------------------------
 // crop_icons.py
 
-const LOOKUP_BOUNDS = [[0x5323dbb4, 3], [0x5323e40c, 2]] as const;
+export const LOOKUP_BOUNDS = [[0x5323dbb4, 3], [0x5323e40c, 2]] as const;
 
 function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
   const parts: Uint8Array[] = [iconbin];
@@ -329,7 +340,7 @@ function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioE
 // --------------------------------------------------------------------------------------------
 // crop_registry.py install_menu
 
-function utf16z(text: string): Uint8Array {
+export function utf16z(text: string): Uint8Array {
   const out = new Uint8Array((text.length + 1) * 2);
   for (let i = 0; i < text.length; i++) {
     const u = text.charCodeAt(i);
@@ -929,9 +940,23 @@ export function planRatios(specs: readonly RatioSpec[]): RatioEntry[] {
  * builds (and what GR Mod 0.2.x wrote).
  */
 export function installRatios(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], revision: BuildRevision = BUILD_REVISION): AspectResult {
-  if (revision !== 1 && revision !== 2) fail('internal', 'unknown build revision');
-  if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
   if (!(ratios.length >= 1 && ratios.length <= MAX_CUSTOM_RATIOS)) fail('too-many-ratios', `1 to ${MAX_CUSTOM_RATIOS} ratios can be added`);
+  if (revision === 3) fail('internal', 'revision 3 is built with installExtensions');
+  return installExtensions(rtos, iconbin, ratios, {}, revision);
+}
+
+/**
+ * Everything this program appends to the RTOS image: the scaffold (relocated icon and text
+ * catalogs), then the added ratios (if any), then the other additions in `features`. With no
+ * features this is `installRatios`, byte for byte. With features the revision is 3.
+ */
+export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION): AspectResult {
+  const extra = !!features.adjSoftFocus;
+  if (extra) revision = 3;
+  if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
+  if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
+  if (ratios.length > MAX_CUSTOM_RATIOS) fail('too-many-ratios', `at most ${MAX_CUSTOM_RATIOS} ratios can be added`);
+  if (ratios.length === 0 && !extra) fail('internal', 'nothing to install');
   ratios.forEach((r, i) => {
     if (r.id !== FIRST_CUSTOM_ID + i) fail('internal', 'ratio identities must be consecutive');
   });
@@ -941,15 +966,20 @@ export function installRatios(rtos: Uint8Array, iconbin: Uint8Array, ratios: rea
     fail('unexpected-layout', 'start-up data copy is not where it was expected');
   }
   initializeScaffold(patch);
-  const icons = installIcons(patch, iconbin, ratios);
-  const menu = installMenu(patch, ratios, icons.ids);
-  const { p, scale } = buildGeometry(patch, ratios);
-  installDevelop(p, scale, ratios);
-  installRaw(patch, ratios);
-  installState(patch, ratios, menu.activeBitmap);
-  installImageIdentity(patch, ratios);
-  if (revision >= 2) installPlaybackDecode(patch);
+  let icons = iconbin;
+  if (ratios.length > 0) {
+    const installed = installIcons(patch, iconbin, ratios);
+    icons = installed.iconbin;
+    const menu = installMenu(patch, ratios, installed.ids);
+    const { p, scale } = buildGeometry(patch, ratios);
+    installDevelop(p, scale, ratios);
+    installRaw(patch, ratios);
+    installState(patch, ratios, menu.activeBitmap);
+    installImageIdentity(patch, ratios);
+    if (revision >= 2) installPlaybackDecode(patch);
+  }
+  if (features.adjSoftFocus) icons = installAdjSoftFocus(patch, icons);
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons.iconbin, ratios: [...ratios], words: patch.words };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus } };
 }

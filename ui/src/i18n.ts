@@ -79,7 +79,8 @@ const zh = {
   aboutBody: '修改固件和机内文件有风险，由使用者自行承担。',
   aboutCredits: '特别鸣谢：radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion；DoYitNow/gr-custom-tool；样张来源DPReview；图标字体 Barlow Condensed',
   navSoft: '柔焦', softWeak: '弱', softMedium: '中', softStrong: '强', softCustom: '自定义', softLine: '柔焦  ·  清晰度 {l}', softLevels: '清晰度 {l}',
-  tIcSoftT: '柔焦', tIcSoftB: '打开后，相机清晰度的 −2、−3、−4 三档会变成强度固定的弱、中、强柔焦，−1 保持原样。拍摄时在影像控制里调清晰度即可切换。',
+  softAdjSub: 'ADJ 拨杆：关 / 弱 / 中 / 强', softAdjLine: '柔焦  ·  ADJ 拨杆（关 / 弱 / 中 / 强）',
+  tIcSoftT: '柔焦', tIcSoftB: '打开后，固件在 ADJ 拨杆里加一项“柔焦”，有关、弱、中、强四档，强度固定，关机后记住。刷入后在菜单的“ADJ 模式设定”里把它放到一个位置。打开柔焦时，清晰度暂时不起作用。回刷原厂固件之前，先把 ADJ 里的柔焦换成别的功能。',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -162,7 +163,8 @@ const en: typeof zh = {
   aboutBody: 'Modifying firmware and internal files is at your own risk.',
   aboutCredits: 'Special thanks: radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion; DoYitNow/gr-custom-tool; sample picture from DPReview; icon font Barlow Condensed',
   navSoft: 'Soft focus', softWeak: 'weak', softMedium: 'medium', softStrong: 'strong', softCustom: 'custom', softLine: 'Soft focus  ·  Clarity {l}', softLevels: 'Clarity {l}',
-  tIcSoftT: 'Soft focus', tIcSoftB: 'When on, the camera\'s Clarity −2, −3 and −4 become soft focus of fixed strength (weak, medium, strong); −1 stays as it is. Switch between them with Clarity in Image Control.',
+  softAdjSub: 'ADJ lever: off / low / medium / high', softAdjLine: 'Soft focus  ·  ADJ lever (off / low / medium / high)',
+  tIcSoftT: 'Soft focus', tIcSoftB: 'When on, the firmware adds "Soft Focus" to the ADJ lever: off, low, medium or high, fixed strengths, kept after power-off. After flashing, put it on a slot in the menu under ADJ Mode Setting. While soft focus is on, Clarity has no effect. Before flashing the official firmware back, put another function on that ADJ slot.',
 };
 export type Key = keyof typeof zh;
 const dict = (navigator.language || 'zh').toLowerCase().startsWith('zh') ? zh : en;

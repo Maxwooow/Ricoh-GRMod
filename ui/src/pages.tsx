@@ -11,7 +11,7 @@ import { applySlot } from './preview';
 import {
   addFactoryWall, addRatio, addWallFiles, loadFirmwareFile, loadIconImage, loadPresetFile, loadPreviewFile, moveWall, nameProblem, openCrop, outputFirmware, previewPhoto, removePreset, removeWall,
   ratioName, ratioProblem, removeRatio, setActiveRatio, setActiveSlot, setCrop, setIcon, setName, setPreviewMode, setRatio, setRatioBackdrop, useStore, wallBitmap,
-  setSoft, softText, SOFT_FIXED,
+  setSoft,
 } from './store';
 import type { RatioItem, WallItem } from './store';
 
@@ -184,7 +184,7 @@ function SlotCard({ id }: { id: SlotId }) {
   );
 }
 
-/** Soft focus: on or off; the strengths are fixed and go on clarity -2, -3 and -4. */
+/** Soft focus: on or off; on puts it on the ADJ lever with fixed strengths (off / weak / medium / strong). */
 function SoftSwitch() {
   const on = useStore((s) => s.soft);
   return (
@@ -192,7 +192,7 @@ function SoftSwitch() {
       <span className="page-icon soft-ico">{Ico.soft}</span>
       <div className="soft-text">
         <b>{t('navSoft')}</b>
-        <span className="muted small ellipsis">{t('softLevels', { l: softText(SOFT_FIXED) })}</span>
+        <span className="muted small ellipsis">{t('softAdjSub')}</span>
       </div>
       <Switch checked={on} onChange={setSoft} label={t('navSoft')} />
     </div>

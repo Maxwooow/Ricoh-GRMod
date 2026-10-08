@@ -1,7 +1,7 @@
 {
   "name": "grmod",
   "private": true,
-  "version": "0.4.1",
+  "version": "0.5.0",
   "type": "module",
   "workspaces": ["core", "ui"],
   "scripts": {

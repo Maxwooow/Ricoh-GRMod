@@ -6,6 +6,7 @@ export type { PhotoSize, RatioGeometry, RatioProblem, Rect, ReplayRect } from '.
 export { RATIO_ICON_BYTES, RATIO_ICON_H, RATIO_ICON_W, drawRatioIcon, ratioLabel } from './icon';
 export {
   APPEND_LIMIT, BASE, BUILD_REVISION, COUNT_SITES, FIRST_CUSTOM_ID, ICON_CATALOG, MAX_CUSTOM_RATIOS, MAX_NAME_LENGTH, OFFICIAL_ICONBIN_LENGTH, OFFICIAL_RTOS_LENGTH, ORDER_SITES,
-  TEXT_CATALOG, installRatios, planRatios, textId, validateRatioName,
+  TEXT_CATALOG, installExtensions, installRatios, planRatios, textId, validateRatioName,
 } from './build';
-export type { AspectResult, BuildRevision, PatchedWord, RatioEntry, RatioSpec } from './build';
+export { ADJ_SOFT_FOCUS, SOFT_FOCUS_BYTE, SOFT_FOCUS_ICON_ID, SOFT_FOCUS_NAMES, SOFT_FOCUS_TEXT_ID, drawSoftFocusIcon, softFocusRows } from './softfocus';
+export type { AspectResult, BuildRevision, ExtensionFeatures, PatchedWord, RatioEntry, RatioSpec } from './build';

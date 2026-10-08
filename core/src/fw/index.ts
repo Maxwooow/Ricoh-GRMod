@@ -81,5 +81,5 @@ export type { FactoryEntry } from './factory';
 
 export * as aspect from './aspect';
 export { MAX_CUSTOM_RATIOS, MAX_NAME_LENGTH, gr4Sizes, planRatio, planRatios, ratioText, validateRatioName } from './aspect';
-export type { RatioEntry, RatioGeometry, RatioSpec } from './aspect';
-export { readBuildRevision, readRatioRecord } from './aspect/package';
+export type { ExtensionFeatures, RatioEntry, RatioGeometry, RatioSpec } from './aspect';
+export { readBuildRevision, readExtensionFeatures, readRatioRecord } from './aspect/package';
