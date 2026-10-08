@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { color, MAX_CUSTOM_RATIOS, SHUTDOWN_H, SHUTDOWN_W } from '@grmod/core';
-import type { SlotId } from '@grmod/core';
+import { color, MAX_CUSTOM_RATIOS, OFFICIAL_CLARITY, SHUTDOWN_H, SHUTDOWN_W, SOFT_FOCUS_GAINS, SOFT_FOCUS_LEVELS } from '@grmod/core';
+import type { SlotId, SoftFocusLevel, SoftFocusStrength } from '@grmod/core';
 import { DropZone, FileButton, Ico, IconCanvas, Menu, Prop, RatioIcon, RgbCanvas, Segmented } from './components';
 import { FirmwareHero } from './firmware';
 import { t } from './i18n';
@@ -11,8 +11,9 @@ import { applySlot } from './preview';
 import {
   addFactoryWall, addRatio, addWallFiles, loadFirmwareFile, loadIconImage, loadPresetFile, loadPreviewFile, moveWall, nameProblem, openCrop, outputFirmware, previewPhoto, removePreset, removeWall,
   ratioName, ratioProblem, removeRatio, setActiveRatio, setActiveSlot, setCrop, setIcon, setName, setPreviewMode, setRatio, setRatioBackdrop, useStore, wallBitmap,
+  clarityLabel, setSoftActive, setSoftFocus, setSoftRecommended, setSoftSize, strengthLabel, SOFT_SIZES,
 } from './store';
-import type { RatioItem, WallItem } from './store';
+import type { RatioItem, SoftSize, WallItem } from './store';
 
 const isPreset = (f: File): boolean => /\.(xmp|cube)$/i.test(f.name);
 const isFirmware = (f: File): boolean => /\.bin$/i.test(f.name);
@@ -42,9 +43,18 @@ function Swatches({ params }: { params?: color.SlotParams }) {
 
 /** The sample photograph with the original on the left of a draggable divider and the preset on the right. */
 function PhotoCompare({ params }: { params?: color.SlotParams }) {
-  const rev = useStore((s) => s.photoRev);
-  const photo = useMemo(() => previewPhoto(), [rev]); // eslint-disable-line react-hooks/exhaustive-deps
+  const photo = usePhoto();
   const after = useMemo(() => (photo && params ? applySlot(params, photo) : null), [photo, params]);
+  return <Compare photo={photo} after={after} label={t('preset')} />;
+}
+
+function usePhoto(): ImageData | null {
+  const rev = useStore((s) => s.photoRev);
+  return useMemo(() => previewPhoto(), [rev]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+/** `photo` on the left of a draggable divider, `after` (labelled `label`) on the right. */
+function Compare({ photo, after, label }: { photo: ImageData | null; after: ImageData | null; label: string }) {
   const beforeRef = useRef<HTMLCanvasElement>(null);
   const afterRef = useRef<HTMLCanvasElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -81,7 +91,7 @@ function PhotoCompare({ params }: { params?: color.SlotParams }) {
       {after && (
         <>
           <span className="compare-tag l" style={{ opacity: pos < 0.16 ? 0 : 1 }}>{t('original')}</span>
-          <span className="compare-tag r" style={{ opacity: pos > 0.84 ? 0 : 1 }}>{t('preset')}</span>
+          <span className="compare-tag r" style={{ opacity: pos > 0.84 ? 0 : 1 }}>{label}</span>
           <div
             className="compare-line" style={{ left: pct }} role="slider" tabIndex={0} aria-label={t('compare')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pos * 100)}
             onKeyDown={(e) => {
@@ -314,6 +324,94 @@ export function RatioPage() {
             )}
           </div>
           <RatioPane r={active} />
+        </div>
+      )}
+    </DropZone>
+  );
+}
+
+// ---------------------------------------------------------------- soft focus
+/** Long side of the GR IV's 3:2 JPEG sizes. */
+const SOFT_FRAME: Record<SoftSize, number> = { L: 6192, M: 4944, S: 3504 };
+const softGains = (level: SoftFocusLevel, strength?: SoftFocusStrength): readonly number[] => (strength ? SOFT_FOCUS_GAINS[strength] : OFFICIAL_CLARITY[level + 4]);
+const softCache = new Map<string, ImageData>();
+
+function SoftRow({ level }: { level: SoftFocusLevel }) {
+  const strength = useStore((s) => s.softFocus[level]);
+  const active = useStore((s) => s.softActive === level);
+  return (
+    <div className={`soft-row ${active ? 'on' : ''}`} onPointerDownCapture={() => setSoftActive(level)} onFocusCapture={() => setSoftActive(level)}>
+      <span className="soft-level">{clarityLabel(level)}</span>
+      <span className="grow" />
+      <Segmented<'off' | SoftFocusStrength>
+        value={strength || 'off'} onChange={(v) => setSoftFocus(level, v === 'off' ? null : v)}
+        options={[{ value: 'off', label: t('softOff') }, { value: 'weak', label: t('softWeak') }, { value: 'medium', label: t('softMedium') }, { value: 'strong', label: t('softStrong') }]}
+      />
+    </div>
+  );
+}
+
+/** The photo before and after the chosen clarity step, as the model of the camera's pyramid gives it. */
+function SoftPane() {
+  const level = useStore((s) => s.softActive);
+  const strength = useStore((s) => s.softFocus[s.softActive]);
+  const size = useStore((s) => s.softSize);
+  const rev = useStore((s) => s.photoRev);
+  const photo = usePhoto();
+  const [after, setAfter] = useState<ImageData | null>(null);
+  useEffect(() => {
+    if (!photo) { setAfter(null); return; }
+    const key = `${rev}|${level}|${strength || 'off'}|${size}`;
+    const hit = softCache.get(key);
+    if (hit) { setAfter(hit); return; }
+    const timer = setTimeout(() => {
+      const long = Math.max(photo.width, photo.height);
+      const frame = (SOFT_FRAME[size] * photo.width) / long;
+      const out = new ImageData(photo.width, photo.height);
+      out.data.set(color.simulateClarity(photo.data, photo.width, photo.height, softGains(level, strength), frame));
+      if (softCache.size > 24) softCache.delete(softCache.keys().next().value as string);
+      softCache.set(key, out);
+      setAfter(out);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [photo, rev, level, strength, size]);
+  return (
+    <DropZone className="pane soft-pane" accept={isImage} onFiles={(f) => { void loadPreviewFile(f[0]); }}>
+      <div className="pane-head">
+        <b className="soft-title ellipsis">{clarityLabel(level)}  ·  {strength ? `${t('navSoft')} ${strengthLabel(strength)}` : t('softPreviewOff')}</b>
+        <span className="grow" />
+        <Segmented<SoftSize> tour="soft-size" value={size} onChange={setSoftSize} options={SOFT_SIZES.map((x) => ({ value: x, label: x }))} />
+      </div>
+      <div className="pane-body" data-tour="soft-preview" data-tour-fit="">
+        <Compare photo={photo} after={after} label={`${t('softApprox')}  ${clarityLabel(level)}`} />
+      </div>
+    </DropZone>
+  );
+}
+
+export function SoftFocusPage() {
+  const info = useStore((s) => s.info);
+  const n = useStore((s) => Object.keys(s.softFocus).length);
+  return (
+    <DropZone className="page" accept={isFirmware} onFiles={(f) => { void loadFirmwareFile(f[0]); }}>
+      <header className="page-head">
+        <span className="page-icon">{Ico.soft}</span>
+        <h1>{t('navSoft')}</h1>
+        {info && <div className="head-right"><span className="chip">{n}/{SOFT_FOCUS_LEVELS.length}</span></div>}
+      </header>
+      {!info && <FirmwareHero />}
+      {info && (
+        <div className="soft" data-tour-page="soft">
+          <div className="soft-list">
+            <div className="soft-rows" data-tour="soft-levels">
+              {SOFT_FOCUS_LEVELS.map((l) => <SoftRow key={l} level={l} />)}
+            </div>
+            <div className="soft-quick">
+              <button className="btn ghost small" data-tour="soft-quick" onClick={() => setSoftRecommended()}>{t('softRecommended')}</button>
+            </div>
+            <p className="muted small soft-hint">{t('softHint')}</p>
+          </div>
+          <SoftPane />
         </div>
       )}
     </DropZone>

@@ -66,6 +66,9 @@ export { CONTENT_AREA, ICON_H, ICON_W, TILE_BG, TILE_BORDER, composeIcon, normal
 export type { TileStyle } from './icons';
 
 export { buildFirmware, editableRanges } from './patch';
+
+export { CLARITY_BANDS, CLARITY_BYTES, CLARITY_GAIN_MAX, CLARITY_OFFSET, CLARITY_ROWS, CLARITY_VA, OFFICIAL_CLARITY, SOFT_FOCUS_GAINS, SOFT_FOCUS_LEVELS, SOFT_FOCUS_STRENGTHS, clarityBytes, clarityChanges, hasOfficialClarity, readClarity } from './clarity';
+export type { ClarityChange, ClarityEdit, SoftFocusLevel, SoftFocusStrength } from './clarity';
 export type { BuildResult, BuiltRatio, ColorData, SlotEdit } from './patch';
 
 export { SELF_CHECK_GROWN_NAMES, SELF_CHECK_NAMES, countChangedBytes, selfCheck, selfCheckGrown } from './selfcheck';

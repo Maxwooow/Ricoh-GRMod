@@ -7,10 +7,10 @@ import { LANG_LABEL, t } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
 import { FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
-import { CropEditor, ImageControlPage, RatioPage, ScriptPage, WallpaperPage } from './pages';
+import { CropEditor, ImageControlPage, RatioPage, ScriptPage, SoftFocusPage, WallpaperPage } from './pages';
 import { Tour, replayTour } from './tour';
 import {
-  backupCopies, canRestoreWall, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, outputEntry, outputFirmware, outputWallpaper, pendingChanges, refreshVolumes, restoreCardWall, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
+  backupCopies, softSpecs, canRestoreWall, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, outputEntry, outputFirmware, outputWallpaper, pendingChanges, refreshVolumes, restoreCardWall, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
 } from './store';
 
 const gb = (n: number): string => (n >= 1e9 ? `${(n / 1e9).toFixed(n >= 1e10 ? 0 : 1)} GB` : `${Math.max(1, Math.round(n / 1e6))} MB`);
@@ -26,6 +26,7 @@ function Sidebar() {
         <button className={`nav ${page === 'script' ? 'on' : ''}`} data-tour="nav-script" onClick={() => setPage('script')}>{Ico.tool}<span>{t('navScript')}</span></button>
         <button className={`nav ${page === 'ic' ? 'on' : ''}`} data-tour="nav-ic" onClick={() => setPage('ic')}>{Ico.aperture}<span>{t('navIC')}</span></button>
         <button className={`nav ${page === 'ratio' ? 'on' : ''}`} data-tour="nav-ratio" onClick={() => setPage('ratio')}>{Ico.ratio}<span>{t('navRatio')}</span></button>
+        <button className={`nav ${page === 'soft' ? 'on' : ''}`} data-tour="nav-soft" onClick={() => setPage('soft')}>{Ico.soft}<span>{t('navSoft')}</span></button>
         <button className={`nav ${page === 'wall' ? 'on' : ''}`} data-tour="nav-wall" onClick={() => setPage('wall')}>{Ico.image}<span>{t('navWall')}</span></button>
       </nav>
       <div className="grow" />
@@ -81,9 +82,9 @@ function CopyActions() {
 function OutputBar() {
   const s = useStore((x) => x);
   const vol = s.volumes.find((v) => v.id === s.volumeId);
-  // Image Control and the added ratios go into one firmware file: both pages write the same thing.
-  const isIC = s.page === 'ic' || s.page === 'ratio'; const isWall = s.page === 'wall';
-  const can = !!s.info && !s.busy && (isIC ? pendingChanges(s).length + ratioSpecs(s).length > 0 && !hasNameErrors(s) && !hasRatioErrors(s) : isWall ? wallReady(s) : true);
+  // Image Control, the added ratios and soft focus go into one firmware file: these pages write the same thing.
+  const isIC = s.page === 'ic' || s.page === 'ratio' || s.page === 'soft'; const isWall = s.page === 'wall';
+  const can = !!s.info && !s.busy && (isIC ? pendingChanges(s).length + ratioSpecs(s).length + softSpecs(s).length > 0 && !hasNameErrors(s) && !hasRatioErrors(s) : isWall ? wallReady(s) : true);
   const role: Key | '' = s.role === 'firmware' ? 'roleFirmware' : s.role === 'wallpaper' ? 'roleWallpaper' : s.role === 'mixed' ? 'roleMixed' : s.role === 'empty' ? 'roleEmpty' : '';
   const run = (kind: 'card' | 'folder'): void => { void (isIC ? outputFirmware({ kind }) : isWall ? outputWallpaper({ kind }) : outputEntry({ kind })); };
   return (
@@ -125,7 +126,7 @@ export function App() {
     <div className="app" onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }} onDrop={(e) => e.preventDefault()}>
       <Sidebar />
       <main className="main">
-        <div className="stage">{ready ? (page === 'ic' ? <ImageControlPage /> : page === 'ratio' ? <RatioPage /> : page === 'wall' ? <WallpaperPage /> : page === 'copies' ? <CopiesPage /> : <ScriptPage />) : <div className="page"><span className="spinner" /></div>}</div>
+        <div className="stage">{ready ? (page === 'ic' ? <ImageControlPage /> : page === 'ratio' ? <RatioPage /> : page === 'soft' ? <SoftFocusPage /> : page === 'wall' ? <WallpaperPage /> : page === 'copies' ? <CopiesPage /> : <ScriptPage />) : <div className="page"><span className="spinner" /></div>}</div>
         <OutputBar />
       </main>
       <CropEditor />

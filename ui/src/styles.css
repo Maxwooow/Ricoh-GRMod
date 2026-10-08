@@ -286,6 +286,19 @@ svg { width: 18px; height: 18px; flex: none; }
 .ratio-out.sizes .chip { font-variant-numeric: tabular-nums; }
 .ratio-out .chip b { font-weight: 600; color: var(--muted); }
 
+/* soft focus */
+.soft { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(340px, 40%) minmax(0, 1fr); gap: 24px; }
+.soft-list { display: flex; flex-direction: column; gap: 4px; min-height: 0; min-width: 0; }
+.soft-rows { display: flex; flex-direction: column; gap: 4px; }
+.soft-row { flex: none; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 6px 0 10px; border: 1px solid transparent; border-radius: 8px; }
+.soft-row:hover { background: var(--hover); }
+.soft-row.on { border-color: var(--line2); background: var(--side); }
+.soft-level { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.soft-quick { display: flex; padding: 4px 2px 0; }
+.soft-hint { margin: 8px 10px 0; line-height: 1.55; }
+.soft-pane .pane-head { gap: 10px; }
+.soft-title { font-size: 15px; font-weight: 600; min-width: 0; }
+
 /* Choosers and menus that pop up next to their button: firmware, model, camera language, card. */
 .sel { position: relative; min-width: 0; }
 .sel-btn { display: flex; align-items: center; width: 100%; min-width: 0; border: 0; background: none; text-align: left; outline: none; }

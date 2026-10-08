@@ -19,6 +19,8 @@ import { countChangedBytes, selfCheck, selfCheckGrown } from './selfcheck';
 import { gr4Sizes, installRatios, planRatios, ratioText } from './aspect';
 import type { RatioSpec } from './aspect';
 import { grownRanges, growPayload } from './aspect/package';
+import { CLARITY_BYTES, CLARITY_OFFSET, clarityBytes, hasOfficialClarity } from './clarity';
+import type { ClarityEdit } from './clarity';
 
 export type { Range } from './types';
 
@@ -128,8 +130,8 @@ function transparentPixels(icon: Uint8Array): number[] {
  * Throws `FirmwareError` on any invalid input or failed assertion; never returns a file that did
  * not pass the self-check.
  */
-export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = []): Promise<BuildResult> {
-  const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits);
+export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = [], clarity: readonly ClarityEdit[] = []): Promise<BuildResult> {
+  const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity);
   if (ratios.length > 0) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios);
 
   // 7. Container.
@@ -197,8 +199,8 @@ async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8
   };
 }
 
-/** Steps 1-6: open the official file and apply the same-length slot edits to a copy of its payload. */
-async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[]): Promise<{ fw: Firmware; DEC: Uint8Array; img: Uint8Array; ranges: Range[] }> {
+/** Steps 1-6: open the official file and apply the same-length slot (and clarity) edits to a copy of its payload. */
+async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: readonly ClarityEdit[] = []): Promise<{ fw: Firmware; DEC: Uint8Array; img: Uint8Array; ranges: Range[] }> {
   // 1. Open the official file, copy the payload.
   const { fw, decoded: DEC } = await openOfficial(officialRaw);
   const sorted = sortEdits(edits);
@@ -259,6 +261,14 @@ async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[]): Promise<
       ranges.push({ what: `${e.slot} name ${lang} length`, offset: r[1].offset, length: r[1].length });
       rtosTouched = true;
     }
+  }
+
+  // 3b. Clarity table (soft focus): rows of the negative settings replaced, same length.
+  if (!Array.isArray(clarity)) bad('bad-clarity', 'clarity edits must be an array');
+  if (clarity.length > 0) {
+    if (!hasOfficialClarity(DEC)) bad('unexpected-layout', 'the clarity table is not where it is expected');
+    write('clarity table', CLARITY_OFFSET, clarityBytes(clarity), CLARITY_BYTES);
+    rtosTouched = true;
   }
 
   // 4. Keep the payload's word sum at zero WITHOUT touching its last word: absorb the difference
@@ -363,7 +373,7 @@ async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[]): Promise<
 
 /**
  * Every part of the decoded payload that `buildFirmware` can ever change: both slots' colour data,
- * names in all languages and icons, plus the checksum compensation word. A file that differs
+ * names in all languages and icons, the clarity table, plus the checksum compensation word. A file that differs
  * from the official one only inside these ranges (and passes the self-check with them) is one
  * this builder could have produced.
  */
@@ -381,6 +391,7 @@ export function editableRanges(official: Uint8Array): Range[] {
     for (const lang of LANGS) out.push(...nameRanges(official, lang, s.nameIndex));
     out.push({ what: `${s.id} icon`, offset: s.iconOffset, length: ICON_BYTES });
   }
+  out.push({ what: 'clarity table', offset: CLARITY_OFFSET, length: CLARITY_BYTES });
   out.push({ what: 'checksum compensation word', offset: COMP_OFFSET, length: 4 });
   return out;
 }

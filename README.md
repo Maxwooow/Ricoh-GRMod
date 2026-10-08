@@ -21,6 +21,10 @@ One thing is added on top of the port (build revision 2, `installPlaybackDecode`
 
 On a camera: a user reports that a 0.2.x build installs and shoots in the added ratios, and that magnifying such photos got stuck (the reason for revision 2). With revision 2 the user reports that magnifying 65:24 photos works. See `third_party/gr-custom-tool/NOTICE.md` for what is derived from the reference.
 
+## Soft focus
+
+`core/src/fw/clarity.ts` rewrites rows of the camera's clarity table (RTOS 0x53b4c860, 9 rows for clarity −4…+4 of 11 int16 gains in Q10, finest band first). Clarity is a Laplacian pyramid on the developed picture (RetouchService, 0x538a1fa8): the function copies the table to the stack, returns at once for clarity 0, takes row `clarity + 4` and multiplies each band of detail by its gain through the first diagonal entry of a CSC matrix (the other entries stay 1.0, so luma only, by inference). Lower gains on the fine and middle bands with the coarse ones kept give roughly `g × picture + (1 − g) × strongly blurred picture`, the usual digital soft focus. The user picks weak / medium / strong for any of clarity −1…−4; that is a same-length data edit of 198 bytes plus the checksum compensation word, recognised and verified on the copies page like the other edits. `core/src/color/clarity.ts` is a model of the pyramid used for the preview (bilinear scaling assumed, the camera's interpolation is not known). It is linear and works after gamma on the 8-bit picture, so highlights do not bloom. Not tried on a camera yet.
+
 ## Licence
 
 The files under `core/src/fw/aspect/`, `tools/aspect/` and `third_party/gr-custom-tool/`, and the aspect-ratio tests, are derived from gr-custom-tool and are GPL-2.0-only (see the SPDX line in each file and `third_party/gr-custom-tool/LICENSE`). They are compiled into the program, so a build that is given to anyone else has to be distributed under GPL-2.0 together with its complete source.

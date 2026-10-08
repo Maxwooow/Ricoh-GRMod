@@ -43,8 +43,12 @@ import {
   tileTemplate,
   validateName,
   validateRatioName,
+  SOFT_FOCUS_GAINS,
+  SOFT_FOCUS_LEVELS,
+  SOFT_FOCUS_STRENGTHS,
+  clarityChanges,
 } from '../fw';
-import type { BuildResult, BuiltRatio, FactoryEntry, LangCode, Layout, NameValidation, Range, RatioSpec, SlotEdit, SlotId } from '../fw';
+import type { BuildResult, BuiltRatio, ClarityChange, ClarityEdit, SoftFocusLevel, SoftFocusStrength, FactoryEntry, LangCode, Layout, NameValidation, Range, RatioSpec, SlotEdit, SlotId } from '../fw';
 import { grownRanges, growPayload } from '../fw/aspect/package';
 import { convertCube, convertXmp, quantizeSlot } from '../color';
 import type { SlotParams } from '../color';
@@ -103,6 +107,12 @@ export interface SlotRequest {
   names?: Partial<Record<LangCode, string>>;
 }
 
+/** Soft focus on one negative clarity setting: its row of the clarity table gets the gains of `strength`. */
+export interface SoftFocusRequest {
+  level: SoftFocusLevel;
+  strength: SoftFocusStrength;
+}
+
 export type FirmwareBuild = Omit<BuildResult, 'decoded'>;
 
 /** What adding a ratio would give, for the UI; `problem` is set (and the rest absent) when it cannot be added. */
@@ -148,6 +158,8 @@ export interface FirmwareSummary {
   }[];
   /** Aspect ratios this file adds to the camera (empty when none, or when they cannot be read). */
   ratios: BuiltRatio[];
+  /** Clarity settings whose row of the clarity table differs from the official one (soft focus). */
+  softFocus: ClarityChange[];
 }
 
 export interface ShutdownImage {
@@ -305,7 +317,7 @@ export class Engine {
         const iconChanged = !equalRange(d, s.iconOffset, this.decoded, s.iconOffset, icon.length);
         return { id: s.id, names, icon, colorChanged, nameChanged, iconChanged };
       });
-    if (sha256 === this.info.sha256) return { sha256, kind: 'official', changedBytes: 0, verified: true, slots: describe(this.decoded), ratios: [] };
+    if (sha256 === this.info.sha256) return { sha256, kind: 'official', changedBytes: 0, verified: true, slots: describe(this.decoded), ratios: [], softFocus: [] };
     try {
       const fw = new Firmware(raw);
       if (!equalRange(fw.header, 0, this.raw, 0, fw.header.length)) throw new Error('not 1.11');
@@ -313,9 +325,9 @@ export class Engine {
       if (fw.decoded.length !== DECODED_SIZE) return this.inspectGrown(sha256, raw, fw.decoded, describe);
       const checks = selfCheck(this.raw, raw, this.editable);
       const verified = Object.values(checks).every((v) => v === true);
-      return { sha256, kind: 'modified', changedBytes: countChangedBytes(fw.decoded, this.decoded), verified, slots: describe(fw.decoded), ratios: [] };
+      return { sha256, kind: 'modified', changedBytes: countChangedBytes(fw.decoded, this.decoded), verified, slots: describe(fw.decoded), ratios: [], softFocus: clarityChanges(fw.decoded) };
     } catch {
-      return { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [] };
+      return { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [] };
     }
   }
 
@@ -326,7 +338,7 @@ export class Engine {
    * payload, and the file passes the self-check for grown files.
    */
   private inspectGrown(sha256: string, raw: Uint8Array, dec: Uint8Array, describe: (d: Uint8Array) => FirmwareSummary['slots']): FirmwareSummary {
-    const unknown: FirmwareSummary = { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [] };
+    const unknown: FirmwareSummary = { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [] };
     const so = sectionsOf(this.decoded);
     const sn = sectionsOf(dec);
     if (so.length !== sn.length) return unknown;
@@ -354,7 +366,7 @@ export class Engine {
     // Files of GR Mod 0.2.x are revision 1; they are checked against what that revision builds.
     const revision = readBuildRevision(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? 1;
     const modified = (verified: boolean, ratios: BuiltRatio[], slotsFrom: Uint8Array): FirmwareSummary => ({
-      sha256, kind: 'modified', changedBytes: countChangedBytes(aligned, this.decoded) + rtosGrowth + iconGrowth, verified, slots: describe(slotsFrom), ratios,
+      sha256, kind: 'modified', changedBytes: countChangedBytes(aligned, this.decoded) + rtosGrowth + iconGrowth, verified, slots: describe(slotsFrom), ratios, softFocus: clarityChanges(slotsFrom),
     });
     if (!specs) return modified(false, [], aligned);
     let ratios: BuiltRatio[] = [];
@@ -483,7 +495,7 @@ export class Engine {
   }
 
   /** Build a firmware file. The result has passed the built-in self-check (otherwise this throws). */
-  async buildFirmware(requests: SlotRequest[], ratios: readonly RatioSpec[] = []): Promise<FirmwareBuild> {
+  async buildFirmware(requests: SlotRequest[], ratios: readonly RatioSpec[] = [], softFocus: readonly SoftFocusRequest[] = []): Promise<FirmwareBuild> {
     const edits: SlotEdit[] = [];
     for (const r of requests) {
       const e: SlotEdit = { slot: r.slot };
@@ -492,8 +504,13 @@ export class Engine {
       if (r.names && Object.keys(r.names).length > 0) e.names = r.names;
       if (e.color || e.icon || e.names) edits.push(e);
     }
-    if (edits.length === 0 && ratios.length === 0) throw new FirmwareError('bad-edit', 'nothing to change');
-    const { decoded: _decoded, ...rest } = await buildFirmware(this.raw, edits, ratios);
+    const clarity: ClarityEdit[] = softFocus.map((f) => {
+      if (!f || !SOFT_FOCUS_LEVELS.includes(f.level)) throw new FirmwareError('bad-clarity', `soft focus cannot go on clarity ${String(f && f.level)}`);
+      if (!SOFT_FOCUS_STRENGTHS.includes(f.strength)) throw new FirmwareError('bad-clarity', `unknown soft focus strength ${String(f.strength)}`);
+      return { level: f.level, gains: SOFT_FOCUS_GAINS[f.strength] };
+    });
+    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0) throw new FirmwareError('bad-edit', 'nothing to change');
+    const { decoded: _decoded, ...rest } = await buildFirmware(this.raw, edits, ratios, clarity);
     return rest;
   }
 

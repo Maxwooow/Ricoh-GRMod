@@ -13,3 +13,4 @@ export type { FitOptions, FitResult } from './fit';
 export { convertXmp, convertCube, previewSlot } from './convert';
 export type { Conversion, ConvertOptions } from './convert';
 export { BASE_CURVE, CAL_CAM, CAL_ADOBE, CAL_COUNT, TONE_PARAMS } from './data';
+export { clarityLevels, simulateClarity } from './clarity';

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import { card, LANGS, MAX_CUSTOM_RATIOS, validateRatioName } from '@grmod/core';
-import type { CameraModel, FirmwareInfo, FirmwareSummary, LangCode, PresetResult, RatioPreview, RatioSpec, SlotId, SlotRequest } from '@grmod/core';
+import { card, LANGS, MAX_CUSTOM_RATIOS, SOFT_FOCUS_LEVELS, SOFT_FOCUS_STRENGTHS, validateRatioName } from '@grmod/core';
+import type { CameraModel, ClarityChange, FirmwareInfo, FirmwareSummary, LangCode, PresetResult, RatioPreview, RatioSpec, SlotId, SlotRequest, SoftFocusLevel, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
 import { engine, EngineError } from './engine';
 import { host, HostError, sha256Hex } from './host';
 import type { ParkedEntry, Volume } from './host';
@@ -11,7 +11,10 @@ import type { Crop } from './pixels';
 import { decodePreview } from './preview';
 import defaultPhotoUrl from './assets/preview.jpg';
 
-export type Page = 'ic' | 'ratio' | 'wall' | 'script' | 'copies';
+export type Page = 'ic' | 'ratio' | 'soft' | 'wall' | 'script' | 'copies';
+/** JPEG size the soft focus preview stands for (the camera's bands are measured in pixels of the photo). */
+export type SoftSize = 'L' | 'M' | 'S';
+export const SOFT_SIZES: readonly SoftSize[] = ['L', 'M', 'S'];
 /** One added aspect ratio as typed; `preview` is what the camera would make of it (absent while that is worked out). */
 export interface RatioItem { id: string; ratio: string; name: string; preview?: RatioPreview }
 export interface PresetState { fileName: string; kind: 'xmp' | 'cube'; text: string; busy: boolean; result?: PresetResult; error?: string }
@@ -35,7 +38,7 @@ export interface BuildRecord { sha256: string; time: number; slots: { id: SlotId
 /** `warn` is an optional caution shown under the lines (used where something is deleted for good). */
 /** A guided tour: `overview` is the one of the first start, the others belong to a page. */
 export type TourId = 'overview' | Page;
-export const TOUR_IDS: readonly TourId[] = ['overview', 'script', 'ic', 'ratio', 'wall', 'copies'];
+export const TOUR_IDS: readonly TourId[] = ['overview', 'script', 'ic', 'ratio', 'soft', 'wall', 'copies'];
 /** The tour being shown: `steps` are the indices of its steps that have something to point at; a replay can be skipped. */
 export interface TourState { id: TourId; steps: number[]; index: number; replay: boolean }
 export interface Confirm { title: string; warn?: string; lines: string[]; ok: string; resolve: (v: boolean) => void }
@@ -46,6 +49,7 @@ export interface State {
   slots: Record<SlotId, SlotState>;
   wall: WallItem[];
   ratios: RatioItem[]; activeRatio?: string; ratioBackdrop: RatioBackdrop;
+  softFocus: Partial<Record<SoftFocusLevel, SoftFocusStrength>>; softActive: SoftFocusLevel; softSize: SoftSize;
   previewMode: PreviewMode; photoRev: number; cardWall?: CardWall; activeSlot: SlotId;
   volumes: Volume[]; showAll: boolean; volumeId?: string; role?: card.CardRole; entryOnCard: boolean;
   copySource: CopySource; parked: ParkedEntry[]; backups: ParkedEntry[]; copySel: string[]; copyInfo: Record<string, CopyInfo>; builds: BuildRecord[];
@@ -57,7 +61,7 @@ const SLOT_IDS: SlotId[] = ['CY', 'CG'];
 const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '', style: 'film' } });
 let state: State = {
   ready: false, page: 'script', fwBusy: false, model: 'HDF', lang: 'zh-CN',
-  slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], ratios: [], ratioBackdrop: 'photo', previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false,
+  slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], ratios: [], ratioBackdrop: 'photo', softFocus: {}, softActive: -2, softSize: 'L', previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false,
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
@@ -113,6 +117,7 @@ async function saveProject(): Promise<void> {
     }])),
     wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: w.kind, width: w.width, height: w.height, crop: w.crop })),
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
+    softFocus: s.softFocus, softSize: s.softSize,
     tours: s.toursSeen,
   };
   try { await host.storeSet('project.json', JSON.stringify(doc)); } catch (e) { console.warn('save failed', e); }
@@ -138,7 +143,8 @@ export async function init(): Promise<void> {
       const ratios: RatioItem[] = (Array.isArray(doc.ratios) ? doc.ratios : []).slice(0, MAX_CUSTOM_RATIOS)
         .filter((r: RatioItem) => r && typeof r.id === 'string' && typeof r.ratio === 'string')
         .map((r: RatioItem) => ({ id: r.id, ratio: r.ratio.slice(0, 24), name: String(r.name || '').slice(0, 80) }));
-      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : 'script', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo', cardWall: validCardWall(doc.cardWall),
+      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'soft' || doc.page === 'ic' ? doc.page : 'script', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo', cardWall: validCardWall(doc.cardWall),
+        softFocus: validSoftFocus(doc.softFocus), softSize: (SOFT_SIZES as readonly string[]).includes(doc.softSize) ? doc.softSize : 'L',
         toursSeen: TOUR_IDS.filter((id) => Array.isArray(doc.tours) && doc.tours.includes(id)) });
       const fwRaw = await host.storeGet('firmware.bin');
       if (fwRaw) await openFirmware(fwRaw, doc.fwName || 'fwdc248b.bin', false);
@@ -396,6 +402,40 @@ export function moveWall(id: string, toIndex: number): void {
 }
 export function openCrop(id: string | undefined): void { set({ cropId: id }); }
 export function setCrop(id: string, crop: Crop): void { setWall(id, { crop }); set({ cropId: undefined }); void encodeWall(id); scheduleSave(); }
+
+// ------------------------------------------------------------------ soft focus (rows of the clarity table)
+function validSoftFocus(v: unknown): Partial<Record<SoftFocusLevel, SoftFocusStrength>> {
+  const out: Partial<Record<SoftFocusLevel, SoftFocusStrength>> = {};
+  if (!v || typeof v !== 'object') return out;
+  for (const level of SOFT_FOCUS_LEVELS) {
+    const x = (v as Record<string, unknown>)[String(level)];
+    if (typeof x === 'string' && (SOFT_FOCUS_STRENGTHS as readonly string[]).includes(x)) out[level] = x as SoftFocusStrength;
+  }
+  return out;
+}
+/** Soft focus on `level`, or the camera's own clarity there (`null`). */
+export function setSoftFocus(level: SoftFocusLevel, strength: SoftFocusStrength | null): void {
+  set((s) => { const softFocus = { ...s.softFocus }; if (strength) softFocus[level] = strength; else delete softFocus[level]; return { softFocus, softActive: level }; });
+  scheduleSave();
+}
+/** -2 weak, -3 medium, -4 strong; -1 stays as it is. */
+export function setSoftRecommended(): void {
+  set((s) => ({ softFocus: { ...(s.softFocus[-1] ? { [-1]: s.softFocus[-1] } : {}), [-2]: 'weak', [-3]: 'medium', [-4]: 'strong' }, softActive: -3 }));
+  scheduleSave();
+}
+export function setSoftActive(level: SoftFocusLevel): void { if (state.softActive !== level) set({ softActive: level }); }
+export function setSoftSize(softSize: SoftSize): void { set({ softSize }); scheduleSave(); }
+/** The soft focus that will be built into the firmware, -1 first. */
+export function softSpecs(s: State = state): SoftFocusRequest[] {
+  return SOFT_FOCUS_LEVELS.filter((l) => s.softFocus[l]).map((level) => ({ level, strength: s.softFocus[level]! }));
+}
+const MINUS = '\u2212';
+export const clarityLabel = (level: number): string => `${t('clarity')} ${level < 0 ? MINUS : '+'}${Math.abs(level)}`;
+export const strengthLabel = (st: SoftFocusStrength | 'custom'): string => t(st === 'weak' ? 'softWeak' : st === 'medium' ? 'softMedium' : st === 'strong' ? 'softStrong' : 'softCustom');
+/** "−2 weak / −3 medium" (−1 first), for confirmations and the copies page. */
+export function softText(list: readonly (SoftFocusRequest | ClarityChange)[]): string {
+  return [...list].sort((a, b) => b.level - a.level).map((f) => `${f.level < 0 ? MINUS : '+'}${Math.abs(f.level)} ${strengthLabel(f.strength)}`).join(' / ');
+}
 
 // ------------------------------------------------------------------ added aspect ratios
 const RATIO_PROBLEMS: Record<NonNullable<RatioPreview['problem']>, Key> = {
@@ -658,11 +698,13 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   if (state.busy || !state.info || !state.raw) return;
   const changes = stock ? [] : pendingChanges();
   const ratios = stock ? [] : ratioSpecs();
+  const soft = stock ? [] : softSpecs();
   if (!stock && (hasNameErrors() || hasRatioErrors())) return;
-  if (!stock && changes.length === 0 && ratios.length === 0) { toast(t('nothingToDo'), 'info'); return; }
+  if (!stock && changes.length === 0 && ratios.length === 0 && soft.length === 0) { toast(t('nothingToDo'), 'info'); return; }
   if (dest.kind === 'card') {
     const lines = stock ? [t('copyOfficial')] : changes.map((c) => `${t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
     if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
+    if (soft.length) lines.push(t('softLine', { l: softText(soft) }));
     if (!(await ask(t('confirmTitle'), lines, t('confirmOk')))) return;
   }
   const target = await destination(dest);
@@ -672,7 +714,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (stock) file = state.raw;
     else {
       set({ busy: t('building') });
-      const built = await engine.build(changes.map((c) => c.request), ratios);
+      const built = await engine.build(changes.map((c) => c.request), ratios, soft);
       if (!Object.values(built.checks).every((v) => v === true)) throw new EngineError('selfcheck-failed', 'self-check');
       file = built.file;
       void recordBuild(file, changes);
@@ -878,6 +920,7 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
     return `${sl.names[s.lang]}  ·  ${parts.join(' / ') || t('original')}`;
   });
   if (summary.ratios.length) lines.push(t('ratioLine', { n: summary.ratios.length, l: summary.ratios.map((r) => r.name).join(' / ') }));
+  if (summary.softFocus?.length) lines.push(t('softLine', { l: softText(summary.softFocus) }));
   return lines;
 }
 /** Put the selected firmware copy (from the card's parked files or from a backup) on the card as the firmware to install. */
