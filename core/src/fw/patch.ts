@@ -135,7 +135,7 @@ function transparentPixels(icon: Uint8Array): number[] {
  */
 export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = [], clarity: readonly ClarityEdit[] = [], features: ExtensionFeatures = {}, test: TestOptions = {}): Promise<BuildResult> {
   const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity);
-  if (ratios.length > 0 || features.adjSoftFocus || features.dateStamp) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios, features, test);
+  if (ratios.length > 0 || features.adjSoftFocus || features.dateStamp || features.monoUnlock) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios, features, test);
 
   // 7. Container.
   const built = build(fw, img);
