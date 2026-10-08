@@ -19,6 +19,7 @@ Changes made in the port, as required by section 2(a) of the licence (October 20
 - rewritten in TypeScript, with a small ARM assembler (`arm.ts`) in place of clang at run time;
 - added ratios always get the identities 7, 8, ... in list order; ratios equal to a factory ratio are refused; at most 8; names are printable ASCII;
 - the firmware version is left at 1.11 and nothing is appended after the code;
-- the result is placed in the container by GR Mod's own code (`package.ts`, `../container.ts`).
+- the result is placed in the container by GR Mod's own code (`package.ts`, `../container.ts`);
+- since GR Mod 0.3.0 one piece of code that is not in the reference is appended after the reference's (`installPlaybackDecode` in `build.ts`: the playback decode buffer for photo heights that are not a multiple of 8), and `tools/aspect/playback_check.py` checks it.
 
 Every file listed in the table carries `SPDX-License-Identifier: GPL-2.0-only`. A firmware file built with added ratios contains the compiled C code above.

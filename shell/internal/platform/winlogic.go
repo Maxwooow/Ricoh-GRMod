@@ -3,6 +3,7 @@ package platform
 import (
 	"encoding/binary"
 	"errors"
+	"net/url"
 	"strings"
 )
 
@@ -142,4 +143,131 @@ func ExplorerCommandLine(explorer, path string, isDir bool) (string, error) {
 		arg = "/select," + arg
 	}
 	return `"` + explorer + `" ` + arg, nil
+}
+
+// ProxySettings are the proxy settings of the current user as Windows keeps
+// them for WinINet (Settings > Network > Proxy > manual setup):
+// HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings, values
+// ProxyEnable, ProxyServer and ProxyOverride.
+type ProxySettings struct {
+	Enable   bool
+	Server   string
+	Override string
+}
+
+// ProxyFor returns the proxy to use for a request to u, or nil for a direct
+// connection. A set-up script (PAC) is not evaluated: with only a script
+// configured the connection is direct.
+//
+// ProxyServer is either "host:port" for every protocol or a list such as
+// "http=a:80;https=b:443;socks=c:1080"; an entry may carry a scheme of its
+// own ("http://a:80"). ProxyOverride lists hosts that bypass the proxy,
+// separated by semicolons, with "*" wildcards; "<local>" stands for names
+// without a dot.
+func (p ProxySettings) ProxyFor(u *url.URL) *url.URL {
+	if !p.Enable || u == nil {
+		return nil
+	}
+	host := strings.ToLower(u.Hostname())
+	if host == "" || host == "localhost" || host == "127.0.0.1" || host == "::1" {
+		return nil
+	}
+	for _, pattern := range strings.FieldsFunc(p.Override, func(r rune) bool { return r == ';' || r == ' ' }) {
+		pattern = strings.ToLower(strings.TrimSpace(pattern))
+		if pattern == "<local>" {
+			if !strings.Contains(host, ".") {
+				return nil
+			}
+			continue
+		}
+		if i := strings.Index(pattern, "://"); i >= 0 {
+			pattern = pattern[i+3:]
+		}
+		if pattern != "" && wildcardMatch(pattern, host) {
+			return nil
+		}
+	}
+	var all, byScheme, socks string
+	for _, entry := range strings.FieldsFunc(p.Server, func(r rune) bool { return r == ';' || r == ' ' }) {
+		entry = strings.TrimSpace(entry)
+		key, value, found := strings.Cut(entry, "=")
+		if !found {
+			if all == "" {
+				all = entry
+			}
+			continue
+		}
+		switch strings.ToLower(strings.TrimSpace(key)) {
+		case strings.ToLower(u.Scheme):
+			byScheme = strings.TrimSpace(value)
+		case "socks":
+			socks = strings.TrimSpace(value)
+		}
+	}
+	switch {
+	case byScheme != "":
+		return proxyURL(byScheme, "http")
+	case all != "":
+		return proxyURL(all, "http")
+	case socks != "":
+		return proxyURL(socks, "socks5")
+	}
+	return nil
+}
+
+// proxyURL parses "host:port" or "scheme://host:port".
+func proxyURL(s, defaultScheme string) *url.URL {
+	if !strings.Contains(s, "://") {
+		s = defaultScheme + "://" + s
+	}
+	u, err := url.Parse(s)
+	if err != nil || u.Host == "" {
+		return nil
+	}
+	switch u.Scheme {
+	case "http", "https", "socks5":
+	case "socks", "socks4", "socks4a", "socks5h":
+		u.Scheme = "socks5"
+	default:
+		return nil
+	}
+	return &url.URL{Scheme: u.Scheme, Host: u.Host, User: u.User}
+}
+
+// wildcardMatch reports whether s matches pattern, where "*" stands for any
+// run of characters.
+func wildcardMatch(pattern, s string) bool {
+	parts := strings.Split(pattern, "*")
+	if len(parts) == 1 {
+		return pattern == s
+	}
+	if !strings.HasPrefix(s, parts[0]) {
+		return false
+	}
+	s = s[len(parts[0]):]
+	last := parts[len(parts)-1]
+	for _, part := range parts[1 : len(parts)-1] {
+		i := strings.Index(s, part)
+		if i < 0 {
+			return false
+		}
+		s = s[i+len(part):]
+	}
+	return len(s) >= len(last) && strings.HasSuffix(s, last)
+}
+
+// BrowserURL checks that an address can be handed to the default browser:
+// an absolute http(s) address made of plain URL characters only, so that it
+// passes through a command line unchanged.
+func BrowserURL(address string) (string, error) {
+	u, err := url.Parse(address)
+	if err != nil || (u.Scheme != "https" && u.Scheme != "http") || u.Host == "" || u.User != nil {
+		return "", errors.New("not a web address")
+	}
+	for _, r := range address {
+		if r <= ' ' || r > '~' || strings.ContainsRune("\"'`<>^|\\{}", r) {
+			return "", errors.New("address cannot be passed to the browser")
+		}
+	}
+	return address, nil
 }

@@ -45,6 +45,10 @@ type Options struct {
 	// SidecarDir is the directory of optional read-only companion files
 	// (normally the executable's directory); empty disables them.
 	SidecarDir string
+	// FirmwareSite replaces the address of Ricoh's web site, from which the
+	// firmware endpoints fetch (tests and development); empty selects the
+	// real one.
+	FirmwareSite string
 
 	// Flavor is the path syntax; nil selects the native one.
 	Flavor pathguard.Flavor
@@ -66,6 +70,7 @@ type Server struct {
 	heartbeat *Heartbeat
 	hostJS    []byte
 	chrome    chromeHandler
+	firmware  *firmwareSource
 	routes    map[string]route
 
 	pickedMu sync.Mutex
@@ -116,6 +121,7 @@ func New(opt Options) (*Server, error) {
 		hosts:     map[string]bool{},
 		origins:   map[string]bool{},
 		heartbeat: NewHeartbeat(opt.Now),
+		firmware:  newFirmwareSource(opt),
 		rename:    renameFile,
 	}
 	port := strconv.Itoa(opt.Port)
@@ -148,6 +154,11 @@ func New(opt Options) (*Server, error) {
 		"/api/backups/read":   {http.MethodGet, s.handleBackupsRead},
 		"/api/backups/delete": {http.MethodPost, s.handleBackupsDelete},
 		"/api/backups/reveal": {http.MethodPost, s.handleBackupsReveal},
+
+		"/api/firmware/latest":   {http.MethodGet, s.handleFirmwareLatest},
+		"/api/firmware/download": {http.MethodPost, s.handleFirmwareDownload},
+		"/api/firmware/progress": {http.MethodGet, s.handleFirmwareProgress},
+		"/api/firmware/page":     {http.MethodPost, s.handleFirmwarePage},
 	}
 	return s, nil
 }

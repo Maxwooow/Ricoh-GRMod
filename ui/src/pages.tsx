@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { color, MAX_CUSTOM_RATIOS, SHUTDOWN_H, SHUTDOWN_W } from '@grmod/core';
 import type { SlotId } from '@grmod/core';
 import { DropZone, FileButton, Ico, IconCanvas, Menu, Prop, RatioIcon, RgbCanvas, Segmented } from './components';
+import { FirmwareHero } from './firmware';
 import { t } from './i18n';
 import type { Key } from './i18n';
 import type { Crop } from './pixels';
@@ -174,7 +175,6 @@ function SlotCard({ id }: { id: SlotId }) {
 
 export function ImageControlPage() {
   const info = useStore((s) => s.info);
-  const fwBusy = useStore((s) => s.fwBusy);
   const fwName = useStore((s) => s.fwName);
   const model = useStore((s) => s.model);
   return (
@@ -192,11 +192,7 @@ export function ImageControlPage() {
           </div>
         )}
       </header>
-      {!info && (
-        <FileButton className="hero-drop" accept=".bin" onFiles={(f) => { void loadFirmwareFile(f[0]); }}>
-          {fwBusy ? <><span className="spinner" /><b>{t('opening')}</b></> : <><span className="hero-ico">{Ico.chip}</span><b>{t('dropFirmware')}</b><small>{t('dropFirmwareSub')}</small></>}
-        </FileButton>
-      )}
+      {!info && <FirmwareHero />}
       {info && model !== 'MONO' && (
         <div className="ic">
           <div className="cards"><SlotCard id="CY" /><SlotCard id="CG" /></div>
@@ -222,7 +218,7 @@ function RatioRow({ r, active }: { r: RatioItem; active: boolean }) {
     <div className={`ratio-row ${active ? 'on' : ''}`} onPointerDownCapture={() => setActiveRatio(r.id)} onFocusCapture={() => setActiveRatio(r.id)}>
       <RatioIcon pixels={p?.icon} width={48} />
       <input
-        className={`input ratio-in ${p?.problem ? 'bad' : ''}`} value={r.ratio} maxLength={16} spellCheck={false} placeholder="65:24" aria-label={t('navRatio')}
+        className={`input ratio-in ${p?.problem ? 'bad' : ''}`} value={r.ratio} maxLength={16} spellCheck={false} placeholder={t('ratioPlaceholder')} aria-label={t('navRatio')}
         autoFocus={!r.ratio} onChange={(e) => setRatio(r.id, { ratio: e.target.value.replace(/[^0-9:.：/xX×]/g, '').replace(/[：/xX×]/g, ':') })}
       />
       <input
@@ -298,11 +294,7 @@ export function RatioPage() {
         <h1>{t('navRatio')}</h1>
         {info && <div className="head-right"><span className="chip">{ratios.filter((r) => r.ratio.trim()).length}/{MAX_CUSTOM_RATIOS}</span></div>}
       </header>
-      {!info && (
-        <FileButton className="hero-drop" accept=".bin" onFiles={(f) => { void loadFirmwareFile(f[0]); }}>
-          <span className="hero-ico">{Ico.chip}</span><b>{t('dropFirmware')}</b><small>{t('dropFirmwareSub')}</small>
-        </FileButton>
-      )}
+      {!info && <FirmwareHero />}
       {info && (
         <div className="ratio">
           <div className="ratio-list">
@@ -410,11 +402,7 @@ export function WallpaperPage() {
         <h1>{t('navWall')}</h1>
         {info && wall.length > 0 && <div className="head-right"><span className="chip">{wall.length}/9</span></div>}
       </header>
-      {!info && (
-        <FileButton className="hero-drop" accept=".bin" onFiles={(f) => { void loadFirmwareFile(f[0]); }}>
-          <span className="hero-ico">{Ico.chip}</span><b>{t('dropFirmware')}</b><small>{t('dropFirmwareSub')}</small>
-        </FileButton>
-      )}
+      {!info && <FirmwareHero />}
       {info && (
         <div className="wall-fit" ref={ref}>
           {fit.tile > 0 && (
@@ -444,26 +432,14 @@ export function ScriptPage() {
         <span className="page-icon">{Ico.tool}</span>
         <h1>{t('navScript')}</h1>
       </header>
-      {!info && (
-        <FileButton className="hero-drop" accept=".bin" onFiles={(f) => { void loadFirmwareFile(f[0]); }}>
-          <span className="hero-ico">{Ico.chip}</span><b>{t('dropFirmware')}</b><small>{t('dropFirmwareSub')}</small>
-        </FileButton>
-      )}
+      {!info && <FirmwareHero />}
       {info && (
         <div className="guide">
-          <p className="lead">{t('scriptLead')}</p>
-          <ol className="steps">
-            <li>
-              <div>{t('scriptStep1')}</div>
-              <div className="chips step-extra">
-                {info.factoryEntry.files.map((f) => <span key={f.name} className="chip file">{Ico.file}{f.name}</span>)}
-                {onCard && <span className="chip ok">{Ico.check}{t('entryOnCard')}</span>}
-              </div>
-            </li>
-            <li>{t('scriptStep2')}</li>
-            <li>{t('scriptStep3')}</li>
-            <li>{t('scriptStep4')}</li>
-          </ol>
+          <p className="guide-line">{t('scriptHint')}</p>
+          <div className="chips">
+            {info.factoryEntry.files.map((f) => <span key={f.name} className="chip file">{Ico.file}{f.name}</span>)}
+            {onCard && <span className="chip ok">{Ico.check}{t('entryOnCard')}</span>}
+          </div>
         </div>
       )}
     </DropZone>

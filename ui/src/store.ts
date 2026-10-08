@@ -32,7 +32,8 @@ export type CopySource = 'card' | 'pc';
 export interface CopyInfo { busy?: boolean; summary?: FirmwareSummary; failed?: boolean }
 /** What went into a firmware this program built, so that a copy of it can be named later. */
 export interface BuildRecord { sha256: string; time: number; slots: { id: SlotId; preset?: string }[] }
-export interface Confirm { title: string; body: string; lines: string[]; ok: string; resolve: (v: boolean) => void }
+/** `warn` is an optional caution shown under the lines (used where something is deleted for good). */
+export interface Confirm { title: string; warn?: string; lines: string[]; ok: string; resolve: (v: boolean) => void }
 export interface State {
   ready: boolean; page: Page;
   fwName?: string; fwBusy: boolean; info?: FirmwareInfo; raw?: Uint8Array;
@@ -43,7 +44,7 @@ export interface State {
   previewMode: PreviewMode; photoRev: number; cardWall?: CardWall; activeSlot: SlotId;
   volumes: Volume[]; showAll: boolean; volumeId?: string; role?: card.CardRole; entryOnCard: boolean;
   copySource: CopySource; parked: ParkedEntry[]; backups: ParkedEntry[]; copySel: string[]; copyInfo: Record<string, CopyInfo>; builds: BuildRecord[];
-  busy?: string; toasts: Toast[]; confirm?: Confirm; cropId?: string;
+  busy?: string; toasts: Toast[]; confirm?: Confirm; cropId?: string; onlineOpen: boolean;
 }
 
 const SLOT_IDS: SlotId[] = ['CY', 'CG'];
@@ -51,7 +52,7 @@ const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '',
 let state: State = {
   ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: 'zh-CN',
   slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], ratios: [], ratioBackdrop: 'photo', previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false,
-  copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [],
+  copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false,
 };
 const listeners = new Set<() => void>();
 function set(patch: Partial<State> | ((s: State) => Partial<State>)): void {
@@ -77,8 +78,8 @@ export function toast(text: string, kind: Toast['kind'] = 'info', action?: Toast
   setTimeout(() => dismissToast(id), kind === 'error' ? 9000 : action ? 12000 : 4500);
 }
 export function dismissToast(id: number): void { set((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) })); }
-function ask(title: string, body: string, lines: string[], ok: string): Promise<boolean> {
-  return new Promise((resolve) => set({ confirm: { title, body, lines, ok, resolve } }));
+function ask(title: string, lines: string[], ok: string, warn?: string): Promise<boolean> {
+  return new Promise((resolve) => set({ confirm: { title, warn, lines, ok, resolve } }));
 }
 export function answerConfirm(v: boolean): void { const c = state.confirm; set({ confirm: undefined }); c?.resolve(v); }
 function fail(e: unknown): void {
@@ -166,7 +167,8 @@ export function setModel(model: CameraModel): void {
 }
 
 // ------------------------------------------------------------------ firmware
-async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Promise<void> {
+/** Opens a firmware file; false (with a message shown) when it is not the supported official file. */
+async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Promise<boolean> {
   set({ fwBusy: true });
   try {
     const info = await engine.open(raw);
@@ -179,15 +181,25 @@ async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Pr
     }
     for (const w of state.wall) void encodeWall(w.id);
     void refreshRatios();
+    return true;
   } catch (e) {
     set({ fwBusy: false });
     if (e instanceof EngineError && (e.code === 'unsupported-firmware' || e.code.startsWith('bad-') || e.code === 'too-short')) toast(t('badFirmware'), 'error');
     else fail(e);
+    return false;
   }
 }
 export async function loadFirmwareFile(file: File): Promise<void> {
   if (file.size < 1_000_000 || file.size > 200_000_000) { toast(t('badFirmware'), 'error'); return; }
   await openFirmware(new Uint8Array(await file.arrayBuffer()), file.name, true);
+}
+/** The dialog that fetches the official firmware from Ricoh's site. */
+export function setOnlineOpen(onlineOpen: boolean): void { set({ onlineOpen }); }
+/** Take over a firmware file the shell downloaded; true when it is now the open firmware. */
+export async function adoptFirmware(name: string, version: string, data: Uint8Array): Promise<boolean> {
+  const ok = await openFirmware(data, name, true);
+  if (ok) toast(t('fwDownloaded', { v: version || state.info?.version || '' }), 'ok');
+  return ok;
 }
 
 // ------------------------------------------------------------------ presets
@@ -619,9 +631,9 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   if (!stock && (hasNameErrors() || hasRatioErrors())) return;
   if (!stock && changes.length === 0 && ratios.length === 0) { toast(t('nothingToDo'), 'info'); return; }
   if (dest.kind === 'card') {
-    const lines = stock ? [] : changes.map((c) => `${t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
+    const lines = stock ? [t('copyOfficial')] : changes.map((c) => `${t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
     if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
-    if (!(await ask(t('confirmTitle'), stock ? t('confirmStock') : ratios.length ? t('confirmRatio') : t('confirmBody'), lines, t('confirmOk')))) return;
+    if (!(await ask(t('confirmTitle'), lines, t('confirmOk')))) return;
   }
   const target = await destination(dest);
   if (!target) return;
@@ -784,7 +796,7 @@ export async function deleteCopies(all: boolean): Promise<void> {
   if (state.busy || targets.length === 0 || (source === 'card' && !v)) return;
   const where = source === 'card' ? host.join(v!.root, card.PARK_ROOT) : t('copiesPc');
   const total = targets.reduce((a, e) => a + e.size, 0);
-  if (!(await ask(t('copiesDeleteTitle'), t('copiesDeleteBody'), [t('copiesCount', { n: targets.length, s: fmtSize(total) }), where], t('copiesDelete')))) return;
+  if (!(await ask(t('copiesDeleteTitle'), [t('copiesCount', { n: targets.length, s: fmtSize(total) }), where], t('copiesDelete'), t('copiesDeleteBody')))) return;
   try {
     set({ busy: t('copiesDeleting') });
     const paths = targets.map((e) => e.path);
@@ -844,8 +856,7 @@ export async function writeCopy(): Promise<void> {
   const v = state.volumes.find((x) => x.id === state.volumeId);
   if (state.busy || !pick || !state.info) return;
   if (!v) { toast(t('noCard'), 'error'); return; }
-  const official = pick.summary.kind === 'official';
-  if (!(await ask(t('confirmTitle'), official ? t('confirmStock') : pick.summary.ratios.length ? t('confirmRatio') : t('confirmBody'), describeCopy(pick.summary), t('confirmOk')))) return;
+  if (!(await ask(t('confirmTitle'), describeCopy(pick.summary), t('confirmOk')))) return;
   try {
     set({ busy: t('opening') });
     const file = source === 'card' ? await host.parkedRead(v.id, pick.entry.path) : await host.backupRead(pick.entry.path);

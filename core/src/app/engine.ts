@@ -33,6 +33,7 @@ import {
   readIcon,
   readFactoryEntry,
   readName,
+  readBuildRevision,
   readRatioRecord,
   resolveLayout,
   sectionsOf,
@@ -350,6 +351,8 @@ export class Engine {
     aligned.set(this.decoded.subarray(RTOS_OFFSET - 4, RTOS_OFFSET), RTOS_OFFSET - 4);
     aligned.set(this.decoded.subarray(ICONBIN_OFFSET - 4, ICONBIN_OFFSET), ICONBIN_OFFSET - 4);
     const specs = readRatioRecord(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth));
+    // Files of GR Mod 0.2.x are revision 1; they are checked against what that revision builds.
+    const revision = readBuildRevision(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? 1;
     const modified = (verified: boolean, ratios: BuiltRatio[], slotsFrom: Uint8Array): FirmwareSummary => ({
       sha256, kind: 'modified', changedBytes: countChangedBytes(aligned, this.decoded) + rtosGrowth + iconGrowth, verified, slots: describe(slotsFrom), ratios,
     });
@@ -360,7 +363,7 @@ export class Engine {
       ratios = plan.map((r) => ({ id: r.id, name: r.name, ratio: r.ratio, actual: ratioText(r.geometry.actual.n, r.geometry.actual.d), sizes: gr4Sizes(r.geometry) }));
       // Undo the hook words (their places are the same for every list of ratios of this length
       // or any other: they are found by building once on the official image).
-      const probe = aspect.installRatios(this.decoded.slice(RTOS_OFFSET, rtosEnd), this.decoded.slice(ICONBIN_OFFSET, iconEnd), plan);
+      const probe = aspect.installRatios(this.decoded.slice(RTOS_OFFSET, rtosEnd), this.decoded.slice(ICONBIN_OFFSET, iconEnd), plan, revision);
       for (const w of probe.words) {
         const o = RTOS_OFFSET + (w.address - 0x53000000);
         aligned.set(this.decoded.subarray(o, o + 4), o);
@@ -379,7 +382,7 @@ export class Engine {
         if (i >= cover) return modified(false, ratios, aligned);
       }
       // ... and building the ratios on top of them must give this very payload.
-      const built = aspect.installRatios(aligned.slice(RTOS_OFFSET, rtosEnd), aligned.slice(ICONBIN_OFFSET, iconEnd), plan);
+      const built = aspect.installRatios(aligned.slice(RTOS_OFFSET, rtosEnd), aligned.slice(ICONBIN_OFFSET, iconEnd), plan, revision);
       const grown = growPayload(aligned, built, specs);
       const same = grown.decoded.length === dec.length && equalRange(grown.decoded, 0, dec, 0, dec.length);
       if (!same) return modified(false, ratios, aligned);

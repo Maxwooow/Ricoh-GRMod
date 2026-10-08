@@ -6,6 +6,8 @@ export interface DirEntry { name: string; dir: boolean; size: number; mtime: num
 /** A file below `GRMOD\parked-*` on a card, or below the backups folder on the computer; `path` is relative to that. */
 export interface ParkedEntry { path: string; size: number; mtime: number }
 export interface ParkedFailure { path: string; error: string }
+/** The firmware update Ricoh's site currently offers for a model. `page` is the model's download page there. */
+export interface FirmwareRelease { model: string; name: string; applies: string; version: string; date: string; page: string; file: string; size: number }
 
 export class HostError extends Error {
   code: string;
@@ -14,14 +16,14 @@ export class HostError extends Error {
 
 const info = (globalThis as unknown as { __GRMOD_HOST__?: HostInfo }).__GRMOD_HOST__;
 
-async function call(method: string, path: string, body?: BodyInit | null, json = true): Promise<Response> {
+async function call(method: string, path: string, body?: BodyInit | null, json = true, signal?: AbortSignal): Promise<Response> {
   if (!info) throw new HostError('no-host', 'host not available');
   const headers: Record<string, string> = { 'X-GRMod-Token': info.token };
   if (typeof body === 'string') headers['Content-Type'] = 'application/json';
   else if (body) headers['Content-Type'] = 'application/octet-stream';
   let res: Response;
-  try { res = await fetch(path, { method, headers, body, cache: 'no-store' }); }
-  catch (e) { throw new HostError('offline', String(e)); }
+  try { res = await fetch(path, { method, headers, body, cache: 'no-store', signal }); }
+  catch (e) { throw new HostError(signal?.aborted ? 'cancelled' : 'offline', String(e)); }
   if (!res.ok) {
     let code = 'io'; let message = res.statusText;
     try { const j = await res.json(); if (j && j.error) { code = j.error.code || code; message = j.error.message || message; } } catch { /* not json */ }
@@ -72,6 +74,22 @@ export const host = {
   async windowChrome(c: { caption: string; text: string; dark: boolean }): Promise<void> {
     try { await post('/api/window/chrome', c); } catch { /* cosmetic */ }
   },
+  // ---- the official firmware, fetched from Ricoh's site by the shell (the page only names the model)
+  /** What the site offers for a model right now; null when it lists nothing for it. */
+  async firmwareLatest(model: string): Promise<FirmwareRelease | null> {
+    try { return (await call('GET', '/api/firmware/latest?model=' + q(model))).json(); }
+    catch (e) { if (e instanceof HostError && e.code === 'not-found') return null; throw e; }
+  },
+  async firmwareDownload(model: string, signal?: AbortSignal): Promise<{ name: string; version: string; data: Uint8Array }> {
+    const res = await call('POST', '/api/firmware/download', JSON.stringify({ model }), true, signal);
+    let data: Uint8Array;
+    try { data = new Uint8Array(await res.arrayBuffer()); }
+    catch (e) { throw new HostError(signal?.aborted ? 'cancelled' : 'offline', String(e)); }
+    return { name: res.headers.get('X-GRMod-Firmware-Name') || 'fwdc248b.bin', version: res.headers.get('X-GRMod-Firmware-Version') || '', data };
+  },
+  async firmwareProgress(): Promise<{ active: boolean; received: number; total: number }> { return (await call('GET', '/api/firmware/progress')).json(); },
+  /** Show the model's download page (with Ricoh's licence terms) in the browser. */
+  async firmwarePage(model: string): Promise<void> { try { await post('/api/firmware/page', { model }); } catch { /* no browser */ } },
   /** A file the user may keep next to the program (e.g. `preview.jpg`); null when there is none. */
   async sidecar(name: string): Promise<Uint8Array | null> {
     try { return new Uint8Array(await (await call('GET', '/api/sidecar/' + name)).arrayBuffer()); }

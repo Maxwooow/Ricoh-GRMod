@@ -8,17 +8,22 @@
  * (so that the program can recognise and re-create its own files), and one word that keeps the
  * 32-bit sum of the whole payload at zero. The payload's own last word is therefore unchanged.
  *
- *   ... appended code and data | 00 .. 00 | record | u32 record length | "GRMODAR1" | u32 sum word
+ *   ... appended code and data | 00 .. 00 | record | u32 record length | "GRMODAR<n>" | u32 sum word
+ *
+ * <n> is the build revision (`BuildRevision` in `build.ts`): which additions of this program the
+ * appended code holds. The record itself has the same form in every revision.
  */
 import { FRAME_SIZE, sectionsOf, sum32 } from '../container';
 import type { Insertion, Section } from '../container';
 import { FirmwareError } from '../types';
 import type { Range } from '../types';
 import { MAX_CUSTOM_RATIOS, OFFICIAL_ICONBIN_LENGTH, OFFICIAL_RTOS_LENGTH } from './build';
-import type { AspectResult, RatioSpec } from './build';
+import type { AspectResult, BuildRevision, RatioSpec } from './build';
 
-const MAGIC = 'GRMODAR1';
-const TRAILER_FIXED = 4 + MAGIC.length + 4;
+const MAGIC_STEM = 'GRMODAR';
+const MAGIC_LENGTH = MAGIC_STEM.length + 1;
+const TRAILER_FIXED = 4 + MAGIC_LENGTH + 4;
+const magicOf = (revision: BuildRevision): string => MAGIC_STEM + String(revision);
 
 function fail(code: string, message: string): never {
   throw new FirmwareError(code, message);
@@ -47,12 +52,20 @@ function encodeRecord(specs: readonly RatioSpec[]): Uint8Array {
   return Uint8Array.from(bytes);
 }
 
+/** The build revision named at the end of a grown RTOS section, or null when there is no record of this program. */
+export function readBuildRevision(rtos: Uint8Array): BuildRevision | null {
+  if (rtos.length < OFFICIAL_RTOS_LENGTH + TRAILER_FIXED || rtos.length % 4 !== 0) return null;
+  const at = rtos.length - 4 - MAGIC_LENGTH;
+  for (let i = 0; i < MAGIC_STEM.length; i++) if (rtos[at + i] !== MAGIC_STEM.charCodeAt(i)) return null;
+  const digit = rtos[at + MAGIC_STEM.length] - 0x30;
+  return digit === 1 || digit === 2 ? digit : null;
+}
+
 /** The ratios recorded at the end of a grown RTOS section, or null when there is no (valid) record. */
 export function readRatioRecord(rtos: Uint8Array): RatioSpec[] | null {
-  if (rtos.length < OFFICIAL_RTOS_LENGTH + TRAILER_FIXED || rtos.length % 4 !== 0) return null;
+  if (readBuildRevision(rtos) === null) return null;
   const end = rtos.length - 4;
-  for (let i = 0; i < MAGIC.length; i++) if (rtos[end - MAGIC.length + i] !== MAGIC.charCodeAt(i)) return null;
-  const lp = end - MAGIC.length - 4;
+  const lp = end - MAGIC_LENGTH - 4;
   const length = (rtos[lp] | (rtos[lp + 1] << 8) | (rtos[lp + 2] << 16) | (rtos[lp + 3] << 24)) >>> 0;
   if (length % 4 !== 0 || length < 4 || lp - length < OFFICIAL_RTOS_LENGTH) return null;
   const rec = rtos.subarray(lp - length, lp);
@@ -150,8 +163,9 @@ export function growPayload(payload: Uint8Array, aspect: AspectResult, specs: re
   p += record.length;
   putU32(out, p, record.length);
   p += 4;
-  for (let i = 0; i < MAGIC.length; i++) out[p + i] = MAGIC.charCodeAt(i);
-  p += MAGIC.length;
+  const magic = magicOf(aspect.revision);
+  for (let i = 0; i < magic.length; i++) out[p + i] = magic.charCodeAt(i);
+  p += magic.length;
   putU32(out, p, (-sum32(out)) >>> 0);
   if (sum32(out) !== 0) fail('internal', 'payload word sum is not zero');
   return {

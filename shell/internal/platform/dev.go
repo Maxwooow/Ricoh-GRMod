@@ -11,6 +11,9 @@ import (
 const (
 	EnvDevVolumes = "GRMOD_DEV_VOLUMES"
 	EnvDevPick    = "GRMOD_DEV_PICK"
+	// EnvDevOpened names a file that receives every address the page asks
+	// to show in the browser, one per line.
+	EnvDevOpened = "GRMOD_DEV_OPENED"
 )
 
 // New returns the host for the headless development build: volumes and the
@@ -60,3 +63,23 @@ func (devHost) PickDirectory(title string) (string, error) {
 func (devHost) Reveal(path string, isDir bool) error { return nil }
 
 func (devHost) Eject(vol Volume) error { return ErrUnsupported }
+
+// OpenURL has no browser to show anything in; tests read what was asked for
+// from the file named by EnvDevOpened.
+func (devHost) OpenURL(address string) error {
+	address, err := BrowserURL(address)
+	if err != nil {
+		return err
+	}
+	file := os.Getenv(EnvDevOpened)
+	if file == "" {
+		return nil
+	}
+	f, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	_, err = f.WriteString(address + "\n")
+	return err
+}

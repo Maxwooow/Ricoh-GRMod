@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { ICON_H, ICON_W, RATIO_ICON_H, RATIO_ICON_W } from '@grmod/core';
+import { uiScale } from './fit';
 import { rgbToCanvas, rgbaToCanvas } from './pixels';
 import { answerConfirm, dismissToast, useStore } from './store';
 import { t } from './i18n';
@@ -23,6 +24,9 @@ export const Ico = {
   trash: <svg viewBox="0 0 20 20" {...P}><path d="M3.8 5.6h12.4M8 5.6V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.6M5.4 5.6l.7 9.6a1.5 1.5 0 0 0 1.5 1.4h4.8a1.5 1.5 0 0 0 1.5-1.4l.7-9.6M8.4 8.6v5M11.6 8.6v5" /></svg>,
   ratio: <svg viewBox="0 0 20 20" {...P}><rect x="2.8" y="3.6" width="14.4" height="12.8" rx="2" /><path d="M2.8 7.4h14.4M2.8 12.6h14.4" /></svg>,
   file: <svg viewBox="0 0 20 20" {...P}><path d="M6 2.8h5.2L15 6.6v9.1a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5V4.3A1.5 1.5 0 0 1 6 2.8z" /><path d="M11 3v3.8h3.8" /></svg>,
+  updown: <svg viewBox="0 0 20 20" {...P}><path d="M6.5 8l3.5-3.5L13.5 8M6.5 12l3.5 3.5 3.5-3.5" /></svg>,
+  download: <svg viewBox="0 0 20 20" {...P}><path d="M10 3.2v9.6M6 9.2l4 3.8 4-3.8M4 16.2h12" /></svg>,
+  external: <svg viewBox="0 0 20 20" {...P}><path d="M8 5H5.5A1.5 1.5 0 0 0 4 6.5v8A1.5 1.5 0 0 0 5.5 16h8a1.5 1.5 0 0 0 1.5-1.5V12M11 4h5v5M16 4l-7 7" /></svg>,
 };
 
 export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
@@ -120,6 +124,108 @@ export function Menu({ items, children }: { items: { label: string; run: () => v
   );
 }
 
+/** Closes a pop-up on a press outside of `ref` and on Escape. */
+export function useDismiss(open: boolean, ref: React.RefObject<HTMLElement>, close: () => void): void {
+  useEffect(() => {
+    if (!open) return;
+    const down = (e: MouseEvent): void => { if (!ref.current?.contains(e.target as Node)) close(); };
+    const key = (e: KeyboardEvent): void => { if (e.key === 'Escape') { e.stopPropagation(); close(); } };
+    window.addEventListener('mousedown', down, true);
+    window.addEventListener('keydown', key, true);
+    window.addEventListener('blur', close);
+    return () => { window.removeEventListener('mousedown', down, true); window.removeEventListener('keydown', key, true); window.removeEventListener('blur', close); };
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+/** Where a pop-up of about `want` pixels fits next to `el`: above or below, and how tall it may be (in layout pixels). */
+export function popPlace(el: HTMLElement, want: number): { up: boolean; max: number } {
+  const r = el.getBoundingClientRect();
+  const k = uiScale() || 1;
+  const below = (window.innerHeight - r.bottom) / k - 12;
+  const above = r.top / k - 12;
+  const up = below < want && above > below;
+  return { up, max: Math.max(96, Math.min(want, up ? above : below)) };
+}
+
+export interface SelectOption<T extends string> { value: T; label: string }
+/**
+ * A chooser in the style of the rest of the interface (the system's own list does not follow it).
+ * `variant` "row" is a property row of the sidebar with `lead` as its label; "box" is a bordered field.
+ * `actions` are extra commands under the options.
+ */
+export function Select<T extends string>({ value, options, onChange, label, variant, lead, placeholder, actions }: {
+  value: T | undefined; options: SelectOption<T>[]; onChange: (v: T) => void; label: string; variant: 'row' | 'box';
+  lead?: ReactNode; placeholder?: string; actions?: { label: string; run: () => void }[];
+}) {
+  const [open, setOpen] = useState(false);
+  const [place, setPlace] = useState({ up: false, max: 320 });
+  const [active, setActive] = useState(-1);
+  const wrap = useRef<HTMLDivElement>(null);
+  const list = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const extra = actions || [];
+  const count = options.length + extra.length;
+  const current = options.find((o) => o.value === value);
+  const close = (): void => { if (list.current?.contains(document.activeElement)) button.current?.focus(); setOpen(false); };
+  useDismiss(open, wrap, close);
+  const show = (): void => {
+    setPlace(popPlace(wrap.current!, Math.min(320, count * 28 + (extra.length ? 9 : 0) + 8)));
+    setActive(options.findIndex((o) => o.value === value));
+    setOpen(true);
+  };
+  useEffect(() => {
+    if (!open) return;
+    list.current?.focus();
+    list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
+  }, [open]);
+  const run = (i: number): void => {
+    close();
+    if (i < options.length) { if (options[i].value !== value) onChange(options[i].value); } else extra[i - options.length]?.run();
+  };
+  const move = (to: number): void => {
+    if (count === 0) return;
+    const i = Math.max(0, Math.min(count - 1, to));
+    setActive(i);
+    list.current?.children[i + (i >= options.length && extra.length ? 1 : 0)]?.scrollIntoView({ block: 'nearest' });
+  };
+  const onKey = (e: React.KeyboardEvent): void => {
+    if (e.key === 'ArrowDown') move(active + 1);
+    else if (e.key === 'ArrowUp') move(active < 0 ? count - 1 : active - 1);
+    else if (e.key === 'Home') move(0);
+    else if (e.key === 'End') move(count - 1);
+    else if (e.key === 'Enter' || e.key === ' ') { if (active >= 0) run(active); }
+    else if (e.key === 'Tab') close();
+    else return;
+    e.preventDefault();
+  };
+  return (
+    <div className={`sel ${variant} ${open ? 'open' : ''}`} ref={wrap}>
+      <button
+        type="button" className="sel-btn" ref={button} aria-haspopup="listbox" aria-expanded={open} aria-label={label}
+        onClick={() => (open ? close() : show())} onKeyDown={(e) => { if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); show(); } }}
+      >
+        {lead}
+        <span className={`sel-value ${current ? '' : 'muted'}`}><span className="ellipsis">{current ? current.label : placeholder || ''}</span>{Ico.updown}</span>
+      </button>
+      {open && (
+        <div className={`pop ${place.up ? 'up' : 'down'}`} role="listbox" aria-label={label} tabIndex={-1} ref={list} style={{ maxHeight: place.max }} onKeyDown={onKey}>
+          {options.map((o, i) => (
+            <button key={o.value} type="button" role="option" aria-selected={o.value === value} tabIndex={-1} className={`pop-item ${i === active ? 'active' : ''}`} onMouseMove={() => { if (active !== i) setActive(i); }} onClick={() => run(i)}>
+              <span className="ellipsis">{o.label}</span>{o.value === value && Ico.check}
+            </button>
+          ))}
+          {extra.length > 0 && <div className="pop-sep" role="separator" />}
+          {extra.map((a, i) => (
+            <button key={a.label} type="button" tabIndex={-1} className={`pop-item ${options.length + i === active ? 'active' : ''}`} onMouseMove={() => { if (active !== options.length + i) setActive(options.length + i); }} onClick={() => run(options.length + i)}>
+              <span className="ellipsis">{a.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Toasts() {
   const toasts = useStore((s) => s.toasts);
   return (
@@ -148,8 +254,8 @@ export function ConfirmDialog() {
     <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) answerConfirm(false); }}>
       <div className="dialog" role="alertdialog" aria-modal="true">
         <h3>{c.title}</h3>
-        {c.lines.length > 0 && <ul className="dialog-lines">{c.lines.map((l) => <li key={l}>{l}</li>)}</ul>}
-        <p className="dialog-warn">{c.body}</p>
+        {c.lines.length > 0 && <ul className={`dialog-lines ${c.warn ? '' : 'last'}`}>{c.lines.map((l) => <li key={l}>{l}</li>)}</ul>}
+        {c.warn && <p className="dialog-warn">{c.warn}</p>}
         <div className="dialog-actions">
           <button className="btn" onClick={() => answerConfirm(false)}>{t('cancel')}</button>
           <button className="btn primary" autoFocus onClick={() => answerConfirm(true)}>{c.ok}</button>

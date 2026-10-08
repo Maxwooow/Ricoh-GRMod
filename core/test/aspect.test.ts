@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { Engine } from '../src';
 import {
   DECODED_SIZE, FRAME_SIZE, Firmware, FirmwareError, ICONBIN_LENGTH, ICONBIN_OFFSET, OFFICIAL_SIZE, RTOS_LENGTH, RTOS_OFFSET, buildFirmware,
-  openOfficial, readRatioRecord, sectionData, sectionsOf, sum32, verifyContainer,
+  openOfficial, readBuildRevision, readRatioRecord, sectionData, sectionsOf, sum32, verifyContainer,
 } from '../src/fw';
 import type { BuildResult } from '../src/fw';
 import {
@@ -212,7 +212,7 @@ describe.skipIf(!have)('aspect: firmware files', () => {
     expect(readRatioRecord(rtos)).toEqual([{ name: '65:24', ratio: '65:24' }]);
     const tail = rtos.subarray(built.rtos.length, rtos.length - 32);
     expect(tail.every((b) => b === 0)).toBe(true);
-    expect(Buffer.from(rtos.subarray(rtos.length - 12, rtos.length - 4)).toString('latin1')).toBe('GRMODAR1');
+    expect(Buffer.from(rtos.subarray(rtos.length - 12, rtos.length - 4)).toString('latin1')).toBe('GRMODAR2');
     expect(0x53000000 + rtos.length).toBeLessThan(0x55000000);
     const ic = sectionsOf(fw.decoded).find((x) => x.name === 'ICONBIN')!;
     const icons = sectionData(fw.decoded, ic);
@@ -224,7 +224,7 @@ describe.skipIf(!have)('aspect: firmware files', () => {
   it('the factory ratios keep their numbers; only jumps and addresses change in the official code', () => {
     const built = installRatios(dec.slice(RTOS_OFFSET, RTOS_OFFSET + RTOS_LENGTH), dec.slice(ICONBIN_OFFSET, ICONBIN_OFFSET + ICONBIN_LENGTH), planRatios([{ name: 'a', ratio: '65:24' }, { name: 'b', ratio: '5:4' }]));
     const changed = new Set(built.words.filter((w) => w.before !== w.after).map((w) => w.address));
-    expect(changed.size).toBe(93);
+    expect(changed.size).toBe(94); // 93 of the reference + the playback decode buffer call
     for (const w of built.words) {
       if (w.before === w.after) continue;
       const branch = (w.after & 0x0e000000) === 0x0a000000;
@@ -278,6 +278,67 @@ describe.skipIf(!have)('aspect: firmware files', () => {
     // the official file and plain garbage
     expect((await eng.inspect(raw)).kind).toBe('official');
     expect((await eng.inspect(one.file.subarray(0, one.file.length - 4))).kind).toBe('unknown');
+  });
+
+  it('revision 2 is the reference build plus one redirected call; revision-1 files are still verified', async () => {
+    const official = dec.slice(RTOS_OFFSET, RTOS_OFFSET + RTOS_LENGTH);
+    const icons = dec.slice(ICONBIN_OFFSET, ICONBIN_OFFSET + ICONBIN_LENGTH);
+    const specs = [{ name: '65:24', ratio: '65:24' }, { name: 'Scope', ratio: '2.39:1' }];
+    const plan = planRatios(specs);
+    const r1 = installRatios(official, icons, plan, 1);
+    const r2 = installRatios(official, icons, plan);
+    expect([r1.revision, r2.revision]).toEqual([1, 2]);
+    // the official part differs in exactly one word: bl CalcImageBufferSize -> bl stub
+    const site = 0x5369ece8 - 0x53000000;
+    const word = (b: Uint8Array, o: number): number => new DataView(b.buffer, b.byteOffset).getUint32(o, true);
+    const differing: number[] = [];
+    for (let o = 0; o < RTOS_LENGTH; o += 4) if (word(r1.rtos, o) !== word(r2.rtos, o)) differing.push(o);
+    expect(differing).toEqual([site]);
+    expect(word(r1.rtos, site)).toBe(0xebffdf6d);
+    expect(word(official, site)).toBe(0xebffdf6d);
+    // the appended area is revision 1's, zero padding to 16, then the 12-word stub
+    const stub = (r1.rtos.length + 15) & ~15;
+    expect(r2.rtos.length).toBe(stub + 48);
+    expect(Buffer.compare(r2.rtos.subarray(RTOS_LENGTH, r1.rtos.length), r1.rtos.subarray(RTOS_LENGTH))).toBe(0);
+    expect(r2.rtos.subarray(r1.rtos.length, stub).every((b) => b === 0)).toBe(true);
+    const bl = (at: number, to: number): number => (0xeb000000 | (((to - at - 8) >> 2) & 0xffffff)) >>> 0;
+    const at = 0x53000000 + stub;
+    expect(word(r2.rtos, site)).toBe(bl(0x5369ece8, at));
+    expect(Array.from({ length: 12 }, (_, i) => word(r2.rtos, stub + 4 * i))).toEqual([
+      0xe92d4010, // push {r4, lr}
+      0xe24dd008, // sub  sp, sp, #8
+      0xe5902000, // ldr  r2, [r0]       width (stride)
+      0xe5903004, // ldr  r3, [r0, #4]   height
+      0xe2833007, // add  r3, r3, #7
+      0xe3c33007, // bic  r3, r3, #7
+      0xe58d2000, // str  r2, [sp]
+      0xe58d3004, // str  r3, [sp, #4]
+      0xe1a0000d, // mov  r0, sp
+      bl(at + 36, 0x53696aa4), // bl CalcImageBufferSize
+      0xe28dd008, // add  sp, sp, #8
+      0xe8bd8010, // pop  {r4, pc}
+    ]);
+    expect(code(() => installRatios(official, icons, plan, 3 as never))).toBe('internal');
+
+    // a complete revision-1 file (what GR Mod 0.2.x wrote) is recognised and verified as such
+    const { buildGrown } = await import('../src/fw');
+    const { growPayload } = await import('../src/fw/aspect/package');
+    const g1 = growPayload(dec, r1, specs);
+    const file1 = buildGrown(new Firmware(raw), g1.decoded, g1.insertions).out;
+    const rtos1 = g1.decoded.subarray(RTOS_OFFSET, RTOS_OFFSET + RTOS_LENGTH + g1.rtosGrowth);
+    expect(readBuildRevision(rtos1)).toBe(1);
+    expect(Buffer.from(rtos1.subarray(rtos1.length - 12, rtos1.length - 4)).toString('latin1')).toBe('GRMODAR1');
+    const eng = await Engine.open(raw);
+    const s1 = await eng.inspect(file1);
+    expect([s1.kind, s1.verified, s1.ratios.map((r) => r.name)]).toEqual(['modified', true, ['65:24', 'Scope']]);
+    const now = await eng.buildFirmware([], specs);
+    expect(Buffer.compare(now.file, file1)).not.toBe(0);
+    const s2 = await eng.inspect(now.file);
+    expect([s2.kind, s2.verified, s2.ratios.length]).toEqual(['modified', true, 2]);
+    const fw2 = new Firmware(now.file);
+    const sec = sectionsOf(fw2.decoded).find((x) => x.name === 'RTOS')!;
+    expect(readBuildRevision(sectionData(fw2.decoded, sec))).toBe(2);
+    expect(readBuildRevision(official)).toBeNull();
   });
 
   it('eight ratios with names; nine are refused', async () => {

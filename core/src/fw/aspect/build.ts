@@ -16,7 +16,9 @@
  *    modules from `native.ts`, the assembler is `arm.ts`;
  *  - identities are always assigned afresh (7, 8, ...) in list order;
  *  - the icons are drawn by `icon.ts`;
- *  - the reference's JSON footer is not written and the version number is not changed.
+ *  - the reference's JSON footer is not written and the version number is not changed;
+ *  - one addition of this program after everything the reference installs: `installPlaybackDecode`
+ *    (build revision 2). Revision 1 is the reference's output, byte for byte.
  */
 import { FirmwareError } from '../types';
 import { assembleWords, branchTarget, branchWord, movImmediate, movWord, wordsToBytes } from './arm';
@@ -85,7 +87,15 @@ export interface RatioEntry extends RatioSpec {
 
 export interface PatchedWord { address: number; before: number; after: number; reason: string }
 
+/**
+ * What a build holds besides the port of the reference: 1 = nothing (GR Mod 0.2.x), 2 = also the
+ * playback decode buffer fix. Recorded at the end of the RTOS section (see `package.ts`).
+ */
+export type BuildRevision = 1 | 2;
+export const BUILD_REVISION: BuildRevision = 2;
+
 export interface AspectResult {
+  revision: BuildRevision;
   /** The new RTOS image: official length + appended area. Ends on a 4-byte boundary. */
   rtos: Uint8Array;
   /** The new ICONBIN data: the official bytes followed by one 60x40 RGBA icon per added ratio. */
@@ -854,6 +864,41 @@ function installImageIdentity(patch: Patch, ratios: readonly RatioEntry[]): void
 }
 
 // --------------------------------------------------------------------------------------------
+// Not in the reference: magnifying a photo whose height is not a multiple of 8.
+//
+// To magnify a photo in playback the camera decodes the whole JPEG. ImageMemory::Alloc
+// (0x5369ec58) sizes that buffer for align16(width) x height rows, while the decoder
+// (PlaybackStillProcess DecodeJpeg, 0x536bedcc, after the stride rule at 0x536be2c8) needs
+// align16(width) x align8(height) for a 4:2:2 picture; when the buffer is smaller it gives up
+// with result 3 before decoding ("allocBufferSize(%d) < calcBufferSize(%d)"), and the playback
+// screen (0x53194aa0 acts on results 0 and 1 only) is left in its "magnifying" state with
+// nothing magnified. Every factory size has a height that is a multiple of 8, so the official
+// firmware never meets this; the sizes of added ratios are multiples of 4 (65:24 M: 4944 x 1812).
+//
+// The one call that works out the byte count of an ImageMemory allocation is redirected: the
+// count is taken for the height rounded up to 8. Width, height and stride of the picture are not
+// touched, and for a height that is already a multiple of 8 the count is the same as before.
+
+const ALLOC_SIZE_CALL = 0x5369ece8;
+const CALC_IMAGE_BUFFER_SIZE = 0x53696aa4;
+
+function installPlaybackDecode(patch: Patch): void {
+  // mov r1, sb (format) / mov r0, r8 (&stride size {width16, height}) / bl CalcImageBufferSize / mov r1, r0
+  expectWord(patch, ALLOC_SIZE_CALL - 8, 0xe1a01009);
+  expectWord(patch, ALLOC_SIZE_CALL - 4, 0xe1a00008);
+  expectWord(patch, ALLOC_SIZE_CALL, branchWord(ALLOC_SIZE_CALL, CALC_IMAGE_BUFFER_SIZE, 14, true));
+  expectWord(patch, ALLOC_SIZE_CALL + 4, 0xe1a01000);
+  const stub = patch.append((at) => assembleWords(
+    `push {r4, lr}; sub sp, sp, #8
+     ldr r2, [r0]; ldr r3, [r0, #4]
+     add r3, r3, #7; bic r3, r3, #7
+     str r2, [sp]; str r3, [sp, #4]
+     mov r0, sp; bl #${CALC_IMAGE_BUFFER_SIZE}
+     add sp, sp, #8; pop {r4, pc}`, at), 16);
+  patch.setWord(ALLOC_SIZE_CALL, branchWord(ALLOC_SIZE_CALL, stub, 14, true), 'playback: decode buffer rows rounded up to 8');
+}
+
+// --------------------------------------------------------------------------------------------
 
 export function validateRatioName(name: string): 'empty' | 'too-long' | 'bad-char' | null {
   if (typeof name !== 'string' || name.trim() === '') return 'empty';
@@ -880,9 +925,11 @@ export function planRatios(specs: readonly RatioSpec[]): RatioEntry[] {
 
 /**
  * Install `ratios` (from `planRatios`) into an RTOS image of official length and append their icons
- * to the ICONBIN data. Neither input is modified.
+ * to the ICONBIN data. Neither input is modified. `revision` 1 gives exactly what the reference
+ * builds (and what GR Mod 0.2.x wrote).
  */
-export function installRatios(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[]): AspectResult {
+export function installRatios(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], revision: BuildRevision = BUILD_REVISION): AspectResult {
+  if (revision !== 1 && revision !== 2) fail('internal', 'unknown build revision');
   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
   if (!(ratios.length >= 1 && ratios.length <= MAX_CUSTOM_RATIOS)) fail('too-many-ratios', `1 to ${MAX_CUSTOM_RATIOS} ratios can be added`);
   ratios.forEach((r, i) => {
@@ -901,7 +948,8 @@ export function installRatios(rtos: Uint8Array, iconbin: Uint8Array, ratios: rea
   installRaw(patch, ratios);
   installState(patch, ratios, menu.activeBitmap);
   installImageIdentity(patch, ratios);
+  if (revision >= 2) installPlaybackDecode(patch);
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { rtos: patch.bytes(), iconbin: icons.iconbin, ratios: [...ratios], words: patch.words };
+  return { revision, rtos: patch.bytes(), iconbin: icons.iconbin, ratios: [...ratios], words: patch.words };
 }

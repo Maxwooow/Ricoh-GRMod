@@ -115,15 +115,21 @@ func (a *app) start(host platform.Host) error {
 			return err
 		}
 	}
+	// The development build can be pointed at a stand-in for Ricoh's site.
+	firmwareSite := ""
+	if host.Kind() == "dev" {
+		firmwareSite = os.Getenv(envFirmwareSite)
+	}
 	a.srv, err = server.New(server.Options{
-		Token:      a.token,
-		Port:       a.port,
-		Version:    version,
-		Web:        a.web,
-		DataDir:    a.dataDir,
-		Host:       host,
-		SidecarDir: sidecarDir(a.cfg.sidecarDir),
-		Log:        a.log,
+		Token:        a.token,
+		Port:         a.port,
+		Version:      version,
+		Web:          a.web,
+		DataDir:      a.dataDir,
+		Host:         host,
+		SidecarDir:   sidecarDir(a.cfg.sidecarDir),
+		FirmwareSite: firmwareSite,
+		Log:          a.log,
 	})
 	if err != nil {
 		ln.Close()
@@ -176,6 +182,10 @@ func newToken() (string, error) {
 	}
 	return hex.EncodeToString(b[:]), nil
 }
+
+// envFirmwareSite replaces the address of Ricoh's site in the development
+// build (see server.Options.FirmwareSite).
+const envFirmwareSite = "GRMOD_FIRMWARE_SITE"
 
 // Files in the data directory, next to log.txt and the store.
 const (

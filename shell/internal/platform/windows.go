@@ -5,6 +5,8 @@ package platform
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,6 +16,7 @@ import (
 
 	"github.com/ncruces/zenity"
 	"golang.org/x/sys/windows"
+	"golang.org/x/sys/windows/registry"
 )
 
 // WindowsHost is the real Windows implementation of Host.
@@ -218,5 +221,45 @@ func (h *WindowsHost) Eject(vol Volume) error {
 	}
 	_ = ioctl(IoctlStorageMediaRemoval, []byte{0}) // PREVENT_MEDIA_REMOVAL{FALSE}
 	_ = ioctl(IoctlStorageEjectMedia, nil)
+	return nil
+}
+
+// Proxy chooses the proxy for an outgoing request: the usual environment
+// variables first, then the user's Windows proxy settings (which is where
+// the common proxy programs put themselves). The registry is read on every
+// call, so a change takes effect without a restart.
+func (h *WindowsHost) Proxy(req *http.Request) (*url.URL, error) {
+	if u, err := http.ProxyFromEnvironment(req); u != nil || err != nil {
+		return u, err
+	}
+	return readProxySettings().ProxyFor(req.URL), nil
+}
+
+func readProxySettings() ProxySettings {
+	var p ProxySettings
+	key, err := registry.OpenKey(registry.CURRENT_USER, `Software\Microsoft\Windows\CurrentVersion\Internet Settings`, registry.QUERY_VALUE)
+	if err != nil {
+		return p
+	}
+	defer key.Close()
+	if v, _, err := key.GetIntegerValue("ProxyEnable"); err == nil {
+		p.Enable = v != 0
+	}
+	p.Server, _, _ = key.GetStringValue("ProxyServer")
+	p.Override, _, _ = key.GetStringValue("ProxyOverride")
+	return p
+}
+
+// OpenURL shows a web address in the user's default browser.
+func (h *WindowsHost) OpenURL(address string) error {
+	address, err := BrowserURL(address)
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(filepath.Join(h.windowsDir, "System32", "rundll32.exe"), "url.dll,FileProtocolHandler", address)
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	go cmd.Wait()
 	return nil
 }

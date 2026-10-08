@@ -2,6 +2,7 @@ package platform
 
 import (
 	"encoding/binary"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -194,6 +195,72 @@ func TestDataDirFor(t *testing.T) {
 		}
 		if err != nil || got != c.want {
 			t.Errorf("DataDirFor(%s, %v, %q) = %q, %v; want %q", c.goos, c.env, c.home, got, err, c.want)
+		}
+	}
+}
+
+func TestProxyFor(t *testing.T) {
+	target := func(s string) *url.URL {
+		u, err := url.Parse(s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return u
+	}
+	https := target("https://www.ricoh-imaging.co.jp/english/support/download_digital.html")
+	cases := []struct {
+		name string
+		p    ProxySettings
+		u    *url.URL
+		want string
+	}{
+		{"off", ProxySettings{Enable: false, Server: "127.0.0.1:7890"}, https, ""},
+		{"one proxy for everything", ProxySettings{Enable: true, Server: "127.0.0.1:7890"}, https, "http://127.0.0.1:7890"},
+		{"with a scheme", ProxySettings{Enable: true, Server: "http://proxy.corp:8080"}, https, "http://proxy.corp:8080"},
+		{"per protocol", ProxySettings{Enable: true, Server: "http=a:80;https=b:8443;ftp=c:21"}, https, "http://b:8443"},
+		{"per protocol, http", ProxySettings{Enable: true, Server: "http=a:80;https=b:8443"}, target("http://example.com/"), "http://a:80"},
+		{"per protocol without ours", ProxySettings{Enable: true, Server: "ftp=c:21"}, https, ""},
+		{"socks only", ProxySettings{Enable: true, Server: "socks=127.0.0.1:1080"}, https, "socks5://127.0.0.1:1080"},
+		{"https before socks", ProxySettings{Enable: true, Server: "socks=s:1080;https=b:1"}, https, "http://b:1"},
+		{"empty server", ProxySettings{Enable: true}, https, ""},
+		{"override exact", ProxySettings{Enable: true, Server: "p:1", Override: "localhost;www.ricoh-imaging.co.jp"}, https, ""},
+		{"override wildcard", ProxySettings{Enable: true, Server: "p:1", Override: "*.co.jp;<local>"}, https, ""},
+		{"override wildcard inside", ProxySettings{Enable: true, Server: "p:1", Override: "www.*-imaging.*"}, https, ""},
+		{"override other host", ProxySettings{Enable: true, Server: "p:1", Override: "*.example.com;10.*;<local>"}, https, "http://p:1"},
+		{"local name", ProxySettings{Enable: true, Server: "p:1", Override: "<local>"}, target("http://nas/"), ""},
+		{"loopback is never proxied", ProxySettings{Enable: true, Server: "p:1"}, target("http://127.0.0.1:4321/api/ping"), ""},
+		{"garbage", ProxySettings{Enable: true, Server: "ftp://x:1"}, https, ""},
+	}
+	for _, c := range cases {
+		got := ""
+		if u := c.p.ProxyFor(c.u); u != nil {
+			got = u.String()
+		}
+		if got != c.want {
+			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
+		}
+	}
+	if (ProxySettings{Enable: true, Server: "p:1"}).ProxyFor(nil) != nil {
+		t.Error("nil URL")
+	}
+}
+
+func TestBrowserURL(t *testing.T) {
+	for _, ok := range []string{
+		"https://www.ricoh-imaging.co.jp/english/support/digital/gr4_s.html",
+		"http://127.0.0.1:8080/a?b=c&d=%20e#f",
+	} {
+		if got, err := BrowserURL(ok); err != nil || got != ok {
+			t.Errorf("%q: %q %v", ok, got, err)
+		}
+	}
+	for _, bad := range []string{
+		"", "gr4_s.html", "file:///C:/Windows/system32/calc.exe", "javascript:alert(1)", "https://", "https://user:pw@example.com/",
+		"https://example.com/a b", "https://example.com/\"&calc", "https://example.com/a|b", "https://example.com/a^b", "https://example.com/\n", "https://example.com/é",
+		`https://example.com/a\b`,
+	} {
+		if _, err := BrowserURL(bad); err == nil {
+			t.Errorf("%q was accepted", bad)
 		}
 	}
 }

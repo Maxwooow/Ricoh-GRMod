@@ -1,21 +1,21 @@
 import { LANGS } from '@grmod/core';
 import type { CameraModel, LangCode } from '@grmod/core';
 import { useState } from 'react';
-import { Busy, ConfirmDialog, FileButton, Ico, Toasts } from './components';
+import { Busy, ConfirmDialog, Ico, Select, Toasts } from './components';
 import { host } from './host';
 import { LANG_LABEL, t } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
+import { FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
 import { CropEditor, ImageControlPage, RatioPage, ScriptPage, WallpaperPage } from './pages';
 import {
-  backupCopies, canRestoreWall, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, loadFirmwareFile, outputEntry, outputFirmware, outputWallpaper, pendingChanges, refreshVolumes, restoreCardWall, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
+  backupCopies, canRestoreWall, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, outputEntry, outputFirmware, outputWallpaper, pendingChanges, refreshVolumes, restoreCardWall, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
 } from './store';
 
 const gb = (n: number): string => (n >= 1e9 ? `${(n / 1e9).toFixed(n >= 1e10 ? 0 : 1)} GB` : `${Math.max(1, Math.round(n / 1e6))} MB`);
 
 function Sidebar() {
   const page = useStore((s) => s.page);
-  const info = useStore((s) => s.info);
   const model = useStore((s) => s.model);
   const lang = useStore((s) => s.lang);
   const [about, setAbout] = useState(false);
@@ -30,24 +30,15 @@ function Sidebar() {
       <div className="grow" />
       <button className={`nav low ${page === 'copies' ? 'on' : ''}`} onClick={() => setPage('copies')}>{Ico.archive}<span>{t('navCopies')}</span></button>
       <div className="side-props">
-        <div className="side-row">
-          <span className="side-label">{t('firmware')}</span>
-          <FileButton className="side-value link" accept=".bin" onFiles={(f) => { void loadFirmwareFile(f[0]); }} title={t('replaceFirmware')}>
-            {info ? <>{info.version}<i className="dot ok" /></> : <>{t('noFirmware')}<i className="dot" /></>}
-          </FileButton>
-        </div>
-        <label className="side-row">
-          <span className="side-label">{t('model')}</span>
-          <select className="side-value" value={model} onChange={(e) => setModel(e.target.value as CameraModel)}>
-            {(['HDF', 'STANDARD', 'MONO'] as const).map((m) => <option key={m} value={m}>{t(('model' + m) as Key)}</option>)}
-          </select>
-        </label>
-        <label className="side-row">
-          <span className="side-label">{t('language')}</span>
-          <select className="side-value" value={lang} onChange={(e) => setLang(e.target.value as LangCode)}>
-            {LANGS.map((l) => <option key={l} value={l}>{LANG_LABEL[l] || l}</option>)}
-          </select>
-        </label>
+        <FirmwareRow />
+        <Select<CameraModel>
+          variant="row" label={t('model')} lead={<span className="side-label">{t('model')}</span>} value={model} onChange={setModel}
+          options={MODELS.map((m) => ({ value: m, label: modelLabel(m) }))}
+        />
+        <Select<LangCode>
+          variant="row" label={t('language')} lead={<span className="side-label">{t('language')}</span>} value={lang} onChange={setLang}
+          options={LANGS.map((l) => ({ value: l, label: LANG_LABEL[l] || l }))}
+        />
       </div>
       <button className="about-link" onClick={() => setAbout(true)}>v{host.info?.version || ''}</button>
       {about && (
@@ -63,8 +54,6 @@ function Sidebar() {
     </aside>
   );
 }
-
-const ALL = '__all__';
 
 /** What the bottom bar offers on the copies page. */
 function CopyActions() {
@@ -95,15 +84,11 @@ function OutputBar() {
   return (
     <footer className="outbar">
       <span className="out-ico">{Ico.card}</span>
-      <select
-        className="select out-select" value={s.volumeId || ''} aria-label={t('card')}
-        onChange={(e) => { if (e.target.value === ALL) setShowAll(!s.showAll); else selectVolume(e.target.value); }}
-      >
-        {s.volumes.length === 0 && <option value="" disabled>{t('noCard')}</option>}
-        {s.volumes.map((v) => <option key={v.id} value={v.id}>{`${v.id}${v.label && v.label !== v.id ? '  ' + v.label : ''}  ·  ${gb(v.total)}${v.fs && v.fs !== 'DEV' ? '  ·  ' + v.fs : ''}`}</option>)}
-        <option disabled>──────────</option>
-        <option value={ALL}>{s.showAll ? t('showCardsOnly') : t('showAll')}</option>
-      </select>
+      <Select<string>
+        variant="box" label={t('card')} value={vol?.id} placeholder={t('noCard')} onChange={selectVolume}
+        options={s.volumes.map((v) => ({ value: v.id, label: `${v.id}${v.label && v.label !== v.id ? '  ' + v.label : ''}  ·  ${gb(v.total)}${v.fs && v.fs !== 'DEV' ? '  ·  ' + v.fs : ''}` }))}
+        actions={[{ label: s.showAll ? t('showCardsOnly') : t('showAll'), run: () => setShowAll(!s.showAll) }]}
+      />
       <button className="btn ghost icon-only" title={t('refresh')} aria-label={t('refresh')} onClick={() => { void refreshVolumes(); }}>{Ico.refresh}</button>
       <div className="out-chips">
         {vol && role && <span className="chip">{t(role)}</span>}
@@ -133,6 +118,7 @@ export function App() {
         <OutputBar />
       </main>
       <CropEditor />
+      <FirmwareOnline />
       <ConfirmDialog />
       <Busy />
       <Toasts />

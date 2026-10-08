@@ -820,12 +820,80 @@ def check_entry_wrappers(official, patched, order):
     return cases
 
 
+# Build revision 2 (GR Mod 0.3.0), not in the reference: the call in ImageMemory::Alloc that works
+# out how many bytes a picture buffer needs goes through appended code that rounds the height up
+# to 8 first. It replaces a call, not an instruction, so it is compared the way a call is: at the
+# instruction after it, in the registers a callee has to preserve, the result and the memory.
+DECODE_BUFFER_CALL = 0x5369ECE8
+
+
+def check_decode_buffer(official, patched, runs=400, seed=7):
+    """mov r1, sb (format) / mov r0, r8 (&{width, height}) / bl CalcImageBufferSize / -> 0x5369ECEC."""
+    mo, mp = Machine(official), Machine(patched)
+    rng = random.Random(seed)
+    after_call = DECODE_BUFFER_CALL + 4
+    widths = [16, 160, 720, 1024, 1920, 3504, 4944, 5168, 6192, 16368]
+    cases = 0
+    for n in range(runs):
+        fmt = (1, 3, 4)[n % 3]                       # RGB, YCbCr 4:2:2, YCbCr 4:2:0
+        width = rng.choice(widths)
+        height = rng.choice([8 * rng.randrange(1, 700), rng.randrange(1, 5600)])
+        if n < 8:
+            width, height = [(6192, 4128), (4944, 3296), (6192, 3480), (4128, 4128), (4944, 1812), (3504, 1284), (6192, 2580), (1920, 1204)][n]
+
+        def state_for(h):
+            state = random_state(random.Random(seed * 7919 + n))
+            size = REGIONS[1] + 0x4000
+            state['regs'][8] = size
+            state['regs'][9] = fmt
+            poke(state, size, struct.pack('<II', width, h))
+            return state
+
+        results = []
+        for machine, h in ((mo, height), (mp, height), (mo, (height + 7) & ~7)):
+            state = state_for(h)
+            machine.reset(state)
+            problem = machine.run(DECODE_BUFFER_CALL - 8, lambda pc: pc == after_call)
+            assert problem is None, 'decode buffer call: %s' % problem
+            results.append((state, machine.snapshot()))
+        (start, off), (_, new), (_, rounded) = results
+        where = 'decode buffer call, format %d, %dx%d: ' % (fmt, width, height)
+        # the byte count is the official one for the height rounded up to 8 ...
+        assert new['regs'][0] == rounded['regs'][0], where + 'r0 %#x, expected %#x' % (new['regs'][0], rounded['regs'][0])
+        if fmt != 4:
+            expected = width * ((height + 7) & ~7) * (2 if fmt == 3 else 3)
+            assert new['regs'][0] == expected, where + 'r0 %d, expected %d' % (new['regs'][0], expected)
+        # ... which is the official count itself whenever the height is a multiple of 8
+        if height % 8 == 0:
+            assert new['regs'][0] == off['regs'][0], where + 'changed a count that needed no change'
+        else:
+            assert new['regs'][0] > off['regs'][0]
+        # everything a caller may rely on after a call is as the official code leaves it
+        for index in list(range(4, 12)) + [13]:
+            assert new['regs'][index] == off['regs'][index], where + '%s differs' % NAMES[index]
+        live = new['regs'][13] - STACK
+        assert new['stack'][live:] == off['stack'][live:] == start['stack'][live:], where + 'the stack above sp changed'
+        assert new['regions'] == off['regions'] == start['regions'], where + 'memory changed'
+        cases += 1
+    # what follows the call does not read r1-r3, ip or lr before writing them (mov r1, r0 / mov r2, sl / mov r0, r5 / bl)
+    assert [u32(official, after_call + 4 * i) for i in range(3)] == [0xE1A01000, 0xE1A0200A, 0xE1A00005]
+    assert u32(official, after_call + 12) >> 24 == 0xEB
+    return cases
+
+
 def run(official, patched, icon_bytes, official_icons, quiet=False):
     official, patched = bytes(official), bytes(patched)
     assert len(official) == OFFICIAL_LEN and len(patched) > OFFICIAL_LEN
     hooks, data = hooks_of(official, patched)
     say = (lambda *a: None) if quiet else print
     say('hooks: %d branch replacements, %d other changed words' % (len(hooks), len(data)))
+    if DECODE_BUFFER_CALL in hooks:
+        hooks.remove(DECODE_BUFFER_CALL)
+        cases = check_decode_buffer(official, patched)
+        say('build revision 2, decode buffer size call: %d cases; the count is the official one for the height rounded up to 8, '
+            'identical for heights that are multiples of 8; callee-saved registers, stack and memory as after the official call' % cases)
+    else:
+        say('build revision 1: no decode buffer change')
     unknown = [hex(a) for a in SPECIAL if a not in hooks]
     assert not unknown, 'SPECIAL lists addresses that are not hooks: %s' % unknown
     tested, failures, notes = check_transparent(official, patched, hooks, lead=LEAD)

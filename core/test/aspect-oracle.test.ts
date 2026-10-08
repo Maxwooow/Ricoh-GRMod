@@ -103,7 +103,7 @@ describe.skipIf(!have)('aspect: byte-identical to the reference implementation',
       let result: AspectResult | null = null;
       let error = '';
       try {
-        result = installRatios(rtos, iconbin, planRatios(specs));
+        result = installRatios(rtos, iconbin, planRatios(specs), 1); // revision 1 = the reference's output
       } catch (e) {
         if (!(e instanceof FirmwareError)) throw e;
         error = e.message;
