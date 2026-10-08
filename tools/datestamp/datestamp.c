@@ -89,10 +89,12 @@ static u32 digit_hit(u32 seg, s32 qx, s32 qy, s32 w, s32 h, s32 t) {
 
 #define MAXGLYPH 64
 
-/* Plausible RAM address (the camera's DDR); anything else is not dereferenced. */
+/* Plausible RAM address (the camera's DDR, 0x40000000..0xBFFFFFFF); anything else is not
+ * dereferenced. With RAW+JPEG the scaled-down main picture of the smaller sizes lives above
+ * 0xA0000000 (seen at 0xB1069CC0, test firmware 015). */
 static int ram(const void *p) {
   u32 a = (u32)p;
-  return a >= 0x40000000u && a < 0xa0000000u && (a & 3) == 0;
+  return a >= 0x40000000u && a < 0xc0000000u && (a & 3) == 0;
 }
 
 static void sync(const struct ctx *k, void *cache, struct picture *p, u32 y0, u32 y1, int clean) {
@@ -236,7 +238,7 @@ static int wide_ram(const void *p) {
   u32 a = (u32)p;
   return a >= 0x40000000u && a < 0xc0000000u;
 }
-/* Why picture_ok refuses a picture, as a hex digit: 1 format, 2 planes outside 0x40000000..0xa0000000,
+/* Why picture_ok refuses a picture, as a hex digit: 1 format, 2 planes outside 0x40000000..0xc0000000,
  * 4 size, 8 stride / CbCr height. 0 = accepted. */
 static u32 refusal(const struct picture *p) {
   u32 r = 0, w = p->width, h = p->height;
