@@ -106,11 +106,11 @@ function PreviewPane() {
   return (
     <DropZone className="pane" accept={isImage} onFiles={(f) => { void loadPreviewFile(f[0]); }}>
       <div className="pane-head">
-        <Segmented value={active} onChange={setActiveSlot} options={[{ value: 'CY', label: t('slotCY') }, { value: 'CG', label: t('slotCG') }]} />
+        <Segmented tour="ic-tabs" value={active} onChange={setActiveSlot} options={[{ value: 'CY', label: t('slotCY') }, { value: 'CG', label: t('slotCG') }]} />
         <span className="grow" />
-        <Segmented value={mode} onChange={setPreviewMode} options={[{ value: 'photo', label: t('previewPhoto') }, { value: 'swatch', label: t('previewSwatch') }]} />
+        <Segmented tour="ic-mode" value={mode} onChange={setPreviewMode} options={[{ value: 'photo', label: t('previewPhoto') }, { value: 'swatch', label: t('previewSwatch') }]} />
       </div>
-      <div className="pane-body">{mode === 'photo' ? <PhotoCompare params={params} /> : <Swatches params={params} />}</div>
+      <div className="pane-body" data-tour="ic-preview" data-tour-fit="">{mode === 'photo' ? <PhotoCompare params={params} /> : <Swatches params={params} />}</div>
     </DropZone>
   );
 }
@@ -125,12 +125,13 @@ function SlotCard({ id }: { id: SlotId }) {
   const cap = off.names[lang].capacity;
   const problem = nameProblem(info, id, lang, name);
   const p = slot.preset;
+  const first = id === 'CY'; // the one the tour points at
   return (
-    <DropZone className={`card ${active ? 'on' : ''}`} accept={isPreset} onFiles={(f) => { void loadPresetFile(id, f[0]); }}>
+    <DropZone className={`card ${active ? 'on' : ''}`} tour={first ? 'ic-slot' : undefined} accept={isPreset} onFiles={(f) => { void loadPresetFile(id, f[0]); }}>
       <div className="card-in" onPointerDownCapture={() => setActiveSlot(id)} onFocusCapture={() => setActiveSlot(id)}>
         <div className="card-head">
           <IconCanvas pixels={slot.icon.mode !== 'keep' && slot.icon.pixels ? slot.icon.pixels : off.icon} />
-          <div className="card-title">
+          <div className="card-title" data-tour={first ? 'ic-name' : undefined}>
             <input className={`title-input ${problem ? 'bad' : ''}`} value={name} placeholder={off.names[lang].text} spellCheck={false} aria-label={t('name')} onChange={(e) => setName(id, lang, e.target.value)} />
             <div className="sub">
               <span className="ellipsis">{t(('slot' + id) as Key)}</span>
@@ -139,7 +140,7 @@ function SlotCard({ id }: { id: SlotId }) {
           </div>
         </div>
         <div className="props">
-          <Prop label={t('preset')}>
+          <Prop label={t('preset')} tour={first ? 'ic-preset' : undefined}>
             {!p && <FileButton className="btn dashed fill" accept=".xmp,.cube" onFiles={(f) => { void loadPresetFile(id, f[0]); }}>{Ico.plus}<span>{t('dropPreset')}</span></FileButton>}
             {p && (
               <div className="preset">
@@ -159,7 +160,7 @@ function SlotCard({ id }: { id: SlotId }) {
               </div>
             )}
           </Prop>
-          <Prop label={t('icon')}>
+          <Prop label={t('icon')} tour={first ? 'ic-icon' : undefined}>
             <div className="chips">
               <Segmented value={slot.icon.mode} onChange={(mode) => setIcon(id, { mode })} options={[{ value: 'keep', label: t('iconKeep') }, { value: 'text', label: t('iconText') }, { value: 'image', label: t('iconImage') }]} />
               {slot.icon.mode !== 'keep' && <Segmented value={slot.icon.style} onChange={(style) => setIcon(id, { style })} options={[{ value: 'film', label: t('styleFilm') }, { value: 'plain', label: t('stylePlain') }]} />}
@@ -183,7 +184,7 @@ export function ImageControlPage() {
         <span className="page-icon">{Ico.aperture}</span>
         <h1>{t('navIC')}</h1>
         {info && (
-          <div className="head-right">
+          <div className="head-right" data-tour="ic-stock">
             <span className="chip ok">{Ico.check}<span className="ellipsis">{fwName || 'fwdc248b.bin'} · {info.version}</span></span>
             <Menu items={[
               { label: t('writeStock'), run: () => { void outputFirmware({ kind: 'card' }, true); } },
@@ -194,7 +195,7 @@ export function ImageControlPage() {
       </header>
       {!info && <FirmwareHero />}
       {info && model !== 'MONO' && (
-        <div className="ic">
+        <div className="ic" data-tour-page="ic">
           <div className="cards"><SlotCard id="CY" /><SlotCard id="CG" /></div>
           <PreviewPane />
         </div>
@@ -210,12 +211,12 @@ const FACTORY_RATIOS = ['3:2', '4:3', '1:1', '16:9'];
 const COMMON_RATIOS = ['65:24', '2.39:1', '2:1', '5:4', '7:6', '4:5'];
 const size = (s: [number, number]): string => `${s[0]}×${s[1]}`;
 
-function RatioRow({ r, active }: { r: RatioItem; active: boolean }) {
+function RatioRow({ r, active, tour }: { r: RatioItem; active: boolean; tour?: string }) {
   const problem = ratioProblem(r);
   const p = r.preview;
   const busy = !!r.ratio.trim() && !p;
   return (
-    <div className={`ratio-row ${active ? 'on' : ''}`} onPointerDownCapture={() => setActiveRatio(r.id)} onFocusCapture={() => setActiveRatio(r.id)}>
+    <div className={`ratio-row ${active ? 'on' : ''}`} data-tour={tour} onPointerDownCapture={() => setActiveRatio(r.id)} onFocusCapture={() => setActiveRatio(r.id)}>
       <RatioIcon pixels={p?.icon} width={48} />
       <input
         className={`input ratio-in ${p?.problem ? 'bad' : ''}`} value={r.ratio} maxLength={16} spellCheck={false} placeholder={t('ratioPlaceholder')} aria-label={t('navRatio')}
@@ -254,9 +255,9 @@ function RatioPane({ r }: { r?: RatioItem }) {
       <div className="pane-head">
         {p?.icon && r && <><RatioIcon pixels={p.icon} width={42} /><b className="ratio-title ellipsis">{ratioName(r)}</b></>}
         <span className="grow" />
-        <Segmented value={backdrop} onChange={setRatioBackdrop} options={[{ value: 'photo', label: t('previewPhoto') }, { value: 'gray', label: t('ratioGray') }]} />
+        <Segmented tour="ratio-backdrop" value={backdrop} onChange={setRatioBackdrop} options={[{ value: 'photo', label: t('previewPhoto') }, { value: 'gray', label: t('ratioGray') }]} />
       </div>
-      <div className="ratio-body">
+      <div className="ratio-body" data-tour="ratio-frame" data-tour-fit="">
         <div className={`ratio-frame ${showPhoto ? '' : 'gray'}`}>
           {showPhoto && <canvas ref={ref} className="ratio-photo" />}
           {sc && (
@@ -296,17 +297,17 @@ export function RatioPage() {
       </header>
       {!info && <FirmwareHero />}
       {info && (
-        <div className="ratio">
+        <div className="ratio" data-tour-page="ratio">
           <div className="ratio-list">
-            <div className="ratio-factory">
+            <div className="ratio-factory" data-tour="ratio-factory">
               <span className="muted small">{t('ratioFactory')}</span>
               {FACTORY_RATIOS.map((f) => <span key={f} className="chip muted">{f}</span>)}
             </div>
-            {ratios.map((r) => <RatioRow key={r.id} r={r} active={r.id === active?.id} />)}
+            {ratios.map((r, i) => <RatioRow key={r.id} r={r} active={r.id === active?.id} tour={i === 0 ? 'ratio-row' : undefined} />)}
             {!full && (
               <div className="ratio-add">
-                <button className="btn dashed fill" onClick={() => addRatio()}>{Ico.plus}<span>{t('ratioAdd')}</span></button>
-                <div className="chips">
+                <button className="btn dashed fill" data-tour="ratio-add" onClick={() => addRatio()}>{Ico.plus}<span>{t('ratioAdd')}</span></button>
+                <div className="chips" data-tour="ratio-common">
                   {COMMON_RATIOS.filter((c) => !used.has(c)).map((c) => <button key={c} className="btn ghost small" onClick={() => addRatio(c)}>{c}</button>)}
                 </div>
               </div>
@@ -321,6 +322,7 @@ export function RatioPage() {
 
 // ---------------------------------------------------------------- power-off images
 function WallCard({ w, index }: { w: WallItem; index: number }) {
+  const tour = index === 0 ? 'wall-card' : undefined;
   const info = useStore((s) => s.info);
   const model = useStore((s) => s.model);
   const [over, setOver] = useState(false);
@@ -330,7 +332,7 @@ function WallCard({ w, index }: { w: WallItem; index: number }) {
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
   return (
     <div
-      className={`wall-card ${over ? 'drag-over' : ''}`}
+      className={`wall-card ${over ? 'drag-over' : ''}`} data-tour={tour}
       draggable
       onDragStart={(e) => { e.dataTransfer.setData('application/x-grmod-wall', w.id); e.dataTransfer.effectAllowed = 'move'; }}
       onDragOver={(e) => { if (e.dataTransfer.types.includes('application/x-grmod-wall')) { e.preventDefault(); setOver(true); } }}
@@ -404,12 +406,12 @@ export function WallpaperPage() {
       </header>
       {!info && <FirmwareHero />}
       {info && (
-        <div className="wall-fit" ref={ref}>
+        <div className="wall-fit" ref={ref} data-tour-page="wall">
           {fit.tile > 0 && (
             <div className="wall-grid" style={{ gridTemplateColumns: `repeat(${fit.cols}, ${fit.tile}px)` }}>
               {wall.map((w, i) => <WallCard key={w.id} w={w} index={i} />)}
               {wall.length < 9 && (
-                <div className="wall-add">
+                <div className="wall-add" data-tour="wall-add">
                   <FileButton className="wall-add-btn" accept="image/*" multiple onFiles={(f) => { void addWallFiles(f); }}>{Ico.plus}<span>{wall.length ? t('wallAdd') : t('wallEmpty')}</span></FileButton>
                   <button className="btn ghost small" onClick={() => addFactoryWall()}>{t('wallFactory')}</button>
                 </div>
@@ -434,7 +436,7 @@ export function ScriptPage() {
       </header>
       {!info && <FirmwareHero />}
       {info && (
-        <div className="guide">
+        <div className="guide" data-tour-page="script" data-tour="script-hint">
           <p className="guide-line">{t('scriptHint')}</p>
           <div className="chips">
             {info.factoryEntry.files.map((f) => <span key={f.name} className="chip file">{Ico.file}{f.name}</span>)}

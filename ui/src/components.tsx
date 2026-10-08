@@ -26,12 +26,14 @@ export const Ico = {
   file: <svg viewBox="0 0 20 20" {...P}><path d="M6 2.8h5.2L15 6.6v9.1a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5V4.3A1.5 1.5 0 0 1 6 2.8z" /><path d="M11 3v3.8h3.8" /></svg>,
   updown: <svg viewBox="0 0 20 20" {...P}><path d="M6.5 8l3.5-3.5L13.5 8M6.5 12l3.5 3.5 3.5-3.5" /></svg>,
   download: <svg viewBox="0 0 20 20" {...P}><path d="M10 3.2v9.6M6 9.2l4 3.8 4-3.8M4 16.2h12" /></svg>,
+  info: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="7.2" /><path d="M10 9.2v4.4" /><circle cx="10" cy="6.4" r="0.6" fill="currentColor" /></svg>,
+  help: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="7.2" /><path d="M7.9 8a2.2 2.2 0 1 1 3.3 1.9c-.8.5-1.2 1-1.2 1.8" /><circle cx="10" cy="13.9" r="0.6" fill="currentColor" /></svg>,
   external: <svg viewBox="0 0 20 20" {...P}><path d="M8 5H5.5A1.5 1.5 0 0 0 4 6.5v8A1.5 1.5 0 0 0 5.5 16h8a1.5 1.5 0 0 0 1.5-1.5V12M11 4h5v5M16 4l-7 7" /></svg>,
 };
 
-export function Segmented<T extends string>({ value, options, onChange }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void }) {
+export function Segmented<T extends string>({ value, options, onChange, tour }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; tour?: string }) {
   return (
-    <div className="seg" role="tablist">
+    <div className="seg" role="tablist" data-tour={tour}>
       {options.map((o) => (
         <button key={o.value} role="tab" aria-selected={o.value === value} className={o.value === value ? 'on' : ''} onClick={() => onChange(o.value)}>{o.label}</button>
       ))}
@@ -39,9 +41,9 @@ export function Segmented<T extends string>({ value, options, onChange }: { valu
   );
 }
 
-export function Prop({ label, children }: { label: string; children: ReactNode }) {
+export function Prop({ label, children, tour }: { label: string; children: ReactNode; tour?: string }) {
   return (
-    <div className="prop">
+    <div className="prop" data-tour={tour}>
       <div className="prop-label">{label}</div>
       <div className="prop-value">{children}</div>
     </div>
@@ -59,12 +61,12 @@ export function FileButton({ accept, multiple, onFiles, children, className, tit
 }
 
 /** Wraps children in a drop target; `over` styling while dragging files across it. */
-export function DropZone({ onFiles, className, children, accept }: { onFiles: (f: File[]) => void; className?: string; children: ReactNode; accept?: (f: File) => boolean }) {
+export function DropZone({ onFiles, className, children, accept, tour }: { onFiles: (f: File[]) => void; className?: string; children: ReactNode; accept?: (f: File) => boolean; tour?: string }) {
   const [over, setOver] = useState(false);
   const depth = useRef(0);
   return (
     <div
-      className={`${className || ''} ${over ? 'drop-over' : ''}`}
+      className={`${className || ''} ${over ? 'drop-over' : ''}`} data-tour={tour}
       onDragEnter={(e) => { if (e.dataTransfer.types.includes('Files')) { depth.current++; setOver(true); } }}
       onDragLeave={() => { depth.current = Math.max(0, depth.current - 1); if (depth.current === 0) setOver(false); }}
       onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } }}
@@ -153,9 +155,9 @@ export interface SelectOption<T extends string> { value: T; label: string }
  * `variant` "row" is a property row of the sidebar with `lead` as its label; "box" is a bordered field.
  * `actions` are extra commands under the options.
  */
-export function Select<T extends string>({ value, options, onChange, label, variant, lead, placeholder, actions }: {
+export function Select<T extends string>({ value, options, onChange, label, variant, lead, placeholder, actions, tour }: {
   value: T | undefined; options: SelectOption<T>[]; onChange: (v: T) => void; label: string; variant: 'row' | 'box';
-  lead?: ReactNode; placeholder?: string; actions?: { label: string; run: () => void }[];
+  lead?: ReactNode; placeholder?: string; actions?: { label: string; run: () => void }[]; tour?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [place, setPlace] = useState({ up: false, max: 320 });
@@ -199,7 +201,7 @@ export function Select<T extends string>({ value, options, onChange, label, vari
     e.preventDefault();
   };
   return (
-    <div className={`sel ${variant} ${open ? 'open' : ''}`} ref={wrap}>
+    <div className={`sel ${variant} ${open ? 'open' : ''}`} ref={wrap} data-tour={tour}>
       <button
         type="button" className="sel-btn" ref={button} aria-haspopup="listbox" aria-expanded={open} aria-label={label}
         onClick={() => (open ? close() : show())} onKeyDown={(e) => { if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { e.preventDefault(); show(); } }}
@@ -223,6 +225,16 @@ export function Select<T extends string>({ value, options, onChange, label, vari
         </div>
       )}
     </div>
+  );
+}
+
+/** A small "i" that shows a note while the pointer is on it (or it has the keyboard focus). */
+export function Hint({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <span className="hint" tabIndex={0} role="note" aria-label={label}>
+      {Ico.info}
+      <span className="hint-pop" role="tooltip">{children}</span>
+    </span>
   );
 }
 

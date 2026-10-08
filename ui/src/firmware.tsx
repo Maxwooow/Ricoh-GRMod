@@ -22,7 +22,7 @@ export function FirmwareRow() {
   const close = (): void => setOpen(false);
   useDismiss(open, wrap, close);
   return (
-    <div className={`sel row ${open ? 'open' : ''}`} ref={wrap}>
+    <div className={`sel row ${open ? 'open' : ''}`} ref={wrap} data-tour="firmware">
       <button type="button" className="sel-btn" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
         <span className="side-label">{t('firmware')}</span>
         <span className={`sel-value ${info ? '' : 'muted'}`}>{info ? info.version : t('noFirmware')}<i className={`dot ${info ? 'ok' : ''}`} /></span>

@@ -33,6 +33,11 @@ export interface CopyInfo { busy?: boolean; summary?: FirmwareSummary; failed?: 
 /** What went into a firmware this program built, so that a copy of it can be named later. */
 export interface BuildRecord { sha256: string; time: number; slots: { id: SlotId; preset?: string }[] }
 /** `warn` is an optional caution shown under the lines (used where something is deleted for good). */
+/** A guided tour: `overview` is the one of the first start, the others belong to a page. */
+export type TourId = 'overview' | Page;
+export const TOUR_IDS: readonly TourId[] = ['overview', 'script', 'ic', 'ratio', 'wall', 'copies'];
+/** The tour being shown: `steps` are the indices of its steps that have something to point at; a replay can be skipped. */
+export interface TourState { id: TourId; steps: number[]; index: number; replay: boolean }
 export interface Confirm { title: string; warn?: string; lines: string[]; ok: string; resolve: (v: boolean) => void }
 export interface State {
   ready: boolean; page: Page;
@@ -45,6 +50,7 @@ export interface State {
   volumes: Volume[]; showAll: boolean; volumeId?: string; role?: card.CardRole; entryOnCard: boolean;
   copySource: CopySource; parked: ParkedEntry[]; backups: ParkedEntry[]; copySel: string[]; copyInfo: Record<string, CopyInfo>; builds: BuildRecord[];
   busy?: string; toasts: Toast[]; confirm?: Confirm; cropId?: string; onlineOpen: boolean;
+  tour?: TourState; toursSeen: TourId[];
 }
 
 const SLOT_IDS: SlotId[] = ['CY', 'CG'];
@@ -52,7 +58,7 @@ const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '',
 let state: State = {
   ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: 'zh-CN',
   slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], ratios: [], ratioBackdrop: 'photo', previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false,
-  copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false,
+  copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
 function set(patch: Partial<State> | ((s: State) => Partial<State>)): void {
@@ -107,6 +113,7 @@ async function saveProject(): Promise<void> {
     }])),
     wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: w.kind, width: w.width, height: w.height, crop: w.crop })),
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
+    tours: s.toursSeen,
   };
   try { await host.storeSet('project.json', JSON.stringify(doc)); } catch (e) { console.warn('save failed', e); }
 }
@@ -131,7 +138,8 @@ export async function init(): Promise<void> {
       const ratios: RatioItem[] = (Array.isArray(doc.ratios) ? doc.ratios : []).slice(0, MAX_CUSTOM_RATIOS)
         .filter((r: RatioItem) => r && typeof r.id === 'string' && typeof r.ratio === 'string')
         .map((r: RatioItem) => ({ id: r.id, ratio: r.ratio.slice(0, 24), name: String(r.name || '').slice(0, 80) }));
-      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' ? doc.page : 'ic', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo', cardWall: validCardWall(doc.cardWall) });
+      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' ? doc.page : 'ic', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo', cardWall: validCardWall(doc.cardWall),
+        toursSeen: TOUR_IDS.filter((id) => Array.isArray(doc.tours) && doc.tours.includes(id)) });
       const fwRaw = await host.storeGet('firmware.bin');
       if (fwRaw) await openFirmware(fwRaw, doc.fwName || 'fwdc248b.bin', false);
       for (const id of SLOT_IDS) {
@@ -154,6 +162,28 @@ export async function init(): Promise<void> {
   void refreshVolumes();
   setInterval(() => { if (!document.hidden && !state.busy) void refreshVolumes(); }, 2500);
   for (const id of SLOT_IDS) void renderIcon(id);
+}
+
+// ------------------------------------------------------------------ guided tours
+export function startTour(id: TourId, steps: number[], replay: boolean): void {
+  if (state.tour || steps.length === 0) return;
+  set({ tour: { id, steps, index: 0, replay } });
+}
+/** One step on or back; going on from the last step ends the tour. */
+export function tourStep(delta: 1 | -1): void {
+  const tr = state.tour;
+  if (!tr) return;
+  const index = tr.index + delta;
+  if (index < 0) return;
+  if (index >= tr.steps.length) { endTour(); return; }
+  set({ tour: { ...tr, index } });
+}
+/** Finished or skipped: either way it is not started by itself again. */
+export function endTour(): void {
+  const tr = state.tour;
+  if (!tr) return;
+  set((s) => ({ tour: undefined, toursSeen: s.toursSeen.includes(tr.id) ? s.toursSeen : [...s.toursSeen, tr.id] }));
+  scheduleSave();
 }
 
 // ------------------------------------------------------------------ settings

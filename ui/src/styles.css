@@ -174,6 +174,8 @@ svg { width: 18px; height: 18px; flex: none; }
 .wall-add-btn svg { width: 24px; height: 24px; }
 
 .outbar { flex: none; display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 20px; border-top: 1px solid var(--line); container-type: inline-size; }
+.out-card { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 0 1 auto; }
+.out-actions { display: flex; align-items: center; gap: 8px; }
 .out-chips { display: flex; gap: 6px; min-width: 0; overflow: hidden; }
 .out-chips .chip { flex: none; }
 @container (max-width: 850px) { .out-label { display: none; } }
@@ -218,7 +220,11 @@ svg { width: 18px; height: 18px; flex: none; }
 .nohost { height: 100%; display: grid; place-items: center; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
-.about-link { border: 0; background: none; color: var(--faint); font-size: 11.5px; text-align: left; padding: 6px 10px 0; }
+.side-foot { display: flex; align-items: center; height: 26px; margin-top: 4px; padding-right: 4px; }
+.about-link { border: 0; background: none; color: var(--faint); font-size: 11.5px; text-align: left; padding: 4px 10px; }
+.help-btn { display: grid; place-items: center; width: 24px; height: 24px; border: 0; background: none; border-radius: 6px; color: var(--faint); transition: background 0.1s, color 0.1s; }
+.help-btn:hover, .help-btn:focus-visible { background: var(--hover); color: var(--text); outline: none; }
+.help-btn svg { width: 17px; height: 17px; }
 .about-link:hover { color: var(--muted); }
 .dialog.about h3 small { font-weight: 400; color: var(--muted); font-size: 13px; margin-left: 6px; }
 .dialog.about p { margin: 0 0 12px; font-size: 13.5px; user-select: text; }
@@ -325,3 +331,29 @@ button.fw-rel:disabled { cursor: default; }
 .fw-license:hover:not(:disabled) { color: var(--text); text-decoration: underline; }
 .fw-license:disabled { cursor: default; }
 .fw-license svg { width: 12px; height: 12px; }
+
+/* A note that shows while the pointer is on its "i". */
+.hint { position: relative; display: grid; place-items: center; width: 22px; height: 22px; margin: 0 -3px 0 -5px; border-radius: 50%; color: var(--faint); cursor: help; outline: none; flex: none; transition: background 0.1s, color 0.1s; }
+.hint:hover, .hint:focus-visible { color: var(--text); background: var(--hover); }
+.hint > svg { width: 16px; height: 16px; }
+.hint-pop { position: absolute; left: -30px; bottom: calc(100% + 14px); width: max-content; max-width: 280px; display: grid; gap: 3px; padding: 10px 14px 11px; background: var(--bg); border-radius: 8px; box-shadow: var(--shadow); font-size: 12.5px; line-height: 1.5; color: var(--muted); text-align: left; cursor: default; opacity: 0; transform: translateY(4px); pointer-events: none; transition: opacity 0.14s ease, transform 0.14s ease; z-index: 40; }
+.hint-pop b { color: var(--text); font-weight: 600; margin-bottom: 2px; }
+.hint:hover .hint-pop, .hint:focus-visible .hint-pop { opacity: 1; transform: none; }
+
+/* Guided tour: the lit part is a hole in a shadow that covers the rest; hole and card glide from step to step. */
+.tour { position: fixed; inset: 0; z-index: 90; opacity: 0; transition: opacity 0.22s ease; --tour-dim: rgba(15, 15, 15, 0.26); --tour-ease: cubic-bezier(0.22, 0.8, 0.24, 1); }
+@media (prefers-color-scheme: dark) { .tour { --tour-dim: rgba(0, 0, 0, 0.46); } }
+.tour.live { opacity: 1; }
+.tour-hole { position: absolute; border-radius: 9px; box-shadow: 0 0 0 2px var(--blue), 0 0 0 200vmax var(--tour-dim); pointer-events: none; transition: left 0.42s var(--tour-ease), top 0.42s var(--tour-ease), width 0.42s var(--tour-ease), height 0.42s var(--tour-ease), box-shadow 0.3s ease; }
+.tour-hole.none { box-shadow: 0 0 0 0 transparent, 0 0 0 200vmax var(--tour-dim); }
+.tour-card { position: absolute; left: 0; top: 0; width: 320px; padding: 16px 16px 12px 18px; background: var(--bg); border-radius: 12px; box-shadow: var(--shadow); transition: transform 0.42s var(--tour-ease); will-change: transform; }
+.tour:not(.live) .tour-hole, .tour:not(.live) .tour-card { transition: none; }
+.tour-text { animation: tour-text 0.32s ease-out both; }
+@keyframes tour-text { from { opacity: 0; transform: translateY(5px); } }
+.tour-text b { display: block; margin-bottom: 5px; font-size: 15px; font-weight: 650; }
+.tour-text p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); user-select: text; }
+.tour-foot { display: flex; align-items: center; gap: 6px; margin-top: 14px; }
+.tour-foot .btn:focus-visible { outline: 2px solid var(--blue-bg); outline-offset: 1px; }
+.tour-count { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+/* what only shows under the pointer is shown while the tour points at it */
+[data-tour-on] .wall-actions, [data-tour-on] .ratio-x, [data-tour-on] .compare-swap { opacity: 1; }

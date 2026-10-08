@@ -1,13 +1,14 @@
 import { LANGS } from '@grmod/core';
 import type { CameraModel, LangCode } from '@grmod/core';
 import { useState } from 'react';
-import { Busy, ConfirmDialog, Ico, Select, Toasts } from './components';
+import { Busy, ConfirmDialog, Hint, Ico, Select, Toasts } from './components';
 import { host } from './host';
 import { LANG_LABEL, t } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
 import { FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
 import { CropEditor, ImageControlPage, RatioPage, ScriptPage, WallpaperPage } from './pages';
+import { Tour, replayTour } from './tour';
 import {
   backupCopies, canRestoreWall, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, outputEntry, outputFirmware, outputWallpaper, pendingChanges, refreshVolumes, restoreCardWall, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
 } from './store';
@@ -22,25 +23,29 @@ function Sidebar() {
   return (
     <aside className="sidebar">
       <nav>
-        <button className={`nav ${page === 'script' ? 'on' : ''}`} onClick={() => setPage('script')}>{Ico.tool}<span>{t('navScript')}</span></button>
-        <button className={`nav ${page === 'ic' ? 'on' : ''}`} onClick={() => setPage('ic')}>{Ico.aperture}<span>{t('navIC')}</span></button>
-        <button className={`nav ${page === 'ratio' ? 'on' : ''}`} onClick={() => setPage('ratio')}>{Ico.ratio}<span>{t('navRatio')}</span></button>
-        <button className={`nav ${page === 'wall' ? 'on' : ''}`} onClick={() => setPage('wall')}>{Ico.image}<span>{t('navWall')}</span></button>
+        <button className={`nav ${page === 'script' ? 'on' : ''}`} data-tour="nav-script" onClick={() => setPage('script')}>{Ico.tool}<span>{t('navScript')}</span></button>
+        <button className={`nav ${page === 'ic' ? 'on' : ''}`} data-tour="nav-ic" onClick={() => setPage('ic')}>{Ico.aperture}<span>{t('navIC')}</span></button>
+        <button className={`nav ${page === 'ratio' ? 'on' : ''}`} data-tour="nav-ratio" onClick={() => setPage('ratio')}>{Ico.ratio}<span>{t('navRatio')}</span></button>
+        <button className={`nav ${page === 'wall' ? 'on' : ''}`} data-tour="nav-wall" onClick={() => setPage('wall')}>{Ico.image}<span>{t('navWall')}</span></button>
       </nav>
       <div className="grow" />
-      <button className={`nav low ${page === 'copies' ? 'on' : ''}`} onClick={() => setPage('copies')}>{Ico.archive}<span>{t('navCopies')}</span></button>
+      <button className={`nav low ${page === 'copies' ? 'on' : ''}`} data-tour="nav-copies" onClick={() => setPage('copies')}>{Ico.archive}<span>{t('navCopies')}</span></button>
       <div className="side-props">
         <FirmwareRow />
         <Select<CameraModel>
-          variant="row" label={t('model')} lead={<span className="side-label">{t('model')}</span>} value={model} onChange={setModel}
+          variant="row" tour="model" label={t('model')} lead={<span className="side-label">{t('model')}</span>} value={model} onChange={setModel}
           options={MODELS.map((m) => ({ value: m, label: modelLabel(m) }))}
         />
         <Select<LangCode>
-          variant="row" label={t('language')} lead={<span className="side-label">{t('language')}</span>} value={lang} onChange={setLang}
+          variant="row" tour="language" label={t('language')} lead={<span className="side-label">{t('language')}</span>} value={lang} onChange={setLang}
           options={LANGS.map((l) => ({ value: l, label: LANG_LABEL[l] || l }))}
         />
       </div>
-      <button className="about-link" onClick={() => setAbout(true)}>v{host.info?.version || ''}</button>
+      <div className="side-foot">
+        <button className="about-link" onClick={() => setAbout(true)}>v{host.info?.version || ''}</button>
+        <span className="grow" />
+        <button className="help-btn" data-tour="help" title={t('tourReplay')} aria-label={t('tourReplay')} onClick={() => replayTour()}>{Ico.help}</button>
+      </div>
       {about && (
         <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setAbout(false); }}>
           <div className="dialog about" role="dialog" aria-modal="true">
@@ -63,13 +68,13 @@ function CopyActions() {
   const busy = useStore((s) => !!s.busy);
   const writable = useStore((s) => !!writableCopy(s) && s.volumes.some((v) => v.id === s.volumeId));
   return (
-    <>
+    <div className="out-actions" data-tour="copies-actions">
       {source === 'pc' && <button className="btn" title={t('copiesOpenFolder')} onClick={() => revealBackups()}>{Ico.folder}<span className="out-label">{t('copiesOpenFolder')}</span></button>}
       <button className="btn" disabled={busy || count === 0} onClick={() => { void deleteCopies(true); }}>{t('copiesDeleteAll')}</button>
       <button className="btn danger" disabled={busy || n === 0} onClick={() => { void deleteCopies(false); }}>{Ico.trash}<span>{t('copiesDelete')}{n ? ` ${n}` : ''}</span></button>
       {source === 'card' && <button className="btn" disabled={busy || n === 0} onClick={() => { void backupCopies(); }}>{t('copiesBackup')}{n ? ` ${n}` : ''}</button>}
       <button className="btn primary" disabled={busy || !writable} title={writable ? undefined : t('copiesPickOne')} onClick={() => { void writeCopy(); }}>{t('writeCard')}</button>
-    </>
+    </div>
   );
 }
 
@@ -83,13 +88,19 @@ function OutputBar() {
   const run = (kind: 'card' | 'folder'): void => { void (isIC ? outputFirmware({ kind }) : isWall ? outputWallpaper({ kind }) : outputEntry({ kind })); };
   return (
     <footer className="outbar">
+      <div className="out-card" data-tour="card">
       <span className="out-ico">{Ico.card}</span>
+      <Hint label={t('cardReqTitle')}>
+        <b>{t('cardReqTitle')}</b>
+        <span>{t('cardReq1')}</span><span>{t('cardReq2')}</span><span>{t('cardReq3')}</span><span>{t('cardReq4')}</span>
+      </Hint>
       <Select<string>
         variant="box" label={t('card')} value={vol?.id} placeholder={t('noCard')} onChange={selectVolume}
         options={s.volumes.map((v) => ({ value: v.id, label: `${v.id}${v.label && v.label !== v.id ? '  ' + v.label : ''}  ·  ${gb(v.total)}${v.fs && v.fs !== 'DEV' ? '  ·  ' + v.fs : ''}` }))}
         actions={[{ label: s.showAll ? t('showCardsOnly') : t('showAll'), run: () => setShowAll(!s.showAll) }]}
       />
       <button className="btn ghost icon-only" title={t('refresh')} aria-label={t('refresh')} onClick={() => { void refreshVolumes(); }}>{Ico.refresh}</button>
+      </div>
       <div className="out-chips">
         {vol && role && <span className="chip">{t(role)}</span>}
         {vol && s.entryOnCard && <span className="chip">{t('entryChip')}</span>}
@@ -100,8 +111,8 @@ function OutputBar() {
       {s.page !== 'copies' && canRestoreWall(s) && s.cardWall && (
         <button className="btn" title={`${t('restoreWall')} · ${t('restoreWallTip', { n: s.cardWall.names.length, d: new Date(s.cardWall.savedAt).toLocaleDateString(), c: s.cardWall.label })}`} onClick={() => { void restoreCardWall(); }}>{Ico.image}<span className="out-label">{t('restoreWall')}</span></button>
       )}
-      {s.page !== 'copies' && <button className="btn" disabled={!can} title={t('exportFolder')} onClick={() => run('folder')}>{Ico.folder}<span className="out-label">{t('exportFolder')}</span></button>}
-      {s.page !== 'copies' && <button className="btn primary" disabled={!can || !vol} onClick={() => run('card')}>{t('writeCard')}</button>}
+      {s.page !== 'copies' && <button className="btn" data-tour="export" disabled={!can} title={t('exportFolder')} onClick={() => run('folder')}>{Ico.folder}<span className="out-label">{t('exportFolder')}</span></button>}
+      {s.page !== 'copies' && <button className="btn primary" data-tour="write" disabled={!can || !vol} onClick={() => run('card')}>{t('writeCard')}</button>}
     </footer>
   );
 }
@@ -120,6 +131,7 @@ export function App() {
       <CropEditor />
       <FirmwareOnline />
       <ConfirmDialog />
+      <Tour />
       <Busy />
       <Toasts />
     </div>

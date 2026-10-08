@@ -79,23 +79,23 @@ export function CopiesPage() {
         <span className="page-icon">{Ico.archive}</span>
         <h1>{t('navCopies')}</h1>
         <div className="head-right">
-          <Segmented<CopySource> value={source} onChange={setCopySource} options={[{ value: 'card', label: `${t('copiesCardTab')}${nCard ? ` ${nCard}` : ''}` }, { value: 'pc', label: `${t('copiesPcTab')}${nPc ? ` ${nPc}` : ''}` }]} />
+          <Segmented<CopySource> tour="copies-tabs" value={source} onChange={setCopySource} options={[{ value: 'card', label: `${t('copiesCardTab')}${nCard ? ` ${nCard}` : ''}` }, { value: 'pc', label: `${t('copiesPcTab')}${nPc ? ` ${nPc}` : ''}` }]} />
         </div>
       </header>
-      <div className="copies">
+      <div className="copies" data-tour-page="copies">
         <div className="copies-bar">
-          <label className="check"><input type="checkbox" checked={allOn} disabled={list.length === 0} onChange={() => toggleCopies(list.map((e) => e.path), !allOn)} />{t('copiesAll')}</label>
+          <label className="check" data-tour="copies-all"><input type="checkbox" checked={allOn} disabled={list.length === 0} onChange={() => toggleCopies(list.map((e) => e.path), !allOn)} />{t('copiesAll')}</label>
           <span className="grow" />
           <span className="muted small">{sel.length ? t('copiesSelected', { n: sel.length, s: fmtSize(selSize) }) : list.length ? t('copiesCount', { n: list.length, s: fmtSize(total) }) : ''}</span>
         </div>
         {list.length === 0 && <div className="copies-empty">{source === 'pc' ? t('copiesEmptyPc') : hasCard ? t('copiesEmptyCard') : t('noCard')}</div>}
         {list.length > 0 && (
           <div className="copies-list">
-            {groups.map((g) => {
+            {groups.map((g, gi) => {
               const paths = g.items.map((e) => e.path);
               const on = paths.every((p) => selected.has(p));
               return (
-                <section key={g.folder} className="copy-group">
+                <section key={g.folder} className="copy-group" data-tour={gi === 0 ? 'copies-list' : undefined}>
                   <label className="copy-group-head">
                     <input type="checkbox" checked={on} onChange={() => toggleCopies(paths, !on)} />
                     <span>{folderLabel(g.folder)}</span>
