@@ -1,14 +1,14 @@
 import { LANGS } from '@grmod/core';
 import type { CameraModel, LangCode } from '@grmod/core';
-import { useState } from 'react';
-import { Busy, ConfirmDialog, Hint, Ico, Select, Toasts } from './components';
+import { useRef, useState } from 'react';
+import { Busy, ConfirmDialog, Hint, Ico, Select, Toasts, useDismiss } from './components';
 import { host } from './host';
 import { LANG_LABEL, t } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
 import { FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
 import { CropEditor, ImageControlPage, RatioPage, ScriptPage, WallpaperPage } from './pages';
-import { Tour, replayTour } from './tour';
+import { Tour, replayTour, restartTours } from './tour';
 import {
   backupCopies, extrasOn, canRestoreWall, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, outputEntry, outputFirmware, outputWallpaper, pendingChanges, refreshVolumes, restoreCardWall, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
 } from './store';
@@ -44,7 +44,7 @@ function Sidebar() {
       <div className="side-foot">
         <button className="about-link" onClick={() => setAbout(true)}>v{host.info?.version || ''}</button>
         <span className="grow" />
-        <button className="help-btn" data-tour="help" title={t('tourReplay')} aria-label={t('tourReplay')} onClick={() => replayTour()}>{Ico.help}</button>
+        <HelpMenu />
       </div>
       {about && (
         <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) setAbout(false); }}>
@@ -114,6 +114,24 @@ function OutputBar() {
       {s.page !== 'copies' && <button className="btn" data-tour="export" disabled={!can} title={t('exportFolder')} onClick={() => run('folder')}>{Ico.folder}<span className="out-label">{t('exportFolder')}</span></button>}
       {s.page !== 'copies' && <button className="btn primary" data-tour="write" disabled={!can || !vol} onClick={() => run('card')}>{t('writeCard')}</button>}
     </footer>
+  );
+}
+
+/** The ? button: this page's guide again (skippable), or every guide from the start as on first use. */
+function HelpMenu() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useDismiss(open, ref, () => setOpen(false));
+  return (
+    <div className="menu-wrap" ref={ref}>
+      <button className="help-btn" data-tour="help" title={t('tourHelp')} aria-label={t('tourHelp')} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>{Ico.help}</button>
+      {open && (
+        <div className="menu up" role="menu">
+          <button role="menuitem" onClick={() => { setOpen(false); replayTour(); }}>{t('tourReplay')}</button>
+          <button role="menuitem" onClick={() => { setOpen(false); restartTours(); }}>{t('tourRestart')}</button>
+        </div>
+      )}
+    </div>
   );
 }
 

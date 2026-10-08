@@ -6,7 +6,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { t } from './i18n';
 import type { Key } from './i18n';
-import { endTour, getState, startTour, tourStep, useStore } from './store';
+import { endTour, getState, resetTours, startTour, tourStep, useStore } from './store';
 import type { TourId } from './store';
 
 type Side = 'right' | 'left' | 'top' | 'bottom';
@@ -94,6 +94,8 @@ export function beginTour(id: TourId, replay: boolean): boolean {
   startTour(id, steps, replay);
   return true;
 }
+/** Every guide again as on first use: the overview now, each page's guide on its next visit (not skippable). */
+export function restartTours(): void { resetTours(); }
 /** The help button: the current page's tour again, or the overview while the page has nothing on it. */
 export function replayTour(): void {
   if (!beginTour(getState().page, true)) beginTour('overview', true);

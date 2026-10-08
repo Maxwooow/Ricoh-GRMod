@@ -132,10 +132,13 @@ svg { width: 18px; height: 18px; flex: none; }
 .pane { min-width: 0; min-height: 0; display: flex; flex-direction: column; border-radius: 8px; }
 .pane.drop-over { outline: 2px dashed var(--blue); outline-offset: 4px; }
 .pane-head { flex: none; display: flex; align-items: center; gap: 8px; height: 28px; margin-bottom: 10px; }
-.pane-body { flex: 1; min-height: 0; container-type: size; display: grid; place-items: start center; }
-.swatches { display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(4, 1fr); gap: 6px; width: min(100cqw, 150cqh); height: min(100cqh, 66.667cqw); }
+.pane-body { flex: 1; min-height: 0; container-type: size; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.pane-fit { flex: none; display: grid; place-items: start center; width: 100%; }
+.pane-below { flex: none; align-self: stretch; display: flex; }
+.pane-below > .extras { width: 100%; max-width: 440px; }
+.swatches { display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(4, 1fr); gap: 6px; width: min(100cqw, calc((100cqh - var(--below, 0px)) * 1.5)); height: min(calc(100cqh - var(--below, 0px)), 66.667cqw); }
 .swatch { display: grid; grid-template-rows: 1fr 1fr; border-radius: 6px; overflow: hidden; min-height: 0; }
-.compare { position: relative; aspect-ratio: var(--ar); width: min(100cqw, calc(100cqh * var(--ar))); border-radius: 8px; overflow: hidden; background: var(--stage); box-shadow: 0 0 0 1px var(--line); cursor: ew-resize; touch-action: none; }
+.compare { position: relative; aspect-ratio: var(--ar); width: min(100cqw, calc((100cqh - var(--below, 0px)) * var(--ar))); border-radius: 8px; overflow: hidden; background: var(--stage); box-shadow: 0 0 0 1px var(--line); cursor: ew-resize; touch-action: none; }
 .compare.plain { cursor: default; }
 .compare-img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .compare-line { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #fff; box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.35), 0 0 6px rgba(0, 0, 0, 0.35); outline: none; }
@@ -152,6 +155,7 @@ svg { width: 18px; height: 18px; flex: none; }
 .compare-empty svg { width: 26px; height: 26px; stroke-width: 1.3; }
 
 .menu-wrap { position: relative; }
+.menu.up { top: auto; bottom: 30px; }
 .menu { position: absolute; right: 0; top: 32px; min-width: 180px; background: var(--bg); border-radius: 8px; box-shadow: var(--shadow); padding: 4px; z-index: 30; }
 .menu button { display: block; width: 100%; text-align: left; border: 0; background: none; height: 30px; padding: 0 10px; border-radius: 5px; font-size: 13.5px; }
 .menu button:hover:not(:disabled) { background: var(--hover); }

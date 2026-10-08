@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { color, MAX_CUSTOM_RATIOS, SHUTDOWN_H, SHUTDOWN_W } from '@grmod/core';
 import type { SlotId } from '@grmod/core';
 import type { ReactNode } from 'react';
@@ -112,7 +112,8 @@ function Compare({ photo, after, label }: { photo: ImageData | null; after: Imag
 }
 
 /** The one preview of the page: it shows whichever slot is active and fills the space the window leaves. */
-function PreviewPane() {
+/** The preview; `below` (with its height in `belowH`) goes under the picture, which leaves room for it. */
+function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number }) {
   const mode = useStore((s) => s.previewMode);
   const active = useStore((s) => s.activeSlot);
   const params = useStore((s) => s.slots[s.activeSlot].preset?.result?.params);
@@ -123,7 +124,10 @@ function PreviewPane() {
         <span className="grow" />
         <Segmented tour="ic-mode" value={mode} onChange={setPreviewMode} options={[{ value: 'photo', label: t('previewPhoto') }, { value: 'swatch', label: t('previewSwatch') }]} />
       </div>
-      <div className="pane-body" data-tour="ic-preview" data-tour-fit="">{mode === 'photo' ? <PhotoCompare params={params} /> : <Swatches params={params} />}</div>
+      <div className="pane-body" style={{ '--below': below ? `${belowH + 10}px` : '0px' } as React.CSSProperties}>
+        <div className="pane-fit" data-tour="ic-preview" data-tour-fit="">{mode === 'photo' ? <PhotoCompare params={params} /> : <Swatches params={params} />}</div>
+        {below && <div className="pane-below">{below}</div>}
+      </div>
     </DropZone>
   );
 }
@@ -205,15 +209,78 @@ function FeatureRow({ icon, title, sub, on, onChange }: { icon: ReactNode; title
  * The additions that are not slots: soft focus on the ADJ lever (off / weak / medium / strong),
  * the date imprint with its menu, and the six monochrome looks (colour models only).
  */
-function FeatureSwitches({ mono }: { mono: boolean }) {
+function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: HTMLDivElement | null) => void; from?: React.MutableRefObject<DOMRect | null> }) {
   const soft = useStore((s) => s.soft);
   const date = useStore((s) => s.dateStamp);
   const looks = useStore((s) => s.monoUnlock);
+  const own = useRef<HTMLDivElement | null>(null);
+  // Moved to the other column: glide from where it was (FLIP). Rectangles are in window pixels,
+  // the transform is in the zoomed interface's pixels.
+  useLayoutEffect(() => {
+    const el = own.current; const r0 = from?.current;
+    if (!el || !r0 || !from) return;
+    from.current = null;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const r1 = el.getBoundingClientRect(); const k = uiScale();
+    const dx = (r0.left - r1.left) / k; const dy = (r0.top - r1.top) / k;
+    if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+    el.animate([{ transform: `translate(${dx}px, ${dy}px)`, opacity: 0.6 }, { transform: 'none', opacity: 1 }], { duration: 380, easing: 'cubic-bezier(0.22, 0.8, 0.24, 1)' });
+  }, [from]);
   return (
-    <div className="card extras" data-tour="ic-soft">
+    <div className="card extras" data-tour="ic-soft" ref={(el) => { own.current = el; boxRef?.(el); }}>
       <FeatureRow icon={Ico.soft} title={t('navSoft')} sub={t('softAdjSub')} on={soft} onChange={setSoft} />
       <FeatureRow icon={Ico.date} title={t('navDate')} sub={t('dateSub')} on={date} onChange={setDateStamp} />
       {!mono && <FeatureRow icon={Ico.mono} title={t('navMono')} sub={t('monoSub')} on={looks} onChange={setMonoUnlock} />}
+    </div>
+  );
+}
+
+type Place = 'left' | 'right';
+/**
+ * The two slot cards and the switches share the left column. When the column is too short for all
+ * three (a small window, a slot card grown by its preset or icon options), the switches move under
+ * the preview on the right, and back when there is room again.
+ */
+function IcBody() {
+  const cardsRef = useRef<HTMLDivElement>(null);
+  const boxRef = useRef<HTMLDivElement | null>(null);
+  const from = useRef<DOMRect | null>(null);
+  const boxH = useRef(0);
+  const [place, setPlace] = useState<Place>('left');
+  const [belowH, setBelowH] = useState(0);
+  const placeRef = useRef<Place>(place); placeRef.current = place;
+  useLayoutEffect(() => {
+    const cards = cardsRef.current;
+    if (!cards) return;
+    let first = true;
+    const ro = new ResizeObserver(() => measure());
+    function measure(): void {
+      const box = boxRef.current;
+      if (box) { boxH.current = box.offsetHeight; ro.observe(box); }
+      if (placeRef.current === 'right') setBelowH(boxH.current);
+      const gap = parseFloat(getComputedStyle(cards!).rowGap) || 0;
+      const kids = [...cards!.children].filter((c) => c !== box) as HTMLElement[];
+      kids.forEach((k) => ro.observe(k));
+      const used = kids.reduce((a, k) => a + k.offsetHeight, 0) + gap * Math.max(0, kids.length - 1);
+      const want: Place = used + gap + boxH.current <= cards!.clientHeight + 0.5 ? 'left' : 'right';
+      if (want !== placeRef.current) {
+        from.current = first || !box ? null : box.getBoundingClientRect();
+        placeRef.current = want;
+        setBelowH(boxH.current);
+        setPlace(want);
+      }
+      first = false;
+    }
+    ro.observe(cards);
+    measure();
+    return () => ro.disconnect();
+  }, []);
+  const setBox = (el: HTMLDivElement | null): void => { boxRef.current = el; };
+  const switches = <FeatureSwitches mono={false} boxRef={setBox} from={from} />;
+  return (
+    <div className="ic" data-tour-page="ic">
+      <div className="cards" ref={cardsRef}><SlotCard id="CY" /><SlotCard id="CG" />{place === 'left' && switches}</div>
+      <PreviewPane below={place === 'right' ? switches : undefined} belowH={belowH} />
     </div>
   );
 }
@@ -238,12 +305,7 @@ export function ImageControlPage() {
         )}
       </header>
       {!info && <FirmwareHero />}
-      {info && model !== 'MONO' && (
-        <div className="ic" data-tour-page="ic">
-          <div className="cards"><SlotCard id="CY" /><SlotCard id="CG" /><FeatureSwitches mono={false} /></div>
-          <PreviewPane />
-        </div>
-      )}
+      {info && model !== 'MONO' && <IcBody />}
       {info && model === 'MONO' && <div className="mono-ic" data-tour-page="ic"><p className="muted">{t('monoNoSlots')}</p><FeatureSwitches mono /></div>}
     </DropZone>
   );

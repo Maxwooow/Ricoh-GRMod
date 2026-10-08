@@ -182,6 +182,8 @@ export function tourStep(delta: 1 | -1): void {
   if (index >= tr.steps.length) { endTour(); return; }
   set({ tour: { ...tr, index } });
 }
+/** Forget which tours were seen (and stop the one running): they start by themselves again. */
+export function resetTours(): void { set({ tour: undefined, toursSeen: [] }); scheduleSave(); }
 /** Finished or skipped: either way it is not started by itself again. */
 export function endTour(): void {
   const tr = state.tour;
