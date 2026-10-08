@@ -214,6 +214,11 @@ for v in range(4):
     call(mu,h(0x28),(this,v)); check(f'set {v} -> byte', mu.mem_read(SF,1)[0], v)
     check(f'  is-current({v})', [call(mu,h(0x20),(this,i)) for i in range(4)], [1 if i==v else 0 for i in range(4)])
 call(mu,h(0x28),(this,7)); check('set 7 ignored', mu.mem_read(SF,1)[0], 3)
+mu.mem_write(SF,b'\x7a')
+check('byte 0x7a (left-over) reads as off', [call(mu,h(0x20),(this,i)) for i in range(4)], [1,0,0,0])
+check('  and is reset to 0', mu.mem_read(SF,1)[0], 0)
+mu.mem_write(SF,b'\x04')
+check('byte 4 reads as off', [call(mu,h(0x20),(this,i)) for i in range(4)], [1,0,0,0])
 # draw: capture text numbers
 got=[]
 stub(mu,0x53570a9c,lambda uc:0x70001000+uc.reg_read(R1))

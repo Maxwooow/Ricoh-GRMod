@@ -34,7 +34,8 @@
  *    (0x538A2000), now `<= 11`, and takes row `clarity + 4` of its stack copy of the table
  *    (0x538A2634); rows 9..11 are now taken from a table of the three soft-focus rows.
  *
- * Nothing here is reached unless the user puts soft focus on an ADJ slot, or sets the byte.
+ * Nothing here is reached unless the user puts soft focus on an ADJ slot, or sets the byte. A value
+ * outside 0..3 in the byte (it is padding the official firmware never sets) counts as off.
  */
 import { SOFT_FOCUS_GAINS, SOFT_FOCUS_STRENGTHS } from '../clarity';
 import { FirmwareError } from '../types';
@@ -208,8 +209,14 @@ export function installAdjSoftFocus(patch: Patch, iconbin: Uint8Array): Uint8Arr
      cmp r4, #0; moveq r6, #${VALUE_TEXTS[0]}; addne r6, r4, #${VALUE_TEXTS[1] - 1}
      item: ldr r0, [r5, #0x1f8]; uxtb r1, r4; bl #${LIST_ITEM}
      mov r1, r6; pop {r4, r5, r6, lr}; b #${ITEM_SET_TEXT}`, at), 16);
+  // The byte is alignment padding the official firmware never sets, so it may hold anything when
+  // soft focus is first put on an ADJ slot. Anything but 0..3 is taken as (and reset to) 0 (off):
+  // the list must always have exactly one current value. With none, the list view keeps the cursor
+  // of the previous function's list, which can be beyond the four items here (on the camera: the
+  // display breaks up and the camera switches off when ADJ is pressed).
   const isCurrent = patch.append((at) => assembleWords(
-    `movw r2, #${lo(B)}; movt r2, #${hi(B)}; ldrb r2, [r2]
+    `movw r3, #${lo(B)}; movt r3, #${hi(B)}; ldrb r2, [r3]
+     cmp r2, #3; movhi r2, #0; strbhi r2, [r3]
      cmp r2, r1; moveq r0, #1; movne r0, #0; bx lr`, at), 16);
   const set = patch.append((at) => assembleWords(
     `cmp r1, #3; bxhi lr
