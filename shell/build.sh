@@ -15,6 +15,23 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# ------------------------------------------------------------ Go version
+# Always build with the Go release named in go.mod ("toolchain go1.24.7"),
+# whatever Go is installed: the go command fetches that release when needed.
+# This keeps the binaries identical across machines and keeps the macOS
+# build runnable on macOS 11 (Go 1.25 and later require macOS 12 or 13,
+# which would contradict LSMinimumSystemVersion below).
+go_toolchain="$(sed -n 's/^toolchain[[:space:]]\{1,\}\(go[0-9.]*\)[[:space:]]*$/\1/p' go.mod)"
+if [ -z "$go_toolchain" ]; then
+  echo "build.sh: no toolchain line in go.mod" >&2; exit 2
+fi
+export GOTOOLCHAIN="$go_toolchain"
+go_actual="$(go env GOVERSION)"
+if [ "$go_actual" != "$go_toolchain" ]; then
+  echo "build.sh: need $go_toolchain, got $go_actual" >&2; exit 2
+fi
+echo "go:      $go_actual"
+
 target="${1:-}"
 case "$target" in
   dev|windows|mac|all) ;;
