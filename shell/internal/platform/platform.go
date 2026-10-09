@@ -60,6 +60,12 @@ func DataDirFor(goos string, getenv func(string) string, home string) (string, e
 		}
 		return "", errors.New("neither LOCALAPPDATA nor USERPROFILE is set")
 	}
+	if goos == "darwin" {
+		if strings.HasPrefix(home, "/") {
+			return strings.TrimRight(home, "/") + "/Library/Application Support/GRMod", nil
+		}
+		return "", errors.New("cannot determine the home directory")
+	}
 	if v := getenv("XDG_DATA_HOME"); strings.HasPrefix(v, "/") {
 		return strings.TrimRight(v, "/") + "/grmod", nil
 	}

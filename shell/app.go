@@ -241,5 +241,19 @@ func sidecarDir(flagValue string) string {
 	if real, err := filepath.EvalSymlinks(exe); err == nil {
 		exe = real
 	}
-	return filepath.Dir(exe)
+	return besideBundle(filepath.Dir(exe))
+}
+
+// besideBundle maps the executable's folder inside a macOS application
+// bundle (X.app/Contents/MacOS) to the folder that holds X.app, so that
+// "next to the program" means next to the app as the Finder shows it: a
+// file added inside the bundle would break its signature. Any other folder
+// is returned unchanged.
+func besideBundle(dir string) string {
+	contents := filepath.Dir(dir)
+	bundle := filepath.Dir(contents)
+	if filepath.Base(dir) == "MacOS" && filepath.Base(contents) == "Contents" && strings.HasSuffix(bundle, ".app") {
+		return filepath.Dir(bundle)
+	}
+	return dir
 }

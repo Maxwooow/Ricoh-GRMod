@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strconv"
 	"strings"
 	"time"
 )
@@ -51,4 +52,19 @@ func edgeArgs(url, userDataDir string) []string {
 		"--no-first-run",
 		"--no-default-browser-check",
 	}
+}
+
+// chromiumLockPID extracts the process ID from the target of a Chromium
+// profile's SingletonLock link, which is "<host name>-<pid>"; 0 when there
+// is none.
+func chromiumLockPID(target string) int {
+	i := strings.LastIndexByte(target, '-')
+	if i < 0 {
+		return 0
+	}
+	pid, err := strconv.Atoi(target[i+1:])
+	if err != nil || pid <= 0 {
+		return 0
+	}
+	return pid
 }

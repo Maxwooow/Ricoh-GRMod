@@ -4,6 +4,7 @@ A small desktop shell for the GR Mod web UI, written in pure Go (no cgo).
 
 - Serves the UI (HTML/JS built elsewhere) from files embedded in the executable.
 - On Windows it shows the UI in a native WebView2 window, falling back to Microsoft Edge in app mode and then to the default browser.
+- On macOS it opens the UI as an "app" window of a Chromium-based browser (Chrome, Edge, Brave, Chromium, Vivaldi) with a profile of its own, or in the default browser, and stops after the window is closed. The bundle is an agent (`LSUIElement`), so it has no Dock icon of its own.
 - Gives the page a local HTTP API for what a web page cannot do: listing removable drives, reading and writing files on a memory card, a native folder picker, a key/value store, fetching the official firmware from Ricoh's site.
 - On Linux the same program runs headless, so the API can be developed against and tested without Windows.
 
@@ -12,10 +13,12 @@ A small desktop shell for the GR Mod web UI, written in pure Go (no cgo).
 ```sh
 ./build.sh dev        # dist/grmod-dev   Linux, headless
 ./build.sh windows    # dist/GRMod.exe   Windows x64, single file, no console window
+./build.sh mac        # dist/GR Mod.app + dist/GRMod-mac.zip   macOS 11+, universal (amd64 + arm64)
 ./build.sh all
 ```
 
-- Requires Go 1.24. Nothing else: the Windows build is cross-compiled with `CGO_ENABLED=0`.
+- Requires Go 1.24. Nothing else: the Windows and macOS builds are cross-compiled with `CGO_ENABLED=0`.
+- The macOS bundle is assembled without Apple tools: the two architectures are joined with `go tool makefat` (github.com/randall77/makefat, a `tool` in go.mod), the icon comes from `go run ./tools/genicon -icns`, `Info.plist` is written by `build.sh`, and `tools/zipapp` zips the bundle with its file modes. It is signed ad hoc when [rcodesign](https://github.com/indygreg/apple-platform-rs) is on the `PATH` (or named by `$RCODESIGN`); Apple silicon refuses to start unsigned bundles. There is no Developer ID signature and no notarisation, so Gatekeeper asks the user to confirm the first start.
 - The version is `$VERSION`, else the `version` of `../package.json`, else `0.0.0`. It is compiled in with `-X main.version=…`.
 - If `../ui/dist/index.html` exists, `web/` is first replaced by a copy of `../ui/dist/`. Otherwise the current `web/` is kept; if there is none, the placeholder page from `placeholder/` is used.
 - `web/` must contain an `index.html` for the package to compile (`//go:embed all:web`). The repository ignores `shell/web`, so in a fresh checkout run `./build.sh dev` once before `go build` or `go test`.
@@ -27,6 +30,7 @@ A small desktop shell for the GR Mod web UI, written in pure Go (no cgo).
 ```sh
 go test ./...                                  # unit and integration tests
 GOOS=windows GOARCH=amd64 go vet ./...          # the Windows build compiles and vets
+GOOS=darwin GOARCH=arm64 go vet ./...           # the macOS build compiles and vets
 ./build.sh dev && ./smoke.sh                   # end-to-end with curl against the dev build
 ```
 
@@ -37,21 +41,21 @@ GOOS=windows GOARCH=amd64 go vet ./...          # the Windows build compiles and
 | `--port N` | Listen on port N of 127.0.0.1. Default: the port of the previous run if it is free, else a free port. |
 | `--token T` | Use T as the API token. Default: 32 random hex characters per run. |
 | `--web DIR` | Serve the UI from DIR on disk instead of the embedded files (development). |
-| `--data DIR` | Data directory. Default: `%LOCALAPPDATA%\GRMod` on Windows, `$XDG_DATA_HOME/grmod` or `~/.local/share/grmod` elsewhere. |
+| `--data DIR` | Data directory. Default: `%LOCALAPPDATA%\GRMod` on Windows, `~/Library/Application Support/GRMod` on macOS, `$XDG_DATA_HOME/grmod` or `~/.local/share/grmod` elsewhere. |
 | `--browser` | Windows: skip WebView2 and open the UI in Edge app mode (or the default browser). |
 | `--devtools` | Windows: enable the developer tools and the context menu in the WebView2 window. |
 | `--version` | Print the version and exit. |
 
 The development build prints one line, `LISTEN http://127.0.0.1:<port>/ TOKEN <token>`, and serves until it gets SIGINT or SIGTERM. Its volumes are the directories in `GRMOD_DEV_VOLUMES` (separated like `PATH`), and its folder picker "picks" `GRMOD_DEV_PICK`. `GRMOD_FIRMWARE_SITE` replaces the address of Ricoh's site (a local stand-in for tests), and the addresses the page asks to show in a browser are appended to the file named by `GRMOD_DEV_OPENED`. Neither variable is read by the Windows build.
 
-Data directory contents: `log.txt` (rotated to `log.txt.1` above 1 MB; requests, paths and errors, never file contents or the token), `crash.txt` (trace of a Go runtime crash, normally empty), `port`, `store/`, and on Windows the browser profiles `webview/` and `edge/`.
+Data directory contents: `log.txt` (rotated to `log.txt.1` above 1 MB; requests, paths and errors, never file contents or the token), `crash.txt` (trace of a Go runtime crash, normally empty), `port`, `store/`, and the browser profiles: `webview/` and `edge/` on Windows, `browser/` on macOS.
 
 ## How the page talks to the shell
 
 The page loads `<script src="/host.js">`, which sets
 
 ```js
-window.__GRMOD_HOST__ = {"kind":"windows|dev","token":"…","version":"…","os":"windows|linux|…"};
+window.__GRMOD_HOST__ = {"kind":"windows|mac|dev","token":"…","version":"…","os":"windows|linux|…"};
 ```
 
 and sends the token with every API request in the header `X-GRMod-Token`.
@@ -164,3 +168,16 @@ Nothing Windows-specific can be executed on the Linux build machine. Things to v
 9. Eject: afterwards Explorer shows the reader as empty or the drive as gone; with a file from the card open in another program it fails and the card stays usable.
 10. Paths: `\\?\E:\x`, `E:\x.`, `E:\x:stream`, `E:\..\..\Windows` and a junction on an NTFS volume pointing to `C:\Windows` are all refused with 403.
 11. Online firmware: the dialog shows version 1.11 with its date and size, the download ends with the firmware open (compare with a manual download: SHA-256 `a2f664df…5655f`), "cancel" during the download stops it, and the licence line opens Ricoh's page in the default browser. Repeat with a system proxy switched on (Settings > Network > Proxy), and offline (a message and "retry", no hang).
+
+## Checking the macOS build on a real Mac
+
+Nothing macOS-specific can be executed on the Linux build machine either. Things to verify by hand, on Apple silicon and on an Intel Mac if possible:
+
+1. Unzip `GRMod-mac.zip` (Finder), move `GR Mod.app` to Applications, double-click. macOS blocks it the first time; System Settings › Privacy & Security › "Open Anyway" starts it. The icon shows in the Finder.
+2. With Chrome (or Edge/Brave) installed, an app window without an address bar opens with the UI. Without any of them, the default browser opens a tab. Closing the window ends GR Mod within about 20 s (Activity Monitor), and the extra browser instance quits with it, also when an instance left over from a killed run took the window over.
+3. Insert an SD card (built-in slot and a USB reader): macOS asks for access to removable volumes once; after allowing, the card is listed with its name, `FAT32`, size and bus (`SD` or `USB`). `Macintosh HD`, mounted disk images (.dmg), Time Machine disks and network shares never appear, also not with `all=1`; a Thunderbolt SSD appears only with `all=1`.
+4. Write firmware and power-off images to the card and check them in the camera. `ls -la@ /Volumes/<card>` shows no `._` files next to what GR Mod wrote.
+5. Folder picker: the system "choose folder" dialog opens and the folder becomes usable; exporting to Desktop or Documents works after macOS asks for access.
+6. Reveal: the Finder opens with the file selected, and opens a folder.
+7. Eject: the card disappears from the Finder; with a file from the card open in another program it fails and the card stays mounted.
+8. Online firmware works, also with a system proxy (System Settings › Network › Proxies) and offline.

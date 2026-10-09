@@ -18,3 +18,5 @@ require (
 	github.com/randall77/makefat v0.0.0-20210315173500-7ddd0e42c844 // indirect
 	golang.org/x/image v0.20.0 // indirect
 )
+
+tool github.com/randall77/makefat

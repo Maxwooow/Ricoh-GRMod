@@ -3,17 +3,22 @@
 #
 #   ./build.sh dev       -> dist/grmod-dev   (Linux, headless, for development and tests)
 #   ./build.sh windows   -> dist/GRMod.exe   (Windows x64, single file, no console)
-#   ./build.sh all       -> both
+#   ./build.sh mac       -> dist/GR Mod.app and dist/GRMod-mac.zip
+#                           (macOS 11 or later, Intel and Apple silicon in one)
+#   ./build.sh all       -> all three
 #
 # The version comes from $VERSION, else from ../package.json, else 0.0.0.
-# Everything is pure Go: no C compiler and no Windows machine are needed.
+# Everything is pure Go: no C compiler, no Windows machine and no Mac are
+# needed. The Mac bundle is signed ad hoc when rcodesign
+# (https://github.com/indygreg/apple-platform-rs) is on the PATH or in
+# $RCODESIGN; it is not signed with a Developer ID nor notarised.
 set -euo pipefail
 cd "$(dirname "$0")"
 
 target="${1:-}"
 case "$target" in
-  dev|windows|all) ;;
-  *) echo "usage: $0 dev|windows|all" >&2; exit 2 ;;
+  dev|windows|mac|all) ;;
+  *) echo "usage: $0 dev|windows|mac|all" >&2; exit 2 ;;
 esac
 
 # ---------------------------------------------------------------- version
@@ -88,8 +93,97 @@ build_windows() {
   fi
 }
 
+# write_info_plist FILE writes the bundle's Info.plist.
+write_info_plist() {
+  cat > "$1" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>zh_CN</string>
+	<key>CFBundleDisplayName</key>
+	<string>GR Mod</string>
+	<key>CFBundleExecutable</key>
+	<string>GRMod</string>
+	<key>CFBundleIconFile</key>
+	<string>GRMod</string>
+	<key>CFBundleIdentifier</key>
+	<string>io.github.maxwooow.grmod</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>GR Mod</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>${version}</string>
+	<key>CFBundleVersion</key>
+	<string>${version}</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.photography</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>11.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>GR Mod · GPL-2.0-only</string>
+	<key>NSRemovableVolumesUsageDescription</key>
+	<string>GR Mod 需要读写存储卡，才能写入固件和关机画面。GR Mod reads and writes the memory card to install firmware and power-off images.</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>GR Mod 会把文件导出到你选择的文件夹。GR Mod exports files to the folder you choose.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>GR Mod 会把文件导出到你选择的文件夹。GR Mod exports files to the folder you choose.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>GR Mod 会把文件导出到你选择的文件夹。GR Mod exports files to the folder you choose.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>GR Mod 用系统对话框让你选择导出文件夹。GR Mod uses the system dialog to let you choose an export folder.</string>
+</dict>
+</plist>
+PLIST
+}
+
+build_mac() {
+  local app="dist/GR Mod.app" tmp="dist/.mac"
+  rm -rf "$tmp" "$app" dist/GRMod-mac.zip
+  mkdir -p "$tmp" "$app/Contents/MacOS" "$app/Contents/Resources"
+  for arch in amd64 arm64; do
+    GOOS=darwin GOARCH="$arch" CGO_ENABLED=0 go build -trimpath \
+      -ldflags "-s -w -X main.version=${version}" \
+      -o "$tmp/GRMod-$arch" .
+  done
+  # One executable for Intel and Apple silicon.
+  go tool makefat "$app/Contents/MacOS/GRMod" "$tmp/GRMod-amd64" "$tmp/GRMod-arm64"
+  chmod 755 "$app/Contents/MacOS/GRMod"
+  rm -rf "$tmp"
+  go run ./tools/genicon -out "" -icns "$app/Contents/Resources/GRMod.icns" >/dev/null
+  write_info_plist "$app/Contents/Info.plist"
+  printf 'APPL????' > "$app/Contents/PkgInfo"
+
+  local rcodesign="${RCODESIGN:-$(command -v rcodesign || true)}"
+  if [ -n "$rcodesign" ] && [ -x "$rcodesign" ]; then
+    if ! out="$("$rcodesign" sign "$app" 2>&1)"; then
+      echo "$out" >&2
+      echo "build.sh: signing failed" >&2
+      exit 1
+    fi
+    echo "signed:  ad hoc (rcodesign)"
+  else
+    echo "signed:  WARNING: rcodesign not found, the bundle is NOT signed;" >&2
+    echo "         Apple silicon Macs refuse unsigned bundles as \"damaged\"" >&2
+  fi
+  go run ./tools/zipapp -out dist/GRMod-mac.zip "$app" >/dev/null
+  echo "built:   dist/GR Mod.app, dist/GRMod-mac.zip ($(wc -c < dist/GRMod-mac.zip | tr -d ' ') bytes, version ${version})"
+  if command -v sha256sum >/dev/null 2>&1; then
+    echo "sha256:  $(sha256sum dist/GRMod-mac.zip | cut -d' ' -f1)"
+  fi
+}
+
 case "$target" in
   dev)     build_dev ;;
   windows) build_windows ;;
-  all)     build_dev; build_windows ;;
+  mac)     build_mac ;;
+  all)     build_dev; build_windows; build_mac ;;
 esac

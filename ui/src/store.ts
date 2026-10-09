@@ -554,6 +554,8 @@ async function readCardWall(root: string, l: card.CardListing): Promise<card.Wal
   const index = idx && idx.size > 0 && idx.size <= 16 ? await host.read(host.join(root, idx.name)) : undefined;
   return { script, images, index };
 }
+/** The desktop builds (Windows, macOS) can eject a card; the development build cannot. */
+const canEject = (): boolean => host.info?.kind === 'windows' || host.info?.kind === 'mac';
 const volumeLabel = (v: Volume): string => `${v.id}${v.label && v.label !== v.id ? ' ' + v.label : ''}`;
 export function canRestoreWall(s: State = state): boolean {
   return !!s.cardWall && !!s.info && !s.busy && s.volumes.some((v) => v.id === s.volumeId) && s.role !== undefined && s.role !== 'wallpaper';
@@ -574,7 +576,7 @@ export async function restoreCardWall(): Promise<void> {
     const moved = await runPlan(v.root, plan);
     set({ busy: undefined });
     const text = t('wallRestored', { n: images.length }) + (moved ? ` · ${t('parked', { n: moved })}` : '');
-    if (host.info?.kind === 'windows') toast(text, 'ok', { label: t('eject'), run: () => { host.eject(v.id).then(() => { toast(t('ejected'), 'ok'); void refreshVolumes(); }).catch(fail); } });
+    if (canEject()) toast(text, 'ok', { label: t('eject'), run: () => { host.eject(v.id).then(() => { toast(t('ejected'), 'ok'); void refreshVolumes(); }).catch(fail); } });
     else toast(text, 'ok');
   } catch (e) { set({ busy: undefined }); fail(e); }
   void refreshVolumes();
@@ -666,7 +668,7 @@ async function destination(dest: Dest): Promise<{ root: string; volume?: Volume 
 }
 function doneToast(root: string, volume: Volume | undefined, moved: number, file: string, kept = false): void {
   const text = (volume ? t('written', { p: host.join(root, file) }) : t('exported', { p: root })) + (kept ? ` · ${t('wallKept')}` : moved ? ` · ${t('parked', { n: moved })}` : '');
-  if (volume && host.info?.kind === 'windows') {
+  if (volume && canEject()) {
     toast(text, 'ok', { label: t('eject'), run: () => { host.eject(volume.id).then(() => { toast(t('ejected'), 'ok'); void refreshVolumes(); }).catch(fail); } });
   } else toast(text, 'ok', { label: t('reveal'), run: () => { void host.reveal(host.join(root, file)); } });
 }

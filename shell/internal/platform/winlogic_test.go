@@ -182,7 +182,9 @@ func TestDataDirFor(t *testing.T) {
 		{"linux", map[string]string{"XDG_DATA_HOME": "/data/xdg/"}, "/home/me", "/data/xdg/grmod"},
 		{"linux", map[string]string{"XDG_DATA_HOME": "relative"}, "/home/me", "/home/me/.local/share/grmod"}, // must be absolute per the XDG spec
 		{"linux", map[string]string{}, "/home/me", "/home/me/.local/share/grmod"},
-		{"darwin", map[string]string{}, "/Users/me/", "/Users/me/.local/share/grmod"},
+		{"darwin", map[string]string{}, "/Users/me/", "/Users/me/Library/Application Support/GRMod"},
+		{"darwin", map[string]string{"XDG_DATA_HOME": "/data/xdg"}, "/Users/me", "/Users/me/Library/Application Support/GRMod"},
+		{"darwin", map[string]string{}, "", ""},
 		{"linux", map[string]string{}, "", ""},
 	}
 	for _, c := range cases {

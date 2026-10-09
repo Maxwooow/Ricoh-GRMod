@@ -11,10 +11,14 @@
 //
 // writes icon16.png, icon32.png, icon48.png and icon256.png, which
 // winres/winres.json turns into the icon resource of the executable. With
-// -preview FILE it also writes a contact sheet of all sizes.
+// -preview FILE it also writes a contact sheet of all sizes, and with
+// -icns FILE the macOS icon file (the rounded square inset in its canvas the
+// way macOS icons are drawn).
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
 	"flag"
 	"fmt"
 	"image"
@@ -362,10 +366,65 @@ func writePNG(name string, img image.Image) {
 	fmt.Println("wrote", name)
 }
 
+// macIcon draws the icon for a macOS canvas of the given size: the rounded
+// square takes about 80 % of it, centred, as in Apple's icon grid.
+func macIcon(size int) *image.NRGBA {
+	inner := int(math.Round(float64(size) * 824 / 1024))
+	if inner < 1 {
+		inner = 1
+	}
+	canvas := image.NewNRGBA(image.Rect(0, 0, size, size))
+	off := (size - inner) / 2
+	draw.Draw(canvas, image.Rect(off, off, off+inner, off+inner), render(inner), image.Point{}, draw.Over)
+	return canvas
+}
+
+// writeICNS writes an .icns file made of PNG images. Each entry is a
+// four-character type, a big-endian length (header included) and the PNG.
+func writeICNS(name string) {
+	entries := []struct {
+		typ  string
+		size int
+	}{
+		{"icp4", 16}, {"icp5", 32}, {"ic11", 32}, {"ic12", 64},
+		{"ic07", 128}, {"ic13", 256}, {"ic08", 256}, {"ic14", 512},
+		{"ic09", 512}, {"ic10", 1024},
+	}
+	cache := map[int][]byte{}
+	var body []byte
+	for _, e := range entries {
+		data, ok := cache[e.size]
+		if !ok {
+			var buf bytes.Buffer
+			if err := png.Encode(&buf, macIcon(e.size)); err != nil {
+				log.Fatal(err)
+			}
+			data = buf.Bytes()
+			cache[e.size] = data
+		}
+		body = append(body, e.typ...)
+		body = binary.BigEndian.AppendUint32(body, uint32(8+len(data)))
+		body = append(body, data...)
+	}
+	file := append([]byte("icns"), binary.BigEndian.AppendUint32(nil, uint32(8+len(body)))...)
+	file = append(file, body...)
+	if err := os.WriteFile(name, file, 0o644); err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("wrote", name)
+}
+
 func main() {
 	out := flag.String("out", "winres", "output directory")
 	preview := flag.String("preview", "", "also write a contact sheet of all sizes to this file")
+	icns := flag.String("icns", "", "also write the macOS icon (.icns) to this file")
 	flag.Parse()
+	if *icns != "" {
+		writeICNS(*icns)
+		if *out == "" {
+			return
+		}
+	}
 	if err := os.MkdirAll(*out, 0o755); err != nil {
 		log.Fatal(err)
 	}

@@ -1,4 +1,4 @@
-// The platform behind the page. On Windows this is the GRMod shell's local HTTP API; another
+// The platform behind the page. On Windows and macOS this is the GRMod shell's local HTTP API; another
 // platform (Android) would provide the same interface with its own implementation.
 export interface HostInfo { kind: string; token: string; version: string; os: string }
 export interface Volume { id: string; root: string; label: string; fs: string; total: number; free: number; removable: boolean; bus: string }
