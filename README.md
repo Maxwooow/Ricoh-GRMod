@@ -57,4 +57,4 @@ GR Mod is free software, licensed under the GNU General Public License version 2
 
 - The aspect-ratio compiler under `core/src/fw/aspect/` and `tools/aspect/` is a port of [DoYitNow/gr-custom-tool](https://github.com/DoYitNow/gr-custom-tool) (GPL-2.0-only); `third_party/gr-custom-tool/NOTICE.md` lists what is derived from it, and the C sources in `third_party/gr-custom-tool/native/` keep their own copyright lines.
 - The monochrome looks follow the method of [lemonadesaltbagel/GR4-MonoUnlock](https://github.com/lemonadesaltbagel/GR4-MonoUnlock); no code of that project is included.
-- Not covered by the licence: the sample picture `ui/src/assets/preview.jpg` (DPReview's studio test scene, included with DPReview's permission), and Ricoh's firmware, which is not part of this repository (the program reads it from the user or downloads it from Ricoh's site under Ricoh's own licence terms).
+- Not covered by the licence: the sample picture `ui/src/assets/preview.jpg` , and Ricoh's firmware, which is not part of this repository (the program reads it from the user or downloads it from Ricoh's site under Ricoh's own licence terms).
