@@ -46,6 +46,7 @@ svg { width: 18px; height: 18px; flex: none; }
 .side-label { color: var(--muted); font-size: 12.5px; flex: none; }
 .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); display: inline-block; }
 .dot.ok { background: #4dab7a; }
+.dot.warn { background: var(--amber); }
 
 /* The content panel sits inside the frame formed by the title bar and the sidebar. */
 .main { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--bg); border-top-left-radius: 10px; border-left: 1px solid var(--line); border-top: 1px solid var(--line); overflow: hidden; }
@@ -376,3 +377,18 @@ button.fw-rel:disabled { cursor: default; }
 .tour-count { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
 /* what only shows under the pointer is shown while the tour points at it */
 [data-tour-on] .wall-actions, [data-tour-on] .ratio-x, [data-tour-on] .compare-swap { opacity: 1; }
+
+/* 1.12 bridge firmware */
+.pop-sep { height: 1px; margin: 4px 6px; background: var(--line); }
+.pop-item:disabled { opacity: 0.45; }
+.dialog.bridge { width: 500px; }
+.dialog.bridge h3 small { font-weight: 400; font-size: 13px; margin-left: 4px; }
+.dialog.bridge .dialog-warn { margin-bottom: 12px; }
+.bridge-body { margin: 0 0 6px; font-size: 13.5px; line-height: 1.65; user-select: text; }
+.bridge-wait { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bridge-ring { width: 14px; height: 14px; border-radius: 50%; background: conic-gradient(var(--amber) var(--p), var(--line2) 0); -webkit-mask: radial-gradient(circle, transparent 4px, #000 4.5px); mask: radial-gradient(circle, transparent 4px, #000 4.5px); }
+.bridge-banner { display: flex; align-items: center; gap: 10px; margin: 10px 14px 0; padding: 8px 10px 8px 12px; border-radius: 8px; background: var(--amber-bg); color: var(--amber); font-size: 13px; flex: none; }
+.bridge-banner-ico { display: grid; flex: none; }
+.bridge-banner-ico svg { width: 18px; height: 18px; }
+.bridge-banner-text { flex: 1; min-width: 0; }
+.bridge-banner .btn { flex: none; }

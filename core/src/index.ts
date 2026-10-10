@@ -10,7 +10,7 @@ export { JpegError } from './jpeg';
 export type { LangCode, SlotId, NameValidation } from './fw';
 export type { CameraModel } from './wallpaper';
 export type { Sampling } from './jpeg';
-export { FIRMWARE_VERSION, LANGS, SLOTS, ICON_W, ICON_H, OFFICIAL_CLARITY, SOFT_FOCUS_GAINS, SOFT_FOCUS_LEVELS, SOFT_FOCUS_STRENGTHS } from './fw';
+export { BRIDGE_VERSION, FIRMWARE_VERSION, LANGS, SLOTS, ICON_W, ICON_H, OFFICIAL_CLARITY, SOFT_FOCUS_GAINS, SOFT_FOCUS_LEVELS, SOFT_FOCUS_STRENGTHS } from './fw';
 export type { ClarityChange, SoftFocusLevel, SoftFocusStrength } from './fw';
 export type { BuiltRatio, RatioSpec } from './fw';
 export { MAX_CUSTOM_RATIOS, MAX_NAME_LENGTH, validateRatioName } from './fw';

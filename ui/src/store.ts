@@ -51,6 +51,10 @@ export interface State {
   volumes: Volume[]; showAll: boolean; volumeId?: string; role?: card.CardRole; entryOnCard: boolean;
   copySource: CopySource; parked: ParkedEntry[]; backups: ParkedEntry[]; copySel: string[]; copyInfo: Record<string, CopyInfo>; builds: BuildRecord[];
   busy?: string; toasts: Toast[]; confirm?: Confirm; cropId?: string; onlineOpen: boolean;
+  /** Why the download dialog is open, when it says so: the bridge firmware is open, or one is to be made and no firmware is open. */
+  onlineReason?: 'bridge-loaded' | 'bridge-base';
+  /** The bridge firmware dialog; `bridgeAfter` is where the bridge goes once a downloaded official file is open. */
+  bridgeOpen: boolean; bridgeAfter?: Dest;
   tour?: TourState; toursSeen: TourId[];
 }
 
@@ -58,7 +62,7 @@ const SLOT_IDS: SlotId[] = ['CY', 'CG'];
 const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '', style: 'film' } });
 let state: State = {
   ready: false, page: 'script', fwBusy: false, model: 'HDF', lang: 'zh-CN',
-  slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false,
+  slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false, bridgeOpen: false,
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
@@ -209,6 +213,7 @@ async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Pr
   try {
     const info = await engine.open(raw);
     set({ info, raw, fwName: name, fwBusy: false });
+    if (info.bridge && persist) toast(t('bridgeOpened'), 'info');
     if (persist) { await host.storeSet('firmware.bin', raw); scheduleSave(); }
     for (const id of SLOT_IDS) {
       void renderIcon(id);
@@ -230,13 +235,22 @@ export async function loadFirmwareFile(file: File): Promise<void> {
   await openFirmware(new Uint8Array(await file.arrayBuffer()), file.name, true);
 }
 /** The dialog that fetches the official firmware from Ricoh's site. */
-export function setOnlineOpen(onlineOpen: boolean): void { set({ onlineOpen }); }
+export function setOnlineOpen(onlineOpen: boolean, reason?: State['onlineReason']): void {
+  set({ onlineOpen, onlineReason: onlineOpen ? reason : undefined, ...(onlineOpen ? {} : { bridgeAfter: undefined }) });
+}
 /** Take over a firmware file the shell downloaded; true when it is now the open firmware. */
 export async function adoptFirmware(name: string, version: string, data: Uint8Array): Promise<boolean> {
+  const after = state.bridgeAfter;
   const ok = await openFirmware(data, name, true);
   if (ok) toast(t('fwDownloaded', { v: version || state.info?.version || '' }), 'ok');
+  if (ok && after) { set({ bridgeAfter: undefined }); setTimeout(() => { void outputBridge(after); }, 0); }
   return ok;
 }
+/** True while the open firmware is the 1.12 bridge firmware: nothing is written until the official one is open. */
+export const bridgeLoaded = (s: State = state): boolean => !!s.info?.bridge;
+/** What a write or export does while the bridge firmware is open: offer the official download instead. */
+export function askForOfficial(): void { setOnlineOpen(true, 'bridge-loaded'); }
+export function setBridgeOpen(bridgeOpen: boolean): void { set({ bridgeOpen }); }
 
 // ------------------------------------------------------------------ presets
 const PRESET_ERRORS: Record<string, Key> = {
@@ -688,6 +702,7 @@ async function firmwareToCard(volume: Volume, file: Uint8Array): Promise<{ moved
 
 export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   if (state.busy || !state.info || !state.raw) return;
+  if (bridgeLoaded()) { askForOfficial(); return; }
   const changes = stock ? [] : pendingChanges();
   const ratios = stock ? [] : ratioSpecs();
   const soft = !stock && softOn();
@@ -725,6 +740,28 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   void refreshVolumes();
 }
 
+/**
+ * Write the 1.12 bridge firmware (made from the official file, see core `fw/bridge.ts`). With no
+ * firmware open, the official one is downloaded first and the write continues after it.
+ */
+export async function outputBridge(dest: Dest): Promise<void> {
+  if (state.busy) return;
+  if (!state.info) { set({ bridgeAfter: dest }); setOnlineOpen(true, 'bridge-base'); return; }
+  const target = await destination(dest);
+  if (!target) return;
+  try {
+    set({ busy: t('building') });
+    const file = await engine.bridge();
+    set({ busy: t('writing') });
+    let moved = 0; let kept = false;
+    if (target.volume) ({ moved, kept } = await firmwareToCard(target.volume, file));
+    else await runPlan(target.root, [{ op: 'write', path: [card.FIRMWARE_FILE], data: file }]);
+    set({ busy: undefined });
+    doneToast(target.root, target.volume, moved, card.FIRMWARE_FILE, kept);
+  } catch (e) { set({ busy: undefined }); fail(e); }
+  void refreshVolumes();
+}
+
 // ------------------------------------------------------------------ factory-menu entry (to switch Script on)
 // Nothing takes these files off the card on request: the next firmware or power-off image write moves them aside.
 const entryNames = (): readonly string[] => state.info?.factoryEntry.files.map((f) => f.name) || card.FACTORY_ENTRY_FILES;
@@ -732,6 +769,7 @@ const entryNames = (): readonly string[] => state.info?.factoryEntry.files.map((
 export async function outputEntry(dest: Dest): Promise<void> {
   const info = state.info;
   if (state.busy || !info) return;
+  if (bridgeLoaded()) { askForOfficial(); return; }
   const target = await destination(dest);
   if (!target) return;
   try {
@@ -750,6 +788,7 @@ export function wallReady(s: State = state): boolean {
 }
 export async function outputWallpaper(dest: Dest): Promise<void> {
   if (state.busy || !state.info) return;
+  if (bridgeLoaded()) { askForOfficial(); return; }
   if (!wallReady()) { toast(t('nothingToDo'), 'info'); return; }
   const target = await destination(dest);
   if (!target) return;
@@ -909,6 +948,7 @@ export function writableCopy(s: State = state): { entry: ParkedEntry; summary: F
 /** A one-line description of a firmware copy, for the confirmation. */
 export function describeCopy(summary: FirmwareSummary, s: State = state): string[] {
   if (summary.kind === 'official') return [t('copyOfficial')];
+  if (summary.kind === 'bridge') return [t('copyBridge')];
   const build = s.builds.find((b) => b.sha256 === summary.sha256);
   const lines = summary.slots.map((sl) => {
     const preset = build?.slots.find((x) => x.id === sl.id)?.preset;
@@ -926,7 +966,9 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
 export async function writeCopy(): Promise<void> {
   const pick = writableCopy(); const source = state.copySource;
   const v = state.volumes.find((x) => x.id === state.volumeId);
-  if (state.busy || !pick || !state.info) return;
+  if (state.busy || !state.info) return;
+  if (bridgeLoaded()) { askForOfficial(); return; }
+  if (!pick) return;
   if (!v) { toast(t('noCard'), 'error'); return; }
   if (!(await ask(t('confirmTitle'), describeCopy(pick.summary), t('confirmOk')))) return;
   try {

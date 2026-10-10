@@ -31,6 +31,7 @@ function FirmwareLine({ info, builds, lang, name }: { info: CopyInfo | undefined
   if (!info || info.busy) return <><span className="copy-file">{Ico.chip}</span><div className="copy-text"><div className="copy-title">{name}</div><div className="copy-sub">{info?.busy && <><span className="spinner small" />{t('copyReading')}</>}</div></div></>;
   const s = info.summary;
   if (!s || s.kind === 'unknown') return <><span className="copy-file">{Ico.chip}</span><div className="copy-text"><div className="copy-title">{name}</div><div className="copy-sub"><span className="chip warn tiny">{t('copyUnknown')}</span></div></div></>;
+  if (s.kind === 'bridge') return <><span className="copy-file">{Ico.bridge}</span><div className="copy-text"><div className="copy-title">{name}</div><div className="copy-sub"><span className="chip warn tiny">{t('copyBridge')}</span></div></div></>;
   const build = builds.find((b) => b.sha256 === s.sha256);
   return (
     <>

@@ -293,7 +293,9 @@ export function ImageControlPage() {
         <h1>{t('navIC')}</h1>
         {info && (
           <div className="head-right" data-tour="ic-stock">
-            <span className="chip ok">{Ico.check}<span className="ellipsis">{fwName || 'fwdc248b.bin'} · {info.version}</span></span>
+            {info.bridge
+              ? <span className="chip warn">{Ico.bridge}<span className="ellipsis">{fwName || 'fwdc248b.bin'} · {t('fwBridgeValue')}</span></span>
+              : <span className="chip ok">{Ico.check}<span className="ellipsis">{fwName || 'fwdc248b.bin'} · {info.version}</span></span>}
             <Menu items={[
               { label: t('writeStock'), run: () => { void outputFirmware({ kind: 'card' }, true); } },
               { label: t('exportStock'), run: () => { void outputFirmware({ kind: 'folder' }, true); } },
@@ -455,9 +457,7 @@ function WallCard({ w, index }: { w: WallItem; index: number }) {
       </div>
       <div className="wall-meta">
         <span className="ellipsis">{w.name}</span>
-        {w.quality !== undefined && w.quality < 25 && <span className="chip warn tiny">{t('lowQuality')}</span>}
         {!!w.grain && <span className="chip tiny">{t('grain')}</span>}
-        {!!w.soften && <span className="chip warn tiny">{t('softened')}</span>}
       </div>
     </div>
   );

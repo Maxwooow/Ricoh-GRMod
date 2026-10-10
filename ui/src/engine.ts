@@ -34,5 +34,7 @@ export const engine = {
   script: (model: CameraModel, count: number) => call<string>({ type: 'script', model, count }),
   /** What a firmware file is; the buffer is handed over to the worker. */
   inspect: (raw: Uint8Array) => call<FirmwareSummary>({ type: 'inspect', raw: raw.buffer }, [raw.buffer as ArrayBuffer]),
+  /** The 1.12 bridge firmware, made from the open official file. */
+  bridge: () => call<Uint8Array>({ type: 'bridge' }),
   heartbeat: (token: string) => call<boolean>({ type: 'heartbeat', token }),
 };
