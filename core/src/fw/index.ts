@@ -81,6 +81,6 @@ export type { FactoryEntry } from './factory';
 
 export * as aspect from './aspect';
 export { BRIDGE_FULL_VERSION, BRIDGE_SHA256, BRIDGE_SIZE, BRIDGE_VERSION, applyPatch, isBridgeFirmware, makeBridgeFirmware, officialFromBridge } from './bridge';
-export { MAX_CUSTOM_RATIOS, MAX_NAME_LENGTH, gr4Sizes, planRatio, planRatios, ratioText, validateRatioName } from './aspect';
-export type { ExtensionFeatures, RatioEntry, RatioGeometry, RatioSpec } from './aspect';
-export { readBuildRevision, readExtensionFeatures, readRatioRecord } from './aspect/package';
+export { EXTRA_NAME_MAX, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, MAX_NAME_LENGTH, gr4Sizes, planRatio, planRatios, ratioText, validateExtraSlotName, validateRatioName } from './aspect';
+export type { ExtensionFeatures, ExtraSlotSpec, RatioEntry, RatioGeometry, RatioSpec } from './aspect';
+export { readBuildRevision, readExtensionFeatures, readExtraSlotCount, readRatioRecord } from './aspect/package';

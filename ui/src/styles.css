@@ -392,3 +392,21 @@ button.fw-rel:disabled { cursor: default; }
 .bridge-banner-ico svg { width: 18px; height: 18px; }
 .bridge-banner-text { flex: 1; min-width: 0; }
 .bridge-banner .btn { flex: none; }
+
+/* added Image Control slots */
+.cards { overflow-y: auto; }
+.seg-scroll { min-width: 0; flex: 0 1 auto; overflow-x: auto; scrollbar-width: none; }
+.seg-scroll::-webkit-scrollbar { display: none; }
+.seg-scroll .seg { white-space: nowrap; }
+.extras-head { padding: 8px 14px; }
+.extras-row { display: flex; align-items: center; gap: 12px; }
+.extras-row .soft-text { flex: 1; min-width: 0; }
+.extras-note { margin: 8px 0 2px; line-height: 1.5; }
+.extra-x { flex: none; align-self: flex-start; }
+.extra-problem { margin-top: 6px; }
+.extras-row .soft-ico { width: 32px; height: 32px; flex: none; }
+.extras-count { margin: 8px 0 2px 44px; }
+.extras-count .seg { display: flex; width: 100%; }
+.extras-count .seg button { flex: 1; padding: 0 6px; }
+.pane-head > .seg { flex: none; }
+.pane-head .seg button, .extras-count .seg button { white-space: nowrap; }

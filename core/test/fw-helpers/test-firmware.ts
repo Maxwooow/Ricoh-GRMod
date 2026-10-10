@@ -51,7 +51,7 @@ const NAMES: Record<string, [string, string]> = { 'zh-CN': ['暖调', '冷调'],
 export function testPresetRequests(eng: Engine): SlotEdit[] {
   const presets = [['CY', WARM(), '1', 'Warm Test'], ['CG', COOL(), '2', 'Cool Test']] as const;
   return presets.map(([slot, text, ch, en], i) => {
-    const p = eng.convertPreset('cube', text);
+    const p = eng.convertPreset('cube', text, undefined, { post: false }); // as built for the camera tests (no post-curve matrix)
     const names: Record<string, string> = {};
     for (const lang of fw.LANGS) {
       const t = NAMES[lang]?.[i] ?? en;

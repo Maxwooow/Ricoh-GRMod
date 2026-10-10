@@ -36,6 +36,7 @@ import {
   readName,
   readBuildRevision,
   readExtensionFeatures,
+  readExtraSlotCount,
   readRatioRecord,
   resolveLayout,
   sectionsOf,
@@ -50,7 +51,7 @@ import {
   SOFT_FOCUS_STRENGTHS,
   clarityChanges,
 } from '../fw';
-import type { BuildResult, BuiltRatio, ClarityChange, ClarityEdit, SoftFocusLevel, SoftFocusStrength, FactoryEntry, LangCode, Layout, NameValidation, Range, RatioSpec, SlotEdit, SlotId } from '../fw';
+import type { BuildResult, BuiltRatio, ClarityChange, ClarityEdit, ExtraSlotSpec, SoftFocusLevel, SoftFocusStrength, FactoryEntry, LangCode, Layout, NameValidation, Range, RatioSpec, SlotEdit, SlotId } from '../fw';
 import { grownRanges, growPayload } from '../fw/aspect/package';
 import { BRIDGE_SHA256, BRIDGE_SIZE, isBridgeFirmware, makeBridgeFirmware, officialFromBridge } from '../fw/bridge';
 import { convertCube, convertXmp, quantizeSlot } from '../color';
@@ -107,6 +108,8 @@ export interface PresetResult {
   params: SlotParams;
   matrixQ13: Int16Array;
   curves: [Uint16Array, Uint16Array, Uint16Array];
+  /** The post-curve ("second") matrix in Q9, rows summing to 512. */
+  postQ9?: Int16Array;
 }
 
 export interface SlotRequest {
@@ -175,6 +178,8 @@ export interface FirmwareSummary {
   dateStamp: boolean;
   /** True when the file unlocks the six looks of the GR IV Monochrome. */
   monoUnlock: boolean;
+  /** Image Control slots the file adds (empty when none, or when they cannot be read). */
+  extraSlots: { name: string; icon: Uint8Array }[];
 }
 
 /** Additions besides the slots and the ratios. */
@@ -185,6 +190,8 @@ export interface BuildOptions {
   dateStamp?: boolean;
   /** The six black-and-white looks of the GR IV Monochrome. */
   monoUnlock?: boolean;
+  /** Added Image Control slots (1 to 6), after the factory ones. */
+  extraSlots?: ExtraSlotSpec[];
   /** Test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
   dateStampFixed?: number;
   /** Test builds only: print the encoder configuration on the 720x480 picture. */
@@ -343,7 +350,7 @@ export class Engine {
    */
   async inspect(raw: Uint8Array): Promise<FirmwareSummary> {
     const sha256 = await sha256Hex(raw);
-    if (raw.length === BRIDGE_SIZE && sha256 === BRIDGE_SHA256) return { sha256, kind: 'bridge', changedBytes: 0, verified: true, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false };
+    if (raw.length === BRIDGE_SIZE && sha256 === BRIDGE_SHA256) return { sha256, kind: 'bridge', changedBytes: 0, verified: true, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false, extraSlots: [] };
     const describe = (d: Uint8Array): FirmwareSummary['slots'] =>
       SLOTS.map((s) => {
         const names = {} as Record<LangCode, string>;
@@ -359,7 +366,7 @@ export class Engine {
         const iconChanged = !equalRange(d, s.iconOffset, this.decoded, s.iconOffset, icon.length);
         return { id: s.id, names, icon, colorChanged, nameChanged, iconChanged };
       });
-    if (sha256 === this.info.sha256) return { sha256, kind: 'official', changedBytes: 0, verified: true, slots: describe(this.decoded), ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false };
+    if (sha256 === this.info.sha256) return { sha256, kind: 'official', changedBytes: 0, verified: true, slots: describe(this.decoded), ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false, extraSlots: [] };
     try {
       const fw = new Firmware(raw);
       if (!equalRange(fw.header, 0, this.raw, 0, fw.header.length)) throw new Error('not 1.11');
@@ -371,9 +378,9 @@ export class Engine {
       const allowed = monoUnlock ? [...this.editable, ...this.monoWords.map((w) => ({ what: 'monochrome looks', offset: w.offset, length: 4 }))] : this.editable;
       const checks = selfCheck(this.raw, raw, allowed);
       const verified = Object.values(checks).every((v) => v === true);
-      return { sha256, kind: 'modified', changedBytes: countChangedBytes(fw.decoded, this.decoded), verified, slots: describe(fw.decoded), ratios: [], softFocus: clarityChanges(fw.decoded), adjSoftFocus: false, dateStamp: false, monoUnlock };
+      return { sha256, kind: 'modified', changedBytes: countChangedBytes(fw.decoded, this.decoded), verified, slots: describe(fw.decoded), ratios: [], softFocus: clarityChanges(fw.decoded), adjSoftFocus: false, dateStamp: false, monoUnlock, extraSlots: [] };
     } catch {
-      return { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false };
+      return { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false, extraSlots: [] };
     }
   }
 
@@ -384,7 +391,7 @@ export class Engine {
    * payload, and the file passes the self-check for grown files.
    */
   private inspectGrown(sha256: string, raw: Uint8Array, dec: Uint8Array, describe: (d: Uint8Array) => FirmwareSummary['slots']): FirmwareSummary {
-    const unknown: FirmwareSummary = { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false };
+    const unknown: FirmwareSummary = { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false, extraSlots: [] };
     const so = sectionsOf(this.decoded);
     const sn = sectionsOf(dec);
     if (so.length !== sn.length) return unknown;
@@ -411,6 +418,14 @@ export class Engine {
     aligned.set(this.decoded.subarray(ICONBIN_OFFSET - 4, ICONBIN_OFFSET), ICONBIN_OFFSET - 4);
     const specs = readRatioRecord(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth));
     const features = readExtensionFeatures(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? {};
+    // Added slots: their data is read back from the file and built again like everything else.
+    const extraCount = readExtraSlotCount(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? 0;
+    if (extraCount > 0) {
+      const iconStart = ICONBIN_OFFSET + rtosGrowth;
+      const slots = aspect.readExtraSlots(dec.slice(RTOS_OFFSET, rtosEnd + rtosGrowth), dec.subarray(iconStart, iconStart + ICONBIN_LENGTH + iconGrowth), extraCount);
+      if (!slots) return { ...unknown, kind: 'modified' };
+      features.extraSlots = slots;
+    }
     // Files of GR Mod 0.2.x are revision 1; they are checked against what that revision builds.
     const revision = readBuildRevision(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? 1;
     const modified = (verified: boolean, ratios: BuiltRatio[], slotsFrom: Uint8Array): FirmwareSummary => ({
@@ -418,6 +433,7 @@ export class Engine {
       adjSoftFocus: !!features.adjSoftFocus,
       dateStamp: !!features.dateStamp,
       monoUnlock: !!features.monoUnlock,
+      extraSlots: (features.extraSlots ?? []).map((x) => ({ name: x.name, icon: x.icon })),
     });
     if (!specs) return modified(false, [], aligned);
     let ratios: BuiltRatio[] = [];
@@ -533,10 +549,15 @@ export class Engine {
     return this.raw;
   }
 
-  convertPreset(kind: 'xmp' | 'cube', text: string, onProgress?: (f: number) => void): PresetResult {
-    const c = kind === 'xmp' ? convertXmp(text, { onProgress }) : convertCube(text, { onProgress });
+  /**
+   * Fit a preset to a slot: matrix, curves and (unless `post` is false) the post-curve matrix.
+   * Without it the result is what GR Mod 0.6.1 and earlier made.
+   */
+  convertPreset(kind: 'xmp' | 'cube', text: string, onProgress?: (f: number) => void, options: { post?: boolean } = {}): PresetResult {
+    const post = options.post !== false;
+    const c = kind === 'xmp' ? convertXmp(text, { onProgress, post }) : convertCube(text, { onProgress, post });
     const q = quantizeSlot(c.params, this.mStdQ13);
-    return { kind: c.kind, title: c.title, meanDE: c.meanDE, p95DE: c.p95DE, warnings: c.warnings, unsupported: c.unsupported, params: c.params, matrixQ13: q.matrixQ13, curves: q.curves };
+    return { kind: c.kind, title: c.title, meanDE: c.meanDE, p95DE: c.p95DE, warnings: c.warnings, unsupported: c.unsupported, params: c.params, matrixQ13: q.matrixQ13, curves: q.curves, ...(q.postQ9 ? { postQ9: q.postQ9 } : {}) };
   }
 
   validateName(slot: SlotId, lang: LangCode, text: string): NameValidation {
@@ -564,10 +585,12 @@ export class Engine {
     const adjSoftFocus = !!(options && options.adjSoftFocus);
     const dateStamp = !!(options && options.dateStamp);
     const monoUnlock = !!(options && options.monoUnlock);
+    const extraSlots = options && options.extraSlots ? options.extraSlots : [];
     if (adjSoftFocus && clarity.length > 0) throw new FirmwareError('bad-clarity', 'soft focus on the ADJ lever and on the clarity table cannot be combined');
     if (dateStamp && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the date imprint cannot be combined with the clarity-table soft focus of 0.4.x');
-    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock) throw new FirmwareError('bad-edit', 'nothing to change');
-    const features = { adjSoftFocus, ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}) };
+    if (extraSlots.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'added slots cannot be combined with the clarity-table soft focus of 0.4.x');
+    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0) throw new FirmwareError('bad-edit', 'nothing to change');
+    const features = { adjSoftFocus, ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}) };
     const test = options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {};
     const { decoded: _decoded, ...rest } = await buildFirmware(this.raw, edits, ratios, clarity, features, test);
     return rest;

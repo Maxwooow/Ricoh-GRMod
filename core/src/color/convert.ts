@@ -23,6 +23,8 @@ export interface Conversion {
 
 export interface ConvertOptions {
   onProgress?: (fraction: number) => void;
+  /** Fit the post-curve ("second") matrix as well (default true). */
+  post?: boolean;
 }
 
 const subProgress = (opts: ConvertOptions | undefined, from: number, to: number) =>
@@ -38,11 +40,11 @@ export function convertXmp(text: string, opts?: ConvertOptions): Conversion {
   opts?.onProgress?.(0.05);
   const target = new FullLook(look).apply(Float64Array.from(CAL_ADOBE));
   opts?.onProgress?.(0.1);
-  const fit = fitSlot(Float64Array.from(CAL_CAM), target, { onProgress: subProgress(opts, 0.1, 1) });
+  const fit = fitSlot(Float64Array.from(CAL_CAM), target, { onProgress: subProgress(opts, 0.1, 1), post: opts?.post !== false });
   return {
     kind: 'xmp',
     title: look.title,
-    params: { M1: fit.M1, ck: fit.ck },
+    params: fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck },
     meanDE: fit.meanDE,
     p95DE: fit.p95DE,
     warnings: look.warnings.slice(),
@@ -162,11 +164,11 @@ export function convertCube(text: string, opts?: ConvertOptions): Conversion {
   const P = cubeFitSamples();
   const target = applyCube(cube, P);
   opts?.onProgress?.(0.1);
-  const fit = fitSlot(P, target, { onProgress: subProgress(opts, 0.1, 1) });
+  const fit = fitSlot(P, target, { onProgress: subProgress(opts, 0.1, 1), post: opts?.post !== false });
   return {
     kind: 'cube',
     title: cube.title,
-    params: { M1: fit.M1, ck: fit.ck },
+    params: fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck },
     meanDE: fit.meanDE,
     p95DE: fit.p95DE,
     warnings: [],

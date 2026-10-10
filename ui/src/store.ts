@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import { card, LANGS, MAX_CUSTOM_RATIOS, validateRatioName } from '@grmod/core';
-import type { CameraModel, ClarityChange, FirmwareInfo, FirmwareSummary, LangCode, PresetResult, RatioPreview, RatioSpec, SlotId, SlotRequest, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
+import { card, LANGS, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, validateExtraSlotName, validateRatioName } from '@grmod/core';
+import type { CameraModel, ClarityChange, ExtraSlotSpec, FirmwareInfo, FirmwareSummary, LangCode, PresetResult, RatioPreview, RatioSpec, SlotId, SlotRequest, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
 import { engine, EngineError } from './engine';
 import { host, HostError, sha256Hex } from './host';
 import type { ParkedEntry, Volume } from './host';
@@ -17,6 +17,13 @@ export interface RatioItem { id: string; ratio: string; name: string; preview?: 
 export interface PresetState { fileName: string; kind: 'xmp' | 'cube'; text: string; busy: boolean; result?: PresetResult; error?: string }
 export interface IconState { mode: 'keep' | 'text' | 'image'; text: string; style: 'film' | 'plain'; image?: string; pixels?: Uint8Array }
 export interface SlotState { preset?: PresetState; names: Partial<Record<LangCode, string>>; icon: IconState }
+/**
+ * An added Image Control slot (style 34, 35, ... in the camera): `key` is `x-` and a random id;
+ * `name` as typed (empty: the default name of its place), one name for every language.
+ */
+export interface ExtraSlot { key: string; name: string; preset?: PresetState; icon: IconState }
+/** A factory Cinema slot (`CY`, `CG`) or the key of an added slot. */
+export type SlotKey = SlotId | string;
 export interface WallItem {
   id: string; name: string; kind: 'image' | 'factory'; blob?: Blob; width: number; height: number; crop: Crop;
   busy: boolean; error?: string; data?: Uint8Array; quality?: number; grain?: number; soften?: number; preview?: Uint8Array;
@@ -47,7 +54,9 @@ export interface State {
   wall: WallItem[];
   ratios: RatioItem[]; activeRatio?: string; ratioBackdrop: RatioBackdrop;
   soft: boolean; dateStamp: boolean; monoUnlock: boolean;
-  previewMode: PreviewMode; photoRev: number; cardWall?: CardWall; activeSlot: SlotId;
+  previewMode: PreviewMode; photoRev: number; cardWall?: CardWall; activeSlot: SlotKey;
+  /** Added Image Control slots, in the camera's order (none by default). */
+  extras: ExtraSlot[];
   volumes: Volume[]; showAll: boolean; volumeId?: string; role?: card.CardRole; entryOnCard: boolean;
   copySource: CopySource; parked: ParkedEntry[]; backups: ParkedEntry[]; copySel: string[]; copyInfo: Record<string, CopyInfo>; builds: BuildRecord[];
   busy?: string; toasts: Toast[]; confirm?: Confirm; cropId?: string; onlineOpen: boolean;
@@ -62,7 +71,7 @@ const SLOT_IDS: SlotId[] = ['CY', 'CG'];
 const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '', style: 'film' } });
 let state: State = {
   ready: false, page: 'script', fwBusy: false, model: 'HDF', lang: 'zh-CN',
-  slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false, bridgeOpen: false,
+  slots: { CY: emptySlot(), CG: emptySlot() }, extras: [], wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false, bridgeOpen: false,
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
@@ -76,6 +85,15 @@ export function useStore<T>(sel: (s: State) => T): T {
 }
 function setSlot(id: SlotId, patch: Partial<SlotState> | ((s: SlotState) => Partial<SlotState>)): void {
   set((s) => ({ slots: { ...s.slots, [id]: { ...s.slots[id], ...(typeof patch === 'function' ? patch(s.slots[id]) : patch) } } }));
+}
+const isExtra = (k: SlotKey): boolean => k.startsWith('x-');
+/** The preset and icon of a factory or an added slot. */
+export function slotOf(k: SlotKey, s: State = state): { preset?: PresetState; icon: IconState } | undefined {
+  return isExtra(k) ? s.extras.find((x) => x.key === k) : s.slots[k as SlotId];
+}
+function patchSlot(k: SlotKey, patch: { preset?: PresetState; icon?: IconState } | ((s: { preset?: PresetState; icon: IconState }) => { preset?: PresetState; icon?: IconState })): void {
+  if (!isExtra(k)) { setSlot(k as SlotId, patch as Partial<SlotState>); return; }
+  set((s) => ({ extras: s.extras.map((x) => (x.key === k ? { ...x, ...(typeof patch === 'function' ? patch(x) : patch) } : x)) }));
 }
 function setWall(id: string, patch: Partial<WallItem>): void {
   set((s) => ({ wall: s.wall.map((w) => (w.id === id ? { ...w, ...patch } : w)) }));
@@ -116,6 +134,7 @@ async function saveProject(): Promise<void> {
       names: s.slots[id].names,
       icon: { mode: s.slots[id].icon.mode, text: s.slots[id].icon.text, style: s.slots[id].icon.style, image: s.slots[id].icon.image },
     }])),
+    extras: s.extras.map((x) => ({ key: x.key, name: x.name, preset: x.preset ? { fileName: x.preset.fileName, kind: x.preset.kind } : null, icon: { mode: x.icon.mode, text: x.icon.text, style: x.icon.style, image: x.icon.image } })),
     wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: w.kind, width: w.width, height: w.height, crop: w.crop })),
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
     soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock,
@@ -141,10 +160,13 @@ export async function init(): Promise<void> {
         slots[id].names = d.names || {};
         if (d.icon) slots[id].icon = { mode: d.icon.mode || 'keep', text: d.icon.text || '', style: d.icon.style || 'film', image: d.icon.image };
       }
+      const extras: ExtraSlot[] = (Array.isArray(doc.extras) ? doc.extras : []).slice(0, MAX_EXTRA_SLOTS)
+        .filter((x: ExtraSlot) => x && typeof x.key === 'string' && /^x-[a-z0-9]{1,12}$/.test(x.key))
+        .map((x: ExtraSlot) => ({ key: x.key, name: String(x.name || '').slice(0, 40), icon: { mode: x.icon?.mode === 'image' ? 'image' : 'text', text: String(x.icon?.text ?? ''), style: x.icon?.style === 'plain' ? 'plain' : 'film', image: x.icon?.image } }));
       const ratios: RatioItem[] = (Array.isArray(doc.ratios) ? doc.ratios : []).slice(0, MAX_CUSTOM_RATIOS)
         .filter((r: RatioItem) => r && typeof r.id === 'string' && typeof r.ratio === 'string')
         .map((r: RatioItem) => ({ id: r.id, ratio: r.ratio.slice(0, 24), name: String(r.name || '').slice(0, 80) }));
-      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : doc.page === 'soft' ? 'ic' : 'script', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo', cardWall: validCardWall(doc.cardWall),
+      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : doc.page === 'soft' ? 'ic' : 'script', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, extras, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo', cardWall: validCardWall(doc.cardWall),
         soft: doc.soft === true || (!!doc.softFocus && typeof doc.softFocus === 'object' && Object.keys(doc.softFocus).length > 0),
         dateStamp: doc.dateStamp === true, monoUnlock: doc.monoUnlock === true,
         toursSeen: TOUR_IDS.filter((id) => Array.isArray(doc.tours) && doc.tours.includes(id)) });
@@ -155,6 +177,12 @@ export async function init(): Promise<void> {
         if (!p) continue;
         const text = await host.storeGet('preset-' + id.toLowerCase());
         if (text) void runPreset(id, p.fileName, p.kind, new TextDecoder().decode(text));
+      }
+      for (const x of extras) {
+        const p = (doc.extras as { key: string; preset?: { fileName: string; kind: 'xmp' | 'cube' } | null }[]).find((d) => d.key === x.key)?.preset;
+        if (!p) continue;
+        const text = await host.storeGet('preset-' + x.key);
+        if (text) void runPreset(x.key, p.fileName, p.kind === 'xmp' ? 'xmp' : 'cube', new TextDecoder().decode(text));
       }
       const wall: WallItem[] = [];
       for (const w of doc.wall || []) {
@@ -169,7 +197,7 @@ export async function init(): Promise<void> {
   set({ ready: true });
   void refreshVolumes();
   setInterval(() => { if (!document.hidden && !state.busy) void refreshVolumes(); }, 2500);
-  for (const id of SLOT_IDS) void renderIcon(id);
+  for (const id of allSlotKeys()) void renderIcon(id);
 }
 
 // ------------------------------------------------------------------ guided tours
@@ -215,9 +243,9 @@ async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Pr
     set({ info, raw, fwName: name, fwBusy: false });
     if (info.bridge && persist) toast(t('bridgeOpened'), 'info');
     if (persist) { await host.storeSet('firmware.bin', raw); scheduleSave(); }
-    for (const id of SLOT_IDS) {
+    for (const id of allSlotKeys()) {
       void renderIcon(id);
-      const p = state.slots[id].preset;
+      const p = slotOf(id)?.preset;
       if (p && !p.result && !p.busy) void runPreset(id, p.fileName, p.kind, p.text);
     }
     for (const w of state.wall) void encodeWall(w.id);
@@ -257,16 +285,17 @@ const PRESET_ERRORS: Record<string, Key> = {
   'not-xmp': 'errNotXmp', 'no-table': 'errNoTable', 'look-profile-missing': 'errLookMissing', 'unsupported-table': 'errUnsupportedTable', 'bad-table': 'errUnsupportedTable',
   'not-cube': 'errNotXmp', 'bad-cube': 'errBadCube',
 };
-async function runPreset(id: SlotId, fileName: string, kind: 'xmp' | 'cube', text: string): Promise<void> {
-  setSlot(id, { preset: { fileName, kind, text, busy: !!state.info } });
+async function runPreset(id: SlotKey, fileName: string, kind: 'xmp' | 'cube', text: string): Promise<void> {
+  patchSlot(id, { preset: { fileName, kind, text, busy: !!state.info } });
   if (!state.info) return;
   try {
     const result = await engine.convert(kind, text);
-    if (state.slots[id].preset?.text !== text) return; // replaced meanwhile
-    setSlot(id, { preset: { fileName, kind, text, busy: false, result } });
+    if (slotOf(id)?.preset?.text !== text) return; // replaced or removed meanwhile
+    patchSlot(id, { preset: { fileName, kind, text, busy: false, result } });
   } catch (e) {
+    if (slotOf(id)?.preset?.text !== text) return;
     const code = e instanceof EngineError ? e.code : '';
-    setSlot(id, { preset: { fileName, kind, text, busy: false, error: PRESET_ERRORS[code] ? t(PRESET_ERRORS[code]) : t('errNotXmp') } });
+    patchSlot(id, { preset: { fileName, kind, text, busy: false, error: PRESET_ERRORS[code] ? t(PRESET_ERRORS[code]) : t('errNotXmp') } });
   }
 }
 /** Text of a preset file whatever its encoding: UTF-8, UTF-16 (with or without BOM) or GB18030. */
@@ -280,7 +309,7 @@ export function decodeText(buf: Uint8Array): string {
   try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { /* not UTF-8 */ }
   try { return new TextDecoder('gb18030').decode(buf); } catch { return new TextDecoder('utf-8').decode(buf); }
 }
-export async function loadPresetFile(id: SlotId, file: File): Promise<void> {
+export async function loadPresetFile(id: SlotKey, file: File): Promise<void> {
   if (file.size > 120_000_000) { toast(t('errTooBig'), 'error'); return; }
   const text = decodeText(new Uint8Array(await file.arrayBuffer()));
   const lower = file.name.toLowerCase();
@@ -290,9 +319,65 @@ export async function loadPresetFile(id: SlotId, file: File): Promise<void> {
   await runPreset(id, file.name, kind, text);
   scheduleSave();
 }
-export function removePreset(id: SlotId): void {
-  setSlot(id, { preset: undefined });
+export function removePreset(id: SlotKey): void {
+  patchSlot(id, { preset: undefined });
   if (host.available) void host.storeDel('preset-' + id.toLowerCase()).catch(() => undefined);
+  scheduleSave();
+}
+
+// ------------------------------------------------------------------ added slots
+/** Every slot key: the two Cinema slots, then the added ones. */
+export function allSlotKeys(s: State = state): SlotKey[] { return [...SLOT_IDS, ...s.extras.map((x) => x.key)]; }
+/** The name an added slot gets in the camera: what was typed, else `GR Mod <place>`. */
+export function extraName(x: ExtraSlot, s: State = state): string {
+  const i = s.extras.findIndex((e) => e.key === x.key);
+  return x.name.trim() || `GR Mod ${i + 1}`;
+}
+const EXTRA_NAME_PROBLEMS: Record<string, Key> = { 'too-long': 'extraNameLong', 'bad-char': 'extraNameBad', empty: 'extraNameBad' };
+export function extraNameProblem(x: ExtraSlot, s: State = state): string | null {
+  const p = validateExtraSlotName(extraName(x, s));
+  return p ? t(EXTRA_NAME_PROBLEMS[p]) : null;
+}
+/** Why an added slot cannot be built yet (null when it can). */
+export function extraProblem(x: ExtraSlot, s: State = state): string | null {
+  const n = extraNameProblem(x, s);
+  if (n) return n;
+  if (!x.preset) return t('extraNeedsPreset');
+  if (x.preset.busy) return t('converting');
+  if (x.preset.error || !x.preset.result) return x.preset.error || t('extraNeedsPreset');
+  if (!x.icon.pixels) return t('extraNeedsIcon');
+  return null;
+}
+export function hasExtraErrors(s: State = state): boolean { return s.model !== 'MONO' && s.extras.some((x) => !!extraProblem(x, s)); }
+/** What the added slots give the build (none on the Monochrome, which has no colour looks). */
+export function extraSpecs(s: State = state): ExtraSlotSpec[] {
+  if (s.model === 'MONO') return [];
+  return s.extras.map((x) => {
+    const r = x.preset!.result!;
+    return { name: extraName(x, s), matrixQ13: r.matrixQ13, curves: r.curves, ...(r.postQ9 ? { postQ9: r.postQ9 } : {}), icon: x.icon.pixels! };
+  });
+}
+export function addExtraSlot(): void {
+  if (state.extras.length >= MAX_EXTRA_SLOTS) { toast(t('extraMax', { n: MAX_EXTRA_SLOTS }), 'info'); return; }
+  const key = 'x-' + Math.random().toString(36).slice(2, 10);
+  const n = state.extras.length + 1;
+  set((s) => ({ extras: [...s.extras, { key, name: '', icon: { mode: 'text', text: `GR${n}`, style: 'film' } }] }));
+  void renderIcon(key);
+  scheduleSave();
+}
+export function removeExtraSlot(key: string): void {
+  set((s) => ({ extras: s.extras.filter((x) => x.key !== key), activeSlot: s.activeSlot === key ? 'CY' : s.activeSlot }));
+  if (host.available) void host.storeDel('preset-' + key).catch(() => undefined);
+  scheduleSave();
+}
+/** Set how many slots are added: the last ones are taken away, new empty ones appended. */
+export function setExtraCount(n: number): void {
+  const want = Math.max(0, Math.min(MAX_EXTRA_SLOTS, Math.round(n)));
+  while (state.extras.length < want) addExtraSlot();
+  while (state.extras.length > want) removeExtraSlot(state.extras[state.extras.length - 1].key);
+}
+export function setExtraName(key: string, name: string): void {
+  set((s) => ({ extras: s.extras.map((x) => (x.key === key ? { ...x, name } : x)) }));
   scheduleSave();
 }
 
@@ -320,22 +405,23 @@ async function bitmapOf(dataUrl: string): Promise<ImageBitmap> {
   if (!b) { b = await createImageBitmap(await (await fetch(dataUrl)).blob()); iconBitmaps.set(dataUrl, b); }
   return b;
 }
-async function renderIcon(id: SlotId): Promise<void> {
-  const info = state.info; const ic = state.slots[id].icon;
-  if (!info || ic.mode === 'keep') { if (ic.pixels) setSlot(id, (s) => ({ icon: { ...s.icon, pixels: undefined } })); return; }
+async function renderIcon(id: SlotKey): Promise<void> {
+  const info = state.info; const ic = slotOf(id)?.icon;
+  if (!ic) return;
+  if (!info || ic.mode === 'keep') { if (ic.pixels) patchSlot(id, (s) => ({ icon: { ...s.icon, pixels: undefined } })); return; }
   const tile = info.tiles[ic.style]; const area = info.contentArea[ic.style];
   let pixels: Uint8Array | undefined;
   if (ic.mode === 'text') { await ensureIconFont(); pixels = ic.text.trim() ? textIcon(tile, ic.text, area) : undefined; }
   else if (ic.image) { const b = await bitmapOf(ic.image); pixels = imageIcon(tile, b, b.width, b.height, area); }
-  const cur = state.slots[id].icon;
-  if (cur.mode === ic.mode && cur.text === ic.text && cur.style === ic.style && cur.image === ic.image) setSlot(id, { icon: { ...cur, pixels } });
+  const cur = slotOf(id)?.icon;
+  if (cur && cur.mode === ic.mode && cur.text === ic.text && cur.style === ic.style && cur.image === ic.image) patchSlot(id, { icon: { ...cur, pixels } });
 }
-export function setIcon(id: SlotId, patch: Partial<IconState>): void {
-  setSlot(id, (s) => ({ icon: { ...s.icon, ...patch } }));
+export function setIcon(id: SlotKey, patch: Partial<IconState>): void {
+  patchSlot(id, (s) => ({ icon: { ...s.icon, ...patch } }));
   void renderIcon(id);
   scheduleSave();
 }
-export async function loadIconImage(id: SlotId, file: File): Promise<void> {
+export async function loadIconImage(id: SlotKey, file: File): Promise<void> {
   try {
     const bmp = await loadBitmap(file);
     const scale = Math.min(1, 240 / Math.max(bmp.width, bmp.height));
@@ -533,7 +619,7 @@ export async function loadPreviewFile(file: File): Promise<void> {
 export function setPreviewMode(previewMode: PreviewMode): void { set({ previewMode }); scheduleSave(); }
 export function setRatioBackdrop(ratioBackdrop: RatioBackdrop): void { set({ ratioBackdrop }); scheduleSave(); }
 /** The slot the preview on the right shows. */
-export function setActiveSlot(id: SlotId): void { if (state.activeSlot !== id) set({ activeSlot: id }); }
+export function setActiveSlot(id: SlotKey): void { if (state.activeSlot !== id) set({ activeSlot: id }); }
 
 // ------------------------------------------------------------------ remembered power-off images of the card
 const CW_SCRIPT = 'cw-script'; const CW_INDEX = 'cw-index';
@@ -627,7 +713,7 @@ export function pendingChanges(s: State = state): SlotChange[] {
   for (const id of SLOT_IDS) {
     const sl = s.slots[id]; const off = s.info.slots.find((x) => x.id === id)!;
     const req: SlotRequest = { slot: id }; const parts: string[] = []; const labels: string[] = [];
-    if (sl.preset?.result) { req.preset = { matrixQ13: sl.preset.result.matrixQ13, curves: sl.preset.result.curves }; parts.push(`${t('preset')} ${sl.preset.result.title || sl.preset.fileName}`); labels.push(t('preset')); }
+    if (sl.preset?.result) { const r = sl.preset.result; req.preset = { matrixQ13: r.matrixQ13, curves: r.curves, ...(r.postQ9 ? { postQ9: r.postQ9 } : {}) }; parts.push(`${t('preset')} ${sl.preset.result.title || sl.preset.fileName}`); labels.push(t('preset')); }
     if (sl.icon.mode !== 'keep' && sl.icon.pixels) { req.icon = sl.icon.pixels; parts.push(t('icon')); labels.push(t('icon')); }
     const names: Partial<Record<LangCode, string>> = {};
     for (const lang of LANGS) {
@@ -707,13 +793,16 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const dateStamp = !stock && !!state.dateStamp;
   const monoUnlock = !stock && monoUnlockOn();
   if (!stock && (hasNameErrors() || hasRatioErrors())) return;
-  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock) { toast(t('nothingToDo'), 'info'); return; }
+  if (!stock && hasExtraErrors()) { toast(t('extraIncomplete'), 'error'); return; }
+  const extras = stock ? [] : extraSpecs();
+  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && extras.length === 0) { toast(t('nothingToDo'), 'info'); return; }
   if (dest.kind === 'card') {
     const lines = stock ? [t('copyOfficial')] : changes.map((c) => `${t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
     if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
     if (soft) lines.push(t('softAdjLine'));
     if (dateStamp) lines.push(t('dateLine'));
     if (monoUnlock) lines.push(t('monoLine'));
+    if (extras.length) lines.push(t('extraLine', { n: extras.length, l: extras.map((x) => x.name).join(' / ') }));
     if (!(await ask(t('confirmTitle'), lines, t('confirmOk')))) return;
   }
   const target = await destination(dest);
@@ -723,7 +812,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (stock) file = state.raw;
     else {
       set({ busy: t('building') });
-      const built = await engine.build(changes.map((c) => c.request), ratios, [], { adjSoftFocus: soft, dateStamp, monoUnlock });
+      const built = await engine.build(changes.map((c) => c.request), ratios, [], { adjSoftFocus: soft, dateStamp, monoUnlock, ...(extras.length ? { extraSlots: extras } : {}) });
       if (!Object.values(built.checks).every((v) => v === true)) throw new EngineError('selfcheck-failed', 'self-check');
       file = built.file;
       void recordBuild(file, changes);
@@ -957,6 +1046,7 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
   if (summary.adjSoftFocus) lines.push(t('softAdjLine'));
   if (summary.dateStamp) lines.push(t('dateLine'));
   if (summary.monoUnlock) lines.push(t('monoLine'));
+  if (summary.extraSlots?.length) lines.push(t('extraLine', { n: summary.extraSlots.length, l: summary.extraSlots.map((x) => x.name).join(' / ') }));
   if (summary.softFocus?.length) lines.push(t('softLine', { l: softText(summary.softFocus) }));
   return lines;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { color, MAX_CUSTOM_RATIOS, SHUTDOWN_H, SHUTDOWN_W } from '@grmod/core';
+import { color, EXTRA_NAME_MAX, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_H, SHUTDOWN_W } from '@grmod/core';
 import type { SlotId } from '@grmod/core';
 import type { ReactNode } from 'react';
 import { DropZone, FileButton, Ico, IconCanvas, Menu, Prop, RatioIcon, RgbCanvas, Segmented, Switch } from './components';
@@ -15,8 +15,9 @@ import {
   setSoft,
   setDateStamp,
   setMonoUnlock,
+  extraName, extraNameProblem, extraProblem, removeExtraSlot, setExtraCount, setExtraName, slotOf,
 } from './store';
-import type { RatioItem, WallItem } from './store';
+import type { ExtraSlot, RatioItem, WallItem } from './store';
 
 const isPreset = (f: File): boolean => /\.(xmp|cube)$/i.test(f.name);
 const isFirmware = (f: File): boolean => /\.bin$/i.test(f.name);
@@ -116,11 +117,16 @@ function Compare({ photo, after, label }: { photo: ImageData | null; after: Imag
 function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number }) {
   const mode = useStore((s) => s.previewMode);
   const active = useStore((s) => s.activeSlot);
-  const params = useStore((s) => s.slots[s.activeSlot].preset?.result?.params);
+  const params = useStore((s) => slotOf(s.activeSlot, s)?.preset?.result?.params);
+  const extras = useStore((s) => s.extras);
+  const extraLabels = useStore((s) => s.extras.map((x) => extraName(x, s)).join('\u0000'));
+  const tabs = [{ value: 'CY', label: t('slotCY') }, { value: 'CG', label: t('slotCG') }, ...extras.map((x, i) => ({ value: x.key, label: extraLabels.split('\u0000')[i] }))];
+  const tabsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { tabsRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }, [active]);
   return (
     <DropZone className="pane" accept={isImage} onFiles={(f) => { void loadPreviewFile(f[0]); }}>
       <div className="pane-head">
-        <Segmented tour="ic-tabs" value={active} onChange={setActiveSlot} options={[{ value: 'CY', label: t('slotCY') }, { value: 'CG', label: t('slotCG') }]} />
+        <div className="seg-scroll" ref={tabsRef}><Segmented tour="ic-tabs" value={tabs.some((x) => x.value === active) ? active : 'CY'} onChange={setActiveSlot} options={tabs} /></div>
         <span className="grow" />
         <Segmented tour="ic-mode" value={mode} onChange={setPreviewMode} options={[{ value: 'photo', label: t('previewPhoto') }, { value: 'swatch', label: t('previewSwatch') }]} />
       </div>
@@ -182,6 +188,81 @@ function SlotCard({ id }: { id: SlotId }) {
               {slot.icon.mode === 'image' && <FileButton className="btn small" accept="image/*" onFiles={(f) => { void loadIconImage(id, f[0]); }}>{t('chooseImage')}</FileButton>}
             </div>
           </Prop>
+        </div>
+      </div>
+    </DropZone>
+  );
+}
+
+/** How many slots are added (0 to MAX_EXTRA_SLOTS), with what they share with Cinema (Yellow). */
+function ExtrasHead() {
+  const n = useStore((s) => s.extras.length);
+  const options = Array.from({ length: MAX_EXTRA_SLOTS + 1 }, (_, i) => ({ value: String(i), label: String(i) }));
+  return (
+    <div className="card extras-head" data-tour="ic-extra">
+      <div className="extras-row">
+        <span className="page-icon soft-ico">{Ico.plus}</span>
+        <div className="soft-text">
+          <b>{t('extraTitle')}</b>
+          <span className="muted small ellipsis">{t('extraSub', { n: MAX_EXTRA_SLOTS })}</span>
+        </div>
+      </div>
+      <div className="extras-count"><Segmented value={String(n)} onChange={(v) => setExtraCount(Number(v))} options={options} /></div>
+      {n > 0 && <p className="muted small extras-note">{t('extraShared')}</p>}
+    </div>
+  );
+}
+
+/** An added slot: one name for every language (ASCII), a preset, an icon. */
+function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
+  const active = useStore((s) => s.activeSlot === x.key);
+  const name = useStore((s) => extraName(x, s));
+  const nameBad = useStore((s) => extraNameProblem(x, s));
+  const problem = useStore((s) => extraProblem(x, s));
+  const tile = useStore((s) => s.info!.tiles[x.icon.style]);
+  const p = x.preset;
+  const k = x.key;
+  return (
+    <DropZone className={`card ${active ? 'on' : ''}`} accept={isPreset} onFiles={(f) => { void loadPresetFile(k, f[0]); }}>
+      <div className="card-in" onPointerDownCapture={() => setActiveSlot(k)} onFocusCapture={() => setActiveSlot(k)}>
+        <div className="card-head">
+          <IconCanvas pixels={x.icon.pixels ?? tile} />
+          <div className="card-title">
+            <input className={`title-input ${nameBad ? 'bad' : ''}`} value={x.name} placeholder={name} maxLength={40} spellCheck={false} aria-label={t('name')} onChange={(e) => setExtraName(k, e.target.value)} />
+            <div className="sub">
+              <span className="ellipsis">{t('extraSlot', { n: index + 1 })}</span>
+              <span className={`count ${nameBad ? 'bad' : ''}`}>{nameBad || `${name.length}/${EXTRA_NAME_MAX}`}</span>
+            </div>
+          </div>
+          <button className="btn ghost icon-only extra-x" title={t('extraRemove')} aria-label={t('extraRemove')} onClick={() => removeExtraSlot(k)}>{Ico.x}</button>
+        </div>
+        <div className="props">
+          <Prop label={t('preset')}>
+            {!p && <FileButton className="btn dashed fill" accept=".xmp,.cube" onFiles={(f) => { void loadPresetFile(k, f[0]); }}>{Ico.plus}<span>{t('dropPreset')}</span></FileButton>}
+            {p && (
+              <div className="preset">
+                <div className={`file-chip ${p.error ? 'bad' : ''}`}>
+                  <FileButton className="file-main" accept=".xmp,.cube" title={t('replace')} onFiles={(f) => { void loadPresetFile(k, f[0]); }}>{Ico.file}<span className="ellipsis">{p.result?.title || p.fileName}</span></FileButton>
+                  <button className="file-x" title={t('remove')} aria-label={t('remove')} onClick={() => removePreset(k)}>{Ico.x}</button>
+                </div>
+                {(p.busy || p.error) && (
+                  <div className="chips">
+                    {p.busy && <span className="chip muted"><span className="spinner small" />{t('converting')}</span>}
+                    {p.error && <span className="chip bad" title={p.error}><span className="ellipsis">{p.error}</span></span>}
+                  </div>
+                )}
+              </div>
+            )}
+          </Prop>
+          <Prop label={t('icon')}>
+            <div className="chips">
+              <Segmented value={x.icon.mode === 'image' ? 'image' : 'text'} onChange={(mode) => setIcon(k, { mode })} options={[{ value: 'text', label: t('iconText') }, { value: 'image', label: t('iconImage') }]} />
+              <Segmented value={x.icon.style} onChange={(style) => setIcon(k, { style })} options={[{ value: 'film', label: t('styleFilm') }, { value: 'plain', label: t('stylePlain') }]} />
+              {x.icon.mode !== 'image' && <input className="input short" value={x.icon.text} maxLength={8} spellCheck={false} placeholder="400" aria-label={t('iconText')} onChange={(e) => setIcon(k, { text: e.target.value })} />}
+              {x.icon.mode === 'image' && <FileButton className="btn small" accept="image/*" onFiles={(f) => { void loadIconImage(k, f[0]); }}>{t('chooseImage')}</FileButton>}
+            </div>
+          </Prop>
+          {problem && !p?.busy && !p?.error && !nameBad && <div className="chips extra-problem"><span className="chip warn"><span className="ellipsis">{problem}</span></span></div>}
         </div>
       </div>
     </DropZone>
@@ -274,9 +355,15 @@ function IcBody() {
   }, []);
   const setBox = (el: HTMLDivElement | null): void => { boxRef.current = el; };
   const switches = <FeatureSwitches mono={false} boxRef={setBox} from={from} />;
+  const extras = useStore((s) => s.extras);
   return (
     <div className="ic" data-tour-page="ic">
-      <div className="cards" ref={cardsRef}><SlotCard id="CY" /><SlotCard id="CG" />{place === 'left' && switches}</div>
+      <div className="cards" ref={cardsRef}>
+        <SlotCard id="CY" /><SlotCard id="CG" />
+        <ExtrasHead />
+        {extras.map((x, i) => <ExtraSlotCard key={x.key} x={x} index={i} />)}
+        {place === 'left' && switches}
+      </div>
       <PreviewPane below={place === 'right' ? switches : undefined} belowH={belowH} />
     </div>
   );

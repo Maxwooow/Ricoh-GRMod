@@ -10,6 +10,12 @@ export interface SlotParams {
   M1: number[][];
   /** Three curves (R, G, B) of 17 knots each at KN = i/16, display domain. */
   ck: Float64Array[];
+  /**
+   * Optional post-curve ("second") matrix: 3x3, rows sum to 1, applied to the clipped curve
+   * outputs (display RGB), the result clipped to 0..1 again. The camera applies it after the tone
+   * curves together with the saturation setting.
+   */
+  P2?: number[][];
 }
 
 export interface QuantizedSlot {
@@ -17,6 +23,8 @@ export interface QuantizedSlot {
   matrixQ13: Int16Array;
   /** R, G, B curves: 256 entries each, output 0..16383 for input i*64/16383. */
   curves: [Uint16Array, Uint16Array, Uint16Array];
+  /** With `P2`: the post-curve matrix in Q9 (512 = 1.0), row-major; every row sums to exactly 512. */
+  postQ9?: Int16Array;
 }
 
 export const KNOTS = 17;
@@ -43,6 +51,8 @@ function checkParams(p: SlotParams): void {
     throw new ColorError('bad-input', 'slot matrix must be 3x3');
   if (!p.ck || p.ck.length !== 3 || p.ck.some((c) => !c || c.length !== KNOTS))
     throw new ColorError('bad-input', 'slot curves must be 3 x 17 knots');
+  if (p.P2 !== undefined && (!Array.isArray(p.P2) || p.P2.length !== 3 || p.P2.some((r) => !r || r.length !== 3 || r.some((v) => !Number.isFinite(v)))))
+    throw new ColorError('bad-input', 'post matrix must be 3x3');
 }
 
 // Tables for the fast path of slotApply. Every value is computed with the same floating-point
@@ -69,6 +79,7 @@ export function slotApply(params: SlotParams, rgb: Float64Array): Float64Array {
   const rows = [Float64Array.from(M[0]), Float64Array.from(M[1]), Float64Array.from(M[2])];
   const knots = params.ck;
   const slopes = knots.map((c) => Float64Array.from({ length: KNOTS - 1 }, (_, k) => (c[k + 1] - c[k]) / (KN[k + 1] - KN[k])));
+  const post = params.P2 ? params.P2.map((r) => Float64Array.from(r)) : null;
   const out = new Float64Array(rgb.length);
   const lin = [0, 0, 0];
   for (let i = 0; i < rgb.length; i += 3) {
@@ -96,6 +107,14 @@ export function slotApply(params: SlotParams, rgb: Float64Array): Float64Array {
         o = slopes[c][k] * (b - KN[k]) + knots[c][k];
       }
       out[i + c] = o < 0 ? 0 : o > 1 ? 1 : o;
+    }
+    if (post) {
+      const v0 = out[i], v1 = out[i + 1], v2 = out[i + 2];
+      for (let r = 0; r < 3; r++) {
+        const q = post[r];
+        const t = q[0] * v0 + q[1] * v1 + q[2] * v2;
+        out[i + r] = t < 0 ? 0 : t > 1 ? 1 : t;
+      }
     }
   }
   return out;
@@ -137,5 +156,10 @@ export function quantizeSlot(params: SlotParams, mStdQ13: ArrayLike<number>): Qu
     }
     return cq;
   }) as [Uint16Array, Uint16Array, Uint16Array];
-  return { matrixQ13: Int16Array.from(q), curves };
+  if (!params.P2) return { matrixQ13: Int16Array.from(q), curves };
+  // Q9, the diagonal takes the remainder so that every row sums to exactly 512 (grey stays grey).
+  const pq = params.P2.flat().map((v) => roundHalfEven(v * 512));
+  for (let i = 0; i < 3; i++) pq[i * 4] = 512 - (pq[i * 3] + pq[i * 3 + 1] + pq[i * 3 + 2] - pq[i * 4]);
+  for (const v of pq) if (!Number.isFinite(v) || v < -2047 || v > 2047) throw new ColorError('bad-input', 'post matrix does not fit the 12-bit range');
+  return { matrixQ13: Int16Array.from(q), curves, postQ9: Int16Array.from(pq) };
 }

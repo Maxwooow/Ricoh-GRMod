@@ -203,7 +203,7 @@ function transparentPixels(icon: Uint8Array): number[] {
 export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = [], clarity: readonly ClarityEdit[] = [], features: ExtensionFeatures = {}, test: TestOptions = {}): Promise<BuildResult> {
   // Additions that append code or icons need the grown layout. The monochrome looks change 13
   // words in place: on their own (or with only same-length edits) the file keeps the official layout.
-  const grows = ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp;
+  const grows = ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0;
   const inPlaceMono = !grows && !!features.monoUnlock;
   const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity, inPlaceMono);
   if (grows) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios, features, test);

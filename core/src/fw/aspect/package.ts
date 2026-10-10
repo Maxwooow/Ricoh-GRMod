@@ -14,7 +14,8 @@
  * <n> is the build revision (`BuildRevision` in `build.ts`): which additions of this program the
  * appended code holds. Up to revision 2 the record lists 1 to 8 ratios. From revision 3 it may list
  * none, and one more byte follows the ratios: the other additions (bit 0: soft focus on the ADJ
- * lever, bit 1: date imprint, bit 2: monochrome looks).
+ * lever, bit 1: date imprint, bit 2: monochrome looks, bit 3: added Image Control slots, in which
+ * case their number follows in one more byte; their data is read back from the image itself).
  */
 import { FRAME_SIZE, sectionsOf, sum32 } from '../container';
 import type { Insertion, Section } from '../container';
@@ -22,6 +23,7 @@ import { FirmwareError } from '../types';
 import type { Range } from '../types';
 import { MAX_CUSTOM_RATIOS, OFFICIAL_ICONBIN_LENGTH, OFFICIAL_RTOS_LENGTH } from './build';
 import type { AspectResult, BuildRevision, ExtensionFeatures, RatioSpec } from './build';
+import { MAX_EXTRA_SLOTS } from './slots';
 
 const MAGIC_STEM = 'GRMODAR';
 const MAGIC_LENGTH = MAGIC_STEM.length + 1;
@@ -45,6 +47,7 @@ function ascii(text: string): Uint8Array {
 const FEATURE_ADJ_SOFT_FOCUS = 1;
 const FEATURE_DATE_STAMP = 2;
 const FEATURE_MONO_UNLOCK = 4;
+const FEATURE_EXTRA_SLOTS = 8;
 
 /**
  * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
@@ -58,7 +61,10 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
     if (r.length > 64 || n.length > 80 || r.length === 0 || n.length === 0) fail('bad-ratio', 'ratio or name too long to record');
     bytes.push(r.length, ...r, n.length, ...n);
   }
-  if (revision >= 3) bytes.push((features.adjSoftFocus ? FEATURE_ADJ_SOFT_FOCUS : 0) | (features.dateStamp ? FEATURE_DATE_STAMP : 0) | (features.monoUnlock ? FEATURE_MONO_UNLOCK : 0));
+  const slots = features.extraSlots?.length ?? 0;
+  if (revision >= 3) bytes.push((features.adjSoftFocus ? FEATURE_ADJ_SOFT_FOCUS : 0) | (features.dateStamp ? FEATURE_DATE_STAMP : 0) | (features.monoUnlock ? FEATURE_MONO_UNLOCK : 0) | (slots > 0 ? FEATURE_EXTRA_SLOTS : 0));
+  if (revision >= 3 && slots > 0) bytes.push(slots);
+  else if (slots > 0) fail('internal', 'added slots need revision 3');
   while (bytes.length % 4) bytes.push(0);
   return Uint8Array.from(bytes);
 }
@@ -75,6 +81,8 @@ export function readBuildRevision(rtos: Uint8Array): BuildRevision | null {
 interface ParsedRecord {
   specs: RatioSpec[];
   features: ExtensionFeatures;
+  /** Number of added Image Control slots (their data is in the image, see `slots.ts`). */
+  extraSlots: number;
 }
 
 function parseRecord(rtos: Uint8Array): ParsedRecord | null {
@@ -109,17 +117,29 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
     out.push({ name, ratio });
   }
   const features: ExtensionFeatures = {};
+  let extraSlots = 0;
   if (revision >= 3) {
     if (p >= rec.length) return null;
     const f = rec[p++];
-    if ((f & ~(FEATURE_ADJ_SOFT_FOCUS | FEATURE_DATE_STAMP | FEATURE_MONO_UNLOCK)) !== 0) return null;
+    if ((f & ~(FEATURE_ADJ_SOFT_FOCUS | FEATURE_DATE_STAMP | FEATURE_MONO_UNLOCK | FEATURE_EXTRA_SLOTS)) !== 0) return null;
     if (f & FEATURE_ADJ_SOFT_FOCUS) features.adjSoftFocus = true;
     if (f & FEATURE_DATE_STAMP) features.dateStamp = true;
     if (f & FEATURE_MONO_UNLOCK) features.monoUnlock = true;
-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock) return null;
+    if (f & FEATURE_EXTRA_SLOTS) {
+      if (p >= rec.length) return null;
+      extraSlots = rec[p++];
+      if (!(extraSlots >= 1 && extraSlots <= MAX_EXTRA_SLOTS)) return null;
+    }
+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && extraSlots === 0) return null;
   }
   for (; p < rec.length; p++) if (rec[p] !== 0) return null;
-  return { specs: out, features };
+  return { specs: out, features, extraSlots };
+}
+
+/** How many Image Control slots a grown RTOS section's record says were added (0 when none, null without a valid record). */
+export function readExtraSlotCount(rtos: Uint8Array): number | null {
+  const r = parseRecord(rtos);
+  return r ? r.extraSlots : null;
 }
 
 /** The ratios recorded at the end of a grown RTOS section (possibly none, from revision 3), or null when there is no (valid) record. */
