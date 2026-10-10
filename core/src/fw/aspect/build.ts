@@ -31,6 +31,7 @@ import { installAdjSoftFocus } from './softfocus';
 import { DATESTAMP_BYTE, installDateStamp } from './datestamp';
 import { installDateStampMenu } from './datestamp-menu';
 import { installMonoUnlock } from './monounlock';
+import { installRatioShade } from './shade';
 
 export const BASE = 0x53000000;
 export const OFFICIAL_RTOS_LENGTH = 0x13d2ac0;
@@ -108,6 +109,11 @@ export interface ExtensionFeatures {
   dateStamp?: boolean;
   /** The six looks of the GR IV Monochrome (see `monounlock.ts`). */
   monoUnlock?: boolean;
+  /**
+   * Live view of an added ratio shows the whole 3:2 frame, the part outside the ratio darkened by
+   * half (see `shade.ts`); the photo is cropped as before. Needs at least one added ratio.
+   */
+  ratioShade?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -437,7 +443,7 @@ function installMenu(patch: Patch, ratios: readonly RatioEntry[], iconIds: Reado
 // --------------------------------------------------------------------------------------------
 // crop_geometry.py
 
-class Program {
+export class Program {
   /** The image as it was when the program was created (displaced instructions are read from it). */
   private readonly source: Uint8Array;
   cursor: number;
@@ -500,7 +506,7 @@ function dimsBlob(g: RatioGeometry): Uint8Array {
   return concat(g.dims.map((d) => u16le(d)));
 }
 
-function buildGeometry(patch: Patch, ratios: readonly RatioEntry[]): { p: Program; get: number; scale: number } {
+function buildGeometry(patch: Patch, ratios: readonly RatioEntry[], shade = false): { p: Program; get: number; scale: number } {
   const p = new Program(patch);
   const rows: Row[] = [];
   for (const r of ratios) {
@@ -564,7 +570,9 @@ function buildGeometry(patch: Patch, ratios: readonly RatioEntry[]): { p: Progra
     }
   }
   out += 'mov r0,r10;pop {r4-r10,pc};missing:mov r0,r5;pop {r4-r10,lr};old:mov ip,sp;b #0x538876BC;';
-  p.hook(0x538876b8, out);
+  // With the shade the live view keeps the native 3:2 rectangle (an added identity takes the
+  // native default branch, which is 3:2).
+  if (!shade) p.hook(0x538876b8, out);
   // AF area rectangle, its size and the small frame.
   for (const [entry, kind] of [[0x5339e758, 'rectangle'], [0x5339e990, 'size'], [0x5339e9b8, 'small']] as const) {
     out = '';
@@ -645,7 +653,7 @@ function buildGeometry(patch: Patch, ratios: readonly RatioEntry[]): { p: Progra
   }
   out += 'old:pop {r0-r5,r8-r10,lr};ldr r3,[fp,#-0x12C];b #0x53634EC0;';
   p.hook(0x53634ebc, out);
-  {
+  if (!shade) {
     const entry = 0x53646310;
     const displaced = 'cmp r2,#0x100';
     p.expect(entry, displaced, 'live-view ROI entry has changed');
@@ -659,7 +667,8 @@ function buildGeometry(patch: Patch, ratios: readonly RatioEntry[]): { p: Progra
   out = 'push {r0-r4,r7-r10,lr};mov r0,sl;mrs r10,cpsr;';
   out += `bl #${get};cmp r0,#0;beq old;mov r8,r0;mov r0,r6;ldr r1,[r8];ldr r2,[r8,#4];bl #${scale};add r0,r0,#1;bic r6,r0,#1;mov r0,r5;ldr r1,[r8,#8];ldr r2,[r8,#12];bl #${scale};add r0,r0,#1;bic r5,r0,#1;`;
   out += 'old:msr cpsr_f,r10;pop {r0-r4,r7-r10,lr};strls r5,[fp,#-0x68];b #0x53646C20;';
-  p.hook(0x53646c1c, out);
+  // With the shade the live-view source ROI stays the full 3:2 one.
+  if (!shade) p.hook(0x53646c1c, out);
   // The live-view route above has already applied fx/fy to its source ROI, so its preliminary
   // scales and both converter passes must work on the physical canvas (ratio 0), or the same axis
   // would be cropped twice. An interior BL is replaced, so LR is set to return to the call site.
@@ -965,7 +974,8 @@ export function installRatios(rtos: Uint8Array, iconbin: Uint8Array, ratios: rea
  * features this is `installRatios`, byte for byte. With features the revision is 3.
  */
 export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
-  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock;
+  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || !!features.ratioShade;
+  if (features.ratioShade && ratios.length === 0) fail('internal', 'the live-view shade needs an added ratio');
   if (extra) revision = 3;
   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
@@ -985,8 +995,10 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
     const installed = installIcons(patch, iconbin, ratios);
     icons = installed.iconbin;
     const menu = installMenu(patch, ratios, installed.ids);
-    const { p, scale } = buildGeometry(patch, ratios);
+    const shade = !!features.ratioShade;
+    const { p, get, scale } = buildGeometry(patch, ratios, shade);
     installDevelop(p, scale, ratios);
+    if (shade) installRatioShade(p, get, scale);
     installRaw(patch, ratios);
     installState(patch, ratios, menu.activeBitmap);
     installImageIdentity(patch, ratios);
@@ -1001,5 +1013,5 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   }
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}) } };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(features.ratioShade ? { ratioShade: true } : {}) } };
 }
