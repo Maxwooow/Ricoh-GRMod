@@ -5,7 +5,8 @@ export class EngineError extends Error {
   constructor(code: string, message: string, details?: Record<string, number>) { super(message); this.code = code; this.details = details; }
 }
 
-const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+// Built as a classic script (vite.config.ts: worker.format 'iife') so that browsers without module workers can run it; the dev server serves it as a module.
+const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: import.meta.env.DEV ? 'module' : 'classic' });
 let seq = 0;
 const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void; onProgress?: (f: number) => void }>();
 worker.onmessage = (ev: MessageEvent) => {

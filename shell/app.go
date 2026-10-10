@@ -13,7 +13,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
-	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -76,8 +75,8 @@ func newApp(cfg config) (*app, error) {
 	// A Go runtime crash normally goes to standard error, which does not
 	// exist in a Windows GUI program. Keep a copy where it can be found.
 	if f, err := os.OpenFile(filepath.Join(dir, crashFile), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644); err == nil {
-		_ = debug.SetCrashOutput(f, debug.CrashOptions{})
-		f.Close() // SetCrashOutput keeps its own duplicate
+		setCrashOutput(f)
+		f.Close() // setCrashOutput keeps its own duplicate
 	}
 
 	if cfg.webDir != "" {

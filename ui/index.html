@@ -7,6 +7,20 @@
     <title>GR Mod</title>
     <link rel="icon" type="image/png" href="./icon.png" />
     <script src="/host.js"></script>
+    <script>
+      // A browser too old for GR Mod (e.g. Safari 13 on macOS 10.13): say so instead of a blank window.
+      (function () {
+        var ok = typeof BigInt === 'function' && typeof Worker === 'function' && !!(window.crypto && window.crypto.subtle) && typeof Promise.allSettled === 'function';
+        if (ok) return;
+        window.__GRMOD_OLD_BROWSER__ = true;
+        document.addEventListener('DOMContentLoaded', function () {
+          document.body.innerHTML = '<div style="font:15px/1.7 -apple-system,BlinkMacSystemFont,sans-serif;max-width:520px;margin:18vh auto;padding:0 24px;color:#222">' +
+            '<p style="font-size:18px;font-weight:600;margin:0 0 8px">GR Mod</p>' +
+            '<p style="margin:0 0 12px">这个浏览器版本太旧，打不开 GR Mod。请安装 Chrome、Microsoft Edge 或 Firefox，再重新打开 GR Mod。</p>' +
+            '<p style="margin:0;color:#666">This browser is too old for GR Mod. Install Chrome, Microsoft Edge or Firefox, then open GR Mod again.</p></div>';
+        });
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

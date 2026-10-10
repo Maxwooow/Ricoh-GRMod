@@ -13,11 +13,11 @@ A small desktop shell for the GR Mod web UI, written in pure Go (no cgo).
 ```sh
 ./build.sh dev        # dist/grmod-dev   Linux, headless
 ./build.sh windows    # dist/GRMod.exe   Windows x64, single file, no console window
-./build.sh mac        # dist/GR Mod.app + dist/GRMod-mac.zip   macOS 11+, universal (amd64 + arm64)
+./build.sh mac        # dist/GR Mod.app + dist/GRMod-mac.zip (+ .dmg)   universal: Intel macOS 10.13+, Apple silicon macOS 11+
 ./build.sh all
 ```
 
-- Builds with the Go release named by the `toolchain` line of `go.mod` (go1.24.7): `build.sh` sets `GOTOOLCHAIN` to it, so a newer installed Go fetches and uses that release. Nothing else is needed: the Windows and macOS builds are cross-compiled with `CGO_ENABLED=0`. (Go 1.25 and later would raise the macOS minimum above the 11.0 written into `Info.plist`.)
+- Builds with the Go release named by the `toolchain` line of `go.mod` (go1.24.7): `build.sh` sets `GOTOOLCHAIN` to it, so a newer installed Go fetches and uses that release. Nothing else is needed: the Windows and macOS builds are cross-compiled with `CGO_ENABLED=0`. (Go 1.25 and later would raise the macOS minimum above the 11.0 written into `Info.plist`.) The macOS Intel slice is built with Go 1.20.14 instead, from `go.legacy.mod`, so that it runs on macOS 10.13 and 10.14; build.sh fetches that release the same way. The disk image needs the tools listed in `tools/mkdmg/mkdmg.py` and is skipped without them.
 - The macOS bundle is assembled without Apple tools: the two architectures are joined with `go tool makefat` (github.com/randall77/makefat, a `tool` in go.mod), the icon comes from `go run ./tools/genicon -icns`, `Info.plist` is written by `build.sh`, and `tools/zipapp` zips the bundle with its file modes. It is signed ad hoc when [rcodesign](https://github.com/indygreg/apple-platform-rs) is on the `PATH` (or named by `$RCODESIGN`); Apple silicon refuses to start unsigned bundles. There is no Developer ID signature and no notarisation, so Gatekeeper asks the user to confirm the first start.
 - The version is `$VERSION`, else the `version` of `../package.json`, else `0.0.0`. It is compiled in with `-X main.version=…`.
 - If `../ui/dist/index.html` exists, `web/` is first replaced by a copy of `../ui/dist/`. Otherwise the current `web/` is kept; if there is none, the placeholder page from `placeholder/` is used.

@@ -19,8 +19,8 @@ cd "$(dirname "$0")"
 # Always build with the Go release named in go.mod ("toolchain go1.24.7"),
 # whatever Go is installed: the go command fetches that release when needed.
 # This keeps the binaries identical across machines and keeps the macOS
-# build runnable on macOS 11 (Go 1.25 and later require macOS 12 or 13,
-# which would contradict LSMinimumSystemVersion below).
+# Apple silicon build runnable on macOS 11 (Go 1.25 and later require macOS 12
+# or 13). The macOS Intel build uses Go 1.20 instead (see build_mac).
 go_toolchain="$(sed -n 's/^toolchain[[:space:]]\{1,\}\(go[0-9.]*\)[[:space:]]*$/\1/p' go.mod)"
 if [ -z "$go_toolchain" ]; then
   echo "build.sh: no toolchain line in go.mod" >&2; exit 2
@@ -140,7 +140,14 @@ write_info_plist() {
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.photography</string>
 	<key>LSMinimumSystemVersion</key>
-	<string>11.0</string>
+	<string>10.13</string>
+	<key>LSMinimumSystemVersionByArchitecture</key>
+	<dict>
+		<key>arm64</key>
+		<string>11.0</string>
+		<key>x86_64</key>
+		<string>10.13</string>
+	</dict>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSHighResolutionCapable</key>
@@ -166,11 +173,20 @@ build_mac() {
   local app="dist/GR Mod.app" tmp="dist/.mac"
   rm -rf "$tmp" "$app" dist/GRMod-mac.zip
   mkdir -p "$tmp" "$app/Contents/MacOS" "$app/Contents/Resources"
-  for arch in amd64 arm64; do
-    GOOS=darwin GOARCH="$arch" CGO_ENABLED=0 go build -trimpath \
-      -ldflags "-s -w -X main.version=${version}" \
-      -o "$tmp/GRMod-$arch" .
-  done
+  # Apple silicon: the current toolchain (macOS 11 is the first system for those Macs anyway).
+  GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -trimpath \
+    -ldflags "-s -w -X main.version=${version}" \
+    -o "$tmp/GRMod-arm64" .
+  # Intel: Go 1.20, the last release whose programs run on macOS 10.13 and 10.14, with its own
+  # module file (go.legacy.mod: an older golang.org/x/sys). Any Mac that runs 10.12 can upgrade to
+  # 10.13, so this reaches every Intel Mac that can still run current software.
+  local legacy_go="${MAC_INTEL_TOOLCHAIN:-go1.20.14}"
+  if [ "$(GOTOOLCHAIN="$legacy_go" go env GOVERSION)" != "$legacy_go" ]; then
+    echo "build.sh: need $legacy_go for the macOS Intel build" >&2; exit 2
+  fi
+  GOTOOLCHAIN="$legacy_go" GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -modfile=go.legacy.mod \
+    -ldflags "-s -w -X main.version=${version}" \
+    -o "$tmp/GRMod-amd64" .
   # One executable for Intel and Apple silicon.
   go tool makefat "$app/Contents/MacOS/GRMod" "$tmp/GRMod-amd64" "$tmp/GRMod-arm64"
   chmod 755 "$app/Contents/MacOS/GRMod"

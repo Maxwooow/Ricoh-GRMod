@@ -6,7 +6,7 @@ A small desktop tool for the Ricoh GR IV / GR IV HDF (firmware 1.11). Not a Rico
 - `ui/`    React UI (Vite). Talks to the platform through `src/host.ts` only.
 - `shell/` desktop shell in Go for Windows and macOS (a WebView2 window on Windows, a Chromium "app" window on macOS, plus a local HTTP API for drives and files, and for fetching the official firmware from Ricoh's site). See `shell/README.md`.
 
-Build: `npm install && npm -w ui run build && (cd shell && ./build.sh windows)` → `shell/dist/GRMod.exe`; `./build.sh mac` → `shell/dist/GR Mod.app` and `shell/dist/GRMod-mac.zip` (macOS 11 or later, Intel and Apple silicon).
+Build: `npm install && npm -w ui run build && (cd shell && ./build.sh windows)` → `shell/dist/GRMod.exe`; `./build.sh mac` → `shell/dist/GR Mod.app` and `shell/dist/GRMod-mac.zip` (Intel Macs with macOS 10.13 or later, Apple silicon with macOS 11 or later), plus `GRMod-<version>-mac.dmg` when the disk image tools are installed.
 
 On a Mac: unzip `GRMod-mac.zip` and move `GR Mod.app` to Applications. The app is signed ad hoc, not with an Apple Developer ID, so the first start is blocked: open System Settings › Privacy & Security and click "Open Anyway" (or run `xattr -dr com.apple.quarantine "/Applications/GR Mod.app"` once). The UI opens in a window of Chrome, Edge, Brave, Chromium or Vivaldi when one is installed, otherwise in the default browser; GR Mod quits by itself about 20 seconds after that window is closed. macOS asks once for access to removable volumes; allow it, or the card cannot be written.
 Test: `npm -w core test` (the byte-identity tests need the official firmware in `core/testdata/private/`, which is not distributed), `cd shell && go test ./...`.
