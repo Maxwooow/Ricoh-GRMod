@@ -111,7 +111,7 @@ export interface PresetResult {
 
 export interface SlotRequest {
   slot: SlotId;
-  preset?: { matrixQ13: ArrayLike<number>; curves: [ArrayLike<number>, ArrayLike<number>, ArrayLike<number>] };
+  preset?: { matrixQ13: ArrayLike<number>; curves: [ArrayLike<number>, ArrayLike<number>, ArrayLike<number>]; postQ9?: ArrayLike<number> };
   icon?: Uint8Array;
   names?: Partial<Record<LangCode, string>>;
 }
@@ -551,7 +551,7 @@ export class Engine {
     const edits: SlotEdit[] = [];
     for (const r of requests) {
       const e: SlotEdit = { slot: r.slot };
-      if (r.preset) e.color = { matrixQ13: r.preset.matrixQ13, curves: r.preset.curves };
+      if (r.preset) e.color = { matrixQ13: r.preset.matrixQ13, curves: r.preset.curves, ...(r.preset.postQ9 ? { postQ9: r.preset.postQ9 } : {}) };
       if (r.icon) e.icon = r.icon;
       if (r.names && Object.keys(r.names).length > 0) e.names = r.names;
       if (e.color || e.icon || e.names) edits.push(e);
