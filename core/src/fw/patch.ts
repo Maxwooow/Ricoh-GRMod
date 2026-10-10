@@ -10,7 +10,7 @@ import { build, buildGrown, sectionData, sectionsOf, sha256Hex, sum32 } from './
 import type { Firmware } from './container';
 import { FirmwareError } from './types';
 import type { Range } from './types';
-import { COMP_OFFSET, ICONBIN_LENGTH, ICONBIN_OFFSET, ICON_BYTES, LEN, RTOS_LENGTH, RTOS_OFFSET, SLOTS, foff, openOfficial, resolveLayout, slotDef } from './profile';
+import { COMP_OFFSET, ICONBIN_LENGTH, ICONBIN_OFFSET, ICON_BYTES, LEN, POST, RTOS_LENGTH, RTOS_OFFSET, SLOTS, foff, openOfficial, resolveLayout, slotDef } from './profile';
 import type { SlotId, SlotInfo } from './profile';
 import { LANGS, applyName, nameRanges, validateName } from './names';
 import type { LangCode } from './names';
@@ -32,6 +32,13 @@ export interface ColorData {
   matrixQ13: ArrayLike<number>;
   /** R, G, B tone curves: 256 uint16 each, non-decreasing, 0..16383. Absent = write only the matrix. */
   curves?: [ArrayLike<number>, ArrayLike<number>, ArrayLike<number>];
+  /**
+   * Optional post-curve matrix P: 9 integers, row-major 3x3 in Q9 (512 = 1.0), each row summing to
+   * exactly 512, applied to the output of the tone curves (requires `curves`). The slot gets its own
+   * saturation array holding Sat_k . P for the nine saturation settings, so saturation keeps
+   * working on top of the look.
+   */
+  postQ9?: ArrayLike<number>;
 }
 
 export interface SlotEdit {
@@ -109,6 +116,64 @@ function curveBytes(slot: SlotId, ch: string, c: ArrayLike<number>): Uint8Array 
     prev = v;
     out[2 * i] = v & 0xff;
     out[2 * i + 1] = v >>> 8;
+  }
+  return out;
+}
+
+function u32At(d: Uint8Array, o: number): number {
+  return (d[o] | (d[o + 1] << 8) | (d[o + 2] << 16) | (d[o + 3] << 24)) >>> 0;
+}
+
+function wordBytes(words: readonly number[]): Uint8Array {
+  const out = new Uint8Array(words.length * 4);
+  const v = new DataView(out.buffer);
+  words.forEach((w, i) => v.setUint32(i * 4, w >>> 0, true));
+  return out;
+}
+
+/** Round a 3x3 to integers with each row summing exactly to `one` (the diagonal takes the remainder). */
+function roundRows(m: readonly number[], one: number): number[] {
+  const q = m.map((v) => Math.round(v));
+  for (let r = 0; r < 3; r++) q[r * 4] = one - (q[r * 3] + q[r * 3 + 1] + q[r * 3 + 2] - q[r * 4]);
+  return q;
+}
+
+/**
+ * The slot's saturation array: for each official entry Sat_k (Q13) the product Sat_k . P, rounded
+ * to Q9 (what the hardware gets) and stored as Q13 (x16), so the module's own multiplication by
+ * the sRGB identity (512) reproduces it exactly. Returns 9 pointers then 9 entries of 20 bytes.
+ */
+function postBlock(slot: SlotId, DEC: Uint8Array, sharedArray: number, P: ArrayLike<number>, at: number): Uint8Array {
+  if (!P || P.length !== 9) bad('bad-color', `${slot}: the post matrix must have 9 values`);
+  for (let r = 0; r < 3; r++) {
+    let sum = 0;
+    for (let c = 0; c < 3; c++) {
+      const v = P[r * 3 + c];
+      if (!Number.isInteger(v) || v < -2047 || v > 2047) bad('bad-color', `${slot}: post matrix value ${String(v)} is outside the 12-bit range`);
+      sum += v;
+    }
+    if (sum !== 512) bad('bad-color', `${slot}: post matrix row ${r} sums to ${sum}, must be 512`);
+  }
+  const out = new Uint8Array(POST.bytes);
+  const view = new DataView(out.buffer);
+  const dec = new DataView(DEC.buffer, DEC.byteOffset, DEC.byteLength);
+  const entries = at + POST.entries * 4;
+  for (let k = 0; k < POST.entries; k++) {
+    const src = foff(u32At(DEC, foff(sharedArray + 4 * k)));
+    const S: number[] = [];
+    for (let i = 0; i < 9; i++) S.push(dec.getInt16(src + 2 * i, true));
+    // official rows sum to 8192 give or take rounding (+4 has a row of 8193)
+    for (let r = 0; r < 3; r++) if (Math.abs(S[r * 3] + S[r * 3 + 1] + S[r * 3 + 2] - 8192) > 2) bad('unexpected-layout', `saturation matrix ${k} row ${r} does not sum to 8192`);
+    const prod: number[] = [];
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+      let acc = 0;
+      for (let j = 0; j < 3; j++) acc += S[r * 3 + j] * P[j * 3 + c];
+      prod.push(acc / 8192); // Q9
+    }
+    const q9 = roundRows(prod, 512);
+    for (const v of q9) if (v < -2047 || v > 2047) bad('bad-color', `${slot}: post matrix times saturation ${k - POST.neutral} leaves the 12-bit range`);
+    view.setUint32(4 * k, entries + POST.stride * k, true);
+    for (let i = 0; i < 9; i++) view.setInt16(POST.entries * 4 + POST.stride * k + 2 * i, q9[i] * 16, true);
   }
   return out;
 }
@@ -265,8 +330,18 @@ async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: 
       write(`${e.slot} curve R`, foff(s.R), curves[0], LEN.R);
       write(`${e.slot} curve G`, foff(s.G), curves[1], LEN.G);
       write(`${e.slot} curve B`, foff(s.B), curves[2], LEN.B);
-      const stdMa = foff(layout.standard.maBlock);
-      write(`${e.slot} multi-axis block (copy of Standard)`, foff(s.maBlock), DEC.slice(stdMa, stdMa + LEN.ma_block), LEN.ma_block);
+      if (e.color.postQ9 === undefined) {
+        const stdMa = foff(layout.standard.maBlock);
+        write(`${e.slot} multi-axis block (copy of Standard)`, foff(s.maBlock), DEC.slice(stdMa, stdMa + LEN.ma_block), LEN.ma_block);
+      } else {
+        // Point the slot's multi-axis record at Standard's block (same result as copying it), which
+        // frees the slot's own block; its start then holds the slot's saturation array.
+        write(`${e.slot} multi-axis pointers (to Standard's block)`, foff(s.maArr), wordBytes(new Array(POST.maArrWords).fill(layout.standard.maBlock)), POST.maArrWords * 4);
+        write(`${e.slot} post-curve matrices`, foff(s.maBlock), postBlock(e.slot, DEC, layout.standard.post, e.color.postQ9, s.maBlock), POST.bytes);
+        write(`${e.slot} post-curve matrix pointer`, foff(s.rec + POST.recWord), wordBytes([s.maBlock]), 4);
+      }
+    } else if (e.color.postQ9 !== undefined) {
+      bad('bad-color', `${e.slot}: a post matrix needs curves`);
     }
   }
 
@@ -426,6 +501,8 @@ export function editableRanges(official: Uint8Array): Range[] {
     out.push({ what: `${s.id} curve G`, offset: foff(li.G), length: LEN.G });
     out.push({ what: `${s.id} curve B`, offset: foff(li.B), length: LEN.B });
     out.push({ what: `${s.id} multi-axis block`, offset: foff(li.maBlock), length: LEN.ma_block });
+    out.push({ what: `${s.id} multi-axis pointers`, offset: foff(li.maArr), length: POST.maArrWords * 4 });
+    out.push({ what: `${s.id} post-curve matrix pointer`, offset: foff(li.rec + POST.recWord), length: 4 });
     for (const lang of LANGS) out.push(...nameRanges(official, lang, s.nameIndex));
     out.push({ what: `${s.id} icon`, offset: s.iconOffset, length: ICON_BYTES });
   }

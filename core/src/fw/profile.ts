@@ -39,6 +39,28 @@ export const TONE_CINEMA_GREEN = 0x13;
 
 export const LEN = { matrix: 18, desc: 20, R: 512, G: 512, B: 512, ma_block: 0x870 } as const;
 
+/**
+ * The post-curve matrix ("second matrix"): word 2 of a style record (`rec + 8`) points to an array
+ * of 9 pointers, one per saturation setting (-4..+4), each to a 3x3 int16 matrix in Q13 followed by
+ * 2 bytes of padding. The ColorMatrix module (0x53914E20) multiplies the colour-space matrix
+ * (Q9, sRGB = identity) by the entry for the current saturation and sends the result to the
+ * hardware as 12-bit Q9 values; it acts on the signal after the tone curves. All colour styles
+ * share one array (the identity at saturation 0).
+ */
+export const POST = {
+  /** Offset of the array pointer in a style record. */
+  recWord: 8,
+  entries: 9,
+  /** Bytes of one entry: 9 int16 + 2 padding. */
+  stride: 20,
+  /** Index of saturation 0 (identity). */
+  neutral: 4,
+  /** Bytes used at the start of a slot's own multi-axis block once that block is free: 9 pointers + 9 entries. */
+  bytes: 9 * 4 + 9 * 20,
+  /** Words in a style's multi-axis pointer array (all point to its block). */
+  maArrWords: 8,
+} as const;
+
 /** Checksum compensation word: 4 bytes inside the assert-only text "MakeParameter". */
 export const COMP_VA = 0x54049394;
 export const COMP_OFFSET = 0x10610a4;
@@ -95,6 +117,10 @@ export interface SlotInfo {
   B: number;
   maRec: number;
   maBlock: number;
+  /** The multi-axis record's array of `POST.maArrWords` block pointers. */
+  maArr: number;
+  /** The record's pointer to its post-curve (saturation) matrix array. */
+  post: number;
 }
 
 /** Port of `plan.py` `slot_info(tone)`: resolve a style's data addresses from the pointer tables. */
@@ -123,6 +149,8 @@ export function slotInfo(decoded: Uint8Array, tone: number): SlotInfo {
     B: u32(decoded, desc + 16),
     maRec: ma,
     maBlock: first,
+    maArr: arrVa,
+    post: u32(decoded, rec + POST.recWord),
   };
 }
 
@@ -132,6 +160,8 @@ export const EXPECTED_SLOT_INFO: Readonly<Record<SlotId, Readonly<Pick<SlotInfo,
   CG: { matrix: 0x5404952c, desc: 0x5407decc, R: 0x5407f6b4, G: 0x5407eeb4, B: 0x5407d6b8, maBlock: 0x5404a6d4 },
 };
 export const EXPECTED_STANDARD_MA_BLOCK = 0x5404af70;
+/** The post-curve matrix array every colour style shares in 1.11 (identity at saturation 0). */
+export const EXPECTED_POST_ARRAY = 0x5501ad98;
 
 export interface Layout {
   CY: SlotInfo;
@@ -157,8 +187,10 @@ export function resolveLayout(decoded: Uint8Array): Layout {
     for (const k of ['matrix', 'desc', 'R', 'G', 'B', 'maBlock'] as const) {
       if (info[k] !== exp[k]) fail(`${s.id} ${k} resolved to 0x${info[k].toString(16)}, expected 0x${exp[k].toString(16)}`);
     }
+    if (info.post !== EXPECTED_POST_ARRAY) fail(`${s.id} post-curve matrix array resolved to 0x${info.post.toString(16)}`);
     resolved[s.id] = info;
   }
+  if (standard.post !== EXPECTED_POST_ARRAY) fail('Standard post-curve matrix array moved');
   if (foff(COMP_VA) !== COMP_OFFSET || COMP_OFFSET % 4 !== 0) fail('compensation word offset');
   const g = foff(COMP_VA - 4);
   for (let i = 0; i < COMP_GUARD.length; i++) {
