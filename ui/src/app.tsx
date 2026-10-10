@@ -6,11 +6,11 @@ import { host } from './host';
 import { LANG_LABEL, t } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
-import { FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
+import { BridgeBanner, BridgeDialog, FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
 import { CropEditor, ImageControlPage, RatioPage, ScriptPage, WallpaperPage } from './pages';
 import { Tour, replayTour, restartTours } from './tour';
 import {
-  backupCopies, extrasOn, canRestoreWall, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, outputEntry, outputFirmware, outputWallpaper, pendingChanges, refreshVolumes, restoreCardWall, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
+  askForOfficial, bridgeLoaded, backupCopies, extrasOn, canRestoreWall, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, outputEntry, outputFirmware, outputWallpaper, pendingChanges, refreshVolumes, restoreCardWall, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
 } from './store';
 
 const gb = (n: number): string => (n >= 1e9 ? `${(n / 1e9).toFixed(n >= 1e10 ? 0 : 1)} GB` : `${Math.max(1, Math.round(n / 1e6))} MB`);
@@ -67,13 +67,14 @@ function CopyActions() {
   const n = useStore((s) => s.copySel.length);
   const busy = useStore((s) => !!s.busy);
   const writable = useStore((s) => !!writableCopy(s) && s.volumes.some((v) => v.id === s.volumeId));
+  const bridge = useStore((s) => bridgeLoaded(s));
   return (
     <div className="out-actions" data-tour="copies-actions">
       {source === 'pc' && <button className="btn" title={t('copiesOpenFolder')} onClick={() => revealBackups()}>{Ico.folder}<span className="out-label">{t('copiesOpenFolder')}</span></button>}
       <button className="btn" disabled={busy || count === 0} onClick={() => { void deleteCopies(true); }}>{t('copiesDeleteAll')}</button>
       <button className="btn danger" disabled={busy || n === 0} onClick={() => { void deleteCopies(false); }}>{Ico.trash}<span>{t('copiesDelete')}{n ? ` ${n}` : ''}</span></button>
       {source === 'card' && <button className="btn" disabled={busy || n === 0} onClick={() => { void backupCopies(); }}>{t('copiesBackup')}{n ? ` ${n}` : ''}</button>}
-      <button className="btn primary" disabled={busy || !writable} title={writable ? undefined : t('copiesPickOne')} onClick={() => { void writeCopy(); }}>{t('writeCard')}</button>
+      <button className="btn primary" disabled={busy || (!writable && !bridge)} title={writable || bridge ? undefined : t('copiesPickOne')} onClick={() => { if (bridge) askForOfficial(); else void writeCopy(); }}>{t('writeCard')}</button>
     </div>
   );
 }
@@ -85,7 +86,9 @@ function OutputBar() {
   const isIC = s.page === 'ic' || s.page === 'ratio'; const isWall = s.page === 'wall';
   const can = !!s.info && !s.busy && (isIC ? (pendingChanges(s).length + ratioSpecs(s).length > 0 || extrasOn(s)) && !hasNameErrors(s) && !hasRatioErrors(s) : isWall ? wallReady(s) : true);
   const role: Key | '' = s.role === 'firmware' ? 'roleFirmware' : s.role === 'wallpaper' ? 'roleWallpaper' : s.role === 'mixed' ? 'roleMixed' : s.role === 'empty' ? 'roleEmpty' : '';
-  const run = (kind: 'card' | 'folder'): void => { void (isIC ? outputFirmware({ kind }) : isWall ? outputWallpaper({ kind }) : outputEntry({ kind })); };
+  // With the bridge firmware open the buttons stay live but offer the official download instead.
+  const bridge = bridgeLoaded(s) && !s.busy;
+  const run = (kind: 'card' | 'folder'): void => { if (bridge) { askForOfficial(); return; } void (isIC ? outputFirmware({ kind }) : isWall ? outputWallpaper({ kind }) : outputEntry({ kind })); };
   return (
     <footer className="outbar">
       <div className="out-card" data-tour="card">
@@ -111,8 +114,8 @@ function OutputBar() {
       {s.page !== 'copies' && canRestoreWall(s) && s.cardWall && (
         <button className="btn" title={`${t('restoreWall')} · ${t('restoreWallTip', { n: s.cardWall.names.length, d: new Date(s.cardWall.savedAt).toLocaleDateString(), c: s.cardWall.label })}`} onClick={() => { void restoreCardWall(); }}>{Ico.image}<span className="out-label">{t('restoreWall')}</span></button>
       )}
-      {s.page !== 'copies' && <button className="btn" data-tour="export" disabled={!can} title={t('exportFolder')} onClick={() => run('folder')}>{Ico.folder}<span className="out-label">{t('exportFolder')}</span></button>}
-      {s.page !== 'copies' && <button className="btn primary" data-tour="write" disabled={!can || !vol} onClick={() => run('card')}>{t('writeCard')}</button>}
+      {s.page !== 'copies' && <button className="btn" data-tour="export" disabled={!can && !bridge} title={t('exportFolder')} onClick={() => run('folder')}>{Ico.folder}<span className="out-label">{t('exportFolder')}</span></button>}
+      {s.page !== 'copies' && <button className="btn primary" data-tour="write" disabled={!bridge && (!can || !vol)} onClick={() => run('card')}>{t('writeCard')}</button>}
     </footer>
   );
 }
@@ -143,11 +146,13 @@ export function App() {
     <div className="app" onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }} onDrop={(e) => e.preventDefault()}>
       <Sidebar />
       <main className="main">
+        <BridgeBanner />
         <div className="stage">{ready ? (page === 'ic' ? <ImageControlPage /> : page === 'ratio' ? <RatioPage /> : page === 'wall' ? <WallpaperPage /> : page === 'copies' ? <CopiesPage /> : <ScriptPage />) : <div className="page"><span className="spinner" /></div>}</div>
         <OutputBar />
       </main>
       <CropEditor />
       <FirmwareOnline />
+      <BridgeDialog />
       <ConfirmDialog />
       <Tour />
       <Busy />

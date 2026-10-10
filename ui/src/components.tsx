@@ -25,6 +25,7 @@ export const Ico = {
   ratio: <svg viewBox="0 0 20 20" {...P}><rect x="2.8" y="3.6" width="14.4" height="12.8" rx="2" /><path d="M2.8 7.4h14.4M2.8 12.6h14.4" /></svg>,
   file: <svg viewBox="0 0 20 20" {...P}><path d="M6 2.8h5.2L15 6.6v9.1a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5V4.3A1.5 1.5 0 0 1 6 2.8z" /><path d="M11 3v3.8h3.8" /></svg>,
   updown: <svg viewBox="0 0 20 20" {...P}><path d="M6.5 8l3.5-3.5L13.5 8M6.5 12l3.5 3.5 3.5-3.5" /></svg>,
+  bridge: <svg viewBox="0 0 20 20" {...P}><path d="M2.5 7.5h15M2.5 13.5h15M4.5 7.5v6M15.5 7.5v6M4.5 7.5c1.6 2.6 3.4 3.9 5.5 3.9s3.9-1.3 5.5-3.9" /></svg>,
   download: <svg viewBox="0 0 20 20" {...P}><path d="M10 3.2v9.6M6 9.2l4 3.8 4-3.8M4 16.2h12" /></svg>,
   info: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="7.2" /><path d="M10 9.2v4.4" /><circle cx="10" cy="6.4" r="0.6" fill="currentColor" /></svg>,
   soft: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="3.3" /><circle cx="10" cy="10" r="7.2" strokeDasharray="1.4 2.35" /></svg>,

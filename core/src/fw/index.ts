@@ -80,6 +80,7 @@ export { modeSetKeywords, readFactoryEntry } from './factory';
 export type { FactoryEntry } from './factory';
 
 export * as aspect from './aspect';
+export { BRIDGE_FULL_VERSION, BRIDGE_SHA256, BRIDGE_SIZE, BRIDGE_VERSION, applyPatch, isBridgeFirmware, makeBridgeFirmware, officialFromBridge } from './bridge';
 export { MAX_CUSTOM_RATIOS, MAX_NAME_LENGTH, gr4Sizes, planRatio, planRatios, ratioText, validateRatioName } from './aspect';
 export type { ExtensionFeatures, RatioEntry, RatioGeometry, RatioSpec } from './aspect';
 export { readBuildRevision, readExtensionFeatures, readRatioRecord } from './aspect/package';

@@ -52,6 +52,7 @@ import {
 } from '../fw';
 import type { BuildResult, BuiltRatio, ClarityChange, ClarityEdit, SoftFocusLevel, SoftFocusStrength, FactoryEntry, LangCode, Layout, NameValidation, Range, RatioSpec, SlotEdit, SlotId } from '../fw';
 import { grownRanges, growPayload } from '../fw/aspect/package';
+import { BRIDGE_SHA256, BRIDGE_SIZE, isBridgeFirmware, makeBridgeFirmware, officialFromBridge } from '../fw/bridge';
 import { convertCube, convertXmp, quantizeSlot } from '../color';
 import type { SlotParams } from '../color';
 import { JpegError, checkShutdownJpeg, decodeBaselineJpeg, encodeExactJpeg, inspectJpeg } from '../jpeg';
@@ -88,6 +89,12 @@ export interface FirmwareInfo {
   shutdown: Partial<Record<CameraModel, ShutdownResource>>;
   /** Card files that open the camera's factory menu, as found in this firmware. */
   factoryEntry: FactoryEntry;
+  /**
+   * True when the file opened was the 1.12 bridge firmware (see `fw/bridge.ts`). Everything else
+   * describes the official 1.11 file recovered from it; builds are refused until the official file
+   * is opened.
+   */
+  bridge: boolean;
 }
 
 export interface PresetResult {
@@ -139,8 +146,8 @@ export interface RatioPreview {
 /** What a firmware file found on a card (or in a backup) is, compared with the official one. */
 export interface FirmwareSummary {
   sha256: string;
-  /** `official`: the unmodified file; `modified`: a valid 1.11 container with changes; `unknown`: anything else. */
-  kind: 'official' | 'modified' | 'unknown';
+  /** `official`: the unmodified file; `modified`: a valid 1.11 container with changes; `bridge`: the 1.12 bridge firmware; `unknown`: anything else. */
+  kind: 'official' | 'modified' | 'bridge' | 'unknown';
   /** Bytes of the decoded payload that differ from the official one. */
   changedBytes: number;
   /**
@@ -272,8 +279,13 @@ export class Engine {
     this.layout = layout;
   }
 
-  /** Accepts only the official 1.11 file; throws `FirmwareError('unsupported-firmware')` otherwise. */
-  static async open(raw: Uint8Array): Promise<Engine> {
+  /**
+   * Accepts the official 1.11 file, or the 1.12 bridge firmware (opened as the official file it
+   * was made from, with `info.bridge` set); throws `FirmwareError('unsupported-firmware')` otherwise.
+   */
+  static async open(input: Uint8Array): Promise<Engine> {
+    const bridge = await isBridgeFirmware(input);
+    const raw = bridge ? await officialFromBridge(input) : input;
     const { decoded } = await openOfficial(raw);
     const layout = resolveLayout(decoded);
     const mo = foff(layout.standard.matrix);
@@ -315,8 +327,14 @@ export class Engine {
       allowed,
       shutdown,
       factoryEntry: readFactoryEntry(decoded),
+      bridge,
     };
     return new Engine(raw, decoded, info, mStd, layout);
+  }
+
+  /** The 1.12 bridge firmware, made from the official file this engine holds (see `fw/bridge.ts`). */
+  async bridgeFirmware(): Promise<Uint8Array> {
+    return makeBridgeFirmware(this.raw);
   }
 
   /**
@@ -325,6 +343,7 @@ export class Engine {
    */
   async inspect(raw: Uint8Array): Promise<FirmwareSummary> {
     const sha256 = await sha256Hex(raw);
+    if (raw.length === BRIDGE_SIZE && sha256 === BRIDGE_SHA256) return { sha256, kind: 'bridge', changedBytes: 0, verified: true, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false };
     const describe = (d: Uint8Array): FirmwareSummary['slots'] =>
       SLOTS.map((s) => {
         const names = {} as Record<LangCode, string>;
@@ -528,6 +547,7 @@ export class Engine {
 
   /** Build a firmware file. The result has passed the built-in self-check (otherwise this throws). */
   async buildFirmware(requests: SlotRequest[], ratios: readonly RatioSpec[] = [], softFocus: readonly SoftFocusRequest[] = [], options: BuildOptions = {}): Promise<FirmwareBuild> {
+    if (this.info.bridge) throw new FirmwareError('bridge-firmware', 'open the official firmware: the bridge firmware is not a base for builds');
     const edits: SlotEdit[] = [];
     for (const r of requests) {
       const e: SlotEdit = { slot: r.slot };
