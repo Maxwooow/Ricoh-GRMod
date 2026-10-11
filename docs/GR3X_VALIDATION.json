@@ -1,0 +1,103 @@
+{
+  "date": "2026-10-12",
+  "base_commit": "d2145e7efcf41d31215675005987a73476d76004",
+  "official_input_sha256": "708e79f3b7b96a7e1581b4acf4c412233050a1832718ef7f06c8397db1b431c7",
+  "local_t6_candidate_sha256": "b236813463a3da13d9d3000a0769f655654e7a10f855efb1e4def48f7694aa37",
+  "matches_previously_delivered_t6": true,
+  "typecheck": {
+    "core": true,
+    "ui": true
+  },
+  "ui_production_build": true,
+  "vitest": {
+    "passed": 171,
+    "skipped": 112,
+    "includes_ui_state_tests": 21,
+    "skip_reason": "Upstream GR IV private firmware/oracle fixtures not supplied"
+  },
+  "shell": {
+    "go_test_all": true,
+    "windows_amd64_vet": true,
+    "linux_headless_build": true
+  },
+  "native_function_validation": {
+    "groups": 16,
+    "cases": 504829,
+    "container_checks": 22,
+    "guarded_patch_sites": 219,
+    "checks": {
+      "adj": {
+        "passed": true,
+        "cases": 795
+      },
+      "geometry": {
+        "passed": true,
+        "cases": 420
+      },
+      "image-identity": {
+        "passed": true,
+        "cases": 1024
+      },
+      "liveview": {
+        "passed": true,
+        "cases": 7472
+      },
+      "development-source-bounds": {
+        "passed": true,
+        "cases": 65472
+      },
+      "liveview-chroma-alignment": {
+        "passed": true,
+        "cases": 38840
+      },
+      "face-detection-and-full-raw": {
+        "passed": true,
+        "cases": 278
+      },
+      "image-pipeline": {
+        "passed": true,
+        "cases": 4219
+      },
+      "metering": {
+        "passed": true,
+        "cases": 115
+      },
+      "raw-and-settings": {
+        "passed": true,
+        "cases": 700
+      },
+      "shading": {
+        "passed": true,
+        "cases": 2970
+      },
+      "clarity-table": {
+        "passed": true,
+        "cases": 8
+      },
+      "updater-loader": {
+        "passed": true,
+        "cases": 66
+      },
+      "independent-codec": {
+        "passed": true,
+        "cases": 0
+      },
+      "image-controls": {
+        "passed": true,
+        "cases": 380063
+      },
+      "look-icons": {
+        "passed": true,
+        "cases": 2387
+      }
+    }
+  },
+  "hardware": {
+    "target": "GR IIIx HDF",
+    "owner_reported_t4_flicker_fixed": true,
+    "sf1_and_t5_l1_tested": true,
+    "t6_nine_film_presets_tested": false,
+    "script_and_shutdown_images_tested": false
+  },
+  "scope": "Local software and bounded native-function validation; no physical camera IO performed during this check. Official firmware, decoded dumps, downloaded LUT files and personal photographs are not included in the source contribution."
+}

@@ -1,0 +1,75 @@
+{
+  "revision": "T6-packaging-palette",
+  "reference_date": "2026-10-12",
+  "pixel_size": [
+    40,
+    40
+  ],
+  "reference_format": "135 film box; selected classic packaging, varies by era and market",
+  "method": "Code-native pixel drawing; approximate hues and panel layout based on visually inspected packaging photographs. No downloaded brand artwork or calibrated print colour measurements. Film name and speed remain legible at 40px.",
+  "films": [
+    {
+      "name": "Provia 100F",
+      "palette": "green, violet, black, cream",
+      "reference_page": "https://www.bhphotovideo.com/c/product/181489-USA/Fujifilm_14883175_RDP_III_135_36_Fujichrome_Provia.html",
+      "reference_image": "https://www.bhphotovideo.com/images/images1500x1500/Fujifilm_14883175_RDP_III_135_36_Fujichrome_Provia_181489.jpg",
+      "visually_inspected": true
+    },
+    {
+      "name": "Provia 400F",
+      "palette": "green, sky blue, silver grey, white",
+      "reference_page": "https://colorspacehk.com/en/products/fujifilm-provia-400f-24exp-color-reversal-expired-35mm-film-2002-02",
+      "reference_image": "https://colorspacehk.com/cdn/shop/files/109_f965bf01-df94-4406-9dbc-920371ee9fa2.png?v=1708529268&width=1946",
+      "visually_inspected": true
+    },
+    {
+      "name": "Velvia 50",
+      "palette": "green, blue, gold panel, black speed numerals",
+      "reference_page": "https://my.fujifilm.com/es/fotografia-analogica/fujichrome-135-velvia-50",
+      "reference_image": "https://my.fujifilm.com/static/media/catalog/product/v/e/velvia50_1.jpg",
+      "visually_inspected": true
+    },
+    {
+      "name": "Velvia 100",
+      "palette": "green, blue, cream panel, cream speed numerals on black",
+      "reference_page": "https://www.castlecameras.co.uk/fujichrome-velvia-rvp-100-135-36/p902",
+      "reference_image": "https://www.castlecameras.co.uk/images/products/large/902.jpg",
+      "visually_inspected": true
+    },
+    {
+      "name": "Portra 400",
+      "palette": "purple/lavender, white, yellow footer, red brand accent",
+      "reference_page": "https://colorspacehk.com/products/kodak-portra-400-36exp-35mm-color-film",
+      "reference_image": "https://colorspacehk.com/cdn/shop/files/1_60b3901d-a130-4043-819c-be597444be49.png?v=1699868868&width=1445",
+      "visually_inspected": true
+    },
+    {
+      "name": "Gold 200",
+      "palette": "classic yellow/purple, red brand accent, white label",
+      "reference_page": "https://shop.app/products/8953384141/35mm-color-kodak-gold-200-36-exp-1-roll",
+      "reference_image": "https://cdn.shopify.com/s/files/1/1704/2353/files/Gold200_35mm_2300x2300_0e6ebf37-9998-41d4-9d7e-15ab5ce5a811.jpg?v=1746465965",
+      "visually_inspected": true
+    },
+    {
+      "name": "Ektar 100",
+      "palette": "near-black, red diagonal texture, white, yellow footer",
+      "reference_page": "https://photolab-berkeley.com/products/kodak-ektar-100-professional-color-film-135-36",
+      "reference_image": "https://photolab-berkeley.com/cdn/shop/files/KodakEktar100-135-36-2048x2048.jpg?v=1723062418",
+      "visually_inspected": true
+    },
+    {
+      "name": "Kodachrome 64",
+      "palette": "classic red/yellow, white, rainbow band",
+      "reference_page": "https://www.super8france.com/contents/fr/d10724_les-caracteristiques-uniques-des-diapositives-Kodachrome.html",
+      "reference_image": "https://www.super8france.com/contents/media/diapositive-kodachrome.jpg",
+      "visually_inspected": true
+    },
+    {
+      "name": "CineStill 800T",
+      "palette": "black field, red disc, white lettering",
+      "reference_page": "https://khrome.de/en/products/cinestill-800t-tungsten-135-36",
+      "reference_image": "https://khrome.de/cdn/shop/files/135_Cinestill_800T.jpg?v=1781162256&width=2048",
+      "visually_inspected": true
+    }
+  ]
+}
