@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { card, LANGS, MAX_CUSTOM_RATIOS, validateRatioName } from '@grmod/core';
+import { card, wallpaper, GFX_RATIOS, GR3X_FILM_IDS, LANGS, MAX_CUSTOM_RATIOS, validateRatioName } from '@grmod/core';
 import type { CameraModel, ClarityChange, FirmwareInfo, FirmwareSummary, LangCode, PresetResult, RatioPreview, RatioSpec, SlotId, SlotRequest, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
 import { engine, EngineError } from './engine';
 import { host, HostError, sha256Hex } from './host';
@@ -23,7 +23,7 @@ export interface WallItem {
 }
 export interface Toast { id: number; text: string; kind: 'ok' | 'error' | 'info'; action?: { label: string; run: () => void } }
 /** The power-off image setup last seen on (or written to) a card; the files themselves are in the host store. */
-export interface CardWall { names: string[]; hasIndex: boolean; savedAt: number; label: string }
+export interface CardWall { names: string[]; hasIndex: boolean; savedAt: number; label: string; model?: CameraModel }
 export type PreviewMode = 'photo' | 'swatch';
 /** What the frame of an added ratio is drawn on. */
 export type RatioBackdrop = 'photo' | 'gray';
@@ -58,11 +58,13 @@ export interface State {
   tour?: TourState; toursSeen: TourId[];
 }
 
-const SLOT_IDS: SlotId[] = ['CY', 'CG'];
+const SLOT_IDS: readonly SlotId[] = GR3X_FILM_IDS;
+const availableSlots = (s: State = state): SlotId[] => s.info?.slots.map(slot => slot.id) ?? (s.model === 'GR3X_HDF' ? [...GR3X_FILM_IDS] : ['CY', 'CG']);
 const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '', style: 'film' } });
+const emptySlots = (): Record<SlotId, SlotState> => Object.fromEntries(SLOT_IDS.map(id => [id, emptySlot()])) as Record<SlotId, SlotState>;
 let state: State = {
   ready: false, page: 'script', fwBusy: false, model: 'HDF', lang: 'zh-CN',
-  slots: { CY: emptySlot(), CG: emptySlot() }, wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false, bridgeOpen: false,
+  slots: emptySlots(), wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false, bridgeOpen: false,
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
@@ -134,7 +136,7 @@ export async function init(): Promise<void> {
     const raw = await host.storeGet('project.json');
     const doc = raw ? JSON.parse(new TextDecoder().decode(raw)) : null;
     if (doc && doc.v === 1) {
-      const slots = { CY: emptySlot(), CG: emptySlot() };
+      const slots = emptySlots();
       for (const id of SLOT_IDS) {
         const d = doc.slots?.[id];
         if (!d) continue;
@@ -144,12 +146,20 @@ export async function init(): Promise<void> {
       const ratios: RatioItem[] = (Array.isArray(doc.ratios) ? doc.ratios : []).slice(0, MAX_CUSTOM_RATIOS)
         .filter((r: RatioItem) => r && typeof r.id === 'string' && typeof r.ratio === 'string')
         .map((r: RatioItem) => ({ id: r.id, ratio: r.ratio.slice(0, 24), name: String(r.name || '').slice(0, 80) }));
-      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : doc.page === 'soft' ? 'ic' : 'script', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo', cardWall: validCardWall(doc.cardWall),
+      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : doc.page === 'soft' ? 'ic' : 'script', model: ['GR3X_HDF', 'HDF', 'STANDARD', 'MONO'].includes(doc.model) ? doc.model : 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo', cardWall: validCardWall(doc.cardWall),
         soft: doc.soft === true || (!!doc.softFocus && typeof doc.softFocus === 'object' && Object.keys(doc.softFocus).length > 0),
         dateStamp: doc.dateStamp === true, monoUnlock: doc.monoUnlock === true,
         toursSeen: TOUR_IDS.filter((id) => Array.isArray(doc.tours) && doc.tours.includes(id)) });
+      // Older backups did not record the camera. Derive it from the complete
+      // stored script on every load, including when metadata claims a model.
+      if (state.cardWall) {
+        const script = await host.storeGet(CW_SCRIPT);
+        const model = script ? wallpaper.rotationScriptInfo(new TextDecoder().decode(script))?.model : undefined;
+        set({ cardWall: { ...state.cardWall, model } });
+      }
       const fwRaw = await host.storeGet('firmware.bin');
-      if (fwRaw) await openFirmware(fwRaw, doc.fwName || 'fwdc248b.bin', false);
+      // A family switch clears fwName. Do not reopen the previous family's cached file.
+      if (fwRaw && doc.fwName) await openFirmware(fwRaw, doc.fwName, false);
       for (const id of SLOT_IDS) {
         const p = doc.slots?.[id]?.preset;
         if (!p) continue;
@@ -200,8 +210,19 @@ export function endTour(): void {
 export function setPage(page: Page): void { set({ page }); scheduleSave(); if (page === 'copies') void refreshCopies(); }
 export function setLang(lang: LangCode): void { set({ lang }); scheduleSave(); }
 export function setModel(model: CameraModel): void {
-  if (model === state.model) return;
-  set({ model });
+  if (state.busy || state.fwBusy || model === state.model) return;
+  const differentFamily = (state.model === 'GR3X_HDF') !== (model === 'GR3X_HDF');
+  ++ratioGen;
+  clearTimeout(ratioTimer);
+  if (state.info && !state.info.models.includes(model)) {
+    void engine.reset();
+    set({ info: undefined, raw: undefined, fwName: undefined, bridgeOpen: false, bridgeAfter: undefined,
+      soft: false, dateStamp: false, monoUnlock: false,
+      copyInfo: {}, copySel: [], ratios: state.ratios.map(({ preview, ...r }) => r) });
+  }
+  set({ model,
+    ...(differentFamily ? { slots: emptySlots(), activeSlot: 'CY' as const, soft: false, dateStamp: false, monoUnlock: false } : {}),
+    ...(model === 'GR3X_HDF' ? { page: 'ratio' as const, bridgeOpen: false, bridgeAfter: undefined } : {}) });
   scheduleSave();
   for (const w of state.wall) void encodeWall(w.id);
 }
@@ -209,22 +230,32 @@ export function setModel(model: CameraModel): void {
 // ------------------------------------------------------------------ firmware
 /** Opens a firmware file; false (with a message shown) when it is not the supported official file. */
 async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Promise<boolean> {
+  if (state.busy || state.fwBusy) return false;
+  ++ratioGen;
+  clearTimeout(ratioTimer);
   set({ fwBusy: true });
   try {
     const info = await engine.open(raw);
-    set({ info, raw, fwName: name, fwBusy: false });
+    const model = info.models.includes(state.model) ? state.model : info.models[0];
+    const sameFamily = (state.model === 'GR3X_HDF') === (model === 'GR3X_HDF');
+    set({ info, raw, model, fwName: info.filename, fwBusy: false, copyInfo: {}, copySel: [],
+      ...(!sameFamily ? { slots: emptySlots(), activeSlot: 'CY' as const, soft: false, dateStamp: false, monoUnlock: false } : {}),
+      ...(info.family === 'gr3x' ? { page: sameFamily ? state.page : 'ratio' as const, bridgeOpen: false, bridgeAfter: undefined,
+        soft: sameFamily && state.soft, dateStamp: false, monoUnlock: sameFamily && state.monoUnlock && info.features.monoUnlock,
+        ratios: GFX_RATIOS.filter(r => !info.factoryRatios.includes(r)).map((ratio, i) => ({ id: `gr3x-${i}`, ratio, name: ratio })) } : {}) });
     if (info.bridge && persist) toast(t('bridgeOpened'), 'info');
     if (persist) { await host.storeSet('firmware.bin', raw); scheduleSave(); }
-    for (const id of SLOT_IDS) {
+    for (const id of info.capabilities.presets ? info.slots.map(s => s.id) : []) {
       void renderIcon(id);
       const p = state.slots[id].preset;
       if (p && !p.result && !p.busy) void runPreset(id, p.fileName, p.kind, p.text);
     }
-    for (const w of state.wall) void encodeWall(w.id);
+    if (info.capabilities.wallpaper) for (const w of state.wall) void encodeWall(w.id);
     void refreshRatios();
     return true;
   } catch (e) {
-    set({ fwBusy: false });
+    set({ fwBusy: false, info: undefined, raw: undefined, fwName: undefined });
+    scheduleSave();
     if (e instanceof EngineError && (e.code === 'unsupported-firmware' || e.code.startsWith('bad-') || e.code === 'too-short')) toast(t('badFirmware'), 'error');
     else fail(e);
     return false;
@@ -250,16 +281,19 @@ export async function adoptFirmware(name: string, version: string, data: Uint8Ar
 export const bridgeLoaded = (s: State = state): boolean => !!s.info?.bridge;
 /** What a write or export does while the bridge firmware is open: offer the official download instead. */
 export function askForOfficial(): void { setOnlineOpen(true, 'bridge-loaded'); }
-export function setBridgeOpen(bridgeOpen: boolean): void { set({ bridgeOpen }); }
+export function setBridgeOpen(bridgeOpen: boolean): void {
+  if (bridgeOpen && (state.model === 'GR3X_HDF' || (state.info && !state.info.capabilities.bridge))) return;
+  set({ bridgeOpen });
+}
 
 // ------------------------------------------------------------------ presets
 const PRESET_ERRORS: Record<string, Key> = {
   'not-xmp': 'errNotXmp', 'no-table': 'errNoTable', 'look-profile-missing': 'errLookMissing', 'unsupported-table': 'errUnsupportedTable', 'bad-table': 'errUnsupportedTable',
-  'not-cube': 'errNotXmp', 'bad-cube': 'errBadCube',
+  'not-cube': 'errNotXmp', 'bad-cube': 'errBadCube', 'gr3x-cube-only': 'gr3xCubeOnly',
 };
 async function runPreset(id: SlotId, fileName: string, kind: 'xmp' | 'cube', text: string): Promise<void> {
-  setSlot(id, { preset: { fileName, kind, text, busy: !!state.info } });
-  if (!state.info) return;
+  setSlot(id, { preset: { fileName, kind, text, busy: !!state.info?.capabilities.presets } });
+  if (!state.info?.capabilities.presets) return;
   try {
     const result = await engine.convert(kind, text);
     if (state.slots[id].preset?.text !== text) return; // replaced meanwhile
@@ -299,7 +333,8 @@ export function removePreset(id: SlotId): void {
 // ------------------------------------------------------------------ names
 export function nameProblem(info: FirmwareInfo, id: SlotId, lang: LangCode, text: string): string | null {
   if (!text) return null;
-  const slot = info.slots.find((s) => s.id === id)!;
+  const slot = info.slots.find((s) => s.id === id);
+  if (!slot) return null;
   const cap = slot.names[lang].capacity;
   if (text.length > cap) return t('nameTooLong', { n: cap });
   const allowed = info.allowed[lang];
@@ -309,7 +344,7 @@ export function nameProblem(info: FirmwareInfo, id: SlotId, lang: LangCode, text
   return bad.length ? t('nameBadChar', { c: bad.join(' ') }) : null;
 }
 export function setName(id: SlotId, lang: LangCode, text: string): void {
-  setSlot(id, (s) => ({ names: { ...s.names, [lang]: text } }));
+  setSlot(id, (s) => ({ names: state.info?.family === 'gr3x' ? Object.fromEntries(LANGS.map(l => [l, text])) : { ...s.names, [lang]: text } }));
   scheduleSave();
 }
 
@@ -322,7 +357,7 @@ async function bitmapOf(dataUrl: string): Promise<ImageBitmap> {
 }
 async function renderIcon(id: SlotId): Promise<void> {
   const info = state.info; const ic = state.slots[id].icon;
-  if (!info || ic.mode === 'keep') { if (ic.pixels) setSlot(id, (s) => ({ icon: { ...s.icon, pixels: undefined } })); return; }
+  if (!info?.capabilities.presets || ic.mode === 'keep') { if (ic.pixels) setSlot(id, (s) => ({ icon: { ...s.icon, pixels: undefined } })); return; }
   const tile = info.tiles[ic.style]; const area = info.contentArea[ic.style];
   let pixels: Uint8Array | undefined;
   if (ic.mode === 'text') { await ensureIconFont(); pixels = ic.text.trim() ? textIcon(tile, ic.text, area) : undefined; }
@@ -356,7 +391,7 @@ export async function wallBitmap(w: WallItem): Promise<ImageBitmap | null> {
 const encodeGen = new Map<string, number>();
 async function encodeWall(id: string): Promise<void> {
   const w = state.wall.find((x) => x.id === id); const info = state.info;
-  if (!w || !info) return;
+  if (!w || !info?.capabilities.wallpaper) return;
   const res = info.shutdown[state.model];
   if (!res) { setWall(id, { busy: false, error: t('encodeFailed') }); return; }
   if (w.kind === 'factory') { setWall(id, { busy: false, data: res.data, error: undefined, quality: 100, grain: 0, soften: 0 }); return; }
@@ -428,10 +463,19 @@ export function softOn(s: State = state): boolean { return !!s.soft; }
 
 // ------------------------------------------------------------------ date imprint, monochrome looks
 /** Date imprint: the firmware gets the imprint and its menu (Shooting Assist > Date Imprint); it starts off. */
-export function setDateStamp(dateStamp: boolean): void { set({ dateStamp }); scheduleSave(); }
+export function setDateStamp(dateStamp: boolean): void {
+  if (dateStamp && !state.info?.features.dateStamp) return;
+  set({ dateStamp }); scheduleSave();
+}
 /** The six looks of the GR IV Monochrome on a colour GR IV. Nothing to unlock on the Monochrome. */
-export function setMonoUnlock(monoUnlock: boolean): void { set({ monoUnlock }); scheduleSave(); }
-export function monoUnlockOn(s: State = state): boolean { return !!s.monoUnlock && s.model !== 'MONO'; }
+export function setMonoUnlock(monoUnlock: boolean): void {
+  if (monoUnlock && !state.info?.features.monoUnlock) return;
+  set({ monoUnlock }); scheduleSave();
+}
+export function monoUnlockOn(s: State = state): boolean { return !!s.monoUnlock && s.model !== 'MONO' && !!s.info?.features.monoUnlock; }
+export const GR3X_SOFT_FOCUS: readonly SoftFocusRequest[] = [
+  { level: -1, strength: 'weak' }, { level: -2, strength: 'medium' }, { level: -3, strength: 'strong' },
+];
 /** Any addition that is not a slot or a ratio. */
 export function extrasOn(s: State = state): boolean { return softOn(s) || !!s.dateStamp || monoUnlockOn(s); }
 const MINUS = '\u2212';
@@ -550,7 +594,8 @@ async function rememberCardWall(snap: card.WallpaperSnapshot, label: string): Pr
   if (snap.index) await host.storeSet(CW_INDEX, snap.index); else await host.storeDel(CW_INDEX).catch(() => undefined);
   const names = snap.images.map((im) => im.name.toUpperCase());
   for (const n of old?.names || []) if (!names.includes(n.toUpperCase())) await host.storeDel(cwKey(n)).catch(() => undefined);
-  set({ cardWall: { names, hasIndex: !!snap.index, savedAt: Date.now(), label } });
+  const model = wallpaper.rotationScriptInfo(new TextDecoder().decode(snap.script))?.model;
+  set({ cardWall: { names, hasIndex: !!snap.index, savedAt: Date.now(), label, model } });
   await saveProject();
 }
 /** Read the power-off image setup that is active on a card (script + images), if there is one. */
@@ -570,25 +615,37 @@ async function readCardWall(root: string, l: card.CardListing): Promise<card.Wal
 }
 const volumeLabel = (v: Volume): string => `${v.id}${v.label && v.label !== v.id ? ' ' + v.label : ''}`;
 export function canRestoreWall(s: State = state): boolean {
-  return !!s.cardWall && !!s.info && !s.busy && s.volumes.some((v) => v.id === s.volumeId) && s.role !== undefined && s.role !== 'wallpaper';
+  if (!s.info?.capabilities.wallpaper || !s.info.models.includes(s.model)) return false;
+  return !!s.cardWall && s.cardWall.model === s.model && !s.fwBusy && !s.busy && s.volumes.some((v) => v.id === s.volumeId) && s.role !== undefined && s.role !== 'wallpaper';
 }
 /** Put the remembered power-off images and their script back on the selected card. */
 export async function restoreCardWall(): Promise<void> {
+  if (!canRestoreWall()) return;
   const cw = state.cardWall; const v = state.volumes.find((x) => x.id === state.volumeId);
   if (state.busy || !cw) return;
   if (!v) { toast(t('noCard'), 'error'); return; }
+  const sourceInfo = state.info!, sourceModel = state.model;
   try {
     set({ busy: t('writing') });
     const script = await host.storeGet(CW_SCRIPT);
     const images: card.WallpaperSnapshot['images'] = [];
     for (const n of cw.names) { const data = await host.storeGet(cwKey(n)); if (data) images.push({ name: n, data }); }
     if (!script || images.length !== cw.names.length) { set({ busy: undefined, cardWall: undefined }); scheduleSave(); toast(t('restoreMissing'), 'error'); return; }
+    const saved = wallpaper.rotationScriptInfo(new TextDecoder().decode(script));
+    const size = sourceInfo.shutdown[sourceModel]?.size;
+    if (!saved || saved.model !== sourceModel || saved.size !== size || saved.count !== images.length ||
+        images.some((im, i) => im.data.length !== size || im.name.toUpperCase() !== wallpaper.imageFileName(i + 1))) {
+      set({ busy: undefined }); toast(t('restoreMismatch'), 'error'); return;
+    }
     const index = cw.hasIndex ? (await host.storeGet(CW_INDEX)) || undefined : undefined;
     const plan = card.planRestoreWallpaper(await listing(v.root), { script, images, index }, await freshStamp(v.root));
+    if (state.info !== sourceInfo || state.model !== sourceModel || state.fwBusy || state.volumeId !== v.id) {
+      set({ busy: undefined }); return;
+    }
     const moved = await runPlan(v.root, plan);
     set({ busy: undefined });
     const text = t('wallRestored', { n: images.length }) + (moved ? ` · ${t('parked', { n: moved })}` : '');
-    if (host.info?.kind === 'windows') toast(text, 'ok', { label: t('eject'), run: () => { host.eject(v.id).then(() => { toast(t('ejected'), 'ok'); void refreshVolumes(); }).catch(fail); } });
+    if (host.info?.kind === 'windows' || host.info?.kind === 'macos') toast(text, 'ok', { label: t('eject'), run: () => { host.eject(v.id).then(() => { toast(t('ejected'), 'ok'); void refreshVolumes(); }).catch(fail); } });
     else toast(text, 'ok');
   } catch (e) { set({ busy: undefined }); fail(e); }
   void refreshVolumes();
@@ -622,9 +679,10 @@ export function setShowAll(v: boolean): void { set({ showAll: v }); scheduleSave
 // ------------------------------------------------------------------ output
 export interface SlotChange { id: SlotId; parts: string[]; labels: string[]; request: SlotRequest }
 export function pendingChanges(s: State = state): SlotChange[] {
+  if (!s.info?.capabilities.presets) return [];
   const out: SlotChange[] = [];
   if (!s.info || s.model === 'MONO') return out;
-  for (const id of SLOT_IDS) {
+  for (const id of availableSlots(s)) {
     const sl = s.slots[id]; const off = s.info.slots.find((x) => x.id === id)!;
     const req: SlotRequest = { slot: id }; const parts: string[] = []; const labels: string[] = [];
     if (sl.preset?.result) { req.preset = { matrixQ13: sl.preset.result.matrixQ13, curves: sl.preset.result.curves }; parts.push(`${t('preset')} ${sl.preset.result.title || sl.preset.fileName}`); labels.push(t('preset')); }
@@ -640,8 +698,9 @@ export function pendingChanges(s: State = state): SlotChange[] {
   return out;
 }
 export function hasNameErrors(s: State = state): boolean {
+  if (!s.info?.capabilities.presets) return false;
   if (!s.info) return false;
-  return SLOT_IDS.some((id) => LANGS.some((lang) => !!nameProblem(s.info!, id, lang, s.slots[id].names[lang] || '')));
+  return availableSlots(s).some((id) => LANGS.some((lang) => !!nameProblem(s.info!, id, lang, s.slots[id].names[lang] || '')));
 }
 const stamp = (): string => { const d = new Date(); const p = (n: number): string => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
 
@@ -680,7 +739,7 @@ async function destination(dest: Dest): Promise<{ root: string; volume?: Volume 
 }
 function doneToast(root: string, volume: Volume | undefined, moved: number, file: string, kept = false): void {
   const text = (volume ? t('written', { p: host.join(root, file) }) : t('exported', { p: root })) + (kept ? ` · ${t('wallKept')}` : moved ? ` · ${t('parked', { n: moved })}` : '');
-  if (volume && host.info?.kind === 'windows') {
+  if (volume && (host.info?.kind === 'windows' || host.info?.kind === 'macos')) {
     toast(text, 'ok', { label: t('eject'), run: () => { host.eject(volume.id).then(() => { toast(t('ejected'), 'ok'); void refreshVolumes(); }).catch(fail); } });
   } else toast(text, 'ok', { label: t('reveal'), run: () => { void host.reveal(host.join(root, file)); } });
 }
@@ -694,36 +753,43 @@ async function firmwareToCard(volume: Volume, file: Uint8Array): Promise<{ moved
     const snap = await readCardWall(volume.root, l);
     if (snap) { await rememberCardWall(snap, volumeLabel(volume)); kept = true; }
   } catch (e) { console.warn('remember power-off images', e); }
-  const moved = await runPlan(volume.root, card.planFirmwareCard(l, file, await freshStamp(volume.root)));
+  const moved = await runPlan(volume.root, card.planFirmwareCard(l, file, await freshStamp(volume.root), firmwareFilename()));
   return { moved, kept };
 }
 
+const firmwareFilename = (): card.FirmwareFilename => state.info?.filename === 'fwdc243b.bin' ? 'fwdc243b.bin' : card.FIRMWARE_FILE;
+
 export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
-  if (state.busy || !state.info || !state.raw) return;
+  if (!state.info?.models.includes(state.model)) return;
+  if (!stock && !state.info.capabilities.build) { toast(t('gr3xPending'), 'info'); return; }
+  if (state.busy || state.fwBusy || !state.info || !state.raw) return;
   if (bridgeLoaded()) { askForOfficial(); return; }
+  const sourceInfo = state.info, sourceRaw = state.raw, sourceModel = state.model;
   const changes = stock ? [] : pendingChanges();
   const ratios = stock ? [] : ratioSpecs();
   const soft = !stock && softOn();
-  const dateStamp = !stock && !!state.dateStamp;
+  const dateStamp = !stock && !!state.dateStamp && !!state.info.features.dateStamp;
   const monoUnlock = !stock && monoUnlockOn();
   if (!stock && (hasNameErrors() || hasRatioErrors())) return;
   if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock) { toast(t('nothingToDo'), 'info'); return; }
   if (dest.kind === 'card') {
-    const lines = stock ? [t('copyOfficial')] : changes.map((c) => `${t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
+    const lines = stock ? [t('copyOfficial')] : changes.map((c) => `${state.info?.family === 'gr3x' ? (state.slots[c.id].names[state.lang] || state.info.slots.find(s => s.id === c.id)?.defaultName || c.id) : t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
     if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
-    if (soft) lines.push(t('softAdjLine'));
+    if (soft) lines.push(sourceInfo.features.softFocus === 'clarity' ? t('softLine', { l: softText(GR3X_SOFT_FOCUS) }) : t('softAdjLine'));
     if (dateStamp) lines.push(t('dateLine'));
-    if (monoUnlock) lines.push(t('monoLine'));
+    if (monoUnlock) lines.push(t(state.info?.family === 'gr3x' ? 'gr3xReplicaLine' : 'monoLine'));
     if (!(await ask(t('confirmTitle'), lines, t('confirmOk')))) return;
   }
   const target = await destination(dest);
-  if (!target) return;
+  if (!target || state.info !== sourceInfo || state.raw !== sourceRaw || state.model !== sourceModel || state.fwBusy) return;
   try {
     let file: Uint8Array;
-    if (stock) file = state.raw;
+    if (stock) file = sourceRaw;
     else {
       set({ busy: t('building') });
-      const built = await engine.build(changes.map((c) => c.request), ratios, [], { adjSoftFocus: soft, dateStamp, monoUnlock });
+      const clarity = soft && sourceInfo.features.softFocus === 'clarity' ? [...GR3X_SOFT_FOCUS] : [];
+      const built = await engine.build(changes.map((c) => c.request), ratios, clarity,
+        { adjSoftFocus: soft && sourceInfo.features.softFocus === 'adj', dateStamp, monoUnlock });
       if (!Object.values(built.checks).every((v) => v === true)) throw new EngineError('selfcheck-failed', 'self-check');
       file = built.file;
       void recordBuild(file, changes);
@@ -731,9 +797,9 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     set({ busy: t('writing') });
     let moved = 0; let kept = false;
     if (target.volume) ({ moved, kept } = await firmwareToCard(target.volume, file));
-    else await runPlan(target.root, [{ op: 'write', path: [card.FIRMWARE_FILE], data: file }]);
+    else await runPlan(target.root, [{ op: 'write', path: [firmwareFilename()], data: file }]);
     set({ busy: undefined });
-    doneToast(target.root, target.volume, moved, card.FIRMWARE_FILE, kept);
+    doneToast(target.root, target.volume, moved, firmwareFilename(), kept);
   } catch (e) { set({ busy: undefined }); fail(e); }
   void refreshVolumes();
 }
@@ -743,19 +809,21 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
  * firmware open, the official one is downloaded first and the write continues after it.
  */
 export async function outputBridge(dest: Dest): Promise<void> {
-  if (state.busy) return;
+  if (state.model === 'GR3X_HDF' || (state.info && !state.info.capabilities.bridge)) return;
+  if (state.busy || state.fwBusy) return;
   if (!state.info) { set({ bridgeAfter: dest }); setOnlineOpen(true, 'bridge-base'); return; }
+  const sourceInfo = state.info, sourceModel = state.model;
   const target = await destination(dest);
-  if (!target) return;
+  if (!target || state.info !== sourceInfo || state.model !== sourceModel || state.fwBusy) return;
   try {
     set({ busy: t('building') });
     const file = await engine.bridge();
     set({ busy: t('writing') });
     let moved = 0; let kept = false;
     if (target.volume) ({ moved, kept } = await firmwareToCard(target.volume, file));
-    else await runPlan(target.root, [{ op: 'write', path: [card.FIRMWARE_FILE], data: file }]);
+    else await runPlan(target.root, [{ op: 'write', path: [firmwareFilename()], data: file }]);
     set({ busy: undefined });
-    doneToast(target.root, target.volume, moved, card.FIRMWARE_FILE, kept);
+    doneToast(target.root, target.volume, moved, firmwareFilename(), kept);
   } catch (e) { set({ busy: undefined }); fail(e); }
   void refreshVolumes();
 }
@@ -765,11 +833,12 @@ export async function outputBridge(dest: Dest): Promise<void> {
 const entryNames = (): readonly string[] => state.info?.factoryEntry.files.map((f) => f.name) || card.FACTORY_ENTRY_FILES;
 /** Put the files that open the camera's factory menu on the card (or into a folder). */
 export async function outputEntry(dest: Dest): Promise<void> {
-  const info = state.info;
-  if (state.busy || !info) return;
+  if (!state.info?.capabilities.factoryEntry || !state.info.models.includes(state.model)) return;
+  const info = state.info, model = state.model;
+  if (state.busy || state.fwBusy || !info) return;
   if (bridgeLoaded()) { askForOfficial(); return; }
   const target = await destination(dest);
-  if (!target) return;
+  if (!target || state.info !== info || state.model !== model || state.fwBusy) return;
   try {
     set({ busy: t('writing') });
     const files = info.factoryEntry.files;
@@ -785,11 +854,13 @@ export function wallReady(s: State = state): boolean {
   return s.wall.length > 0 && s.wall.every((w) => !w.busy && !w.error && !!w.data);
 }
 export async function outputWallpaper(dest: Dest): Promise<void> {
-  if (state.busy || !state.info) return;
+  if (!state.info?.capabilities.wallpaper || !state.info.models.includes(state.model)) return;
+  if (state.busy || state.fwBusy || !state.info) return;
+  const sourceInfo = state.info, sourceModel = state.model;
   if (bridgeLoaded()) { askForOfficial(); return; }
   if (!wallReady()) { toast(t('nothingToDo'), 'info'); return; }
   const target = await destination(dest);
-  if (!target) return;
+  if (!target || state.info !== sourceInfo || state.model !== sourceModel || state.fwBusy) return;
   try {
     set({ busy: t('writing') });
     const images = state.wall.map((w) => w.data!);
@@ -956,19 +1027,22 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
   if (summary.ratios.length) lines.push(t('ratioLine', { n: summary.ratios.length, l: summary.ratios.map((r) => r.name).join(' / ') }));
   if (summary.adjSoftFocus) lines.push(t('softAdjLine'));
   if (summary.dateStamp) lines.push(t('dateLine'));
-  if (summary.monoUnlock) lines.push(t('monoLine'));
+  if (summary.monoUnlock) lines.push(t(state.info?.family === 'gr3x' ? 'gr3xReplicaLine' : 'monoLine'));
   if (summary.softFocus?.length) lines.push(t('softLine', { l: softText(summary.softFocus) }));
   return lines;
 }
 /** Put the selected firmware copy (from the card's parked files or from a backup) on the card as the firmware to install. */
 export async function writeCopy(): Promise<void> {
+  if (!state.info?.models.includes(state.model)) return;
+  const sourceInfo = state.info, sourceModel = state.model;
   const pick = writableCopy(); const source = state.copySource;
   const v = state.volumes.find((x) => x.id === state.volumeId);
-  if (state.busy || !state.info) return;
+  if (state.busy || state.fwBusy || !state.info) return;
   if (bridgeLoaded()) { askForOfficial(); return; }
   if (!pick) return;
   if (!v) { toast(t('noCard'), 'error'); return; }
   if (!(await ask(t('confirmTitle'), describeCopy(pick.summary), t('confirmOk')))) return;
+  if (state.info !== sourceInfo || state.model !== sourceModel || state.fwBusy) return;
   try {
     set({ busy: t('opening') });
     const file = source === 'card' ? await host.parkedRead(v.id, pick.entry.path) : await host.backupRead(pick.entry.path);
@@ -978,7 +1052,7 @@ export async function writeCopy(): Promise<void> {
     set({ busy: t('writing') });
     const { moved, kept } = await firmwareToCard(v, file);
     set({ busy: undefined });
-    doneToast(v.root, v, moved, card.FIRMWARE_FILE, kept);
+    doneToast(v.root, v, moved, firmwareFilename(), kept);
   } catch (e) { set({ busy: undefined }); fail(e); }
   await refreshCopies();
   void refreshVolumes();

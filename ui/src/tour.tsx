@@ -85,7 +85,7 @@ function find(name: string): HTMLElement | null {
  * (`data-tour-page`), which is not there while no firmware is open.
  */
 export function beginTour(id: TourId, replay: boolean): boolean {
-  if (getState().tour) return false;
+  if (getState().tour || getState().model === 'GR3X_HDF') return false;
   if (id !== 'overview' && !document.querySelector(`.app [data-tour-page="${id}"]`)) return false;
   const steps: number[] = [];
   TOURS[id].forEach((st, i) => { if (names(st.target).every((n) => find(n))) steps.push(i); });
@@ -145,6 +145,7 @@ export function Tour() {
   const hasFirmware = useStore((s) => !!s.info);
   const model = useStore((s) => s.model);
   useEffect(() => {
+    if (model === 'GR3X_HDF') { if (tour) endTour(); return; }
     if (tour || wait) return;
     const id: TourId | null = !seen.includes('overview') ? 'overview' : !seen.includes(page) ? page : null;
     if (!id) return;
@@ -153,7 +154,7 @@ export function Tour() {
     return () => clearTimeout(timer);
   }, [tour, wait, page, seen, hasFirmware, model]);
   const root = document.getElementById('root');
-  return tour && root ? createPortal(<TourLayer key={tour.id} />, root) : null;
+  return model !== 'GR3X_HDF' && tour && root ? createPortal(<TourLayer key={tour.id} />, root) : null;
 }
 
 function TourLayer() {

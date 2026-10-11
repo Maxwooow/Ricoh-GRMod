@@ -69,7 +69,7 @@ svg { width: 18px; height: 18px; flex: none; }
 .hero-alt { flex: none; display: flex; justify-content: center; padding-top: 10px; }
 
 .ic { flex: 1; min-height: 0; display: grid; grid-template-columns: clamp(350px, 38%, 440px) minmax(0, 1fr); gap: 24px; }
-.cards { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden; }
+.cards { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow-y: auto; padding-right: 3px; }
 .card { border: 1px solid var(--line); border-radius: 10px; position: relative; transition: border-color 0.12s, background 0.12s; flex: none; }
 .card.on { border-color: var(--line2); background: var(--side); }
 .card.drop-over { border-color: var(--blue); background: var(--blue-bg); }
@@ -392,3 +392,14 @@ button.fw-rel:disabled { cursor: default; }
 .bridge-banner-ico svg { width: 18px; height: 18px; }
 .bridge-banner-text { flex: 1; min-width: 0; }
 .bridge-banner .btn { flex: none; }
+
+.gr3x-notice { margin: 0 24px 12px; padding: 14px 16px; border: 1px solid #a78348; border-radius: 10px; background: #a7834812; }
+.gr3x-notice p { margin: 6px 0 12px; line-height: 1.5; }
+.gr3x-notice .btn + .btn { margin-left: 8px; }
+
+/* IIIx feature coverage remains readable without GR IV slot cards. */
+.gr3x-features { overflow: auto; display: grid; gap: 16px; align-content: start; max-width: 920px; }
+.gr3x-features .extras { padding-bottom: 14px; }
+.gr3x-features p { margin: 8px 18px; line-height: 1.6; }
+.gr3x-coverage { padding: 18px; }
+.gr3x-coverage p { margin: 12px 0 0; }

@@ -84,7 +84,7 @@ function OutputBar() {
   const vol = s.volumes.find((v) => v.id === s.volumeId);
   // Image Control (with its switches) and the added ratios go into one firmware file: both pages write the same thing.
   const isIC = s.page === 'ic' || s.page === 'ratio'; const isWall = s.page === 'wall';
-  const can = !!s.info && !s.busy && (isIC ? (pendingChanges(s).length + ratioSpecs(s).length > 0 || extrasOn(s)) && !hasNameErrors(s) && !hasRatioErrors(s) : isWall ? wallReady(s) : true);
+  const can = !!s.info && s.info.models.includes(s.model) && (isIC ? s.info.capabilities.build : isWall ? s.info.capabilities.wallpaper : s.info.capabilities.factoryEntry) && !s.busy && (isIC ? (pendingChanges(s).length + ratioSpecs(s).length > 0 || extrasOn(s)) && !hasNameErrors(s) && !hasRatioErrors(s) : isWall ? wallReady(s) : true);
   const role: Key | '' = s.role === 'firmware' ? 'roleFirmware' : s.role === 'wallpaper' ? 'roleWallpaper' : s.role === 'mixed' ? 'roleMixed' : s.role === 'empty' ? 'roleEmpty' : '';
   // With the bridge firmware open the buttons stay live but offer the official download instead.
   const bridge = bridgeLoaded(s) && !s.busy;
@@ -95,7 +95,7 @@ function OutputBar() {
       <span className="out-ico">{Ico.card}</span>
       <Hint label={t('cardReqTitle')}>
         <b>{t('cardReqTitle')}</b>
-        <span>{t('cardReq1')}</span><span>{t('cardReq2')}</span>
+        {s.model === 'GR3X_HDF' && isIC ? <span>{t('gr3xCard')}</span> : <><span>{t('cardReq1')}</span><span>{t('cardReq2')}</span></>}
       </Hint>
       <Select<string>
         variant="box" label={t('card')} value={vol?.id} placeholder={t('noCard')} onChange={selectVolume}
@@ -122,9 +122,11 @@ function OutputBar() {
 
 /** The ? button: this page's guide again (skippable), or every guide from the start as on first use. */
 function HelpMenu() {
+  const gr3x = useStore((s) => s.model === 'GR3X_HDF');
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useDismiss(open, ref, () => setOpen(false));
+  if (gr3x) return null;
   return (
     <div className="menu-wrap" ref={ref}>
       <button className="help-btn" data-tour="help" title={t('tourHelp')} aria-label={t('tourHelp')} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>{Ico.help}</button>

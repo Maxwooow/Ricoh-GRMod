@@ -25,6 +25,7 @@ function call<T>(msg: Record<string, unknown>, transfer: Transferable[] = [], on
 }
 
 export const engine = {
+  reset: () => call<boolean>({ type: 'reset' }),
   open: (raw: Uint8Array) => call<FirmwareInfo>({ type: 'open', raw: raw.slice().buffer }),
   convert: (kind: 'xmp' | 'cube', text: string) => call<PresetResult>({ type: 'convert', kind, text }),
   build: (requests: SlotRequest[], ratios: RatioSpec[] = [], softFocus: SoftFocusRequest[] = [], options: BuildOptions = {}) => call<FirmwareBuild>({ type: 'build', requests, ratios, softFocus, options }),
