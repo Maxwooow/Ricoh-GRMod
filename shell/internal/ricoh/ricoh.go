@@ -1,4 +1,4 @@
-// Package ricoh finds and downloads the current firmware update of a GR IV
+// Package ricoh finds and downloads the current firmware update of a supported GR
 // model from RICOH IMAGING's own download pages.
 //
 // Nothing is hard-coded but the site and the page that lists the firmware of
@@ -38,13 +38,19 @@ const (
 
 // Models maps the model keys of the interface to the names Ricoh uses.
 var Models = map[string]string{
+	"GR3X_HDF": "GR IIIx HDF",
 	"STANDARD": "GR IV",
 	"HDF":      "GR IV HDF",
 	"MONO":     "GR IV Monochrome",
 }
 
 // baseModel is the row that covers several variants of the camera.
-const baseModel = "GR IV"
+func baseModelFor(model string) string {
+	if model == "GR3X_HDF" {
+		return "GR IIIx"
+	}
+	return "GR IV"
+}
 
 // ErrNoRelease means the site lists no firmware for the model.
 var ErrNoRelease = errors.New("no firmware is listed for this model")
@@ -264,6 +270,7 @@ func (c *Client) Latest(ctx context.Context, model string) (*Release, error) {
 	list := rows(index)
 	// A row of its own for the model, else the row of the base model when
 	// that release says it also applies to this one.
+	baseModel := baseModelFor(model)
 	candidates := []string{name}
 	if name != baseModel {
 		candidates = append(candidates, baseModel)
