@@ -16,11 +16,13 @@
 // fit (see the increment parametrisation below), so the fitted model is the delivered one. Where
 // the reference's raw solution already satisfies the constraints both agree; elsewhere this result
 // has the lower cost after post-processing.
-import { KN, KNOTS, S_TAB, Sinv, slotApply } from './camera';
-import type { SlotParams } from './camera';
+import { KN, KNOTS, GR4_CAMERA } from './camera';
+import type { CameraToneModel, SlotParams } from './camera';
 import { ColorError, deltaELab, lab, labWithJacobian, mean, percentile } from './math';
 
 export interface FitOptions {
+  /** Camera-specific reference curve; defaults to the unchanged GR IV model. */
+  camera?: CameraToneModel;
   onProgress?: (fraction: number) => void;
   /** Upper bound on solver iterations (default 300). */
   maxIterations?: number;
@@ -51,8 +53,8 @@ export function mat6(p: ArrayLike<number>): number[][] {
 }
 
 /** Robust cost of a slot against a target, both evaluated on P (soft_l1, f_scale 3). */
-export function robustCost(params: SlotParams, P: Float64Array, target: Float64Array): number {
-  const a = lab(slotApply(params, P));
+export function robustCost(params: SlotParams, P: Float64Array, target: Float64Array, camera: CameraToneModel = GR4_CAMERA): number {
+  const a = lab(camera.slotApply(params, P));
   const b = lab(target);
   let s = 0;
   for (let i = 0; i < a.length; i++) {
@@ -75,15 +77,16 @@ class Problem {
   private readonly dout = new Float64Array(12);
   private readonly row = new Float64Array(12);
 
-  constructor(P: Float64Array, target: Float64Array) {
+  constructor(P: Float64Array, target: Float64Array, readonly camera: CameraToneModel = GR4_CAMERA) {
     this.n = P.length / 3;
-    this.lin = Float64Array.from(P, Sinv);
+    this.lin = Float64Array.from(P, camera.Sinv);
     this.labT = lab(target);
   }
 
   /** Robust cost at p; with `derivs` also the gradient g and the Gauss-Newton matrix H of the reweighted problem. */
   evaluate(p: Float64Array, derivs: boolean): number {
     const { n, lin, labT, g, H, labBuf, jac, idx, dout, row } = this;
+    const { S_TAB } = this.camera;
     if (derivs) {
       g.fill(0);
       H.fill(0);
@@ -262,7 +265,7 @@ export function fitSlot(P: Float64Array, target: Float64Array, opts: FitOptions 
     if (!Number.isFinite(P[i]) || !Number.isFinite(target[i])) throw new ColorError('bad-input', 'fitSlot input contains a non-finite value');
   const maxIter = opts.maxIterations ?? 300;
   const progress = opts.onProgress;
-  const prob = new Problem(P, target);
+  const prob = new Problem(P, target, opts.camera);
 
   // start: identity matrix, identity curves
   let q = new Float64Array(NP);
@@ -361,10 +364,10 @@ export function fitSlot(P: Float64Array, target: Float64Array, opts: FitOptions 
     }
     ck.push(k);
   }
-  const fitted = slotApply({ M1, ck }, P);
+  const fitted = prob.camera.slotApply({ M1, ck }, P);
   const de = deltaELab(lab(fitted), prob.labT);
   if (progress) progress(1);
-  return { M1, ck, meanDE: mean(de), p95DE: percentile(de, 95), cost: robustCost({ M1, ck }, P, target), iterations };
+  return { M1, ck, meanDE: mean(de), p95DE: percentile(de, 95), cost: robustCost({ M1, ck }, P, target, prob.camera), iterations };
 }
 
 // Exposed for tests: finite-difference check of the analytic derivatives.

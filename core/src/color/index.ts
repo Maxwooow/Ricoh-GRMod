@@ -14,3 +14,5 @@ export { convertXmp, convertCube, previewSlot } from './convert';
 export type { Conversion, ConvertOptions } from './convert';
 export { BASE_CURVE, CAL_CAM, CAL_ADOBE, CAL_COUNT, TONE_PARAMS } from './data';
 export { clarityLevels, simulateClarity } from './clarity';
+export { GR3X_CAMERA } from './gr3x-camera';
+export { convertGr3xCube } from './gr3x-import';

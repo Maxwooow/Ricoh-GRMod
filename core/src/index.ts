@@ -7,7 +7,7 @@ export * from './app';
 export { FirmwareError } from './fw';
 export { ColorError } from './color';
 export { JpegError } from './jpeg';
-export type { LangCode, SlotId, NameValidation } from './fw';
+export type { LangCode, NameValidation } from './fw';
 export type { CameraModel } from './wallpaper';
 export type { Sampling } from './jpeg';
 export { BRIDGE_VERSION, FIRMWARE_VERSION, LANGS, SLOTS, ICON_W, ICON_H, OFFICIAL_CLARITY, SOFT_FOCUS_GAINS, SOFT_FOCUS_LEVELS, SOFT_FOCUS_STRENGTHS } from './fw';
@@ -16,3 +16,7 @@ export type { BuiltRatio, RatioSpec } from './fw';
 export { MAX_CUSTOM_RATIOS, MAX_NAME_LENGTH, validateRatioName } from './fw';
 export { RATIO_ICON_H, RATIO_ICON_W } from './fw/aspect';
 export type { RatioPreview } from './app';
+
+export { GR3X_160, GR3X_SYMBOLS, GR3X_BLOCKERS, gr3xOffset, openGr3xOfficial } from './fw/gr3x/profile';
+export { GFX_RATIOS, GR3X_BASE_SIZES, planGr3xRatio } from './fw/gr3x/geometry';
+export { GR3X_FILM_IDS, GR3X_FILM_NAMES } from './fw/gr3x/look-resources';
