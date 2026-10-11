@@ -2,6 +2,18 @@
 
 A small desktop tool for the Ricoh GR IV / GR IV HDF (firmware 1.11). Not a Ricoh product.
 
+This branch adds **GR IIIx HDF firmware 1.60** support. It preserves the existing
+GR IV paths and adds a model-specific nine-ratio ADJ list, full-frame RAW with
+cropped JPEG/previews, a wide live-view alignment fix, optional clarity-table
+soft focus, CUBE fitting, nine independent image-control slots and colour icons.
+The shell can locate and download the matching official GR IIIx update.
+
+The camera owner has tested the T4 capture/RAW paths, SF1 soft focus and T5-L1
+sample looks/icons. **T6's nine film presets still need camera testing.**
+Script/factory entry and power-off images have local/native-function checks only.
+IIIx XMP import, date imprint and a separate ADJ soft-focus control are not ported.
+See [IIIx support, validation and reproduction](docs/GR3X_HDF.md).
+
 - `core/`  platform-independent TypeScript: firmware container codec and patcher with built-in self-check (`src/fw`), added aspect ratios (`src/fw/aspect`), preset conversion from .xmp Look profiles and .cube LUTs (`src/color`), exact-length baseline JPEG encoder (`src/jpeg`), start-up script generator and simulator (`src/wallpaper`), memory-card layout planning (`src/card`), and the `Engine` facade (`src/app`).
 - `ui/`    React UI (Vite). Talks to the platform through `src/host.ts` only.
 - `shell/` Windows shell in Go (WebView2 window + local HTTP API for drives and files, and for fetching the official firmware from Ricoh's site). See `shell/README.md`.

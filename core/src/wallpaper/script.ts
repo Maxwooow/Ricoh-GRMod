@@ -6,12 +6,16 @@
 // fileread, str2code, fileclose, filecreate, filewrite, filecopy, if/endif,
 // goto/labels, exit and plain assignments.
 
-export type CameraModel = 'STANDARD' | 'HDF' | 'MONO';
+export type WallpaperModel = 'STANDARD' | 'HDF' | 'MONO' | 'GR3X_HDF';
+export type CameraModel = WallpaperModel;
 
-export const MODEL_INFO: Record<CameraModel, { productBytes: [number, number, number, number]; target: string; resourceName: string }> = {
+export const MODEL_INFO: Record<WallpaperModel, { productBytes: [number, number, number, number]; target: string; resourceName: string }> = {
   STANDARD: { productBytes: [0xe0, 0x32, 0x01, 0x00], target: 'A:\\Resource\\Jpeg\\GoodBye.jpg', resourceName: 'GoodBye.jpg' },
   HDF: { productBytes: [0xe1, 0x32, 0x01, 0x00], target: 'A:\\Resource\\Jpeg\\GB_HDF.jpg', resourceName: 'GB_HDF.jpg' },
   MONO: { productBytes: [0x30, 0x33, 0x01, 0x00], target: 'A:\\Resource\\Jpeg\\GB_Mono.jpg', resourceName: 'GB_Mono.jpg' },
+  // IIIx SystemConfig 0x536b4308 selects the HDF record for product 0x1329c.
+  // Its JPEG resources are on B:, and HDF uses the common GoodBye.jpg.
+  GR3X_HDF: { productBytes: [0x9c, 0x32, 0x01, 0x00], target: 'B:\\Resource\\Jpeg\\GoodBye.jpg', resourceName: 'GoodBye.jpg' },
 };
 
 /** Internal file whose first 8 bytes identify the camera: 4 magic bytes + little-endian product id. */
@@ -73,6 +77,10 @@ export function rotationScript(opts: { model: CameraModel; size: number; count: 
   exitIf('result <> 0');
   L.push(`filesearch 'C:\\${CARD_FILES.firmware}'`);
   exitIf('result <> 0');
+  if (opts.model === 'GR3X_HDF') {
+    L.push("filesearch 'C:\\fwdc243b.bin'");
+    exitIf('result <> 0');
+  }
 
   L.push('; camera model check');
   L.push('sz = -1', `filestat '${MODEL_FILE}' sz`);
@@ -111,4 +119,13 @@ export function rotationScript(opts: { model: CameraModel; size: number; count: 
   exitIf('fh < 0');
   L.push('filewrite fh nxt', 'fileclose fh', 'exit');
   return L.join('\n') + '\n';
+}
+
+/** Recognize only our complete, unmodified generated script; never trust a header alone. */
+export function rotationScriptInfo(script: string): { model: CameraModel; size: number; count: number } | null {
+  const head = /^; power-off image rotation: (STANDARD|HDF|MONO|GR3X_HDF), ([1-9]) images?, ([1-9]\d{0,9}) bytes\n/.exec(script);
+  if (!head) return null;
+  const info = { model: head[1] as CameraModel, count: Number(head[2]), size: Number(head[3]) };
+  if (info.size > 0x7fffffff) return null;
+  return rotationScript(info) === script ? info : null;
 }

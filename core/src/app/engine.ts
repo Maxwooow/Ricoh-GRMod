@@ -50,7 +50,7 @@ import {
   SOFT_FOCUS_STRENGTHS,
   clarityChanges,
 } from '../fw';
-import type { BuildResult, BuiltRatio, ClarityChange, ClarityEdit, SoftFocusLevel, SoftFocusStrength, FactoryEntry, LangCode, Layout, NameValidation, Range, RatioSpec, SlotEdit, SlotId } from '../fw';
+import type { BuildResult, BuiltRatio, ClarityChange, ClarityEdit, SoftFocusLevel, SoftFocusStrength, FactoryEntry, LangCode, Layout, NameValidation, Range, RatioSpec, SlotEdit, SlotId as NativeSlotId } from '../fw';
 import { grownRanges, growPayload } from '../fw/aspect/package';
 import { BRIDGE_SHA256, BRIDGE_SIZE, isBridgeFirmware, makeBridgeFirmware, officialFromBridge } from '../fw/bridge';
 import { convertCube, convertXmp, quantizeSlot } from '../color';
@@ -58,10 +58,22 @@ import type { SlotParams } from '../color';
 import { JpegError, checkShutdownJpeg, decodeBaselineJpeg, encodeExactJpeg, inspectJpeg } from '../jpeg';
 import type { Sampling } from '../jpeg';
 import { MODEL_INFO, rotationScript } from '../wallpaper';
+import { GR3X_160, openGr3xOfficial, requireGr3xPort } from '../fw/gr3x/profile';
+import { planGr3xRatio } from '../fw/gr3x/geometry';
+import { GFX_RATIOS } from '../fw/gr3x/geometry';
+import { buildGr3xTestFirmware } from '../fw/gr3x/research-package';
+import { readGr3xFactoryEntry } from '../fw/gr3x/factory';
+import { GR3X_CLARITY_OFFSET } from '../fw/gr3x/clarity';
+import { GR3X_FILM_IDS, GR3X_FILM_NAMES, GR3X_LOOK_CHARS, gr3xLookResources, validateGr3xLookName } from '../fw/gr3x/look-resources';
+import { readGr3xLookRecipe } from '../fw/gr3x/look-recipe';
+import type { Gr3xLookOptions } from '../fw/gr3x/image-control';
+import { convertGr3xCube } from '../color/gr3x-import';
 import type { CameraModel } from '../wallpaper';
 
 export const SHUTDOWN_W = 720;
 export const SHUTDOWN_H = 480;
+/** App identities include IIIx additions; GR IV's native patch API stays CY/CG. */
+export type SlotId = NativeSlotId | typeof GR3X_FILM_IDS[number];
 
 export interface SlotInfoView {
   id: SlotId;
@@ -79,6 +91,12 @@ export interface ShutdownResource {
 }
 
 export interface FirmwareInfo {
+  family: 'gr4' | 'gr3x';
+  filename: string;
+  models: CameraModel[];
+  factoryRatios: string[];
+  capabilities: { build: boolean; presets: boolean; wallpaper: boolean; factoryEntry: boolean; bridge: boolean };
+  features: { softFocus: 'clarity' | 'adj'; dateStamp: boolean; monoUnlock: boolean };
   version: string;
   sha256: string;
   slots: SlotInfoView[];
@@ -126,6 +144,8 @@ export type FirmwareBuild = Omit<BuildResult, 'decoded'>;
 
 /** What adding a ratio would give, for the UI; `problem` is set (and the rest absent) when it cannot be added. */
 export interface RatioPreview {
+  status?: 'planning-only';
+  screenActual?: string;
   problem?: 'bad-ratio' | 'ratio-factory' | 'ratio-too-extreme' | 'ratio-quick-view' | 'ratio-metering' | 'ratio-conflict' | 'ratio-duplicate';
   /** The ratio the pixel grid really gives, reduced (e.g. `30:11` for 65:24). */
   actual?: string;
@@ -267,11 +287,30 @@ export class Engine {
   private readonly raw: Uint8Array;
   private readonly decoded: Uint8Array;
   private readonly mStdQ13: Int16Array;
-  private readonly layout: Layout;
+  private readonly layout: Layout | null;
   private editable: Range[] | null = null;
   private monoWords: { offset: number; bytes: Uint8Array }[] | null = null;
+  private gr3xCandidates = new Map<string, Promise<FirmwareBuild>>();
 
-  private constructor(raw: Uint8Array, decoded: Uint8Array, info: FirmwareInfo, mStd: Int16Array, layout: Layout) {
+  private fixedGr3x(softFocus: readonly SoftFocusRequest[] = [], looks?: Gr3xLookOptions): Promise<FirmwareBuild> {
+    const requests = [...softFocus].sort((a, b) => a.level - b.level);
+    const key = JSON.stringify({ requests, looks });
+    let candidate = this.gr3xCandidates.get(key);
+    if (candidate) return candidate;
+    candidate = buildGr3xTestFirmware(this.raw, requests, looks).then(r => ({
+      file: r.bytes, sha256: r.report.outputSha256, decodedSha256: r.decodedSha256,
+      changedFrames: r.changedFrames, changedBytes: r.changedBytes,
+      ranges: r.report.ranges, checks: r.report.checks, features: looks?.monoReplicas ? { monoUnlock: true } : {},
+      ratios: r.manifest.ratios.filter(x => x.id >= 4).map(x => {
+        const plan = planGr3xRatio(x.ratio);
+        return { id: x.id, name: x.ratio, ratio: x.ratio, actual: plan.actual, sizes: plan.sizes };
+      }),
+    }));
+    this.gr3xCandidates.set(key, candidate);
+    return candidate;
+  }
+
+  private constructor(raw: Uint8Array, decoded: Uint8Array, info: FirmwareInfo, mStd: Int16Array, layout: Layout | null) {
     this.raw = raw;
     this.decoded = decoded;
     this.info = info;
@@ -284,6 +323,36 @@ export class Engine {
    * was made from, with `info.bridge` set); throws `FirmwareError('unsupported-firmware')` otherwise.
    */
   static async open(input: Uint8Array): Promise<Engine> {
+    if (input.length === GR3X_160.size && await sha256Hex(input) === GR3X_160.sha256) {
+      const { decoded } = await openGr3xOfficial(input);
+      const target = MODEL_INFO.GR3X_HDF.target.toLowerCase();
+      const resource = listResources(decoded).find(r => r.path.toLowerCase() === target);
+      if (!resource || resource.length !== 7264) throw new FirmwareError('unexpected-layout', 'IIIx shutdown resource changed');
+      const data = decoded.slice(resource.offset, resource.offset + resource.length);
+      // The IIIx factory JPEG uses optimized Huffman tables. The generated-file
+      // checker deliberately requires Annex K tables and is not an input parser.
+      const checked = inspectJpeg(data);
+      const lookResources = gr3xLookResources(decoded);
+      if (!checked.baseline || checked.width !== SHUTDOWN_W || checked.height !== SHUTDOWN_H ||
+          checked.precision !== 8 || checked.scans !== 1 || checked.trailingBytes !== 0 ||
+          checked.components.length !== 3 || samplingOf(data) !== '420') {
+        throw new FirmwareError('unexpected-layout', 'IIIx shutdown JPEG format changed');
+      }
+      const info: FirmwareInfo = {
+        family: 'gr3x', filename: GR3X_160.filename, models: ['GR3X_HDF'],
+        factoryRatios: [...GR3X_160.factoryRatios],
+        capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, bridge: false },
+        features: { softFocus: 'clarity', dateStamp: false, monoUnlock: false },
+        version: GR3X_160.version, sha256: GR3X_160.sha256, bridge: false,
+        slots: GR3X_FILM_IDS.map((id, i) => ({
+          id, defaultName: GR3X_FILM_NAMES[i], icon: lookResources.film.slice(),
+          names: Object.fromEntries(LANGS.map(l => [l, { text: GR3X_FILM_NAMES[i], capacity: 24 }])) as SlotInfoView['names'],
+        })), tiles: lookResources.tiles, contentArea: CONTENT_AREA,
+        allowed: Object.fromEntries(LANGS.map(l => [l, GR3X_LOOK_CHARS])) as Record<LangCode, string>,
+        shutdown: { GR3X_HDF: { size: resource.length, sampling: samplingOf(data), data } }, factoryEntry: readGr3xFactoryEntry(decoded),
+      };
+      return new Engine(input.slice(), decoded, info, lookResources.matrix, null);
+    }
     const bridge = await isBridgeFirmware(input);
     const raw = bridge ? await officialFromBridge(input) : input;
     const { decoded } = await openOfficial(raw);
@@ -311,14 +380,18 @@ export class Engine {
     });
     const shutdown: Partial<Record<CameraModel, ShutdownResource>> = {};
     const res = listResources(decoded);
-    for (const model of Object.keys(MODEL_INFO) as CameraModel[]) {
-      const want = MODEL_INFO[model].target.toLowerCase();
+    for (const model of Object.keys(MODEL_INFO) as (keyof typeof MODEL_INFO)[]) {
+      const want = MODEL_INFO[model]!.target.toLowerCase();
       const r = res.find((x) => x.path.toLowerCase() === want);
       if (!r) continue;
       const data = decoded.slice(r.offset, r.offset + r.length);
       shutdown[model] = { size: r.length, sampling: samplingOf(data), data };
     }
     const info: FirmwareInfo = {
+      family: 'gr4', filename: 'fwdc248b.bin', models: ['STANDARD', 'HDF', 'MONO'],
+      factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
+      capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, bridge: !bridge },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true },
       version: FIRMWARE_VERSION,
       sha256: await sha256Hex(raw),
       slots,
@@ -334,6 +407,7 @@ export class Engine {
 
   /** The 1.12 bridge firmware, made from the official file this engine holds (see `fw/bridge.ts`). */
   async bridgeFirmware(): Promise<Uint8Array> {
+    if (this.layout === null) requireGr3xPort('bridge firmware');
     return makeBridgeFirmware(this.raw);
   }
 
@@ -343,6 +417,36 @@ export class Engine {
    */
   async inspect(raw: Uint8Array): Promise<FirmwareSummary> {
     const sha256 = await sha256Hex(raw);
+    if (this.layout === null) {
+      const official = sha256 === GR3X_160.sha256 && raw.length === GR3X_160.size;
+      let candidate: FirmwareBuild | null = null;
+      let softFocus: ClarityChange[] = [];
+      let looks: Gr3xLookOptions | null = null;
+      if (!official) try {
+        // Read only recognized negative gain rows, rebuild from the verified
+        // original, and compare the entire file. A valid container or metadata
+        // label alone never authorizes restoring an arbitrary firmware file.
+        const decoded = new Firmware(raw).decoded;
+        const rtos = sectionsOf(decoded).find(s => s.name === 'RTOS');
+        if (rtos && rtos.offset === GR3X_160.rtosOffset && rtos.size > GR3X_160.rtosLength)
+          looks = readGr3xLookRecipe(decoded.subarray(rtos.offset + GR3X_160.rtosLength, rtos.offset + rtos.size));
+        const changes = clarityChanges(decoded, GR3X_CLARITY_OFFSET);
+        if (changes.every(c => SOFT_FOCUS_LEVELS.includes(c.level as SoftFocusLevel) && c.strength !== 'custom')) {
+          candidate = await this.fixedGr3x(changes as SoftFocusRequest[], looks ?? undefined);
+          softFocus = changes;
+        }
+      } catch { /* unrecognized input remains non-writable */ }
+      const matched = candidate !== null && sha256 === candidate.sha256 && raw.length === candidate.file.length;
+      return { sha256, kind: official ? 'official' : matched ? 'modified' : 'unknown', verified: official || matched,
+        changedBytes: matched ? candidate!.changedBytes : 0,
+        slots: matched && looks ? this.info.slots.slice(0, looks.displayRevision === 3 ? 9 : 2).map((s, i) => ({
+          id: s.id, names: Object.fromEntries(LANGS.map(l => [l, looks!.films?.[i]?.name ?? GR3X_FILM_NAMES[i]])) as Record<LangCode, string>,
+          icon: looks!.films?.[i]?.icon ?? s.icon, colorChanged: !!(looks!.films?.[i]?.preset || looks!.films?.[i]?.params),
+          nameChanged: !!looks!.films?.[i]?.name && looks!.films?.[i]?.name !== GR3X_FILM_NAMES[i],
+          iconChanged: !!looks!.films?.[i]?.icon,
+        })) : [], ratios: matched ? candidate!.ratios : [], softFocus: matched ? softFocus : [],
+        adjSoftFocus: false, dateStamp: false, monoUnlock: matched && looks?.monoReplicas === true };
+    }
     if (raw.length === BRIDGE_SIZE && sha256 === BRIDGE_SHA256) return { sha256, kind: 'bridge', changedBytes: 0, verified: true, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false };
     const describe = (d: Uint8Array): FirmwareSummary['slots'] =>
       SLOTS.map((s) => {
@@ -352,7 +456,7 @@ export class Engine {
           names[lang] = readName(d, lang, s.nameIndex).text;
           if (names[lang] !== readName(this.decoded, lang, s.nameIndex).text) nameChanged = true;
         }
-        const li = this.layout[s.id];
+        const li = this.layout![s.id];
         const same = (va: number, len: number): boolean => equalRange(d, foff(va), this.decoded, foff(va), len);
         const colorChanged = !(same(li.matrix, LEN.matrix) && same(li.desc, LEN.desc) && same(li.R, LEN.R) && same(li.G, LEN.G) && same(li.B, LEN.B) && same(li.maBlock, LEN.ma_block));
         const icon = readIcon(d, s.iconOffset);
@@ -463,6 +567,21 @@ export class Engine {
    * new one must not collide with them). Never throws.
    */
   previewRatio(ratio: string, others: readonly string[] = []): RatioPreview {
+    if (this.layout === null) {
+      try {
+        const g = planGr3xRatio(ratio);
+        for (const text of others) {
+          try {
+            const o = planGr3xRatio(text);
+            if (o.screen.width === g.screen.width && o.screen.height === g.screen.height) return { problem: 'ratio-duplicate' };
+          } catch { /* Invalid neighbouring rows are reported individually. */ }
+        }
+        return { ...g, icon: aspect.drawRatioIcon(ratio), label: aspect.ratioLabel(ratio) };
+      } catch (e) {
+        return { problem: e instanceof FirmwareError && e.code === 'ratio-factory' ? 'ratio-factory'
+          : e instanceof FirmwareError && e.code === 'ratio-too-extreme' ? 'ratio-too-extreme' : 'bad-ratio' };
+      }
+    }
     try {
       const g = planRatio(ratio);
       for (const o of others) {
@@ -530,16 +649,30 @@ export class Engine {
 
   /** The official file, for "write factory firmware". */
   official(): Uint8Array {
-    return this.raw;
+    return this.raw.slice();
   }
 
   convertPreset(kind: 'xmp' | 'cube', text: string, onProgress?: (f: number) => void): PresetResult {
+    if (this.info.family === 'gr3x') {
+      if (kind !== 'cube') throw new FirmwareError('gr3x-cube-only', 'IIIx film import requires an sRGB-display .cube file');
+      const c = convertGr3xCube(text, { onProgress });
+      return { ...c, ...quantizeSlot(c.params, this.mStdQ13) };
+    }
+    if (this.layout === null || !this.info.capabilities.presets) requireGr3xPort('preset conversion');
     const c = kind === 'xmp' ? convertXmp(text, { onProgress }) : convertCube(text, { onProgress });
     const q = quantizeSlot(c.params, this.mStdQ13);
     return { kind: c.kind, title: c.title, meanDE: c.meanDE, p95DE: c.p95DE, warnings: c.warnings, unsupported: c.unsupported, params: c.params, matrixQ13: q.matrixQ13, curves: q.curves };
   }
 
   validateName(slot: SlotId, lang: LangCode, text: string): NameValidation {
+    if (this.info.family === 'gr3x') {
+      if (!this.info.slots.some(s => s.id === slot) || !LANGS.includes(lang)) throw new FirmwareError('bad-edit', 'unknown IIIx slot/language');
+      if (!text.trim()) return { ok: false, reason: 'empty', capacity: 24 };
+      if (text.length > 24) return { ok: false, reason: 'too-long', capacity: 24 };
+      const badChars = [...new Set(Array.from(text).filter(c => !GR3X_LOOK_CHARS.includes(c)))];
+      return badChars.length ? { ok: false, reason: 'bad-char', badChars, capacity: 24 } : { ok: true, capacity: 24 };
+    }
+    if (this.layout === null || !this.info.capabilities.presets) requireGr3xPort('Image Control names');
     const def = SLOTS.find((s) => s.id === slot);
     if (!def) throw new FirmwareError('bad-edit', `unknown slot ${String(slot)}`);
     return validateName(this.decoded, lang, def.nameIndex, text);
@@ -547,9 +680,35 @@ export class Engine {
 
   /** Build a firmware file. The result has passed the built-in self-check (otherwise this throws). */
   async buildFirmware(requests: SlotRequest[], ratios: readonly RatioSpec[] = [], softFocus: readonly SoftFocusRequest[] = [], options: BuildOptions = {}): Promise<FirmwareBuild> {
+    if (this.info.family === 'gr3x') {
+      const fixed = GFX_RATIOS.filter(r => !GR3X_160.factoryRatios.some(f => f === r));
+      if (Object.entries(options).some(([k, v]) => k !== 'monoUnlock' && Boolean(v)) ||
+          ratios.length !== fixed.length || ratios.some((r, i) => r.ratio !== fixed[i] || r.name !== fixed[i])) {
+        throw new FirmwareError('gr3x-fixed-nine-only', 'IIIx keeps nine fixed ratios; date imprint and a separate ADJ soft-focus control are not ported');
+      }
+      // Legacy replica builds remain reproducible, but T6 uses all nine slots for films.
+      const ids = options.monoUnlock ? GR3X_FILM_IDS.slice(0, 2) : GR3X_FILM_IDS;
+      if (requests.length > ids.length || new Set(requests.map(r => r.slot)).size !== requests.length ||
+          requests.some(r => !ids.includes(r.slot))) throw new FirmwareError('bad-edit', 'unknown or duplicate IIIx film slot');
+      const looks: Gr3xLookOptions | undefined = requests.length || options.monoUnlock ? {
+        displayRevision: options.monoUnlock ? 2 : 3,
+        monoReplicas: !!options.monoUnlock,
+        films: ids.map((slot, i) => {
+          const r = requests.find(r => r.slot === slot);
+          const names = [...new Set(Object.values(r?.names ?? {}).filter(Boolean))];
+          if (names.length > 1) throw new FirmwareError('bad-name', 'IIIx uses one film name in all menu languages');
+          const name = names[0] ?? GR3X_FILM_NAMES[i]; validateGr3xLookName(name);
+          return { name, ...(r?.preset ? { preset: r.preset } : {}), ...(r?.icon ? { icon: r.icon } : {}) };
+        }),
+      } : undefined;
+      const r = await this.fixedGr3x(softFocus, looks);
+      return { ...r, file: r.file.slice() };
+    }
+    if (this.layout === null || !this.info.capabilities.build) requireGr3xPort('custom firmware');
     if (this.info.bridge) throw new FirmwareError('bridge-firmware', 'open the official firmware: the bridge firmware is not a base for builds');
     const edits: SlotEdit[] = [];
     for (const r of requests) {
+      if (r.slot !== 'CY' && r.slot !== 'CG') throw new FirmwareError('bad-edit', 'IIIx film slot is not a GR IV slot');
       const e: SlotEdit = { slot: r.slot };
       if (r.preset) e.color = { matrixQ13: r.preset.matrixQ13, curves: r.preset.curves };
       if (r.icon) e.icon = r.icon;
@@ -580,7 +739,8 @@ export class Engine {
    * neither helps.
    */
   encodeShutdownImage(rgb: Uint8Array, model: CameraModel, onProgress?: (f: number) => void): ShutdownImage {
-    const res = this.info.shutdown[model];
+    if (!this.info.capabilities.wallpaper) requireGr3xPort('power-off images');
+    const res = this.info.models.includes(model) ? this.info.shutdown[model] : undefined;
     if (!res) throw new FirmwareError('unexpected-layout', `no power-off image for ${model} in this firmware`);
     if (rgb.length !== SHUTDOWN_W * SHUTDOWN_H * 3) throw new JpegError('bad-input', 'picture must be 720x480 RGB');
     const base = { width: SHUTDOWN_W, height: SHUTDOWN_H, sampling: res.sampling, byteLength: res.size };
@@ -634,13 +794,14 @@ export class Engine {
 
   /** The factory power-off image of `model`, decoded, for display. */
   factoryShutdownPreview(model: CameraModel): { rgb: Uint8Array; width: number; height: number } | null {
-    const res = this.info.shutdown[model];
+    const res = this.info.models.includes(model) ? this.info.shutdown[model] : undefined;
     if (!res) return null;
     return decodeBaselineJpeg(res.data);
   }
 
   rotationScript(model: CameraModel, count: number): string {
-    const res = this.info.shutdown[model];
+    if (!this.info.capabilities.wallpaper) requireGr3xPort('startup scripts');
+    const res = this.info.models.includes(model) ? this.info.shutdown[model] : undefined;
     if (!res) throw new FirmwareError('unexpected-layout', `no power-off image for ${model} in this firmware`);
     return rotationScript({ model, size: res.size, count });
   }

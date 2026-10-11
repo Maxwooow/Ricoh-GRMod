@@ -12,6 +12,7 @@ type Req =
   | { id: number; type: 'script'; model: CameraModel; count: number }
   | { id: number; type: 'inspect'; raw: ArrayBuffer }
   | { id: number; type: 'bridge' }
+  | { id: number; type: 'reset' }
   | { id: number; type: 'heartbeat'; token: string };
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
@@ -22,7 +23,9 @@ ctx.onmessage = async (ev: MessageEvent<Req>) => {
   const progress = (f: number): void => ctx.postMessage({ id: m.id, progress: f });
   try {
     switch (m.type) {
+      case 'reset': engine = null; ctx.postMessage({ id: m.id, ok: true, result: true }); break;
       case 'open': {
+        engine = null;
         engine = await Engine.open(new Uint8Array(m.raw));
         ctx.postMessage({ id: m.id, ok: true, result: engine.info });
         break;

@@ -12,9 +12,13 @@
  * Files that are in the way are never deleted; they are moved into `GRMOD\parked-<stamp>\`.
  */
 export const FIRMWARE_FILE = 'fwdc248b.bin';
+export const FIRMWARE_FILES = [FIRMWARE_FILE, 'fwdc243b.bin'] as const;
+export type FirmwareFilename = typeof FIRMWARE_FILES[number];
 export const SCRIPT_DIR = 'script';
 export const SCRIPT_FILE = 'startup.ttl';
 export const FACTORY_ENTRY_FILES = ['00078560.636', 'DEVELOP.MOD'] as const;
+/** Both supported families' entry files must be parked before an update. */
+const ALL_FACTORY_ENTRY_FILES = [...FACTORY_ENTRY_FILES, '00078490.609'] as const;
 export const INDEX_FILE = 'GBRIDX.TXT';
 export const PAUSE_FILE = 'GBRSTOP.TXT';
 export const PARK_ROOT = 'GRMOD';
@@ -43,7 +47,7 @@ const has = (list: CardEntry[], name: string, dir = false): boolean => list.some
 
 export function cardRole(l: CardListing): CardRole {
   // The script is what makes a card act as a power-off image card; image files alone are inert.
-  const fw = has(l.root, FIRMWARE_FILE);
+  const fw = FIRMWARE_FILES.some(name => has(l.root, name));
   const script = has(l.script, SCRIPT_FILE);
   if (fw && script) return 'mixed';
   if (fw) return 'firmware';
@@ -59,22 +63,28 @@ function parkDir(stamp: string): string[] {
 /** Moves for the factory-menu entry files that are on the card. */
 function parkEntryFiles(l: CardListing, park: string[]): PlanStep[] {
   const steps: PlanStep[] = [];
-  for (const name of FACTORY_ENTRY_FILES) {
+  for (const name of ALL_FACTORY_ENTRY_FILES) {
     const e = l.root.find((x) => !x.dir && eq(x.name, name));
     if (e) steps.push({ op: 'move', from: [e.name], to: [...park, e.name] });
   }
   return steps;
 }
 
-/** Steps to turn the card into a firmware card holding `firmware` as `fwdc248b.bin`. */
-export function planFirmwareCard(l: CardListing, firmware: Uint8Array, stamp: string): PlanStep[] {
+/** Steps to turn the card into a firmware card using the selected family's filename. */
+export function planFirmwareCard(l: CardListing, firmware: Uint8Array, stamp: string, filename: FirmwareFilename = FIRMWARE_FILE): PlanStep[] {
+  if (!FIRMWARE_FILES.includes(filename)) throw new Error('unsupported firmware filename');
   const steps: PlanStep[] = [];
   const park = parkDir(stamp);
+  for (const e of l.root) {
+    if (!e.dir && FIRMWARE_FILES.some(n => eq(n, e.name)) && !eq(e.name, filename)) {
+      steps.push({ op: 'move', from: [e.name], to: [...park, e.name] });
+    }
+  }
   for (const e of l.script) {
     if (!e.dir && eq(e.name, SCRIPT_FILE)) steps.push({ op: 'move', from: [SCRIPT_DIR, e.name], to: [...park, SCRIPT_DIR, e.name] });
   }
   steps.push(...parkEntryFiles(l, park));
-  steps.push({ op: 'write', path: [FIRMWARE_FILE], data: firmware });
+  steps.push({ op: 'write', path: [filename], data: firmware });
   return steps;
 }
 
@@ -84,8 +94,9 @@ export function planWallpaperCard(l: CardListing, images: Uint8Array[], script: 
   if (!/^[\x09\x0a\x20-\x7e]*$/.test(script)) throw new Error('script must be ASCII');
   const steps: PlanStep[] = [];
   const park = parkDir(stamp);
-  const fw = l.root.find((x) => !x.dir && eq(x.name, FIRMWARE_FILE));
-  if (fw) steps.push({ op: 'move', from: [fw.name], to: [...park, fw.name] });
+  for (const fw of l.root.filter(x => !x.dir && FIRMWARE_FILES.some(n => eq(x.name, n)))) {
+    steps.push({ op: 'move', from: [fw.name], to: [...park, fw.name] });
+  }
   const pause = l.root.find((x) => !x.dir && eq(x.name, PAUSE_FILE));
   if (pause) steps.push({ op: 'move', from: [pause.name], to: [...park, pause.name] });
   steps.push(...parkEntryFiles(l, park));
@@ -136,7 +147,7 @@ export function planRestoreWallpaper(l: CardListing, snap: WallpaperSnapshot, st
   if (snap.script.length === 0) throw new Error('empty script');
   const steps: PlanStep[] = [];
   const park = parkDir(stamp);
-  for (const name of [FIRMWARE_FILE, PAUSE_FILE]) {
+  for (const name of [...FIRMWARE_FILES, PAUSE_FILE]) {
     const e = l.root.find((x) => !x.dir && eq(x.name, name));
     if (e) steps.push({ op: 'move', from: [e.name], to: [...park, e.name] });
   }
@@ -166,8 +177,14 @@ export function planEntryCard(l: CardListing, files: { name: string; data: Uint8
   if (files.length === 0) throw new Error('no entry files');
   for (const f of files) if (!/^[A-Z0-9]{1,8}\.[A-Z0-9]{1,3}$/.test(f.name) || f.data.length === 0 || f.data.length > 4096) throw new Error(`unexpected entry file ${f.name}`);
   const steps: PlanStep[] = [];
-  const fw = l.root.find((x) => !x.dir && eq(x.name, FIRMWARE_FILE));
-  if (fw) steps.push({ op: 'move', from: [fw.name], to: [...parkDir(stamp), fw.name] });
+  const park = parkDir(stamp);
+  for (const fw of l.root.filter(x => !x.dir && FIRMWARE_FILES.some(n => eq(x.name, n)))) {
+    steps.push({ op: 'move', from: [fw.name], to: [...park, fw.name] });
+  }
+  // Park the other family's mode-set file, while preserving any entry being replaced.
+  for (const step of parkEntryFiles(l, park)) {
+    if (step.op === 'move' && !files.some(f => eq(f.name, step.from[0]))) steps.push(step);
+  }
   for (const f of files) {
     const present = l.root.find((x) => !x.dir && eq(x.name, f.name));
     steps.push({ op: 'write', path: [present ? present.name : f.name], data: f.data });

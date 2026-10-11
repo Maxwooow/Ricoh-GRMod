@@ -3,7 +3,7 @@
  * sums). It deliberately takes only the two files and the planned ranges and re-derives everything
  * else; it shares nothing with the builder except the container parser.
  */
-import { FOOTER_LEN, HDR, equalRange, parseFrames, sectionData, sectionsOf, sum32, verifyContainer } from './container';
+import { FOOTER_LEN, HDR, MODEL_RECORD_LEN, equalRange, parseFrames, sectionData, sectionsOf, sum32, verifyContainer } from './container';
 import type { Frame } from './container';
 import type { Range } from './types';
 
@@ -93,7 +93,9 @@ function run(checks: Record<string, boolean>, officialRaw: Uint8Array, newRaw: U
   const mN = newRaw.subarray(Math.min(endN + padN, newRaw.length), Math.max(Math.min(endN + padN, newRaw.length), newRaw.length - FOOTER_LEN));
   let padZero = true;
   for (let i = endN; i < endN + padN && i < newRaw.length; i++) if (newRaw[i] !== 0) padZero = false;
-  checks.model_records_identical = padZero && mO.length === mN.length && mN.length > 0 && equalRange(mO, 0, mN, 0, mO.length);
+  // IIIx 1.60 has zero model records. Preserve the official area exactly, including
+  // an empty area; still reject missing, added, malformed or modified records.
+  checks.model_records_identical = padZero && mO.length === mN.length && mO.length % MODEL_RECORD_LEN === 0 && equalRange(mO, 0, mN, 0, mO.length);
 
   // Footer: project, magic, type and decoded length as official; stream length = what was parsed.
   const tO = officialRaw.length - FOOTER_LEN;
@@ -265,7 +267,7 @@ function runGrown(checks: Record<string, boolean>, officialRaw: Uint8Array, newR
   const mN = newRaw.subarray(Math.min(endN + padN, newRaw.length), Math.max(Math.min(endN + padN, newRaw.length), newRaw.length - FOOTER_LEN));
   let padZero = true;
   for (let i = endN; i < endN + padN && i < newRaw.length; i++) if (newRaw[i] !== 0) padZero = false;
-  checks.model_records_identical = padZero && mO.length === mN.length && mN.length > 0 && equalRange(mO, 0, mN, 0, mO.length);
+  checks.model_records_identical = padZero && mO.length === mN.length && mO.length % MODEL_RECORD_LEN === 0 && equalRange(mO, 0, mN, 0, mO.length);
   checks.terminator_present = endN >= HDR + 2 && newRaw[endN - 2] === 0 && newRaw[endN - 1] === 0;
 
   // Sections: same list; only RTOS and ICONBIN longer, by whole frames. From that, the map from
