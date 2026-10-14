@@ -22,6 +22,7 @@ import type { RatioSpec } from './aspect';
 import { grownRanges, growPayload } from './aspect/package';
 import { Patch } from './aspect/build';
 import { installMonoUnlock } from './aspect/monounlock';
+import type { Gr4Film } from './gr4/film-slots';
 import { CLARITY_BYTES, CLARITY_OFFSET, clarityBytes, hasOfficialClarity } from './clarity';
 import type { ClarityEdit } from './clarity';
 
@@ -135,13 +136,15 @@ function transparentPixels(icon: Uint8Array): number[] {
  * Throws `FirmwareError` on any invalid input or failed assertion; never returns a file that did
  * not pass the self-check.
  */
-export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = [], clarity: readonly ClarityEdit[] = [], features: ExtensionFeatures = {}, test: TestOptions = {}): Promise<BuildResult> {
+export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = [], clarity: readonly ClarityEdit[] = [], features: ExtensionFeatures = {}, test: TestOptions = {}, films: readonly Gr4Film[] = []): Promise<BuildResult> {
+  if (!!features.filmSlots !== (films.length > 0)) bad('bad-edit', 'film-slot feature and data must be supplied together');
+  if (features.filmSlots && edits.length) bad('bad-edit', 'independent films cannot be combined with factory Cinema replacements');
   // Additions that append code or icons need the grown layout. The monochrome looks change 13
   // words in place: on their own (or with only same-length edits) the file keeps the official layout.
-  const grows = ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp;
+  const grows = ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || !!features.filmSlots;
   const inPlaceMono = !grows && !!features.monoUnlock;
   const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity, inPlaceMono);
-  if (grows) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios, features, test);
+  if (grows) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios, features, test, films);
 
   // 7. Container.
   const built = build(fw, img);
@@ -187,10 +190,10 @@ export function monoUnlockWords(official: Uint8Array): { offset: number; bytes: 
  * sections grow (see `aspect/`), so the container is rebuilt with `buildGrown` and checked with
  * `selfCheckGrown`.
  */
-async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8Array, img: Uint8Array, ranges: Range[], ratios: readonly RatioSpec[], features: ExtensionFeatures = {}, test: TestOptions = {}): Promise<BuildResult> {
+async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8Array, img: Uint8Array, ranges: Range[], ratios: readonly RatioSpec[], features: ExtensionFeatures = {}, test: TestOptions = {}, films: readonly Gr4Film[] = []): Promise<BuildResult> {
   const specs = ratios.map((r) => ({ name: r.name, ratio: r.ratio.trim() }));
   const plan = planRatios(specs);
-  const aspect = installExtensions(img.slice(RTOS_OFFSET, RTOS_OFFSET + RTOS_LENGTH), img.slice(ICONBIN_OFFSET, ICONBIN_OFFSET + ICONBIN_LENGTH), plan, features, undefined, test);
+  const aspect = installExtensions(img.slice(RTOS_OFFSET, RTOS_OFFSET + RTOS_LENGTH), img.slice(ICONBIN_OFFSET, ICONBIN_OFFSET + ICONBIN_LENGTH), plan, features, undefined, test, films);
   const grown = growPayload(img, aspect, specs);
   // Edits made before growing keep their place in RTOS; those in ICONBIN move with it.
   const all: Range[] = ranges.map((r) => (r.offset >= ICONBIN_OFFSET ? { ...r, offset: r.offset + grown.rtosGrowth } : r));

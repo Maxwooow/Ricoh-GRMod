@@ -22,13 +22,13 @@ describe.skipIf(!have)('engine end to end', () => {
     eng = await Engine.open(new Uint8Array(readFileSync(P + 'official.bin')));
     const info = eng.info;
     expect(info.version).toBe('1.11');
-    expect(info.slots.map((s) => s.id)).toEqual(['CY', 'CG']);
-    expect(info.slots[0].names['zh-CN']).toEqual({ text: '电影（黄色）', capacity: 6 });
-    expect(info.slots[1].names.en).toEqual({ text: 'Cinema (Green)', capacity: 14 });
+    expect(info.slots.map((s) => s.id)).toEqual(['CY','CG','F3','F4','F5','F6','F7','F8','F9']);
+    expect(info.slots[0].names['zh-CN']).toEqual({ text: 'Film 1', capacity: 24 });
+    expect(info.slots[1].names.en).toEqual({ text: 'Film 2', capacity: 24 });
     expect(info.shutdown.HDF).toMatchObject({ size: 56842, sampling: '422' });
     expect(info.shutdown.MONO).toMatchObject({ size: 56571, sampling: '422' });
     expect(info.shutdown.STANDARD).toMatchObject({ size: 7264, sampling: '420' });
-    expect(info.allowed['zh-CN']).toContain('全');
+    expect(info.allowed['zh-CN']).toContain('F');
     expect(info.tiles.film.length).toBe(6400);
   });
   it('rejects anything that is not the official file', async () => {
@@ -45,10 +45,10 @@ describe.skipIf(!have)('engine end to end', () => {
     for (let y = 14; y < 26; y++) for (let x = 8; x < 32; x++) cov[y * 40 + x] = (x + y) % 3 === 0 ? 1 : 0.4;
     const iconA = fw.composeIcon(eng.info.tiles.film, cov);
     const iconB = fw.composeIcon(eng.info.tiles.plain, cov);
-    expect(eng.validateName('CY', 'zh-CN', '全能400').ok).toBe(true);
-    expect(eng.validateName('CG', 'zh-CN', 'SP3000&C200')).toMatchObject({ ok: false, reason: 'too-long', capacity: 6 });
+    expect(eng.validateName('CY', 'zh-CN', 'Film 400').ok).toBe(true);
+    expect(eng.validateName('CG', 'zh-CN', 'A'.repeat(25))).toMatchObject({ ok: false, reason: 'too-long', capacity: 24 });
     const res = await eng.buildFirmware([
-      { slot: 'CY', preset: a, icon: iconA, names: { 'zh-CN': '全能400', en: 'Film 400' } },
+      { slot: 'CY', preset: a, icon: iconA, names: { 'zh-CN': 'Film 400', en: 'Film 400' } },
       { slot: 'CG', preset: b, icon: iconB, names: { 'zh-CN': 'C200', en: 'C200' } },
     ]);
     expect(Object.values(res.checks).every((v) => v === true)).toBe(true);
@@ -61,7 +61,7 @@ describe.skipIf(!have)('engine end to end', () => {
     // an icon-only and a name-only build also work
     const r2 = await eng.buildFirmware([{ slot: 'CG', icon: iconA }]);
     expect(Object.values(r2.checks).every(Boolean)).toBe(true);
-    const r3 = await eng.buildFirmware([{ slot: 'CY', names: { ja: 'フィルム' } }]);
+    const r3 = await eng.buildFirmware([{ slot: 'CY', names: { ja: 'Film JP' } }]);
     expect(Object.values(r3.checks).every(Boolean)).toBe(true);
     await expect(eng.buildFirmware([{ slot: 'CY' }])).rejects.toMatchObject({ code: 'bad-edit' });
   });
@@ -129,7 +129,7 @@ describe.skipIf(!have)('engine end to end', () => {
     expect(f2.kind).toBe('modified');
     expect(f2.verified).toBe(false);
     expect(mine.slots[1].names.en).toBe('C200');
-    expect(mine.slots.map((s) => [s.colorChanged, s.nameChanged, s.iconChanged])).toEqual([[false, false, false], [false, true, false]]);
+    expect(mine.slots.map((s) => [s.colorChanged, s.nameChanged, s.iconChanged])).toEqual(Array.from({length:9},(_,i)=>[false,i===1,false]));
 
     expect(a.verified && b.verified).toBe(true);
     // damaged or foreign files are reported, not thrown

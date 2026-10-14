@@ -10,11 +10,15 @@ import { cropToRgb, defaultCrop, ensureIconFont, imageIcon, loadBitmap, textIcon
 import type { Crop } from './pixels';
 import { decodePreview } from './preview';
 import defaultPhotoUrl from './assets/preview.jpg';
+import { loadFilmCatalog, loadFilmFit, loadFilmSource, filmIconData } from './library';
+import type { Family, FilmStock } from './library';
+import { filmSlotName } from './film-names';
+import { photoIdentity } from './film-identity';
 
-export type Page = 'ic' | 'ratio' | 'wall' | 'script' | 'copies';
+export type Page = 'ic' | 'library' | 'ratio' | 'wall' | 'script' | 'copies';
 /** One added aspect ratio as typed; `preview` is what the camera would make of it (absent while that is worked out). */
 export interface RatioItem { id: string; ratio: string; name: string; preview?: RatioPreview }
-export interface PresetState { fileName: string; kind: 'xmp' | 'cube'; text: string; busy: boolean; result?: PresetResult; error?: string }
+export interface PresetState { fileName: string; kind: 'xmp' | 'cube'; text: string; busy: boolean; result?: PresetResult; error?: string; libraryId?: string; photo?: SlotRequest['photo'] }
 export interface IconState { mode: 'keep' | 'text' | 'image'; text: string; style: 'film' | 'plain'; image?: string; pixels?: Uint8Array }
 export interface SlotState { preset?: PresetState; names: Partial<Record<LangCode, string>>; icon: IconState }
 export interface WallItem {
@@ -34,7 +38,7 @@ export interface CopyInfo { busy?: boolean; summary?: FirmwareSummary; failed?: 
 export interface BuildRecord { sha256: string; time: number; slots: { id: SlotId; preset?: string }[] }
 /** `warn` is an optional caution shown under the lines (used where something is deleted for good). */
 /** A guided tour: `overview` is the one of the first start, the others belong to a page. */
-export type TourId = 'overview' | Page;
+export type TourId = 'overview' | Exclude<Page, 'library'>;
 export const TOUR_IDS: readonly TourId[] = ['overview', 'script', 'ic', 'ratio', 'wall', 'copies'];
 /** The tour being shown: `steps` are the indices of its steps that have something to point at; a replay can be skipped. */
 export interface TourState { id: TourId; steps: number[]; index: number; replay: boolean }
@@ -45,6 +49,7 @@ export interface State {
   model: CameraModel; lang: LangCode;
   slots: Record<SlotId, SlotState>;
   wall: WallItem[];
+  shutdownWallId?: string;
   ratios: RatioItem[]; activeRatio?: string; ratioBackdrop: RatioBackdrop;
   soft: boolean; dateStamp: boolean; monoUnlock: boolean;
   previewMode: PreviewMode; photoRev: number; cardWall?: CardWall; activeSlot: SlotId;
@@ -59,7 +64,7 @@ export interface State {
 }
 
 const SLOT_IDS: readonly SlotId[] = GR3X_FILM_IDS;
-const availableSlots = (s: State = state): SlotId[] => s.info?.slots.map(slot => slot.id) ?? (s.model === 'GR3X_HDF' ? [...GR3X_FILM_IDS] : ['CY', 'CG']);
+const availableSlots = (s: State = state): SlotId[] => s.info?.slots.map(slot => slot.id) ?? [...GR3X_FILM_IDS];
 const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '', style: 'film' } });
 const emptySlots = (): Record<SlotId, SlotState> => Object.fromEntries(SLOT_IDS.map(id => [id, emptySlot()])) as Record<SlotId, SlotState>;
 let state: State = {
@@ -104,6 +109,52 @@ function fail(e: unknown): void {
 
 // ------------------------------------------------------------------ persistence
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
+type StoredSlot = { preset: { fileName: string; kind: 'cube' | 'xmp'; libraryId?: string } | null; names: SlotState['names']; icon: Omit<IconState, 'pixels'> };
+interface FamilyProject { fwName?: string; slots: Record<SlotId, StoredSlot>; ratios: RatioItem[]; soft: boolean; dateStamp: boolean; monoUnlock: boolean }
+let families: Partial<Record<Family, FamilyProject>> = {};
+const familyOf = (model: CameraModel): Family => model === 'GR3X_HDF' ? 'gr3x' : 'gr4';
+let familyGeneration = 0;
+let switchingModel = false;
+function familyProject(s: State): FamilyProject {
+  return { fwName: s.fwName,
+    slots: Object.fromEntries(SLOT_IDS.map(id => [id, {
+      preset: s.slots[id].preset ? { fileName: s.slots[id].preset!.fileName, kind: s.slots[id].preset!.kind, libraryId: s.slots[id].preset!.libraryId } : null,
+      names: { ...s.slots[id].names }, icon: { mode: s.slots[id].icon.mode, text: s.slots[id].icon.text, style: s.slots[id].icon.style, image: s.slots[id].icon.image },
+    }])) as Record<SlotId, StoredSlot>,
+    ratios: s.ratios.map(({ id, ratio, name }) => ({ id, ratio, name })), soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock };
+}
+function restoredSlots(doc?: FamilyProject): Record<SlotId, SlotState> {
+  const result = emptySlots();
+  for (const id of SLOT_IDS) if (doc?.slots?.[id]) {
+    const d = doc.slots[id];
+    result[id] = { names: d.names || {}, icon: d.icon || emptySlot().icon };
+  }
+  return result;
+}
+async function rememberFamily(s: State): Promise<void> {
+  const family = familyOf(s.model);
+  families[family] = familyProject(s);
+  if (!host.available) return;
+  if (s.raw) await host.storeSet('firmware-' + family + '.bin', s.raw);
+  await Promise.all(SLOT_IDS.map(async id => {
+    const text = s.slots[id].preset?.text;
+    if (text) await host.storeSet('preset-' + family + '-' + id.toLowerCase(), text);
+  }));
+}
+async function restoreFamilyPresets(doc?: FamilyProject): Promise<void> {
+  if (!doc) return;
+  const family = familyOf(state.model), generation = familyGeneration;
+  for (const id of availableSlots()) {
+    const preset = doc.slots?.[id]?.preset;
+    if (!preset) continue;
+    const bytes = await host.storeGet('preset-' + family + '-' + id.toLowerCase());
+    if (generation !== familyGeneration) return;
+    if (bytes) {
+      await host.storeSet('preset-' + id.toLowerCase(), bytes);
+      void runPreset(id, preset.fileName, preset.kind, new TextDecoder().decode(bytes), preset.libraryId);
+    }
+  }
+}
 function scheduleSave(): void {
   if (!host.available || !state.ready) return;
   clearTimeout(saveTimer);
@@ -111,17 +162,20 @@ function scheduleSave(): void {
 }
 async function saveProject(): Promise<void> {
   const s = state;
+  families[familyOf(s.model)] = familyProject(s);
   const doc = {
     v: 1, page: s.page, model: s.model, lang: s.lang, fwName: s.fwName, showAll: s.showAll, previewMode: s.previewMode, ratioBackdrop: s.ratioBackdrop, cardWall: s.cardWall || null,
     slots: Object.fromEntries(SLOT_IDS.map((id) => [id, {
-      preset: s.slots[id].preset ? { fileName: s.slots[id].preset!.fileName, kind: s.slots[id].preset!.kind } : null,
+      preset: s.slots[id].preset ? { fileName: s.slots[id].preset!.fileName, kind: s.slots[id].preset!.kind, libraryId: s.slots[id].preset!.libraryId } : null,
       names: s.slots[id].names,
       icon: { mode: s.slots[id].icon.mode, text: s.slots[id].icon.text, style: s.slots[id].icon.style, image: s.slots[id].icon.image },
     }])),
-    wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: w.kind, width: w.width, height: w.height, crop: w.crop })),
+    wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: w.kind, width: w.width, height: w.height, crop: w.crop, mime:w.blob?.type })),
+    shutdownWallId: s.shutdownWallId,
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
     soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock,
     tours: s.toursSeen,
+    families,
   };
   try { await host.storeSet('project.json', JSON.stringify(doc)); } catch (e) { console.warn('save failed', e); }
 }
@@ -136,6 +190,7 @@ export async function init(): Promise<void> {
     const raw = await host.storeGet('project.json');
     const doc = raw ? JSON.parse(new TextDecoder().decode(raw)) : null;
     if (doc && doc.v === 1) {
+      families = doc.families && typeof doc.families === 'object' ? doc.families : {};
       const slots = emptySlots();
       for (const id of SLOT_IDS) {
         const d = doc.slots?.[id];
@@ -146,7 +201,7 @@ export async function init(): Promise<void> {
       const ratios: RatioItem[] = (Array.isArray(doc.ratios) ? doc.ratios : []).slice(0, MAX_CUSTOM_RATIOS)
         .filter((r: RatioItem) => r && typeof r.id === 'string' && typeof r.ratio === 'string')
         .map((r: RatioItem) => ({ id: r.id, ratio: r.ratio.slice(0, 24), name: String(r.name || '').slice(0, 80) }));
-      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : doc.page === 'soft' ? 'ic' : 'script', model: ['GR3X_HDF', 'HDF', 'STANDARD', 'MONO'].includes(doc.model) ? doc.model : 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo', cardWall: validCardWall(doc.cardWall),
+      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'library' || doc.page === 'wall' || doc.page === 'script' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : doc.page === 'soft' ? 'ic' : 'script', model: ['GR3X_HDF', 'HDF', 'STANDARD', 'MONO'].includes(doc.model) ? doc.model : 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo', cardWall: validCardWall(doc.cardWall),
         soft: doc.soft === true || (!!doc.softFocus && typeof doc.softFocus === 'object' && Object.keys(doc.softFocus).length > 0),
         dateStamp: doc.dateStamp === true, monoUnlock: doc.monoUnlock === true,
         toursSeen: TOUR_IDS.filter((id) => Array.isArray(doc.tours) && doc.tours.includes(id)) });
@@ -157,22 +212,22 @@ export async function init(): Promise<void> {
         const model = script ? wallpaper.rotationScriptInfo(new TextDecoder().decode(script))?.model : undefined;
         set({ cardWall: { ...state.cardWall, model } });
       }
-      const fwRaw = await host.storeGet('firmware.bin');
+      const fwRaw = await host.storeGet('firmware-' + familyOf(state.model) + '.bin') || await host.storeGet('firmware.bin');
       // A family switch clears fwName. Do not reopen the previous family's cached file.
       if (fwRaw && doc.fwName) await openFirmware(fwRaw, doc.fwName, false);
       for (const id of SLOT_IDS) {
         const p = doc.slots?.[id]?.preset;
         if (!p) continue;
-        const text = await host.storeGet('preset-' + id.toLowerCase());
-        if (text) void runPreset(id, p.fileName, p.kind, new TextDecoder().decode(text));
+        const text = await host.storeGet('preset-' + familyOf(state.model) + '-' + id.toLowerCase()) || await host.storeGet('preset-' + id.toLowerCase());
+        if (text) void runPreset(id, p.fileName, p.kind, new TextDecoder().decode(text), p.libraryId);
       }
       const wall: WallItem[] = [];
       for (const w of doc.wall || []) {
         if (w.kind === 'factory') { wall.push({ id: w.id, name: w.name, kind: 'factory', width: 720, height: 480, crop: w.crop, busy: false }); continue; }
         const bytes = await host.storeGet('wall-' + w.id);
-        if (bytes) wall.push({ id: w.id, name: w.name, kind: 'image', blob: new Blob([bytes as unknown as BlobPart], { type: 'image/jpeg' }), width: w.width, height: w.height, crop: w.crop, busy: true });
+        if (bytes) wall.push({ id: w.id, name: w.name, kind: 'image', blob: new Blob([bytes as unknown as BlobPart], { type: w.mime === 'image/png' ? 'image/png' : 'image/jpeg' }), width: w.width, height: w.height, crop: w.crop, busy: true });
       }
-      set({ wall });
+      set({ wall, shutdownWallId: typeof doc.shutdownWallId === 'string' ? doc.shutdownWallId : undefined });
       for (const w of wall) void encodeWall(w.id);
     }
   } catch (e) { console.warn('restore failed', e); }
@@ -209,28 +264,46 @@ export function endTour(): void {
 // ------------------------------------------------------------------ settings
 export function setPage(page: Page): void { set({ page }); scheduleSave(); if (page === 'copies') void refreshCopies(); }
 export function setLang(lang: LangCode): void { set({ lang }); scheduleSave(); }
-export function setModel(model: CameraModel): void {
-  if (state.busy || state.fwBusy || model === state.model) return;
-  const differentFamily = (state.model === 'GR3X_HDF') !== (model === 'GR3X_HDF');
-  ++ratioGen;
-  clearTimeout(ratioTimer);
-  if (state.info && !state.info.models.includes(model)) {
-    void engine.reset();
-    set({ info: undefined, raw: undefined, fwName: undefined, bridgeOpen: false, bridgeAfter: undefined,
-      soft: false, dateStamp: false, monoUnlock: false,
-      copyInfo: {}, copySel: [], ratios: state.ratios.map(({ preview, ...r }) => r) });
+export function setModel(model: CameraModel): Promise<void> {
+  return switchModel(model);
+}
+async function switchModel(model: CameraModel): Promise<void> {
+  if (switchingModel || state.busy || state.fwBusy || model === state.model) return;
+  if (familyOf(model) === familyOf(state.model)) {
+    set({ model }); scheduleSave();
+    for (const w of state.wall) void encodeWall(w.id);
+    return;
   }
-  set({ model,
-    ...(differentFamily ? { slots: emptySlots(), activeSlot: 'CY' as const, soft: false, dateStamp: false, monoUnlock: false } : {}),
-    ...(model === 'GR3X_HDF' ? { page: 'ratio' as const, bridgeOpen: false, bridgeAfter: undefined } : {}) });
-  scheduleSave();
-  for (const w of state.wall) void encodeWall(w.id);
+  switchingModel = true;
+  ++ratioGen; ++familyGeneration;
+  clearTimeout(ratioTimer); clearTimeout(saveTimer);
+  const previous = state;
+  set({ busy: '正在切换机型…' });
+  try {
+    await rememberFamily(previous);
+    const family = familyOf(model), doc = families[family];
+    const firmware = host.available ? await host.storeGet('firmware-' + family + '.bin') : null;
+    await engine.reset();
+    const factory = family === 'gr3x' ? ['3:2', '1:1'] : ['3:2', '1:1', '4:3', '16:9'];
+    const ratios = doc?.ratios || GFX_RATIOS.filter(r => !factory.includes(r)).map((ratio, i) => ({ id: `${family}-${i}`, ratio, name: ratio }));
+    set({ model, info: undefined, raw: undefined, fwName: doc?.fwName, busy: undefined,
+      slots: restoredSlots(doc), activeSlot: 'CY', ratios, activeRatio: ratios[0]?.id,
+      soft: doc?.soft || false, dateStamp: doc?.dateStamp || false, monoUnlock: doc?.monoUnlock || false,
+      bridgeOpen: false, bridgeAfter: undefined, copyInfo: {}, copySel: [], tour: undefined });
+    if (firmware) await openFirmware(firmware, doc?.fwName || (family === 'gr3x' ? 'fwdc243b.bin' : 'fwdc248b.bin'), false);
+    if (host.available && state.raw) await host.storeSet('firmware.bin', state.raw);
+    await restoreFamilyPresets(doc);
+    await saveProject();
+    for (const w of state.wall) void encodeWall(w.id);
+  } catch (e) { set({ busy: undefined }); fail(e); }
+  finally { switchingModel = false; }
 }
 
 // ------------------------------------------------------------------ firmware
 /** Opens a firmware file; false (with a message shown) when it is not the supported official file. */
 async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Promise<boolean> {
   if (state.busy || state.fwBusy) return false;
+  const previous = state;
   ++ratioGen;
   clearTimeout(ratioTimer);
   set({ fwBusy: true });
@@ -238,13 +311,29 @@ async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Pr
     const info = await engine.open(raw);
     const model = info.models.includes(state.model) ? state.model : info.models[0];
     const sameFamily = (state.model === 'GR3X_HDF') === (model === 'GR3X_HDF');
+    const targetDoc = families[familyOf(model)];
+    if (!sameFamily) { ++familyGeneration; await rememberFamily(previous); }
+    const savedRatios = sameFamily ? state.ratios : targetDoc?.ratios;
+    const ratios = savedRatios?.length ? savedRatios : GFX_RATIOS.filter(r => !info.factoryRatios.includes(r))
+      .map((ratio, i) => ({ id: `${info.family}-${i}`, ratio, name: ratio }));
     set({ info, raw, model, fwName: info.filename, fwBusy: false, copyInfo: {}, copySel: [],
-      ...(!sameFamily ? { slots: emptySlots(), activeSlot: 'CY' as const, soft: false, dateStamp: false, monoUnlock: false } : {}),
+      ratios, activeRatio: ratios[0]?.id,
+      ...(!sameFamily ? { slots: restoredSlots(targetDoc), activeSlot: 'CY' as const,
+        soft: targetDoc?.soft || false, dateStamp: targetDoc?.dateStamp || false, monoUnlock: targetDoc?.monoUnlock || false } : {}),
       ...(info.family === 'gr3x' ? { page: sameFamily ? state.page : 'ratio' as const, bridgeOpen: false, bridgeAfter: undefined,
-        soft: sameFamily && state.soft, dateStamp: false, monoUnlock: sameFamily && state.monoUnlock && info.features.monoUnlock,
-        ratios: GFX_RATIOS.filter(r => !info.factoryRatios.includes(r)).map((ratio, i) => ({ id: `gr3x-${i}`, ratio, name: ratio })) } : {}) });
+        soft: sameFamily ? state.soft : targetDoc?.soft || false, dateStamp: false,
+        monoUnlock: (sameFamily ? state.monoUnlock : targetDoc?.monoUnlock || false) && info.features.monoUnlock } : {}) });
+    // Migrate the old Cinema slots' language-specific aliases to the shared
+    // English label used by independent film slots. Preserve source and icons.
+    if (info.family === 'gr4') for (const id of availableSlots()) {
+      const names = state.slots[id].names;
+      const label = [names.en, names[state.lang], ...Object.values(names)]
+        .find(n => n && n.length <= 24 && /^[\x20-\x7e]+$/.test(n));
+      if (label) setSlot(id, { names: Object.fromEntries(LANGS.map(l => [l, label])) });
+    }
+    if (!sameFamily) await restoreFamilyPresets(targetDoc);
     if (info.bridge && persist) toast(t('bridgeOpened'), 'info');
-    if (persist) { await host.storeSet('firmware.bin', raw); scheduleSave(); }
+    if (persist) { await host.storeSet('firmware.bin', raw); await host.storeSet('firmware-' + info.family + '.bin', raw); scheduleSave(); }
     for (const id of info.capabilities.presets ? info.slots.map(s => s.id) : []) {
       void renderIcon(id);
       const p = state.slots[id].preset;
@@ -291,17 +380,67 @@ const PRESET_ERRORS: Record<string, Key> = {
   'not-xmp': 'errNotXmp', 'no-table': 'errNoTable', 'look-profile-missing': 'errLookMissing', 'unsupported-table': 'errUnsupportedTable', 'bad-table': 'errUnsupportedTable',
   'not-cube': 'errNotXmp', 'bad-cube': 'errBadCube', 'gr3x-cube-only': 'gr3xCubeOnly',
 };
-async function runPreset(id: SlotId, fileName: string, kind: 'xmp' | 'cube', text: string): Promise<void> {
-  setSlot(id, { preset: { fileName, kind, text, busy: !!state.info?.capabilities.presets } });
+async function runPreset(id: SlotId, fileName: string, kind: 'xmp' | 'cube', text: string, libraryId?: string): Promise<void> {
+  const generation = familyGeneration, family = familyOf(state.model), firmwareSha = state.info?.sha256;
+  setSlot(id, { preset: { fileName, kind, text, libraryId, busy: !!state.info?.capabilities.presets } });
   if (!state.info?.capabilities.presets) return;
   try {
-    const result = await engine.convert(kind, text);
-    if (state.slots[id].preset?.text !== text) return; // replaced meanwhile
-    setSlot(id, { preset: { fileName, kind, text, busy: false, result } });
+    let result: PresetResult | undefined;
+    let photo = photoIdentity(undefined, fileName, false);
+    // Match by source bytes, never by display name: an edited CUBE needs a new fit.
+    if (kind === 'cube') {
+      const hash = await sha256Hex(new TextEncoder().encode(text));
+      const catalog = await loadFilmCatalog().catch(() => undefined);
+      const stock = catalog?.stocks.find(s => s.cubeSha256 === hash && (!libraryId || s.id === libraryId));
+      photo = photoIdentity(stock ?? catalog?.stocks.find(s=>s.id===libraryId), fileName, !!stock);
+      if (stock?.fits?.[family]) {
+        const fit = await loadFilmFit(stock, family);
+        if (fit.firmwareSha256 === firmwareSha) { result = fit.result; libraryId = stock.id; }
+      }
+    }
+    if (generation !== familyGeneration || state.slots[id].preset?.text !== text) return;
+    result ??= await engine.convert(kind, text);
+    if (generation !== familyGeneration || state.slots[id].preset?.text !== text) return;
+    setSlot(id, { preset: { fileName, kind, text, libraryId, busy: false, result, photo } });
   } catch (e) {
+    if (generation !== familyGeneration || state.slots[id].preset?.text !== text) return;
     const code = e instanceof EngineError ? e.code : '';
-    setSlot(id, { preset: { fileName, kind, text, busy: false, error: PRESET_ERRORS[code] ? t(PRESET_ERRORS[code]) : t('errNotXmp') } });
+    setSlot(id, { preset: { fileName, kind, text, libraryId, busy: false, error: PRESET_ERRORS[code] ? t(PRESET_ERRORS[code]) : t('errNotXmp') } });
   }
+}
+export async function applyLibraryFilm(stock: FilmStock, id: SlotId, imported?: File): Promise<void> {
+  if (state.busy || state.fwBusy || switchingModel || !state.info?.capabilities.presets || state.model === 'MONO') return;
+  const info = state.info, family = familyOf(state.model), generation = familyGeneration;
+  const off = info.slots.find(s => s.id === id);
+  if (!off) return;
+  set({ busy: '正在载入 ' + stock.name + '…' });
+  try {
+    if (imported && imported.size > 32 * 1024 * 1024) throw new Error('CUBE 文件不能超过 32 MB');
+    const text = imported ? decodeText(new Uint8Array(await imported.arrayBuffer())) : await loadFilmSource(stock);
+    const [fit, icon] = await Promise.all([
+      imported ? engine.convert('cube', text).then(result => ({ result, firmwareSha256: info.sha256 })) : loadFilmFit(stock, family),
+      filmIconData(stock),
+    ]);
+    if (generation !== familyGeneration) return;
+    if (fit.firmwareSha256 !== info.sha256) throw new Error('请先打开本机型支持的原厂固件');
+    const names: SlotState['names'] = {};
+    for (const lang of LANGS) {
+      const cap = off.names[lang].capacity;
+      names[lang] = filmSlotName(stock, cap);
+    }
+    if (host.available) {
+      await host.storeSet('preset-' + family + '-' + id.toLowerCase(), text);
+      await host.storeSet('preset-' + id.toLowerCase(), text);
+    }
+    setSlot(id, { names, icon: { mode: 'image', style: 'film', text: '', image: icon },
+      preset: { fileName: imported?.name || stock.id + '.cube', kind: 'cube', text, result: fit.result, busy: false, libraryId: stock.id,
+        photo: photoIdentity(stock, imported?.name || stock.id + '.cube', !imported) } });
+    set({ activeSlot: id });
+    await renderIcon(id);
+    await saveProject();
+    toast(stock.name + ' 已放入 ' + off.defaultName, 'ok');
+  } catch (e) { fail(e); }
+  finally { set({ busy: undefined }); }
 }
 /** Text of a preset file whatever its encoding: UTF-8, UTF-16 (with or without BOM) or GB18030. */
 export function decodeText(buf: Uint8Array): string {
@@ -315,18 +454,26 @@ export function decodeText(buf: Uint8Array): string {
   try { return new TextDecoder('gb18030').decode(buf); } catch { return new TextDecoder('utf-8').decode(buf); }
 }
 export async function loadPresetFile(id: SlotId, file: File): Promise<void> {
+  if (state.busy || state.fwBusy || switchingModel) return;
+  const generation = familyGeneration, family = familyOf(state.model);
   if (file.size > 120_000_000) { toast(t('errTooBig'), 'error'); return; }
   const text = decodeText(new Uint8Array(await file.arrayBuffer()));
+  if (generation !== familyGeneration) return;
   const lower = file.name.toLowerCase();
   const kind: 'xmp' | 'cube' = lower.endsWith('.cube') ? 'cube' : lower.endsWith('.xmp') ? 'xmp' : /LUT_(3D|1D)_SIZE/i.test(text) ? 'cube' : 'xmp';
   setActiveSlot(id);
-  if (host.available) await host.storeSet('preset-' + id.toLowerCase(), text).catch(() => undefined);
+  if (host.available) {
+    await host.storeSet('preset-' + id.toLowerCase(), text).catch(() => undefined);
+    await host.storeSet('preset-' + family + '-' + id.toLowerCase(), text).catch(() => undefined);
+  }
+  if (generation !== familyGeneration) return;
   await runPreset(id, file.name, kind, text);
   scheduleSave();
 }
 export function removePreset(id: SlotId): void {
   setSlot(id, { preset: undefined });
   if (host.available) void host.storeDel('preset-' + id.toLowerCase()).catch(() => undefined);
+  if (host.available) void host.storeDel('preset-' + familyOf(state.model) + '-' + id.toLowerCase()).catch(() => undefined);
   scheduleSave();
 }
 
@@ -343,8 +490,8 @@ export function nameProblem(info: FirmwareInfo, id: SlotId, lang: LangCode, text
   if (/^\s|\s$/.test(text) && !bad.includes('␣')) bad.push('␣');
   return bad.length ? t('nameBadChar', { c: bad.join(' ') }) : null;
 }
-export function setName(id: SlotId, lang: LangCode, text: string): void {
-  setSlot(id, (s) => ({ names: state.info?.family === 'gr3x' ? Object.fromEntries(LANGS.map(l => [l, text])) : { ...s.names, [lang]: text } }));
+export function setName(id: SlotId, _lang: LangCode, text: string): void {
+  setSlot(id, { names: Object.fromEntries(LANGS.map(l => [l, text])) });
   scheduleSave();
 }
 
@@ -356,14 +503,14 @@ async function bitmapOf(dataUrl: string): Promise<ImageBitmap> {
   return b;
 }
 async function renderIcon(id: SlotId): Promise<void> {
-  const info = state.info; const ic = state.slots[id].icon;
+  const info = state.info; const ic = state.slots[id].icon; const generation = familyGeneration;
   if (!info?.capabilities.presets || ic.mode === 'keep') { if (ic.pixels) setSlot(id, (s) => ({ icon: { ...s.icon, pixels: undefined } })); return; }
   const tile = info.tiles[ic.style]; const area = info.contentArea[ic.style];
   let pixels: Uint8Array | undefined;
   if (ic.mode === 'text') { await ensureIconFont(); pixels = ic.text.trim() ? textIcon(tile, ic.text, area) : undefined; }
   else if (ic.image) { const b = await bitmapOf(ic.image); pixels = imageIcon(tile, b, b.width, b.height, area); }
   const cur = state.slots[id].icon;
-  if (cur.mode === ic.mode && cur.text === ic.text && cur.style === ic.style && cur.image === ic.image) setSlot(id, { icon: { ...cur, pixels } });
+  if (generation === familyGeneration && state.info === info && cur.mode === ic.mode && cur.text === ic.text && cur.style === ic.style && cur.image === ic.image) setSlot(id, { icon: { ...cur, pixels } });
 }
 export function setIcon(id: SlotId, patch: Partial<IconState>): void {
   setSlot(id, (s) => ({ icon: { ...s.icon, ...patch } }));
@@ -382,6 +529,13 @@ export async function loadIconImage(id: SlotId, file: File): Promise<void> {
 
 // ------------------------------------------------------------------ power-off images
 const wallBitmaps = new Map<string, ImageBitmap>();
+export function selectedShutdownWall(s: State = state): WallItem | undefined {
+  return s.wall.find(w => w.id === s.shutdownWallId) ?? s.wall[0];
+}
+export function selectShutdownWall(id: string): void {
+  if (!state.wall.some(w => w.id === id)) return;
+  set({shutdownWallId:id}); scheduleSave();
+}
 export async function wallBitmap(w: WallItem): Promise<ImageBitmap | null> {
   if (!w.blob) return null;
   let b = wallBitmaps.get(w.id);
@@ -416,7 +570,7 @@ export async function addWallFiles(files: File[]): Promise<void> {
     if (!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|bmp|gif|avif)$/i.test(f.name)) continue;
     try {
       const bmp = await loadBitmap(f);
-      const wc = await workingCopy(bmp);
+      const wc = await workingCopy(bmp, 2400, state.model === 'GR3X_HDF' ? 'image/png' : 'image/jpeg');
       bmp.close();
       const id = Math.random().toString(36).slice(2, 10);
       const item: WallItem = { id, name: f.name, kind: 'image', blob: wc.blob, width: wc.width, height: wc.height, crop: defaultCrop(wc.width, wc.height), busy: true };
@@ -685,7 +839,7 @@ export function pendingChanges(s: State = state): SlotChange[] {
   for (const id of availableSlots(s)) {
     const sl = s.slots[id]; const off = s.info.slots.find((x) => x.id === id)!;
     const req: SlotRequest = { slot: id }; const parts: string[] = []; const labels: string[] = [];
-    if (sl.preset?.result) { req.preset = { matrixQ13: sl.preset.result.matrixQ13, curves: sl.preset.result.curves }; parts.push(`${t('preset')} ${sl.preset.result.title || sl.preset.fileName}`); labels.push(t('preset')); }
+    if (sl.preset?.result) { req.preset = { matrixQ13: sl.preset.result.matrixQ13, curves: sl.preset.result.curves }; if (s.info.family === 'gr3x') req.photo = sl.preset.photo; parts.push(`${t('preset')} ${sl.preset.result.title || sl.preset.fileName}`); labels.push(t('preset')); }
     if (sl.icon.mode !== 'keep' && sl.icon.pixels) { req.icon = sl.icon.pixels; parts.push(t('icon')); labels.push(t('icon')); }
     const names: Partial<Record<LangCode, string>> = {};
     for (const lang of LANGS) {
@@ -701,6 +855,9 @@ export function hasNameErrors(s: State = state): boolean {
   if (!s.info?.capabilities.presets) return false;
   if (!s.info) return false;
   return availableSlots(s).some((id) => LANGS.some((lang) => !!nameProblem(s.info!, id, lang, s.slots[id].names[lang] || '')));
+}
+export function hasPresetErrors(s: State = state): boolean {
+  return availableSlots(s).some(id => !!s.slots[id].preset && (!s.slots[id].preset!.result || !!s.slots[id].preset!.busy || !!s.slots[id].preset!.error));
 }
 const stamp = (): string => { const d = new Date(); const p = (n: number): string => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
 
@@ -770,18 +927,22 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const soft = !stock && softOn();
   const dateStamp = !stock && !!state.dateStamp && !!state.info.features.dateStamp;
   const monoUnlock = !stock && monoUnlockOn();
-  if (!stock && (hasNameErrors() || hasRatioErrors())) return;
+  const selectedWall = !stock && sourceInfo.family === 'gr3x' ? selectedShutdownWall() : undefined;
+  if (selectedWall && !wallReady()) { toast(t('shutdownNotReady'), 'info'); return; }
+  const shutdownImage = selectedWall?.kind === 'image' ? selectedWall.data : undefined;
+  if (!stock && (hasNameErrors() || hasRatioErrors() || hasPresetErrors())) return;
   if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock) { toast(t('nothingToDo'), 'info'); return; }
   if (dest.kind === 'card') {
-    const lines = stock ? [t('copyOfficial')] : changes.map((c) => `${state.info?.family === 'gr3x' ? (state.slots[c.id].names[state.lang] || state.info.slots.find(s => s.id === c.id)?.defaultName || c.id) : t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
+    const lines = stock ? [t('copyOfficial')] : changes.map((c) => `${state.slots[c.id].names[state.lang] || state.info!.slots.find(s => s.id === c.id)?.defaultName || c.id}  ·  ${c.labels.join(' / ')}`);
     if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
     if (soft) lines.push(sourceInfo.features.softFocus === 'clarity' ? t('softLine', { l: softText(GR3X_SOFT_FOCUS) }) : t('softAdjLine'));
     if (dateStamp) lines.push(t('dateLine'));
     if (monoUnlock) lines.push(t(state.info?.family === 'gr3x' ? 'gr3xReplicaLine' : 'monoLine'));
+    if (selectedWall) lines.push(t('shutdownLine', {name:selectedWall.name}));
     if (!(await ask(t('confirmTitle'), lines, t('confirmOk')))) return;
   }
   const target = await destination(dest);
-  if (!target || state.info !== sourceInfo || state.raw !== sourceRaw || state.model !== sourceModel || state.fwBusy) return;
+  if (!target || state.info !== sourceInfo || state.raw !== sourceRaw || state.model !== sourceModel || state.fwBusy || switchingModel) return;
   try {
     let file: Uint8Array;
     if (stock) file = sourceRaw;
@@ -789,7 +950,9 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
       set({ busy: t('building') });
       const clarity = soft && sourceInfo.features.softFocus === 'clarity' ? [...GR3X_SOFT_FOCUS] : [];
       const built = await engine.build(changes.map((c) => c.request), ratios, clarity,
-        { adjSoftFocus: soft && sourceInfo.features.softFocus === 'adj', dateStamp, monoUnlock });
+        { adjSoftFocus: soft && sourceInfo.features.softFocus === 'adj', dateStamp, monoUnlock,
+          ...(shutdownImage ? {shutdownImage} : {}),
+          ...(sourceInfo.family === 'gr3x' && changes.length && !monoUnlock ? {jpegMetadata:true} : {}) });
       if (!Object.values(built.checks).every((v) => v === true)) throw new EngineError('selfcheck-failed', 'self-check');
       file = built.file;
       void recordBuild(file, changes);
@@ -810,11 +973,11 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
  */
 export async function outputBridge(dest: Dest): Promise<void> {
   if (state.model === 'GR3X_HDF' || (state.info && !state.info.capabilities.bridge)) return;
-  if (state.busy || state.fwBusy) return;
+  if (state.busy || state.fwBusy || switchingModel) return;
   if (!state.info) { set({ bridgeAfter: dest }); setOnlineOpen(true, 'bridge-base'); return; }
   const sourceInfo = state.info, sourceModel = state.model;
   const target = await destination(dest);
-  if (!target || state.info !== sourceInfo || state.model !== sourceModel || state.fwBusy) return;
+  if (!target || state.info !== sourceInfo || state.model !== sourceModel || state.fwBusy || switchingModel) return;
   try {
     set({ busy: t('building') });
     const file = await engine.bridge();
@@ -838,7 +1001,7 @@ export async function outputEntry(dest: Dest): Promise<void> {
   if (state.busy || state.fwBusy || !info) return;
   if (bridgeLoaded()) { askForOfficial(); return; }
   const target = await destination(dest);
-  if (!target || state.info !== info || state.model !== model || state.fwBusy) return;
+  if (!target || state.info !== info || state.model !== model || state.fwBusy || switchingModel) return;
   try {
     set({ busy: t('writing') });
     const files = info.factoryEntry.files;
@@ -851,16 +1014,21 @@ export async function outputEntry(dest: Dest): Promise<void> {
   void refreshVolumes();
 }
 export function wallReady(s: State = state): boolean {
+  if (s.model === 'GR3X_HDF') {
+    const w = selectedShutdownWall(s);
+    return !!w && !w.busy && !w.error && !!w.data;
+  }
   return s.wall.length > 0 && s.wall.every((w) => !w.busy && !w.error && !!w.data);
 }
 export async function outputWallpaper(dest: Dest): Promise<void> {
+  if (state.model === 'GR3X_HDF') { await outputFirmware(dest); return; }
   if (!state.info?.capabilities.wallpaper || !state.info.models.includes(state.model)) return;
   if (state.busy || state.fwBusy || !state.info) return;
   const sourceInfo = state.info, sourceModel = state.model;
   if (bridgeLoaded()) { askForOfficial(); return; }
   if (!wallReady()) { toast(t('nothingToDo'), 'info'); return; }
   const target = await destination(dest);
-  if (!target || state.info !== sourceInfo || state.model !== sourceModel || state.fwBusy) return;
+  if (!target || state.info !== sourceInfo || state.model !== sourceModel || state.fwBusy || switchingModel) return;
   try {
     set({ busy: t('writing') });
     const images = state.wall.map((w) => w.data!);
@@ -1042,7 +1210,7 @@ export async function writeCopy(): Promise<void> {
   if (!pick) return;
   if (!v) { toast(t('noCard'), 'error'); return; }
   if (!(await ask(t('confirmTitle'), describeCopy(pick.summary), t('confirmOk')))) return;
-  if (state.info !== sourceInfo || state.model !== sourceModel || state.fwBusy) return;
+  if (state.info !== sourceInfo || state.model !== sourceModel || state.fwBusy || switchingModel) return;
   try {
     set({ busy: t('opening') });
     const file = source === 'card' ? await host.parkedRead(v.id, pick.entry.path) : await host.backupRead(pick.entry.path);

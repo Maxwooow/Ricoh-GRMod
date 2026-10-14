@@ -6,7 +6,7 @@
  * `tools/testfw/build.ts`, so that a test can check a build against a file that went to the camera.
  */
 import { Engine, fw } from '../../src';
-import type { SlotEdit } from '../../src/fw';
+import type { SlotRequest } from '../../src/app/engine';
 
 function cube(title: string, f: (r: number, g: number, b: number) => [number, number, number]): string {
   const N = 17;
@@ -48,17 +48,17 @@ function digitIcon(eng: Engine, ch: string): Uint8Array {
 const NAMES: Record<string, [string, string]> = { 'zh-CN': ['暖调', '冷调'], 'zh-TW': ['暖調', '冷調'], ja: ['ウォーム', 'クール'] };
 
 /** The two preset requests, in the form `Engine.buildFirmware` takes. */
-export function testPresetRequests(eng: Engine): SlotEdit[] {
+export function testPresetRequests(eng: Engine, legacyDecoded?: Uint8Array): SlotRequest[] {
   const presets = [['CY', WARM(), '1', 'Warm Test'], ['CG', COOL(), '2', 'Cool Test']] as const;
   return presets.map(([slot, text, ch, en], i) => {
     const p = eng.convertPreset('cube', text);
     const names: Record<string, string> = {};
     for (const lang of fw.LANGS) {
-      const t = NAMES[lang]?.[i] ?? en;
-      const v = eng.validateName(slot, lang, t) as { ok?: boolean; problem?: unknown };
-      if (v.ok ?? !v.problem) names[lang] = t;
+      const t = legacyDecoded ? NAMES[lang]?.[i] ?? en : en;
+      const v = legacyDecoded ? fw.validateName(legacyDecoded,lang,301+i,t) : eng.validateName(slot,lang,t);
+      if (v.ok) names[lang] = t;
     }
-    return { slot, preset: { matrixQ13: p.matrixQ13, curves: p.curves }, icon: digitIcon(eng, ch), names } as unknown as SlotEdit;
+    return { slot, preset: { matrixQ13: p.matrixQ13, curves: p.curves }, icon: digitIcon(eng, ch), names };
   });
 }
 

@@ -21,7 +21,7 @@ func TestDevHostVolumes(t *testing.T) {
 		}
 	}
 	os.WriteFile(file, []byte("x"), 0o644)
-	h := New()
+	h := devHost{}
 	if h.Kind() != "dev" {
 		t.Errorf("Kind = %q", h.Kind())
 	}
@@ -61,7 +61,7 @@ func TestDevHostVolumes(t *testing.T) {
 }
 
 func TestDevHostPickRevealEject(t *testing.T) {
-	h := New()
+	h := devHost{}
 	t.Setenv(EnvDevPick, "")
 	if p, err := h.PickDirectory("title"); p != "" || err != nil {
 		t.Errorf("unset: %q, %v", p, err)

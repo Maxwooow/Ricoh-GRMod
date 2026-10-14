@@ -31,7 +31,7 @@ export const engine = {
   build: (requests: SlotRequest[], ratios: RatioSpec[] = [], softFocus: SoftFocusRequest[] = [], options: BuildOptions = {}) => call<FirmwareBuild>({ type: 'build', requests, ratios, softFocus, options }),
   /** What a ratio would become in the camera, given the ratios already in the list. */
   ratio: (ratio: string, others: string[]) => call<RatioPreview>({ type: 'ratio', ratio, others }),
-  encode: (rgb: Uint8Array, model: CameraModel) => { const copy = rgb.slice(); return call<ShutdownImage>({ type: 'encode', rgb: copy.buffer, model }, [copy.buffer]); },
+  encode: (rgb: Uint8Array, model: CameraModel) => { const copy = rgb.slice(); return call<ShutdownImage>({ type: 'encode', rgb: copy.buffer, model, embedded:model === 'GR3X_HDF' }, [copy.buffer]); },
   script: (model: CameraModel, count: number) => call<string>({ type: 'script', model, count }),
   /** What a firmware file is; the buffer is handed over to the worker. */
   inspect: (raw: Uint8Array) => call<FirmwareSummary>({ type: 'inspect', raw: raw.buffer }, [raw.buffer as ArrayBuffer]),

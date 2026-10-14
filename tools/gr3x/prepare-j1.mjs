@@ -1,0 +1,16 @@
+import { registerHooks } from 'node:module';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+registerHooks({resolve(s,c,next){try{return next(s,c);}catch(e){if(s.startsWith('.')&&!/\.[a-z]+$/i.test(s))for(const x of ['.ts','/index.ts'])try{return next(s+x,c);}catch{}throw e;}}});
+const {Firmware, sectionsOf} = await import('../../core/src/fw/container.ts');
+const {GR3X_160} = await import('../../core/src/fw/gr3x/profile.ts');
+const {readGr3xLookRecipe} = await import('../../core/src/fw/gr3x/look-recipe.ts');
+const {buildGr3xImageControls} = await import('../../core/src/fw/gr3x/image-control.ts');
+const [official, predecessor, out] = process.argv.slice(2);
+const raw=new Uint8Array(await readFile(official)), decoded=new Firmware(new Uint8Array(await readFile(predecessor))).decoded;
+const r=sectionsOf(decoded).find(s=>s.name==='RTOS');
+const previous=readGr3xLookRecipe(decoded.subarray(r.offset+GR3X_160.rtosLength,r.offset+r.size));
+const options={...previous,jpegMetadata:true,films:previous.films.map((f,i)=>({...f,photo:{name:f.name,revision:i===8?'T6-C1':'T6'}}))};
+const manifest=await buildGr3xImageControls(raw,options);
+await mkdir(out,{recursive:true});
+await writeFile(out+'/manifest.json',JSON.stringify(manifest));
+console.log(JSON.stringify({jpeg:manifest.jpegMetadata,payload:manifest.append.bytes.length/2}));

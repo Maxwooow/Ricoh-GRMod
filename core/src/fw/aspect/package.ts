@@ -58,7 +58,7 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
     if (r.length > 64 || n.length > 80 || r.length === 0 || n.length === 0) fail('bad-ratio', 'ratio or name too long to record');
     bytes.push(r.length, ...r, n.length, ...n);
   }
-  if (revision >= 3) bytes.push((features.adjSoftFocus ? FEATURE_ADJ_SOFT_FOCUS : 0) | (features.dateStamp ? FEATURE_DATE_STAMP : 0) | (features.monoUnlock ? FEATURE_MONO_UNLOCK : 0));
+  if (revision >= 3) bytes.push((features.adjSoftFocus ? FEATURE_ADJ_SOFT_FOCUS : 0) | (features.dateStamp ? FEATURE_DATE_STAMP : 0) | (features.monoUnlock ? FEATURE_MONO_UNLOCK : 0) | (features.filmSlots ? 8 : 0));
   while (bytes.length % 4) bytes.push(0);
   return Uint8Array.from(bytes);
 }
@@ -112,11 +112,12 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
   if (revision >= 3) {
     if (p >= rec.length) return null;
     const f = rec[p++];
-    if ((f & ~(FEATURE_ADJ_SOFT_FOCUS | FEATURE_DATE_STAMP | FEATURE_MONO_UNLOCK)) !== 0) return null;
+    if ((f & ~(FEATURE_ADJ_SOFT_FOCUS | FEATURE_DATE_STAMP | FEATURE_MONO_UNLOCK | 8)) !== 0) return null;
     if (f & FEATURE_ADJ_SOFT_FOCUS) features.adjSoftFocus = true;
     if (f & FEATURE_DATE_STAMP) features.dateStamp = true;
     if (f & FEATURE_MONO_UNLOCK) features.monoUnlock = true;
-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock) return null;
+    if (f & 8) features.filmSlots = true;
+    if (count === 0 && !features.filmSlots && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock) return null;
   }
   for (; p < rec.length; p++) if (rec[p] !== 0) return null;
   return { specs: out, features };

@@ -7,16 +7,17 @@ The existing GR IV engine, presets and menu paths remain model-specific.
 
 ## Features and camera evidence
 
-| Feature | Implementation | Evidence as of 2026-10-12 |
+| Feature | Implementation | Evidence as of 2026-10-14 |
 | --- | --- | --- |
 | Nine aspect ratios | ADJ, regular menu and assigned Fn use `4:3 / 3:2 / 16:9 / 65:24 / 17:6 / 3:4 / 1:1 / 7:6 / 5:4` | Camera owner tested captures and reported T4 fixed wide post-capture flicker |
 | Full RAW | Only the DNG descriptor path forces the full 6000×4000 default crop; JPEG and embedded previews follow the selected ratio | Repeated JPG/DNG sets decoded; 6112×4064 sensor mosaic, DefaultCropOrigin=(10,12), DefaultCropSize=(6000,4000) |
 | Wide live view | Preserve native 3:2 buffer width and align custom crop heights/ROI starts to four-row groups | Differential native probes reproduce T2/T3 failures; owner confirmed T4 flicker gone |
 | Soft focus | Optional Clarity −1/−2/−3 table changes, weak/medium/strong; 0, −4 and positive levels retain factory behaviour | SF1 JPG effects observed with HDF off; independently developed RAW retains detail |
 | CUBE import | Fit display-sRGB CUBE to IIIx's matrix and three RGB curves | Two synthetic T5 examples tested on camera; not execution of the complete 3D LUT |
-| Nine film slots | IDs 64–72, independent matrices/curves, names and icons; keep the 12 factory controls and Custom 1/2 | T6 passes software/native checks; nine real film presets await camera testing |
-| Icon queries | Cover the common list, ADJ and shooting-state lookup entry | Owner confirmed T5-L1 icons display; T6 packaging palettes await camera confirmation |
-| Script and power-off images | IIIx factory entry, fixed-size JPEG creation, rotation and factory restoration | Local and bounded native-function checks; not yet camera-tested |
+| Nine film slots | IDs 64–72, independent matrices/curves, names and icons; keep the 12 factory controls and Custom 1/2 | T6 installed and photographed; C1 corrects the ninth CineStill preset |
+| Icon queries | Cover the common list, ADJ and shooting-state lookup entry | Owner confirmed T5-L1/T6 packaging icons display correctly |
+| JPEG film identity | J1 adds full film name, recipe revision and parameter fingerprint to UserComment | W2 JPG records match the selected presets; RAW writer unchanged |
+| Embedded power-off image | W2 adds a normally updated A: resource and redirects the generic JPEG descriptor | Owner confirmed image display and clarity; application reproduces the complete installed W2 binary |
 
 The earlier six monochrome styles are explicit IIIx **Replica** recipes, not an
 unlock of GR IV Monochrome algorithms. They and the two synthetic demo films are
@@ -29,7 +30,8 @@ was made and no fix is claimed for it.
 - IIIx XMP import, date imprint and independent ADJ soft-focus control are not implemented.
 - Added film parameters are fixed. EXIF and in-camera RAW development use the
   factory base (Standard for added colour films), not a new film-specific EXIF enum.
-- CUBE conversion is approximate. Gold/Ektar need careful comparison; CineStill
+  J1 records the selected film separately in JPEG UserComment; it does not change that enum.
+- CUBE conversion is approximate. CineStill
   provides colour/tonal treatment without spatial halation.
 - Names use 1–24 printable ASCII characters. UI project IDs CY/CG are retained
   for old projects; T6 offers CY/CG/F3…F9, mapped to camera IDs 64…72.
@@ -68,7 +70,7 @@ RTOS/icon additions are checked and the version remains 1.60.
 (including 21 UI-state tests), 112 skips for unavailable upstream private
 fixtures, TypeScript/UI builds, Go tests, Windows vet, and 16 bounded native
 probe groups. The reconstructed T6 SHA-256 matches the locally delivered
-candidate. This does not establish T6 camera or persistence behaviour.
+candidate. Those are historical software checks; see the current camera evidence above and W2 integration below.
 
 ## Reproduce software checks
 
@@ -118,10 +120,40 @@ They omit icon pixel payloads. Hashes bind the fixtures and generated reports.
 Generation leaves `UNVALIDATED.bin` until every required check passes, then
 assigns the update filename. The expected local T6 SHA-256 is
 `b236813463a3da13d9d3000a0769f655654e7a10f855efb1e4def48f7694aa37`.
-A matching file proves reconstruction of that candidate, not camera operation.
+A matching file proves reconstruction; hardware observations are recorded separately above.
 
 The pre-generated AE/AWB native template has its C source in
 `tools/gr3x/native/map.c`; `compile_map.py` uses ARM-target clang to regenerate it.
 Pinned LUT provenance, icon references and distribution notes are in
 [examples/gr3x/T6](../examples/gr3x/T6/README.md).
 See [T6 camera test procedure](GR3X_T6_TEST.txt) for the existing Chinese guide.
+
+## J1 / W2 integration (0.6.4)
+
+`Engine.buildFirmware(..., {jpegMetadata:true, shutdownImage:jpeg})` combines
+capture-time JPEG identity with an optional W2 image; omitting `shutdownImage`
+restores the official descriptor while retaining the selected films and ratios.
+The GUI selects one image on the power-off page and uses this same API from all
+firmware export pages. A lossless PNG working copy avoids an extra JPEG generation.
+GR IV rejects these IIIx-only options.
+
+The image is a strict 720×480 YUV420 baseline JPEG, 49,116 bytes. `shutdown.ts`
+adds one 49,152-byte resource record and uses a reserved 192-byte RTOS tail area.
+Only the image path pointer, record, RES count and checksum differ from the
+verified parent. Removing those edits must restore the entire parent byte for
+byte; all 35 original resources, updater header/model records and boundary frames
+remain intact. Inspection extracts the image as untrusted input, rebuilds from
+the official firmware and compares the complete output hash before approving it.
+
+The public API reconstructs the installed W2 hash
+`57e7366e50c1391f2b8e6f4d7e5b3df722db2524bc60de14125d4208311485f9`.
+The independent W2 validator passed 133 native cases, including 43 update/display
+cases and 21 JPEG metadata cases. Camera evidence: the owner confirmed clear
+shutdown display; all eight latest JPG/DNG pairs passed metadata/full-RAW checks.
+The fixture image and proprietary firmware remain local.
+
+Set `GRMOD_GR3X_W2=/path/to/installed-W2.bin` along with
+`GRMOD_GR3X_FIRMWARE` to run the full binary regression in
+`core/test/gr3x-shutdown.test.ts`. The default synthetic-image tests check
+encoding, factory restoration and rejection of unrelated edits even after
+container checksums are repaired. See `docs/GRMOD_INTEGRATION.txt` for GUI usage.

@@ -1,0 +1,42 @@
+T6-C1 源码重建说明
+
+本版是 T6 的 CineStill 色彩数据修订。通用引擎、UI、原生补丁及硬件版本号不变。
+构建报告的 revision 保持 T6（配方/容器格式）；releaseRevision 为 T6-C1（本地发行标签）。
+这使已安装的 T6 GR Mod 引擎可准确识别、重建本版。
+
+环境
+Node 24.19.0、Python 3.12。
+根目录 npm ci 安装锁定依赖。
+Python 安装 tools/gr3x/requirements.txt 中的 unicorn 2.1.4 与 capstone 5.0.7。
+预览图脚本另需 Pillow、numpy；不影响固件构建。
+独立 Python 容器解码器源码在 reference/gr-custom-tool，固定提交为 0c15c8f9a97b464ac23ab1641740a8263e0068b0。
+
+输入
+原厂 GR IIIx 1.60 文件 SHA-256：708e79f3b7b96a7e1581b4acf4c412233050a1832718ef7f06c8397db1b431c7。
+已发行 T6 文件 SHA-256：b236813463a3da13d9d3000a0769f655654e7a10f855efb1e4def48f7694aa37。
+这两份文件已在本机之前的 inputs 和 T6 存档中保留，没有被本次覆盖。
+若只有原厂文件，可先使用现有 tools/gr3x/build-t6.mjs 重建 T6；其哈希必须符合上值。
+原始 CineStill CUBE 仍在 examples/gr3x/T6；校正版位于 examples/gr3x/T6-C1。
+
+从 Ricoh-GRMod 源码目录执行（把占位参数替换为实际路径）
+node --experimental-transform-types tools/gr3x/build-t6-c1.mjs OFFICIAL.bin T6.bin NEW-OUTPUT-DIRECTORY PYTHON-EXECUTABLE ../reference/gr-custom-tool
+
+构建器首先要求当前源码重建出完全相同的 T6，随后只替换 CineStill 槽位。
+固件文件只有在 16 组原生/格式验证、严格改动范围检查、完整重建验证通过后，才会改名为 fwdc243b.bin。
+任何失败都会保留 UNVALIDATED.bin，不会生成可交付更新文件名。
+
+重建校正输入（可选）
+node --experimental-transform-types tools/gr3x/prepare-t6-c1.mjs OFFICIAL.bin NEW-CORRECTION-DIRECTORY
+输出应与已归档 correctedCubeSha256 一致；无需联网或替换其他八款胶片。
+
+校正参数与判断范围
+保持原来 CineStill 的矩阵混色特征；用线性亮度对齐 90% 的中性轴偏色。
+混入 8% 恒等曲线以缓解原曲线平坦的暗部，再施加低亮度增益参数 0.85 EV 的平滑函数；高光增益递减。
+0.85 EV 是曲线参数，不是用户曝光补偿值，也不是整幅照片固定提升量。
+50% 中性输入的拟合结果由 RGB 0.408/0.409/0.340 改善至约 0.516/0.516/0.510。
+R0001552 的曲线变化离线估算，中间调约提高 0.76 EV；此估算不包含少量矩阵重新拟合差异，不能恢复旧 JPG 已剪掉的颜色。
+需要由用户对刷入 T6-C1 后的新 JPG＋RAW 作最终实拍确认。
+
+核心源码此次新增：prepare-t6-c1.mjs、build-t6-c1.mjs、verify-t6-c1-project.mjs、preview-t6-c1.py、core/test/gr3x-t6-c1.test.ts、相应文档与校正 CUBE。
+原作者：Marc Roovers / PictureFX；来源说明：https://marcrphoto.wordpress.com/2025/02/28/picturefx-cinestill-800t-v2-0-lut/
+校正版仅用于本次本地适配测试，保留来源，不作为原作者新版本或真实胶片的测量认证。

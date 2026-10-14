@@ -2,6 +2,14 @@
 
 A small desktop shell for the GR Mod web UI, written in pure Go (no cgo).
 
+macOS: build the UI, then run `./build.sh macos`; copy `dist/GR Mod.app` to
+`~/Applications`. The app opens its loopback-only UI in the default browser, uses
+native folder selection and Finder, and discovers SD cards including the built-in
+reader. macOS storage defaults to `~/Library/Application Support/GR Mod`. It stops
+after two minutes without an API heartbeat (three minutes if never opened).
+`GRMOD_HEADLESS=1` suppresses browser launch for local tests. The signed bundle
+is ad-hoc signed for local use, not an upstream notarized release.
+
 - Serves the UI (HTML/JS built elsewhere) from files embedded in the executable.
 - On Windows it shows the UI in a native WebView2 window, falling back to Microsoft Edge in app mode and then to the default browser.
 - Gives the page a local HTTP API for what a web page cannot do: listing removable drives, reading and writing files on a memory card, a native folder picker, a key/value store, fetching the official firmware from Ricoh's site.
@@ -51,7 +59,7 @@ Data directory contents: `log.txt` (rotated to `log.txt.1` above 1 MB; requests,
 The page loads `<script src="/host.js">`, which sets
 
 ```js
-window.__GRMOD_HOST__ = {"kind":"windows|dev","token":"…","version":"…","os":"windows|linux|…"};
+window.__GRMOD_HOST__ = {"kind":"windows|macos|dev","token":"…","version":"…","os":"windows|linux|…"};
 ```
 
 and sends the token with every API request in the header `X-GRMod-Token`.
@@ -79,7 +87,7 @@ All endpoints are under `/api/`. Request and response bodies are JSON unless not
 | `GET /api/store/KEY` | | raw bytes, or 404 |
 | `PUT /api/store/KEY` | raw bytes | `{"ok":true,"size":N}` |
 | `DELETE /api/store/KEY` | | `{"ok":true}` (also when the key did not exist) |
-| `GET /api/firmware/latest?model=M` | `M` is `STANDARD`, `HDF` or `MONO` | `{"model":"HDF","name":"GR IV","applies":"RICOH GR IV / RICOH GR IV HDF","version":"1.11","date":"2026/02/13","page":"https://…/gr4_s.html","file":"gr4_v111.zip","size":34478368}`; 404 when Ricoh lists nothing for the model |
+| `GET /api/firmware/latest?model=M` | `M` is `STANDARD`, `HDF`, `MONO` or `GR3X_HDF` | `{"model":"HDF","name":"GR IV","applies":"RICOH GR IV / RICOH GR IV HDF","version":"1.11","date":"2026/02/13","page":"https://…/gr4_s.html","file":"gr4_v111.zip","size":34478368}`; 404 when Ricoh lists nothing for the model |
 | `POST /api/firmware/download` | `{"model":"HDF"}` | the firmware file itself (`application/octet-stream`), its name and version in `X-GRMod-Firmware-Name` / `X-GRMod-Firmware-Version` |
 | `GET /api/firmware/progress` | | `{"active":true,"received":N,"total":N}` of the running (or last) download |
 | `POST /api/firmware/page` | `{"model":"HDF"}` | `{"page":"…"}` after showing the model's download page (with Ricoh's licence terms) in the default browser |

@@ -122,7 +122,9 @@ describe.skipIf(!have)('combinations of the additions', () => {
   });
 
   it('all additions with the earlier test contents: test firmware 017 byte for byte', async () => {
-    const b = await eng.buildFirmware(testPresetRequests(eng), testRatios(eng), [], { adjSoftFocus: true, dateStamp: true, monoUnlock: true });
+    // Reproduce the historical Cinema-replacement fixture through the legacy low-level API.
+    const edits = testPresetRequests(eng, official()).map(r=>({slot:r.slot as 'CY'|'CG',color:r.preset,icon:r.icon,names:r.names}));
+    const b = await fw.buildFirmware(raw, edits, testRatios(eng), [], { adjSoftFocus: true, dateStamp: true, monoUnlock: true });
     expect(Object.values(b.checks).every((v) => v === true)).toBe(true);
     expect(b.sha256).toBe(TEST_017_SHA256);
     const s = await eng.inspect(b.file);

@@ -15,6 +15,7 @@ import {
   setSoft,
   setDateStamp,
   setMonoUnlock,
+  selectedShutdownWall, selectShutdownWall,
 } from './store';
 import type { RatioItem, WallItem } from './store';
 
@@ -46,9 +47,9 @@ function Swatches({ params }: { params?: color.SlotParams }) {
 }
 
 /** The sample photograph with the original on the left of a draggable divider and the preset on the right. */
-function PhotoCompare({ params }: { params?: color.SlotParams }) {
+export function PhotoCompare({ params }: { params?: color.SlotParams }) {
   const photo = usePhoto();
-  const gr3x = useStore(s => s.info?.family === 'gr3x');
+  const gr3x = useStore(s => s.model === 'GR3X_HDF');
   const after = useMemo(() => (photo && params ? applySlot(params, photo, gr3x) : null), [photo, params, gr3x]);
   return <Compare photo={photo} after={after} label={t('preset')} />;
 }
@@ -116,7 +117,6 @@ function Compare({ photo, after, label }: { photo: ImageData | null; after: Imag
 /** The one preview of the page: it shows whichever slot is active and fills the space the window leaves. */
 /** The preview; `below` (with its height in `belowH`) goes under the picture, which leaves room for it. */
 function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number }) {
-  const gr3x = useStore(s => s.info?.family === 'gr3x');
   const slotOptions = useStore(s => s.info?.slots ?? []);
   const slots = useStore(s => s.slots);
   const mode = useStore((s) => s.previewMode);
@@ -125,7 +125,7 @@ function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number
   return (
     <DropZone className="pane" accept={isImage} onFiles={(f) => { void loadPreviewFile(f[0]); }}>
       <div className="pane-head">
-        {gr3x ? <select data-tour="ic-tabs" aria-label={t('navIC')} value={active} onChange={e => setActiveSlot(e.target.value as SlotId)}>{slotOptions.map(s => <option key={s.id} value={s.id}>{slots[s.id].names.en || s.defaultName}</option>)}</select> : <Segmented tour="ic-tabs" value={active} onChange={setActiveSlot} options={[{ value: 'CY', label: t('slotCY') }, { value: 'CG', label: t('slotCG') }]} />}
+        <select data-tour="ic-tabs" aria-label={t('navIC')} value={active} onChange={e => setActiveSlot(e.target.value as SlotId)}>{slotOptions.map(s => <option key={s.id} value={s.id}>{slots[s.id].names.en || s.defaultName}</option>)}</select>
         <span className="grow" />
         <Segmented tour="ic-mode" value={mode} onChange={setPreviewMode} options={[{ value: 'photo', label: t('previewPhoto') }, { value: 'swatch', label: t('previewSwatch') }]} />
       </div>
@@ -157,7 +157,7 @@ function SlotCard({ id }: { id: SlotId }) {
           <div className="card-title" data-tour={first ? 'ic-name' : undefined}>
             <input className={`title-input ${problem ? 'bad' : ''}`} value={name} placeholder={off.names[lang].text} spellCheck={false} aria-label={t('name')} onChange={(e) => setName(id, lang, e.target.value)} />
             <div className="sub">
-              <span className="ellipsis">{gr3x ? off.defaultName : t(('slot' + id) as Key)}</span>
+              <span className="ellipsis">{off.defaultName}</span>
               <span className={`count ${problem ? 'bad' : ''}`}>{problem || `${name.length || off.names[lang].text.length}/${cap}`}</span>
             </div>
           </div>
@@ -172,6 +172,7 @@ function SlotCard({ id }: { id: SlotId }) {
                   <button className="file-x" title={t('remove')} aria-label={t('remove')} onClick={() => removePreset(id)}>{Ico.x}</button>
                 </div>
                 {gr3x && p.result && <p className="small muted">{t('gr3xFit', { mean: p.result.meanDE.toFixed(1), p95: p.result.p95DE.toFixed(1) })}{p.result.p95DE > 6 && <><br />{t('gr3xFitPoor')}</>}</p>}
+                {gr3x && p.photo && p.result && <p className="small muted">JPG 记录：{p.photo.name} · {p.photo.revision}</p>}
                 {(p.busy || p.error) && (
                   <div className="chips">
                     {p.busy && <span className="chip muted"><span className="spinner small" />{t('converting')}</span>}
@@ -235,7 +236,7 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
     <div className="card extras" data-tour="ic-soft" ref={(el) => { own.current = el; boxRef?.(el); }}>
       <FeatureRow icon={Ico.soft} title={t('navSoft')} sub={t(gr3x ? 'gr3xSoftSub' : 'softAdjSub')} on={soft} onChange={setSoft} />
       {!gr3x && <FeatureRow icon={Ico.date} title={t('navDate')} sub={t('dateSub')} on={date} onChange={setDateStamp} />}
-      {gr3x && <p className="small muted">{t('gr3xFilmHint')}<br />{t('gr3xFixedLooks')}</p>}
+      {!mono && <p className="small muted">{t('gr3xFilmHint')}<br />{t('gr3xFixedLooks')}{!gr3x && <><br />{t('gr4FilmTest')}</>}</p>}
       {!mono && !gr3x && <FeatureRow icon={Ico.mono} title={t(gr3x ? 'gr3xReplicaTitle' : 'navMono')} sub={t(gr3x ? 'gr3xReplicaSub' : 'monoSub')} on={looks} onChange={setMonoUnlock} />}
     </div>
   );
@@ -243,7 +244,7 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
 
 type Place = 'left' | 'right';
 /**
- * The two slot cards and the switches share the left column. When the column is too short for all
+ * The film slot cards and the switches share the left column. When the column is too short for all
  * three (a small window, a slot card grown by its preset or icon options), the switches move under
  * the preview on the right, and back when there is room again.
  */
@@ -447,6 +448,7 @@ function WallCard({ w, index }: { w: WallItem; index: number }) {
   const tour = index === 0 ? 'wall-card' : undefined;
   const info = useStore((s) => s.info);
   const model = useStore((s) => s.model);
+  const selected = useStore(s => selectedShutdownWall(s)?.id === w.id);
   const [over, setOver] = useState(false);
   const factory = w.kind === 'factory' ? info?.shutdown[model] : undefined;
   const ref = useRef<HTMLImageElement>(null);
@@ -473,6 +475,7 @@ function WallCard({ w, index }: { w: WallItem; index: number }) {
         </span>
       </div>
       <div className="wall-meta">
+        {model === 'GR3X_HDF' && <input type="radio" name="shutdown-image" aria-label={t('useShutdown', {name:w.name})} checked={selected} onChange={() => selectShutdownWall(w.id)} />}
         <span className="ellipsis">{w.name}</span>
         {!!w.grain && <span className="chip tiny">{t('grain')}</span>}
       </div>

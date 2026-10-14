@@ -1,0 +1,51 @@
+{
+  "version": "0.6.4-film120-jpg-w2",
+  "date": "2026-10-15",
+  "coreWithLocalFixtures": {
+    "passed": 197,
+    "skipped": 112,
+    "failed": 0,
+    "skippedReason": "Unavailable upstream private/oracle fixtures"
+  },
+  "cleanPublicCheckout": {
+    "npmCi": true,
+    "uiBuild": true,
+    "testsPassed": 158,
+    "testsSkipped": 151,
+    "testsFailed": 0,
+    "linuxShellBuild": true,
+    "goTests": true
+  },
+  "coreTypecheck": true,
+  "uiTypecheck": true,
+  "macOSBuildAndSignature": true,
+  "goTests": true,
+  "windowsVet": true,
+  "productionDependencyAudit": {
+    "vulnerabilities": 0
+  },
+  "nativeW2Cases": 133,
+  "nativeShutdownUpdateCases": 43,
+  "nativeJpegMetadataCases": 21,
+  "guiExportSha256": "57e7366e50c1391f2b8e6f4d7e5b3df722db2524bc60de14125d4208311485f9",
+  "guiExportMatchesInstalledW2ByteForByte": true,
+  "localFilmCatalog": {
+    "entries": 120,
+    "readyPerCamera": 119,
+    "pending": "Fujifilm Velvia 100F"
+  },
+  "existingNineFilmSelectionPreserved": true,
+  "existingRatioSelectionPreserved": true,
+  "publicPayloadsExcluded": [
+    "firmware binaries",
+    "camera photos",
+    "personal settings",
+    "third-party LUTs and derived parameter payloads",
+    "research caches"
+  ],
+  "hardwareEvidence": "Owner confirmed W2 shutdown display and image clarity; eight latest JPG/DNG pairs retain expected JPEG identities and full RAW.",
+  "limitations": [
+    "GR IV nine-slot port still requires camera testing",
+    "Not all 119 film presets or all ratios were covered by the latest physical test"
+  ]
+}

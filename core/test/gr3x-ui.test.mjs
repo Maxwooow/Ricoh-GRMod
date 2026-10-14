@@ -146,16 +146,16 @@ describe('GR IIIx UI family isolation', () => {
     await store.outputFirmware({ kind: 'folder' });
     expect(mocks.engine.build.mock.calls.at(-1)[0][0]).toMatchObject({ slot: 'F9', preset });
     expect(mocks.engine.build.mock.calls.at(-1)[3].monoUnlock).toBe(false);
-    store.setModel('HDF');
+    await store.setModel('HDF');
     expect(store.getState().activeSlot).toBe('CY');
     expect(store.getState().slots.F9.preset).toBeUndefined();
   });
-  it('discards another camera family’s fitted preset and names when switching or opening a different model', async () => {
+  it('isolates another camera family’s fitted preset and names when switching or opening a different model', async () => {
     store.getState().slots.CY = { ...store.getState().slots.CY, names: { en: 'GR IV film' }, preset: { result: {} } };
-    store.setModel('GR3X_HDF');
+    await store.setModel('GR3X_HDF');
     expect(store.getState().slots.CY.preset).toBeUndefined();
     expect(store.getState().slots.CY.names).toEqual({});
-    store.setModel('HDF');
+    await store.setModel('HDF');
     store.getState().slots.CY.preset = { result: {} };
     await store.adoptFirmware('fwdc243b.bin', '1.60', new Uint8Array([1]));
     expect(store.getState().slots.CY.preset).toBeUndefined();
@@ -176,9 +176,32 @@ describe('GR IIIx UI family isolation', () => {
     expect(mocks.host.write).toHaveBeenCalledWith('/chosen/fwdc243b.bin', original);
     expect(mocks.engine.build).not.toHaveBeenCalled();
   });
+  it('exports the selected W2 image with all nine ratios, and restores the factory descriptor on request', async () => {
+    await store.adoptFirmware('fwdc243b.bin', '1.60', new Uint8Array([1]));
+    await vi.advanceTimersByTimeAsync(1);
+    const image = new Uint8Array([7,8,9]);
+    Object.assign(store.getState(), {wall:[
+      {id:'bad',kind:'image',name:'unfinished',busy:true},
+      {id:'clear',kind:'image',name:'clear image',busy:false,data:image},
+      {id:'factory',kind:'factory',name:'factory image',busy:false,data:new Uint8Array([1])},
+    ]});
+    store.selectShutdownWall('clear');
+    expect(store.wallReady()).toBe(true);
+    await store.outputWallpaper({kind:'folder'});
+    expect(mocks.engine.build.mock.calls.at(-1)[1]).toHaveLength(7);
+    expect(mocks.engine.build.mock.calls.at(-1)[3].shutdownImage).toEqual(image);
+    expect(mocks.engine.script).not.toHaveBeenCalled();
+    expect(mocks.host.write).toHaveBeenCalledWith('/chosen/fwdc243b.bin',new Uint8Array([9,2]));
+    store.selectShutdownWall('factory');
+    await store.outputFirmware({kind:'folder'});
+    expect(mocks.engine.build.mock.calls.at(-1)[3].shutdownImage).toBeUndefined();
+    store.selectShutdownWall('bad');mocks.engine.build.mockClear();mocks.host.write.mockClear();
+    await store.outputFirmware({kind:'folder'});
+    expect(mocks.engine.build).not.toHaveBeenCalled();expect(mocks.host.write).not.toHaveBeenCalled();
+  });
   it('clears the engine and prevents output after switching to a GR IV model', async () => {
     await store.adoptFirmware('fwdc243b.bin', '1.60', new Uint8Array([1]));
-    store.setModel('HDF');
+    await store.setModel('HDF');
     expect(store.getState()).toMatchObject({ model: 'HDF', info: undefined, raw: undefined, fwName: undefined });
     expect(mocks.engine.reset).toHaveBeenCalledOnce();
     await store.outputFirmware({ kind: 'folder' }, true);
@@ -219,7 +242,7 @@ describe('GR IIIx UI family isolation', () => {
     let saved;
     mocks.host.storeSet.mockImplementation(async (key, value) => { if (key === 'project.json') saved = value; });
     await store.adoptFirmware('fwdc243b.bin', '1.60', new Uint8Array([1]));
-    store.setModel('HDF');
+    await store.setModel('HDF');
     await vi.advanceTimersByTimeAsync(401);
     expect(JSON.parse(saved)).toMatchObject({ model: 'HDF' });
     expect(JSON.parse(saved).fwName).toBeUndefined();

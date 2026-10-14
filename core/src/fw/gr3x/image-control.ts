@@ -14,14 +14,19 @@ import type { SlotParams } from '../../color/camera';
 import type { QuantizedSlot } from '../../color/camera';
 import { GR3X_FILM_NAMES, gr3xLookResources, validateGr3xLookName } from './look-resources';
 import { gr3xLookBadge } from './look-icons';
+import { installGr3xJpegMetadata } from './jpeg-metadata';
+import type { FilmPhotoIdentity } from './jpeg-metadata';
 
 export interface Gr3xFilmLook {
   name: string;
+  photo?: FilmPhotoIdentity;
   params?: SlotParams;
   preset?: { matrixQ13: ArrayLike<number>; curves: [ArrayLike<number>, ArrayLike<number>, ArrayLike<number>] };
   icon?: Uint8Array;
 }
 export interface Gr3xLookOptions {
+  /** J1: write the captured film identity into external JPEG EXIF UserComment. */
+  jpegMetadata?: boolean;
   /** 1/2 reproduce T5/T5-L1; 3 provides nine independent T6 film slots. */
   displayRevision?: 1 | 2 | 3;
   /** Legacy revisions reserve two films; T6 reserves nine. Native controls stay intact. */
@@ -69,6 +74,10 @@ const REPLICAS = [
 ] as const;
 
 export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookOptions) {
+  if (options.jpegMetadata !== undefined && typeof options.jpegMetadata !== 'boolean')
+    throw new FirmwareError('bad-edit', 'invalid JPEG metadata option');
+  if (options.jpegMetadata && options.displayRevision !== 3)
+    throw new FirmwareError('bad-edit', 'JPEG film identity requires the nine-film recipe');
   if (options.displayRevision !== undefined && ![1, 2, 3].includes(options.displayRevision))
     throw new FirmwareError('bad-edit', 'unknown IIIx display revision');
   const displayIcons = options.displayRevision !== 1;
@@ -194,10 +203,14 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
       ldr r0,[r4,#8];add r1,r5,#1024;mov r2,#512;bl #0x5313fd80;
       mov r3,#1;strb r3,[r4,#12];strb r3,[r4,#13];str r6,[r4,#20];pop {r4-r8,pc};`);
   patch(0x536f028c, 0xe1a0c00d, branchWord(0x536f028c, gamma), 'image control: per-film RGB curves and native cache identity');
+  const jpegMetadata = options.jpegMetadata ? await installGr3xJpegMetadata({append,code,patch}, films.map((film,i)=>({
+    id:slots[i].id,name:film.name,photo:film.photo,preset:filmBytes(film,matrix),
+  }))) : undefined;
   const payload = new Uint8Array((length + 3) & ~3);
   let cursor = 0; for (const part of parts) { payload.set(part, cursor); cursor += part.length; }
   return {
     ...menu, kind: 'gr3x-image-control-patchset' as const, sites,
+    ...(jpegMetadata ? {jpegMetadata} : {}),
     append: { address: menu.append.address, bytes: hex(payload) },
     addedLooks: slots, renderingImplemented: true as const,
     lookEntries: { aggregate, rawEnum, restriction, descriptor, gamma, defaults, adapters },

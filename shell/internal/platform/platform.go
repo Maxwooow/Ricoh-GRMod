@@ -29,7 +29,7 @@ var ErrUnsupported = errors.New("not supported on this platform")
 
 // Host is the operating-system side of the API.
 type Host interface {
-	// Kind is "windows" or "dev"; it is reported to the page in /host.js.
+	// Kind is "windows", "macos" or "dev"; reported in /host.js.
 	Kind() string
 	// Volumes lists removable volumes, plus other fixed drives when all is
 	// set. Volumes that are not ready are left out.
@@ -62,6 +62,9 @@ func DataDirFor(goos string, getenv func(string) string, home string) (string, e
 	}
 	if v := getenv("XDG_DATA_HOME"); strings.HasPrefix(v, "/") {
 		return strings.TrimRight(v, "/") + "/grmod", nil
+	}
+	if goos == "darwin" && strings.HasPrefix(home, "/") {
+		return strings.TrimRight(home, "/") + "/Library/Application Support/GR Mod", nil
 	}
 	if strings.HasPrefix(home, "/") {
 		return strings.TrimRight(home, "/") + "/.local/share/grmod", nil

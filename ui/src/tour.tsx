@@ -98,7 +98,9 @@ export function beginTour(id: TourId, replay: boolean): boolean {
 export function restartTours(): void { resetTours(); }
 /** The help button: the current page's tour again, or the overview while the page has nothing on it. */
 export function replayTour(): void {
-  if (!beginTour(getState().page, true)) beginTour('overview', true);
+  const page = getState().page;
+  if (page === 'library') return;
+  if (!beginTour(page, true)) beginTour('overview', true);
 }
 
 /** What to light for a target: its box, or with `data-tour-fit` the box around its children (a pane that is larger than what it shows). */
@@ -146,7 +148,7 @@ export function Tour() {
   const model = useStore((s) => s.model);
   useEffect(() => {
     if (model === 'GR3X_HDF') { if (tour) endTour(); return; }
-    if (tour || wait) return;
+    if (tour || wait || page === 'library') return;
     const id: TourId | null = !seen.includes('overview') ? 'overview' : !seen.includes(page) ? page : null;
     if (!id) return;
     // a moment for the page to lay itself out

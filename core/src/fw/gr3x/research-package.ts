@@ -13,6 +13,7 @@ import type { Gr3xSoftFocusRequest } from './clarity';
 import { buildGr3xImageControls } from './image-control';
 import type { Gr3xLookOptions } from './image-control';
 import { encodeGr3xLookRecipe } from './look-recipe';
+import { GR3X_SHUTDOWN_RESERVE } from './shutdown';
 
 const unhex = (s: string) => Uint8Array.from(s.match(/../g) ?? [], b => parseInt(b, 16));
 const roundFrame = (n: number) => Math.ceil(n / FRAME_SIZE) * FRAME_SIZE;
@@ -22,11 +23,11 @@ export async function buildGr3xResearchContainer(raw: Uint8Array) {
   return { ...result, report: { ...result.report, flashable: false as const } };
 }
 
-export async function buildGr3xTestFirmware(raw: Uint8Array, softFocus: readonly Gr3xSoftFocusRequest[] = [], looks?: Gr3xLookOptions) {
-  return buildContainer(raw, 'hardware-test', softFocus, looks);
+export async function buildGr3xTestFirmware(raw: Uint8Array, softFocus: readonly Gr3xSoftFocusRequest[] = [], looks?: Gr3xLookOptions, reserveShutdown = false) {
+  return buildContainer(raw, 'hardware-test', softFocus, looks, reserveShutdown);
 }
 
-async function buildContainer(raw: Uint8Array, purpose: 'research' | 'hardware-test', softFocus: readonly Gr3xSoftFocusRequest[] = [], looks?: Gr3xLookOptions) {
+async function buildContainer(raw: Uint8Array, purpose: 'research' | 'hardware-test', softFocus: readonly Gr3xSoftFocusRequest[] = [], looks?: Gr3xLookOptions, reserveShutdown = false) {
   const manifest = looks ? await buildGr3xImageControls(raw, looks) : await buildGr3xAdjResearch(raw);
   const { fw, decoded } = await openGr3xOfficial(raw);
   const sections = sectionsOf(decoded);
@@ -34,11 +35,11 @@ async function buildContainer(raw: Uint8Array, purpose: 'research' | 'hardware-t
   const icon = sections.find(s => s.name === 'ICONBIN')!;
   if (!(rtos.offset < icon.offset)) throw new FirmwareError('unexpected-layout', 'IIIx section order');
   const addition = unhex(manifest.append.bytes), pixels = unhex(manifest.iconAddition.bytes);
-  const revision = looks ? (looks.displayRevision === 3 ? 'T6' : looks.displayRevision === 1 ? 'T5' : 'T5-L1') : softFocus.length ? 'T4-SF1' : 'T4';
+  const revision = looks ? (looks.jpegMetadata ? 'T6-J1' : looks.displayRevision === 3 ? 'T6' : looks.displayRevision === 1 ? 'T5' : 'T5-L1') : softFocus.length ? 'T4-SF1' : 'T4';
   const recipe = looks ? encodeGr3xLookRecipe(looks) : new Uint8Array();
   const record = new TextEncoder().encode(purpose === 'research'
     ? 'GR3X-ADJ9-RESEARCH-NOT-FOR-CAMERA\0' : `GR3X-HDF-160-ADJ9-${revision}-HARDWARE-UNTESTED\0`);
-  const rtosGrowth = roundFrame(addition.length + recipe.length + record.length + 4);
+  const rtosGrowth = roundFrame(addition.length + recipe.length + (reserveShutdown ? GR3X_SHUTDOWN_RESERVE : record.length + 4));
   const iconGrowth = roundFrame(pixels.length);
   const rtosEnd = rtos.offset + rtos.size, iconEnd = icon.offset + icon.size;
   const out = new Uint8Array(decoded.length + rtosGrowth + iconGrowth);
@@ -105,9 +106,12 @@ async function buildContainer(raw: Uint8Array, purpose: 'research' | 'hardware-t
       firmwareGenerated: true, hardwareTested: false, cameraUpdateCandidate: purpose === 'hardware-test',
       rearDialPatched: false, versionRaised: false,
       rawFullFrame: true, rawDefaultCrop: [6000, 4000], faceDetectionModeInitialized: true,
+      ...(looks?.jpegMetadata ? {jpegFilmIdentity:true,metadataTag:'ExifIFD.UserComment',rawMetadataUnchanged:true} : {}),
       wideDevelopmentApertureUsesNative3x2Width: true,
       wideLiveViewHeightAlignment: 4,
-      predecessorHardwareEvidence: looks ? (revision === 'T6'
+      predecessorHardwareEvidence: looks ? (revision === 'T6-J1'
+        ? 'T6-C1 was installed on GR IIIx HDF. The owner accepted the current film colours. Eighteen JPG/DNG pairs R0001553-R0001570 decoded, all RAW default crops remained 6000x4000; JPEGs followed 4:3 and 65:24. J1 JPEG metadata has not yet been tested on camera.'
+        : revision === 'T6'
         ? 'The owner confirmed T5-L1 icons display correctly. Seven additional JPG/DNG pairs R0001535-R0001541 decoded; all RAW default crops remain 6000x4000 with colour retained, while JPEG/embedded previews follow 3:2, 16:9, 65:24, 17:6 and 3:4. T6 nine-slot expansion and film colours still need camera testing.'
         : revision === 'T5-L1'
         ? 'T5 was installed and the owner confirmed Standard, two demos and six replicas in order. Nine JPG/DNG pairs decode; all RAW default crops are 6000x4000 and independent sensor development retains colour. All six replica JPGs are neutral grey. The owner reports missing logos in both the control list and shooting view. T5-L1 display changes still require a hardware retest.'
@@ -115,7 +119,7 @@ async function buildContainer(raw: Uint8Array, purpose: 'research' | 'hardware-t
         : 'T3 installed on GR IIIx HDF: eight new DNGs preserve the full 6000x4000 default crop, JPEG/embedded previews follow the selected ratio. Wide post-capture green/purple corruption persists with instant review disabled. T4 corrects reproduced odd YUV420 origins in native recipe and resize descriptors; the relationship to physical flicker requires a camera retest.',
       ratios: manifest.ratios, checks, ranges,
       blockers: manifest.blockers,
-      scope: looks ? revision + ': T4 geometry/full RAW, optional SF1, ' + (revision === 'T6' ? 'nine independent CUBE films without legacy demos/replicas' : 'two CUBE slots and six optional monochrome replicas') + '. Hardware test candidate; display, complete boot/capture/persistence require camera testing.' : 'Fixed nine-ratio ADJ port. Native function and format checks are reproducible; physical updating, boot, real menu rendering, persistent storage and complete image capture require camera testing.',
+      scope: looks ? revision + ': T4 geometry/full RAW, optional SF1, ' + (looks.displayRevision === 3 ? 'nine independent CUBE films without legacy demos/replicas' : 'two CUBE slots and six optional monochrome replicas') + (looks.jpegMetadata ? '; JPEG-only film name/revision/parameter fingerprint' : '') + '. Hardware test candidate; display, complete boot/capture/persistence require camera testing.' : 'Fixed nine-ratio ADJ port. Native function and format checks are reproducible; physical updating, boot, real menu rendering, persistent storage and complete image capture require camera testing.',
     },
   };
 }

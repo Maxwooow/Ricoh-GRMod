@@ -358,13 +358,14 @@ describe.skipIf(!have)('aspect: firmware files', () => {
     await expect(eng.buildFirmware([], [])).rejects.toMatchObject({ code: 'bad-edit' });
   });
 
-  it('ratios and Image Control edits combine, in either order of thinking', async () => {
+  it('ratios and legacy Cinema edits remain compatible', async () => {
     const eng = await Engine.open(raw);
     const matrix = [8192, 0, 0, 100, 8000, 92, -50, 250, 7992];
     const curve = Array.from({ length: 256 }, (_, i) => Math.min(16383, i * 64));
     const slot = [{ slot: 'CY' as const, preset: { matrixQ13: matrix, curves: [curve, curve, curve] as [number[], number[], number[]] }, names: { en: 'Scope' } }];
-    const colour = await eng.buildFirmware(slot);
-    const both = await eng.buildFirmware(slot, [{ name: '65:24', ratio: '65:24' }]);
+    const legacy=slot.map(r=>({slot:r.slot,color:r.preset,names:r.names}));
+    const colour = await buildFirmware(raw,legacy);
+    const both = await buildFirmware(raw,legacy, [{ name: '65:24', ratio: '65:24' }]);
     const ratio = await eng.buildFirmware([], [{ name: '65:24', ratio: '65:24' }]);
     expect(Object.values(both.checks).every((v) => v === true)).toBe(true);
     // The combined payload is the ratio payload with exactly the colour edits laid over it

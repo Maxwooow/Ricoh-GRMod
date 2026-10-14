@@ -16,11 +16,6 @@ const (
 	EnvDevOpened = "GRMOD_DEV_OPENED"
 )
 
-// New returns the host for the headless development build: volumes and the
-// "picked" folder come from environment variables, which are read on every
-// call so that tests can change them while the server runs.
-func New() Host { return devHost{} }
-
 type devHost struct{}
 
 func (devHost) Kind() string { return "dev" }

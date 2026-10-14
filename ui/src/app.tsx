@@ -6,11 +6,12 @@ import { host } from './host';
 import { LANG_LABEL, t } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
+import { FilmLibraryPage } from './film-library';
 import { BridgeBanner, BridgeDialog, FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
 import { CropEditor, ImageControlPage, RatioPage, ScriptPage, WallpaperPage } from './pages';
 import { Tour, replayTour, restartTours } from './tour';
 import {
-  askForOfficial, bridgeLoaded, backupCopies, extrasOn, canRestoreWall, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, outputEntry, outputFirmware, outputWallpaper, pendingChanges, refreshVolumes, restoreCardWall, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
+  askForOfficial, bridgeLoaded, backupCopies, extrasOn, canRestoreWall, copyList, deleteCopies, hasNameErrors, hasPresetErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, outputEntry, outputFirmware, outputWallpaper, pendingChanges, refreshVolumes, restoreCardWall, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
 } from './store';
 
 const gb = (n: number): string => (n >= 1e9 ? `${(n / 1e9).toFixed(n >= 1e10 ? 0 : 1)} GB` : `${Math.max(1, Math.round(n / 1e6))} MB`);
@@ -25,6 +26,7 @@ function Sidebar() {
       <nav>
         <button className={`nav ${page === 'script' ? 'on' : ''}`} data-tour="nav-script" onClick={() => setPage('script')}>{Ico.tool}<span>{t('navScript')}</span></button>
         <button className={`nav ${page === 'ic' ? 'on' : ''}`} data-tour="nav-ic" onClick={() => setPage('ic')}>{Ico.aperture}<span>{t('navIC')}</span></button>
+        <button className={`nav ${page === 'library' ? 'on' : ''}`} onClick={() => setPage('library')}>{Ico.archive}<span>胶片库</span></button>
         <button className={`nav ${page === 'ratio' ? 'on' : ''}`} data-tour="nav-ratio" onClick={() => setPage('ratio')}>{Ico.ratio}<span>{t('navRatio')}</span></button>
         <button className={`nav ${page === 'wall' ? 'on' : ''}`} data-tour="nav-wall" onClick={() => setPage('wall')}>{Ico.image}<span>{t('navWall')}</span></button>
       </nav>
@@ -83,8 +85,9 @@ function OutputBar() {
   const s = useStore((x) => x);
   const vol = s.volumes.find((v) => v.id === s.volumeId);
   // Image Control (with its switches) and the added ratios go into one firmware file: both pages write the same thing.
-  const isIC = s.page === 'ic' || s.page === 'ratio'; const isWall = s.page === 'wall';
-  const can = !!s.info && s.info.models.includes(s.model) && (isIC ? s.info.capabilities.build : isWall ? s.info.capabilities.wallpaper : s.info.capabilities.factoryEntry) && !s.busy && (isIC ? (pendingChanges(s).length + ratioSpecs(s).length > 0 || extrasOn(s)) && !hasNameErrors(s) && !hasRatioErrors(s) : isWall ? wallReady(s) : true);
+  const isWall = s.page === 'wall';
+  const isIC = s.page === 'ic' || s.page === 'ratio' || s.page === 'library' || (isWall && s.model === 'GR3X_HDF');
+  const can = !!s.info && s.info.models.includes(s.model) && (isIC ? s.info.capabilities.build : isWall ? s.info.capabilities.wallpaper : s.info.capabilities.factoryEntry) && !s.busy && (isIC ? (pendingChanges(s).length + ratioSpecs(s).length > 0 || extrasOn(s)) && !hasNameErrors(s) && !hasPresetErrors(s) && !hasRatioErrors(s) && (s.model !== 'GR3X_HDF' || !s.wall.length || wallReady(s)) : isWall ? wallReady(s) : true);
   const role: Key | '' = s.role === 'firmware' ? 'roleFirmware' : s.role === 'wallpaper' ? 'roleWallpaper' : s.role === 'mixed' ? 'roleMixed' : s.role === 'empty' ? 'roleEmpty' : '';
   // With the bridge firmware open the buttons stay live but offer the official download instead.
   const bridge = bridgeLoaded(s) && !s.busy;
@@ -107,11 +110,11 @@ function OutputBar() {
       <div className="out-chips">
         {vol && role && <span className="chip">{t(role)}</span>}
         {vol && s.entryOnCard && <span className="chip">{t('entryChip')}</span>}
-        {isWall && vol && vol.fs !== 'DEV' && ((!!vol.fs && vol.fs !== 'FAT32') || vol.total > 34e9) && <span className="chip warn">{t('notFat32')}</span>}
+        {isWall && !isIC && vol && vol.fs !== 'DEV' && ((!!vol.fs && vol.fs !== 'FAT32') || vol.total > 34e9) && <span className="chip warn">{t('notFat32')}</span>}
       </div>
       <span className="grow" />
       {s.page === 'copies' && <CopyActions />}
-      {s.page !== 'copies' && canRestoreWall(s) && s.cardWall && (
+      {s.page !== 'copies' && s.model !== 'GR3X_HDF' && canRestoreWall(s) && s.cardWall && (
         <button className="btn" title={`${t('restoreWall')} · ${t('restoreWallTip', { n: s.cardWall.names.length, d: new Date(s.cardWall.savedAt).toLocaleDateString(), c: s.cardWall.label })}`} onClick={() => { void restoreCardWall(); }}>{Ico.image}<span className="out-label">{t('restoreWall')}</span></button>
       )}
       {s.page !== 'copies' && <button className="btn" data-tour="export" disabled={!can && !bridge} title={t('exportFolder')} onClick={() => run('folder')}>{Ico.folder}<span className="out-label">{t('exportFolder')}</span></button>}
@@ -149,7 +152,7 @@ export function App() {
       <Sidebar />
       <main className="main">
         <BridgeBanner />
-        <div className="stage">{ready ? (page === 'ic' ? <ImageControlPage /> : page === 'ratio' ? <RatioPage /> : page === 'wall' ? <WallpaperPage /> : page === 'copies' ? <CopiesPage /> : <ScriptPage />) : <div className="page"><span className="spinner" /></div>}</div>
+        <div className="stage">{ready ? (page === 'library' ? <FilmLibraryPage /> : page === 'ic' ? <ImageControlPage /> : page === 'ratio' ? <RatioPage /> : page === 'wall' ? <WallpaperPage /> : page === 'copies' ? <CopiesPage /> : <ScriptPage />) : <div className="page"><span className="spinner" /></div>}</div>
         <OutputBar />
       </main>
       <CropEditor />

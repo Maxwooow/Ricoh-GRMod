@@ -109,15 +109,16 @@ export async function loadBitmap(blob: Blob): Promise<ImageBitmap> {
   return createImageBitmap(blob, { imageOrientation: 'from-image' });
 }
 
-/** A working copy of a picture, at most `max` pixels on the long side, as JPEG bytes. */
-export async function workingCopy(bmp: ImageBitmap, max = 2400): Promise<{ blob: Blob; width: number; height: number }> {
+/** A working copy, at most `max` pixels on the long side. PNG avoids an extra
+ * lossy stage before the firmware's final shutdown JPEG encoding. */
+export async function workingCopy(bmp: ImageBitmap, max = 2400, format = 'image/jpeg'): Promise<{ blob: Blob; width: number; height: number }> {
   const scale = Math.min(1, max / Math.max(bmp.width, bmp.height));
   const w = Math.max(1, Math.round(bmp.width * scale)); const h = Math.max(1, Math.round(bmp.height * scale));
   const c = document.createElement('canvas'); c.width = w; c.height = h;
   const g = c.getContext('2d')!; g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
   g.fillStyle = '#000'; g.fillRect(0, 0, w, h);
   drawScaled(g, bmp, 0, 0, bmp.width, bmp.height, w, h);
-  const blob = await new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('toBlob'))), 'image/jpeg', 0.93));
+  const blob = await new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('toBlob'))), format, 0.93));
   return { blob, width: w, height: h };
 }
 

@@ -8,7 +8,7 @@ type Req =
   | { id: number; type: 'convert'; kind: 'xmp' | 'cube'; text: string }
   | { id: number; type: 'build'; requests: SlotRequest[]; ratios?: RatioSpec[]; softFocus?: SoftFocusRequest[]; options?: BuildOptions }
   | { id: number; type: 'ratio'; ratio: string; others: string[] }
-  | { id: number; type: 'encode'; rgb: ArrayBuffer; model: CameraModel }
+  | { id: number; type: 'encode'; rgb: ArrayBuffer; model: CameraModel; embedded?: boolean }
   | { id: number; type: 'script'; model: CameraModel; count: number }
   | { id: number; type: 'inspect'; raw: ArrayBuffer }
   | { id: number; type: 'bridge' }
@@ -37,7 +37,7 @@ ctx.onmessage = async (ev: MessageEvent<Req>) => {
         break;
       }
       case 'encode': {
-        const r = need().encodeShutdownImage(new Uint8Array(m.rgb), m.model, progress);
+        const r = need().encodeShutdownImage(new Uint8Array(m.rgb), m.model, progress, m.embedded);
         ctx.postMessage({ id: m.id, ok: true, result: r }, [r.data.buffer as ArrayBuffer, r.preview.buffer as ArrayBuffer]);
         break;
       }

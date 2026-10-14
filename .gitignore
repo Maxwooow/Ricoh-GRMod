@@ -13,3 +13,7 @@ examples/gr3x/T6/sources/
 *.bin
 *.zip
 *.app/
+# Source/provenance and drawn icons are public; third-party LUT payloads stay local.
+examples/gr3x/T6-C1/
+ui/public/film-library/cubes/
+ui/public/film-library/fits/

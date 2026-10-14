@@ -67,12 +67,15 @@ import { GR3X_CLARITY_OFFSET } from '../fw/gr3x/clarity';
 import { GR3X_FILM_IDS, GR3X_FILM_NAMES, GR3X_LOOK_CHARS, gr3xLookResources, validateGr3xLookName } from '../fw/gr3x/look-resources';
 import { readGr3xLookRecipe } from '../fw/gr3x/look-recipe';
 import type { Gr3xLookOptions } from '../fw/gr3x/image-control';
+import { gr3xLookBadge } from '../fw/gr3x/look-icons';
+import { GR4_FILM_IDS, GR4_FILM_NAMES, GR4_FILM_CHARS, validateGr4FilmName, readGr4FilmRecipe } from '../fw/gr4/film-slots';
 import { convertGr3xCube } from '../color/gr3x-import';
+import { addGr3xShutdown, encodeGr3xFirmwareShutdown, readGr3xShutdown } from '../fw/gr3x/shutdown';
 import type { CameraModel } from '../wallpaper';
 
 export const SHUTDOWN_W = 720;
 export const SHUTDOWN_H = 480;
-/** App identities include IIIx additions; GR IV's native patch API stays CY/CG. */
+/** Stable application film identities for both camera families. */
 export type SlotId = NativeSlotId | typeof GR3X_FILM_IDS[number];
 
 export interface SlotInfoView {
@@ -129,6 +132,8 @@ export interface PresetResult {
 
 export interface SlotRequest {
   slot: SlotId;
+  /** Full photographic identity, independent of the short camera-menu label. IIIx J1 only. */
+  photo?: { name: string; revision: string };
   preset?: { matrixQ13: ArrayLike<number>; curves: [ArrayLike<number>, ArrayLike<number>, ArrayLike<number>] };
   icon?: Uint8Array;
   names?: Partial<Record<LangCode, string>>;
@@ -165,6 +170,8 @@ export interface RatioPreview {
 
 /** What a firmware file found on a card (or in a backup) is, compared with the official one. */
 export interface FirmwareSummary {
+  /** W2 image verified by reconstructing the complete firmware. */
+  shutdownImage?: { bytes: number; sha256: string };
   sha256: string;
   /** `official`: the unmodified file; `modified`: a valid 1.11 container with changes; `bridge`: the 1.12 bridge firmware; `unknown`: anything else. */
   kind: 'official' | 'modified' | 'bridge' | 'unknown';
@@ -199,6 +206,10 @@ export interface FirmwareSummary {
 
 /** Additions besides the slots and the ratios. */
 export interface BuildOptions {
+  /** IIIx W2: validated 720×480 baseline JPEG embedded in the normal update. */
+  shutdownImage?: Uint8Array;
+  /** IIIx J1: record the captured film name/revision in JPEG Exif UserComment. */
+  jpegMetadata?: boolean;
   /** Put soft focus (off / weak / medium / strong) on the ADJ lever. */
   adjSoftFocus?: boolean;
   /** Date imprint on the JPEG, switched in the camera's menu. */
@@ -292,12 +303,12 @@ export class Engine {
   private monoWords: { offset: number; bytes: Uint8Array }[] | null = null;
   private gr3xCandidates = new Map<string, Promise<FirmwareBuild>>();
 
-  private fixedGr3x(softFocus: readonly SoftFocusRequest[] = [], looks?: Gr3xLookOptions): Promise<FirmwareBuild> {
+  private fixedGr3x(softFocus: readonly SoftFocusRequest[] = [], looks?: Gr3xLookOptions, reserveShutdown = false): Promise<FirmwareBuild> {
     const requests = [...softFocus].sort((a, b) => a.level - b.level);
-    const key = JSON.stringify({ requests, looks });
+    const key = JSON.stringify({ requests, looks, reserveShutdown });
     let candidate = this.gr3xCandidates.get(key);
     if (candidate) return candidate;
-    candidate = buildGr3xTestFirmware(this.raw, requests, looks).then(r => ({
+    candidate = buildGr3xTestFirmware(this.raw, requests, looks, reserveShutdown).then(r => ({
       file: r.bytes, sha256: r.report.outputSha256, decodedSha256: r.decodedSha256,
       changedFrames: r.changedFrames, changedBytes: r.changedBytes,
       ranges: r.report.ranges, checks: r.report.checks, features: looks?.monoReplicas ? { monoUnlock: true } : {},
@@ -308,6 +319,14 @@ export class Engine {
     }));
     this.gr3xCandidates.set(key, candidate);
     return candidate;
+  }
+
+  private async withGr3xShutdown(parent: FirmwareBuild, jpeg: Uint8Array): Promise<FirmwareBuild> {
+    const next = await addGr3xShutdown(parent.file, jpeg);
+    return {...parent, file:next.file, sha256:next.sha256, decodedSha256:next.decodedSha256,
+      changedFrames:next.changedFrames, changedBytes:parent.changedBytes + next.changedBytes,
+      ranges:[...parent.ranges, ...next.ranges], checks:{
+        ...Object.fromEntries(Object.entries(parent.checks).map(([key,value]) => ['parent_' + key,value])), ...next.checks}};
   }
 
   private constructor(raw: Uint8Array, decoded: Uint8Array, info: FirmwareInfo, mStd: Int16Array, layout: Layout | null) {
@@ -370,14 +389,11 @@ export class Engine {
       chars.sort((a, b) => a - b);
       allowed[lang] = String.fromCharCode(...chars);
     }
-    const slots: SlotInfoView[] = SLOTS.map((s) => {
-      const names = {} as Record<LangCode, { text: string; capacity: number }>;
-      for (const lang of LANGS) {
-        const n = readName(decoded, lang, s.nameIndex);
-        names[lang] = { text: n.text, capacity: n.capacity };
-      }
-      return { id: s.id, defaultName: s.defaultName, icon: readIcon(decoded, s.iconOffset), names };
-    });
+    const slots: SlotInfoView[] = GR4_FILM_IDS.map((id, i) => ({
+      id, defaultName: GR4_FILM_NAMES[i], icon: gr3xLookBadge(tileTemplate(decoded, 'film'), 'F', i+1),
+      names: Object.fromEntries(LANGS.map(l => [l, {text: GR4_FILM_NAMES[i], capacity: 24}])) as SlotInfoView['names'],
+    }));
+    for (const lang of LANGS) allowed[lang] = GR4_FILM_CHARS;
     const shutdown: Partial<Record<CameraModel, ShutdownResource>> = {};
     const res = listResources(decoded);
     for (const model of Object.keys(MODEL_INFO) as (keyof typeof MODEL_INFO)[]) {
@@ -422,6 +438,7 @@ export class Engine {
       let candidate: FirmwareBuild | null = null;
       let softFocus: ClarityChange[] = [];
       let looks: Gr3xLookOptions | null = null;
+      let shutdownImage: Uint8Array | undefined;
       if (!official) try {
         // Read only recognized negative gain rows, rebuild from the verified
         // original, and compare the entire file. A valid container or metadata
@@ -431,13 +448,16 @@ export class Engine {
         if (rtos && rtos.offset === GR3X_160.rtosOffset && rtos.size > GR3X_160.rtosLength)
           looks = readGr3xLookRecipe(decoded.subarray(rtos.offset + GR3X_160.rtosLength, rtos.offset + rtos.size));
         const changes = clarityChanges(decoded, GR3X_CLARITY_OFFSET);
+        shutdownImage = readGr3xShutdown(decoded);
         if (changes.every(c => SOFT_FOCUS_LEVELS.includes(c.level as SoftFocusLevel) && c.strength !== 'custom')) {
-          candidate = await this.fixedGr3x(changes as SoftFocusRequest[], looks ?? undefined);
+          candidate = await this.fixedGr3x(changes as SoftFocusRequest[], looks ?? undefined, !!shutdownImage);
+          if (shutdownImage) candidate = await this.withGr3xShutdown(candidate, shutdownImage);
           softFocus = changes;
         }
       } catch { /* unrecognized input remains non-writable */ }
       const matched = candidate !== null && sha256 === candidate.sha256 && raw.length === candidate.file.length;
       return { sha256, kind: official ? 'official' : matched ? 'modified' : 'unknown', verified: official || matched,
+        ...(matched && shutdownImage ? {shutdownImage:{bytes:shutdownImage.length, sha256:await sha256Hex(shutdownImage)}} : {}),
         changedBytes: matched ? candidate!.changedBytes : 0,
         slots: matched && looks ? this.info.slots.slice(0, looks.displayRevision === 3 ? 9 : 2).map((s, i) => ({
           id: s.id, names: Object.fromEntries(LANGS.map(l => [l, looks!.films?.[i]?.name ?? GR3X_FILM_NAMES[i]])) as Record<LangCode, string>,
@@ -467,6 +487,25 @@ export class Engine {
     try {
       const fw = new Firmware(raw);
       if (!equalRange(fw.header, 0, this.raw, 0, fw.header.length)) throw new Error('not 1.11');
+      const rtosSection = sectionsOf(fw.decoded).find(s=>s.name==='RTOS');
+      if (rtosSection) {
+        const rtos = fw.decoded.subarray(rtosSection.offset,rtosSection.offset+rtosSection.size);
+        const films = readGr4FilmRecipe(rtos);
+        if (films) {
+          const ratios = readRatioRecord(rtos), features = readExtensionFeatures(rtos);
+          if (!ratios || !features?.filmSlots) throw new Error('film recipe without build record');
+          const changes = clarityChanges(fw.decoded);
+          if (changes.some(c=>c.strength==='custom')) throw new Error('unrecognized clarity row');
+          const candidate = await this.buildFirmware(films.map((f,i)=>({slot:GR4_FILM_IDS[i],names:{en:f.name},...f})),
+            ratios,changes as SoftFocusRequest[],features);
+          const matched = candidate.sha256===sha256 && candidate.file.length===raw.length;
+          return {sha256, kind:matched?'modified':'unknown', verified:matched, changedBytes:matched?candidate.changedBytes:0,
+            slots:matched?films.map((f,i)=>({id:GR4_FILM_IDS[i],names:Object.fromEntries(LANGS.map(l=>[l,f.name])) as Record<LangCode,string>,
+              icon:f.icon??this.info.slots[i].icon,colorChanged:!!f.preset,nameChanged:f.name!==GR4_FILM_NAMES[i],iconChanged:!!f.icon})):[],
+            ratios:matched?candidate.ratios:[],softFocus:matched?changes:[],adjSoftFocus:matched&&!!features.adjSoftFocus,
+            dateStamp:matched&&!!features.dateStamp,monoUnlock:matched&&!!features.monoUnlock};
+        }
+      }
       if (!this.editable) this.editable = editableRanges(this.decoded);
       if (fw.decoded.length !== DECODED_SIZE) return this.inspectGrown(sha256, raw, fw.decoded, describe);
       // The monochrome looks on their own are written in place: all of their words, or none.
@@ -665,24 +704,18 @@ export class Engine {
   }
 
   validateName(slot: SlotId, lang: LangCode, text: string): NameValidation {
-    if (this.info.family === 'gr3x') {
-      if (!this.info.slots.some(s => s.id === slot) || !LANGS.includes(lang)) throw new FirmwareError('bad-edit', 'unknown IIIx slot/language');
-      if (!text.trim()) return { ok: false, reason: 'empty', capacity: 24 };
-      if (text.length > 24) return { ok: false, reason: 'too-long', capacity: 24 };
-      const badChars = [...new Set(Array.from(text).filter(c => !GR3X_LOOK_CHARS.includes(c)))];
-      return badChars.length ? { ok: false, reason: 'bad-char', badChars, capacity: 24 } : { ok: true, capacity: 24 };
-    }
-    if (this.layout === null || !this.info.capabilities.presets) requireGr3xPort('Image Control names');
-    const def = SLOTS.find((s) => s.id === slot);
-    if (!def) throw new FirmwareError('bad-edit', `unknown slot ${String(slot)}`);
-    return validateName(this.decoded, lang, def.nameIndex, text);
+    if (!this.info.slots.some(s => s.id === slot) || !LANGS.includes(lang)) throw new FirmwareError('bad-edit', 'unknown film slot/language');
+    if (!text.trim()) return { ok: false, reason: 'empty', capacity: 24 };
+    if (text.length > 24) return { ok: false, reason: 'too-long', capacity: 24 };
+    const badChars = [...new Set(Array.from(text).filter(c => !this.info.allowed[lang].includes(c)))];
+    return badChars.length ? { ok: false, reason: 'bad-char', badChars, capacity: 24 } : { ok: true, capacity: 24 };
   }
 
   /** Build a firmware file. The result has passed the built-in self-check (otherwise this throws). */
   async buildFirmware(requests: SlotRequest[], ratios: readonly RatioSpec[] = [], softFocus: readonly SoftFocusRequest[] = [], options: BuildOptions = {}): Promise<FirmwareBuild> {
     if (this.info.family === 'gr3x') {
       const fixed = GFX_RATIOS.filter(r => !GR3X_160.factoryRatios.some(f => f === r));
-      if (Object.entries(options).some(([k, v]) => k !== 'monoUnlock' && Boolean(v)) ||
+      if (Object.entries(options).some(([k, v]) => !['monoUnlock','jpegMetadata','shutdownImage'].includes(k) && Boolean(v)) ||
           ratios.length !== fixed.length || ratios.some((r, i) => r.ratio !== fixed[i] || r.name !== fixed[i])) {
         throw new FirmwareError('gr3x-fixed-nine-only', 'IIIx keeps nine fixed ratios; date imprint and a separate ADJ soft-focus control are not ported');
       }
@@ -693,28 +726,34 @@ export class Engine {
       const looks: Gr3xLookOptions | undefined = requests.length || options.monoUnlock ? {
         displayRevision: options.monoUnlock ? 2 : 3,
         monoReplicas: !!options.monoUnlock,
+        ...(options.jpegMetadata ? {jpegMetadata:true} : {}),
         films: ids.map((slot, i) => {
           const r = requests.find(r => r.slot === slot);
           const names = [...new Set(Object.values(r?.names ?? {}).filter(Boolean))];
           if (names.length > 1) throw new FirmwareError('bad-name', 'IIIx uses one film name in all menu languages');
           const name = names[0] ?? GR3X_FILM_NAMES[i]; validateGr3xLookName(name);
-          return { name, ...(r?.preset ? { preset: r.preset } : {}), ...(r?.icon ? { icon: r.icon } : {}) };
+          return { name, ...(options.jpegMetadata && r?.photo ? {photo:r.photo} : {}), ...(r?.preset ? { preset: r.preset } : {}), ...(r?.icon ? { icon: r.icon } : {}) };
         }),
       } : undefined;
-      const r = await this.fixedGr3x(softFocus, looks);
+      let r = await this.fixedGr3x(softFocus, looks, !!options.shutdownImage);
+      if (options.shutdownImage) r = await this.withGr3xShutdown(r, options.shutdownImage);
       return { ...r, file: r.file.slice() };
     }
+    if (options.jpegMetadata) throw new FirmwareError('bad-edit','JPEG film identity currently requires GR IIIx HDF 1.60');
+    if (options.shutdownImage) throw new FirmwareError('bad-edit','Embedded shutdown images currently require GR IIIx HDF 1.60');
     if (this.layout === null || !this.info.capabilities.build) requireGr3xPort('custom firmware');
     if (this.info.bridge) throw new FirmwareError('bridge-firmware', 'open the official firmware: the bridge firmware is not a base for builds');
-    const edits: SlotEdit[] = [];
-    for (const r of requests) {
-      if (r.slot !== 'CY' && r.slot !== 'CG') throw new FirmwareError('bad-edit', 'IIIx film slot is not a GR IV slot');
-      const e: SlotEdit = { slot: r.slot };
-      if (r.preset) e.color = { matrixQ13: r.preset.matrixQ13, curves: r.preset.curves };
-      if (r.icon) e.icon = r.icon;
-      if (r.names && Object.keys(r.names).length > 0) e.names = r.names;
-      if (e.color || e.icon || e.names) edits.push(e);
-    }
+    if (requests.length > 9 || new Set(requests.map(r=>r.slot)).size !== requests.length || requests.some(r=>!GR4_FILM_IDS.includes(r.slot)))
+      throw new FirmwareError('bad-edit', 'unknown or duplicate GR IV film slot');
+    if (requests.some(r=>!r.preset && !r.icon && !Object.values(r.names??{}).some(Boolean)))
+      throw new FirmwareError('bad-edit','empty GR IV film request');
+    const films = requests.length ? GR4_FILM_IDS.map((slot,i)=>{
+      const r = requests.find(r=>r.slot===slot);
+      const names = [...new Set(Object.values(r?.names ?? {}).filter(Boolean))];
+      if(names.length>1) throw new FirmwareError('bad-name','GR IV films use one name in all menu languages');
+      const name = names[0] ?? GR4_FILM_NAMES[i]; validateGr4FilmName(name);
+      return {name,...(r?.preset?{preset:r.preset}:{}),...(r?.icon?{icon:r.icon}:{})};
+    }) : [];
     const clarity: ClarityEdit[] = softFocus.map((f) => {
       if (!f || !SOFT_FOCUS_LEVELS.includes(f.level)) throw new FirmwareError('bad-clarity', `soft focus cannot go on clarity ${String(f && f.level)}`);
       if (!SOFT_FOCUS_STRENGTHS.includes(f.strength)) throw new FirmwareError('bad-clarity', `unknown soft focus strength ${String(f.strength)}`);
@@ -725,10 +764,10 @@ export class Engine {
     const monoUnlock = !!(options && options.monoUnlock);
     if (adjSoftFocus && clarity.length > 0) throw new FirmwareError('bad-clarity', 'soft focus on the ADJ lever and on the clarity table cannot be combined');
     if (dateStamp && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the date imprint cannot be combined with the clarity-table soft focus of 0.4.x');
-    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock) throw new FirmwareError('bad-edit', 'nothing to change');
-    const features = { adjSoftFocus, ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}) };
+    if (films.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock) throw new FirmwareError('bad-edit', 'nothing to change');
+    const features = { adjSoftFocus, ...(films.length ? { filmSlots: true } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}) };
     const test = options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {};
-    const { decoded: _decoded, ...rest } = await buildFirmware(this.raw, edits, ratios, clarity, features, test);
+    const { decoded: _decoded, ...rest } = await buildFirmware(this.raw, [], ratios, clarity, features, test, films);
     return rest;
   }
 
@@ -738,11 +777,15 @@ export class Engine {
    * grain; one that is too detailed for it is softened. Throws `JpegError('unreachable-size')` if
    * neither helps.
    */
-  encodeShutdownImage(rgb: Uint8Array, model: CameraModel, onProgress?: (f: number) => void): ShutdownImage {
+  encodeShutdownImage(rgb: Uint8Array, model: CameraModel, onProgress?: (f: number) => void, embedded = false): ShutdownImage {
     if (!this.info.capabilities.wallpaper) requireGr3xPort('power-off images');
     const res = this.info.models.includes(model) ? this.info.shutdown[model] : undefined;
     if (!res) throw new FirmwareError('unexpected-layout', `no power-off image for ${model} in this firmware`);
     if (rgb.length !== SHUTDOWN_W * SHUTDOWN_H * 3) throw new JpegError('bad-input', 'picture must be 720x480 RGB');
+    if (embedded) {
+      if (this.info.family !== 'gr3x') throw new FirmwareError('bad-edit','Embedded shutdown images require IIIx');
+      return encodeGr3xFirmwareShutdown(rgb, onProgress);
+    }
     const base = { width: SHUTDOWN_W, height: SHUTDOWN_H, sampling: res.sampling, byteLength: res.size };
     const attempt = (pix: Uint8Array) => encodeExactJpeg(pix, { ...base, onProgress });
     const finish = (data: Uint8Array, quality: number, grain: number, soften: number): ShutdownImage => {

@@ -61,24 +61,27 @@ def verify(original,new,manifest,build,reference):
     assert struct.unpack_from('<I',old,part['start']+16+4+16)[0]==0x4000000
     assert rt['end']-rt_start<0x4000000
     revision=build.get('revision','T4-SF1' if soft else 'T4')
-    assert revision in ('research','T4','T4-SF1','T5','T5-L1','T6')
-    if revision.startswith('T5') or revision=='T6':assert manifest['kind']=='gr3x-image-control-patchset'
+    assert revision in ('research','T4','T4-SF1','T5','T5-L1','T6','T6-J1')
+    if revision.startswith(('T5','T6')):assert manifest['kind']=='gr3x-image-control-patchset'
     marker=(f'GR3X-HDF-160-ADJ9-{revision}-HARDWARE-UNTESTED\0'.encode()
             if build.get('cameraUpdateCandidate') else b'GR3X-ADJ9-RESEARCH-NOT-FOR-CAMERA\0')
     assert dec[rt['end']-4-len(marker):rt['end']-4]==marker
     padding=app+len(payload)
-    if revision.startswith('T5') or revision=='T6':
+    if revision.startswith(('T5','T6')):
         magic=b'GR3X-T5-RECIPE\0'
         assert dec[padding:padding+len(magic)]==magic
         length=struct.unpack_from('<I',dec,padding+len(magic))[0]
-        assert length<=(512000 if revision=='T6' else 256000)
+        assert length<=(512000 if revision.startswith('T6') else 256000)
         start=padding+len(magic)+4
         recipe=json.loads(dec[start:start+length])
-        if revision=='T6':
+        if revision.startswith('T6'):
             assert recipe['schema']==3 and len(recipe['films'])<=9 and recipe['monoReplicas'] is False
             assert len(manifest['addedLooks'])==9
             assert [s['id'] for s in manifest['addedLooks']]==list(range(64,73))
             assert all(s['source']=='cube' and s['nativeBase']==11 for s in manifest['addedLooks'])
+            if revision=='T6-J1':
+                assert recipe['jpegMetadata'] is True and manifest['jpegMetadata']['jpgOnly']
+                assert manifest['jpegMetadata']['rawWriterChanged'] is False
         else:
             assert recipe['schema']==(1 if revision=='T5' else 2) and len(recipe['films'])<=2
             assert len(manifest['addedLooks'])==2+6*recipe['monoReplicas']

@@ -3,12 +3,15 @@
 // exact official image and requires byte identity before trusting a T5 file.
 import { FirmwareError } from '../types';
 import type { Gr3xLookOptions } from './image-control';
+import { validateFilmPhotoIdentity } from './jpeg-metadata';
 export const GR3X_RECIPE_MAGIC = new TextEncoder().encode('GR3X-T5-RECIPE\0');
 export function encodeGr3xLookRecipe(options: Gr3xLookOptions): Uint8Array {
   const recipe = {
     schema: options.displayRevision ?? 2, monoReplicas: options.monoReplicas === true,
+    ...(options.jpegMetadata ? {jpegMetadata:true} : {}),
     films: (options.films ?? []).map(f => ({
       name: f.name,
+      ...(f.photo ? {photo:f.photo} : {}),
       ...(f.icon ? { icon: Array.from(f.icon) } : {}),
       ...(f.params ? { params: { M1: f.params.M1, ck: f.params.ck.map(c => Array.from(c)) } } : {}),
       ...(f.preset ? { preset: { matrixQ13: Array.from(f.preset.matrixQ13), curves: f.preset.curves.map(c => Array.from(c)) } } : {}),
@@ -33,11 +36,15 @@ export function readGr3xLookRecipe(appendedRtos: Uint8Array): Gr3xLookOptions | 
     if (![1, 2, 3].includes(r.schema) || typeof r.monoReplicas !== 'boolean' || !Array.isArray(r.films) ||
         r.films.length > (r.schema === 3 ? 9 : 2) || (r.schema === 3 && r.monoReplicas) || (r.schema !== 3 && size > 256000))
       throw new FirmwareError('bad-edit', 'invalid IIIx recipe');
-    return { displayRevision: r.schema, monoReplicas: r.monoReplicas, films: r.films.map((f: Record<string, any>) => {
+    if (r.jpegMetadata !== undefined && (r.jpegMetadata !== true || r.schema !== 3))
+      throw new FirmwareError('bad-edit','invalid JPEG metadata recipe');
+    return { displayRevision: r.schema, monoReplicas: r.monoReplicas,
+      ...(r.jpegMetadata ? {jpegMetadata:true} : {}), films: r.films.map((f: Record<string, any>) => {
       if (typeof f.name !== 'string' || (f.icon && (!Array.isArray(f.icon) || f.icon.length !== 6400 ||
           f.icon.some((v: number) => !Number.isInteger(v) || v < 0 || v > 255))))
         throw new FirmwareError('bad-edit', 'invalid IIIx recipe slot');
-      return { name: f.name, ...(f.icon ? { icon: Uint8Array.from(f.icon) } : {}),
+      if (f.photo) validateFilmPhotoIdentity(f.photo);
+      return { name: f.name, ...(f.photo ? {photo:f.photo} : {}), ...(f.icon ? { icon: Uint8Array.from(f.icon) } : {}),
         ...(f.params ? { params: f.params } : {}), ...(f.preset ? { preset: f.preset } : {}) };
     }) };
   }

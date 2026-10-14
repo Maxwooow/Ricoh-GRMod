@@ -31,6 +31,8 @@ import { installAdjSoftFocus } from './softfocus';
 import { DATESTAMP_BYTE, installDateStamp } from './datestamp';
 import { installDateStampMenu } from './datestamp-menu';
 import { installMonoUnlock } from './monounlock';
+import { installGr4Films } from '../gr4/film-slots';
+import type { Gr4Film } from '../gr4/film-slots';
 
 export const BASE = 0x53000000;
 export const OFFICIAL_RTOS_LENGTH = 0x13d2ac0;
@@ -108,6 +110,8 @@ export interface ExtensionFeatures {
   dateStamp?: boolean;
   /** The six looks of the GR IV Monochrome (see `monounlock.ts`). */
   monoUnlock?: boolean;
+  /** Nine independently appended GR IV film controls. */
+  filmSlots?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -119,6 +123,7 @@ export interface TestOptions {
 
 export interface AspectResult {
   revision: BuildRevision;
+  films?: ReturnType<typeof installGr4Films>['manifest'];
   /** The new RTOS image: official length + appended area. Ends on a 4-byte boundary. */
   rtos: Uint8Array;
   /** The new ICONBIN data: the official bytes followed by one 60x40 RGBA icon per added ratio. */
@@ -964,8 +969,9 @@ export function installRatios(rtos: Uint8Array, iconbin: Uint8Array, ratios: rea
  * catalogs), then the added ratios (if any), then the other additions in `features`. With no
  * features this is `installRatios`, byte for byte. With features the revision is 3.
  */
-export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
-  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock;
+export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}, films: readonly Gr4Film[] = []): AspectResult {
+  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || !!features.filmSlots;
+  if (!!features.filmSlots !== (films.length > 0)) fail('bad-edit', 'film slot feature and recipe disagree');
   if (extra) revision = 3;
   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
@@ -999,7 +1005,9 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
     installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : DATESTAMP_BYTE, !!test.dateStampDiag);
     if (!fixed) icons = installDateStampMenu(patch, icons);
   }
+  const filmBuild = films.length ? installGr4Films(patch, icons, films) : undefined;
+  if (filmBuild) icons = filmBuild.iconbin;
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}) } };
+  return { revision, ...(filmBuild ? { films: filmBuild.manifest } : {}), rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(features.filmSlots ? { filmSlots: true } : {}) } };
 }

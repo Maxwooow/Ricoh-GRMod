@@ -69,6 +69,14 @@ def main():
             with path.open('x') as f:json.dump(report,f,indent=2);f.write('\n')
             results['look-icons']=dict(passed=True,calls=report['native_calls'],report=path.name,sha256=hashlib.sha256(path.read_bytes()).hexdigest())
             print('look-icons: passed',flush=True)
+    if manifest.get('jpegMetadata'):
+        from jpeg_metadata_probe import verify as jpeg_verify
+        report=jpeg_verify(data,manifest,a.output/'jpeg-fixtures')
+        report['candidate_sha256']=sha
+        path=a.output/'jpeg-metadata.json'
+        with path.open('x') as f:json.dump(report,f,indent=2);f.write('\n')
+        results['jpeg-metadata']=dict(passed=True,calls=report['cases'],report=path.name,sha256=hashlib.sha256(path.read_bytes()).hexdigest())
+        print('jpeg-metadata: passed',flush=True)
     summary=dict(schema=1,kind='gr3x-adj9-'+build['revision']+'-validation',candidate_sha256=sha,
                  all_checks_passed=True,checks=results,native_function_cases=sum(r['calls'] for r in results.values()),
                  container_checks=len(build['checks']),patch_sites=len(manifest['sites']),

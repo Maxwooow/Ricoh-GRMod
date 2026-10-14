@@ -1,29 +1,76 @@
 # GR Mod
 
-A small desktop tool for the Ricoh GR IV / GR IV HDF (firmware 1.11). Not a Ricoh product.
+Desktop firmware customisation for **GR IIIx HDF 1.60** and **GR IV / GR IV HDF 1.11**.
+This fork is version **0.6.4-film120-jpg-w2**. Not a Ricoh product.
 
-This branch adds **GR IIIx HDF firmware 1.60** support. It preserves the existing
-GR IV paths and adds a model-specific nine-ratio ADJ list, full-frame RAW with
-cropped JPEG/previews, a wide live-view alignment fix, optional clarity-table
-soft focus, CUBE fitting, nine independent image-control slots and colour icons.
-The shell can locate and download the matching official GR IIIx update.
+Both camera families have nine independent film slots with names and colour icons,
+while retaining the original Image Controls (including both GR IV Cinema looks).
+The library has 120 film entries and package-inspired icons; the owner's local
+installation has 119 source LUTs and per-camera fits. Velvia 100F remains an import
+placeholder. Choose up to nine films for a firmware, or import an sRGB CUBE yourself.
+CUBE transforms are approximated by the camera's matrix and RGB curves, without
+spatial grain or halation. Models, source revisions and licences are recorded in
+`ui/public/film-library/catalog.json`.
 
-The camera owner has tested the T4 capture/RAW paths, SF1 soft focus and T5-L1
-sample looks/icons. **T6's nine film presets still need camera testing.**
-Script/factory entry and power-off images have local/native-function checks only.
-IIIx XMP import, date imprint and a separate ADJ soft-focus control are not ported.
-See [IIIx support, validation and reproduction](docs/GR3X_HDF.md).
+On IIIx, T4 preserves full 6000×4000 RAW and nine ratios; JPEG and embedded previews
+follow the selected ratio. Optional SF1 uses Clarity −1/−2/−3 for soft focus. T6-C1
+corrects CineStill 800T while keeping the other eight selected films unchanged.
+J1 writes the full film name, recipe version and a fingerprint of the actual
+quantised parameters to JPEG EXIF UserComment. It does not alter RAW metadata.
+All library entries and custom imports use this identity mechanism.
+
+**W2 power-off images are now part of the normal IIIx export.** Choose one image on
+the power-off page; exports include it together with the current films and ratios.
+No startup script is needed. Selecting the factory image restores the original
+shutdown descriptor. W2 adds a 49,116-byte 720×480 JPEG on the normally updated A:
+drive instead of replacing the skipped B: resource. Encoding never silently blurs
+or adds noise; images that cannot meet this budget are rejected. The app reconstructs
+known builds before permitting restoration and checks that every original resource
+and every unrelated byte remain intact.
+
+The owner confirmed that T4 resolved wide-ratio flicker, T5-L1 icons work and W2
+shows a clear shutdown image. The eight latest W2 JPG/DNG pairs retained correct
+film metadata and full RAW. This does not establish hardware coverage for every
+library stock or every ratio. GR IV's nine-slot port has software/native-function
+validation and still needs a camera test. IIIx XMP, date imprint and a separate
+ADJ soft-focus control remain unavailable; J1 metadata and embedded W2 images
+have not been ported to GR IV.
+
+See [current app usage](docs/GRMOD_INTEGRATION.txt),
+[film library](docs/FILM_LIBRARY_120.txt),
+[W2 evidence](docs/GR3X_T6_J1_W2_TEST.txt) and
+[reproducible IIIx validation](docs/GR3X_HDF.md).
 
 - `core/`  platform-independent TypeScript: firmware container codec and patcher with built-in self-check (`src/fw`), added aspect ratios (`src/fw/aspect`), preset conversion from .xmp Look profiles and .cube LUTs (`src/color`), exact-length baseline JPEG encoder (`src/jpeg`), start-up script generator and simulator (`src/wallpaper`), memory-card layout planning (`src/card`), and the `Engine` facade (`src/app`).
 - `ui/`    React UI (Vite). Talks to the platform through `src/host.ts` only.
-- `shell/` Windows shell in Go (WebView2 window + local HTTP API for drives and files, and for fetching the official firmware from Ricoh's site). See `shell/README.md`.
+- `shell/` Windows/macOS shell in Go (WebView2 window + local HTTP API for drives and files, and for fetching the official firmware from Ricoh's site). See `shell/README.md`.
 
-Build: `npm install && npm -w ui run build && (cd shell && ./build.sh windows)` → `shell/dist/GRMod.exe`.
+Build with Node 22+ and Go 1.24+: `npm ci && npm run build`, then `cd shell && ./build.sh windows` or `./build.sh macos`. The macOS build uses the local browser UI.
 Test: `npm -w core test` (the byte-identity tests need the official firmware in `core/testdata/private/`, which is not distributed), `cd shell && go test ./...`.
 
 An Android build would reuse `core/` and `ui/` unchanged and replace `shell/` with a WebView wrapper implementing the same host interface (volumes via the Storage Access Framework).
 
-No firmware file is included here. The user picks the official 1.11 file, or lets the program fetch it: the shell reads Ricoh's own download pages for the chosen model and downloads the current update from there (`shell/internal/ricoh`; Ricoh's page says that downloading means accepting its software licence agreement, and the dialog says so too and links to it). The before/after preview and the frame of an added aspect ratio are drawn on a sample picture, `ui/src/assets/preview.jpg`: DPReview's studio test scene, included with DPReview's permission (it is not covered by the licences of the code). The user can replace it in the UI, or by keeping a `preview.jpg` next to the program (served by `GET /api/sidecar/preview.jpg`). The two card files that open the camera's factory menu (needed once, to switch Script on) are not stored here: `core/src/fw/factory.ts` reads their names, keyword and key out of the user's firmware. `core/src/color/data.ts` holds measurements (the camera's base tone curve and paired calibration colours). The power-off image method builds on the public research in radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion.
+No firmware file is included here. The user picks the supported official file for the chosen camera, or lets the program fetch it: the shell reads Ricoh's own download pages for the chosen model and downloads the current update from there (`shell/internal/ricoh`; Ricoh's page says that downloading means accepting its software licence agreement, and the dialog says so too and links to it). The before/after preview and the frame of an added aspect ratio are drawn on a sample picture, `ui/src/assets/preview.jpg`: DPReview's studio test scene, included with DPReview's permission (it is not covered by the licences of the code). The user can replace it in the UI, or by keeping a `preview.jpg` next to the program (served by `GET /api/sidecar/preview.jpg`). The two card files that open the camera's factory menu (needed once, to switch Script on) are not stored here: `core/src/fw/factory.ts` reads their names, keyword and key out of the user's firmware. `core/src/color/data.ts` holds measurements (the camera's base tone curve and paired calibration colours). The power-off image method builds on the public research in radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion.
+
+## Public source and local assets
+
+This repository contains code, tests, provenance, licence notices and drawn icons.
+It excludes firmware binaries, camera photographs, personal project settings,
+research caches and third-party CUBE/Hald/converted parameter payloads. The latter
+include sources whose free personal download does not establish redistribution
+rights; they are not relicensed as GPL. Existing local assets are left intact.
+A clean checkout detects missing LUT inputs and offers **Import CUBE** for those
+catalogue entries instead of claiming they are installed. To reuse your own local
+library, copy its `cubes/` and `fits/` into `ui/public/film-library/` before building;
+all source and fit hashes are checked before use.
+
+Tests needing proprietary fixtures skip when they are absent. Set
+`GRMOD_GR3X_FIRMWARE` and `GRMOD_GR4_FIRMWARE` to your official files for integration
+checks. `GRMOD_GR3X_W2` optionally points to the camera-tested W2 build for complete
+binary reproduction. Native Python checks use the pinned reference and fixtures
+documented in the IIIx validation guide. The initial research-library generators
+under `tools/film-library/` are optional and require their documented source inputs;
+normal builds never download LUTs.
 
 ## Added aspect ratios
 
@@ -53,13 +100,37 @@ Clarity is a Laplacian pyramid on the developed picture (RetouchService, 0x538a1
 
 `core/src/fw/aspect/monounlock.ts` makes the six looks of the GR IV Monochrome selectable on the colour models, after [lemonadesaltbagel/GR4-MonoUnlock](https://github.com/lemonadesaltbagel/GR4-MonoUnlock) (no code copied): the check at 0x533cc6e0 becomes `cmp r1, #0x18` / `bhi`, and rows 3..8 of the look availability table at 0x53dbf36c (7 bytes per row, one column per camera model, column 1 = Monochrome) get every column except 1. The reference sets column 0 only (the standard GR IV); with every colour column the GR IV HDF has them too. 13 words in all.
 
+## GR IV 1.11 independent film slots
+
+`core/src/fw/gr4/film-slots.ts` adds still-photo identities 64–72 after the factory
+list. Each has a private matrix record, RGB curves, name and colour icon. The
+factory matrices, curves, names and icons are preserved. Audited native consumers
+use Standard as the base while the selected private identity stays in user
+settings. Added looks use fixed neutral Image Control parameters; in-camera RAW
+development falls back to the factory base look. The existing aspect and RAW
+geometry code is unchanged. This port has passed software checks, not a camera test.
+
+The GRMODAR3 feature byte uses bit 3 for films. A bounded, non-executable recipe
+records all nine slots. Inspection rebuilds from the official firmware and verifies
+the entire file hash. `tools/gr4/native-film9.py` executes the original menu,
+selection, RAM commit, descriptor and RAW-enum functions with synthetic memory;
+OS mutexes and queue delivery are substituted. Power-cycle persistence, real ISP
+output and JPEG/DNG files still require camera validation. The 119 ready library
+stocks build in 14 batches with nine-slot capacity; Velvia 100F remains pending.
+
 ## The UI
 
-The Image Control page has one card of switches under the two slots: soft focus (ADJ lever), date imprint (with its menu) and monochrome looks (not shown for the Monochrome model). They are saved with the project (`soft`, `dateStamp`, `monoUnlock` in `project.json`) and passed to `Engine.buildFirmware`; the firmware copies page reads them back from a file through `Engine.inspect`.
+The Image Control page uses model-specific slots: nine scrollable film cards for
+both IIIx HDF 1.60 and GR IV 1.11. GR IV keeps every factory look, including
+both Cinema entries; CY/CG are retained only as compatible project keys for Film 1/2. The preview selector lists the
+available slots. IIIx exposes clarity-table soft focus and hides the retired
+Replica switch; GR IV retains its ADJ soft focus, date imprint and supported
+monochrome looks. Project settings are saved in `project.json`; the firmware
+copies page reads supported recipes back through `Engine.inspect`.
 
 ## Combinations
 
-Anything that appends code or icons (ratios, ADJ soft focus, date imprint) gives the grown layout: RTOS grows, and ICONBIN too when icons are added (a build that only appends code, like the date imprint of a test build with a fixed setting, leaves ICONBIN as it is; `growPayload`, `grownRanges`, `Engine.inspect` and the self-check accept either). The monochrome looks (`core/src/fw/aspect/monounlock.ts`, 13 words) on their own are written in place, like Image Control edits: official layout plus the checksum compensation word; `Engine.inspect` recognises them when all 13 words are there. With any of the other additions they go into the grown build and its feature byte (bit 2). `core/test/combinations.test.ts` builds every combination, checks the self-check and what `inspect` reads back, that soft focus alone is unchanged, and that all additions with the contents of the earlier test firmware (`core/test/fw-helpers/test-firmware.ts`) give test firmware 017 byte for byte. `tools/testfw/build.ts` builds such test files.
+Anything that appends code or icons (ratios, independent films, ADJ soft focus, date imprint) gives the grown layout: RTOS grows, and ICONBIN too when icons are added (a build that only appends code, like the date imprint of a test build with a fixed setting, leaves ICONBIN as it is; `growPayload`, `grownRanges`, `Engine.inspect` and the self-check accept either). The monochrome looks (`core/src/fw/aspect/monounlock.ts`, 13 words) on their own are written in place, like Image Control edits: official layout plus the checksum compensation word; `Engine.inspect` recognises them when all 13 words are there. With any of the other additions they go into the grown build and its feature byte (bit 2). `core/test/combinations.test.ts` builds every combination, checks the self-check and what `inspect` reads back, that soft focus alone is unchanged, and that all additions with the contents of the earlier test firmware (`core/test/fw-helpers/test-firmware.ts`) give test firmware 017 byte for byte. `tools/testfw/build.ts` builds such test files.
 
 ## Licence
 

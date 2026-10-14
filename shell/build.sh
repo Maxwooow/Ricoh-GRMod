@@ -3,6 +3,7 @@
 #
 #   ./build.sh dev       -> dist/grmod-dev   (Linux, headless, for development and tests)
 #   ./build.sh windows   -> dist/GRMod.exe   (Windows x64, single file, no console)
+#   ./build.sh macos     -> dist/GR Mod.app (native architecture, local browser UI)
 #   ./build.sh all       -> both
 #
 # The version comes from $VERSION, else from ../package.json, else 0.0.0.
@@ -12,8 +13,8 @@ cd "$(dirname "$0")"
 
 target="${1:-}"
 case "$target" in
-  dev|windows|all) ;;
-  *) echo "usage: $0 dev|windows|all" >&2; exit 2 ;;
+  dev|windows|macos|all) ;;
+  *) echo "usage: $0 dev|windows|macos|all" >&2; exit 2 ;;
 esac
 
 # ---------------------------------------------------------------- version
@@ -88,8 +89,52 @@ build_windows() {
   fi
 }
 
+build_macos() {
+  [ "$(uname -s)" = Darwin ] || { echo 'macos packaging requires macOS' >&2; exit 2; }
+  local bundle='dist/GR Mod.app'
+  mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
+  CGO_ENABLED=0 GOOS=darwin go build -trimpath \
+    -ldflags "-s -w -X main.version=${version}" -o "$bundle/Contents/MacOS/grmod" .
+  cat > "$bundle/Contents/Info.plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleIdentifier</key><string>io.github.maxwooow.grmod.local-gr3x</string>
+<key>CFBundleName</key><string>GR Mod</string>
+<key>CFBundleDisplayName</key><string>GR Mod</string>
+<key>CFBundleExecutable</key><string>grmod</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleVersion</key><string>${version}</string>
+<key>CFBundleShortVersionString</key><string>${version%%-*}</string>
+<key>CFBundleIconFile</key><string>AppIcon</string>
+<key>LSUIElement</key><true/>
+</dict></plist>
+EOF
+  local icons='dist/AppIcon.iconset'
+  mkdir -p "$icons"
+  for size in 16 32 128 256 512; do
+    sips -z "$size" "$size" winres/icon256.png --out "$icons/icon_${size}x${size}.png" >/dev/null
+    local double=$((size * 2))
+    sips -z "$double" "$double" winres/icon256.png --out "$icons/icon_${size}x${size}@2x.png" >/dev/null
+  done
+  iconutil -c icns "$icons" -o "$bundle/Contents/Resources/AppIcon.icns"
+  cp ../LICENSE "$bundle/Contents/Resources/LICENSE.txt"
+  cp ../docs/GR3X_ADJ9_TEST.txt "$bundle/Contents/Resources/ADJ9-T4.txt"
+  cp ../docs/GR3X_FEATURES_TEST.txt "$bundle/Contents/Resources/GR3x-T4F1.txt"
+  cp ../docs/GR3X_T5_TEST.txt "$bundle/Contents/Resources/GR3x-T5.txt"
+  cp ../docs/GR3X_T5-L1_TEST.txt "$bundle/Contents/Resources/GR3x-T5-L1.txt"
+  cp ../docs/GR3X_T6_TEST.txt "$bundle/Contents/Resources/GR3x-T6.txt"
+  cp ../docs/GR3X_T6_J1_TEST.txt "$bundle/Contents/Resources/GR3x-T6-J1.txt"
+  cp ../docs/GR3X_T6_J1_W2_TEST.txt "$bundle/Contents/Resources/GR3x-T6-J1-W2.txt"
+  cp ../docs/GRMOD_INTEGRATION.txt "$bundle/Contents/Resources/本次更新说明.txt"
+  cp ../docs/FILM_LIBRARY_120.txt "$bundle/Contents/Resources/胶片库120-使用说明.txt"
+  codesign --force --sign - "$bundle"
+  echo "built:   $bundle (version ${version})"
+}
+
 case "$target" in
   dev)     build_dev ;;
   windows) build_windows ;;
+  macos)   build_macos ;;
   all)     build_dev; build_windows ;;
 esac
