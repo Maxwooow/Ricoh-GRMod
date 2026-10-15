@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-import { Engine } from '@grmod/core';
+import { Engine, encodeShutdownPicture } from '@grmod/core';
 import type { BuildOptions, CameraModel, RatioSpec, SlotRequest, SoftFocusRequest } from '@grmod/core';
 
 let engine: Engine | null = null;
@@ -9,6 +9,7 @@ type Req =
   | { id: number; type: 'build'; requests: SlotRequest[]; ratios?: RatioSpec[]; softFocus?: SoftFocusRequest[]; options?: BuildOptions }
   | { id: number; type: 'ratio'; ratio: string; others: string[] }
   | { id: number; type: 'encode'; rgb: ArrayBuffer; model: CameraModel }
+  | { id: number; type: 'menuPicture'; rgb: ArrayBuffer }
   | { id: number; type: 'script'; model: CameraModel; count: number }
   | { id: number; type: 'inspect'; raw: ArrayBuffer }
   | { id: number; type: 'bridge' }
@@ -36,6 +37,11 @@ ctx.onmessage = async (ev: MessageEvent<Req>) => {
       case 'encode': {
         const r = need().encodeShutdownImage(new Uint8Array(m.rgb), m.model, progress);
         ctx.postMessage({ id: m.id, ok: true, result: r }, [r.data.buffer as ArrayBuffer, r.preview.buffer as ArrayBuffer]);
+        break;
+      }
+      case 'menuPicture': {
+        const r = encodeShutdownPicture(new Uint8Array(m.rgb), progress);
+        ctx.postMessage({ id: m.id, ok: true, result: r }, [r.buffer as ArrayBuffer]);
         break;
       }
       case 'ratio': ctx.postMessage({ id: m.id, ok: true, result: need().previewRatio(m.ratio, m.others) }); break;

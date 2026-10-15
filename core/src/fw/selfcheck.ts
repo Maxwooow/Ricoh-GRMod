@@ -6,6 +6,7 @@
 import { FOOTER_LEN, HDR, equalRange, parseFrames, sectionData, sectionsOf, sum32, verifyContainer } from './container';
 import type { Frame } from './container';
 import type { Range } from './types';
+import { findResInsertion } from './aspect/res';
 
 /** The updater checks of `verifyContainer` that must all be present and true. */
 const UPDATER_CHECKS = [
@@ -215,6 +216,7 @@ export const SELF_CHECK_GROWN_NAMES = [
 
 /** Sections that may be longer than in the official file. */
 const GROWABLE = ['RTOS', 'ICONBIN'];
+
 const FRAME = 0x6000;
 
 /**
@@ -282,7 +284,17 @@ function runGrown(checks: Record<string, boolean>, officialRaw: Uint8Array, newR
       const b = sn[i];
       if (a.name !== b.name || a.v1 !== b.v1 || a.v2 !== b.v2 || b.offset !== a.offset + shift) layout = false;
       if (a.name === 'RES') {
-        if (a.size !== b.size) layout = false;
+        // More files (power-off pictures): one run of new files, whole frames, inserted between
+        // official ones; everything else in RES is compared byte for byte below.
+        if (a.size !== b.size) {
+          const ins = findResInsertion(deco, dec, FRAME);
+          if (!ins) layout = false;
+          else {
+            shift += ins.length;
+            cut.push(ins.at);
+            shiftAt.push(shift);
+          }
+        }
         continue;
       }
       const grown = b.size - a.size;

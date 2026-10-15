@@ -467,3 +467,8 @@ button.fw-rel:disabled { cursor: default; }
 .halo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .halo .chips { align-items: center; }
 .halo-note { line-height: 1.35; }
+
+/* power-off images chosen in the camera's menu: the name under each picture */
+.wall-name { height: 30px; padding: 3px 0 0; overflow: visible; }
+.wall-name .input { width: 100%; min-width: 0; height: 26px; padding-top: 0; padding-bottom: 0; font-size: 13px; }
+.wall-name .input.bad { border-color: var(--danger, #d64545); }

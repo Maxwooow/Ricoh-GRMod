@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { color, EXTRA_NAME_MAX, halateRgba, halationLight, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_H, SHUTDOWN_W } from '@grmod/core';
+import { color, EXTRA_NAME_MAX, halateRgba, halationLight, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_H, SHUTDOWN_NAME_MAX, SHUTDOWN_W } from '@grmod/core';
 import type { SlotId } from '@grmod/core';
 import type { ReactNode } from 'react';
 import { DropZone, FileButton, Ico, IconCanvas, Menu, Prop, RatioIcon, RgbCanvas, Segmented, Switch } from './components';
@@ -16,8 +16,9 @@ import {
   setDateStamp,
   setMonoUnlock,
   extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, slotOf,
+  setWallMode, setWallName, wallMax, wallMenuProblem,
 } from './store';
-import type { ExtraSlot, RatioItem, WallItem } from './store';
+import type { ExtraSlot, RatioItem, WallItem, WallMode } from './store';
 
 const isPreset = (f: File): boolean => /\.(xmp|cube)$/i.test(f.name);
 const isFirmware = (f: File): boolean => /\.bin$/i.test(f.name);
@@ -572,7 +573,9 @@ function WallCard({ w, index }: { w: WallItem; index: number }) {
   const info = useStore((s) => s.info);
   const model = useStore((s) => s.model);
   const [over, setOver] = useState(false);
+  const menu = useStore((s) => s.wallMode === 'menu');
   const factory = w.kind === 'factory' ? info?.shutdown[model] : undefined;
+  const problem = menu && !w.busy ? wallMenuProblem(w) : null;
   const ref = useRef<HTMLImageElement>(null);
   const url = useMemo(() => (factory ? URL.createObjectURL(new Blob([factory.data as unknown as BlobPart], { type: 'image/jpeg' })) : ''), [factory]);
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
@@ -590,16 +593,27 @@ function WallCard({ w, index }: { w: WallItem; index: number }) {
         {factory && <img ref={ref} src={url} alt="" draggable={false} />}
         {w.busy && <span className="thumb-state"><span className="spinner" /></span>}
         {w.error && <span className="thumb-state bad">{w.error}</span>}
+        {menu && w.kind === 'factory' && <span className="thumb-state bad">{t('wallMenuFactory')}</span>}
         <span className="wall-index">{index + 1}</span>
         <span className="wall-actions">
           {w.kind === 'image' && <button className="btn mini" title={t('wallCrop')} onClick={() => openCrop(w.id)}>{Ico.crop}</button>}
           <button className="btn mini" title={t('remove')} onClick={() => removeWall(w.id)}>{Ico.x}</button>
         </span>
       </div>
-      <div className="wall-meta">
-        <span className="ellipsis">{w.name}</span>
-        {!!w.grain && <span className="chip tiny">{t('grain')}</span>}
-      </div>
+      {menu && w.kind === 'image' ? (
+        <div className="wall-meta wall-name">
+          <input
+            className={`input small ${problem && w.menuJpeg ? 'bad' : ''}`} value={w.menuName ?? ''} maxLength={SHUTDOWN_NAME_MAX + 8}
+            placeholder={t('wallName')} aria-label={t('wallName')} title={problem && w.menuJpeg ? problem : w.name} spellCheck={false}
+            onChange={(e) => setWallName(w.id, e.target.value)}
+          />
+        </div>
+      ) : (
+        <div className="wall-meta">
+          <span className="ellipsis">{w.name}</span>
+          {!menu && !!w.grain && <span className="chip tiny">{t('grain')}</span>}
+        </div>
+      )}
     </div>
   );
 }
@@ -638,27 +652,42 @@ export function fitTiles(n: number, w: number, h: number): { cols: number; tile:
 export function WallpaperPage() {
   const wall = useStore((s) => s.wall);
   const info = useStore((s) => s.info);
+  const mode = useStore((s) => s.wallMode);
+  const max = useStore((s) => wallMax(s));
   const [ref, box] = useBox<HTMLDivElement>();
-  const tiles = wall.length + (wall.length < 9 ? 1 : 0);
+  const tiles = wall.length + (wall.length < max ? 1 : 0);
   const fit = fitTiles(tiles, box.w, box.h);
   return (
     <DropZone className="page" accept={(f) => isImage(f) || isFirmware(f)} onFiles={(f) => { const fwFile = f.find(isFirmware); if (fwFile) void loadFirmwareFile(fwFile); const imgs = f.filter(isImage); if (imgs.length) void addWallFiles(imgs); }}>
       <header className="page-head">
         <span className="page-icon">{Ico.image}</span>
         <h1>{t('navWall')}</h1>
-        {info && wall.length > 0 && <div className="head-right"><span className="chip">{wall.length}/9</span></div>}
+        {info && (
+          <div className="head-right">
+            {wall.length > 0 && <span className={`chip ${wall.length > max ? 'warn' : ''}`}>{wall.length}/{max}</span>}
+            <Segmented value={mode} onChange={(v) => setWallMode(v as WallMode)} options={[{ value: 'script', label: t('wallModeScript') }, { value: 'menu', label: t('wallModeMenu') }]} />
+          </div>
+        )}
       </header>
       {!info && <FirmwareHero />}
-      {info && <FactoryEntryCard />}
+      {info && mode === 'script' && <FactoryEntryCard />}
+      {info && mode === 'menu' && (
+        <div className="card entry-card">
+          <div className="entry-row">
+            <span className="page-icon soft-ico">{Ico.image}</span>
+            <div className="soft-text"><span className="muted small">{t('wallMenuHint')}</span></div>
+          </div>
+        </div>
+      )}
       {info && (
         <div className="wall-fit" ref={ref} data-tour-page="wall">
           {fit.tile > 0 && (
             <div className="wall-grid" style={{ gridTemplateColumns: `repeat(${fit.cols}, ${fit.tile}px)` }}>
               {wall.map((w, i) => <WallCard key={w.id} w={w} index={i} />)}
-              {wall.length < 9 && (
+              {wall.length < max && (
                 <div className="wall-add" data-tour="wall-add">
                   <FileButton className="wall-add-btn" accept="image/*" multiple onFiles={(f) => { void addWallFiles(f); }}>{Ico.plus}<span>{wall.length ? t('wallAdd') : t('wallEmpty')}</span></FileButton>
-                  <button className="btn ghost small" onClick={() => addFactoryWall()}>{t('wallFactory')}</button>
+                  {mode === 'script' && <button className="btn ghost small" onClick={() => addFactoryWall()}>{t('wallFactory')}</button>}
                 </div>
               )}
             </div>

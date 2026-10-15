@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import { card, LANGS, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, validateExtraSlotName, validateRatioName } from '@grmod/core';
-import type { CameraModel, ClarityChange, ExtraSlotSpec, FirmwareInfo, FirmwareSummary, LangCode, PresetResult, RatioPreview, RatioSpec, SlotId, SlotRequest, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
+import { card, LANGS, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_MAX_PICTURES, SHUTDOWN_NAME_MAX, validateExtraSlotName, validateRatioName, validateShutdownName } from '@grmod/core';
+import type { CameraModel, ClarityChange, ExtraSlotSpec, FirmwareInfo, FirmwareSummary, LangCode, PresetResult, RatioPreview, RatioSpec, ShutdownPictureSpec, SlotId, SlotRequest, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
 import { engine, EngineError } from './engine';
 import { host, HostError, sha256Hex } from './host';
 import type { ParkedEntry, Volume } from './host';
@@ -29,7 +29,15 @@ export type SlotKey = SlotId | string;
 export interface WallItem {
   id: string; name: string; kind: 'image' | 'factory'; blob?: Blob; width: number; height: number; crop: Crop;
   busy: boolean; error?: string; data?: Uint8Array; quality?: number; grain?: number; soften?: number; preview?: Uint8Array;
+  /** Chosen in the camera's menu (`wallMode` 'menu'): the name in the camera's list, its stable identity, the picture file. */
+  menuName?: string; menuId?: number; menuJpeg?: Uint8Array;
 }
+/**
+ * How the power-off images reach the camera: 'script' puts them on the card with a start-up script
+ * that changes the picture at every power-on; 'menu' builds them into the firmware, chosen in the
+ * camera's End Screen menu (Setup > Display).
+ */
+export type WallMode = 'script' | 'menu';
 export interface Toast { id: number; text: string; kind: 'ok' | 'error' | 'info'; action?: { label: string; run: () => void } }
 /** The power-off image setup last seen on (or written to) a card; the files themselves are in the host store. */
 export interface CardWall { names: string[]; hasIndex: boolean; savedAt: number; label: string }
@@ -55,7 +63,7 @@ export interface State {
   slots: Record<SlotId, SlotState>;
   wall: WallItem[];
   ratios: RatioItem[]; activeRatio?: string; ratioBackdrop: RatioBackdrop;
-  soft: boolean; dateStamp: boolean; monoUnlock: boolean;
+  soft: boolean; dateStamp: boolean; monoUnlock: boolean; wallMode: WallMode;
   previewMode: PreviewMode; photoRev: number; cardWall?: CardWall; activeSlot: SlotKey;
   /** Added Image Control slots, in the camera's order (none by default). */
   extras: ExtraSlot[];
@@ -73,7 +81,7 @@ const SLOT_IDS: SlotId[] = ['CY', 'CG'];
 const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '', style: 'film' } });
 let state: State = {
   ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: 'zh-CN',
-  slots: { CY: emptySlot(), CG: emptySlot() }, extras: [], wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false, bridgeOpen: false,
+  slots: { CY: emptySlot(), CG: emptySlot() }, extras: [], wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, wallMode: 'script', previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], entryOnCard: false, bridgeOpen: false,
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
@@ -137,7 +145,8 @@ async function saveProject(): Promise<void> {
       icon: { mode: s.slots[id].icon.mode, text: s.slots[id].icon.text, style: s.slots[id].icon.style, image: s.slots[id].icon.image },
     }])),
     extras: s.extras.map((x) => ({ key: x.key, name: x.name, preset: x.preset ? { fileName: x.preset.fileName, kind: x.preset.kind } : null, icon: { mode: x.icon.mode, text: x.icon.text, style: x.icon.style, image: x.icon.image }, ...(x.halation ? { halation: x.halation } : {}) })),
-    wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: w.kind, width: w.width, height: w.height, crop: w.crop })),
+    wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: w.kind, width: w.width, height: w.height, crop: w.crop, ...(w.menuName !== undefined ? { menuName: w.menuName } : {}), ...(w.menuId ? { menuId: w.menuId } : {}) })),
+    wallMode: s.wallMode,
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
     soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock,
     tours: s.toursSeen,
@@ -190,9 +199,10 @@ export async function init(): Promise<void> {
       for (const w of doc.wall || []) {
         if (w.kind === 'factory') { wall.push({ id: w.id, name: w.name, kind: 'factory', width: 720, height: 480, crop: w.crop, busy: false }); continue; }
         const bytes = await host.storeGet('wall-' + w.id);
-        if (bytes) wall.push({ id: w.id, name: w.name, kind: 'image', blob: new Blob([bytes as unknown as BlobPart], { type: 'image/jpeg' }), width: w.width, height: w.height, crop: w.crop, busy: true });
+        const menu = { menuName: typeof w.menuName === 'string' ? String(w.menuName).slice(0, 40) : menuNameOf(String(w.name || '')), menuId: validMenuId(w.menuId) ? w.menuId : newMenuId(wall) };
+        if (bytes) wall.push({ id: w.id, name: w.name, kind: 'image', blob: new Blob([bytes as unknown as BlobPart], { type: 'image/jpeg' }), width: w.width, height: w.height, crop: w.crop, busy: true, ...menu });
       }
-      set({ wall });
+      set({ wall, wallMode: doc.wallMode === 'menu' ? 'menu' : 'script' });
       for (const w of wall) void encodeWall(w.id);
     }
   } catch (e) { console.warn('restore failed', e); }
@@ -471,6 +481,21 @@ async function encodeWall(id: string): Promise<void> {
   if (w.kind === 'factory') { setWall(id, { busy: false, data: res.data, error: undefined, quality: 100, grain: 0, soften: 0 }); return; }
   const gen = (encodeGen.get(id) || 0) + 1; encodeGen.set(id, gen);
   setWall(id, { busy: true, error: undefined });
+  if (state.wallMode === 'menu') {
+    // a picture of the firmware: the crop as it is, its own fixed size (see core aspect/shutdown.ts)
+    try {
+      const bmp = await wallBitmap(w);
+      if (!bmp) throw new Error('no image');
+      const rgb = cropToRgb(bmp, w.crop);
+      const jpeg = await engine.menuPicture(rgb);
+      if (encodeGen.get(id) !== gen || state.wallMode !== 'menu') return;
+      setWall(id, { busy: false, menuJpeg: jpeg, preview: rgb, error: undefined, grain: 0, soften: 0 });
+    } catch {
+      if (encodeGen.get(id) !== gen) return;
+      setWall(id, { busy: false, menuJpeg: undefined, preview: undefined, error: t('encodeFailed') });
+    }
+    return;
+  }
   try {
     const bmp = await wallBitmap(w);
     if (!bmp) throw new Error('no image');
@@ -484,16 +509,18 @@ async function encodeWall(id: string): Promise<void> {
     setWall(id, { busy: false, data: undefined, preview: undefined, error: tooSmall ? t('tooDetailed') : t('encodeFailed') });
   }
 }
+/** At most this many images: 9 rotated by the script, 8 in the camera's menu. */
+export const wallMax = (s: State = state): number => (s.wallMode === 'menu' ? SHUTDOWN_MAX_PICTURES : 9);
 export async function addWallFiles(files: File[]): Promise<void> {
   for (const f of files) {
-    if (state.wall.length >= 9) { toast(t('wallMax'), 'info'); break; }
+    if (state.wall.length >= wallMax()) { toast(t(state.wallMode === 'menu' ? 'wallMenuMax' : 'wallMax'), 'info'); break; }
     if (!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|bmp|gif|avif)$/i.test(f.name)) continue;
     try {
       const bmp = await loadBitmap(f);
       const wc = await workingCopy(bmp);
       bmp.close();
       const id = Math.random().toString(36).slice(2, 10);
-      const item: WallItem = { id, name: f.name, kind: 'image', blob: wc.blob, width: wc.width, height: wc.height, crop: defaultCrop(wc.width, wc.height), busy: true };
+      const item: WallItem = { id, name: f.name, kind: 'image', blob: wc.blob, width: wc.width, height: wc.height, crop: defaultCrop(wc.width, wc.height), busy: true, menuName: menuNameOf(f.name), menuId: newMenuId(state.wall) };
       set((s) => ({ wall: [...s.wall, item] }));
       if (host.available) void host.storeSet('wall-' + id, new Uint8Array(await wc.blob.arrayBuffer())).catch(() => undefined);
       void encodeWall(id);
@@ -524,6 +551,46 @@ export function moveWall(id: string, toIndex: number): void {
   scheduleSave();
 }
 export function openCrop(id: string | undefined): void { set({ cropId: id }); }
+
+// ------------------------------------------------------------------ power-off images chosen in the camera's menu
+const validMenuId = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 0xffffffff;
+function newMenuId(wall: readonly WallItem[]): number {
+  for (;;) {
+    const id = 1 + Math.floor(Math.random() * 0xfffffffe);
+    if (!wall.some((w) => w.menuId === id)) return id;
+  }
+}
+/** A camera-list name from a file name: printable ASCII only, at most SHUTDOWN_NAME_MAX characters. */
+export function menuNameOf(fileName: string): string {
+  const stem = fileName.replace(/\.[^.]+$/, '').replace(/[^\x20-\x7e]/g, '').replace(/\s+/g, ' ').trim();
+  return (stem || 'Picture').slice(0, SHUTDOWN_NAME_MAX).trim();
+}
+export function setWallMode(wallMode: WallMode): void {
+  if (state.wallMode === wallMode) return;
+  set({ wallMode });
+  for (const w of state.wall) void encodeWall(w.id);
+  scheduleSave();
+}
+export function setWallName(id: string, menuName: string): void { setWall(id, { menuName }); scheduleSave(); }
+const SHUTDOWN_NAME_PROBLEMS: Record<string, Key> = { empty: 'wallNameEmpty', 'too-long': 'wallNameLong', 'bad-char': 'wallNameBad' };
+/** Why an image cannot go into the camera's menu (null when it can). */
+export function wallMenuProblem(w: WallItem): string | null {
+  if (w.kind === 'factory') return t('wallMenuFactory');
+  const p = validateShutdownName(w.menuName ?? '');
+  if (p) return t(SHUTDOWN_NAME_PROBLEMS[p], { n: SHUTDOWN_NAME_MAX });
+  if (w.busy) return t('converting');
+  if (w.error || !w.menuJpeg) return w.error || t('encodeFailed');
+  return null;
+}
+/** The pictures the firmware gets (none unless the images are chosen in the camera's menu). */
+export function menuPictures(s: State = state): ShutdownPictureSpec[] {
+  if (s.wallMode !== 'menu') return [];
+  return s.wall.filter((w) => w.kind === 'image' && !wallMenuProblem(w)).map((w) => ({ id: w.menuId!, name: w.menuName!.trim() === w.menuName ? w.menuName! : w.menuName!.trim(), jpeg: w.menuJpeg! }));
+}
+/** In menu mode: every image is ready (names valid, encoded), and there is at least one. */
+export function menuReady(s: State = state): boolean {
+  return s.wallMode === 'menu' && s.wall.length > 0 && s.wall.length <= SHUTDOWN_MAX_PICTURES && s.wall.every((w) => !wallMenuProblem(w));
+}
 export function setCrop(id: string, crop: Crop): void { setWall(id, { crop }); set({ cropId: undefined }); void encodeWall(id); scheduleSave(); }
 
 // ------------------------------------------------------------------ soft focus
@@ -820,7 +887,9 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   if (!stock && (hasNameErrors() || hasRatioErrors())) return;
   if (!stock && hasExtraErrors()) { toast(t('extraIncomplete'), 'error'); return; }
   const extras = stock ? [] : extraSpecs();
-  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && extras.length === 0) { toast(t('nothingToDo'), 'info'); return; }
+  if (!stock && state.wallMode === 'menu' && state.wall.length > 0 && !menuReady()) { toast(t('wallMenuIncomplete'), 'error'); return; }
+  const pictures = stock ? [] : menuPictures();
+  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && extras.length === 0 && pictures.length === 0) { toast(t('nothingToDo'), 'info'); return; }
   if (dest.kind === 'card') {
     const lines = stock ? [t('copyOfficial')] : changes.map((c) => `${t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
     if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
@@ -828,6 +897,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (dateStamp) lines.push(t('dateLine'));
     if (monoUnlock) lines.push(t('monoLine'));
     if (extras.length) lines.push(t('extraLine', { n: extras.length, l: extras.map((x) => (x.halation ? `${x.name} (${t('halation')})` : x.name)).join(' / ') }));
+    if (pictures.length) lines.push(t('wallMenuLine', { n: pictures.length, l: pictures.map((p) => p.name).join(' / ') }));
     if (!(await ask(t('confirmTitle'), lines, t('confirmOk')))) return;
   }
   const target = await destination(dest);
@@ -837,7 +907,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (stock) file = state.raw;
     else {
       set({ busy: t('building') });
-      const built = await engine.build(changes.map((c) => c.request), ratios, [], { adjSoftFocus: soft, dateStamp, monoUnlock, ...(extras.length ? { extraSlots: extras } : {}) });
+      const built = await engine.build(changes.map((c) => c.request), ratios, [], { adjSoftFocus: soft, dateStamp, monoUnlock, ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}) });
       if (!Object.values(built.checks).every((v) => v === true)) throw new EngineError('selfcheck-failed', 'self-check');
       file = built.file;
       void recordBuild(file, changes);
@@ -896,6 +966,7 @@ export async function outputEntry(dest: Dest): Promise<void> {
   void refreshVolumes();
 }
 export function wallReady(s: State = state): boolean {
+  if (s.wallMode === 'menu') return menuReady(s);
   return s.wall.length > 0 && s.wall.every((w) => !w.busy && !w.error && !!w.data);
 }
 export async function outputWallpaper(dest: Dest): Promise<void> {
@@ -1072,6 +1143,7 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
   if (summary.dateStamp) lines.push(t('dateLine'));
   if (summary.monoUnlock) lines.push(t('monoLine'));
   if (summary.extraSlots?.length) lines.push(t('extraLine', { n: summary.extraSlots.length, l: summary.extraSlots.map((x) => x.name).join(' / ') }));
+  if (summary.shutdownPictures?.length) lines.push(t('wallMenuLine', { n: summary.shutdownPictures.length, l: summary.shutdownPictures.map((p) => p.name).join(' / ') }));
   if (summary.softFocus?.length) lines.push(t('softLine', { l: softText(summary.softFocus) }));
   return lines;
 }
