@@ -3,6 +3,7 @@
  * and offers everything the app does with it. Pure TypeScript, no platform APIs.
  */
 import {
+  COMP_OFFSET,
   CONTENT_AREA,
   DECODED_SIZE,
   FIRMWARE_VERSION,
@@ -354,7 +355,7 @@ export class Engine {
    */
   async inspect(raw: Uint8Array): Promise<FirmwareSummary> {
     const sha256 = await sha256Hex(raw);
-    if (raw.length === BRIDGE_SIZE && sha256 === BRIDGE_SHA256) return { sha256, kind: 'bridge', changedBytes: 0, verified: true, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false, extraSlots: [] };
+    if (raw.length === BRIDGE_SIZE && sha256 === BRIDGE_SHA256) return { sha256, kind: 'bridge', changedBytes: 0, verified: true, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false, hlgPhoto: false, extraSlots: [] };
     const describe = (d: Uint8Array): FirmwareSummary['slots'] =>
       SLOTS.map((s) => {
         const names = {} as Record<LangCode, string>;
