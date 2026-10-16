@@ -100,12 +100,13 @@ const zh = {
   softAdjSub: '直出模拟柔光滤镜效果', softAdjLine: '柔焦  ·  ADJ 拨杆（关 / 弱 / 中 / 强）',
   navDate: '时间戳', dateSub: '启用日期打印功能', dateLine: '时间戳  ·  拍摄辅助 › 拍摄时间戳（\'26 10 08 / 2026.10.08 17:34）',
   navMono: '黑白预设', monoSub: '解锁 GR IV Monochrome 的照片风格', monoLine: '黑白预设  ·  解锁 GR IV Monochrome 的照片风格',
+  navHlg: 'HLG 照片', hlgSub: '机内直出 BT.2100 HLG HDR 照片（基于 HDR 色调槽位）', hlgLine: 'HLG 照片  ·  机内直出 BT.2100 HLG（Rec.2020 + CICP）',
   extraTitle: '新增槽位', extraSub: '在 Cinema 之后再加影像控制槽位，最多 {n} 个', extraAdd: '新增槽位', extraCountLabel: '新增 {n} 个', extraNone: '不新增',
   prevSlot: '上一个槽位', nextSlot: '下一个槽位',
   halation: '光晕', haloLabel: '光晕', halationSub: '启用可在照片高光处增添仿无碳层胶片的红色光晕', haloPreview: '预览', haloOff: '关', haloWeak: '弱', haloStrong: '强',
   extraSlot: '新增槽位 {n}', extraNameLong: '最多 12 个字符', extraNameBad: '仅限英文、数字、符号', extraNeedsPreset: '需要导入预设', extraNeedsIcon: '需要图标',
   extraMax: '最多新增 {n} 个槽位', extraIncomplete: '有新增槽位还没准备好（预设、名称或图标）', extraLine: '新增影像控制槽位 {n}  ·  {l}', extraRemove: '删除这个槽位',
-  tIcSoftT: '附加功能', tIcSoftB: '柔焦：打开后，可将“柔焦”效果增添到 ADJ 快捷菜单，有关、弱、中、强四档，效果无法实时预览，可与 HDF 滤镜同时启用。\n时间戳：在照片右下角打印日期。刷入后默认关闭，在“拍摄辅助 › 拍摄时间戳”里打开，可选两种样式。\n黑白风格：解锁 GR IV Monochrome 机型的 6 个黑白风格。',
+  tIcSoftT: '附加功能', tIcSoftB: '柔焦：打开后，可将“柔焦”效果增添到 ADJ 快捷菜单，有关、弱、中、强四档，效果无法实时预览，可与 HDF 滤镜同时启用。\n时间戳：在照片右下角打印日期。刷入后默认关闭，在“拍摄辅助 › 拍摄时间戳”里打开，可选两种样式。\n黑白风格：解锁 GR IV Monochrome 机型的 6 个黑白风格。\nHLG 照片：将“HDR色调”改造为机内直出 BT.2100 HLG HDR 照片（Rec.2020 + CICP）。',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -209,12 +210,13 @@ const en: typeof zh = {
   softAdjSub: 'A soft-focus filter look, straight out of camera', softAdjLine: 'Soft focus  ·  ADJ lever (off / low / medium / high)',
   navDate: 'Date imprint', dateSub: 'Print the date on photos', dateLine: 'Date imprint  ·  Shooting Assist › Date Imprint (\'26 10 08 / 2026.10.08 17:34)',
   navMono: 'B&W presets', monoSub: 'Unlock the looks of the GR IV Monochrome', monoLine: 'B&W presets  ·  the looks of the GR IV Monochrome unlocked',
+  navHlg: 'HLG Photo', hlgSub: 'In-camera BT.2100 HLG HDR photos (via HDR Tone slot)', hlgLine: 'HLG Photo  ·  In-camera BT.2100 HLG (Rec.2020 + CICP)',
   extraTitle: 'Added slots', extraSub: 'More Image Control slots after the Cinema ones, at most {n}', extraAdd: 'Add slot', extraCountLabel: '{n} added', extraNone: 'None',
   prevSlot: 'Previous slot', nextSlot: 'Next slot',
   halation: 'Halation', haloLabel: 'Halo', halationSub: 'When on, adds the red halation of film without a remjet layer around the highlights', haloPreview: 'Preview', haloOff: 'Off', haloWeak: 'Weak', haloStrong: 'Strong',
   extraSlot: 'Added slot {n}', extraNameLong: 'At most 12 characters', extraNameBad: 'Letters, digits and symbols only', extraNeedsPreset: 'Needs a preset', extraNeedsIcon: 'Needs an icon',
   extraMax: 'At most {n} added slots', extraIncomplete: 'An added slot is not ready yet (preset, name or icon)', extraLine: 'Added Image Control slots {n}  ·  {l}', extraRemove: 'Remove this slot',
-  tIcSoftT: 'Additions', tIcSoftB: 'Soft focus: adds "Soft Focus" to the ADJ lever, with off, low, medium and high. The effect cannot be seen in live view; it can be used together with the HDF filter.\nDate imprint: prints the date in the bottom right corner of the photo. Off after flashing; turn it on under Shooting Assist › Date Imprint, two styles.\nB&W looks: unlocks the 6 black-and-white looks of the GR IV Monochrome.',
+  tIcSoftT: 'Additions', tIcSoftB: 'Soft focus: adds "Soft Focus" to the ADJ lever, with off, low, medium and high. The effect cannot be seen in live view; it can be used together with the HDF filter.\nDate imprint: prints the date in the bottom right corner of the photo. Off after flashing; turn it on under Shooting Assist › Date Imprint, two styles.\nB&W looks: unlocks the 6 black-and-white looks of the GR IV Monochrome.\nHLG photo: transforms "HDR Tone" into in-camera direct BT.2100 HLG HDR capture (Rec.2020 + CICP).',
 };
 export type Key = keyof typeof zh;
 const dict = (navigator.language || 'zh').toLowerCase().startsWith('zh') ? zh : en;

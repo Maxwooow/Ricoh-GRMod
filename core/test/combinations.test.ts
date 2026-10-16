@@ -13,11 +13,12 @@
  */
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Engine, fw } from '../src';
 import type { BuildOptions } from '../src/app/engine';
 import { testPresetRequests, testRatios } from './fw-helpers/test-firmware';
 
-const P = new URL('../testdata/private/', import.meta.url).pathname;
+const P = fileURLToPath(new URL('../testdata/private/', import.meta.url));
 const have = existsSync(P + 'official.bin');
 
 /** SHA-256 of soft focus only, as built before ICONBIN was allowed to stay unchanged. */

@@ -7,9 +7,10 @@
  */
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Engine, fw } from '../src';
 
-const P = new URL('../testdata/private/', import.meta.url).pathname;
+const P = fileURLToPath(new URL('../testdata/private/', import.meta.url));
 const have = existsSync(P + 'official.bin');
 const { aspect } = fw;
 

@@ -8,12 +8,13 @@
  */
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Engine, color, fw } from '../src';
 import { syntheticSamples } from '../src/color/convert';
 import type { ExtraSlotSpec } from '../src/fw';
 import { Patch } from '../src/fw/aspect/build';
 
-const P = new URL('../testdata/private/', import.meta.url).pathname;
+const P = fileURLToPath(new URL('../testdata/private/', import.meta.url));
 const have = existsSync(P + 'official.bin');
 const { aspect } = fw;
 

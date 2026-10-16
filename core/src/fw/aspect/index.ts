@@ -16,3 +16,4 @@ export { EXTRA_FIRST_STYLE, EXTRA_ICON_BYTES, EXTRA_ICON_ID, EXTRA_NAME_MAX, EXT
 export type { ExtraSlotSpec } from './slots';
 export { HALATION, HALATION_NAMES, halateRgba, halateYcc, halationIcon, halationLight, halationLut, halationScale, paramBytes, PLAIN_LIGHT, readHalationLight } from './halation';
 export type { HalationLight } from './halation';
+export { HOOK_SITE as HLG_HOOK_SITE, TARGET_TEXT_ID as HLG_TEXT_ID, TARGET_TONE_ID as HLG_TONE_ID, installHlgPhoto } from './hlg';
