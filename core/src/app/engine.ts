@@ -500,6 +500,11 @@ export class Engine {
    * new one must not collide with them). Never throws.
    */
   previewRatio(ratio: string, others: readonly string[] = []): RatioPreview {
+    return this.ratioPreview(ratio, others, true);
+  }
+
+  /** `suggest`: look for the nearest ratios that work; the candidates themselves are checked without it (else each would search again, without end). */
+  private ratioPreview(ratio: string, others: readonly string[], suggest: boolean): RatioPreview {
     try {
       const g = planRatio(ratio);
       for (const o of others) {
@@ -530,7 +535,7 @@ export class Engine {
       if (e instanceof FirmwareError) {
         const known = ['bad-ratio', 'ratio-factory', 'ratio-too-extreme', 'ratio-quick-view', 'ratio-metering', 'ratio-conflict'];
         const problem = (known.includes(e.code) ? e.code : 'bad-ratio') as RatioPreview['problem'];
-        if (problem !== 'ratio-quick-view') return { problem };
+        if (problem !== 'ratio-quick-view' || !suggest) return { problem };
         // Step the screen rectangle 4 pixels at a time in both directions until a ratio works.
         const nearest: string[] = [];
         try {
@@ -544,7 +549,7 @@ export class Engine {
                 const h = wideFrame ? screen.height + direction * 4 * k : aspect.SCREEN_H;
                 if (!(w >= 4 && w <= aspect.SCREEN_W && h >= 4 && h <= aspect.SCREEN_H)) break;
                 const candidate = ratioText(w, h);
-                if (this.previewRatio(candidate, others).problem === undefined) {
+                if (this.ratioPreview(candidate, others, false).problem === undefined) {
                   nearest.push(candidate);
                   break;
                 }

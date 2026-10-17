@@ -280,9 +280,17 @@ export function ConfirmDialog() {
         <h3>{c.title}</h3>
         {c.lines.length > 0 && <ul className={`dialog-lines ${c.warn ? '' : 'last'}`}>{c.lines.map((l) => <li key={l}>{l}</li>)}</ul>}
         {c.warn && <p className="dialog-warn">{c.warn}</p>}
+        {c.reset && (
+          <div className="dialog-reset" role="note">
+            <b>{t('resetNoteTitle')}</b>
+            <span>{t('resetNoteBody')}</span>
+            <span className="dialog-reset-path">{t('resetNotePath')}</span>
+          </div>
+        )}
         <div className="dialog-actions">
-          <button className="btn" onClick={() => answerConfirm(false)}>{t('cancel')}</button>
-          <button className="btn primary" autoFocus onClick={() => answerConfirm(true)}>{c.ok}</button>
+          {/* writing the official firmware: Cancel has the focus, the red button must be clicked */}
+          <button className="btn" autoFocus={!!c.reset} onClick={() => answerConfirm(false)}>{t('cancel')}</button>
+          <button className={c.reset ? 'btn danger-solid' : 'btn primary'} autoFocus={!c.reset} onClick={() => answerConfirm(true)}>{c.ok}</button>
         </div>
       </div>
     </div>

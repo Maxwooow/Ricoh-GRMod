@@ -170,6 +170,20 @@ describe.skipIf(!have)('added slots: firmware files', () => {
     expect(plain.sha256).toBe(none.sha256);
   }, 120_000);
 
+  it('halation on all six added slots (what GR Mod 0.7.4 always builds), with soft focus and the date imprint', async () => {
+    const eng = await Engine.open(raw());
+    const slots = Array.from({ length: 6 }, (_, i) => ({ ...slotSpec(eng, i % 3), name: `Look ${i + 1}`, halation: true }));
+    const b = await eng.buildFirmware([], [], [], { dateStamp: true, adjSoftFocus: true, extraSlots: slots });
+    expect(Object.values(b.checks).every((v) => v === true)).toBe(true);
+    expect((await eng.inspect(b.file)).verified).toBe(true);
+    const d = new fw.Firmware(b.file).decoded;
+    const secs = fw.sectionsOf(d);
+    const rtos = secs.find((x) => x.name === 'RTOS')!;
+    const icons = secs.find((x) => x.name === 'ICONBIN')!;
+    const back = aspect.readExtraSlots(d.slice(rtos.offset, rtos.offset + rtos.size), d.subarray(icons.offset, icons.offset + icons.size), 6)!;
+    expect(back.map((x) => x.halation)).toEqual([true, true, true, true, true, true]);
+  }, 180_000);
+
   it('halation preview: the fixed look lifts red first and leaves dark pictures alone', () => {
     const w = 400, h = 300;
     const img = (light: boolean): Uint8ClampedArray => {

@@ -49,7 +49,7 @@ function Swatches({ params }: { params?: color.SlotParams }) {
 /** The sample photograph with the original on the left of a draggable divider and the preset on the right. */
 function PhotoCompare({ params }: { params?: color.SlotParams }) {
   const photo = usePhoto();
-  const halo = useStore((s) => { const x = s.extras.find((e) => e.key === s.activeSlot); return x?.halation?.on && x.halation.preview ? x.halation : undefined; });
+  const halo = useStore((s) => { const x = s.extras.find((e) => e.key === s.activeSlot); return x?.halation?.preview ? x.halation : undefined; });
   // where the slot's light starts: its own look decides how bright the highlights end up
   const result = useStore((s) => s.extras.find((e) => e.key === s.activeSlot)?.preset?.result);
   const light = useMemo(() => (result ? halationLight(result.curves, result.postQ9) : undefined), [result]);
@@ -309,14 +309,10 @@ function HalationProp({ x }: { x: ExtraSlot }) {
   return (
     <Prop label={t('haloLabel')}>
       <div className="halo">
+        {/* Every added slot has it: the camera switches it (the slot's "Halation" parameter); here only the preview. */}
         <div className="chips">
-          <Switch checked={h.on} onChange={(on) => setHalation(k, { on })} label={t('halation')} />
-          {h.on && (
-            <>
-              <span className="muted small">{t('haloPreview')}</span>
-              <Segmented value={String(h.preview)} onChange={(v) => setHalation(k, { preview: Number(v) as 0 | 1 | 2 })} options={[{ value: '0', label: t('haloOff') }, { value: '1', label: t('haloWeak') }, { value: '2', label: t('haloStrong') }]} />
-            </>
-          )}
+          <span className="muted small">{t('haloPreview')}</span>
+          <Segmented value={String(h.preview)} onChange={(v) => setHalation(k, { preview: Number(v) as 0 | 1 | 2 })} options={[{ value: '0', label: t('haloOff') }, { value: '1', label: t('haloWeak') }, { value: '2', label: t('haloStrong') }]} />
         </div>
         <span className="muted small halo-note">{t('halationSub')}</span>
       </div>

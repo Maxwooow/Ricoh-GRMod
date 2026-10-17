@@ -195,7 +195,7 @@ svg { width: 18px; height: 18px; flex: none; }
 .dialog-lines li { padding: 6px 10px; background: var(--chip); border-radius: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dialog-lines.last { margin-bottom: 18px; }
 .dialog-warn { margin: 0 0 18px; padding: 9px 12px; border-radius: 6px; background: var(--amber-bg); color: var(--amber); font-size: 13.5px; }
-.dialog-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .dialog-actions.spread { align-items: center; padding-top: 14px; }
 .dialog.crop { width: auto; padding: 16px 16px 14px; }
 .crop-stage { position: relative; background: var(--stage); border-radius: 6px; display: grid; place-items: center; touch-action: none; }
@@ -467,3 +467,10 @@ button.fw-rel:disabled { cursor: default; }
 .halo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .halo .chips { align-items: center; }
 .halo-note { line-height: 1.35; }
+
+/* writing the factory firmware: reset first */
+.dialog-reset { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 16px; padding: 12px 14px; border: 1px solid var(--red); border-radius: 10px; background: color-mix(in srgb, var(--red) 12%, transparent); font-size: 13px; line-height: 1.5; }
+.dialog-reset b { color: var(--red); font-size: 14px; }
+.dialog-reset-path { font-weight: 600; }
+.btn.danger-solid { background: var(--red); border-color: var(--red); color: #fff; font-weight: 600; }
+.btn.danger-solid:hover { filter: brightness(1.08); }

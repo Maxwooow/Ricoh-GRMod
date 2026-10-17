@@ -406,4 +406,18 @@ describe.skipIf(!have)('aspect: firmware files', () => {
     expect(eng.previewRatio('720:268').problem).toBe('ratio-quick-view');
     expect(eng.validateRatioName('65:24')).toBeNull();
   });
+
+  it('answers quickly for whatever is typed on the way to a ratio (a refused ratio\'s neighbours are not searched again)', async () => {
+    const eng = await Engine.open(raw);
+    // "5" (5:1) is refused for the playback screen and so were the neighbours tried for it; each searched its own
+    // neighbours in turn and the worker never answered again (0.7.4: rows kept spinning until GR Mod was restarted)
+    const typed = ['5', '5:', '5.3', '53', '26', '7', '2', '2:6', '5:3', '12', '99', '1.2', '0.5', '3.5:1'];
+    for (const r of typed) {
+      const t = Date.now();
+      const p = eng.previewRatio(r, ['65:24', '2:1', '5:4']);
+      expect(Date.now() - t, r).toBeLessThan(2000);
+      if (p.problem === 'ratio-quick-view') for (const n of p.nearest!) expect(eng.previewRatio(n, ['65:24', '2:1', '5:4']).problem, n).toBeUndefined();
+    }
+    expect(eng.previewRatio('5').problem).toBe('ratio-quick-view');
+  }, 120_000);
 });

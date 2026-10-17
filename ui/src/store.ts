@@ -47,7 +47,8 @@ export type TourId = 'overview' | Page;
 export const TOUR_IDS: readonly TourId[] = ['overview', 'ic', 'ratio', 'wall', 'copies'];
 /** The tour being shown: `steps` are the indices of its steps that have something to point at; a replay can be skipped. */
 export interface TourState { id: TourId; steps: number[]; index: number; replay: boolean }
-export interface Confirm { title: string; warn?: string; lines: string[]; ok: string; resolve: (v: boolean) => void }
+/** `reset`: the firmware written is the official one; the dialog asks in red whether the camera's settings were reset first. */
+export interface Confirm { title: string; warn?: string; reset?: boolean; lines: string[]; ok: string; resolve: (v: boolean) => void }
 export interface State {
   ready: boolean; page: Page;
   fwName?: string; fwBusy: boolean; info?: FirmwareInfo; raw?: Uint8Array;
@@ -109,8 +110,17 @@ export function toast(text: string, kind: Toast['kind'] = 'info', action?: Toast
   setTimeout(() => dismissToast(id), kind === 'error' ? 9000 : action ? 12000 : 4500);
 }
 export function dismissToast(id: number): void { set((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) })); }
-function ask(title: string, lines: string[], ok: string, warn?: string): Promise<boolean> {
-  return new Promise((resolve) => set({ confirm: { title, warn, lines, ok, resolve } }));
+function ask(title: string, lines: string[], ok: string, warn?: string, reset = false): Promise<boolean> {
+  return new Promise((resolve) => set({ confirm: { title, warn, lines, ok, resolve, ...(reset ? { reset } : {}) } }));
+}
+/**
+ * Before the official firmware goes back on the camera: settings made with GR Mod's firmware (an
+ * added slot or ratio selected, soft focus on the ADJ lever, the date imprint, added slots'
+ * parameters) are values the official firmware does not know and may freeze on. The dialog says so
+ * in red and its button confirms that the camera was reset to factory defaults.
+ */
+function askOfficial(lines: string[]): Promise<boolean> {
+  return ask(t('resetConfirmTitle'), lines, t('resetConfirmOk'), undefined, true);
 }
 export function answerConfirm(v: boolean): void { const c = state.confirm; set({ confirm: undefined }); c?.resolve(v); }
 function fail(e: unknown): void {
@@ -356,7 +366,7 @@ export function extraSpecs(s: State = state): ExtraSlotSpec[] {
   if (s.model === 'MONO') return [];
   return s.extras.map((x) => {
     const r = x.preset!.result!;
-    return { name: extraName(x, s), matrixQ13: r.matrixQ13, curves: r.curves, ...(r.postQ9 ? { postQ9: r.postQ9 } : {}), icon: x.icon.pixels!, ...(x.halation?.on ? { halation: true } : {}) };
+    return { name: extraName(x, s), matrixQ13: r.matrixQ13, curves: r.curves, ...(r.postQ9 ? { postQ9: r.postQ9 } : {}), icon: x.icon.pixels!, halation: true };
   });
 }
 
@@ -368,14 +378,13 @@ function validHalation(v: unknown): HalationState | null {
   return { on: h.on === true, preview: h.preview === 1 || h.preview === 2 ? h.preview : 0 };
 }
 export function halationOf(x: ExtraSlot): HalationState {
-  return x.halation ?? { on: false, preview: 2 };
+  return x.halation ?? { on: true, preview: 0 };
 }
-/** Change an added slot's halation (switching it on shows the strong level in the preview). */
+/** Change the halation preview level of an added slot (every added slot carries halation; the camera switches it). */
 export function setHalation(key: string, patch: Partial<HalationState>): void {
   set((s) => ({ extras: s.extras.map((x) => {
     if (x.key !== key) return x;
     const next = { ...halationOf(x), ...patch };
-    if (patch.on === true && !x.halation?.on) next.preview = 2;
     return { ...x, halation: next };
   }) }));
   scheduleSave();
@@ -825,14 +834,15 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   if (!stock && hasExtraErrors()) { toast(t('extraIncomplete'), 'error'); return; }
   const extras = stock ? [] : extraSpecs();
   if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && !hlgPhoto && extras.length === 0) { toast(t('nothingToDo'), 'info'); return; }
-  if (dest.kind === 'card') {
-    const lines = stock ? [t('copyOfficial')] : changes.map((c) => `${t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
+  if (stock && !(await askOfficial([t('copyOfficial')]))) return;
+  if (dest.kind === 'card' && !stock) {
+    const lines = changes.map((c) => `${t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
     if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
     if (soft) lines.push(t('softAdjLine'));
     if (dateStamp) lines.push(t('dateLine'));
     if (monoUnlock) lines.push(t('monoLine'));
     if (hlgPhoto) lines.push(t('hlgLine'));
-    if (extras.length) lines.push(t('extraLine', { n: extras.length, l: extras.map((x) => (x.halation ? `${x.name} (${t('halation')})` : x.name)).join(' / ') }));
+    if (extras.length) lines.push(t('extraLine', { n: extras.length, l: extras.map((x) => x.name).join(' / ') }));
     if (!(await ask(t('confirmTitle'), lines, t('confirmOk')))) return;
   }
   const target = await destination(dest);
@@ -1089,7 +1099,8 @@ export async function writeCopy(): Promise<void> {
   if (bridgeLoaded()) { askForOfficial(); return; }
   if (!pick) return;
   if (!v) { toast(t('noCard'), 'error'); return; }
-  if (!(await ask(t('confirmTitle'), describeCopy(pick.summary), t('confirmOk')))) return;
+  const official = pick.summary.kind === 'official';
+  if (!(await (official ? askOfficial(describeCopy(pick.summary)) : ask(t('confirmTitle'), describeCopy(pick.summary), t('confirmOk'))))) return;
   try {
     set({ busy: t('opening') });
     const file = source === 'card' ? await host.parkedRead(v.id, pick.entry.path) : await host.backupRead(pick.entry.path);
