@@ -48,6 +48,7 @@ const FEATURE_ADJ_SOFT_FOCUS = 1;
 const FEATURE_DATE_STAMP = 2;
 const FEATURE_MONO_UNLOCK = 4;
 const FEATURE_EXTRA_SLOTS = 8;
+const FEATURE_HLG_PHOTO = 16;
 
 /**
  * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
@@ -62,7 +63,15 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
     bytes.push(r.length, ...r, n.length, ...n);
   }
   const slots = features.extraSlots?.length ?? 0;
-  if (revision >= 3) bytes.push((features.adjSoftFocus ? FEATURE_ADJ_SOFT_FOCUS : 0) | (features.dateStamp ? FEATURE_DATE_STAMP : 0) | (features.monoUnlock ? FEATURE_MONO_UNLOCK : 0) | (slots > 0 ? FEATURE_EXTRA_SLOTS : 0));
+  if (revision >= 3) {
+    bytes.push(
+      (features.adjSoftFocus ? FEATURE_ADJ_SOFT_FOCUS : 0) |
+      (features.dateStamp ? FEATURE_DATE_STAMP : 0) |
+      (features.monoUnlock ? FEATURE_MONO_UNLOCK : 0) |
+      (slots > 0 ? FEATURE_EXTRA_SLOTS : 0) |
+      (features.hlgPhoto ? FEATURE_HLG_PHOTO : 0)
+    );
+  }
   if (revision >= 3 && slots > 0) bytes.push(slots);
   else if (slots > 0) fail('internal', 'added slots need revision 3');
   while (bytes.length % 4) bytes.push(0);
@@ -121,16 +130,17 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
   if (revision >= 3) {
     if (p >= rec.length) return null;
     const f = rec[p++];
-    if ((f & ~(FEATURE_ADJ_SOFT_FOCUS | FEATURE_DATE_STAMP | FEATURE_MONO_UNLOCK | FEATURE_EXTRA_SLOTS)) !== 0) return null;
+    if ((f & ~(FEATURE_ADJ_SOFT_FOCUS | FEATURE_DATE_STAMP | FEATURE_MONO_UNLOCK | FEATURE_EXTRA_SLOTS | FEATURE_HLG_PHOTO)) !== 0) return null;
     if (f & FEATURE_ADJ_SOFT_FOCUS) features.adjSoftFocus = true;
     if (f & FEATURE_DATE_STAMP) features.dateStamp = true;
     if (f & FEATURE_MONO_UNLOCK) features.monoUnlock = true;
+    if (f & FEATURE_HLG_PHOTO) features.hlgPhoto = true;
     if (f & FEATURE_EXTRA_SLOTS) {
       if (p >= rec.length) return null;
       extraSlots = rec[p++];
       if (!(extraSlots >= 1 && extraSlots <= MAX_EXTRA_SLOTS)) return null;
     }
-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && extraSlots === 0) return null;
+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.hlgPhoto && extraSlots === 0) return null;
   }
   for (; p < rec.length; p++) if (rec[p] !== 0) return null;
   return { specs: out, features, extraSlots };

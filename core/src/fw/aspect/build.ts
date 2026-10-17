@@ -33,6 +33,7 @@ import { installDateStampMenu } from './datestamp-menu';
 import { installMonoUnlock } from './monounlock';
 import { installExtraSlots } from './slots';
 import type { ExtraSlotSpec } from './slots';
+import { installHlgPhoto } from './hlg';
 
 export const BASE = 0x53000000;
 export const OFFICIAL_RTOS_LENGTH = 0x13d2ac0;
@@ -112,6 +113,8 @@ export interface ExtensionFeatures {
   monoUnlock?: boolean;
   /** Added Image Control slots, 1 to 6 (see `slots.ts`). */
   extraSlots?: readonly ExtraSlotSpec[];
+  /** In-camera direct BT.2100 HLG HDR photo capture on HDR Tone slot (see `hlg.ts`). */
+  hlgPhoto?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -970,7 +973,7 @@ export function installRatios(rtos: Uint8Array, iconbin: Uint8Array, ratios: rea
  */
 export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
   const slots = features.extraSlots ?? [];
-  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0;
+  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || !!features.hlgPhoto || slots.length > 0;
   if (extra) revision = 3;
   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
@@ -1004,9 +1007,23 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
     installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : DATESTAMP_BYTE, !!test.dateStampDiag);
     if (!fixed) icons = installDateStampMenu(patch, icons);
   }
+  if (features.hlgPhoto) installHlgPhoto(patch);
   // Last: the added slots compose with the monochrome looks' visibility check.
   if (slots.length > 0) icons = installExtraSlots(patch, icons, slots);
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}) } };
+  return {
+    revision,
+    rtos: patch.bytes(),
+    iconbin: icons,
+    ratios: [...ratios],
+    words: patch.words,
+    features: {
+      adjSoftFocus: !!features.adjSoftFocus,
+      ...(features.dateStamp ? { dateStamp: true } : {}),
+      ...(features.monoUnlock ? { monoUnlock: true } : {}),
+      ...(features.hlgPhoto ? { hlgPhoto: true } : {}),
+      ...(slots.length > 0 ? { extraSlots: [...slots] } : {}),
+    },
+  };
 }
