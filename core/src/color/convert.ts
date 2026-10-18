@@ -4,7 +4,8 @@ import type { SlotParams } from './camera';
 import { applyCube, parseCube } from './cube';
 import { CAL_ADOBE, CAL_CAM } from './data';
 import { fitSlot } from './fit';
-import { refineSlot } from './refine';
+import { refineHue, refineSlot } from './refine';
+import { hueQuantize } from './hue';
 import { FullLook } from './look';
 import { deltaE, linToSrgb, mean, percentile, srgbToLin } from './math';
 import { parseXmp } from './xmp';
@@ -20,6 +21,8 @@ export interface Conversion {
   p95DE: number;
   warnings: string[];
   unsupported: string[];
+  /** 12 x 9 Q10 hue matrices for the added slot's multi-axis block, when they helped. */
+  hueQ10?: number[][];
 }
 
 export interface ConvertOptions {
@@ -236,14 +239,20 @@ export function convertCube(text: string, opts?: ConvertOptions): Conversion {
   const post = opts?.post !== false;
   const fit = fitSlot(P, target, { onProgress: subProgress(opts, 0.1, post ? 0.55 : 1), post });
   let params: SlotParams = fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck };
+  let hueQ10: number[][] | undefined;
   if (post) {
     const ref = cubeRefineSamples();
     const refTarget = applyCube(cube, ref.P);
     const refined = refineSlot(params, ref.P, refTarget, {
       weights: ref.weights, iterations: 8,
-      onProgress: subProgress(opts, 0.55, 0.98),
+      onProgress: subProgress(opts, 0.55, 0.9),
     });
     params = refined.P2 ? { M1: refined.M1, ck: refined.ck, P2: refined.P2 } : { M1: refined.M1, ck: refined.ck };
+    const hue = refineHue(refined, ref.P, refTarget, { weights: ref.weights, iterations: 6, onProgress: subProgress(opts, 0.9, 0.98) });
+    if (hue.meanDE2000 < refined.meanDE2000 * 0.995) {
+      params = { M1: hue.M1, ck: hue.ck, ...(hue.P2 ? { P2: hue.P2 } : {}), hue: hue.hue };
+      hueQ10 = hueQuantize(hue.hue);
+    }
   }
   const pred = slotApply(params, P);
   const de76 = deltaE(pred, target);
@@ -256,6 +265,7 @@ export function convertCube(text: string, opts?: ConvertOptions): Conversion {
     p95DE: percentile(de76, 95),
     warnings: [],
     unsupported: [],
+    ...(hueQ10 ? { hueQ10 } : {}),
   };
 }
 

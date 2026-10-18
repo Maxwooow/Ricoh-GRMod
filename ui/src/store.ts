@@ -374,7 +374,7 @@ export function extraSpecs(s: State = state): ExtraSlotSpec[] {
   if (s.model === 'MONO') return [];
   return s.extras.map((x) => {
     const r = x.preset!.result!;
-    return { name: extraName(x, s), matrixQ13: r.matrixQ13, curves: r.curves, ...(r.postQ9 ? { postQ9: r.postQ9 } : {}), icon: x.icon.pixels!, halation: true };
+    return { name: extraName(x, s), matrixQ13: r.matrixQ13, curves: r.curves, ...(r.postQ9 ? { postQ9: r.postQ9 } : {}), ...(r.hueQ10 ? { hueQ10: r.hueQ10.flat() } : {}), icon: x.icon.pixels!, halation: true };
   });
 }
 
