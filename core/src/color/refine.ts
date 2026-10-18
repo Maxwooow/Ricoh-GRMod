@@ -199,3 +199,104 @@ export function refineSlot(params: SlotParams, P: Float64Array, target: Float64A
     iterations,
   };
 }
+
+// ------------------------------------------------------------------ hue sectors
+import { hueMatricesFromD } from './hue';
+
+export interface HueRefineResult extends SlotParams {
+  /** 12 x 9 float matrices (Q10 scale), ready for `hueQuantize`. */
+  hue: number[][];
+  meanDE2000: number;
+  p95DE2000: number;
+}
+
+/**
+ * Fit the 12 x 3 hue-sector parameters (the same parametrisation the camera's multi-axis block
+ * uses) with the look matrix, curves and post matrix held at `params`. The identity start leaves
+ * the base fit unchanged; colours whose hue the base model cannot follow get a sector matrix.
+ */
+export function refineHue(params: SlotParams, P: Float64Array, target: Float64Array, opts: RefineOptions = {}): HueRefineResult {
+  const nSamples = P.length / 3;
+  if (target.length !== P.length) throw new Error('refineHue: P and target differ in length');
+  const weights = opts.weights ?? new Float64Array(nSamples).fill(1);
+  const iterations = opts.iterations ?? 6;
+  const labT = lab(target);
+  const base: SlotParams = { ...params };
+  const x = new Float64Array(36);
+  const steps = new Float64Array(36).fill(0.01);
+
+  const build = (v: Float64Array): SlotParams => ({ ...base, hue: hueMatricesFromD(v) });
+  const residuals = (v: Float64Array, out?: Float64Array): Float64Array => {
+    const q = build(v);
+    const rgb = slotApply(q, P);
+    const de = deltaE2000Lab(lab(rgb), labT);
+    const r = out ?? new Float64Array(nSamples);
+    for (let i = 0; i < nSamples; i++) r[i] = Math.sqrt(weights[i]) * de[i];
+    return r;
+  };
+
+  let r = residuals(x);
+  let cost = 0;
+  for (let i = 0; i < nSamples; i++) cost += r[i] * r[i];
+  let lambda = 1e-3;
+  const J = new Float64Array(36 * nSamples);
+  const JTJ = new Float64Array(36 * 36);
+  const JTr = new Float64Array(36);
+  const trial = new Float64Array(36);
+  const rTrial = new Float64Array(nSamples);
+
+  for (let it = 0; it < iterations; it++) {
+    for (let k = 0; k < 36; k++) {
+      trial.set(x);
+      trial[k] += steps[k];
+      const rk = residuals(trial, rTrial);
+      for (let i = 0; i < nSamples; i++) J[k * nSamples + i] = (rk[i] - r[i]) / steps[k];
+    }
+    for (let a = 0; a < 36; a++) {
+      JTr[a] = 0;
+      for (let i = 0; i < nSamples; i++) JTr[a] += J[a * nSamples + i] * r[i];
+      for (let b = 0; b <= a; b++) {
+        let s = 0;
+        for (let i = 0; i < nSamples; i++) s += J[a * nSamples + i] * J[b * nSamples + i];
+        JTJ[a * 36 + b] = s;
+        JTJ[b * 36 + a] = s;
+      }
+    }
+    let accepted = false;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const A = Float64Array.from(JTJ);
+      for (let a = 0; a < 36; a++) {
+        const d = JTJ[a * 36 + a];
+        A[a * 36 + a] += lambda * (d > 1e-30 ? d : 1);
+      }
+      const neg = Float64Array.from(JTr, (v) => -v);
+      const dx = solve(A, neg, 36);
+      if (!dx) { lambda *= 10; continue; }
+      trial.set(x);
+      for (let a = 0; a < 36; a++) trial[a] = x[a] + dx[a];
+      const rt = residuals(trial, rTrial);
+      let c = 0;
+      for (let i = 0; i < nSamples; i++) c += rt[i] * rt[i];
+      if (c < cost) {
+        x.set(trial); r.set(rt); cost = c;
+        lambda = Math.max(lambda / 3, 1e-8);
+        accepted = true;
+        break;
+      }
+      lambda *= 6;
+    }
+    opts.onProgress?.((it + 1) / iterations);
+    if (!accepted) break;
+  }
+
+  const q = build(x);
+  const de = deltaE2000Lab(lab(slotApply(q, P)), labT);
+  const sorted = Array.from(de).sort((a, b) => a - b);
+  const mean = sorted.reduce((a, b) => a + b, 0) / Math.max(1, sorted.length);
+  return {
+    ...q,
+    hue: q.hue!,
+    meanDE2000: mean,
+    p95DE2000: sorted[Math.max(0, Math.ceil(0.95 * sorted.length) - 1)] ?? mean,
+  };
+}
