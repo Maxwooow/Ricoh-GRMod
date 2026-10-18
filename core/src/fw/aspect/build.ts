@@ -31,6 +31,8 @@ import { installAdjSoftFocus } from './softfocus';
 import { DATESTAMP_BYTE, installDateStamp } from './datestamp';
 import { installDateStampMenu } from './datestamp-menu';
 import { installMonoUnlock } from './monounlock';
+import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
+import type { LookLayout } from './looks';
 import { installExtraSlots } from './slots';
 import type { ExtraSlotSpec } from './slots';
 import { installShutdownMenu } from './shutdown';
@@ -114,6 +116,8 @@ export interface ExtensionFeatures {
   monoUnlock?: boolean;
   /** Added Image Control slots, 1 to 6 (see `slots.ts`). */
   extraSlots?: readonly ExtraSlotSpec[];
+  /** Image Control menu order and hidden looks (see `looks.ts`). */
+  lookLayout?: LookLayout;
   /**
    * Power-off pictures chosen in the camera's End Screen menu (see `shutdown.ts`): the pictures,
    * and the four factory pictures of the payload's RES section (for their thumbnails).
@@ -1015,9 +1019,14 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
     if (!fixed) icons = installDateStampMenu(patch, icons);
   }
   // Last: the added slots compose with the monochrome looks' visibility check.
-  if (slots.length > 0) icons = installExtraSlots(patch, icons, slots);
+  if (slots.length > 0) icons = installExtraSlots(patch, icons, slots, features.lookLayout);
+  else if (features.lookLayout) {
+    validateLookLayout(features.lookLayout, 0);
+    installLookOrder(patch, features.lookLayout.order);
+    installFactoryHidden(patch, features.lookLayout.hidden);
+  }
   if (shutdown) icons = installShutdownMenu(patch, icons, shutdown.pictures, shutdown.factory);
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}) } };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}) } };
 }

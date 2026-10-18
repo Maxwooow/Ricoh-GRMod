@@ -57,6 +57,32 @@ Halation (`core/src/fw/aspect/halation.ts`, module `tools/halation/halation.c`):
 
 Adjustable parameters: the firmware keeps them per factory style, and whatever reads them for the selected look takes the new styles as Cinema Yellow (18). Each new look still has its own values, kept per photo/movie set and across power-off: Cinema Yellow's fields hold the values of the look selected in a set, the other looks' values wait in a table of a native module (`tools/slotparams/slot_params.c`, pre-compiled per slot count by `gen_slotparams.py` into `slotparams-native.ts`) saved as its own record (HTData 12) after the settings. The module takes over the 13 getters and setters of Cinema Yellow's parameters and the 8 "style of set" setters, and chains to the settings load/save. The 88 change functors of those fields (which give the value to the camera model behind the parameter screen), the parameter screens' list choice (grain), the main menu's Image Control row and the digital-filter step (grain, Clarity) take the new looks as Cinema Yellow as well. New looks start at the neutral values, which the parameter screen also shows as their defaults. U1–U3 share the table; a settings reset does not reset it.
 
+## Image Control menu order and hidden looks
+
+`core/src/fw/aspect/looks.ts` lets the user reorder the Image Control menu and hide looks they do
+not use. It does not add code: the menu order is a 20-byte table at `0x53DBE388` (one byte per
+style, 11..30), and hiding a look redirects its entry in the visibility jump table
+(`0x533CC6F8` for styles 11..24, `0x533CC648` for the monochrome looks 25..30) to the
+firmware's existing `mov r0, #0 ; bx lr` stub at `0x533CC748` / `0x533CC670`. The menu builder
+`0x533CC78C` walks the table in order and skips hidden looks, so the list capacity and every
+count constant stay unchanged.
+
+The UI puts the order/hide card on the Image Control page: rows can be dragged or moved with the
+arrows, the eye toggles a look, Standard (style 11) cannot be hidden, and "reset" restores the
+factory order. The order is saved in `project.json` (`lookOrder`, `lookHidden`). Added slots
+(styles 34..39) participate in the order; hiding an added slot uses the slot visibility hook that
+`slots.ts` already installs.
+
+- Without added slots or other additions the file keeps the official layout: only the order table
+  and the visibility words change (in place, like the monochrome looks).
+- With added slots, ratios, date imprint, etc. the grown layout is used; the order table points to
+  a new array holding the factory looks and the added slots in the chosen order.
+- `validateLookLayout` refuses an incomplete order, duplicates, hiding every look and hiding
+  Standard. The order table itself was verified on a camera: order `[12,11,...]` shows Vivid then
+  Standard, and `[17,18,11,...]` shows Positive Film, Cinema Yellow, Standard.
+- If the camera's current Image Control (or a U1–U3 set) points at a look that is now hidden, that
+  setting may show blank or fall back; select a visible look before installing.
+
 ## Power-off pictures chosen in the camera
 
 `core/src/fw/aspect/shutdown.ts` (camera side: `tools/shutdown/shutdown.c`, compiled by `tools/shutdown/gen.py`) builds 1 to 8 pictures into the firmware and lets the camera choose among them: Setup > Display > End Screen opens a submenu with Type (the camera's own type 1 / 2 list, unchanged) and Picture, a list of the factory picture of this camera and the pictures by name, each with a 520x200 thumbnail above the list. `tools/shutdown/menu_check.py` runs the menu in an emulator. The approach follows gr-custom-tool's End Screen list (Copyright (C) 2026 DoYitNow, GPL-2.0-only); the code is GR Mod's own.
