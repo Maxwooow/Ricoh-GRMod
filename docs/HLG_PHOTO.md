@@ -145,7 +145,61 @@ The mod hooks `ExifJpegWriter::SetupAppNInfo` at virtual address `0x5380BF50`:
 
 ---
 
-## 5. GRMod System Integration
+## 5. HDR Tone Level 0 Option & SDR Bypass Architecture
+
+In the camera's image control adjustment menu for Slot 22 ("HDR Tone" / "HDR"), four fine-tuning parameters are provided: **Saturation**, **Hue**, **High/Low Key Contrast**, and **HDR Tone Level** (parameter 17, `HDR Intense`).
+
+### 5.1 Motivation & Behavior
+In factory firmware, `HDR Tone Level` only offered options `1`, `2`, and `3`. The mod introduces an additional **Level 0** option:
+- **Level 1, 2, 3**: Enables full BT.2100 HLG HDR photo capture (Rec.2020 WCG matrix, ARIB STD-B67 curve, and APP2 CICP ICC profile injection).
+- **Level 0**: Completely **bypasses** the HDR Tone effect, producing a clean, standard sRGB SDR JPEG directly from the HDR slot without needing to switch image control profiles.
+
+### 5.2 Dual-Layer Bypass Execution Pipeline
+
+```
+[HDR Tone Level Adjustment]
+         │
+         ├──► Level 0: 
+         │      ├─► ISP Dispatch Hook (0x53912D3C): sl = 0 (Standard SDR look)
+         │      │     ├─► ToneRecord: Standard Rec.709 linear CCM (0x5501ADBC)
+         │      │     ├─► GammaDescriptor: Standard SDR gamma curve
+         │      │     └─► Neutral Multi-Axis table
+         │      └─► APP2 Hook (0x5380BF50): [r1, #0x7b8] == 0 -> Skip APP2 injection
+         │            └─► Output: 100% Standard sRGB SDR JPEG
+         │
+         └──► Level 1, 2, 3:
+                ├─► ISP Dispatch Hook (0x53912D3C): sl = 22 (HLG look)
+                │     ├─► ToneRecord: Rec.2020 WCG linear CCM
+                │     ├─► GammaDescriptor: ARIB STD-B67 (HLG) curve
+                │     └─► Neutral Multi-Axis table
+                └─► APP2 Hook (0x5380BF50): [r1, #0x7b8] != 0 -> Inject APP2 CICP ICC
+                      └─► Output: Native BT.2100 HLG HDR JPEG
+```
+
+### 5.3 Reverse-Engineered Implementation Details
+
+1. **Internal Value Mapping Table (`0x53DBAD84`)**:
+   - Factory ROM table: `[1, 2, 3, 0]` (`0x00030201`).
+   - Patched to: `[0, 1, 2, 3]` (`0x03020100`).
+   - UI option indices `0, 1, 2, 3` map 1:1 to internal parameter values `0, 1, 2, 3`.
+2. **Value Count Function (`GetHdrCuisineHdrIntenseValueCount` @ `0x533BEBF8`)**:
+   - `0x533BEC24`: `cmp r0, #3` (`0xE3500003`) -> patched to `cmp r0, #4` (`0xE3500004`).
+   - `0x533BEC28`: `movls r0, #3` (`0x93A00003`) -> patched to `movls r0, #4` (`0x93A00004`).
+   - Expands option step count from 3 to 4, unlocking step `0` on the shooting screen and adjustment menu.
+3. **ASCII Text Formatter (`GetImageControlParameterHdrIntenseAscii` @ `0x5339B5F0`)**:
+   - Factory logic checked `r2 == 1, 2, 3` and errored on other values.
+   - `0x5339B610`: `beq #0x5339B64C` (`0x0A00000D`) -> patched to `bls #0x5339B64C` (`0x9A00000D`).
+   - Allows unsigned values `0..3` to be passed to `snprintf(..., "%d")`, displaying `"0"`, `"1"`, `"2"`, `"3"`.
+4. **ISP Tone Pipeline Hook (`0x53912D3C`)**:
+   - In the hardware ISP dispatch function, register `sl` holds `toneId` and `r7` points to the shot struct (`[r7, #0x7b8]` contains HDR Tone Level).
+   - Hook checks: if `sl == 22` and `[r7, #0x7b8] == 0`, it reassigns `sl = 0` (Standard) and updates `[fp, #-0x34] = 0`.
+   - The ISP pipeline falls back to Standard SDR matrices and gamma curve.
+5. **APP2 Metadata Hook (`0x5380BF50`)**:
+   - Checks `[shotStruct, #0x7b8]`. If Level is 0, branches to exit without writing the APP2 marker and payload.
+
+---
+
+## 6. GRMod System Integration
 
 ### 5.1 Memory Layout & ROM Mapping
 GRMod constructs patches against the ROM image loaded at `0x53000000`. Runtime tables (`T_REC_BASE = 0x55053780`, `T_GAM_BASE = 0x55053138`, `T_MA_BASE = 0x55053504`, `NATIVE_TEXT_ROOTS = 0x55002118`) reside in RAM (`0x55000000..0x55057480`), whose ROM load source is `RAM_SRC = 0x5437B640`.
