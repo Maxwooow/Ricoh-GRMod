@@ -12,7 +12,13 @@ import {
   HLG_HOOK,
   HLG_ICC,
   HLG_MATRIX,
-  ISP_HOOK_SITE,
+  HOOK_SITE,
+  STD_MA_DESC_VA,
+  TARGET_TONE_ID,
+  T_GAM_BASE,
+  T_MA_BASE,
+  T_REC_BASE,
+  romVa,
 } from '../src/fw/aspect/hlg';
 import { branchTarget } from '../src/fw/aspect/arm';
 
@@ -46,17 +52,13 @@ describe('HLG HDR photo assets & calibration data', () => {
     expect(text.includes('cicp')).toBe(true);
   });
 
-  it('HLG hook code is valid ARM binary and includes level 0 check', () => {
+  it('HLG hook code is valid ARM binary and checks toneId 22', () => {
     expect(HLG_HOOK.length).toBe(176);
     const view = new DataView(HLG_HOOK.buffer, HLG_HOOK.byteOffset, HLG_HOOK.byteLength);
-    // 0x24: ldrb r2, [r1, #0x79c] (toneId)
-    expect(view.getUint32(0x24, true)).toBe(0xe5d1279c);
-    // 0x28: cmp r2, #0x16
-    expect(view.getUint32(0x28, true)).toBe(0xe3520016);
-    // 0x30: ldrb r2, [r1, #0x7b8] (hdrToneLevel)
-    expect(view.getUint32(0x30, true)).toBe(0xe5d127b8);
-    // 0x34: cmp r2, #0
-    expect(view.getUint32(0x34, true)).toBe(0xe3520000);
+    // 0x24: ldrb r1, [r1, #0x79c] (toneId)
+    expect(view.getUint32(0x24, true)).toBe(0xe5d1179c);
+    // 0x28: cmp r1, #0x16 (toneId == 22)
+    expect(view.getUint32(0x28, true)).toBe(0xe3510016);
   });
 });
 
@@ -88,7 +90,7 @@ describe.skipIf(!have)('HLG HDR photo firmware build & inspection', () => {
     expect(rtos.size).toBeGreaterThan(fw.RTOS_LENGTH);
     expect(icon.size).toBe(fw.ICONBIN_LENGTH);
 
-    // Verify HDR Tone Level 0 patches and ISP dispatch hook in the generated RTOS image
+    // Verify HDR Tone Level 0 UI patches in the generated RTOS image
     const rtosData = decoded.subarray(rtos.offset, rtos.offset + rtos.size);
     const rtosVa = (va: number) => {
       const off = va - 0x53000000;
@@ -100,16 +102,17 @@ describe.skipIf(!have)('HLG HDR photo firmware build & inspection', () => {
     expect(rtosVa(HDR_INTENSE_COUNT_MOV)).toBe(0x93a00004);
     expect(rtosVa(HDR_INTENSE_ASCII_CMP)).toBe(0x9a00000d);
 
-    const ispHookTarget = branchTarget(ISP_HOOK_SITE, rtosVa(ISP_HOOK_SITE));
-    expect(ispHookTarget).toBeGreaterThan(0x53000000 + fw.RTOS_LENGTH);
-    expect(rtosVa(ispHookTarget)).toBe(0xe51ba034); // ldr sl, [fp, #-0x34]
-    expect(rtosVa(ispHookTarget + 4)).toBe(0xe35a0016); // cmp sl, #22
-    expect(rtosVa(ispHookTarget + 8)).toBe(0x1a000003); // bne .not_hdr
-    expect(rtosVa(ispHookTarget + 12)).toBe(0xe5d717b8); // ldrb r1, [r7, #0x7b8]
-    expect(rtosVa(ispHookTarget + 16)).toBe(0xe3510000); // cmp r1, #0
-    expect(rtosVa(ispHookTarget + 20)).toBe(0x03a0a000); // moveq sl, #0
-    expect(rtosVa(ispHookTarget + 24)).toBe(0x050ba034); // streq sl, [fp, #-0x34]
-    expect(branchTarget(ispHookTarget + 28, rtosVa(ispHookTarget + 28))).toBe(0x53912d40);
+    // Verify APP2 injection hook is branched from HOOK_SITE
+    const hookTarget = branchTarget(HOOK_SITE, rtosVa(HOOK_SITE));
+    expect(hookTarget).toBeGreaterThan(0x53000000 + fw.RTOS_LENGTH);
+
+    // Verify T_REC[22], T_GAM[22], T_MA[22]
+    const recVa = rtosVa(romVa(T_REC_BASE + TARGET_TONE_ID * 4));
+    expect(recVa).toBeGreaterThan(0x53000000 + fw.RTOS_LENGTH);
+    const gamVa = rtosVa(romVa(T_GAM_BASE + TARGET_TONE_ID * 4));
+    expect(gamVa).toBeGreaterThan(0x53000000 + fw.RTOS_LENGTH);
+    const maVa = rtosVa(romVa(T_MA_BASE + TARGET_TONE_ID * 4));
+    expect(maVa).toBe(STD_MA_DESC_VA);
   });
 
   it('builds HLG photo combined with custom ratios, soft focus, date stamp, and mono unlock', async () => {

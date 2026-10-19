@@ -145,35 +145,55 @@ The mod hooks `ExifJpegWriter::SetupAppNInfo` at virtual address `0x5380BF50`:
 
 ---
 
-## 5. HDR Tone Level 0 Option & SDR Bypass Architecture
+## 5. HDR Tone Level 0 Option & HDR Tone Filter Bypass Architecture
 
 In the camera's image control adjustment menu for Slot 22 ("HDR Tone" / "HDR"), four fine-tuning parameters are provided: **Saturation**, **Hue**, **High/Low Key Contrast**, and **HDR Tone Level** (parameter 17, `HDR Intense`).
 
 ### 5.1 Motivation & Behavior
-In factory firmware, `HDR Tone Level` only offered options `1`, `2`, and `3`. The mod introduces an additional **Level 0** option:
-- **Level 1, 2, 3**: Enables full BT.2100 HLG HDR photo capture (Rec.2020 WCG matrix, ARIB STD-B67 curve, and APP2 CICP ICC profile injection).
-- **Level 0**: Completely **bypasses** the HDR Tone effect, producing a clean, standard sRGB SDR JPEG directly from the HDR slot without needing to switch image control profiles.
+The factory Ricoh GR IV "HDR Tone" slot natively applies strong artificial micro-contrast and local tone mapping (dramatic HDR painting effect), whose intensity is governed by parameter 17 (`HDR Intense`). In factory firmware, `HDR Tone Level` only offered options `1`, `2`, and `3` (minimum level was 1).
 
-### 5.2 Dual-Layer Bypass Execution Pipeline
+When adapted as a direct BT.2100 HLG HDR photography mode, photographers capturing high dynamic range scenes typically desire **pure, realistic, natural HLG HDR straight out of camera**, without exaggerated artificial filtering. Conversely, when an artistic, stylized look is desired, they may wish to dial in local tone compression.
+
+To accommodate this, the mod expands the lower bound of HDR Tone Level to **Level 0**:
+- **Level 0 (Natural HLG HDR, Recommended Default)**:
+  **Completely bypasses the artificial HDR Tone filter effect**. Disables local micro-contrast enhancement and severe tone compression, while **strictly preserving full BT.2100 HLG HDR capture** (Rec.2020 WCG color matrix, 14-bit ARIB STD-B67 gamma curve, neutral multi-axis table, and automatic APP2 CICP ICC profile injection). Yields pristine, natural high dynamic range HDR photos straight out of camera!
+- **Level 1, 2, 3 (Stylized HLG HDR)**:
+  Applies varying intensities (weak / medium / strong) of the factory HDR Tone local tone mapping and micro-contrast enhancement on top of the BT.2100 HLG HDR photo.
+- **Key Guarantee**: Regardless of whether Level 0 or Levels 1..3 are selected, the output file is **always a 100% native BT.2100 HLG HDR JPEG**, displaying full specular highlight pop and realistic dynamic range on Apple EDR, Windows 11 HDR, Android Ultra HDR, and Chromium platforms.
+
+### 5.2 Filter Bypass Execution Pipeline
 
 ```
-[HDR Tone Level Adjustment]
-         │
-         ├──► Level 0: 
-         │      ├─► ISP Dispatch Hook (0x53912D3C): sl = 0 (Standard SDR look)
-         │      │     ├─► ToneRecord: Standard Rec.709 linear CCM (0x5501ADBC)
-         │      │     ├─► GammaDescriptor: Standard SDR gamma curve
-         │      │     └─► Neutral Multi-Axis table
-         │      └─► APP2 Hook (0x5380BF50): [r1, #0x7b8] == 0 -> Skip APP2 injection
-         │            └─► Output: 100% Standard sRGB SDR JPEG
-         │
-         └──► Level 1, 2, 3:
-                ├─► ISP Dispatch Hook (0x53912D3C): sl = 22 (HLG look)
-                │     ├─► ToneRecord: Rec.2020 WCG linear CCM
-                │     ├─► GammaDescriptor: ARIB STD-B67 (HLG) curve
-                │     └─► Neutral Multi-Axis table
-                └─► APP2 Hook (0x5380BF50): [r1, #0x7b8] != 0 -> Inject APP2 CICP ICC
-                      └─► Output: Native BT.2100 HLG HDR JPEG
+[HDR Tone Level Dial Adjustment]
+                 │
+                 ▼
+     [shotStruct, #0x7b8] stores chosen level (0..3)
+                 │
+       ┌─────────┴─────────┐
+       ▼                   ▼
+  【Level 0】          【Level 1..3】
+(Filter Bypassed)    (Filter Applied)
+       │                   │
+       ├─► 0x537151E8:     ├─► 0x537151E8:
+       │   Active Flag = 0 │   Active Flag = 1
+       ├─► 0x53701DEC:     ├─► 0x53701DEC:
+       │   Intensity = 0   │   Intensity = 1..3
+       └─► 0x53911C60:     └─► 0x53911C60:
+           Ctrl Param = 0      Ctrl Param = 1..3
+       │                   │
+       └─────────┬─────────┘
+                 │
+                 ▼
+    【Common Foundation: Full BT.2100 HLG HDR Pipeline】
+     ├─► ISP ToneRecord (0x55053780[22]): Rec.2020 WCG linear CCM
+     ├─► ISP Gamma (0x55053138[22]): 14-bit ARIB STD-B67 (HLG) curve
+     ├─► ISP MultiAxis (0x55053504[22]): Neutral multi-axis table
+     └─► JPEG APP2 Hook (0x5380BF50): Injects APP2 CICP ICC Profile
+                 │
+                 ▼
+        【Final Output JPEG】
+   100% Native BT.2100 HLG HDR JPEG
+  (Level 0 = Natural HDR, Levels 1..3 = Stylized HDR)
 ```
 
 ### 5.3 Reverse-Engineered Implementation Details
@@ -190,12 +210,14 @@ In factory firmware, `HDR Tone Level` only offered options `1`, `2`, and `3`. Th
    - Factory logic checked `r2 == 1, 2, 3` and errored on other values.
    - `0x5339B610`: `beq #0x5339B64C` (`0x0A00000D`) -> patched to `bls #0x5339B64C` (`0x9A00000D`).
    - Allows unsigned values `0..3` to be passed to `snprintf(..., "%d")`, displaying `"0"`, `"1"`, `"2"`, `"3"`.
-4. **ISP Tone Pipeline Hook (`0x53912D3C`)**:
-   - In the hardware ISP dispatch function, register `sl` holds `toneId` and `r7` points to the shot struct (`[r7, #0x7b8]` contains HDR Tone Level).
-   - Hook checks: if `sl == 22` and `[r7, #0x7b8] == 0`, it reassigns `sl = 0` (Standard) and updates `[fp, #-0x34] = 0`.
-   - The ISP pipeline falls back to Standard SDR matrices and gamma curve.
-5. **APP2 Metadata Hook (`0x5380BF50`)**:
-   - Checks `[shotStruct, #0x7b8]`. If Level is 0, branches to exit without writing the APP2 marker and payload.
+4. **Firmware Built-in Level 0 Handling**:
+   - Firmware reverse-engineering confirmed that the camera's image processing engine natively implements a Level 0 bypass path:
+     - At `0x537151E8`: Reads `[shotStruct, #0x7b8]`, executes `adds r3, r3, #0; movne r3, #1; strb r3, [r0, #0x25]`. If Level == 0, the effect active flag `[r0, #0x25]` is set to `0` (OFF); if Level != 0, it is set to `1` (ON).
+     - At `0x53701DEC`: Jump table case 0 executes `mov r3, #0; strh r3, [r5, #0xa]`, setting intensity to 0.
+     - At `0x53911C60`: Unpacker stores `0` into `[controller, #0x1fa]`.
+   - The factory firmware only restricted Level to 1..3 in the UI layer. By unlocking 0 in the UI, the engine natively disables the HDR Tone filter effect without requiring invasive patches to the hardware ISP dispatch pipeline!
+5. **Always-On APP2 CICP Dynamic Injection (`0x5380BF50`)**:
+   - For Slot 22, the APP2 hook always injects the standard BT.2100 HLG CICP ICC Profile, guaranteeing that all photos captured under the slot are recognized as true HDR across all platforms.
 
 ---
 
