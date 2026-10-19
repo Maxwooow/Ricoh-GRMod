@@ -22,11 +22,22 @@ describe('hue sectors', () => {
   });
 });
 
+/** A 9^3 LUT whose saturation boost follows the hue sector: the hue stage has something to fit. */
+function syntheticHueLut(size = 9): string {
+  const lines = ['TITLE "hue sectors"', `LUT_3D_SIZE ${size}`];
+  for (let b = 0; b < size; b++) for (let g = 0; g < size; g++) for (let r = 0; r < size; r++) {
+    const v = [r / (size - 1), g / (size - 1), b / (size - 1)];
+    const gray = (v[0] + v[1] + v[2]) / 3;
+    const k = 1 + 0.2 * Math.cos((hueSector(v[0], v[1], v[2]) / 12) * 2 * Math.PI);
+    lines.push(v.map((c) => Math.min(1, Math.max(0, gray + (c - gray) * k)).toFixed(6)).join(' '));
+  }
+  return lines.join('\n') + '\n';
+}
+
 const OFFICIAL = process.env.GRMOD_OFFICIAL ?? '/tmp/fwdc248b.bin';
 describe.skipIf(!existsSync(OFFICIAL))('hue-sector added slot build', () => {
   it('builds a slot whose multi-axis block is its own hue table', async () => {
-    const text = readFileSync('/Users/jaylee/Workspace/GR4/grmod-ready/V3-5294.cube', 'utf8');
-    const r = convertCube(text);
+    const r = convertCube(syntheticHueLut());
     expect(r.hueQ10?.length).toBe(12);
     const q = quantizeSlot(r.params, [8192, 0, 0, 0, 8192, 0, 0, 0, 8192]);
     const icon = new Uint8Array(40 * 40 * 4);
