@@ -455,7 +455,9 @@ export function readShutdownMenu(p: Patch): { id: number; name: string }[] | nul
     if (v.getUint32(0, true) !== CTX_MAGIC || v.getUint32(4, true) !== SHUTDOWN_RECORD) return null;
     const n = v.getUint32(8, true);
     const textId = v.getUint32(12, true);
-    if (!(n >= 1 && n <= SHUTDOWN_MAX_PICTURES) || textId !== SHUTDOWN_FACTORY_TEXT) return null;
+    // Builds before the 12-slot support started at 853; their row index is still in the record.
+    const oldFactoryText = 855;
+    if (!(n >= 1 && n <= SHUTDOWN_MAX_PICTURES) || (textId !== SHUTDOWN_FACTORY_TEXT && textId !== oldFactoryText)) return null;
     const row = p.word(TEXT_CATALOG + 1 * 4);
     const out: { id: number; name: string }[] = [];
     for (let k = 0; k < n; k++) {

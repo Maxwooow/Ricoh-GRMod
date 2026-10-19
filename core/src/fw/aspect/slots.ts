@@ -838,8 +838,11 @@ export function readExtraSlots(rtos: Uint8Array, iconbin: Uint8Array, count: num
     if (p.word(0x53925f98) !== movRow(rows)) return null;
     const table = (lo: number, hi: number): number => (movImmediate(p.word(lo)) | (movImmediate(p.word(hi)) << 16)) >>> 0;
     const tone = table(0x53925f9c, 0x53925fa4);
+    const maTable = table(0x53925fc8, 0x53925fd0);
     const gamma = table(0x53926020, 0x53926028);
     const stdShared = wordOf(p.readMapped(wordOf(p.readMapped(tone + 4 * STANDARD, 4)) + POST_WORD, 4));
+    const stdMa = wordOf(p.readMapped(wordOf(p.readMapped(maTable + 4 * STANDARD, 4)) + 8, 4));
+    const stdBlock = wordOf(p.readMapped(stdMa, 4));
     const out: ExtraSlotSpec[] = [];
     for (let k = 0; k < count; k++) {
       const rec = wordOf(p.readMapped(tone + 4 * (TONES + k), 4));
@@ -866,7 +869,25 @@ export function readExtraSlots(rtos: Uint8Array, iconbin: Uint8Array, count: num
       const iconOffset = p.word(iconDesc + 8) * 4;
       if (iconOffset + EXTRA_ICON_BYTES > iconbin.length) return null;
       const icon = iconbin.slice(iconOffset, iconOffset + EXTRA_ICON_BYTES);
-      out.push({ name, matrixQ13, curves, ...(postQ9 ? { postQ9 } : {}), icon });
+      // The slot's own multi-axis (hue sector) block, when it differs from Standard's neutral one.
+      // All eight pointers name the same block; the firmware stores five identical copies.
+      const ma = wordOf(p.readMapped(maTable + 4 * (TONES + k), 4));
+      const maArray = wordOf(p.readMapped(ma + 8, 4));
+      const pointers = Array.from({ length: MA_POINTERS }, (_, i) => wordOf(p.readMapped(maArray + 4 * i, 4)));
+      let hueQ10: number[] | undefined;
+      if (pointers.every((x) => x === pointers[0]) && pointers[0] !== stdBlock) {
+        const raw = p.readMapped(pointers[0], 5 * 12 * 9 * 4);
+        const hv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
+        const first = Array.from({ length: 12 * 9 }, (_, i) => hv.getInt32(4 * i, true));
+        let ok = true;
+        for (let copy = 1; copy < 5 && ok; copy++)
+          for (let i = 0; i < 12 * 9; i++) if (hv.getInt32((copy * 12 * 9 + i) * 4, true) !== first[i]) ok = false;
+        for (let s = 0; s < 12 && ok; s++)
+          for (let r = 0; r < 3; r++)
+            if (first[s * 9 + r * 3] + first[s * 9 + r * 3 + 1] + first[s * 9 + r * 3 + 2] !== 1024) ok = false;
+        if (ok) hueQ10 = first;
+      }
+      out.push({ name, matrixQ13, curves, ...(postQ9 ? { postQ9 } : {}), ...(hueQ10 ? { hueQ10 } : {}), icon });
     }
     const halation = readHalation(p, count);
     if (halation) halation.forEach((h, k) => { if (h) out[k].halation = true; });
