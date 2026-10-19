@@ -2,15 +2,15 @@
 /**
  * The camera-menu entry of the date imprint (firmware 1.11): a line "Date Imprint" on the
  * Shooting Assist page of the still shooting menu, after Horizon Correction. It opens a small
- * submenu like D-Range Correction's with two lines, each a list of two values:
+ * submenu like D-Range Correction's with two lines:
  *
  *   On/Off   Off / On
- *   Style    '26 10 08 / 2026.10.08 17:34
+ *   Style    '26 10 08 / 2026.10.08 17:34 / '26 10 08 + LUT / '26 10 08 / LUT
  *
  * Both are kept in the setting byte of `datestamp.ts` (byte 0x94B of the user settings): bit 0 on,
- * bit 1 the long style. The menu treats any other value (the byte is padding the official firmware
- * never sets) as 0 and writes 0 back the first time it reads it, so lists always have exactly one
- * current value.
+ * bits 1..2 style (0..3). Existing values 0..3 retain their meaning. The menu treats any value above
+ * 7 (the byte is padding the official firmware never sets) as 0 and writes 0 back the first time it
+ * reads it, so lists always have exactly one current value.
  *
  * What is changed, all found by reading the official 1.11 code:
  *
@@ -41,11 +41,11 @@
  *    (0x531D5E8C) maps the new ids to them. The constructor also scans the table up to its end
  *    (pool word 0x531D6DAC) for the longest list; that end moves with the table (and still ends
  *    after the 124 official records).
- *  - Texts 841..845 in all 21 languages (relocated text catalog, see `build.ts`): the line name,
- *    "On/Off", "Style" and the two style names. Off and On are the camera's texts 2 and 1.
- *  - Icons: the camera's OFF / ON (310, 311) and two new 40x40 icons for the styles, numbers 721
- *    and 722 (the ratio icon numbers of identities 5 and 6, never given out; the lookup bound stays
- *    within what added ratios use).
+ *  - Texts 841..845 and 880..881 in all 21 languages (relocated text catalog, see `build.ts`):
+ *    the line name, "On/Off", "Style" and four style names. Off and On are texts 2 and 1.
+ *    Texts 846..857 belong to slot names and 858 to halation.
+ *  - Icons: the camera's OFF / ON (310, 311) and four new 40x40 style icons, numbers 721, 722,
+ *    782 and 783. Icons 780 and 781 belong to halation; resource bounds only increase.
  */
 import { FirmwareError } from '../types';
 import { assembleWords, branchTarget, movImmediate, movWord } from './arm';
@@ -59,10 +59,10 @@ export const DATESTAMP_MENU_ID = 0x020001a0;
 export const DATESTAMP_SWITCH_ID = 0x020001a1;
 export const DATESTAMP_STYLE_ID = 0x020001a2;
 
-/** Texts: line / submenu name, the two line names, the two style names. */
-export const DATESTAMP_TEXT_IDS = { name: 841, onOff: 842, style: 843, short: 844, long: 845 } as const;
-/** Icons of the two styles. */
-export const DATESTAMP_ICON_IDS = { short: 721, long: 722 } as const;
+/** Texts: line / submenu name, the two line names, and four style names. */
+export const DATESTAMP_TEXT_IDS = { name: 841, onOff: 842, style: 843, short: 844, long: 845, shortLut: 880, slashLut: 881 } as const;
+/** Icons of the four styles. */
+export const DATESTAMP_ICON_IDS = { short: 721, long: 722, shortLut: 782, slashLut: 783 } as const;
 const ICON_OFF = 310;
 const ICON_ON = 311;
 const TEXT_OFF = 2;
@@ -86,6 +86,8 @@ export const DATESTAMP_STYLE_NAMES: readonly string[] = [
 ];
 export const DATESTAMP_SHORT_TEXT = "'26 10 08";
 export const DATESTAMP_LONG_TEXT = '2026.10.08 17:34';
+export const DATESTAMP_SHORT_LUT_TEXT = "'26 10 08 + LUT";
+export const DATESTAMP_SLASH_LUT_TEXT = "'26 10 08 / LUT";
 
 // --- Official addresses (checked before use).
 const BUILDER = 0x531b3ecc;
@@ -174,16 +176,19 @@ const SEGMENTS = [0x3f, 0x06, 0x5b, 0x4f, 0x66, 0x6d, 0x7d, 0x07, 0x7f, 0x6f];
 /**
  * A 40x40 style icon: the tile of the camera's menu icons (grey border, dark fill) with two rows of
  * orange seven-segment digits, pixel-aligned (6 x 11, bars 2 px): "'26" over "10 08" (short),
- * "2026" over "17:34" (long).
+ * "2026" over "17:34" (long), or "'26" over "+LUT" / "/LUT". Boolean arguments retain
+ * the original short/long API; numeric arguments select styles 0..3.
  */
-export function drawStyleIcon(long: boolean): Uint8Array {
+export function drawStyleIcon(style: boolean | number): Uint8Array {
   const W = STYLE_ICON_W;
   const H = STYLE_ICON_H;
   const px = new Uint8Array(W * H * 4);
   const BORDER = [128, 128, 128];
   const BG = [53, 53, 54];
   const INK = [255, 128, 32];
-  const rows = long ? ['2026', '17:34'] : ["'26", '10 08'];
+  const index = typeof style === 'boolean' ? Number(style) : style;
+  const rows = [["'26", '10 08'], ['2026', '17:34'], ["'26", '+LUT'], ["'26", '/LUT']][index];
+  if (!rows) fail('internal', 'unknown date imprint style icon');
   const dw = 6;
   const gap = 2;
   // Rectangles [x0, y0, x1, y1] (inclusive) of segments a..g.
@@ -192,6 +197,11 @@ export function drawStyleIcon(long: boolean): Uint8Array {
     if (c === "'") return [[0, 0, 1, 3]];
     if (c === ':') return [[0, 2, 1, 3], [0, 7, 1, 8]];
     if (c === ' ') return [];
+    if (c === '+') return [[2, 2, 3, 8], [0, 4, 5, 5]];
+    if (c === '/') return [[4, 0, 5, 3], [2, 4, 3, 6], [0, 7, 1, 10]];
+    if (c === 'L') return [SEG[4], SEG[5], SEG[3]];
+    if (c === 'U') return [SEG[1], SEG[2], SEG[3], SEG[4], SEG[5]];
+    if (c === 'T') return [SEG[0], [2, 0, 3, 10]];
     if (!/^[0-9]$/.test(c)) fail('internal', 'icon glyph');
     const bits = SEGMENTS[Number(c)];
     return SEG.filter((_, k) => (bits & (1 << k)) !== 0);
@@ -266,7 +276,7 @@ function installIcons(patch: Patch, iconbin: Uint8Array): Uint8Array {
   const parts: Uint8Array[] = [iconbin];
   let length = iconbin.length;
   let upper = 0;
-  for (const [id, long] of [[DATESTAMP_ICON_IDS.short, false], [DATESTAMP_ICON_IDS.long, true]] as const) {
+  for (const [style, id] of Object.values(DATESTAMP_ICON_IDS).entries()) {
     if (patch.word(ICON_CATALOG + id * 4) !== 0) fail('unexpected-layout', 'icon number already in use');
     const pad = (4 - (length % 4)) % 4;
     if (pad) {
@@ -274,7 +284,7 @@ function installIcons(patch: Patch, iconbin: Uint8Array): Uint8Array {
       length += pad;
     }
     const offset = length;
-    const icon = drawStyleIcon(long);
+    const icon = drawStyleIcon(style);
     parts.push(icon);
     length += icon.length;
     // {u16 kind = 1, u16 width, u16 height, u16 flags = 0, u32 offset in 4-byte units}
@@ -353,9 +363,9 @@ export function hookControllerFactory(patch: Patch, body: string, what: string):
 
 // --------------------------------------------------------------------------------------------
 
-/** Load the setting byte into r3 (r2 = its address); anything above 3 becomes (and is stored as) 0. */
+/** Load the setting byte into r3 (r2 = its address); anything above 7 becomes (and is stored as) 0. */
 const LOAD_SETTING = `movw r2, #${lo(DATESTAMP_BYTE)}; movt r2, #${hi(DATESTAMP_BYTE)}; ldrb r3, [r2]
-  cmp r3, #3; movhi r3, #0; strbhi r3, [r2]`;
+  cmp r3, #7; movhi r3, #0; strbhi r3, [r2]`;
 
 function relocateTable(patch: Patch, table: number, record: number, copyRecords: number, added: readonly Uint8Array[], sites: readonly (readonly [number, number, number])[], what: string): number {
   for (const [low, high, r] of sites) {
@@ -373,7 +383,7 @@ function relocateTable(patch: Patch, table: number, record: number, copyRecords:
 
 /**
  * Install the menu entry. `patch` must already hold the scaffold of `build.ts` (relocated
- * catalogs) and the imprint itself. Returns the ICONBIN data with the two style icons appended.
+ * catalogs) and the imprint itself. Returns the ICONBIN data with the four style icons appended.
  */
 export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Array {
   // --- Checks of the official code and data this relies on.
@@ -420,9 +430,18 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Ar
     { id: T.style, names: DATESTAMP_STYLE_NAMES },
     { id: T.short, names: Array(LANGUAGES).fill(DATESTAMP_SHORT_TEXT) },
     { id: T.long, names: Array(LANGUAGES).fill(DATESTAMP_LONG_TEXT) },
+    { id: T.shortLut, names: Array(LANGUAGES).fill(DATESTAMP_SHORT_LUT_TEXT) },
+    { id: T.slashLut, names: Array(LANGUAGES).fill(DATESTAMP_SLASH_LUT_TEXT) },
   ]);
   const icons = installIcons(patch, iconbin);
   const I = DATESTAMP_ICON_IDS;
+  const styleIcons = [I.short, I.long, I.shortLut, I.slashLut];
+  const styleTexts = [T.short, T.long, T.shortLut, T.slashLut];
+  // The normalized setting in r3 leaves exactly a 0..3 index after shifting.
+  const currentStyleIcon = (register: number): string => [
+    'mov r3, r3, lsr #1',
+    ...styleIcons.map((icon, i) => `cmp r3, #${i}; movweq r${register}, #${icon}`),
+  ].join('\n');
 
   // --- Line of the still menu: title, and the icons of both values.
   const topDraw = patch.append((at) => assembleWords(
@@ -430,7 +449,7 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Ar
      mov r4, r1
      ${LOAD_SETTING}
      tst r3, #1; movweq r1, #${ICON_OFF}; movwne r1, #${ICON_ON}
-     tst r3, #2; movweq r2, #${I.short}; movwne r2, #${I.long}
+     ${currentStyleIcon(2)}
      mov r0, r4; bl #${TOP_SET_TWO_ICONS}
      mov r0, r4; movw r1, #${T.name}
      pop {r4, lr}; b #${TOP_SET_TITLE}`, at), 16);
@@ -444,11 +463,12 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Ar
   const lineStyle = patch.append((at) => assembleWords(
     `${LOAD_SETTING}
      mov r0, r1
-     tst r3, #2; movweq r1, #${I.short}; movwne r1, #${I.long}
+     ${currentStyleIcon(1)}
      b #${SUB_SET_ICON}`, at), 16);
 
   // --- Lists (this = r0; draw: item = r1, value = r2; set / is current: value = r1).
-  const count = patch.append((at) => assembleWords('mov r0, #2; bx lr', at), 16);
+  const switchCount = patch.append((at) => assembleWords('mov r0, #2; bx lr', at), 16);
+  const styleCount = patch.append((at) => assembleWords('mov r0, #4; bx lr', at), 16);
   const drawOnOff = patch.append((at) => assembleWords(
     `mov r0, r1; cmp r2, #0
      movweq r1, #${ICON_OFF}; movweq r2, #${TEXT_OFF}
@@ -462,19 +482,19 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Ar
     `${LOAD_SETTING}
      and r3, r3, #1; cmp r3, r1; moveq r0, #1; movne r0, #0; bx lr`, at), 16);
   const drawStyle = patch.append((at) => assembleWords(
-    `mov r0, r1; cmp r2, #0
-     movweq r1, #${I.short}; movweq r2, #${T.short}
-     movwne r1, #${I.long}; movwne r2, #${T.long}
+    `cmp r2, #3; bxhi lr
+     mov r0, r1; mov ip, r2
+     ${styleIcons.map((icon, i) => `cmp ip, #${i}; movweq r1, #${icon}; movweq r2, #${styleTexts[i]}`).join('\n')}
      b #${LIST_SET_ITEM}`, at), 16);
   const setStyle = patch.append((at) => assembleWords(
-    `cmp r1, #1; bxhi lr
+    `cmp r1, #3; bxhi lr
      ${LOAD_SETTING}
-     bic r3, r3, #2; orr r3, r3, r1, lsl #1; strb r3, [r2]; bx lr`, at), 16);
+     bic r3, r3, #6; orr r3, r3, r1, lsl #1; strb r3, [r2]; bx lr`, at), 16);
   const isStyle = patch.append((at) => assembleWords(
     `${LOAD_SETTING}
-     mov r3, r3, lsr #1; and r3, r3, #1; cmp r3, r1; moveq r0, #1; movne r0, #0; bx lr`, at), 16);
+     mov r3, r3, lsr #1; and r3, r3, #3; cmp r3, r1; moveq r0, #1; movne r0, #0; bx lr`, at), 16);
 
-  const listRecord = (title: number, draw: number, set: number, isCurrent: number): Uint8Array => {
+  const listRecord = (title: number, count: number, draw: number, set: number, isCurrent: number): Uint8Array => {
     const r = listTemplate.slice();
     const v = new DataView(r.buffer);
     v.setUint16(4, title, true);
@@ -488,11 +508,11 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Ar
   expectWord(patch, SELECT_TABLE_END_LITERAL, SELECT_TABLE + SELECT_RECORDS * SELECT_RECORD);
   expectWord(patch, SELECT_TABLE_END_LOAD, 0xe59f704c); // ldr r7, [pc, #0x4c]
   const lists = relocateTable(patch, SELECT_TABLE, SELECT_RECORD, SELECT_RECORDS + 1, [
-    listRecord(T.onOff, drawOnOff, setOnOff, isOnOff),
-    listRecord(T.style, drawStyle, setStyle, isStyle),
+    listRecord(T.onOff, switchCount, drawOnOff, setOnOff, isOnOff),
+    listRecord(T.style, styleCount, drawStyle, setStyle, isStyle),
   ], SELECT_SITES, 'date imprint: list records');
   // The constructor's scan for the longest list stops at the end of the official records (the
-  // two new lists have 2 values, fewer than many official ones).
+  // new lists have 2 and 4 values, fewer than many official ones).
   patch.setWord(SELECT_TABLE_END_LITERAL, lists + SELECT_RECORDS * SELECT_RECORD, 'date imprint: end of the official list records');
 
   const subRecord = subTemplate.slice();

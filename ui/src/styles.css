@@ -489,7 +489,12 @@ button.fw-rel:disabled { cursor: default; }
 .look-order-count { font-size: 12px; color: var(--muted); white-space: nowrap; }
 .look-order-hint { margin: 6px 0 2px 44px; }
 .look-rows { list-style: none; margin: 8px 0 0; padding: 0; }
-.look-row { display: flex; align-items: center; gap: 8px; padding: 3px 0 3px 44px; border-top: 1px solid var(--line); }
+.look-row { display: flex; flex-direction: column; gap: 4px; padding: 6px 0 6px 16px; border-top: 1px solid var(--line); }
+.look-row-head { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; }
+.look-watermark { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; width: 100%; padding-left: 24px; }
+.look-watermark label { color: var(--muted); font-size: 12px; }
+.look-watermark .input { flex: 1; min-width: 80px; width: 0; font-size: 12.5px; cursor: text; -webkit-user-drag: none; }
+.look-watermark-error { width: 100%; color: var(--red); font-size: 12px; }
 .look-row.dragging { opacity: .55; }
 .look-row.hidden .look-name { opacity: .45; text-decoration: line-through; }
 .look-grip { width: 16px; height: 16px; flex: none; color: var(--muted); cursor: grab; }

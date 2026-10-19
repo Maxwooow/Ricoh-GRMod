@@ -3,7 +3,7 @@
 core/src/fw/aspect/slotparams-native.ts.
 
 As in tools/aspect/gen_native.py: GR Mod has no compiler at run time, so the module is compiled here
-once per slot count (1..6), linked at a reference address with `--emit-relocs`, and stored with its
+once per slot count (1..12), linked at a reference address with `--emit-relocs`, and stored with its
 relocation list; `linkModule()` in aspect/native-link.ts places it at the real address. Every
 variant is linked a second time at another address with other symbol values and compared with the
 relocated first build.
@@ -27,7 +27,7 @@ SOURCE = HERE / 'slot_params.c'
 TARGET = REPO / 'core/src/fw/aspect/slotparams-native.ts'
 FLAGS = ['-target', 'armv7-none-eabi', '-mcpu=cortex-a9', '-marm', '-mfloat-abi=soft', '-Os', '-ffreestanding',
          '-fno-builtin', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-nostdlib', '-Wall', '-Werror']
-COUNTS = range(1, 7)
+COUNTS = range(1, 13)
 BINDINGS = ['prior_native_save', 'prior_native_load', 'storage_singleton', 'store_write', 'store_read', 'store_size',
             'heap_alloc', 'sp_gap', 'settings_object']
 SETTERS = [0x533ad4e0, 0x533adce0, 0x533ae4e0, 0x533af100, 0x533afd20, 0x533b0940, 0x533b1560, 0x533b2180, 0x533b28e0,

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * Added Image Control slots (styles 34, 35, ...): up to six more looks in the camera's list, each
- * with its own matrix, tone curves, post-curve ("second") matrix and adjustment parameters. Tested
- * on a GR IV HDF as GR Mod test firmwares 023..034 (four slots).
+ * Added Image Control slots (styles 34, 35, ...): up to twelve more looks in the camera's list,
+ * each with its own matrix, tone curves, post-curve ("second") matrix and adjustment parameters.
+ * Tested on a GR IV HDF as GR Mod test firmwares 023..034 (four slots). The 7..12 slot variants
+ * are generated and pass the structural self-check; they have not been run on a camera yet.
  *
  * What a style is made of in 1.11, per variant of the camera (three variants, 34 styles each):
  *  - a tone record (21 words, table 0x55053780): word 1 the colour matrix, word 2 the array of
@@ -30,6 +31,7 @@
  * settings (see `installOwnParameters`). They start at the neutral values, which the parameter
  * screen also shows as their defaults. Tested on a GR IV HDF as test firmwares 026..034.
  */
+import { FRAME_STYLE_STASH as HALATION_STASH, installFrameStyleCapture } from './frame-style';
 import { assembleWords, branchTarget, branchWord, movImmediate, movWord } from './arm';
 import { BASE, ICON_CATALOG, LOOKUP_BOUNDS, OFFICIAL_RTOS_LENGTH, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z } from './build';
 import { linkModule } from './native-link';
@@ -40,12 +42,12 @@ import { FirmwareError } from '../types';
 import { installFactoryHidden, validateLookLayout } from './looks';
 import type { LookLayout } from './looks';
 
-export const MAX_EXTRA_SLOTS = 6;
+export const MAX_EXTRA_SLOTS = 12;
 /** Style number of the first added slot (the firmware has 34: 0..33). */
 export const EXTRA_FIRST_STYLE = 34;
 /** Text number of the first added slot's name. */
 export const EXTRA_TEXT_ID = 846;
-/** Icon number of the first added slot's icon (768..787 are free in the extended catalog). */
+/** Icon number of the first added slot's icon (768..779 for twelve slots; 780..787 stay with halation and the date imprint). */
 export const EXTRA_ICON_ID = 768;
 /** Longest name of an added slot (printable ASCII: every language's font has those glyphs). */
 export const EXTRA_NAME_MAX = 12;
@@ -73,7 +75,7 @@ export interface ExtraSlotSpec {
 }
 
 /** Text of the parameter name "Halation", icon of its list entry and of its slider scale. */
-export const HALATION_TEXT_ID = 852;
+export const HALATION_TEXT_ID = 858;
 export const HALATION_ICON_ID = 780;
 export const HALATION_SCALE_ICON_ID = 781;
 /** Text of Cinema's Toning (and of the black-and-white toning, which no added look has). */
@@ -83,7 +85,6 @@ const TONING_ICON = 0x16f;
 /** The native three-position scale whose panel and track the halation scale reuses. */
 const NATIVE_SCALE_ICON = 0x23b;
 /** The word the development step leaves for the halation module: style | level << 8 | valid. */
-const HALATION_STASH = 0x558372e4;
 
 const TONES = 34;
 const VARIANTS = 3;
@@ -365,10 +366,7 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
   // dispatch register changes, the frame's style and the table index stay the new ones. With
   // halation, the frame's style and Toning (halation) level are also left for the JPEG step.
   const halation = slots.some((s) => s.halation === true);
-  const stash = halation
-    ? `push {r0,r1};ldrb r0,[r3,#0x79c];ldrb r1,[r3,#0x7a6];orr r0,r0,r1,lsl #8;orr r0,r0,#0x10000;movw r1,#${HALATION_STASH & 65535};movt r1,#${HALATION_STASH >>> 16};str r0,[r1];pop {r0,r1};`
-    : '';
-  hook(p, 0x539113f8, 0xe5d3279c, `${stash}ldrb r2,[r3,#0x79c];sub ip,r2,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};movls r2,#${CY};b #0x539113fc`, 'added slots: Cinema input fields');
+  installFrameStyleCapture(p, count);
 
   // Menu order and counts. With a user layout the order may be any permutation of the factory
   // looks and the added slots; the list capacity grows by the same number as without one.

@@ -60,7 +60,7 @@ export const SHUTDOWN_MAX_PICTURES = 8;
 /** Longest picture name (printable ASCII: the same in every camera language and font). */
 export const SHUTDOWN_NAME_MAX = 20;
 /** First text: the submenu's line names "Type" and "Picture", the factory row, the pictures' names. */
-export const SHUTDOWN_TEXT_ID = 853;
+export const SHUTDOWN_TEXT_ID = 859;
 export const SHUTDOWN_TYPE_TEXT = SHUTDOWN_TEXT_ID;
 export const SHUTDOWN_PICTURE_TEXT = SHUTDOWN_TEXT_ID + 1;
 export const SHUTDOWN_FACTORY_TEXT = SHUTDOWN_TEXT_ID + 2;

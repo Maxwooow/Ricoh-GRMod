@@ -77,7 +77,7 @@ const zh = {
   tIcNameT: '名称', tIcNameB: '相机菜单里显示的名称，留空保持原名。',
   tIcPresetT: '预设', tIcPresetB: '拖入或点击选择 .xmp / .cube（基于 sRGB / Rec.709）导入',
   tIcIconT: '图标', tIcIconB: '可选择原图标、文字或图片；可选胶片边框',
-  tIcExtraT: '新增槽位', tIcExtraB: '可选择增加1-6个额外的滤镜导入槽',
+  tIcExtraT: '新增槽位', tIcExtraB: '可选择增加1-12个额外的滤镜导入槽',
   tIcTabsT: '槽位选择', tIcTabsB: '切换右侧显示的槽位，和点左边的卡片效果相同。',
   tIcModeT: '预览方式', tIcModeB: '在照片和 24 色色卡之间切换。',
   tIcPreviewT: '预览', tIcPreviewB: '可以进行左右对比，中间分割线可以拖动，双击回到中间。用户可以导入自己的照片。',
@@ -108,7 +108,8 @@ const zh = {
   extraSlot: '新增槽位 {n}', extraNameLong: '最多 12 个字符', extraNameBad: '仅限英文、数字、符号', extraNeedsPreset: '需要导入预设', extraNeedsIcon: '需要图标',
   extraMax: '最多新增 {n} 个槽位', extraIncomplete: '有新增槽位还没准备好（预设、名称或图标）', extraLine: '新增影像控制槽位 {n}  ·  {l}', extraRemove: '删除这个槽位',
   lookOrderTitle: '菜单顺序与隐藏', lookOrderSub: '按相机菜单的顺序排列；眼睛图标可隐藏不常用的 look', lookOrderHint: '拖动行或使用上下箭头调整顺序；隐藏的 look 不会出现在相机里（标准必须保留）。', lookOrderLine: '影像控制菜单：调整顺序 / 隐藏 {n} 个', lookOrderShow: '显示', lookOrderHide: '隐藏', lookOrderUp: '上移', lookOrderDown: '下移', lookOrderReset: '恢复默认顺序', lookOrderKeepStandard: '标准不能隐藏', lookOrderHiddenTag: '已隐藏', lookOrderMono: '单色', lookOrderCount: '{n} 个隐藏',
-  tIcSoftT: '附加功能', tIcSoftB: '柔焦：打开后，可将“柔焦”效果增添到 ADJ 快捷菜单，有关、弱、中、强四档，效果无法实时预览，可与 HDF 滤镜同时启用。\n时间戳：在照片右下角打印日期。刷入后默认关闭，在“拍摄辅助 › 拍摄时间戳”里打开，可选两种样式。\n黑白风格：解锁 GR IV Monochrome 机型的 6 个黑白风格。',
+  watermarkName: '水印名称', watermarkNameHint: '1–32 个可打印 ASCII 字符（英文、数字、符号）；独立于相机菜单名称。', watermarkNameEmpty: '请填写水印名称', watermarkNameLong: '水印名称最多 32 个字符', watermarkNameBad: '水印名称仅限可打印 ASCII 字符', watermarkNameIncomplete: '请修正水印名称（1–32 个可打印 ASCII 字符）', watermarkNameReset: '跟随槽位名称', watermarkNameLine: '自定义水印名称 {n} 个',
+  tIcSoftT: '附加功能', tIcSoftB: '柔焦：打开后，可将“柔焦”效果增添到 ADJ 快捷菜单，有关、弱、中、强四档，效果无法实时预览，可与 HDF 滤镜同时启用。\n时间戳：在照片右下角打印日期。刷入后默认关闭，在“拍摄辅助 › 拍摄时间戳”里打开，可选四种样式：短日期、日期时间、短日期＋LUT 名、短日期 / LUT 名，使用同一个开关。\n黑白风格：解锁 GR IV Monochrome 机型的 6 个黑白风格。',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -189,7 +190,7 @@ const en: typeof zh = {
   tIcNameT: 'Name', tIcNameB: 'The name shown in the camera menu; leave it empty to keep the original.',
   tIcPresetT: 'Preset', tIcPresetB: 'Drop or choose an .xmp / .cube file (sRGB / Rec.709) to import it.',
   tIcIconT: 'Icon', tIcIconB: 'Original icon, text or picture; optionally with a film border.',
-  tIcExtraT: 'Added slots', tIcExtraB: 'Add 1 to 6 extra slots for importing filters.',
+  tIcExtraT: 'Added slots', tIcExtraB: 'Add 1 to 12 extra slots for importing filters.',
   tIcTabsT: 'Slot', tIcTabsB: 'Switches the slot shown on the right, like clicking a card.',
   tIcModeT: 'Preview kind', tIcModeB: 'A photo or 24 colour swatches.',
   tIcPreviewT: 'Preview', tIcPreviewB: 'A side-by-side comparison: drag the line in the middle, double-click to centre it. You can use your own photo.',
@@ -220,7 +221,8 @@ const en: typeof zh = {
   extraSlot: 'Added slot {n}', extraNameLong: 'At most 12 characters', extraNameBad: 'Letters, digits and symbols only', extraNeedsPreset: 'Needs a preset', extraNeedsIcon: 'Needs an icon',
   extraMax: 'At most {n} added slots', extraIncomplete: 'An added slot is not ready yet (preset, name or icon)', extraLine: 'Added Image Control slots {n}  ·  {l}', extraRemove: 'Remove this slot',
   lookOrderTitle: 'Menu order and hidden looks', lookOrderSub: 'Order the Image Control menu; the eye hides looks you do not use', lookOrderHint: 'Drag a row or use the arrows; hidden looks do not appear in the camera (Standard must stay).', lookOrderLine: 'Image Control menu: reordered / {n} hidden', lookOrderShow: 'Show', lookOrderHide: 'Hide', lookOrderUp: 'Move up', lookOrderDown: 'Move down', lookOrderReset: 'Reset to factory order', lookOrderKeepStandard: 'Standard cannot be hidden', lookOrderHiddenTag: 'hidden', lookOrderMono: 'mono', lookOrderCount: '{n} hidden',
-  tIcSoftT: 'Additions', tIcSoftB: 'Soft focus: adds "Soft Focus" to the ADJ lever, with off, low, medium and high. The effect cannot be seen in live view; it can be used together with the HDF filter.\nDate imprint: prints the date in the bottom right corner of the photo. Off after flashing; turn it on under Shooting Assist › Date Imprint, two styles.\nB&W looks: unlocks the 6 black-and-white looks of the GR IV Monochrome.',
+  watermarkName: 'Watermark name', watermarkNameHint: '1–32 printable ASCII characters (English letters, digits, symbols); independent of the camera menu name.', watermarkNameEmpty: 'Enter a watermark name', watermarkNameLong: 'At most 32 characters for a watermark name', watermarkNameBad: 'Watermark names use printable ASCII only', watermarkNameIncomplete: 'Fix watermark names (1–32 printable ASCII characters)', watermarkNameReset: 'Follow slot name', watermarkNameLine: 'Custom watermark names: {n}',
+  tIcSoftT: 'Additions', tIcSoftB: 'Soft focus: adds "Soft Focus" to the ADJ lever, with off, low, medium and high. The effect cannot be seen in live view; it can be used together with the HDF filter.\nDate imprint: prints the date in the bottom right corner of the photo. Off after flashing; turn it on under Shooting Assist › Date Imprint, four styles: short date, date/time, short date + LUT name, or short date / LUT name; all share one switch.\nB&W looks: unlocks the 6 black-and-white looks of the GR IV Monochrome.',
 };
 export type Key = keyof typeof zh;
 const dict = (navigator.language || 'zh').toLowerCase().startsWith('zh') ? zh : en;

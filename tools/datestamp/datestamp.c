@@ -33,12 +33,24 @@ struct ctx {
   void (*clean)(void *cache, u32 addr, u32 n);       /* 0x538f04c4 */
   void *(*platform)(void);                           /* 0x538f21a0 */
   void (*get_time)(void *clock, u8 *time);           /* 0x538ea9b0 */
-  const u8 *setting;                                 /* bit 0: on, bit 1: with year and time */
+  const u8 *setting;                                 /* bit 0: on, bits 1..2: style */
+  const volatile u32 *stash;                          /* developed frame, never live menu state */
+  const u8 *const *names;                             /* style -> bounded ASCII name */
+  const u8 *font;                                     /* ASCII 32..126, 16 x 24 coverage */
 };
 
-/* The setting byte (see `datestamp.ts`): anything above 3 counts as off. */
+/* The setting byte (see `datestamp.ts`): anything above 7 counts as off. */
 #define SETTING_ON 1u
 #define SETTING_LONG 2u
+#define SETTING_MAX 7u
+#define G_ASCII 32u
+
+static u32 udiv(u32 n, u32 d) {
+  u32 q = 0, r = 0; s32 i;
+  if (!d) return 0;
+  for (i = 31; i >= 0; i--) { r = (r << 1) | ((n >> i) & 1u); if (r >= d) { r -= d; q |= 1u << i; } }
+  return q;
+}
 
 /* Glyph codes besides the digits 0..15. */
 #define G_APOSTROPHE 16
@@ -67,6 +79,14 @@ static s32 layout(const u8 *glyphs, u32 count, s32 H, s32 *left, s32 *width) {
   if (T < 2) T = 2;
   for (i = 0; i < count; i++) {
     u32 g = glyphs[i];
+    if (g >= G_ASCII) {
+      left[i] = x;
+      width[i] = g == 32 ? H / 2 : (H * 2) / 3;
+      if (width[i] < 2) width[i] = 2;
+      end = x + width[i];
+      x = end + (H > 7 ? H / 6 : H > 3 ? 1 : 0);
+      continue;
+    }
     if (i > 0 && (punct(g) || punct(glyphs[i - 1]))) x -= gap >> 1;
     left[i] = x;
     width[i] = g == G_SPACE ? 0 : narrow(g) ? T : W;
@@ -136,7 +156,7 @@ static void sync(const struct ctx *k, void *cache, struct picture *p, u32 y0, u3
 /* Draw `count` glyphs (0..15 hex digit, then ' space . :) with their top left corner at
  * (x0, y0), digit height H. With `bg`, the box behind them is filled with black first. The caller
  * has checked that the box lies inside the picture and handles the cache. */
-static void text_at(struct picture *p, const u8 *glyphs, u32 count, s32 x0, s32 y0, s32 H, struct colour col, int bg) {
+static void text_at(const struct ctx *k, struct picture *p, const u8 *glyphs, u32 count, s32 x0, s32 y0, s32 H, struct colour col, int bg) {
   s32 W, T, total;
   s32 left[MAXGLYPH], width[MAXGLYPH];
   u32 i;
@@ -168,7 +188,11 @@ static void text_at(struct picture *p, const u8 *glyphs, u32 count, s32 x0, s32 
         seg = g >= G_APOSTROPHE ? 0 : segments(g);
         for (px = 0; px < width[i]; px++) {
           u32 cov = 0, sx, sy;
-          for (sy = 0; sy < 2; sy++) for (sx = 0; sx < 2; sx++) {
+          if (g >= G_ASCII && g <= 126) {
+            u32 fx = udiv(((u32)px * 2u + 1u) * 16u, (u32)width[i] * 2u);
+            u32 fy = udiv(((u32)py * 2u + 1u) * 24u, (u32)H * 2u);
+            cov = (k->font[(g - G_ASCII) * 384u + fy * 16u + fx] + 32u) >> 6;
+          } else for (sy = 0; sy < 2; sy++) for (sx = 0; sx < 2; sx++) {
             s32 qx = px * 4 + 1 + (s32)sx * 2, qy = py * 4 + 1 + (s32)sy * 2;
             if (g == G_APOSTROPHE) { /* short bar at the top */
               if (qy < (qH * 5) >> 4 && abs32(qx - (T * 2)) <= qT) cov++;
@@ -231,13 +255,15 @@ static void draw(const struct ctx *k, void *cache, struct picture *p, s32 rx, s3
   /* Digit height ~ 1/26 of the shorter side, at least 7 px. */
   H = (s32)(((u32)(rw < rh ? rw : rh) * 2521u) >> 16);
   if (H < 7) H = 7;
+  /* Fit long names as one line, including in the 160-pixel thumbnail. */
+  while (H > 3 && text_width(glyphs, count, H) + 3 * H > rw) H--;
   margin = (H * 3) >> 1;
   x0 = rx + rw - margin - text_width(glyphs, count, H);
   y0 = ry + rh - margin - H;
-  if (x0 < 2 || y0 < 2 || y0 + H + 2 > (s32)p->height) return;
+  if (x0 < rx + 2 || y0 < ry + 2 || y0 + H + 2 > ry + rh || x0 + text_width(glyphs, count, H) + 2 > rx + rw) return;
   if (is_mono(k, cache, p, rx, ry, rw, rh)) { col.cb = 128; col.cr = 128; } /* light only, like on black-and-white film */
   sync(k, cache, p, (u32)y0, (u32)(y0 + H + 1), 0);
-  text_at(p, glyphs, count, x0, y0, H, col, 0);
+  text_at(k, p, glyphs, count, x0, y0, H, col, 0);
   sync(k, cache, p, (u32)y0, (u32)(y0 + H + 1), 1);
 }
 
@@ -300,26 +326,26 @@ static void diag(const struct ctx *k, void *cache, u32 *config) {
       line[n++] = ram(q) ? (u8)refusal(q) : 15;
     }
     line[n++] = 17; line[n++] = (u8)s;
-    text_at(p, line, n, 4, 4, Hm, white, 1); row++;
+    text_at(k, p, line, n, 4, 4, Hm, white, 1); row++;
     sync(k, cache, p, 0, (u32)(Hm + 8), 1);
     if (p->width != 720 || p->height < 400) continue;
     sync(k, cache, p, 0, 340, 0);
     for (j = 0; j < 3; j++) {
       n = 0;
       for (i = 0; i < 4; i++) { hex_word_le(config[(0x30 >> 2) + j * 4 + i], line + n); n += 8; line[n++] = 17; }
-      text_at(p, line, n - 1, 4, 4 + (s32)row * step, Hd, white, 1); row++;
+      text_at(k, p, line, n - 1, 4, 4 + (s32)row * step, Hd, white, 1); row++;
     }
     for (j = 0; j < 4; j++) {
       const u8 *q = (const u8 *)config[(0x3c >> 2) + j];
-      if (!ram(q)) { line[0] = 15; line[1] = 15; text_at(p, line, 2, 4, 4 + (s32)row * step, Hd, white, 1); row += 2; continue; }
-      n = hex_bytes(q, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
-      n = hex_bytes(q + 16, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
+      if (!ram(q)) { line[0] = 15; line[1] = 15; text_at(k, p, line, 2, 4, 4 + (s32)row * step, Hd, white, 1); row += 2; continue; }
+      n = hex_bytes(q, 16, line); text_at(k, p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
+      n = hex_bytes(q + 16, 16, line); text_at(k, p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
     }
     {
       const u8 *q = (const u8 *)config[0x38 >> 2];
       if (ram(q)) {
-        n = hex_bytes(q, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
-        n = hex_bytes(q + 16, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
+        n = hex_bytes(q, 16, line); text_at(k, p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
+        n = hex_bytes(q + 16, 16, line); text_at(k, p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
       }
     }
     sync(k, cache, p, 0, 340, 1);
@@ -339,14 +365,15 @@ static u32 two_digits(u32 v, u8 *out) {
 void datestamp(const struct ctx *k, u32 *config) {
   u8 time[16];
   u8 glyphs[MAXGLYPH];
-  u32 n = 0, i, j, setting;
+  u32 n = 0, i, j, setting, style;
   struct picture *seen[4];
   void *cache, *platform;
   setting = *k->setting;
-  if (setting > (SETTING_ON | SETTING_LONG) || !(setting & SETTING_ON) || !ram(config)) return;
+  if (setting > SETTING_MAX || !(setting & SETTING_ON) || !ram(config)) return;
 #ifdef DIAG
   diag(k, k->cache(), config);
 #endif
+  style = setting >> 1;
   for (i = 0; i < 16; i++) time[i] = 0;
   platform = k->platform();
   if (!platform) return;
@@ -354,7 +381,7 @@ void datestamp(const struct ctx *k, u32 *config) {
   {
     u32 year = time[0] | (u32)time[1] << 8, month = time[2], day = time[3], hour = time[4], minute = time[5];
     if (year < 2000 || year > 2099 || month < 1 || month > 12 || day < 1 || day > 31) return;
-    if (setting & SETTING_LONG) {      /* 2026.10.08 17:34 */
+    if (style == 1) {      /* 2026.10.08 17:34 */
       if (hour > 23 || minute > 59) return;
       glyphs[n++] = 2; glyphs[n++] = 0;
       n += two_digits(year, glyphs + n);
@@ -373,6 +400,28 @@ void datestamp(const struct ctx *k, u32 *config) {
       n += two_digits(month, glyphs + n);
       glyphs[n++] = G_SPACE;
       n += two_digits(day, glyphs + n);
+    }
+  }
+  /* Only the two LUT styles use one typewriter alphabet for the whole line.
+   * Leave both legacy date glyph streams untouched, including missing-font fallback. */
+  if (style >= 2 && k->font) {
+    for (i = 0; i < n; i++) {
+      if (glyphs[i] <= 9) glyphs[i] += '0';
+      else if (glyphs[i] == G_APOSTROPHE) glyphs[i] = '\'';
+      else if (glyphs[i] == G_SPACE) glyphs[i] = ' ';
+    }
+  }
+  if (style >= 2 && k->stash && k->names && k->font) {
+    u32 st = *k->stash;
+    if (st & 0x10000u) {
+      const u8 *name = k->names[st & 255u];
+      u32 length = 0, good = 1;
+      if (name) for (; length < 32 && name[length]; length++) if (name[length] < 32 || name[length] > 126) { good = 0; break; }
+      if (name && length && good) {
+        glyphs[n++] = ' ';
+        if (style == 3) { glyphs[n++] = '/'; glyphs[n++] = ' '; }
+        for (i = 0; i < length; i++) glyphs[n++] = name[i];
+      }
     }
   }
   cache = k->cache();

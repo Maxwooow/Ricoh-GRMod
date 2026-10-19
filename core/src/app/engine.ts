@@ -193,9 +193,11 @@ export interface BuildOptions {
   adjSoftFocus?: boolean;
   /** Date imprint on the JPEG, switched in the camera's menu. */
   dateStamp?: boolean;
+  /** Watermark text for individual looks; does not rename the camera menu. */
+  watermarkNames?: Record<number, string>;
   /** The six black-and-white looks of the GR IV Monochrome. */
   monoUnlock?: boolean;
-  /** Added Image Control slots (1 to 6), after the factory ones. */
+  /** Added Image Control slots (1 to 12), after the factory ones. */
   extraSlots?: ExtraSlotSpec[];
   /** Image Control menu order and hidden looks (factory ids 11..30 plus added styles 34..). */
   lookLayout?: LookLayout;
@@ -447,6 +449,11 @@ export class Engine {
       if (!slots) return { ...unknown, kind: 'modified' };
       features.extraSlots = slots;
     }
+    if (features.dateStamp) {
+      const names = aspect.readWatermarkNames(dec.slice(RTOS_OFFSET, rtosEnd + rtosGrowth), extraCount);
+      if (!names) return { ...unknown, kind: 'modified' };
+      features.watermarkNames = names;
+    }
     // Power-off pictures: names and identities from the image, JPEGs from RES.
     const pictureCount = readShutdownCount(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? 0;
     if (pictureCount > 0 || resInsert) {
@@ -628,7 +635,7 @@ export class Engine {
     if (dateStamp && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the date imprint cannot be combined with the clarity-table soft focus of 0.4.x');
     if (extraSlots.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'added slots cannot be combined with the clarity-table soft focus of 0.4.x');
     if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout) throw new FirmwareError('bad-edit', 'nothing to change');
-    const features = { adjSoftFocus, ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}) };
+    const features = { adjSoftFocus, ...(dateStamp ? { dateStamp, ...(options.watermarkNames ? { watermarkNames: options.watermarkNames } : {}) } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}) };
     const test = options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {};
     const { decoded: _decoded, ...rest } = await buildFirmware(this.raw, edits, ratios, clarity, features, test);
     return rest;

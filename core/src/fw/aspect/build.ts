@@ -112,9 +112,11 @@ export interface ExtensionFeatures {
   adjSoftFocus?: boolean;
   /** Date imprint on the JPEG (see `datestamp.ts`). */
   dateStamp?: boolean;
+  /** Independent printable-ASCII watermark labels, keyed by firmware style ID. */
+  watermarkNames?: Readonly<Record<number, string>>;
   /** The six looks of the GR IV Monochrome (see `monounlock.ts`). */
   monoUnlock?: boolean;
-  /** Added Image Control slots, 1 to 6 (see `slots.ts`). */
+  /** Added Image Control slots, 1 to 12 (see `slots.ts`). */
   extraSlots?: readonly ExtraSlotSpec[];
   /** Image Control menu order and hidden looks (see `looks.ts`). */
   lookLayout?: LookLayout;
@@ -1015,7 +1017,7 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   if (features.monoUnlock) installMonoUnlock(patch);
   if (features.dateStamp) {
     const fixed = test.dateStampFixed;
-    installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : DATESTAMP_BYTE, !!test.dateStampDiag);
+    installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : DATESTAMP_BYTE, !!test.dateStampDiag, slots.map((s) => s.name), features.watermarkNames);
     if (!fixed) icons = installDateStampMenu(patch, icons);
   }
   // Last: the added slots compose with the monochrome looks' visibility check.

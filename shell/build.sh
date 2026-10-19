@@ -214,6 +214,8 @@ build_mac() {
   rm -rf "$tmp"
   go run ./tools/genicon -out "" -icns "$app/Contents/Resources/GRMod.icns" >/dev/null
   write_info_plist "$app/Contents/Info.plist"
+  mkdir -p "$app/Contents/Resources/Licenses"
+  cp ../tools/datestamp/fonts/OFL.txt "$app/Contents/Resources/Licenses/CourierPrime-OFL.txt"
   printf 'APPL????' > "$app/Contents/PkgInfo"
 
   local rcodesign="${RCODESIGN:-$(command -v rcodesign || true)}"

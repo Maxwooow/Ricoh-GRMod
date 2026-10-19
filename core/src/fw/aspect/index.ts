@@ -10,7 +10,7 @@ export {
 } from './build';
 export { ADJ_SOFT_FOCUS, SOFT_FOCUS_BYTE, SOFT_FOCUS_ICON_ID, SOFT_FOCUS_NAMES, SOFT_FOCUS_TEXT_ID, drawSoftFocusIcon, softFocusRows } from './softfocus';
 export type { AspectResult, BuildRevision, ExtensionFeatures, PatchedWord, RatioEntry, RatioSpec, TestOptions } from './build';
-export { DATESTAMP_BYTE, DATESTAMP_LONG, DATESTAMP_ON, JPEG_EXECUTE, datestampModule, installDateStamp } from './datestamp';
+export { DATESTAMP_BYTE, DATESTAMP_LONG, DATESTAMP_ON, JPEG_EXECUTE, datestampModule, installDateStamp, readWatermarkNames, validateWatermarkNames } from './datestamp';
 export { DATESTAMP_ICON_IDS, DATESTAMP_MENU_ID, DATESTAMP_STYLE_ID, DATESTAMP_SWITCH_ID, DATESTAMP_TEXT_IDS, drawStyleIcon, installDateStampMenu } from './datestamp-menu';
 export { EXTRA_FIRST_STYLE, EXTRA_ICON_BYTES, EXTRA_ICON_ID, EXTRA_NAME_MAX, EXTRA_TEXT_ID, MAX_EXTRA_SLOTS, installExtraSlots, readExtraSlots, validateExtraSlotName } from './slots';
 export { COLOR_CONDITIONAL, COLOR_HIDDEN, COLOR_VIS_TABLE, COLOR_VISIBLE, EXTRA_LOOK_FIRST, FACTORY_LOOK_IDS, MONO_HIDDEN, MONO_VIS_TABLE, ORDER_COUNT, ORDER_TABLE, installFactoryHidden, installLookOrder, lookLayoutWords, validateLookLayout } from './looks';

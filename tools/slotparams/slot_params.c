@@ -21,11 +21,13 @@
 #include <stdint.h>
 
 #ifndef SLOT_COUNT
-#error SLOT_COUNT (1..6) is set by gen_slotparams.py
+#error SLOT_COUNT (1..12) is set by gen_slotparams.py
 #endif
 #define CY 18u
 #define FIRST 34u
-#define OWNERS 7u                 /* Cinema Yellow and up to six added slots */
+/* Cinema Yellow and the added slots. Counts 1..6 keep the original table size (7 owners) so
+ * firmwares built before 12 slots were possible read and write their record unchanged. */
+#define OWNERS (SLOT_COUNT < 6u ? 7u : 1u + SLOT_COUNT)
 #define COMBOS 8u                 /* photo sets 0..3, movie sets 0..3 */
 #define NP 13u
 #define REC_ID 12u

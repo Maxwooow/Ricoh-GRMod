@@ -1,0 +1,5 @@
+# Reproduce the committed ARM module, font cells, and emulator checks.
+ziglang==0.17.0
+Pillow==13.0.0
+pyelftools==0.33
+unicorn==2.1.4

@@ -68,6 +68,8 @@ export interface State {
   /** Image Control menu order (`f11`..`f30`, or an added slot's key) and hidden keys. Empty = factory order, nothing hidden. */
   lookOrder: string[];
   lookHidden: string[];
+  /** Explicit watermark labels, keyed by stable factory / added-look identity. */
+  watermarkNames: Record<string, string>;
   volumes: Volume[]; showAll: boolean; volumeId?: string; role?: card.CardRole;
   copySource: CopySource; parked: ParkedEntry[]; backups: ParkedEntry[]; copySel: string[]; copyInfo: Record<string, CopyInfo>; builds: BuildRecord[];
   busy?: string; toasts: Toast[]; confirm?: Confirm; cropId?: string; onlineOpen: boolean;
@@ -82,7 +84,7 @@ const SLOT_IDS: SlotId[] = ['CY', 'CG'];
 const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '', style: 'film' } });
 let state: State = {
   ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: 'zh-CN',
-  slots: { CY: emptySlot(), CG: emptySlot() }, extras: [], lookOrder: [], lookHidden: [], wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], bridgeOpen: false,
+  slots: { CY: emptySlot(), CG: emptySlot() }, extras: [], lookOrder: [], lookHidden: [], watermarkNames: {}, wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], bridgeOpen: false,
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
@@ -155,7 +157,7 @@ async function saveProject(): Promise<void> {
       icon: { mode: s.slots[id].icon.mode, text: s.slots[id].icon.text, style: s.slots[id].icon.style, image: s.slots[id].icon.image },
     }])),
     extras: s.extras.map((x) => ({ key: x.key, name: x.name, preset: x.preset ? { fileName: x.preset.fileName, kind: x.preset.kind } : null, icon: { mode: x.icon.mode, text: x.icon.text, style: x.icon.style, image: x.icon.image }, ...(x.halation ? { halation: x.halation } : {}) })),
-    lookOrder: s.lookOrder, lookHidden: s.lookHidden,
+    lookOrder: s.lookOrder, lookHidden: s.lookHidden, watermarkNames: s.watermarkNames,
     wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: 'image', width: w.width, height: w.height, crop: w.crop, ...(w.menuName !== undefined ? { menuName: w.menuName } : {}), ...(w.menuId ? { menuId: w.menuId } : {}) })),
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
     soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock,
@@ -186,10 +188,11 @@ export async function init(): Promise<void> {
         .map((x: ExtraSlot) => ({ key: x.key, name: String(x.name || '').slice(0, 40), icon: { mode: x.icon?.mode === 'image' ? 'image' : 'text', text: String(x.icon?.text ?? ''), style: x.icon?.style === 'plain' ? 'plain' : 'film', image: x.icon?.image }, ...(validHalation(x.halation) ? { halation: validHalation(x.halation)! } : {}) }));
       const lookOrder = normalizeLookOrder(Array.isArray(doc.lookOrder) ? doc.lookOrder : [], extras);
       const lookHidden = normalizeLookHidden(Array.isArray(doc.lookHidden) ? doc.lookHidden : [], extras);
+      const watermarkNames = normalizeWatermarkNames(doc.watermarkNames, extras);
       const ratios: RatioItem[] = (Array.isArray(doc.ratios) ? doc.ratios : []).slice(0, MAX_CUSTOM_RATIOS)
         .filter((r: RatioItem) => r && typeof r.id === 'string' && typeof r.ratio === 'string')
         .map((r: RatioItem) => ({ id: r.id, ratio: r.ratio.slice(0, 24), name: String(r.name || '').slice(0, 80) }));
-      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : doc.page === 'script' ? 'wall' : 'ic', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, extras, lookOrder, lookHidden, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo',
+      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : doc.page === 'script' ? 'wall' : 'ic', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, extras, lookOrder, lookHidden, watermarkNames, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo',
         soft: doc.soft === true || (!!doc.softFocus && typeof doc.softFocus === 'object' && Object.keys(doc.softFocus).length > 0),
         dateStamp: doc.dateStamp === true, monoUnlock: doc.monoUnlock === true,
         // GR Mod 0.8 changed the power-off page: its tour (which now says where the pictures are chosen) shows once more
@@ -382,6 +385,45 @@ export function lookName(key: string, s: State = state): string {
   const x = lookExtras(s).find((e) => e.key === key);
   return x ? extraName(x, s) : key;
 }
+/** The default follows the English menu name until the watermark is explicitly edited. */
+export function watermarkDefaultName(key: string, s: State = state): string {
+  const style = lookStyleOf(key, s);
+  if (style === 18 || style === 19) {
+    const id = style === 18 ? 'CY' : 'CG';
+    return s.slots[id].names.en || s.info?.slots.find((x) => x.id === id)?.names.en.text || FACTORY_LOOK_NAMES[style].en;
+  }
+  if (style !== null && FACTORY_LOOK_NAMES[style]) return FACTORY_LOOK_NAMES[style].en;
+  const extra = s.extras.find((x) => x.key === key);
+  return extra ? extraName(extra, s) : key;
+}
+export function watermarkName(key: string, s: State = state): string { return s.watermarkNames[key] ?? watermarkDefaultName(key, s); }
+/** Preserve invalid text too: the editor shows the problem and prevents building. */
+function normalizeWatermarkNames(value: unknown, extras: readonly ExtraSlot[]): Record<string, string> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const valid = new Set([...FACTORY_LOOK_IDS.map(factoryLookKey), ...extras.map((x) => x.key)]);
+  return Object.fromEntries(Object.entries(value).filter(([k, v]) => valid.has(k) && typeof v === 'string'));
+}
+export function setWatermarkName(key: string, value: string): void {
+  if (!lookKeys().includes(key)) return;
+  set((s) => ({ watermarkNames: { ...s.watermarkNames, [key]: value } }));
+  scheduleSave();
+}
+export function resetWatermarkName(key: string): void {
+  set((s) => { const watermarkNames = { ...s.watermarkNames }; delete watermarkNames[key]; return { watermarkNames }; });
+  scheduleSave();
+}
+export function watermarkNameProblem(key: string, s: State = state): string | null {
+  const value = watermarkName(key, s);
+  if (!value.length) return t('watermarkNameEmpty');
+  if (value.length > 32) return t('watermarkNameLong');
+  return /[^\x20-\x7e]/.test(value) ? t('watermarkNameBad') : null;
+}
+export function hasWatermarkNameErrors(s: State = state): boolean { return lookKeys(s).some((key) => !!watermarkNameProblem(key, s)); }
+/** Only explicit overrides go to core; style IDs are derived from the current added-slot order. */
+export function watermarkNamesSpec(s: State = state): Record<number, string> | undefined {
+  const entries = lookKeys(s).filter((key) => Object.prototype.hasOwnProperty.call(s.watermarkNames, key)).map((key) => [lookStyleOf(key, s)!, s.watermarkNames[key]]);
+  return entries.length ? Object.fromEntries(entries) : undefined;
+}
 /** Keep the saved order valid for the current extras: drop unknown keys, append new ones in factory order. */
 export function normalizeLookOrder(order: readonly string[], extras: readonly ExtraSlot[]): string[] {
   const valid = new Set<string>([...FACTORY_LOOK_IDS.map(factoryLookKey), ...extras.map((x) => x.key)]);
@@ -502,7 +544,7 @@ export function addExtraSlot(): void {
   scheduleSave();
 }
 export function removeExtraSlot(key: string): void {
-  set((s) => ({ extras: s.extras.filter((x) => x.key !== key), activeSlot: s.activeSlot === key ? 'CY' : s.activeSlot, lookOrder: normalizeLookOrder(s.lookOrder, s.extras.filter((x) => x.key !== key)), lookHidden: s.lookHidden.filter((k) => k !== key) }));
+  set((s) => ({ extras: s.extras.filter((x) => x.key !== key), activeSlot: s.activeSlot === key ? 'CY' : s.activeSlot, lookOrder: normalizeLookOrder(s.lookOrder, s.extras.filter((x) => x.key !== key)), lookHidden: s.lookHidden.filter((k) => k !== key), watermarkNames: normalizeWatermarkNames(s.watermarkNames, s.extras.filter((x) => x.key !== key)) }));
   if (host.available) void host.storeDel('preset-' + key).catch(() => undefined);
   scheduleSave();
 }
@@ -679,7 +721,7 @@ export function setDateStamp(dateStamp: boolean): void { set({ dateStamp }); sch
 export function setMonoUnlock(monoUnlock: boolean): void { set({ monoUnlock }); scheduleSave(); }
 export function monoUnlockOn(s: State = state): boolean { return !!s.monoUnlock && s.model !== 'MONO'; }
 /** Any addition that is not a slot or a ratio. */
-export function extrasOn(s: State = state): boolean { return softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hasLookLayout(s); }
+export function extrasOn(s: State = state): boolean { return softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hasLookLayout(s) || !!watermarkNamesSpec(s); }
 const MINUS = '\u2212';
 const strengthLabel = (st: SoftFocusStrength | 'custom'): string => t(st === 'weak' ? 'softWeak' : st === 'medium' ? 'softMedium' : st === 'strong' ? 'softStrong' : 'softCustom');
 /** "−2 weak / −3 medium" (−1 first), for confirmations and the copies page. */
@@ -830,7 +872,7 @@ export function pendingChanges(s: State = state): SlotChange[] {
 }
 export function hasNameErrors(s: State = state): boolean {
   if (!s.info) return false;
-  return SLOT_IDS.some((id) => LANGS.some((lang) => !!nameProblem(s.info!, id, lang, s.slots[id].names[lang] || '')));
+  return hasWatermarkNameErrors(s) || SLOT_IDS.some((id) => LANGS.some((lang) => !!nameProblem(s.info!, id, lang, s.slots[id].names[lang] || '')));
 }
 const stamp = (): string => { const d = new Date(); const p = (n: number): string => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
 
@@ -887,13 +929,15 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const soft = !stock && softOn();
   const dateStamp = !stock && !!state.dateStamp;
   const monoUnlock = !stock && monoUnlockOn();
+  if (!stock && hasWatermarkNameErrors()) { toast(t('watermarkNameIncomplete'), 'error'); return; }
   if (!stock && (hasNameErrors() || hasRatioErrors())) return;
   if (!stock && hasExtraErrors()) { toast(t('extraIncomplete'), 'error'); return; }
   const extras = stock ? [] : extraSpecs();
   if (!stock && state.wall.length > 0 && !menuReady()) { toast(t('wallMenuIncomplete'), 'error'); return; }
   const pictures = stock ? [] : menuPictures();
   const lookLayout = stock ? undefined : lookLayoutSpec();
-  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && extras.length === 0 && pictures.length === 0 && !lookLayout) { toast(t('nothingToDo'), 'info'); return; }
+  const watermarkNames = stock ? undefined : watermarkNamesSpec();
+  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && extras.length === 0 && pictures.length === 0 && !lookLayout && !watermarkNames) { toast(t('nothingToDo'), 'info'); return; }
   if (stock && !(await askOfficial([t('copyOfficial')]))) return;
   if (dest.kind === 'card' && !stock) {
     const lines = changes.map((c) => `${t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
@@ -903,6 +947,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (monoUnlock) lines.push(t('monoLine'));
     if (extras.length) lines.push(t('extraLine', { n: extras.length, l: extras.map((x) => x.name).join(' / ') }));
     if (lookLayout) lines.push(t('lookOrderLine', { n: lookLayout.hidden.length }));
+    if (watermarkNames) lines.push(t('watermarkNameLine', { n: Object.keys(watermarkNames).length }));
     if (pictures.length) lines.push(t('wallMenuLine', { n: pictures.length, l: pictures.map((p) => p.name).join(' / ') }));
     if (!(await ask(t('confirmTitle'), lines, t('confirmOk')))) return;
   }
@@ -913,7 +958,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (stock) file = state.raw;
     else {
       set({ busy: t('building') });
-      const built = await engine.build(changes.map((c) => c.request), ratios, [], { adjSoftFocus: soft, dateStamp, monoUnlock, ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}), ...(lookLayout ? { lookLayout } : {}) });
+      const built = await engine.build(changes.map((c) => c.request), ratios, [], { adjSoftFocus: soft, dateStamp, monoUnlock, ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}), ...(lookLayout ? { lookLayout } : {}), ...(watermarkNames ? { watermarkNames } : {}) });
       if (!Object.values(built.checks).every((v) => v === true)) throw new EngineError('selfcheck-failed', 'self-check');
       file = built.file;
       void recordBuild(file, changes);

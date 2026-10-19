@@ -15,10 +15,10 @@ official ones:
     (still-menu line, submenu lines, list count / draw / set / is-current) for every value of the
     setting byte, including values the official firmware may have left there.
  5. SelectMenuController's list building and SubMenuController's drawing run on the new records
-    (view functions stubbed): two values, exactly one marked current, line texts, title, icons.
+    (view functions stubbed): two/four values, one marked current, line texts, title, icons.
  6. SelectMenuController's constructor scan over all list records (0x531D6D4C, start and end of
     the relocated table): same number of records and the same longest list as officially.
- 7. Texts 841..845 in all 21 languages and the two icons (catalog entries, lookup bounds).
+ 7. Texts 841..845 and 880..881 in all 21 languages and the four icons (catalog entries, lookup bounds).
 
     python3 menu_check.py BUILT.bin OFFICIAL.bin [ICONS.png]
 
@@ -37,8 +37,11 @@ OFFICIAL_LEN = 0x13d2ac0
 RAMVA, RAMIMG, RAMLEN = 0x55000000, 0x5437b640, 0x57480
 B = 0x55084dd8 + 4 + 0x94b
 NEW_MENU, NEW_SWITCH, NEW_STYLE = 0x020001a0, 0x020001a1, 0x020001a2
-T_NAME, T_ONOFF, T_STYLE, T_SHORT, T_LONG = 841, 842, 843, 844, 845
-I_SHORT, I_LONG, I_OFF, I_ON = 721, 722, 310, 311
+T_NAME, T_ONOFF, T_STYLE, T_SHORT, T_LONG, T_SHORT_LUT, T_SLASH_LUT = 841, 842, 843, 844, 845, 880, 881
+I_SHORT, I_LONG, I_SHORT_LUT, I_SLASH_LUT, I_OFF, I_ON = 721, 722, 782, 783, 310, 311
+STYLE_ICONS = (I_SHORT, I_LONG, I_SHORT_LUT, I_SLASH_LUT)
+STYLE_TEXTS = (T_SHORT, T_LONG, T_SHORT_LUT, T_SLASH_LUT)
+RAW_SETTINGS = (*range(8), 8, 9, 0x80, 0xff)
 TEXT_CATALOG, ICON_CATALOG = 0x543d4ac0, 0x543d3ac0
 NAMES = ['Vkopírování data', 'Datostempel', 'Date Imprint', 'Päiväysleima', 'Impression date', 'Datumseinbelichtung',
          'Αποτύπωση ημ/νίας', 'Dátumbélyegző', 'Stampa data', '日付写し込み', '날짜 각인', 'Datumafdruk', 'Nadruk daty',
@@ -285,9 +288,9 @@ def check_records(new, off):
     top = draws[ids.index(NEW_MENU)]
 
     item = 0x70800000
-    expect_icons = {0: (I_OFF, I_SHORT), 1: (I_ON, I_SHORT), 2: (I_OFF, I_LONG), 3: (I_ON, I_LONG)}
-    for raw in (0, 1, 2, 3, 4, 7, 0x80, 0xff):
-        v = raw if raw <= 3 else 0
+    expect_icons = {v: (I_ON if v & 1 else I_OFF, STYLE_ICONS[v >> 1]) for v in range(8)}
+    for raw in RAW_SETTINGS:
+        v = raw if raw <= 7 else 0
         e = Emu(new)
         e.mu.mem_write(B, bytes([raw]))
         e.call(top, (0x70000000, item))
@@ -305,35 +308,37 @@ def check_records(new, off):
         for which, h in enumerate(lists):
             e = Emu(new)
             e.mu.mem_write(B, bytes([raw]))
-            check(e.call(h['count'], (0x70000000,)) == 2, 'list count')
-            cur = [e.call(h['current'], (0x70000000, i)) for i in (0, 1)]
-            bit = (v >> which) & 1
-            check(cur == [1 - bit, bit], f'list {which}, byte {raw}: current {cur}')
+            count = (2, 4)[which]
+            check(e.call(h['count'], (0x70000000,)) == count, 'list count')
+            cur = [e.call(h['current'], (0x70000000, i)) for i in range(count)]
+            value = v & 1 if which == 0 else v >> 1
+            check(cur == [int(i == value) for i in range(count)], f'list {which}, byte {raw}: current {cur}')
             check(e.byte(B) == v, f'list {which}, byte {raw}: not normalised')
-            for i in (0, 1):
+            for i in range(count):
                 e2 = Emu(new)
                 e2.mu.mem_write(B, bytes([raw]))
                 e2.call(h['set'], (0x70000000, i))
-                want = (v & ~(1 << which)) | (i << which)
+                want = (v & ~(1 if which == 0 else 6)) | (i << which)
                 check(e2.byte(B) == want, f'list {which} set {i}, byte {raw}: {e2.byte(B)} want {want}')
-            e3 = Emu(new)
-            e3.mu.mem_write(B, bytes([raw]))
-            e3.call(h['set'], (0x70000000, 2))
-            check(e3.byte(B) == raw, f'list {which}: set 2 changed the byte')
+            for invalid in (count, 0xff, 0xffffffff):
+                e3 = Emu(new)
+                e3.mu.mem_write(B, bytes([raw]))
+                e3.call(h['set'], (0x70000000, invalid))
+                check(e3.byte(B) == raw, f'list {which}: set {invalid} changed the byte')
     for which, h in enumerate(lists):
         e = Emu(new)
         out = []
-        for i in (0, 1):
+        for i in range((2, 4)[which]):
             e.calls.clear()
             e.call(h['draw'], (0x70000000, item, i))
             out.append(e.calls[0][1:] if e.calls else None)
-        want = [[(item, I_OFF, 2), (item, I_ON, 1)], [(item, I_SHORT, T_SHORT), (item, I_LONG, T_LONG)]][which]
+        want = [[(item, I_OFF, 2), (item, I_ON, 1)], [(item, icon, tid) for icon, tid in zip(STYLE_ICONS, STYLE_TEXTS)]][which]
         check(out == want, f'list {which} draw: {out}')
     print('  records: submenu table', hex(st), 'list table', hex(lt))
 
 
 def text(img, lang_row, tid):
-    row = img.u32(TEXT_CATALOG + lang_row * 4)
+    row = img.u32((TEXT_CATALOG if len(img.R) > OFFICIAL_LEN else 0x55002118) + lang_row * 4)
     d = img.u32(row + tid * 4)
     if not d:
         return None
@@ -346,20 +351,29 @@ def check_texts_icons(new, off, png):
     first = 0x55000000 + (0x5437d7b0 - 0x5437b640)
     for l in range(21):
         k = (roots[l] + 4 - first) // 0xd14
-        got = [text(new, l, t) for t in (T_NAME, T_ONOFF, T_STYLE, T_SHORT, T_LONG)]
-        check(got[0] == NAMES[k] and got[3] == "'26 10 08" and got[4] == '2026.10.08 17:34' and got[1] and got[2], f'texts, language row {l}: {got}')
-        check(text(new, l, 2) == text(off, l, 2) if False else True, '')
-    for site in (0x543d4ac0,):
-        pass
+        got = [text(new, l, t) for t in (T_NAME, T_ONOFF, T_STYLE, *STYLE_TEXTS)]
+        check(got[0] == NAMES[k] and got[3] == "'26 10 08" and got[4] == '2026.10.08 17:34' and got[5:] == ["'26 10 08 + LUT", "'26 10 08 / LUT"] and got[1] and got[2], f'texts, language row {l}: {got}')
+        check(text(new, l, 2) == text(off, l, 2), f'Off text changed, language row {l}')
+        check(text(new, l, 1) == text(off, l, 1), f'On text changed, language row {l}')
+    for site in (0x535734f4, 0x53572ae0):
+        branch = new.u32(site)
+        check(branch >> 24 == 0xea, f'text bound at {site:#x}: expected helper branch')
+        displacement = branch & 0xffffff
+        if displacement & 0x800000:
+            displacement -= 0x1000000
+        helper = site + 8 + displacement * 4
+        word = new.u32(helper + 4)
+        bound = ((word >> 4) & 0xf000) | (word & 0xfff)
+        check(bound >= max(STYLE_TEXTS), f'text bound at {site:#x}: {bound}')
     for low in (0x5323dbb4, 0x5323e40c):
         w = new.u32(low)
         bound = ((w >> 4) & 0xf000) | (w & 0xfff)
-        check(722 <= bound <= 730, f'icon bound at {low:#x}: {bound}')
-    for tid in (I_SHORT, I_LONG):
+        check(bound >= max(STYLE_ICONS) and bound >= (((off.u32(low) >> 4) & 0xf000) | (off.u32(low) & 0xfff)), f'icon bound at {low:#x}: {bound}')
+    for tid in STYLE_ICONS:
         d = new.u32(ICON_CATALOG + tid * 4)
         kind, w, h, flags = struct.unpack('<4H', new.rd(d, 8))
         check((kind, w, h, flags) == (1, 40, 40, 0), f'icon {tid}: descriptor {kind, w, h, flags}')
-    print('  texts:', [text(new, 15, t) for t in range(841, 846)], [text(new, 2, t) for t in range(841, 846)])
+    print('  texts:', [text(new, 15, t) for t in (T_NAME, T_ONOFF, T_STYLE, *STYLE_TEXTS)], [text(new, 2, t) for t in (T_NAME, T_ONOFF, T_STYLE, *STYLE_TEXTS)])
 
 
 def views(img, raw, setup):
@@ -390,8 +404,8 @@ def views(img, raw, setup):
 def check_controllers(new):
     """SelectMenuController's list building (0x531DA9D4) and SubMenuController's drawing
     (0x531E271C) with the new records."""
-    for raw in (0, 1, 2, 3, 0xff):
-        v = raw if raw <= 3 else 0
+    for raw in RAW_SETTINGS:
+        v = raw if raw <= 7 else 0
         for which, rec in enumerate((125, 126)):
             def setup(e, this, rec=rec):
                 e.mu.mem_write(this + 0x198, struct.pack('<I', 0x70700000))
@@ -401,9 +415,10 @@ def check_controllers(new):
             e, seen = views(new, raw, setup)
             items = [c for c in e.calls if c[0] == 'list-item']
             marks = [(c[1], c[2]) for c in seen if c[0] == hex(0x5357ad40)]
-            cur = (v >> which) & 1
-            check(len(items) == 2, f'list {which}, byte {raw}: {len(items)} items drawn')
-            check([m[0] for m in marks] == [1 - cur, cur], f'list {which}, byte {raw}: current marks {marks}')
+            cur = v & 1 if which == 0 else v >> 1
+            count = (2, 4)[which]
+            check(len(items) == count, f'list {which}, byte {raw}: {len(items)} items drawn')
+            check([m[0] for m in marks] == [int(i == cur) for i in range(count)], f'list {which}, byte {raw}: current marks {marks}')
             check(e.byte(0x70000000 + 0x1a6) == cur, f'list {which}, byte {raw}: cursor {e.byte(0x70000000 + 0x1a6)}')
             if raw == 3:
                 print(f'  list {which}: items', [(c[2], c[3]) for c in items], 'marks', [m[0] for m in marks], 'title', [c for c in seen if c[0] in (hex(0x5357f2b0), hex(0x5357338c))][:2])
@@ -417,7 +432,7 @@ def check_controllers(new):
         icons = [c[2] for c in e.calls if c[0] == 'sub-icon']
         texts = [c[1] for c in seen if c[0] == hex(0x53583014)]
         titles = [c[1] for c in seen if c[0] == hex(0x5357f2b0)]
-        want = [I_ON if v & 1 else I_OFF, I_LONG if v & 2 else I_SHORT]
+        want = [I_ON if v & 1 else I_OFF, STYLE_ICONS[v >> 1]]
         check(icons == want and texts == [T_ONOFF, T_STYLE] and titles == [T_NAME], f'submenu, byte {raw}: icons {icons} texts {texts} titles {titles}')
         if raw == 3:
             print('  submenu: title', titles, 'lines', texts, 'icons', icons)
