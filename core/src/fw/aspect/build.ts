@@ -116,7 +116,7 @@ export interface ExtensionFeatures {
   watermarkNames?: Readonly<Record<number, string>>;
   /** The six looks of the GR IV Monochrome (see `monounlock.ts`). */
   monoUnlock?: boolean;
-  /** Added Image Control slots, 1 to 12 (see `slots.ts`). */
+  /** Added Image Control slots, 1 to 6 (see `slots.ts`). */
   extraSlots?: readonly ExtraSlotSpec[];
   /** Image Control menu order and hidden looks (see `looks.ts`). */
   lookLayout?: LookLayout;

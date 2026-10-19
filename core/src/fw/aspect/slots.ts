@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * Added Image Control slots (styles 34, 35, ...): up to twelve more looks in the camera's list,
- * each with its own matrix, tone curves, post-curve ("second") matrix and adjustment parameters.
- * Tested on a GR IV HDF as GR Mod test firmwares 023..034 (four slots). The 7..12 slot variants
- * are generated and pass the structural self-check; they have not been run on a camera yet.
+ * Added Image Control slots (styles 34, 35, ...): up to six more looks in the camera's list, each
+ * with its own matrix, tone curves, post-curve ("second") matrix and adjustment parameters. Tested
+ * on a GR IV HDF as GR Mod test firmwares 023..034 (four slots).
  *
  * What a style is made of in 1.11, per variant of the camera (three variants, 34 styles each):
  *  - a tone record (21 words, table 0x55053780): word 1 the colour matrix, word 2 the array of
@@ -42,12 +41,12 @@ import { FirmwareError } from '../types';
 import { installFactoryHidden, validateLookLayout } from './looks';
 import type { LookLayout } from './looks';
 
-export const MAX_EXTRA_SLOTS = 12;
+export const MAX_EXTRA_SLOTS = 6;
 /** Style number of the first added slot (the firmware has 34: 0..33). */
 export const EXTRA_FIRST_STYLE = 34;
 /** Text number of the first added slot's name. */
 export const EXTRA_TEXT_ID = 846;
-/** Icon number of the first added slot's icon (768..779 for twelve slots; 780..787 stay with halation and the date imprint). */
+/** Icon number of the first added slot's icon (768..787 are free in the extended catalog). */
 export const EXTRA_ICON_ID = 768;
 /** Longest name of an added slot (printable ASCII: every language's font has those glyphs). */
 export const EXTRA_NAME_MAX = 12;
@@ -75,7 +74,7 @@ export interface ExtraSlotSpec {
 }
 
 /** Text of the parameter name "Halation", icon of its list entry and of its slider scale. */
-export const HALATION_TEXT_ID = 858;
+export const HALATION_TEXT_ID = 852;
 export const HALATION_ICON_ID = 780;
 export const HALATION_SCALE_ICON_ID = 781;
 /** Text of Cinema's Toning (and of the black-and-white toning, which no added look has). */

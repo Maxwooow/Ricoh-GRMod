@@ -197,7 +197,7 @@ export interface BuildOptions {
   watermarkNames?: Record<number, string>;
   /** The six black-and-white looks of the GR IV Monochrome. */
   monoUnlock?: boolean;
-  /** Added Image Control slots (1 to 12), after the factory ones. */
+  /** Added Image Control slots (1 to 6), after the factory ones. */
   extraSlots?: ExtraSlotSpec[];
   /** Image Control menu order and hidden looks (factory ids 11..30 plus added styles 34..). */
   lookLayout?: LookLayout;

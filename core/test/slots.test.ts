@@ -4,8 +4,7 @@
  * part needs the official firmware in testdata/private (skipped without it). What the new code
  * does when it runs (MultiAxial, ColorMatrix, the live-view parameter generator, the own-parameter
  * module and the look checks) was checked in an emulator on builds of this code with 1, 4 and 6
- * slots; the hooks are those of test firmwares 023..034, which ran on a GR IV HDF. Builds with
- * 7..12 slots pass the structural self-check but have not been run on a camera.
+ * slots; the hooks are those of test firmwares 023..034, which ran on a GR IV HDF.
  */
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
@@ -58,7 +57,7 @@ describe('added slots: data', () => {
     expect(aspect.validateExtraSlotName('ABCDEFGHIJKLM')).toBe('too-long');
     expect(aspect.validateExtraSlotName('胶片')).toBe('bad-char');
     expect(aspect.validateExtraSlotName(' x')).toBe('bad-char');
-    expect(aspect.MAX_EXTRA_SLOTS).toBe(12);
+    expect(aspect.MAX_EXTRA_SLOTS).toBe(6);
   });
 });
 
@@ -72,11 +71,11 @@ describe.skipIf(!have)('added slots: firmware files', () => {
     return { name: `Look ${k + 1}`, matrixQ13: m, curves: [curve, curve, curve], postQ9: [512 + 10 * k, -10 * k, 0, 0, 512, 0, 0, 5 * k, 512 - 5 * k].map((v) => v | 0), icon };
   };
 
-  it('builds 1 to 12 slots alone or with everything else; the engine recognises and verifies them', async () => {
+  it('builds 1 to 6 slots alone or with everything else; the engine recognises and verifies them', async () => {
     const eng = await Engine.open(raw());
-    for (const [n, opts] of [[1, {}], [12, { adjSoftFocus: true, dateStamp: true, monoUnlock: true }]] as const) {
+    for (const [n, opts] of [[1, {}], [6, { adjSoftFocus: true, dateStamp: true, monoUnlock: true }]] as const) {
       const slots = Array.from({ length: n }, (_, k) => slotSpec(eng, k));
-      const ratios = n === 12 ? [{ name: '65:24', ratio: '65:24' }] : [];
+      const ratios = n === 6 ? [{ name: '65:24', ratio: '65:24' }] : [];
       const b = await eng.buildFirmware([], ratios, [], { ...opts, extraSlots: slots });
       expect(Object.values(b.checks).every((v) => v === true)).toBe(true);
       const s = await eng.inspect(b.file);
@@ -97,7 +96,7 @@ describe.skipIf(!have)('added slots: firmware files', () => {
       if (off & 0x800000) off -= 0x1000000;
       return a + 8 + off * 4;
     };
-    for (const n of [1, 3, 6, 12]) {
+    for (const n of [1, 3, 6]) {
       const b = await eng.buildFirmware([], [], [], { extraSlots: Array.from({ length: n }, (_, k) => slotSpec(eng, k)) });
       const d = new fw.Firmware(b.file).decoded;
       const sec = fw.sectionsOf(d).find((x) => x.name === 'RTOS')!;
@@ -165,7 +164,7 @@ describe.skipIf(!have)('added slots: firmware files', () => {
       const at = word(desc + 4) - 0x53000000;
       return String.fromCharCode(...Array.from({ length: units - 1 }, (_, i) => r[at + 2 * i] | (r[at + 2 * i + 1] << 8)));
     };
-    expect([text(0, 858), text(1, 858), text(18, 858), text(19, 858), text(19, 339)]).toEqual(['ハレーション', 'Halation', '光暈', '光晕', '色调']);
+    expect([text(0, 852), text(1, 852), text(18, 852), text(19, 852), text(19, 339)]).toEqual(['ハレーション', 'Halation', '光暈', '光晕', '色调']);
     const other = await eng.buildFirmware([], [], [], { dateStamp: true, extraSlots: [slots[0], slots[1], { ...slots[2], halation: false }] });
     expect(other.sha256).not.toBe(b.sha256);
     expect((await eng.inspect(other.file)).verified).toBe(true);
@@ -174,9 +173,9 @@ describe.skipIf(!have)('added slots: firmware files', () => {
     expect(plain.sha256).toBe(none.sha256);
   }, 120_000);
 
-  it('halation on all twelve added slots, with soft focus and the date imprint', async () => {
+  it('halation on all six added slots (what GR Mod 0.7.4 always builds), with soft focus and the date imprint', async () => {
     const eng = await Engine.open(raw());
-    const slots = Array.from({ length: 12 }, (_, i) => ({ ...slotSpec(eng, i % 3), name: `Look ${i + 1}`, halation: true }));
+    const slots = Array.from({ length: 6 }, (_, i) => ({ ...slotSpec(eng, i % 3), name: `Look ${i + 1}`, halation: true }));
     const b = await eng.buildFirmware([], [], [], { dateStamp: true, adjSoftFocus: true, extraSlots: slots });
     expect(Object.values(b.checks).every((v) => v === true)).toBe(true);
     expect((await eng.inspect(b.file)).verified).toBe(true);
@@ -184,8 +183,8 @@ describe.skipIf(!have)('added slots: firmware files', () => {
     const secs = fw.sectionsOf(d);
     const rtos = secs.find((x) => x.name === 'RTOS')!;
     const icons = secs.find((x) => x.name === 'ICONBIN')!;
-    const back = aspect.readExtraSlots(d.slice(rtos.offset, rtos.offset + rtos.size), d.subarray(icons.offset, icons.offset + icons.size), 12)!;
-    expect(back.map((x) => x.halation)).toEqual(Array.from({ length: 12 }, () => true));
+    const back = aspect.readExtraSlots(d.slice(rtos.offset, rtos.offset + rtos.size), d.subarray(icons.offset, icons.offset + icons.size), 6)!;
+    expect(back.map((x) => x.halation)).toEqual([true, true, true, true, true, true]);
   }, 180_000);
 
   it('halation preview: the fixed look lifts red first and leaves dark pictures alone', () => {
@@ -237,7 +236,7 @@ describe.skipIf(!have)('added slots: firmware files', () => {
     expect(at(own, 212, 150)[0]).toBeGreaterThan(at(own, 212, 150)[1] + 40);
   });
 
-  it('refuses more than twelve slots, bad names and bad colour data', async () => {
+  it('refuses more than six slots, bad names and bad colour data', async () => {
     const eng = await Engine.open(raw());
     const s = slotSpec(eng, 0);
     const err = async (slots: ExtraSlotSpec[]): Promise<string> => {
@@ -248,7 +247,7 @@ describe.skipIf(!have)('added slots: firmware files', () => {
       }
       return 'no error';
     };
-    expect(await err(Array.from({ length: 13 }, () => s))).toBe('too-many-slots');
+    expect(await err(Array.from({ length: 7 }, () => s))).toBe('too-many-slots');
     expect(await err([{ ...s, name: 'é' }])).toBe('bad-name');
     expect(await err([{ ...s, matrixQ13: [8192, 1, 0, 0, 8192, 0, 0, 0, 8192] }])).toBe('bad-color');
     expect(await err([{ ...s, postQ9: [512, 1, 0, 0, 512, 0, 0, 0, 512] }])).toBe('bad-color');

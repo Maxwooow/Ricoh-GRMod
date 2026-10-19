@@ -60,7 +60,7 @@ export const SHUTDOWN_MAX_PICTURES = 8;
 /** Longest picture name (printable ASCII: the same in every camera language and font). */
 export const SHUTDOWN_NAME_MAX = 20;
 /** First text: the submenu's line names "Type" and "Picture", the factory row, the pictures' names. */
-export const SHUTDOWN_TEXT_ID = 859;
+export const SHUTDOWN_TEXT_ID = 853;
 export const SHUTDOWN_TYPE_TEXT = SHUTDOWN_TEXT_ID;
 export const SHUTDOWN_PICTURE_TEXT = SHUTDOWN_TEXT_ID + 1;
 export const SHUTDOWN_FACTORY_TEXT = SHUTDOWN_TEXT_ID + 2;
@@ -455,9 +455,7 @@ export function readShutdownMenu(p: Patch): { id: number; name: string }[] | nul
     if (v.getUint32(0, true) !== CTX_MAGIC || v.getUint32(4, true) !== SHUTDOWN_RECORD) return null;
     const n = v.getUint32(8, true);
     const textId = v.getUint32(12, true);
-    // Builds before the 12-slot support started at 853; their row index is still in the record.
-    const oldFactoryText = 855;
-    if (!(n >= 1 && n <= SHUTDOWN_MAX_PICTURES) || (textId !== SHUTDOWN_FACTORY_TEXT && textId !== oldFactoryText)) return null;
+    if (!(n >= 1 && n <= SHUTDOWN_MAX_PICTURES) || textId !== SHUTDOWN_FACTORY_TEXT) return null;
     const row = p.word(TEXT_CATALOG + 1 * 4);
     const out: { id: number; name: string }[] = [];
     for (let k = 0; k < n; k++) {

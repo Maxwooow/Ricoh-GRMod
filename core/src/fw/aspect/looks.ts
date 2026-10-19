@@ -21,7 +21,7 @@ import { foff } from '../profile';
 export const FACTORY_LOOK_IDS: readonly number[] = [
   11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
 ];
-/** First style number of an added Image Control slot (34..45). */
+/** First style number of an added Image Control slot (34..39). */
 export const EXTRA_LOOK_FIRST = 34;
 export const ORDER_TABLE = 0x53DBE388;
 export const ORDER_COUNT = 20;

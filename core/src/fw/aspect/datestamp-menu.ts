@@ -43,7 +43,7 @@
  *    after the 124 official records).
  *  - Texts 841..845 and 880..881 in all 21 languages (relocated text catalog, see `build.ts`):
  *    the line name, "On/Off", "Style" and four style names. Off and On are texts 2 and 1.
- *    Texts 846..857 belong to slot names and 858 to halation.
+ *    Texts 846..851 belong to slot names and 852 to halation.
  *  - Icons: the camera's OFF / ON (310, 311) and four new 40x40 style icons, numbers 721, 722,
  *    782 and 783. Icons 780 and 781 belong to halation; resource bounds only increase.
  */
