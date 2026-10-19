@@ -1,124 +1,237 @@
-# GR Mod
+# GR Mod（个人 fork 中文说明）
 
-A small desktop tool for the Ricoh GR IV / GR IV HDF (firmware 1.11). Not a Ricoh product.
+这是 [Maxwooow/Ricoh-GRMod](https://github.com/Maxwooow/Ricoh-GRMod) 的个人 fork：
+**[sjclijie/Ricoh-GRMod](https://github.com/sjclijie/Ricoh-GRMod)**。
 
-- `core/`  platform-independent TypeScript: firmware container codec and patcher with built-in self-check (`src/fw`), added aspect ratios (`src/fw/aspect`), preset conversion from .xmp Look profiles and .cube LUTs (`src/color`), exact-length baseline JPEG encoder (`src/jpeg`), start-up script generator and simulator (`src/wallpaper`; used by GR Mod 0.7 and earlier, whose power-off images rotated through a start-up script on the card; 0.8 builds them into the firmware and the UI no longer offers the script), memory-card layout planning (`src/card`), and the `Engine` facade (`src/app`).
-- `ui/`    React UI (Vite). Talks to the platform through `src/host.ts` only.
-- `shell/` desktop shell in Go for Windows, macOS and Linux (a WebView2 window on Windows, a Chromium "app" window on macOS and Linux, plus a local HTTP API for drives and files, and for fetching the official firmware from Ricoh's site and updates of GR Mod itself). See `shell/README.md`.
+GR Mod 是一个桌面工具，用于修改理光 GR IV / GR IV HDF（固件 1.11）的官方固件：
+导入 `.xmp` / `.cube` 预设、增加画幅比例、自定义关机图片等。**它不是 Ricoh 官方产品**，
+修改固件有风险，请自备官方 1.11 固件并自行承担使用风险。
 
-Build: `npm install && npm -w ui run build && (cd shell && ./build.sh windows)` → `shell/dist/GRMod.exe`; `./build.sh mac` → `shell/dist/GR Mod.app` and `shell/dist/GRMod-mac.zip` (Intel Macs with macOS 10.13 or later, Apple silicon with macOS 11 or later), plus `GRMod-<version>-mac.dmg` when the disk image tools are installed; `./build.sh linux` → `shell/dist/grmod` (x64).
+本 README 以中文说明**本 fork 相对原版改了什么、优化了什么、修了哪些问题**。
+原版的完整功能与实现细节（英文）见
+[上游 README](https://github.com/Maxwooow/Ricoh-GRMod#readme)。
 
-On a Mac: unzip `GRMod-mac.zip` and move `GR Mod.app` to Applications. The app is signed ad hoc, not with an Apple Developer ID, so the first start is blocked: open System Settings › Privacy & Security and click "Open Anyway" (or run `xattr -dr com.apple.quarantine "/Applications/GR Mod.app"` once). The UI opens in a window of Chrome, Edge, Brave, Chromium or Vivaldi when one is installed, otherwise in the default browser; GR Mod quits by itself about 20 seconds after that window is closed. macOS asks once for access to removable volumes; allow it, or the card cannot be written.
+---
 
-On Linux: start `shell/dist/grmod`. The UI opens in an app window of Chrome, Chromium, Edge, Brave or Vivaldi when one is in `PATH`, otherwise in the default browser; GR Mod quits when that window is closed. The card is offered once the desktop has mounted it (as the file manager does, below `/run/media/<user>` or `/media/<user>`), and Eject unmounts it with `udisksctl`. The folder dialog needs `kdialog` or `zenity`. There is no Linux release package, so this build does not update itself.
-Test: `npm -w core test` (the byte-identity tests need the official firmware in `core/testdata/private/`, which is not distributed), `cd shell && go test ./... && go test -tags desktop ./...`.
+## 一眼看懂：本 fork 相比原版的变化
 
-An Android build would reuse `core/` and `ui/` unchanged and replace `shell/` with a WebView wrapper implementing the same host interface (volumes via the Storage Access Framework).
+| 方面 | 原版 | 本 fork |
+| --- | --- | --- |
+| Image Control 菜单 | 顺序固定，不能隐藏不用的 Look | 可拖拽/箭头调整顺序，可隐藏 Look（含新增 slot） |
+| 预设拟合精度 | RGB 最小二乘（CIE76），灰阶/角点权重低 | 加入中性灰、角点、肤色采样，再做 CIEDE2000 感知精修 |
+| 新增 slot 的色相 | 复制 Standard 的“中性”多轴区块 | 每个新增 slot 可带自己的 12 分区色相矩阵 |
 
-No firmware file is included here. The user picks the official 1.11 file, or lets the program fetch it: the shell reads Ricoh's own download pages for the chosen model and downloads the current update from there (`shell/internal/ricoh`; Ricoh's page says that downloading means accepting its software licence agreement, and the dialog says so too and links to it). The before/after preview and the frame of an added aspect ratio are drawn on a sample picture, `ui/src/assets/preview.jpg`: DPReview's studio test scene, included with DPReview's permission (it is not covered by the licences of the code). The user can replace it in the UI, or by keeping a `preview.jpg` next to the program (on macOS: next to `GR Mod.app`; served by `GET /api/sidecar/preview.jpg`). `core/src/color/data.ts` holds measurements (the camera's base tone curve and paired calibration colours). The power-off image method builds on the public research in radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion.
+这三个改动分别对应上游 PR **#6 / #7 / #8**（截至撰写时都还在 review，尚未合并；
+本 fork 的 `main` 已包含它们）。上游其余功能全部保留，见下文
+[「原版功能」](#原版功能本-fork-全部保留)。
 
-## Added aspect ratios
+---
 
-`core/src/fw/aspect` adds aspect ratios to the camera next to the four factory ones (up to 8; e.g. 65:24 gives 6192×2272 JPEGs). It is a TypeScript port of the crop compiler of [DoYitNow/gr-custom-tool](https://github.com/DoYitNow/gr-custom-tool) and is checked against it: `core/test/aspect-oracle.test.ts` builds 439 configurations (every possible screen geometry, and random lists of up to 8 ratios) and compares them byte for byte with what the reference produced (`tools/aspect/gen_oracle.py`). `tools/aspect/verify_file.py FILE --boot` runs the firmware's own functions of a built file in an emulator. The RTOS and ICONBIN sections of such a file are longer than the official ones; the version stays 1.11.
+## 1. Image Control 菜单顺序与隐藏 Look（PR #6）
 
-One thing is added on top of the port (build revision 2, `installPlaybackDecode` in `build.ts`; the end of the RTOS section says `GRMODAR2`, files of GR Mod 0.2.x say `GRMODAR1` and are still recognised). Magnifying a photo in playback decodes the whole JPEG into a buffer the firmware sizes for `align16(width) × height` rows while its decoder asks for `align8(height)`; every factory size has a height that is a multiple of 8, the sizes of added ratios are multiples of 4, and for those the decode step gave up and the playback screen stayed in its magnifying state. The byte count of that allocation is now taken for the height rounded up to 8. `tools/aspect/playback_check.py FILE` runs the firmware's own image creation for every photo size on the official firmware and on FILE.
+### 原版的问题
 
-On a camera: a user reports that a 0.2.x build installs and shoots in the added ratios, and that magnifying such photos got stuck (the reason for revision 2). With revision 2 the user reports that magnifying 65:24 photos works. See `third_party/gr-custom-tool/NOTICE.md` for what is derived from the reference.
+Image Control 菜单的顺序是固件里写死的：20 个 Look（style 11..30，含黑白机型那些）
+按固定顺序全部列出，用户既不能把自己常用的 Look 放到前面，也不能隐藏从来不用的 Look。
+菜单很长，切换起来不方便。
 
-## Soft focus
+### 解决方式：只改数据，不加代码
 
-Two generations:
+- **菜单顺序**是一张 20 字节的表，位于 `0x53DBE388`（每个 style 一个字节，对应 11..30）。
+  改写这张表就改变了菜单顺序。
+- **隐藏 Look** 是把该 Look 在可见性跳转表里的条目改指向固件自带的
+  `mov r0, #0 ; bx lr` stub（彩色 Look 用 `0x533CC6F8` → `0x533CC748`，
+  黑白 Look 25..30 用 `0x533CC648` → `0x533CC670`）。
+- 菜单构建函数 `0x533CC78C` 会按顺序表遍历并跳过隐藏项，因此**列表容量和所有计数常量都保持不变**，
+  也不需要往固件里添加任何代码。
 
-- GR Mod 0.4.x (`core/src/fw/clarity.ts`) rewrote rows of the camera's clarity table (RTOS 0x53b4c860, 9 rows for clarity −4…+4 of 11 int16 gains in Q10, finest band first) so that clarity −2 / −3 / −4 became weak / medium / strong soft focus. Such files are still recognised and verified; the program no longer writes them.
-- GR Mod 0.5.2 (`core/src/fw/aspect/softfocus.ts`) puts soft focus on the ADJ lever with four values (off / weak / medium / strong) and leaves the clarity table official. The ADJ controller is table-driven (21 records of member-function pointers at 0x53d9f714, addressed from 23 places). Soft focus takes over function 0x0A (Flash Exposure Comp.), which the GR IV never offers on the ADJ lever (not in the ADJ mode setting list, not in the fixed layout of any camera mode); its record is overwritten in place with Crop's, carrying four new handlers, so the table does not move. The ADJ mode setting list gets 0x0A after Image Control; its name is text 840 in all 21 languages and its icon is icon 720 (bounds never above what added ratios use). The value is kept in byte 0x90F of the user settings, alignment padding that the factory-defaults initialiser never writes; the structure is saved, loaded and copied to U1–U3 as a whole, so the value survives power-off. Whether a picture goes through the digital-filter step at all (0x537150fc) depends on Clarity being non-neutral for most image controls; while soft focus is on it counts as non-neutral. DigitalFilterProcess::SetEffectParameter passes clarity 5 / 6 / 7 while soft focus is on, and the clarity function takes rows 9–11 from a table of the three soft-focus rows. It acts on the recorded picture only: live view does not go through this step. The five ADJ slot getters read a function above 0x14 as off. Built files are revision 3 (`GRMODAR3`): the record at the end of RTOS may list no ratio and carries one more byte for these additions. `tools/softfocus/check.py RTOS.bin official-RTOS.bin` runs the patched functions in an emulator.
-- GR Mod 0.5.0 / 0.5.1 used function 0x15 and copied the table to the appended area, moving 22 of its 23 references; the one left (0x531bd0f0, a check over the five slots when ADJ is pressed) read past the official table once 0x15 was on a slot, and the camera froze. A camera that still holds 0x15 in a slot has it read as off from 0.5.2 on; the official firmware would freeze, so take soft focus off the ADJ slots before going back to it.
+### 现在能做什么
 
-Clarity is a Laplacian pyramid on the developed picture (RetouchService, 0x538a1fa8): the function copies the table to the stack, returns at once for clarity 0, takes row `clarity + 4` and multiplies each band of detail by its gain through the first diagonal entry of a CSC matrix (the other entries stay 1.0, so luma only, by inference). Lower gains on the fine and middle bands with the coarse ones kept give roughly `g × picture + (1 − g) × strongly blurred picture`, the usual digital soft focus. `core/src/color/clarity.ts` is a model of the pyramid (bilinear scaling assumed). It is linear and works after gamma on the 8-bit picture, so highlights do not bloom. Tried on a camera with 0.5.2: the three strengths are clearly distinct on the recorded picture.
+- 工厂 Look 和新增 slot（style 34..39）都可以排序、隐藏；
+- UI 的 Image Control 页面新增卡片：**拖拽**或**箭头**调整顺序、**眼睛图标**开关显示/隐藏、
+  **重置**恢复出厂顺序；
+- **Standard（style 11）不能被隐藏**；
+- 顺序和隐藏状态保存在 `project.json`（`lookOrder` / `lookHidden`），
+  Engine 通过 `BuildOptions.lookLayout` 传入；
+- `validateLookLayout` 会拒绝：顺序不完整、重复项、隐藏全部 Look、隐藏 Standard；
+- 没有其他改动时原地构建（只改顺序表 + 可见性字）；有新增 slot 等扩容内容时走扩容布局，
+  新增 slot 通过 `slots.ts` 已有的可见性 hook 隐藏。
 
-## Date imprint
+### 验证情况
 
-`core/src/fw/aspect/datestamp.ts` hooks JpegEncodeMacroProcess::Execute (0x537034b4) and runs the position-independent C module `tools/datestamp/datestamp.c` (compiled by `tools/datestamp/gen.py`; `GRMOD_ZIG=1` uses `python3 -m ziglang cc`, the compiler of the committed bytes) on every picture the JPEG encoder is given: main picture, 720x480 screennail, 160x120 thumbnail. It draws the date bottom right (pictures anywhere in 0x40000000..0xBFFFFFFF: with RAW+JPEG the scaled main picture of the smaller JPEG sizes is above 0xA0000000) in orange seven-segment digits, `'26 10 08` or `2026.10.08 17:34`, light only on black-and-white photos. The setting is byte 0x94B of the user settings (padding the factory-defaults initialiser never writes, like 0x90F for soft focus): bit 0 on, bit 1 the long style, anything above 3 is off.
+- 顺序表已在真机验证：顺序 `[12,11,...]` 显示 Vivid 再 Standard；
+  `[17,18,11,...]` 显示 Positive Film、Cinema Yellow、Standard。
+- 自动化测试覆盖官方 1.11 的顺序/可见性字、新增 slot 排序、隐藏新增 slot、Engine 路径。
 
-`core/src/fw/aspect/datestamp-menu.ts` puts it in the camera menu: a line after Horizon Correction on the Shooting Assist page of the still menu, opening a submenu (On/Off, Style) built like D-Range Correction's, each line a list built like Horizon Correction's. The still menu already has the maximum of 38 lines, so two descriptors are appended, one without Red Filter (GR IV Monochrome only) and one without HDF (GR IV HDF only), and the menu builder picks the one for the camera's model; every model sees the official menu plus the new line. The submenu and list record tables are relocated with the new records (including the end pointer the list constructor scans to, 0x531d6dac). Texts 841..845, icons 721/722. `tools/datestamp/menu_check.py BUILT-RTOS OFFICIAL-RTOS` runs the patched firmware functions in an emulator (menu builder for all three models, controller factory, SetCurrentMenu, the handlers for every value of the byte, the controllers drawing the new records, the list constructor's table scan, texts and icons); `tools/datestamp/render_check.py` runs the module on synthetic pictures.
+> **注意**：如果相机当前的 Image Control（或 U1–U3 组）正指向一个被隐藏的 Look，
+> 该设置可能显示空白或回退到别的 Look。安装前请先选一个可见的 Look。
 
-## Monochrome looks
+---
 
-`core/src/fw/aspect/monounlock.ts` makes the six looks of the GR IV Monochrome selectable on the colour models, after [lemonadesaltbagel/GR4-MonoUnlock](https://github.com/lemonadesaltbagel/GR4-MonoUnlock) (no code copied): the check at 0x533cc6e0 becomes `cmp r1, #0x18` / `bhi`, and rows 3..8 of the look availability table at 0x53dbf36c (7 bytes per row, one column per camera model, column 1 = Monochrome) get every column except 1. The reference sets column 0 only (the standard GR IV); with every colour column the GR IV HDF has them too. 13 words in all.
+## 2. 预设拟合优化：采样与 CIEDE2000 精修（PR #7）
 
-## Second matrix
+### 原版的问题
 
-Every imported preset (.cube / .xmp) is fitted as a colour matrix, three tone curves and a post-curve ("second") matrix (`core/src/color/fit.ts`): the plain fit first, then all three together on the same CIE76 objective. The camera applies the second matrix after the tone curves, together with the saturation setting; each slot gets its nine saturation matrices multiplied by it (Q9 rows of 512), so the saturation setting keeps working. On nine test presets the mean error drops on all of them (e.g. Provia 100F ΔE2000 1.32 → 0.43).
+导入 `.cube` LUT 或 `.xmp` Look 时，原版用最小二乘 RGB 拟合，把预设“翻译”成相机能存的
+「前矩阵 + 3×17 曲线 + 后矩阵」。它有三个问题：
 
-## Added Image Control slots
+1. **目标函数是 CIE76**（Lab 欧氏距离），对饱和色和肤色不敏感，和“看起来像不像”不一致；
+2. **拟合样本缺少纯黑/纯白角点**，中性灰也没有高权重，导致白点/黑点附近偏差明显
+   （实测某个 LUT 的纯白应为 0.9995，模型只拟合到约 0.84）；
+3. **拟合集就是评估集**，没有独立的 held-out 样本，p95 和最差颜色不可见。
 
-`core/src/fw/aspect/slots.ts` adds up to six looks (styles 34..39) after Cinema (Green), each with its own matrix, curves, second matrix, ASCII name (text 846..) and icon (768..). A new look's records are complete copies of Cinema Yellow's with its own colour data and Standard's multi-axis blocks; the four style tables are copied with the new styles appended to each camera variant's row, and everything else that knows the style numbers (menu order and counts, names, icons, the ADJ list's own icon lookup, the shooting overlay, RAW development, look visibility, the live-view parameter generator) is extended. Tried on a GR IV HDF as test firmwares 022..034 (022 copied incomplete multi-axis records and the camera stopped on the first ADJ highlight of a new slot). Since 0.7.1 in-camera RAW development keeps an added look's parameters in Cinema Yellow's row of its own parameter table (with the look's own row, row 0, every parameter was "absent": the screen showed -4 and developing stopped the camera); as in the settings, that row has one owner per custom base and the module keeps the other looks' values, so every added look starts from its own saved values and keeps its own changes; and pictures name the added look in the maker note (ImageTone 0x8110, 0x8111, ...; before, Standard) with Cinema Yellow's parameters, which playback and RAW development read back: the playback information shows the slot's icon and parameters.
+### 解决方式
 
-Halation (`core/src/fw/aspect/halation.ts`, module `tools/halation/halation.c`): an added slot can have the red glow of CineStill 800T (cinema film without its anti-halation layer) around its highlights; every added slot carries it (switched in the camera, with the slot's Halation parameter; GR Mod has no switch, only a preview of Off / Weak / Strong), the look is fixed (`HALATION`, matched to CineStill 800T pictures of street lamps, platform tubes and LED boards). The camera's parameter screen shows Cinema's Toning (parameter 8, values 0..2, no effect on an added look) as "Halation" (Off / Weak / Strong) for the added looks: its name (text 852), list icon (780) and slider scale (781) are swapped on the shooting and RAW development screens. The development step that reads the frame's record (0x539113DC) leaves its style and Toning level in a word; the module runs at the start of JpegEncodeMacroProcess::Execute (before the date imprint) on every picture of the frame: light above the slot's own threshold (of the brighter of Y and red; `halationLight`: the level its look gives to the grey Standard renders at 235, and the range up to its white, so that a look whose white is lowered still spreads the same light), averaged down to at most 1024 px, spread twice (a narrow fringe and a wider glow, three box passes each, relative to the width), then a table turns the spread light into how far red, green and blue are lifted towards white (red first: red near the light becomes orange, white highlights stay white). GR Mod's preview runs the same integer computation (`halateYcc`), bit for bit; the module was checked against it in an emulator. Live view does not show it; RAW files are not changed.
+保留原有的相机模型（不改变固件格式），把拟合流程升级为三步：
 
-Adjustable parameters: the firmware keeps them per factory style, and whatever reads them for the selected look takes the new styles as Cinema Yellow (18). Each new look still has its own values, kept per photo/movie set and across power-off: Cinema Yellow's fields hold the values of the look selected in a set, the other looks' values wait in a table of a native module (`tools/slotparams/slot_params.c`, pre-compiled per slot count by `gen_slotparams.py` into `slotparams-native.ts`) saved as its own record (HTData 12) after the settings. The module takes over the 13 getters and setters of Cinema Yellow's parameters and the 8 "style of set" setters, and chains to the settings load/save. The 88 change functors of those fields (which give the value to the camera model behind the parameter screen), the parameter screens' list choice (grain), the main menu's Image Control row and the digital-filter step (grain, Clarity) take the new looks as Cinema Yellow as well. New looks start at the neutral values, which the parameter screen also shows as their defaults. U1–U3 share the table; a settings reset does not reset it.
+1. **更密的初始拟合样本**（`core/src/color/convert.ts`）
+   - 原有标定色 + 合成色之外，新增 64 级中性灰阶（重复 6 次以加权重）；
+   - 9³ 网格（含 8 个纯色角点）；
+   - 4 种肤色 × 5 档曝光（线性光转换后回到 sRGB）。
+2. **新增 CIEDE2000**（`core/src/color/math.ts`）
+   - `deltaE2000` / `deltaE2000Lab`，按 Sharma、Wu & Dalal (2005) 实现；
+   - 论文第一组参考对（2.0425）写入单元测试。
+3. **感知精修**（新增 `core/src/color/refine.ts`）
+   - 以 RGB 拟合结果为初值，精修同样的 6 个 look 矩阵参数、6 个后矩阵参数
+     和 3×17 曲线节点（共 63 个参数）；
+   - 目标函数直接是加权 CIEDE2000，用数值差分 Jacobian + Levenberg–Marquardt（8 次迭代）；
+   - 精修样本与拟合样本**相互独立**：48 级中性灰（权重 10）、24 色相 × 3 饱和度 × 5 明度
+     （权重 8）、5 档曝光肤色（权重 10）、300 个固定种子随机色（权重 2）、7³ 网格（权重 2）；
+   - 只有精修确实降低误差时才采用，`post: false` 时完全保留旧行为。
 
-## Image Control menu order and hidden looks
+### 效果
 
-`core/src/fw/aspect/looks.ts` lets the user reorder the Image Control menu and hide looks they do
-not use. It does not add code: the menu order is a 20-byte table at `0x53DBE388` (one byte per
-style, 11..30), and hiding a look redirects its entry in the visibility jump table
-(`0x533CC6F8` for styles 11..24, `0x533CC648` for the monochrome looks 25..30) to the
-firmware's existing `mov r0, #0 ; bx lr` stub at `0x533CC748` / `0x533CC670`. The menu builder
-`0x533CC78C` walks the table in order and skips hidden looks, so the list capacity and every
-count constant stay unchanged.
+12 个现成 LUT，拟合结果对 LUT 的整网格 ΔE00：
 
-The UI puts the order/hide card on the Image Control page: rows can be dragged or moved with the
-arrows, the eye toggles a look, Standard (style 11) cannot be hidden, and "reset" restores the
-factory order. The order is saved in `project.json` (`lookOrder`, `lookHidden`). Added slots
-(styles 34..39) participate in the order; hiding an added slot uses the slot visibility hook that
-`slots.ts` already installs.
+| 指标 | 原版 | 本 fork | 变化 |
+| --- | --- | --- | --- |
+| 平均 ΔE00 | 1.673 | **1.554** | **−7.1%** |
+| 平均 p95 | 4.285 | **3.509** | **−18.1%** |
 
-- Without added slots or other additions the file keeps the official layout: only the order table
-  and the visibility words change (in place, like the monochrome looks).
-- With added slots, ratios, date imprint, etc. the grown layout is used; the order table points to
-  a new array holding the factory looks and the added slots in the chosen order.
-- `validateLookLayout` refuses an incomplete order, duplicates, hiding every look and hiding
-  Standard. The order table itself was verified on a camera: order `[12,11,...]` shows Vivid then
-  Standard, and `[17,18,11,...]` shows Positive Film, Cinema Yellow, Standard.
-- If the camera's current Image Control (or a U1–U3 set) points at a look that is now hidden, that
-  setting may show blank or fall back; select a visible look before installing.
+单次拟合（含精修）在 Node 中耗时约 0.2–1.1 秒。导入报告里的 `meanDE` / `p95DE`
+仍是 CIE76、但改在更密的拟合集上计算，所以和旧版数值可直接比较。
 
-## Power-off pictures chosen in the camera
+---
 
-`core/src/fw/aspect/shutdown.ts` (camera side: `tools/shutdown/shutdown.c`, compiled by `tools/shutdown/gen.py`) builds 1 to 8 pictures into the firmware and lets the camera choose among them: Setup > Display > End Screen opens a submenu with Type (the camera's own type 1 / 2 list, unchanged) and Picture, a list of the factory picture of this camera and the pictures by name, each with a 520x200 thumbnail above the list. `tools/shutdown/menu_check.py` runs the menu in an emulator. The approach follows gr-custom-tool's End Screen list (Copyright (C) 2026 DoYitNow, GPL-2.0-only); the code is GR Mod's own.
+## 3. 新增 slot 的色相分区（hue sectors，PR #8）
 
-- The pictures are files of the RES section, `A:\Resource\Jpeg\GRMOD<k>.jpg`, inserted after `SymKey.jpg`; the firmware update writes them to the camera's A: drive. Each is a 720x480 baseline JPEG of exactly 2 x 0x6000 - 36 bytes (highest standard quality that fits, padded with comment segments), so that RES grows by whole container frames (`growPayload`, `buildGrown`; the self-check and `inspect` accept one run of inserted RES files).
-- The table of full-screen JPEGs (0x55013E70, 12 entries) is copied with one entry per picture (numbers 12, ...) for both of its readers; the power-off picture request (0x531B9488) asks for the chosen number, or runs as before.
-- The choice is a record of the camera's settings store APData (record 74, created for 75 records instead of 16 at 0x53A80ADC): `{'MSDO', identity}`, written when a row is confirmed and again at every settings save. A missing or foreign record, or one naming a picture that is no longer listed, means the factory picture.
-- The menu's controller: the constructor builds 3 + n rows from an appended array of row types; refresh, confirm, up / down and footer go through the module. Names are texts 853.. (853: the factory row, "Original" / オリジナル / 原廠 / 原厂), thumbnails icons 992...
+### 原版的问题
 
-Checked in an emulator on built files (1, 2 and 8 pictures, alone and with every other addition): the picture request for every camera variant and record state, the constructor, ticks, labels, confirm, up / down at the ends, thumbnails, the store's record count and the settings save chain.
+相机固件在“基础色调曲线”之前还有一级 **12 分区色相调整**（相机自己的 hue sector 阶段）。
+原版给新增 Image Control slot 的，是直接从 Standard 复制来的“中性”多轴区块——
+等于放弃了这个能力。预设拟合得再准，复杂/饱和颜色仍然差一截。
 
-## Updates
+### 解决方式
 
-The program can update itself (`shell/internal/update`, UI in `ui/src/updates.tsx`). At start (switchable off in the dialog) and from "Check for updates" in the ? menu it reads `update.json` and `update.json.sig` from `https://github.com/Maxwooow/Ricoh-GRMod/releases/latest/download/` (`GRMOD_UPDATE_SOURCE` replaces that address for tests). The manifest is accepted only if its Ed25519 signature verifies with the public key in `shell/updates.go`; the package (Windows: `GRMod-x.y.z.exe`, macOS: `GRMod-x.y.z-mac.zip`) only if its size and SHA-256 match the manifest. Windows renames the running `GRMod.exe` to `GRMod.exe.old` and puts the new one in its place; macOS moves the running `GR Mod.app` to `.GR Mod.app.old` and the unpacked new bundle into its place. The shell then closes its window, starts the new program with `--after-update=PID`, which waits for the old one to end and removes the `.old` copy. An app that macOS runs translocated (never moved out of the download folder) or a folder that cannot be written is not replaced; the dialog offers the download page instead.
+- **色相模型**（新增 `core/src/color/hue.ts`）
+  - 12 个分区、YCbCr 色相查找、D 参数矩阵、Q10 量化；
+  - 2160 字节的多轴区块 = 5 份副本 × 12 分区 × 3×3 int32，每个矩阵行和为 1024。
+- **相机模型**：`SlotParams` 新增可选的 `hue`（12 个 3×3 矩阵，按颜色色相选择），
+  作用在基础色调曲线之前的线性信号上。
+- **精修**：`refine.ts` 新增 `refineHue`，在 CIEDE2000 基础精修之后再拟合 12×3 个色相参数；
+  只有平均 ΔE00 改善超过 0.5% 才采用。
+- **固件**：`ExtraSlotSpec.hueQ10` 让新增 slot 使用自己的多轴区块
+  （5 份副本、链接数组、MA 记录），不再是 Standard 的中性区块；
+  写入前校验每个值都是 int16、每个矩阵行和为 1024。
 
-Publishing a release: build, then
+### 效果
 
-    go run ./tools/updatesign -key PRIVATE.key -version X.Y.Z -notes-zh "…" -notes-en "…" \
-        -windows dist/GRMod.exe -mac dist/GRMod-mac.zip -out dist/release
+在 PR #7 的基础上，12 个现成 LUT：
 
-(in `shell/`) and upload everything in `dist/release` (plus the .dmg for new users) to the GitHub release `vX.Y.Z`, which must be the latest release. The private key is not in the repository.
+| 指标 | 只有精修（PR #7） | 再加色相分区 | 变化 |
+| --- | --- | --- | --- |
+| 平均 ΔE00 | 1.554 | **1.304** | **−16%** |
+| 平均 p95 | 3.509 | **2.835** | **−19%** |
 
-## The UI
+12 个 LUT 中有 9 个采用了色相阶段。
 
-The Image Control page has one card of switches under the two slots: soft focus (ADJ lever), date imprint (with its menu) and monochrome looks (not shown for the Monochrome model). They are saved with the project (`soft`, `dateStamp`, `monoUnlock` in `project.json`) and passed to `Engine.buildFirmware`; the firmware copies page reads them back from a file through `Engine.inspect`.
+> **限制**：固件布局参考 GR4-LUTSmith 已验证过的多轴区块，但目前只通过构建、区块写入和
+> 模拟器测试，**还没有在真机上验证**。请谨慎使用，并在安装后确认相机行为正常。
 
-Going back to the factory firmware ("Write factory firmware" on the Image Control page, or an official copy on the firmware copies page) asks first, in red, whether the camera's settings were reset (Setup › Reset › Reset to Factory Default): settings made with GR Mod's firmware (an added slot or ratio selected, soft focus on the ADJ lever, the date imprint) are values the official firmware does not know. Cancel has the focus; only the red button writes.
+---
 
-## Combinations
+## 原版问题与解决一览
 
-Anything that appends code or icons (ratios, ADJ soft focus, date imprint) gives the grown layout: RTOS grows, and ICONBIN too when icons are added (a build that only appends code, like the date imprint of a test build with a fixed setting, leaves ICONBIN as it is; `growPayload`, `grownRanges`, `Engine.inspect` and the self-check accept either). The monochrome looks (`core/src/fw/aspect/monounlock.ts`, 13 words) on their own are written in place, like Image Control edits: official layout plus the checksum compensation word; `Engine.inspect` recognises them when all 13 words are there. With any of the other additions they go into the grown build and its feature byte (bit 2). `core/test/combinations.test.ts` builds every combination, checks the self-check and what `inspect` reads back, that soft focus alone is unchanged, and that all additions with the contents of the earlier test firmware (`core/test/fw-helpers/test-firmware.ts`) give test firmware 017 byte for byte. `tools/testfw/build.ts` builds such test files.
+| 原版的问题 | 本 fork 的解决 |
+| --- | --- |
+| Image Control 菜单顺序写死、不能隐藏 | 改写 20 字节顺序表 + 可见性跳转表，UI 支持排序/隐藏/重置 |
+| 拟合目标 CIE76，与观感不一致 | 增加 CIEDE2000 指标与感知精修阶段 |
+| 拟合样本缺纯黑/纯白角点、灰阶权重低 | 加入中性灰阶、9³ 角点、肤色样本 |
+| 拟合集=评估集，极值误差不可见 | 用独立加权样本集评估与精修 |
+| 新增 slot 只有 Standard 的中性色相区块 | 每个 slot 可带自己的 12 分区色相矩阵（可选） |
 
-## Licence
+---
 
-GR Mod is free software, licensed under the GNU General Public License version 2 only (SPDX: `GPL-2.0-only`); the full text is in `LICENSE`. A build given to anyone else has to come with its complete source under the same licence.
+## 原版功能（本 fork 全部保留）
 
-- The aspect-ratio compiler under `core/src/fw/aspect/` and `tools/aspect/` is a port of [DoYitNow/gr-custom-tool](https://github.com/DoYitNow/gr-custom-tool) (GPL-2.0-only); `third_party/gr-custom-tool/NOTICE.md` lists what is derived from it, and the C sources in `third_party/gr-custom-tool/native/` keep their own copyright lines.
-- The monochrome looks follow the method of [lemonadesaltbagel/GR4-MonoUnlock](https://github.com/lemonadesaltbagel/GR4-MonoUnlock); no code of that project is included.
-- Not covered by the licence: the sample picture `ui/src/assets/preview.jpg` , and Ricoh's firmware, which is not part of this repository (the program reads it from the user or downloads it from Ricoh's site under Ricoh's own licence terms).
+以下上游功能本 fork 未做修改，仍可正常使用，细节见
+[上游 README](https://github.com/Maxwooow/Ricoh-GRMod#readme)：
+
+- 新增画幅比例（最多 8 个，含 65:24）；
+- 柔焦（ADJ 拨杆，Off / Weak / Medium / Strong）；
+- 日期水印（开机写入照片，含相机菜单）；
+- 黑白 Look 解锁；
+- 第二矩阵 / 后曲线；
+- 最多 6 个新增 Image Control slot（style 34..39，可带 ASCII 名称、图标、Halation）；
+- 在相机里选择关机图片；
+- 程序自更新；Windows / macOS / Linux 桌面外壳。
+
+---
+
+## 构建与使用
+
+需要 Node.js 与 Go（外壳）：
+
+```sh
+npm install
+npm -w ui run build
+cd shell && ./build.sh mac      # Windows: ./build.sh windows；Linux: ./build.sh linux
+```
+
+产物：`shell/dist/GR Mod.app`（macOS）、`shell/dist/GRMod.exe`（Windows）、
+`shell/dist/grmod`（Linux）。
+
+macOS 首次启动会被 Gatekeeper 拦截：到“系统设置 › 隐私与安全性”点“仍要打开”，
+或执行一次：
+
+```sh
+xattr -dr com.apple.quarantine "/Applications/GR Mod.app"
+```
+
+程序不包含 Ricoh 固件：需要你自备官方 1.11 固件，或让程序从 Ricoh 官网下载
+（Ricoh 页面说明下载即表示接受其软件许可协议）。
+
+## 测试
+
+```sh
+npm -w core test                 # 核心测试
+cd shell && go test ./... && go test -tags desktop ./...
+```
+
+- 部分字节一致性测试需要私有官方固件 `core/testdata/private/official.bin`（仓库不附带），
+  缺文件时相关测试会跳过/失败，属正常现象；
+- 本 fork 新增的测试覆盖：菜单顺序/可见性字、拟合采样与精修、CIEDE2000 参考对、
+  色相分区矩阵与 slot 构建。
+
+## 已知问题与限制
+
+- 三个功能 PR（#6 / #7 / #8）仍在上游 review，尚未合并；本 fork 的 `main` 已包含。
+- 色相分区的固件布局尚未真机验证（见上文）。
+- 隐藏 Look 后，若当前设置指向被隐藏的 Look，可能显示空白或回退，安装前请先选可见 Look。
+- 只针对固件 1.11（GR IV / GR IV HDF），其他固件版本不要混用。
+- 修改固件有风险；建议先备份、按官方流程升级/回退。
+
+## 许可证与致谢
+
+本项目沿用上游的 **GNU General Public License v2.0 only（GPL-2.0-only）**，全文见 `LICENSE`。
+分发给他人时，必须同时提供同样许可证下的完整源代码。
+
+- 上游项目与作者：[Maxwooow/Ricoh-GRMod](https://github.com/Maxwooow/Ricoh-GRMod)；
+- 画幅比例编译器移植自 [DoYitNow/gr-custom-tool](https://github.com/DoYitNow/gr-custom-tool)
+  （GPL-2.0-only）；
+- 黑白 Look 参考 [lemonadesaltbagel/GR4-MonoUnlock](https://github.com/lemonadesaltbagel/GR4-MonoUnlock)
+  的方法（未包含其代码）；
+- 色相分区方法参考 GR4-LUTSmith（GPL-3.0，仅方法参考，本仓库为独立实现）；
+- 拟合流程参考 DARKSLIDE GR / gr3-film-mods（MIT）的公开方法；
+- 示例图片 `ui/src/assets/preview.jpg`（DPReview 工作室样片，经授权使用）不在代码许可证范围内；
+  Ricoh 固件也不属于本仓库。
