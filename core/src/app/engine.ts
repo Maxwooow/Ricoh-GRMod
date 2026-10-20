@@ -52,7 +52,7 @@ import {
   SOFT_FOCUS_STRENGTHS,
   clarityChanges,
 } from '../fw';
-import type { BuildResult, BuiltRatio, ClarityChange, ClarityEdit, ExtraSlotSpec, ShutdownPictureSpec, SoftFocusLevel, SoftFocusStrength, FactoryEntry, LangCode, Layout, NameValidation, Range, RatioSpec, SlotEdit, SlotId } from '../fw';
+import type { BuildResult, BuiltRatio, ClarityChange, ClarityEdit, ExtraSlotSpec, LookLayout, ShutdownPictureSpec, SoftFocusLevel, SoftFocusStrength, FactoryEntry, LangCode, Layout, NameValidation, Range, RatioSpec, SlotEdit, SlotId } from '../fw';
 import { grownRanges, growPayload } from '../fw/aspect/package';
 import { BRIDGE_SHA256, BRIDGE_SIZE, isBridgeFirmware, makeBridgeFirmware, officialFromBridge } from '../fw/bridge';
 import { convertCube, convertXmp, quantizeSlot } from '../color';
@@ -109,6 +109,8 @@ export interface PresetResult {
   params: SlotParams;
   matrixQ13: Int16Array;
   curves: [Uint16Array, Uint16Array, Uint16Array];
+  /** 12 x 9 Q10 hue matrices for the added slot's multi-axis block, when the fit used them. */
+  hueQ10?: number[][];
   /** The post-curve ("second") matrix in Q9, rows summing to 512. */
   postQ9?: Int16Array;
 }
@@ -191,10 +193,14 @@ export interface BuildOptions {
   adjSoftFocus?: boolean;
   /** Date imprint on the JPEG, switched in the camera's menu. */
   dateStamp?: boolean;
+  /** Watermark text for individual looks; does not rename the camera menu. */
+  watermarkNames?: Record<number, string>;
   /** The six black-and-white looks of the GR IV Monochrome. */
   monoUnlock?: boolean;
   /** Added Image Control slots (1 to 6), after the factory ones. */
   extraSlots?: ExtraSlotSpec[];
+  /** Image Control menu order and hidden looks (factory ids 11..30 plus added styles 34..). */
+  lookLayout?: LookLayout;
   /** Power-off pictures (1 to 8) chosen in the camera's End Screen menu; see `encodeShutdownPicture`. */
   shutdownPictures?: ShutdownPictureSpec[];
   /** Test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -443,6 +449,11 @@ export class Engine {
       if (!slots) return { ...unknown, kind: 'modified' };
       features.extraSlots = slots;
     }
+    if (features.dateStamp) {
+      const names = aspect.readWatermarkNames(dec.slice(RTOS_OFFSET, rtosEnd + rtosGrowth), extraCount);
+      if (!names) return { ...unknown, kind: 'modified' };
+      features.watermarkNames = names;
+    }
     // Power-off pictures: names and identities from the image, JPEGs from RES.
     const pictureCount = readShutdownCount(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? 0;
     if (pictureCount > 0 || resInsert) {
@@ -588,7 +599,7 @@ export class Engine {
     const post = options.post !== false;
     const c = kind === 'xmp' ? convertXmp(text, { onProgress, post }) : convertCube(text, { onProgress, post });
     const q = quantizeSlot(c.params, this.mStdQ13);
-    return { kind: c.kind, title: c.title, meanDE: c.meanDE, p95DE: c.p95DE, warnings: c.warnings, unsupported: c.unsupported, params: c.params, matrixQ13: q.matrixQ13, curves: q.curves, ...(q.postQ9 ? { postQ9: q.postQ9 } : {}) };
+    return { kind: c.kind, title: c.title, meanDE: c.meanDE, p95DE: c.p95DE, warnings: c.warnings, unsupported: c.unsupported, params: c.params, matrixQ13: q.matrixQ13, curves: q.curves, ...(q.postQ9 ? { postQ9: q.postQ9 } : {}), ...(c.hueQ10 ? { hueQ10: c.hueQ10 } : {}) };
   }
 
   validateName(slot: SlotId, lang: LangCode, text: string): NameValidation {
@@ -618,12 +629,13 @@ export class Engine {
     const monoUnlock = !!(options && options.monoUnlock);
     const extraSlots = options && options.extraSlots ? options.extraSlots : [];
     const pictures = options && options.shutdownPictures ? options.shutdownPictures : [];
+    const lookLayout = options && options.lookLayout ? options.lookLayout : undefined;
     if (pictures.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'power-off pictures cannot be combined with the clarity-table soft focus of 0.4.x');
     if (adjSoftFocus && clarity.length > 0) throw new FirmwareError('bad-clarity', 'soft focus on the ADJ lever and on the clarity table cannot be combined');
     if (dateStamp && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the date imprint cannot be combined with the clarity-table soft focus of 0.4.x');
     if (extraSlots.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'added slots cannot be combined with the clarity-table soft focus of 0.4.x');
-    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0) throw new FirmwareError('bad-edit', 'nothing to change');
-    const features = { adjSoftFocus, ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: aspect.factoryShutdownJpegs(this.decoded) } } : {}) };
+    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout) throw new FirmwareError('bad-edit', 'nothing to change');
+    const features = { adjSoftFocus, ...(dateStamp ? { dateStamp, ...(options.watermarkNames ? { watermarkNames: options.watermarkNames } : {}) } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}) };
     const test = options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {};
     const { decoded: _decoded, ...rest } = await buildFirmware(this.raw, edits, ratios, clarity, features, test);
     return rest;

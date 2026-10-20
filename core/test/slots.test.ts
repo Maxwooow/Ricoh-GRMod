@@ -117,8 +117,10 @@ describe.skipIf(!have)('added slots: firmware files', () => {
 
   it('reads back exactly what was built; other slot data gives another file, verified as well', async () => {
     const eng = await Engine.open(raw());
-    const slots = [slotSpec(eng, 0), { ...slotSpec(eng, 1), postQ9: undefined }];
+    const hueQ10 = Array.from({ length: 12 }, () => [1000, 12, 12, 12, 1000, 12, 12, 12, 1000]).flat();
+    const slots = [{ ...slotSpec(eng, 0), hueQ10 }, { ...slotSpec(eng, 1), postQ9: undefined }];
     const b = await eng.buildFirmware([], [], [], { extraSlots: slots });
+    expect((await eng.inspect(b.file)).verified).toBe(true);
     const d = new fw.Firmware(b.file).decoded;
     const secs = fw.sectionsOf(d);
     const rtos = secs.find((x) => x.name === 'RTOS')!;
@@ -128,7 +130,9 @@ describe.skipIf(!have)('added slots: firmware files', () => {
     expect(back[0].name).toBe('Look 1');
     expect(Array.from(back[0].matrixQ13)).toEqual(Array.from(slots[0].matrixQ13));
     expect(Array.from(back[0].postQ9!)).toEqual(Array.from(slots[0].postQ9!));
+    expect(Array.from(back[0].hueQ10!)).toEqual(hueQ10);
     expect(back[1].postQ9).toBeUndefined();
+    expect(back[1].hueQ10).toBeUndefined();
     expect(Array.from(back[1].curves[0])).toEqual(Array.from(slots[1].curves[0]));
     // a file built with a different matrix in slot 1 is a different file
     const other = await eng.buildFirmware([], [], [], { extraSlots: [{ ...slots[0], matrixQ13: [8292, -100, 0, 0, 8192, 0, 0, 0, 8192] }, slots[1]] });

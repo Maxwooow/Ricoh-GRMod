@@ -7,9 +7,8 @@
  *    checksum compensation word);
  *  - anything that appends code grows RTOS; ICONBIN grows only when icons are added (a test build
  *    of the date imprint with a fixed setting adds code only);
- *  - soft focus alone gives the same file as before these changes; all additions together with the
- *    contents of the earlier test firmware give test firmware 017 byte for byte (the file that was
- *    confirmed on the camera).
+ *  - soft focus alone keeps its previous bytes; all additions with the earlier preset/ratio
+ *    contents are checked against the current four-style date/LUT watermark build.
  */
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
@@ -22,8 +21,8 @@ const have = existsSync(P + 'official.bin');
 
 /** SHA-256 of soft focus only, as built before ICONBIN was allowed to stay unchanged. */
 const SOFT_ONLY_SHA256 = '0422b076ec4afae2a94a7ec5c1bcfd165a381721c09a822152f50fef54d35017';
-/** SHA-256 of test firmware 017 (all additions, two presets, four ratios), confirmed on the camera. */
-const TEST_017_SHA256 = 'f2881d4f0c3ab0f2958c6467683f5f48ec0757eae0e3ec964900d46e7602adb7';
+/** Current four-style watermark build; software-verified, not yet tested on a camera. */
+const WATERMARK_BUILD_SHA256 = '854e514ebbed15cb3aacd948e1f4e02a3e1846e9bcc3ab79b78fc665dd14eff9';
 
 function sections(file: Uint8Array): { decoded: Uint8Array; rtos: fw.Section; icon: fw.Section } {
   const decoded = new fw.Firmware(file).decoded;
@@ -121,10 +120,10 @@ describe.skipIf(!have)('combinations of the additions', () => {
     expect(s.dateStamp).toBe(true);
   });
 
-  it('all additions with the earlier test contents: test firmware 017 byte for byte', async () => {
+  it('all additions with the earlier test contents: current watermark build snapshot', async () => {
     const b = await eng.buildFirmware(testPresetRequests(eng), testRatios(eng), [], { adjSoftFocus: true, dateStamp: true, monoUnlock: true });
     expect(Object.values(b.checks).every((v) => v === true)).toBe(true);
-    expect(b.sha256).toBe(TEST_017_SHA256);
+    expect(b.sha256).toBe(WATERMARK_BUILD_SHA256);
     const s = await eng.inspect(b.file);
     expect(s.verified).toBe(true);
     expect({ adjSoftFocus: s.adjSoftFocus, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock }).toEqual({ adjSoftFocus: true, dateStamp: true, monoUnlock: true });

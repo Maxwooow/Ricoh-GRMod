@@ -16,6 +16,7 @@ import {
   setDateStamp,
   setMonoUnlock,
   extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, slotOf,
+  lookName, lookStyleOf, moveLook, moveLookTo, normalizeLookHidden, normalizeLookOrder, resetLookLayout, setLookHidden, resetWatermarkName, setWatermarkName, watermarkName, watermarkNameProblem,
   setWallName, wallMax, wallMenuProblem,
 } from './store';
 import type { ExtraSlot, RatioItem, WallItem } from './store';
@@ -241,6 +242,81 @@ function ExtrasHead() {
   );
 }
 
+/**
+ * The Image Control menu order and hidden looks. Rows can be dragged or moved with the arrows;
+ * the eye hides a look from every camera list. Standard (style 11) cannot be hidden.
+ */
+function LookOrderCard() {
+  const rawOrder = useStore((s) => s.lookOrder);
+  const rawHidden = useStore((s) => s.lookHidden);
+  const watermarkState = useStore((s) => s);
+  const dragFromInput = useRef(false);
+  const extras = useStore((s) => s.extras);
+  const model = useStore((s) => s.model);
+  const order = useMemo(() => normalizeLookOrder(rawOrder, model === 'MONO' ? [] : extras), [rawOrder, extras, model]);
+  const hidden = useMemo(() => new Set(normalizeLookHidden(rawHidden, model === 'MONO' ? [] : extras)), [rawHidden, extras, model]);
+  const [drag, setDrag] = useState<string | null>(null);
+  return (
+    <details className="card look-order" data-tour="ic-order" open>
+      <summary>
+        <span className="page-icon soft-ico">{Ico.updown}</span>
+        <div className="soft-text">
+          <b>{t('lookOrderTitle')}</b>
+          <span className="muted small ellipsis">{t('lookOrderSub')}</span>
+        </div>
+        <span className="look-order-count">{t('lookOrderCount', { n: hidden.size })}</span>
+      </summary>
+      <p className="muted small look-order-hint">{t('lookOrderHint')}</p>
+      <p id="watermark-name-hint" className="muted small look-order-hint">{t('watermarkNameHint')}</p>
+      <ol className="look-rows">
+        {order.map((k, i) => {
+          const style = lookStyleOf(k);
+          const isHidden = hidden.has(k);
+          const watermarkProblem = watermarkNameProblem(k, watermarkState);
+          const watermarkId = `watermark-${k}`;
+          const mono = style !== null && style >= 25 && style <= 30;
+          return (
+            <li
+              key={k}
+              className={`look-row ${isHidden ? 'hidden' : ''} ${drag === k ? 'dragging' : ''}`}
+              draggable
+              onPointerDownCapture={(e) => { dragFromInput.current = !!(e.target as HTMLElement).closest('input, label, button'); }}
+              onDragStart={(e) => { if (dragFromInput.current || (e.target as HTMLElement).closest('input')) { e.preventDefault(); return; } setDrag(k); e.dataTransfer.effectAllowed = 'move'; }}
+              onDragEnd={() => setDrag(null)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => { e.preventDefault(); if (drag) moveLookTo(drag, i); setDrag(null); }}
+            >
+              <div className="look-row-head">
+              <span className="look-grip" aria-hidden>{Ico.updown}</span>
+              <span className="look-name">{lookName(k)}{mono ? <em className="look-mono">{t('lookOrderMono')}</em> : null}</span>
+              {isHidden && <span className="look-tag">{t('lookOrderHiddenTag')}</span>}
+              <span className="look-btns">
+                <button className="btn ghost icon-only" title={t('lookOrderUp')} aria-label={t('lookOrderUp')} disabled={i === 0} onClick={() => moveLook(k, -1)}>↑</button>
+                <button className="btn ghost icon-only" title={t('lookOrderDown')} aria-label={t('lookOrderDown')} disabled={i === order.length - 1} onClick={() => moveLook(k, 1)}>↓</button>
+                <button className={`btn small ghost ${isHidden ? 'on' : ''}`} title={isHidden ? t('lookOrderShow') : t('lookOrderHide')} aria-label={isHidden ? t('lookOrderShow') : t('lookOrderHide')} disabled={k === 'f11'} onClick={() => setLookHidden(k, !isHidden)}>{isHidden ? t('lookOrderShow') : t('lookOrderHide')}</button>
+              </span>
+              </div>
+              <div className="look-watermark">
+                <label htmlFor={watermarkId}>{t('watermarkName')}</label>
+                <input
+                  id={watermarkId} className={`input ${watermarkProblem ? 'bad' : ''}`} value={watermarkName(k, watermarkState)}
+                  spellCheck={false} autoComplete="off" aria-invalid={!!watermarkProblem}
+                  aria-describedby={`watermark-name-hint${watermarkProblem ? ` ${watermarkId}-error` : ''}`}
+                  draggable={false} onDragStart={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onChange={(e) => setWatermarkName(k, e.target.value)}
+                />
+                {Object.prototype.hasOwnProperty.call(watermarkState.watermarkNames, k) && <button className="btn small ghost" title={t('watermarkNameReset')} aria-label={`${t('watermarkNameReset')} · ${lookName(k)}`} onClick={() => resetWatermarkName(k)}>↺</button>}
+                {watermarkProblem && <span id={`${watermarkId}-error`} className="look-watermark-error">{watermarkProblem}</span>}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+      <button className="btn small ghost look-order-reset" onClick={resetLookLayout}>{t('lookOrderReset')}</button>
+    </details>
+  );
+}
+
 /** An added slot: one name for every language (ASCII), a preset, an icon. */
 function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
   const active = useStore((s) => s.activeSlot === x.key);
@@ -413,6 +489,7 @@ function IcBody() {
         <SlotCard id="CY" /><SlotCard id="CG" />
         <ExtrasHead />
         {extras.map((x, i) => <ExtraSlotCard key={x.key} x={x} index={i} />)}
+        <LookOrderCard />
         {place === 'left' && switches}
       </div>
       <PreviewPane below={place === 'right' ? switches : undefined} belowH={belowH} />

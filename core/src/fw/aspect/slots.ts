@@ -30,12 +30,16 @@
  * settings (see `installOwnParameters`). They start at the neutral values, which the parameter
  * screen also shows as their defaults. Tested on a GR IV HDF as test firmwares 026..034.
  */
+import { FRAME_STYLE_STASH as HALATION_STASH, installFrameStyleCapture } from './frame-style';
 import { assembleWords, branchTarget, branchWord, movImmediate, movWord } from './arm';
 import { BASE, ICON_CATALOG, LOOKUP_BOUNDS, OFFICIAL_RTOS_LENGTH, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z } from './build';
 import { linkModule } from './native-link';
 import { SLOT_PARAMETERS, SLOT_PARAMS_MODULE } from './slotparams-native';
 import { HALATION_NAMES, halationIcon, halationLight, halationScale, installHalationModule, readHalation } from './halation';
+import { hueBlockBytes } from '../../color/hue';
 import { FirmwareError } from '../types';
+import { installFactoryHidden, validateLookLayout } from './looks';
+import type { LookLayout } from './looks';
 
 export const MAX_EXTRA_SLOTS = 6;
 /** Style number of the first added slot (the firmware has 34: 0..33). */
@@ -59,6 +63,12 @@ export interface ExtraSlotSpec {
   postQ9?: ArrayLike<number>;
   /** 40x40 RGBA. Fully transparent pixels stay transparent, others are made opaque. */
   icon: Uint8Array;
+  /**
+   * Optional hue sectors: 12 x 9 integers (Q10, every row summing to 1024). When present the slot
+   * gets its own 2160-byte multi-axis block instead of Standard's neutral one; the block is the
+   * camera's hue-sector stage (see `core/src/color/hue.ts`).
+   */
+  hueQ10?: ArrayLike<number>;
   /** Halation (CineStill 800T, fixed look) for the slot's "Halation" levels Off / Weak / Strong (the slider of Cinema's Toning); absent or false = none. */
   halation?: boolean;
 }
@@ -74,7 +84,6 @@ const TONING_ICON = 0x16f;
 /** The native three-position scale whose panel and track the halation scale reuses. */
 const NATIVE_SCALE_ICON = 0x23b;
 /** The word the development step leaves for the halation module: style | level << 8 | valid. */
-const HALATION_STASH = 0x558372e4;
 
 const TONES = 34;
 const VARIANTS = 3;
@@ -115,6 +124,25 @@ export function validateExtraSlotName(name: string): 'empty' | 'too-long' | 'bad
   if (name.length > EXTRA_NAME_MAX) return 'too-long';
   if (!/^[\x20-\x7e]+$/.test(name) || name !== name.trim()) return 'bad-char';
   return null;
+}
+
+/** Check the 12 x 9 Q10 hue matrices the camera's multi-axis block stores. */
+function hueBytes(k: number, q: ArrayLike<number>): Uint8Array {
+  if (!q || q.length !== 108) fail('bad-hue', `added slot ${k + 1}: hue sectors must be 12 x 9 values`);
+  const rows: number[][] = [];
+  for (let i = 0; i < 12; i++) {
+    const m: number[] = [];
+    for (let j = 0; j < 9; j++) {
+      const v = q[i * 9 + j];
+      if (!Number.isInteger(v) || v < -32768 || v > 32767) fail('bad-hue', `added slot ${k + 1}: hue value ${String(v)} is not an int16`);
+      m.push(v);
+    }
+    for (let r = 0; r < 3; r++) {
+      if (m[r * 3] + m[r * 3 + 1] + m[r * 3 + 2] !== 1024) fail('bad-hue', `added slot ${k + 1}: hue matrix ${i} row ${r} does not sum to 1024`);
+    }
+    rows.push(m);
+  }
+  return hueBlockBytes(rows);
 }
 
 function matrixBytes(k: number, m: ArrayLike<number>): Uint8Array {
@@ -234,7 +262,7 @@ function swap(p: Patch, at: number, before: string, after: string, reason: strin
  * Install `slots` (1..MAX_EXTRA_SLOTS) into an RTOS image that already has the scaffold of
  * `build.ts` (extended catalogs), appending their icons to `iconbin`. Returns the new ICONBIN data.
  */
-export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly ExtraSlotSpec[]): Uint8Array {
+export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly ExtraSlotSpec[], layout?: LookLayout): Uint8Array {
   const count = slots.length;
   if (!(count >= 1 && count <= MAX_EXTRA_SLOTS)) fail('too-many-slots', `1 to ${MAX_EXTRA_SLOTS} slots can be added`);
   if (p.textBoundSites.length === 0) fail('internal', 'the catalog scaffold is not installed');
@@ -287,7 +315,8 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
     new DataView(r.buffer).setUint32(4, matrix, true);
     new DataView(r.buffer).setUint32(POST_WORD, post, true);
     const recNew = p.append(r, 4);
-    const maArray = p.append(u32le(new Array(MA_POINTERS).fill(stdBlock)), 4);
+    const block = s.hueQ10 !== undefined ? p.append(hueBytes(k, s.hueQ10), 4) : stdBlock;
+    const maArray = p.append(u32le(new Array(MA_POINTERS).fill(block)), 4);
     const m = maTemplate.slice();
     new DataView(m.buffer).setUint32(8, maArray, true);
     const maNew = p.append(m, 4);
@@ -336,28 +365,33 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
   // dispatch register changes, the frame's style and the table index stay the new ones. With
   // halation, the frame's style and Toning (halation) level are also left for the JPEG step.
   const halation = slots.some((s) => s.halation === true);
-  const stash = halation
-    ? `push {r0,r1};ldrb r0,[r3,#0x79c];ldrb r1,[r3,#0x7a6];orr r0,r0,r1,lsl #8;orr r0,r0,#0x10000;movw r1,#${HALATION_STASH & 65535};movt r1,#${HALATION_STASH >>> 16};str r0,[r1];pop {r0,r1};`
-    : '';
-  hook(p, 0x539113f8, 0xe5d3279c, `${stash}ldrb r2,[r3,#0x79c];sub ip,r2,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};movls r2,#${CY};b #0x539113fc`, 'added slots: Cinema input fields');
+  installFrameStyleCapture(p, count);
 
-  // Menu order and counts.
-  const order = p.append(concat([p.read(ORDER_TABLE, ORDER_COUNT), Uint8Array.from(slots.map((_, i) => EXTRA_FIRST_STYLE + i))]), 4);
+  // Menu order and counts. With a user layout the order may be any permutation of the factory
+  // looks and the added slots; the list capacity grows by the same number as without one.
+  if (layout) validateLookLayout(layout, count);
+  const orderIds = layout ? [...layout.order] : [...p.read(ORDER_TABLE, ORDER_COUNT), ...slots.map((_, i) => EXTRA_FIRST_STYLE + i)];
+  const total = orderIds.length;
+  const order = p.append(Uint8Array.from(orderIds), 4);
   pointer(p, 0x5337561c, 0x53375620, 4, ORDER_TABLE, order, 'added slots: menu order');
   pointer(p, 0x533cc78c, 0x533cc794, 4, ORDER_TABLE, order, 'added slots: menu order');
-  swap(p, 0x53375628, `add r7,r4,#${ORDER_COUNT}`, `add r7,r4,#${ORDER_COUNT + count}`, 'added slots: menu count');
-  swap(p, 0x533cc7a4, `add r7,r4,#${ORDER_COUNT}`, `add r7,r4,#${ORDER_COUNT + count}`, 'added slots: menu count');
-  swap(p, 0x533cc8c8, `mov r0,#${ORDER_COUNT}`, `mov r0,#${ORDER_COUNT + count}`, 'added slots: list capacity');
-  swap(p, 0x533cc90c, `add r3,r5,#${ORDER_COUNT}`, `add r3,r5,#${ORDER_COUNT + count}`, 'added slots: list capacity');
+  if (total !== ORDER_COUNT + count) fail('internal', 'look order length does not match the added slots');
+  swap(p, 0x53375628, `add r7,r4,#${ORDER_COUNT}`, `add r7,r4,#${total}`, 'added slots: menu count');
+  swap(p, 0x533cc7a4, `add r7,r4,#${ORDER_COUNT}`, `add r7,r4,#${total}`, 'added slots: menu count');
+  swap(p, 0x533cc8c8, `mov r0,#${ORDER_COUNT}`, `mov r0,#${total}`, 'added slots: list capacity');
+  swap(p, 0x533cc90c, `add r3,r5,#${ORDER_COUNT}`, `add r3,r5,#${total}`, 'added slots: list capacity');
   // The controller reserves this many entries plus the three custom sets.
-  swap(p, 0x533bebf0, `mov r0,#${ORDER_COUNT}`, `mov r0,#${ORDER_COUNT + count}`, 'added slots: controller capacity');
+  swap(p, 0x533bebf0, `mov r0,#${ORDER_COUNT}`, `mov r0,#${total}`, 'added slots: controller capacity');
 
   // Look visibility: the new styles are colour looks, hidden on the GR IV Monochrome. Composes
   // with the monochrome looks (`monounlock.ts`) when those are installed.
   const unlocked = p.word(0x533cc6e0) === 0xe3510018;
   expectWord(p, 0x533cc6e4, unlocked ? 0x8a000019 : 0x1a000019);
+  const hiddenExtras = (layout?.hidden ?? []).filter((id) => id >= EXTRA_FIRST_STYLE && id < EXTRA_FIRST_STYLE + count);
+  const hideChecks = hiddenExtras.map((id) => `cmp r1,#${id};beq hidden;`).join('');
   hook(p, 0x533cc6e0, unlocked ? 0xe3510018 : 0xe3520000,
-    `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;cmp r2,#0;moveq r0,#1;movne r0,#0;bx lr;native:${unlocked ? 'cmp r1,#24;bhi' : 'cmp r2,#0;bne'} #0x533cc750;b #0x533cc6e8`, 'added slots: visibility');
+    `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;${hideChecks}cmp r2,#0;moveq r0,#1;movne r0,#0;bx lr;hidden:mov r0,#0;bx lr;native:${unlocked ? 'cmp r1,#24;bhi' : 'cmp r2,#0;bne'} #0x533cc750;b #0x533cc6e8`, 'added slots: visibility');
+  if (layout) installFactoryHidden(p, layout.hidden);
   // Names and icons.
   hook(p, 0x5337f824, 0xe351000a, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;add r0,ip,#${EXTRA_TEXT_ID & 0xf00};add r0,r0,#${EXTRA_TEXT_ID & 0xff};bx lr;native:cmp r1,#10;b #0x5337f828`, 'added slots: name');
   // The ADJ list has an icon lookup of its own (blank entries in test 022 without this).
@@ -803,8 +837,11 @@ export function readExtraSlots(rtos: Uint8Array, iconbin: Uint8Array, count: num
     if (p.word(0x53925f98) !== movRow(rows)) return null;
     const table = (lo: number, hi: number): number => (movImmediate(p.word(lo)) | (movImmediate(p.word(hi)) << 16)) >>> 0;
     const tone = table(0x53925f9c, 0x53925fa4);
+    const maTable = table(0x53925fc8, 0x53925fd0);
     const gamma = table(0x53926020, 0x53926028);
     const stdShared = wordOf(p.readMapped(wordOf(p.readMapped(tone + 4 * STANDARD, 4)) + POST_WORD, 4));
+    const stdMa = wordOf(p.readMapped(wordOf(p.readMapped(maTable + 4 * STANDARD, 4)) + 8, 4));
+    const stdBlock = wordOf(p.readMapped(stdMa, 4));
     const out: ExtraSlotSpec[] = [];
     for (let k = 0; k < count; k++) {
       const rec = wordOf(p.readMapped(tone + 4 * (TONES + k), 4));
@@ -831,7 +868,25 @@ export function readExtraSlots(rtos: Uint8Array, iconbin: Uint8Array, count: num
       const iconOffset = p.word(iconDesc + 8) * 4;
       if (iconOffset + EXTRA_ICON_BYTES > iconbin.length) return null;
       const icon = iconbin.slice(iconOffset, iconOffset + EXTRA_ICON_BYTES);
-      out.push({ name, matrixQ13, curves, ...(postQ9 ? { postQ9 } : {}), icon });
+      // The slot's own multi-axis (hue sector) block, when it differs from Standard's neutral one.
+      // All eight pointers name the same block; the firmware stores five identical copies.
+      const ma = wordOf(p.readMapped(maTable + 4 * (TONES + k), 4));
+      const maArray = wordOf(p.readMapped(ma + 8, 4));
+      const pointers = Array.from({ length: MA_POINTERS }, (_, i) => wordOf(p.readMapped(maArray + 4 * i, 4)));
+      let hueQ10: number[] | undefined;
+      if (pointers.every((x) => x === pointers[0]) && pointers[0] !== stdBlock) {
+        const raw = p.readMapped(pointers[0], 5 * 12 * 9 * 4);
+        const hv = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
+        const first = Array.from({ length: 12 * 9 }, (_, i) => hv.getInt32(4 * i, true));
+        let ok = true;
+        for (let copy = 1; copy < 5 && ok; copy++)
+          for (let i = 0; i < 12 * 9; i++) if (hv.getInt32((copy * 12 * 9 + i) * 4, true) !== first[i]) ok = false;
+        for (let s = 0; s < 12 && ok; s++)
+          for (let r = 0; r < 3; r++)
+            if (first[s * 9 + r * 3] + first[s * 9 + r * 3 + 1] + first[s * 9 + r * 3 + 2] !== 1024) ok = false;
+        if (ok) hueQ10 = first;
+      }
+      out.push({ name, matrixQ13, curves, ...(postQ9 ? { postQ9 } : {}), ...(hueQ10 ? { hueQ10 } : {}), icon });
     }
     const halation = readHalation(p, count);
     if (halation) halation.forEach((h, k) => { if (h) out[k].halation = true; });

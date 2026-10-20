@@ -46,14 +46,16 @@ def build(cc, ld, objcopy, tmp, origin, extra=()):
     run(ld + [f'-Ttext=0x{origin:x}', '--entry=datestamp', '-o', elf, obj])
     out = tmp / f'ds_{origin:x}.bin'
     run(objcopy + ['-O', 'binary', '-j', '.text', elf, out])
-    sections = run(['readelf', '-S', '-W', elf])
-    for name in ('.data', '.bss', '.rodata', '.got'):
-        if f' {name} ' in sections or f' {name}.' in sections:
-            sys.exit(f'module has a {name} section')
-    symbols = run(['readelf', '-s', '-W', elf])
-    entry = [l for l in symbols.splitlines() if l.strip().endswith(' datestamp')]
-    if not entry or int(entry[0].split()[1], 16) != origin:
-        sys.exit('datestamp is not at the start of .text')
+    from elftools.elf.elffile import ELFFile
+    with elf.open('rb') as stream:
+        parsed = ELFFile(stream)
+        for section in parsed.iter_sections():
+            if section.name in ('.data', '.bss', '.rodata', '.got') or section.name.startswith(('.data.', '.bss.', '.rodata.', '.got.')):
+                sys.exit(f'module has a {section.name} section')
+        symbols = parsed.get_section_by_name('.symtab')
+        entry = symbols.get_symbol_by_name('datestamp') if symbols else None
+        if not entry or entry[0]['st_value'] != origin:
+            sys.exit('datestamp is not at the start of .text')
     return out.read_bytes()
 
 
