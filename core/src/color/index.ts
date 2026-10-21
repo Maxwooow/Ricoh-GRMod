@@ -1,5 +1,5 @@
 // Colour pipeline: film-look preset (.xmp Look profile or .cube LUT) -> GR IV Image Control slot.
-export { ColorError, lab, deltaE, deltaELab, srgbToLin, linToSrgb } from './math';
+export { ColorError, lab, deltaE, deltaE2000, deltaE2000Lab, deltaELab, srgbToLin, linToSrgb } from './math';
 export type { ColorErrorCode } from './math';
 export { S, Sinv, slotApply, quantizeSlot, KN, KNOTS } from './camera';
 export type { SlotParams, QuantizedSlot } from './camera';
@@ -9,6 +9,8 @@ export { FullLook, Tone } from './look';
 export { parseCube, applyCube } from './cube';
 export type { Cube } from './cube';
 export { fitSlot } from './fit';
+export { refineSlot } from './refine';
+export type { RefineOptions, RefineResult } from './refine';
 export type { FitOptions, FitResult } from './fit';
 export { convertXmp, convertCube, previewSlot } from './convert';
 export type { Conversion, ConvertOptions } from './convert';

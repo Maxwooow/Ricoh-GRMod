@@ -35,6 +35,7 @@ import { BASE, ICON_CATALOG, LOOKUP_BOUNDS, OFFICIAL_RTOS_LENGTH, Patch, TEXT_CA
 import { linkModule } from './native-link';
 import { SLOT_PARAMETERS, SLOT_PARAMS_MODULE } from './slotparams-native';
 import { HALATION_NAMES, halationIcon, halationLight, halationScale, installHalationModule, readHalation } from './halation';
+import { hueBlockBytes } from '../../color/hue';
 import { FirmwareError } from '../types';
 
 export const MAX_EXTRA_SLOTS = 6;
@@ -59,6 +60,12 @@ export interface ExtraSlotSpec {
   postQ9?: ArrayLike<number>;
   /** 40x40 RGBA. Fully transparent pixels stay transparent, others are made opaque. */
   icon: Uint8Array;
+  /**
+   * Optional hue sectors: 12 x 9 integers (Q10, every row summing to 1024). When present the slot
+   * gets its own 2160-byte multi-axis block instead of Standard's neutral one; the block is the
+   * camera's hue-sector stage (see `core/src/color/hue.ts`).
+   */
+  hueQ10?: ArrayLike<number>;
   /** Halation (CineStill 800T, fixed look) for the slot's "Halation" levels Off / Weak / Strong (the slider of Cinema's Toning); absent or false = none. */
   halation?: boolean;
 }
@@ -115,6 +122,25 @@ export function validateExtraSlotName(name: string): 'empty' | 'too-long' | 'bad
   if (name.length > EXTRA_NAME_MAX) return 'too-long';
   if (!/^[\x20-\x7e]+$/.test(name) || name !== name.trim()) return 'bad-char';
   return null;
+}
+
+/** Check the 12 x 9 Q10 hue matrices the camera's multi-axis block stores. */
+function hueBytes(k: number, q: ArrayLike<number>): Uint8Array {
+  if (!q || q.length !== 108) fail('bad-hue', `added slot ${k + 1}: hue sectors must be 12 x 9 values`);
+  const rows: number[][] = [];
+  for (let i = 0; i < 12; i++) {
+    const m: number[] = [];
+    for (let j = 0; j < 9; j++) {
+      const v = q[i * 9 + j];
+      if (!Number.isInteger(v) || v < -32768 || v > 32767) fail('bad-hue', `added slot ${k + 1}: hue value ${String(v)} is not an int16`);
+      m.push(v);
+    }
+    for (let r = 0; r < 3; r++) {
+      if (m[r * 3] + m[r * 3 + 1] + m[r * 3 + 2] !== 1024) fail('bad-hue', `added slot ${k + 1}: hue matrix ${i} row ${r} does not sum to 1024`);
+    }
+    rows.push(m);
+  }
+  return hueBlockBytes(rows);
 }
 
 function matrixBytes(k: number, m: ArrayLike<number>): Uint8Array {
@@ -287,7 +313,8 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
     new DataView(r.buffer).setUint32(4, matrix, true);
     new DataView(r.buffer).setUint32(POST_WORD, post, true);
     const recNew = p.append(r, 4);
-    const maArray = p.append(u32le(new Array(MA_POINTERS).fill(stdBlock)), 4);
+    const block = s.hueQ10 !== undefined ? p.append(hueBytes(k, s.hueQ10), 4) : stdBlock;
+    const maArray = p.append(u32le(new Array(MA_POINTERS).fill(block)), 4);
     const m = maTemplate.slice();
     new DataView(m.buffer).setUint32(8, maArray, true);
     const maNew = p.append(m, 4);

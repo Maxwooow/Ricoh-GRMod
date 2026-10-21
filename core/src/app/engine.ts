@@ -109,6 +109,8 @@ export interface PresetResult {
   params: SlotParams;
   matrixQ13: Int16Array;
   curves: [Uint16Array, Uint16Array, Uint16Array];
+  /** 12 x 9 Q10 hue matrices for the added slot's multi-axis block, when the fit used them. */
+  hueQ10?: number[][];
   /** The post-curve ("second") matrix in Q9, rows summing to 512. */
   postQ9?: Int16Array;
 }
@@ -588,7 +590,7 @@ export class Engine {
     const post = options.post !== false;
     const c = kind === 'xmp' ? convertXmp(text, { onProgress, post }) : convertCube(text, { onProgress, post });
     const q = quantizeSlot(c.params, this.mStdQ13);
-    return { kind: c.kind, title: c.title, meanDE: c.meanDE, p95DE: c.p95DE, warnings: c.warnings, unsupported: c.unsupported, params: c.params, matrixQ13: q.matrixQ13, curves: q.curves, ...(q.postQ9 ? { postQ9: q.postQ9 } : {}) };
+    return { kind: c.kind, title: c.title, meanDE: c.meanDE, p95DE: c.p95DE, warnings: c.warnings, unsupported: c.unsupported, params: c.params, matrixQ13: q.matrixQ13, curves: q.curves, ...(q.postQ9 ? { postQ9: q.postQ9 } : {}), ...(c.hueQ10 ? { hueQ10: c.hueQ10 } : {}) };
   }
 
   validateName(slot: SlotId, lang: LangCode, text: string): NameValidation {
