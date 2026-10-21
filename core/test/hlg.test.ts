@@ -92,13 +92,13 @@ describe.skipIf(!have)('HLG HDR photo firmware build & inspection', () => {
     expect(s.dateStamp).toBe(false);
     expect(s.monoUnlock).toBe(false);
 
-    // Slot 22 uses factory icon, so ICONBIN should not grow
+    // Custom HDR scale icon (ID 782) is appended to ICONBIN
     const decoded = new fw.Firmware(b.file).decoded;
     const list = fw.sectionsOf(decoded);
     const rtos = list.find((sec) => sec.name === 'RTOS')!;
     const icon = list.find((sec) => sec.name === 'ICONBIN')!;
     expect(rtos.size).toBeGreaterThan(fw.RTOS_LENGTH);
-    expect(icon.size).toBe(fw.ICONBIN_LENGTH);
+    expect(icon.size).toBeGreaterThan(fw.ICONBIN_LENGTH);
 
     // Verify HDR Tone Level 0 UI patches in the generated RTOS image
     const rtosData = decoded.subarray(rtos.offset, rtos.offset + rtos.size);
@@ -107,8 +107,8 @@ describe.skipIf(!have)('HLG HDR photo firmware build & inspection', () => {
       return new DataView(rtosData.buffer, rtosData.byteOffset + off, 4).getUint32(0, true);
     };
 
-    expect(rtosVa(HDR_SCALE_SHOOTING)).toBe(0xe300323d);
-    expect(rtosVa(HDR_SCALE_PLAYBACK)).toBe(0xe300323d);
+    expect(rtosVa(HDR_SCALE_SHOOTING)).toBe(0xe300330e); // movw r3, #782 (0x30e)
+    expect(rtosVa(HDR_SCALE_PLAYBACK)).toBe(0xe300330e); // movw r3, #782 (0x30e)
     expect(rtosVa(HDR_INTENSE_TABLE_0)).toBe(0x00020100);
     expect(rtosVa(HDR_INTENSE_TABLE_1)).toBe(0x00020100);
     expect(rtosVa(HDR_INTENSE_TABLE_2)).toBe(0x00020100);

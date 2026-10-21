@@ -1007,7 +1007,7 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
     installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : DATESTAMP_BYTE, !!test.dateStampDiag);
     if (!fixed) icons = installDateStampMenu(patch, icons);
   }
-  if (features.hlgPhoto) installHlgPhoto(patch);
+  if (features.hlgPhoto) icons = installHlgPhoto(patch, icons);
   // Last: the added slots compose with the monochrome looks' visibility check.
   if (slots.length > 0) icons = installExtraSlots(patch, icons, slots);
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
