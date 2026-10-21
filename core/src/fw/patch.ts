@@ -22,6 +22,8 @@ import type { RatioSpec } from './aspect';
 import { grownRanges, growPayload } from './aspect/package';
 import { Patch } from './aspect/build';
 import { installMonoUnlock } from './aspect/monounlock';
+import { lookLayoutWords } from './aspect/looks';
+import type { LookLayout } from './aspect/looks';
 import { CLARITY_BYTES, CLARITY_OFFSET, clarityBytes, hasOfficialClarity } from './clarity';
 import type { ClarityEdit } from './clarity';
 
@@ -205,7 +207,8 @@ export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], 
   // words in place: on their own (or with only same-length edits) the file keeps the official layout.
   const grows = ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0;
   const inPlaceMono = !grows && !!features.monoUnlock;
-  const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity, inPlaceMono);
+  const inPlaceLooks = !grows && !!features.lookLayout;
+  const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity, inPlaceMono, inPlaceLooks ? features.lookLayout : undefined);
   if (grows) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios, features, test);
 
   // 7. Container.
@@ -226,7 +229,7 @@ export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], 
     ranges,
     checks,
     ratios: [],
-    features: inPlaceMono ? { adjSoftFocus: false, monoUnlock: true } : {},
+    features: { adjSoftFocus: false, ...(inPlaceMono ? { monoUnlock: true } : {}), ...(inPlaceLooks ? { lookLayout: features.lookLayout } : {}) },
   };
 }
 
@@ -294,7 +297,7 @@ async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8
 }
 
 /** Steps 1-6: open the official file and apply the same-length slot (and clarity) edits to a copy of its payload. */
-async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: readonly ClarityEdit[] = [], monoUnlock = false): Promise<{ fw: Firmware; DEC: Uint8Array; img: Uint8Array; ranges: Range[] }> {
+async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: readonly ClarityEdit[] = [], monoUnlock = false, lookLayout?: LookLayout): Promise<{ fw: Firmware; DEC: Uint8Array; img: Uint8Array; ranges: Range[] }> {
   // 1. Open the official file, copy the payload.
   const { fw, decoded: DEC } = await openOfficial(officialRaw);
   const sorted = sortEdits(edits);
@@ -380,6 +383,15 @@ async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: 
     for (const w of monoUnlockWords(DEC)) {
       for (const r of ranges) if (r.offset < w.offset + 4 && w.offset < r.offset + r.length) bad('assert-failed', `monochrome looks overlap ${r.what}`);
       write(`monochrome looks 0x${(w.offset - RTOS_OFFSET + 0x53000000).toString(16)}`, w.offset, w.bytes, 4);
+    }
+    rtosTouched = true;
+  }
+
+  // 3d. Image Control order / hidden looks in place (route B: 20-byte order table + visibility words).
+  if (lookLayout) {
+    for (const w of lookLayoutWords(DEC, lookLayout)) {
+      for (const r of ranges) if (r.offset < w.offset + w.bytes.length && w.offset < r.offset + r.length) bad('assert-failed', `look layout overlaps ${r.what}`);
+      write(w.what, w.offset, w.bytes, w.bytes.length);
     }
     rtosTouched = true;
   }

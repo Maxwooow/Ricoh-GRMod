@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import { card, LANGS, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_MAX_PICTURES, SHUTDOWN_NAME_MAX, validateExtraSlotName, validateRatioName, validateShutdownName } from '@grmod/core';
-import type { CameraModel, ClarityChange, ExtraSlotSpec, FirmwareInfo, FirmwareSummary, LangCode, PresetResult, RatioPreview, RatioSpec, ShutdownPictureSpec, SlotId, SlotRequest, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
+import { FACTORY_LOOK_IDS, card, LANGS, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_MAX_PICTURES, SHUTDOWN_NAME_MAX, validateExtraSlotName, validateRatioName, validateShutdownName } from '@grmod/core';
+import type { CameraModel, ClarityChange, ExtraSlotSpec, FirmwareInfo, FirmwareSummary, LangCode, LookLayout, PresetResult, RatioPreview, RatioSpec, ShutdownPictureSpec, SlotId, SlotRequest, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
 import { engine, EngineError } from './engine';
 import { host, HostError, sha256Hex } from './host';
 import type { ParkedEntry, Volume } from './host';
@@ -65,6 +65,9 @@ export interface State {
   previewMode: PreviewMode; photoRev: number; activeSlot: SlotKey;
   /** Added Image Control slots, in the camera's order (none by default). */
   extras: ExtraSlot[];
+  /** Image Control menu order (`f11`..`f30`, or an added slot's key) and hidden keys. Empty = factory order, nothing hidden. */
+  lookOrder: string[];
+  lookHidden: string[];
   volumes: Volume[]; showAll: boolean; volumeId?: string; role?: card.CardRole;
   copySource: CopySource; parked: ParkedEntry[]; backups: ParkedEntry[]; copySel: string[]; copyInfo: Record<string, CopyInfo>; builds: BuildRecord[];
   busy?: string; toasts: Toast[]; confirm?: Confirm; cropId?: string; onlineOpen: boolean;
@@ -79,7 +82,7 @@ const SLOT_IDS: SlotId[] = ['CY', 'CG'];
 const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '', style: 'film' } });
 let state: State = {
   ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: 'zh-CN',
-  slots: { CY: emptySlot(), CG: emptySlot() }, extras: [], wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], bridgeOpen: false,
+  slots: { CY: emptySlot(), CG: emptySlot() }, extras: [], lookOrder: [], lookHidden: [], wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], bridgeOpen: false,
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
@@ -152,6 +155,7 @@ async function saveProject(): Promise<void> {
       icon: { mode: s.slots[id].icon.mode, text: s.slots[id].icon.text, style: s.slots[id].icon.style, image: s.slots[id].icon.image },
     }])),
     extras: s.extras.map((x) => ({ key: x.key, name: x.name, preset: x.preset ? { fileName: x.preset.fileName, kind: x.preset.kind } : null, icon: { mode: x.icon.mode, text: x.icon.text, style: x.icon.style, image: x.icon.image }, ...(x.halation ? { halation: x.halation } : {}) })),
+    lookOrder: s.lookOrder, lookHidden: s.lookHidden,
     wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: 'image', width: w.width, height: w.height, crop: w.crop, ...(w.menuName !== undefined ? { menuName: w.menuName } : {}), ...(w.menuId ? { menuId: w.menuId } : {}) })),
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
     soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock,
@@ -180,10 +184,12 @@ export async function init(): Promise<void> {
       const extras: ExtraSlot[] = (Array.isArray(doc.extras) ? doc.extras : []).slice(0, MAX_EXTRA_SLOTS)
         .filter((x: ExtraSlot) => x && typeof x.key === 'string' && /^x-[a-z0-9]{1,12}$/.test(x.key))
         .map((x: ExtraSlot) => ({ key: x.key, name: String(x.name || '').slice(0, 40), icon: { mode: x.icon?.mode === 'image' ? 'image' : 'text', text: String(x.icon?.text ?? ''), style: x.icon?.style === 'plain' ? 'plain' : 'film', image: x.icon?.image }, ...(validHalation(x.halation) ? { halation: validHalation(x.halation)! } : {}) }));
+      const lookOrder = normalizeLookOrder(Array.isArray(doc.lookOrder) ? doc.lookOrder : [], extras);
+      const lookHidden = normalizeLookHidden(Array.isArray(doc.lookHidden) ? doc.lookHidden : [], extras);
       const ratios: RatioItem[] = (Array.isArray(doc.ratios) ? doc.ratios : []).slice(0, MAX_CUSTOM_RATIOS)
         .filter((r: RatioItem) => r && typeof r.id === 'string' && typeof r.ratio === 'string')
         .map((r: RatioItem) => ({ id: r.id, ratio: r.ratio.slice(0, 24), name: String(r.name || '').slice(0, 80) }));
-      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : doc.page === 'script' ? 'wall' : 'ic', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, extras, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo',
+      set({ ratios, activeRatio: ratios[0]?.id, page: doc.page === 'wall' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : doc.page === 'script' ? 'wall' : 'ic', model: doc.model || 'HDF', lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll, slots, extras, lookOrder, lookHidden, previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo',
         soft: doc.soft === true || (!!doc.softFocus && typeof doc.softFocus === 'object' && Object.keys(doc.softFocus).length > 0),
         dateStamp: doc.dateStamp === true, monoUnlock: doc.monoUnlock === true,
         // GR Mod 0.8 changed the power-off page: its tour (which now says where the pictures are chosen) shows once more
@@ -348,6 +354,96 @@ export function removePreset(id: SlotKey): void {
 // ------------------------------------------------------------------ added slots
 /** Every slot key: the two Cinema slots, then the added ones. */
 export function allSlotKeys(s: State = state): SlotKey[] { return [...SLOT_IDS, ...s.extras.map((x) => x.key)]; }
+
+// ------------------------------------------------------------------ Image Control menu order / hidden looks
+const FACTORY_LOOK_NAMES: Record<number, { zh: string; en: string }> = {
+  11: { zh: '标准', en: 'Standard' }, 12: { zh: '鲜艳', en: 'Vivid' }, 13: { zh: '单色', en: 'Monotone' },
+  14: { zh: '软单色', en: 'Soft Monotone' }, 15: { zh: '硬单色', en: 'Hard Monotone' }, 16: { zh: '高对比度黑白', en: 'Hi-Contrast B&W' },
+  17: { zh: '正片', en: 'Positive Film' }, 18: { zh: '电影（黄色）', en: 'Cinema (Yellow)' }, 19: { zh: '电影（绿色）', en: 'Cinema (Green)' },
+  20: { zh: '留银冲洗', en: 'Bleach Bypass' }, 21: { zh: '怀旧', en: 'Retro' }, 22: { zh: 'HDR色调', en: 'HDR Tone' },
+  23: { zh: '正负逆冲', en: 'Cross Processing' }, 24: { zh: '负片', en: 'Negative Film' }, 25: { zh: '标准（单色）', en: 'Standard (mono)' },
+  26: { zh: '柔和（单色）', en: 'Soft (mono)' }, 27: { zh: '高对比度（单色）', en: 'High Contrast (mono)' }, 28: { zh: '颗粒感（单色）', en: 'Grainy (mono)' },
+  29: { zh: '无颗粒感（单色）', en: 'Solid (mono)' }, 30: { zh: 'HDR色调（单色）', en: 'HDR Tone (mono)' },
+};
+const factoryLookKey = (id: number): string => `f${id}`;
+/** Added slots are not built on the Monochrome camera (it has no colour looks), so they are not in the order either. */
+function lookExtras(s: State): ExtraSlot[] { return s.model === 'MONO' ? [] : s.extras; }
+/** Every key the order can contain: the 20 factory looks, then the added slots. */
+export function lookKeys(s: State = state): string[] { return [...FACTORY_LOOK_IDS.map(factoryLookKey), ...lookExtras(s).map((x) => x.key)]; }
+/** The style number the firmware uses for a key (11..30, or 34.. for added slots). */
+export function lookStyleOf(key: string, s: State = state): number | null {
+  if (key.startsWith('f')) { const n = Number(key.slice(1)); return FACTORY_LOOK_IDS.includes(n) ? n : null; }
+  const i = lookExtras(s).findIndex((x) => x.key === key);
+  return i < 0 ? null : 34 + i;
+}
+/** A display name for the UI: the camera's Chinese/English name, or an added slot's name. */
+export function lookName(key: string, s: State = state): string {
+  if (key.startsWith('f')) { const n = Number(key.slice(1)); const x = FACTORY_LOOK_NAMES[n]; if (x) return s.lang.startsWith('zh') ? x.zh : x.en; }
+  const x = lookExtras(s).find((e) => e.key === key);
+  return x ? extraName(x, s) : key;
+}
+/** Keep the saved order valid for the current extras: drop unknown keys, append new ones in factory order. */
+export function normalizeLookOrder(order: readonly string[], extras: readonly ExtraSlot[]): string[] {
+  const valid = new Set<string>([...FACTORY_LOOK_IDS.map(factoryLookKey), ...extras.map((x) => x.key)]);
+  const out: string[] = [];
+  for (const k of order) if (typeof k === 'string' && valid.has(k) && !out.includes(k)) out.push(k);
+  for (const id of FACTORY_LOOK_IDS) if (!out.includes(factoryLookKey(id))) out.push(factoryLookKey(id));
+  for (const x of extras) if (!out.includes(x.key)) out.push(x.key);
+  return out;
+}
+export function normalizeLookHidden(hidden: readonly string[], extras: readonly ExtraSlot[]): string[] {
+  const valid = new Set<string>([...FACTORY_LOOK_IDS.map(factoryLookKey), ...extras.map((x) => x.key)]);
+  return [...new Set(hidden.filter((k) => typeof k === 'string' && valid.has(k) && k !== factoryLookKey(11)))];
+}
+export function lookOrderNow(s: State = state): string[] { return normalizeLookOrder(s.lookOrder, lookExtras(s)); }
+export function lookHiddenNow(s: State = state): string[] { return normalizeLookHidden(s.lookHidden, lookExtras(s)); }
+/** The layout to build, or undefined when it is the factory order with nothing hidden. */
+export function lookLayoutSpec(s: State = state): LookLayout | undefined {
+  const order = lookOrderNow(s);
+  const hidden = lookHiddenNow(s);
+  const factory = [...FACTORY_LOOK_IDS.map(factoryLookKey), ...lookExtras(s).map((x) => x.key)];
+  if (hidden.length === 0 && order.every((k, i) => k === factory[i])) return undefined;
+  return { order: order.map((k) => lookStyleOf(k, s)!), hidden: hidden.map((k) => lookStyleOf(k, s)!) };
+}
+export function hasLookLayout(s: State = state): boolean { return !!lookLayoutSpec(s); }
+export function moveLookTo(key: string, toIndex: number): void {
+  set((s) => {
+    const order = lookOrderNow(s);
+    const from = order.indexOf(key);
+    if (from < 0) return { lookOrder: order };
+    const to = Math.max(0, Math.min(order.length - 1, toIndex));
+    if (from === to) return { lookOrder: order };
+    order.splice(from, 1);
+    order.splice(to, 0, key);
+    return { lookOrder: order };
+  });
+  scheduleSave();
+}
+export function moveLook(key: string, delta: number): void {
+  set((s) => {
+    const order = lookOrderNow(s);
+    const from = order.indexOf(key);
+    const to = from + delta;
+    if (from < 0 || to < 0 || to >= order.length) return { lookOrder: order };
+    order.splice(from, 1);
+    order.splice(to, 0, key);
+    return { lookOrder: order };
+  });
+  scheduleSave();
+}
+export function setLookHidden(key: string, hidden: boolean): void {
+  if (key === factoryLookKey(11)) { toast(t('lookOrderKeepStandard'), 'info'); return; }
+  set((s) => {
+    const list = lookHiddenNow(s).filter((k) => k !== key);
+    if (hidden) list.push(key);
+    return { lookHidden: list };
+  });
+  scheduleSave();
+}
+export function resetLookLayout(): void {
+  set((s) => ({ lookOrder: [...FACTORY_LOOK_IDS.map(factoryLookKey), ...s.extras.map((x) => x.key)], lookHidden: [] }));
+  scheduleSave();
+}
 /** The name an added slot gets in the camera: what was typed, else `GR Mod <place>`. */
 export function extraName(x: ExtraSlot, s: State = state): string {
   const i = s.extras.findIndex((e) => e.key === x.key);
@@ -401,12 +497,12 @@ export function addExtraSlot(): void {
   if (state.extras.length >= MAX_EXTRA_SLOTS) { toast(t('extraMax', { n: MAX_EXTRA_SLOTS }), 'info'); return; }
   const key = 'x-' + Math.random().toString(36).slice(2, 10);
   const n = state.extras.length + 1;
-  set((s) => ({ extras: [...s.extras, { key, name: '', icon: { mode: 'text', text: `GR${n}`, style: 'film' } }] }));
+  set((s) => ({ extras: [...s.extras, { key, name: '', icon: { mode: 'text', text: `GR${n}`, style: 'film' } }], lookOrder: [...normalizeLookOrder(s.lookOrder, s.extras), key] }));
   void renderIcon(key);
   scheduleSave();
 }
 export function removeExtraSlot(key: string): void {
-  set((s) => ({ extras: s.extras.filter((x) => x.key !== key), activeSlot: s.activeSlot === key ? 'CY' : s.activeSlot }));
+  set((s) => ({ extras: s.extras.filter((x) => x.key !== key), activeSlot: s.activeSlot === key ? 'CY' : s.activeSlot, lookOrder: normalizeLookOrder(s.lookOrder, s.extras.filter((x) => x.key !== key)), lookHidden: s.lookHidden.filter((k) => k !== key) }));
   if (host.available) void host.storeDel('preset-' + key).catch(() => undefined);
   scheduleSave();
 }
@@ -583,7 +679,7 @@ export function setDateStamp(dateStamp: boolean): void { set({ dateStamp }); sch
 export function setMonoUnlock(monoUnlock: boolean): void { set({ monoUnlock }); scheduleSave(); }
 export function monoUnlockOn(s: State = state): boolean { return !!s.monoUnlock && s.model !== 'MONO'; }
 /** Any addition that is not a slot or a ratio. */
-export function extrasOn(s: State = state): boolean { return softOn(s) || !!s.dateStamp || monoUnlockOn(s); }
+export function extrasOn(s: State = state): boolean { return softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hasLookLayout(s); }
 const MINUS = '\u2212';
 const strengthLabel = (st: SoftFocusStrength | 'custom'): string => t(st === 'weak' ? 'softWeak' : st === 'medium' ? 'softMedium' : st === 'strong' ? 'softStrong' : 'softCustom');
 /** "−2 weak / −3 medium" (−1 first), for confirmations and the copies page. */
@@ -796,7 +892,8 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const extras = stock ? [] : extraSpecs();
   if (!stock && state.wall.length > 0 && !menuReady()) { toast(t('wallMenuIncomplete'), 'error'); return; }
   const pictures = stock ? [] : menuPictures();
-  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && extras.length === 0 && pictures.length === 0) { toast(t('nothingToDo'), 'info'); return; }
+  const lookLayout = stock ? undefined : lookLayoutSpec();
+  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && extras.length === 0 && pictures.length === 0 && !lookLayout) { toast(t('nothingToDo'), 'info'); return; }
   if (stock && !(await askOfficial([t('copyOfficial')]))) return;
   if (dest.kind === 'card' && !stock) {
     const lines = changes.map((c) => `${t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
@@ -805,6 +902,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (dateStamp) lines.push(t('dateLine'));
     if (monoUnlock) lines.push(t('monoLine'));
     if (extras.length) lines.push(t('extraLine', { n: extras.length, l: extras.map((x) => x.name).join(' / ') }));
+    if (lookLayout) lines.push(t('lookOrderLine', { n: lookLayout.hidden.length }));
     if (pictures.length) lines.push(t('wallMenuLine', { n: pictures.length, l: pictures.map((p) => p.name).join(' / ') }));
     if (!(await ask(t('confirmTitle'), lines, t('confirmOk')))) return;
   }
@@ -815,7 +913,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (stock) file = state.raw;
     else {
       set({ busy: t('building') });
-      const built = await engine.build(changes.map((c) => c.request), ratios, [], { adjSoftFocus: soft, dateStamp, monoUnlock, ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}) });
+      const built = await engine.build(changes.map((c) => c.request), ratios, [], { adjSoftFocus: soft, dateStamp, monoUnlock, ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}), ...(lookLayout ? { lookLayout } : {}) });
       if (!Object.values(built.checks).every((v) => v === true)) throw new EngineError('selfcheck-failed', 'self-check');
       file = built.file;
       void recordBuild(file, changes);
