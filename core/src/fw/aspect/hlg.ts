@@ -17,13 +17,14 @@
  *     (len = 576 = 0x240) with ICC_PROFILE header and BT.2100 HLG CICP [9, 18, 0, 1] color profile, advancing
  *     the JPEG workArea buffer so every JPEG saved is recognized as native HDR on Apple (iPhone/Mac),
  *     Windows HDR, Android, and Chromium platforms.
- *  7. HDR Tone Level 0 Option & Filter Bypass:
- *     Expands HDR Tone Level parameter options from [1, 2, 3] to [0, 1, 2, 3] across all HDR cuisine profile
- *     mapping tables (Tables 0..3) and UI widgets/formatters.
- *     When level is dialed down to 0, the camera's internal pipeline natively bypasses the HDR Tone
+ *  7. HDR Tone Level 0 Option, Scale Track 0x23D & Filter Bypass:
+ *     Repoints the slider track scale graphic from 0x23B (3-step bars [1, 2, 3]) to 0x23D
+ *     (Ricoh's official 3-step scale with [OFF, 1-bar, 2-bars] rasterized icons).
+ *     Maps options 0..2 to internal values [0, 1, 2] across all HDR cuisine profile mapping tables.
+ *     When level is dialed down to 0 (OFF), the camera's internal pipeline natively bypasses the HDR Tone
  *     filter effect (setting tone mapping strength to 0 and active flag to 0) while maintaining
  *     full BT.2100 HLG HDR capture (Rec.2020 matrix, ARIB STD-B67 curve, and APP2 CICP ICC profile).
- *     Dialing level to 1..3 applies varying intensity of local tone compression and micro-contrast.
+ *     Dialing level to 1 (1-bar) or 2 (2-bars) applies varying intensity of local tone compression.
  */
 import { FirmwareError } from '../types';
 import { BASE, Patch, expectWord, u32le } from './build';
@@ -33,6 +34,10 @@ import { HLG_CURVE_B64, HLG_HOOK_B64, HLG_ICC_B64, HLG_MATRIX_B64 } from './hlg-
 export const TARGET_TONE_ID = 22; // HDR Tone
 export const TARGET_TEXT_ID = 306; // Index 306 in text tables
 export const HOOK_SITE = 0x5380bf50; // ExifJpegWriter::SetupAppNInfo
+
+// Scale graphic IDs: 0x23b = 3-step [1, 2, 3] signal bars, 0x23d = 3-step [OFF, 1, 2]
+export const HDR_SCALE_SHOOTING = 0x531c8c34; // Shooting mode detail line slider scale
+export const HDR_SCALE_PLAYBACK = 0x531cc27c; // Playback / RAW development detail line slider scale
 
 // HDR Tone Level (HDR Intense) tables and UI control sites:
 export const HDR_INTENSE_TABLE_0 = 0x53dbaed4; // HDR intense value mapping table (cuisine 0)
@@ -130,6 +135,8 @@ export function romVa(va: number): number {
 export function installHlgPhoto(patch: Patch): void {
   // 1. Verify official hook sites and instructions
   expectWord(patch, HOOK_SITE, 0xe24bd014); // sub sp, fp, #0x14
+  expectWord(patch, HDR_SCALE_SHOOTING, 0xe300323b); // movw r3, #0x23b
+  expectWord(patch, HDR_SCALE_PLAYBACK, 0xe300323b); // movw r3, #0x23b
   expectWord(patch, HDR_INTENSE_TABLE_0, 0x00030201); // [1, 2, 3, 0]
   expectWord(patch, HDR_INTENSE_TABLE_1, 0x00030201); // [1, 2, 3, 0]
   expectWord(patch, HDR_INTENSE_TABLE_2, 0x00030201); // [1, 2, 3, 0]
@@ -169,15 +176,15 @@ export function installHlgPhoto(patch: Patch): void {
   patch.setWord(HOOK_SITE, branchWord(HOOK_SITE, hookVa), 'HLG photo: APP2 injection hook');
 
   // 9. Enable Level 0 in HDR Tone Level (HDR Intense) parameters:
-  // Map internal values [0, 1, 2, 3] for options 0..3 across all 4 HDR cuisine profile tables
-  patch.setWord(HDR_INTENSE_TABLE_0, 0x03020100, 'HLG photo: HDR tone intense table 0 [0, 1, 2, 3]');
-  patch.setWord(HDR_INTENSE_TABLE_1, 0x03020100, 'HLG photo: HDR tone intense table 1 [0, 1, 2, 3]');
-  patch.setWord(HDR_INTENSE_TABLE_2, 0x03020100, 'HLG photo: HDR tone intense table 2 [0, 1, 2, 3]');
-  patch.setWord(HDR_INTENSE_TABLE_3, 0x03020100, 'HLG photo: HDR tone intense table 3 [0, 1, 2, 3]');
+  // Repoint slider track scale graphic to 0x23D (Ricoh native 3-step scale with [OFF, 1-bar, 2-bars] icons)
+  patch.setWord(HDR_SCALE_SHOOTING, 0xe300323d, 'HLG photo: HDR tone level scale 0x23d (shooting)');
+  patch.setWord(HDR_SCALE_PLAYBACK, 0xe300323d, 'HLG photo: HDR tone level scale 0x23d (playback/raw)');
 
-  // Expand value count to 4 (allows 0..3) in GetHdrCuisineHdrIntenseValueCount
-  patch.setWord(HDR_INTENSE_COUNT_CMP, 0xe3500004, 'HLG photo: intense value count cmp #4');
-  patch.setWord(HDR_INTENSE_COUNT_MOV, 0x93a00004, 'HLG photo: intense value count movls #4');
+  // Map internal values [0, 1, 2, 0] for options 0..2 across all 4 HDR cuisine profile tables
+  patch.setWord(HDR_INTENSE_TABLE_0, 0x00020100, 'HLG photo: HDR tone intense table 0 [0, 1, 2, 0]');
+  patch.setWord(HDR_INTENSE_TABLE_1, 0x00020100, 'HLG photo: HDR tone intense table 1 [0, 1, 2, 0]');
+  patch.setWord(HDR_INTENSE_TABLE_2, 0x00020100, 'HLG photo: HDR tone intense table 2 [0, 1, 2, 0]');
+  patch.setWord(HDR_INTENSE_TABLE_3, 0x00020100, 'HLG photo: HDR tone intense table 3 [0, 1, 2, 0]');
 
   // Allow formatting "0".."3" in GetImageControlParameterHdrIntenseAscii (Menu & LiveView)
   patch.setWord(HDR_INTENSE_ASCII_CMP, 0x9a00000d, 'HLG photo: intense ascii bls (allow 0..3)');

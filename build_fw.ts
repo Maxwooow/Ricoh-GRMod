@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { Engine, fw } from './core/src';
 import {
+  HDR_SCALE_SHOOTING, HDR_SCALE_PLAYBACK,
   HDR_INTENSE_TABLE_0, HDR_INTENSE_TABLE_1, HDR_INTENSE_TABLE_2, HDR_INTENSE_TABLE_3,
   HDR_INTENSE_COUNT_CMP, HDR_INTENSE_COUNT_MOV, HDR_INTENSE_ASCII_CMP,
   HDR_FORMATTER1_MOV, HDR_FORMATTER1_B, HDR_FORMATTER2_MOV, HDR_FORMATTER2_B,
@@ -27,6 +28,8 @@ async function main() {
     return new DataView(rtosData.buffer, rtosData.byteOffset + off, 4).getUint32(0, true);
   };
 
+  console.log('Scale shooting:', '0x' + rtosVa(HDR_SCALE_SHOOTING).toString(16));
+  console.log('Scale playback:', '0x' + rtosVa(HDR_SCALE_PLAYBACK).toString(16));
   console.log('Table 0:', '0x' + rtosVa(HDR_INTENSE_TABLE_0).toString(16));
   console.log('Table 1:', '0x' + rtosVa(HDR_INTENSE_TABLE_1).toString(16));
   console.log('Table 2:', '0x' + rtosVa(HDR_INTENSE_TABLE_2).toString(16));
@@ -39,8 +42,11 @@ async function main() {
   console.log('Formatter2 mov:', '0x' + rtosVa(HDR_FORMATTER2_MOV).toString(16));
   console.log('Formatter2 b:', '0x' + rtosVa(HDR_FORMATTER2_B).toString(16));
 
+  const standardPath = 'D:/Ricoh GR4 firmware Mod/firmware/fwdc248b.bin';
   const outPath = 'D:/Ricoh GR4 firmware Mod/firmware/fwdc248b_hlg_level0.bin';
+  writeFileSync(standardPath, res.file);
   writeFileSync(outPath, res.file);
+  console.log('Exported firmware to:', standardPath);
   console.log('Exported firmware to:', outPath);
 }
 
