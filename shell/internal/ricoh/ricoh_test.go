@@ -391,13 +391,49 @@ func TestFallback(t *testing.T) {
 }
 
 func TestSupported(t *testing.T) {
-	a := Supported
-	if a.Version != "1.11" || len(a.SHA256) != 64 || a.Size <= 0 || !strings.HasSuffix(a.Path, "/gr4_v111.zip") || !strings.HasPrefix(a.Path, "/") {
-		t.Errorf("%+v", a)
-	}
-	for _, m := range a.Models {
-		if _, ok := Models[m]; !ok {
-			t.Errorf("unknown model %q", m)
+	for _, c := range []struct {
+		a             Archive
+		version, file string
+	}{{Supported, "1.11", "/gr4_v111.zip"}, {SupportedMono, "1.10", "/gr4_mono_v110.zip"}} {
+		a := c.a
+		if a.Version != c.version || len(a.SHA256) != 64 || a.Size <= 0 || !strings.HasSuffix(a.Path, c.file) || !strings.HasPrefix(a.Path, "/") {
+			t.Errorf("%+v", a)
 		}
+		for _, m := range a.Models {
+			if _, ok := Models[m]; !ok {
+				t.Errorf("unknown model %q", m)
+			}
+		}
+	}
+	// one supported release per model
+	var c Client
+	for model := range Models {
+		if c.pinned(model) == nil {
+			t.Errorf("%s: no supported release", model)
+		}
+	}
+	if c.pinned("HDF") != &Supported || c.pinned("STANDARD") != &Supported || c.pinned("MONO") != &SupportedMono {
+		t.Errorf("pinned releases")
+	}
+}
+
+// The Monochrome's supported release is its own: 1.10, from its page's row.
+func TestFallbackMono(t *testing.T) {
+	var c Client
+	newer := &Release{Version: "1.20", Page: Site + "/english/support/digital/gr-4-mono_s.html"}
+	fb, err := c.Fallback("MONO", newer)
+	if err != nil || fb == nil || fb.Version != "1.10" || fb.Date != "2026/10/21" || fb.File != "gr4_mono_v110.zip" || fb.Name != "GR IV Monochrome" ||
+		fb.URL != Site+SupportedMono.Path || fb.SHA256 != SupportedMono.SHA256 || fb.Size != SupportedMono.Size || fb.Page != newer.Page || fb.Model != "MONO" {
+		t.Errorf("%+v %v", fb, err)
+	}
+	if fb, err := c.Fallback("MONO", &Release{Version: "1.10"}); fb != nil || err != nil {
+		t.Errorf("same version: %+v %v", fb, err)
+	}
+	if fb, err := c.Fallback("MONO", nil); err != nil || fb == nil || fb.Page != Site+SupportedMono.Page {
+		t.Errorf("nothing listed: %+v %v", fb, err)
+	}
+	// the GR IV and GR IV HDF keep 1.11, listed in the GR IV row
+	if fb, err := c.Fallback("HDF", &Release{Version: "1.20"}); err != nil || fb == nil || fb.Version != "1.11" || fb.Name != "GR IV" || fb.SHA256 != Supported.SHA256 {
+		t.Errorf("HDF: %+v %v", fb, err)
 	}
 }

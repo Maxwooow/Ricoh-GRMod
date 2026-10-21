@@ -50,8 +50,8 @@ type Options struct {
 	// firmware endpoints fetch (tests and development); empty selects the
 	// real one.
 	FirmwareSite string
-	// FirmwareArchive replaces ricoh.Supported, the release offered when the
-	// site offers another version (tests).
+	// FirmwareArchive replaces ricoh.Supported and ricoh.SupportedMono, the
+	// releases offered when the site offers another version (tests).
 	FirmwareArchive *ricoh.Archive
 
 	// Update configures the updater; nil disables the update endpoints'
