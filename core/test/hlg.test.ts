@@ -4,9 +4,17 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Engine, fw } from '../src';
 import {
+  HDR_FORMATTER1_B,
+  HDR_FORMATTER1_MOV,
+  HDR_FORMATTER2_B,
+  HDR_FORMATTER2_MOV,
   HDR_INTENSE_ASCII_CMP,
   HDR_INTENSE_COUNT_CMP,
   HDR_INTENSE_COUNT_MOV,
+  HDR_INTENSE_TABLE_0,
+  HDR_INTENSE_TABLE_1,
+  HDR_INTENSE_TABLE_2,
+  HDR_INTENSE_TABLE_3,
   HDR_INTENSE_TABLE,
   HLG_CURVE,
   HLG_HOOK,
@@ -97,10 +105,18 @@ describe.skipIf(!have)('HLG HDR photo firmware build & inspection', () => {
       return new DataView(rtosData.buffer, rtosData.byteOffset + off, 4).getUint32(0, true);
     };
 
+    expect(rtosVa(HDR_INTENSE_TABLE_0)).toBe(0x03020100);
+    expect(rtosVa(HDR_INTENSE_TABLE_1)).toBe(0x03020100);
+    expect(rtosVa(HDR_INTENSE_TABLE_2)).toBe(0x03020100);
+    expect(rtosVa(HDR_INTENSE_TABLE_3)).toBe(0x03020100);
     expect(rtosVa(HDR_INTENSE_TABLE)).toBe(0x03020100);
     expect(rtosVa(HDR_INTENSE_COUNT_CMP)).toBe(0xe3500004);
     expect(rtosVa(HDR_INTENSE_COUNT_MOV)).toBe(0x93a00004);
     expect(rtosVa(HDR_INTENSE_ASCII_CMP)).toBe(0x9a00000d);
+    expect(rtosVa(HDR_FORMATTER1_MOV)).toBe(0xe1a03002);
+    expect(rtosVa(HDR_FORMATTER1_B)).toBe(0xea000004);
+    expect(rtosVa(HDR_FORMATTER2_MOV)).toBe(0xe1a03002);
+    expect(rtosVa(HDR_FORMATTER2_B)).toBe(0xea000004);
 
     // Verify APP2 injection hook is branched from HOOK_SITE
     const hookTarget = branchTarget(HOOK_SITE, rtosVa(HOOK_SITE));

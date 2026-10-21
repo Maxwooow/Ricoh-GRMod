@@ -18,7 +18,8 @@
  *     the JPEG workArea buffer so every JPEG saved is recognized as native HDR on Apple (iPhone/Mac),
  *     Windows HDR, Android, and Chromium platforms.
  *  7. HDR Tone Level 0 Option & Filter Bypass:
- *     Expands HDR Tone Level parameter options from [1, 2, 3] to [0, 1, 2, 3] across the UI.
+ *     Expands HDR Tone Level parameter options from [1, 2, 3] to [0, 1, 2, 3] across all HDR cuisine profile
+ *     mapping tables (Tables 0..3) and UI widgets/formatters.
  *     When level is dialed down to 0, the camera's internal pipeline natively bypasses the HDR Tone
  *     filter effect (setting tone mapping strength to 0 and active flag to 0) while maintaining
  *     full BT.2100 HLG HDR capture (Rec.2020 matrix, ARIB STD-B67 curve, and APP2 CICP ICC profile).
@@ -32,10 +33,23 @@ import { HLG_CURVE_B64, HLG_HOOK_B64, HLG_ICC_B64, HLG_MATRIX_B64 } from './hlg-
 export const TARGET_TONE_ID = 22; // HDR Tone
 export const TARGET_TEXT_ID = 306; // Index 306 in text tables
 export const HOOK_SITE = 0x5380bf50; // ExifJpegWriter::SetupAppNInfo
-export const HDR_INTENSE_TABLE = 0x53dbad84; // HDR intense value mapping table
+
+// HDR Tone Level (HDR Intense) tables and UI control sites:
+export const HDR_INTENSE_TABLE_0 = 0x53dbaed4; // HDR intense value mapping table (cuisine 0)
+export const HDR_INTENSE_TABLE_1 = 0x53dbacc4; // HDR intense value mapping table (cuisine 1)
+export const HDR_INTENSE_TABLE_2 = 0x53dbaecc; // HDR intense value mapping table (cuisine 2)
+export const HDR_INTENSE_TABLE_3 = 0x53dbad84; // HDR intense value mapping table (cuisine 3)
+export const HDR_INTENSE_TABLE = HDR_INTENSE_TABLE_3; // backwards compatibility
+
 export const HDR_INTENSE_COUNT_CMP = 0x533bec24; // GetHdrCuisineHdrIntenseValueCount: cmp r0, #3
 export const HDR_INTENSE_COUNT_MOV = 0x533bec28; // GetHdrCuisineHdrIntenseValueCount: movls r0, #3
 export const HDR_INTENSE_ASCII_CMP = 0x5339b610; // GetImageControlParameterHdrIntenseAscii: beq #0x5339b64c
+
+// Secondary & Raw Development formatters (0x5339b6a4 and 0x5339b75c)
+export const HDR_FORMATTER1_MOV = 0x5339b6b0; // moveq r3, #2 -> mov r3, r2
+export const HDR_FORMATTER1_B = 0x5339b6c0; // beq 0x5339b6d8 -> b 0x5339b6d8
+export const HDR_FORMATTER2_MOV = 0x5339b768; // moveq r3, #2 -> mov r3, r2
+export const HDR_FORMATTER2_B = 0x5339b778; // beq 0x5339b790 -> b 0x5339b790
 
 export const STD_REC_VA = 0x5501adbc;
 export const STD_MA_DESC_VA = 0x54049de8;
@@ -116,10 +130,17 @@ export function romVa(va: number): number {
 export function installHlgPhoto(patch: Patch): void {
   // 1. Verify official hook sites and instructions
   expectWord(patch, HOOK_SITE, 0xe24bd014); // sub sp, fp, #0x14
-  expectWord(patch, HDR_INTENSE_TABLE, 0x00030201); // [1, 2, 3, 0]
+  expectWord(patch, HDR_INTENSE_TABLE_0, 0x00030201); // [1, 2, 3, 0]
+  expectWord(patch, HDR_INTENSE_TABLE_1, 0x00030201); // [1, 2, 3, 0]
+  expectWord(patch, HDR_INTENSE_TABLE_2, 0x00030201); // [1, 2, 3, 0]
+  expectWord(patch, HDR_INTENSE_TABLE_3, 0x00030201); // [1, 2, 3, 0]
   expectWord(patch, HDR_INTENSE_COUNT_CMP, 0xe3500003); // cmp r0, #3
   expectWord(patch, HDR_INTENSE_COUNT_MOV, 0x93a00003); // movls r0, #3
   expectWord(patch, HDR_INTENSE_ASCII_CMP, 0x0a00000d); // beq #0x5339b64c
+  expectWord(patch, HDR_FORMATTER1_MOV, 0x03a03002); // moveq r3, #2
+  expectWord(patch, HDR_FORMATTER1_B, 0x0a000004); // beq 0x5339b6d8
+  expectWord(patch, HDR_FORMATTER2_MOV, 0x03a03002); // moveq r3, #2
+  expectWord(patch, HDR_FORMATTER2_B, 0x0a000004); // beq 0x5339b790
 
   // 2. Append HLG Tone Curve (256 uint16 = 512 bytes, 256-byte aligned)
   const curveVa = patch.append(HLG_CURVE, 256);
@@ -148,15 +169,24 @@ export function installHlgPhoto(patch: Patch): void {
   patch.setWord(HOOK_SITE, branchWord(HOOK_SITE, hookVa), 'HLG photo: APP2 injection hook');
 
   // 9. Enable Level 0 in HDR Tone Level (HDR Intense) parameters:
-  // Map internal values [0, 1, 2, 3] for options 0..3
-  patch.setWord(HDR_INTENSE_TABLE, 0x03020100, 'HLG photo: HDR tone intense table [0, 1, 2, 3]');
+  // Map internal values [0, 1, 2, 3] for options 0..3 across all 4 HDR cuisine profile tables
+  patch.setWord(HDR_INTENSE_TABLE_0, 0x03020100, 'HLG photo: HDR tone intense table 0 [0, 1, 2, 3]');
+  patch.setWord(HDR_INTENSE_TABLE_1, 0x03020100, 'HLG photo: HDR tone intense table 1 [0, 1, 2, 3]');
+  patch.setWord(HDR_INTENSE_TABLE_2, 0x03020100, 'HLG photo: HDR tone intense table 2 [0, 1, 2, 3]');
+  patch.setWord(HDR_INTENSE_TABLE_3, 0x03020100, 'HLG photo: HDR tone intense table 3 [0, 1, 2, 3]');
 
   // Expand value count to 4 (allows 0..3) in GetHdrCuisineHdrIntenseValueCount
   patch.setWord(HDR_INTENSE_COUNT_CMP, 0xe3500004, 'HLG photo: intense value count cmp #4');
   patch.setWord(HDR_INTENSE_COUNT_MOV, 0x93a00004, 'HLG photo: intense value count movls #4');
 
-  // Allow formatting "0".."3" in GetImageControlParameterHdrIntenseAscii
+  // Allow formatting "0".."3" in GetImageControlParameterHdrIntenseAscii (Menu & LiveView)
   patch.setWord(HDR_INTENSE_ASCII_CMP, 0x9a00000d, 'HLG photo: intense ascii bls (allow 0..3)');
+
+  // Direct formatting r3 = r2 in secondary/RAW development formatters (allows 0..3 without clamping or crash)
+  patch.setWord(HDR_FORMATTER1_MOV, 0xe1a03002, 'HLG photo: formatter 1 mov r3, r2');
+  patch.setWord(HDR_FORMATTER1_B, 0xea000004, 'HLG photo: formatter 1 b format');
+  patch.setWord(HDR_FORMATTER2_MOV, 0xe1a03002, 'HLG photo: formatter 2 mov r3, r2');
+  patch.setWord(HDR_FORMATTER2_B, 0xea000004, 'HLG photo: formatter 2 b format');
 
   // 10. Repoint T_REC[22] -> recVa
   patch.setWord(romVa(T_REC_BASE + TARGET_TONE_ID * 4), recVa, 'HLG photo: tone record');
