@@ -15,11 +15,18 @@ Also checked: the relocated text and icon directories return what the originals 
 language and every identifier; the two text bound checks; the menu count, order and Fn cycling;
 the settings load / save / recall wrappers.
 
-Run through verify_file.py --boot, or directly: python3 boot_checks.py PATCHED_RTOS.bin
+Run through verify_file.py --boot, or directly: python3 boot_checks.py PATCHED_RTOS.bin. For
+firmware 1.20 (GR IV 1.20, GR IV Monochrome 1.10) the same checks run with every address taken
+through tools/port120/fwtarget.py (`V`); tools/port120/check_ratios.py runs them on builds of both.
 """
 import random
 import struct
 import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'port120'))
+import fwtarget  # noqa: E402
+from fwtarget import V  # noqa: E402
 
 from unicorn import Uc, UcError, UC_ARCH_ARM, UC_MODE_ARM, UC_HOOK_CODE, UC_HOOK_MEM_WRITE, UC_PROT_READ, UC_PROT_EXEC, UC_PROT_ALL
 from unicorn import arm_const as reg
@@ -27,6 +34,17 @@ from unicorn import arm_const as reg
 BASE = 0x53000000
 OFFICIAL_LEN = 0x13D2AC0
 RAM, RAM_SRC, RAM_LEN = 0x55000000, 0x5437B640, 0x57480
+T = fwtarget.T111
+
+
+def use(official):
+    """Check images of the firmware `official` is the RTOS image of (1.11 or 1.20)."""
+    global OFFICIAL_LEN, RAM_SRC, RAM_LEN, T, SPECIAL_T, LEAD_T, REVIEWED_T
+    T = fwtarget.select(official)
+    OFFICIAL_LEN, RAM_SRC, RAM_LEN = T.rtos_len, T.ram_src, T.ram_len
+    SPECIAL_T = {V(k): v for k, v in SPECIAL.items()}
+    LEAD_T = {V(k): v for k, v in LEAD.items()}
+    REVIEWED_T = {(V(site), r): why for (site, r), why in REVIEWED.items()}
 # Fake data regions. Their addresses are chosen so that no byte, half-word or word of a pointer
 # into them can be mistaken for an added ratio's identity (7..14) or a small enum.
 REGIONS = [0x62010000, 0x62020000, 0x62030000, 0x62050000]
@@ -317,7 +335,7 @@ def check_transparent(official, patched, hooks, runs=40, seed=1, lead=None):
     lead = lead or {}
     failures, tested, notes = [], 0, {}
     for site in hooks:
-        special = SPECIAL.get(site)
+        special = SPECIAL_T.get(site)
         if special == 'entry':
             continue
         ignore = special['ignore'] if special else ()
@@ -374,7 +392,7 @@ def check_transparent(official, patched, hooks, runs=40, seed=1, lead=None):
                 if what == 'flags' or what in NAMES[:13]:
                     if key not in dead_cache:
                         dead_cache[key] = flags_dead(official, sync) if what == 'flags' else register_dead(official, sync, what)
-                    if dead_cache[key] or (site, what) in REVIEWED:
+                    if dead_cache[key] or (site, what) in REVIEWED_T:
                         flag_syncs.add(key)
                         continue
                 kept.append(item + (' (still used there)' if what == 'flags' or what in NAMES[:13] else ''))
@@ -424,9 +442,9 @@ def check_directories(official, patched, icon_bytes, official_icons):
     checked = 0
     new_names = 0
     # (start, id register, language register, address reached with the record pointer, register holding it, skip addresses)
-    for start, hit, pointer_reg, skips in ((0x535734F4, 0x53573510, 3, (0x535735E4,)), (0x53572ADC, 0x53572B04, 7, (0x53572C54, 0x53572C60))):
+    for start, hit, pointer_reg, skips in ((V(0x535734F4), V(0x53573510), 3, (V(0x535735E4),)), (V(0x53572ADC), V(0x53572B04), 7, (V(0x53572C54), V(0x53572C60)))):
         for language in list(range(21)) + [21, 22, 255]:
-            for text in list(range(0, 840)) + list(range(896, 912)) + [0x344, 0x345, 1000, 0xFFFF]:
+            for text in list(range(0, T.texts + 3)) + list(range(896, 912)) + [T.texts - 1, T.texts, 1000, 0xFFFF]:
                 state = dict(base_state)
                 state['regs'] = list(base_state['regs'])
                 state['regs'][0] = language
@@ -440,7 +458,7 @@ def check_directories(official, patched, icon_bytes, official_icons):
                     pointer = machine.uc.reg_read(REGS[pointer_reg]) if pc == hit else None
                     results.append((pc == hit, pointer))
                 (old_hit, old_pointer), (new_hit, new_pointer) = results
-                if text <= 836 and language <= 20:
+                if text <= T.texts - 1 and language <= 20:
                     assert old_hit and new_hit and old_pointer == new_pointer, ('text lookup changed', hex(start), language, text)
                 elif old_hit:
                     raise AssertionError('official lookup accepted an out-of-range text')
@@ -452,10 +470,10 @@ def check_directories(official, patched, icon_bytes, official_icons):
                     assert raw[-2:] == b'\0\0' and b'\0\0' not in [raw[i:i + 2] for i in range(0, len(raw) - 2, 2)], 'bad text'
                     new_names += 1
                 checked += 1
-    # Icon directory: the getter returns a table whose first 663 entries are the official ones.
+    # Icon directory: the getter returns a table whose first entries (663 in 1.11) are the official ones.
     old_table = struct.unpack_from('<I', official, 0)[0]  # placeholder, replaced below
     state = random_state(rng)
-    getter = 0x533EF604
+    getter = V(0x533EF604)
     old_table = call(mo, state, getter)['regs'][0]
     new_table = call(mp, state, getter)['regs'][0]
 
@@ -463,15 +481,20 @@ def check_directories(official, patched, icon_bytes, official_icons):
         if address >= RAM:
             address = RAM_SRC + address - RAM
         return image[address - BASE:address - BASE + size]
-    assert read(official, old_table, 663 * 4) == read(patched, new_table, 663 * 4), 'icon directory changed'
+    assert read(official, old_table, T.icons * 4) == read(patched, new_table, T.icons * 4), 'icon directory changed'
     bounds = []
-    for site in (0x5323DBB4, 0x5323E40C):
+    for site in (V(0x5323DBB4), V(0x5323E40C)):
         word = u32(patched, site)
-        assert word & 0x0FF00000 == 0x03000000, 'icon bound is not a MOVW'
-        bounds.append(((word >> 4) & 0xF000) | (word & 0xFFF))
+        if T.icon_form == 'movw':
+            assert word & 0x0FF00000 == 0x03000000, 'icon bound is not a MOVW'
+            bounds.append(((word >> 4) & 0xF000) | (word & 0xFFF))
+        else:
+            assert word & 0x0FF0F000 == 0x03500000, 'icon bound is not a CMP with an immediate'
+            rot, imm = ((word >> 8) & 15) * 2, word & 0xFF
+            bounds.append(((imm >> rot) | (imm << (32 - rot))) & 0xFFFFFFFF if rot else imm)
     assert bounds[0] == bounds[1] < 1024, 'icon bounds differ or exceed the table'
     new_icons = 0
-    for index in range(663, 1024):
+    for index in range(T.icons, 1024):
         pointer = struct.unpack('<I', read(patched, new_table + index * 4, 4))[0]
         if pointer:
             assert index <= bounds[0], 'icon above the bound'
@@ -488,15 +511,16 @@ def check_menu(official, patched):
     rng = random.Random(11)
     state = random_state(rng)
     counts = []
-    for site in (0x531BA14C, 0x531CF298):
+    for site in (V(0x531BA14C), V(0x531CF298)):
         assert call(mo, state, site)['regs'][0] == 4
         counts.append(call(mp, state, site)['regs'][0])
     assert counts[0] == counts[1] >= 5, 'menu count'
     count = counts[0]
     # Order table: the same address at all seven places, the factory order first.
     tables = set()
-    for site in (0x531BAF88, 0x531BB26C, 0x531BE31C, 0x531D0CE8, 0x531D2F88, 0x531D48A0, 0x5325AE2C):
-        high = site + (8 if site in (0x531BE31C, 0x531D0CE8) else 4)
+    for low, high in ((0x531BAF88, 0x531BAF8C), (0x531BB26C, 0x531BB270), (0x531BE31C, 0x531BE324), (0x531D0CE8, 0x531D0CF0),
+                      (0x531D2F88, 0x531D2F8C), (0x531D48A0, 0x531D48A4), (0x5325AE2C, 0x5325AE30)):
+        site, high = V(low), V(high)
         low_word, high_word = u32(patched, site), u32(patched, high)
         assert low_word & 0x0FF0F000 == 0x03003000 and high_word & 0x0FF0F000 == 0x03403000, 'order address is not MOVW/MOVT r3'
         half = lambda w: ((w >> 4) & 0xF000) | (w & 0xFFF)
@@ -512,15 +536,15 @@ def check_menu(official, patched):
             st['regs'] = list(state['regs'])
             st['regs'][1] = public
             st['regs'][2] = r2
-            new_valid = call(mp, st, 0x5374ACFC)['regs'][0]
-            new_text = call(mp, st, 0x5337FBAC)['regs'][0]
-            new_icon = call(mp, st, 0x5338143C)['regs'][0]
+            new_valid = call(mp, st, V(0x5374ACFC))['regs'][0]
+            new_text = call(mp, st, V(0x5337FBAC))['regs'][0]
+            new_icon = call(mp, st, V(0x5338143C))['regs'][0]
             assert new_valid == (1 if public in order else 0), 'validator'
             if public <= 3:
                 # (The official validator searches a list that only exists at run time, so it cannot be
                 # run here; it answers 1 for a listed value and 0 otherwise, as the replacement does.)
-                assert call(mo, st, 0x5337FBAC)['regs'][0] == new_text, 'factory name changed'
-                assert call(mo, st, 0x5338143C)['regs'][0] == new_icon, 'factory icon changed'
+                assert call(mo, st, V(0x5337FBAC))['regs'][0] == new_text, 'factory name changed'
+                assert call(mo, st, V(0x5338143C))['regs'][0] == new_icon, 'factory icon changed'
             elif public in order:
                 assert new_text >= 901 and (new_icon >= 720 if r2 == 0 else new_icon == 0), 'added ratio name / icon'
             else:
@@ -534,20 +558,23 @@ def check_menu(official, patched):
         st['regs'][0] = current
         st['regs'][3] = table
         mp.reset(st)
-        problem = mp.run(0x5325AE34, lambda pc: pc == 0x5325AE6C, limit=5000)
+        problem = mp.run(V(0x5325AE34), lambda pc: pc == V(0x5325AE6C), limit=5000)
         assert not problem, 'cycle: ' + problem
         chosen = mp.uc.reg_read(reg.UC_ARM_REG_R1)
         expected = order[(order.index(current) + 1) % count] if current in order else order[0]
         assert chosen == expected, ('cycle', current, chosen, expected)
     # The official code does the same for its four ratios.
-    old_table = 0x53DBB034
+    # (the official order table, 0x53DBB034 in 1.11, as the official code loads it)
+    half = lambda w: ((w >> 4) & 0xF000) | (w & 0xFFF)
+    old_table = half(u32(official, V(0x531BAF88))) | half(u32(official, V(0x531BAF8C))) << 16
+    assert T.tag != '111' or old_table == 0x53DBB034
     for current in (0, 1, 3, 2):
         st = dict(state)
         st['regs'] = list(state['regs'])
         st['regs'][0] = current
         st['regs'][3] = old_table
         mo.reset(st)
-        problem = mo.run(0x5325AE34, lambda pc: pc == 0x5325AE6C, limit=200)
+        problem = mo.run(V(0x5325AE34), lambda pc: pc == V(0x5325AE6C), limit=200)
         assert not problem, 'official cycle: ' + problem
         assert mo.uc.reg_read(reg.UC_ARM_REG_R1) == [0, 1, 3, 2][([0, 1, 3, 2].index(current) + 1) % 4], 'official cycle'
     return count, order
@@ -590,8 +617,8 @@ def check_settings(official, patched, order):
                 assert machine.uc.reg_read(reg.UC_ARM_REG_R12) == machine.uc.reg_read(reg.UC_ARM_REG_SP), name + ': ip != sp at the native body'
                 native(machine, name)
             return stub
-        stubs = {0x5323F018: lambda machine: ret(machine, user)}
-        for name, entry in (('load', 0x533E17CC), ('save', 0x533E1C04)):
+        stubs = {V(0x5323F018): lambda machine: ret(machine, user)}
+        for name, entry in (('load', V(0x533E17CC)), ('save', V(0x533E1C04))):
             stubs_now = dict(stubs)
             stubs_now[entry + 4] = body(name, state['regs'][13])
             before = dict(state)
@@ -634,15 +661,15 @@ def check_settings(official, patched, order):
             seen['regs'] = [machine.uc.reg_read(r) for r in REGS]
             seen['flags'] = machine.uc.reg_read(reg.UC_ARM_REG_CPSR) >> 28
             machine.uc.emu_stop()
-            machine.trace_pc = 0x5323EA84
+            machine.trace_pc = V(0x5323EA84)
         mp.reset(st)
-        mp.stubs = {0x5323EA84: original_callee}
+        mp.stubs = {V(0x5323EA84): original_callee}
         try:
-            mp.uc.emu_start(0x532A90CC, 0xFFFFFFF0, count=4000)
+            mp.uc.emu_start(V(0x532A90CC), 0xFFFFFFF0, count=4000)
         finally:
             mp.stubs = {}
         assert seen, 'recall: native callee not reached'
-        assert seen['regs'][:13] == st['regs'][:13] and seen['regs'][13] == st['regs'][13] and seen['regs'][14] == 0x532A90D0, 'recall: registers'
+        assert seen['regs'][:13] == st['regs'][:13] and seen['regs'][13] == st['regs'][13] and seen['regs'][14] == V(0x532A90CC) + 4, 'recall: registers'
         assert bytes(mp.uc.mem_read(user + 0x49F, 1))[0] == (ids[11] if ids[11] in active else 0), 'recall: ratio byte'
         cases += 1
     return cases
@@ -657,7 +684,7 @@ def check_first_record(patched, custom_count):
         state['regs'][10] = REGIONS[0] + 0x1000
         state['regs'][4] = state['regs'][10] + (4 if first else rng.choice([8, 12, 0x30, 0xC4]))
         mp.reset(state)
-        problem = mp.run(0x53877334, lambda pc: pc == 0x53877338, limit=64)
+        problem = mp.run(V(0x53877334), lambda pc: pc == V(0x53877338), limit=64)
         assert not problem, problem
         size = mp.uc.reg_read(reg.UC_ARM_REG_R0)
         assert size == (48 + custom_count * 976 if first else 46), ('record size', first, size)
@@ -676,7 +703,7 @@ def check_raw_development(official, patched, order):
     poke(state, obj + 0x24, struct.pack('<I', source))
     custom = [n for n in order if n >= 4]
     asserted = []
-    stubs = {ASSERT: lambda machine: (asserted.append(machine.uc.reg_read(reg.UC_ARM_REG_R0) == 0), ret(machine))[1]}
+    stubs = {V(ASSERT): lambda machine: (asserted.append(machine.uc.reg_read(reg.UC_ARM_REG_R0) == 0), ret(machine))[1]}
 
     def run_call(machine, address, r1, src, current):
         st = dict(state)
@@ -692,45 +719,45 @@ def check_raw_development(official, patched, order):
     cases = 0
     for src in order:
         for current in (0, 1):
-            new_count, failed = run_call(mp, 0x5336B768, 0, src, current)
+            new_count, failed = run_call(mp, V(0x5336B768), 0, src, current)
             assert not failed
-            new_list = [run_call(mp, 0x5336B8C4, index, src, current)[0] for index in range(new_count)]
+            new_list = [run_call(mp, V(0x5336B8C4), index, src, current)[0] for index in range(new_count)]
             if src <= 3:
-                old_count, failed = run_call(mo, 0x5336B768, 0, src, current)
+                old_count, failed = run_call(mo, V(0x5336B768), 0, src, current)
                 assert not failed
-                old_list = [run_call(mo, 0x5336B8C4, index, src, current)[0] for index in range(old_count)]
+                old_list = [run_call(mo, V(0x5336B8C4), index, src, current)[0] for index in range(old_count)]
                 assert new_list[:old_count] == old_list and all(code >= 5 for code in new_list[old_count:]), ('RAW targets', src, old_list, new_list)
                 for code in range(1, 5):
-                    old_valid, old_failed = run_call(mo, 0x5336D814, code, src, current)
-                    assert not old_failed and run_call(mp, 0x5336D814, code, src, current)[0] == old_valid, ('RAW target validity', src, code)
+                    old_valid, old_failed = run_call(mo, V(0x5336D814), code, src, current)
+                    assert not old_failed and run_call(mp, V(0x5336D814), code, src, current)[0] == old_valid, ('RAW target validity', src, code)
                 # Code 0 ("as shot"). The official validity function reads one byte past its list
                 # when the "as shot" entry is offered, so its answer for code 0 depends on padding
                 # (0 for a 3:2 source, 1 for the others); the replacement always answers 0. The one
                 # caller (0x53375210) then uses the source's own ratio, which is also what code 0
                 # maps to in both versions, so the outcome is the same either way:
-                old_back, old_failed = run_call(mo, 0x53375088, 0, src, current)
-                assert not old_failed and old_back == src and run_call(mp, 0x53375088, 0, src, current)[0] == src, 'code 0 (as shot) must map to the source ratio'
-                assert run_call(mp, 0x5336D814, 0, src, current)[0] == 0
+                old_back, old_failed = run_call(mo, V(0x53375088), 0, src, current)
+                assert not old_failed and old_back == src and run_call(mp, V(0x53375088), 0, src, current)[0] == src, 'code 0 (as shot) must map to the source ratio'
+                assert run_call(mp, V(0x5336D814), 0, src, current)[0] == 0
             else:
                 # An added ratio: "as shot" first when offered, then targets in menu order, itself among them.
                 targets = new_list[1:] if current else new_list
                 assert (not current) or new_list[0] == 0
-                publics = [run_call(mp, 0x53375088, code, src, current)[0] for code in targets]
+                publics = [run_call(mp, V(0x53375088), code, src, current)[0] for code in targets]
                 positions = [order.index(public) for public in publics]
                 assert positions == sorted(positions) and len(set(positions)) == len(positions) and src in publics, ('RAW targets of an added ratio', src, new_list)
             for code in new_list:
                 if code:  # code 0 is "as shot": not a re-cut target (the official answer for it is compared above)
-                    assert run_call(mp, 0x5336D814, code, src, current)[0] == 1, 'offered target is not valid'
-            assert run_call(mp, 0x5336D814, 5 + len(custom), src, current)[0] == 0, 'unknown target accepted'
+                    assert run_call(mp, V(0x5336D814), code, src, current)[0] == 1, 'offered target is not valid'
+            assert run_call(mp, V(0x5336D814), 5 + len(custom), src, current)[0] == 0, 'unknown target accepted'
             cases += 1
     for public in range(4):
-        old, failed = run_call(mo, 0x53374D20, public, 0, 0)
-        assert not failed and run_call(mp, 0x53374D20, public, 0, 0)[0] == old, 'ratio -> code changed'
+        old, failed = run_call(mo, V(0x53374D20), public, 0, 0)
+        assert not failed and run_call(mp, V(0x53374D20), public, 0, 0)[0] == old, 'ratio -> code changed'
         code = old
-        old_public, failed = run_call(mo, 0x53375088, code, 0, 0)
-        assert not failed and old_public == public and run_call(mp, 0x53375088, code, 0, 0)[0] == public, 'code -> ratio changed'
+        old_public, failed = run_call(mo, V(0x53375088), code, 0, 0)
+        assert not failed and old_public == public and run_call(mp, V(0x53375088), code, 0, 0)[0] == public, 'code -> ratio changed'
     for index, public in enumerate(custom):
-        assert run_call(mp, 0x53374D20, public, 0, 0)[0] == 5 + index and run_call(mp, 0x53375088, 5 + index, 0, 0)[0] == public, 'added ratio code'
+        assert run_call(mp, V(0x53374D20), public, 0, 0)[0] == 5 + index and run_call(mp, V(0x53375088), 5 + index, 0, 0)[0] == public, 'added ratio code'
     return cases
 
 
@@ -749,7 +776,7 @@ def check_entry_wrappers(official, patched, order):
         poke(state, source + 0x7DA, bytes([trial % 4]))
         state['regs'][0] = extractor
         mp.reset(state)
-        problem = mp.run(0x537F6AAC, lambda pc: pc == 0x537F6AB0)
+        problem = mp.run(V(0x537F6AAC), lambda pc: pc == V(0x537F6AB0))
         assert not problem, problem
         now = mp.snapshot()
         # r0 and everything callee-saved as passed; ip = sp as after the native "mov ip, sp".
@@ -758,7 +785,7 @@ def check_entry_wrappers(official, patched, order):
         assert now['regs'][0] == extractor and now['regs'][4:12] == state['regs'][4:12] and now['regs'][13:] == state['regs'][13:]
         assert now['regs'][1] == state['regs'][1] and now['regs'][3] == state['regs'][3]
         assert now['regs'][12] == now['regs'][13] and now['regions'] == state['regions']
-        assert register_dead(official, 0x537F6AB0, 'r2') and flags_dead(official, 0x537F6AB0)
+        assert register_dead(official, V(0x537F6AB0), 'r2') and flags_dead(official, V(0x537F6AB0))
 
         # Playback classification (bl at 0x536CD414): the native classifier gets the same r0 and
         # its answer goes back to the caller, unless the photo itself carries an added ratio.
@@ -774,9 +801,9 @@ def check_entry_wrappers(official, patched, order):
                 seen['sp'] = machine.uc.reg_read(reg.UC_ARM_REG_SP)
                 ret(machine, 0x77)
             mp.reset(state)
-            mp.stubs = {0x536C79CC: classifier}
+            mp.stubs = {V(0x536C79CC): classifier}
             try:
-                problem = mp.run(0x536CD414, lambda pc: pc == 0x536CD418)
+                problem = mp.run(V(0x536CD414), lambda pc: pc == V(0x536CD414) + 4)
             finally:
                 mp.stubs = {}
             assert not problem, problem
@@ -801,7 +828,7 @@ def check_entry_wrappers(official, patched, order):
         def native_copy(machine):
             seen['regs'] = [machine.uc.reg_read(r) for r in REGS]
             ret(machine, 0x55)
-        after = call(mp, state, 0x53877C9C, {0x53877CA0: native_copy}, limit=400000)
+        after = call(mp, state, V(0x53877C9C), {V(0x53877CA0): native_copy}, limit=400000)
         assert seen['regs'][0] == dst and seen['regs'][1] == src and seen['regs'][12] == seen['regs'][13], 'copy: arguments'
         assert after['regs'][4:12] == state['regs'][4:12] and after['regs'][13] == state['regs'][13], 'copy: registers'
         expected = dict(state)
@@ -831,7 +858,8 @@ def check_decode_buffer(official, patched, runs=400, seed=7):
     """mov r1, sb (format) / mov r0, r8 (&{width, height}) / bl CalcImageBufferSize / -> 0x5369ECEC."""
     mo, mp = Machine(official), Machine(patched)
     rng = random.Random(seed)
-    after_call = DECODE_BUFFER_CALL + 4
+    call_at = V(DECODE_BUFFER_CALL)
+    after_call = call_at + 4
     widths = [16, 160, 720, 1024, 1920, 3504, 4944, 5168, 6192, 16368]
     cases = 0
     for n in range(runs):
@@ -853,7 +881,7 @@ def check_decode_buffer(official, patched, runs=400, seed=7):
         for machine, h in ((mo, height), (mp, height), (mo, (height + 7) & ~7)):
             state = state_for(h)
             machine.reset(state)
-            problem = machine.run(DECODE_BUFFER_CALL - 8, lambda pc: pc == after_call)
+            problem = machine.run(call_at - 8, lambda pc: pc == after_call)
             assert problem is None, 'decode buffer call: %s' % problem
             results.append((state, machine.snapshot()))
         (start, off), (_, new), (_, rounded) = results
@@ -883,20 +911,21 @@ def check_decode_buffer(official, patched, runs=400, seed=7):
 
 def run(official, patched, icon_bytes, official_icons, quiet=False):
     official, patched = bytes(official), bytes(patched)
+    use(official)
     assert len(official) == OFFICIAL_LEN and len(patched) > OFFICIAL_LEN
     hooks, data = hooks_of(official, patched)
     say = (lambda *a: None) if quiet else print
     say('hooks: %d branch replacements, %d other changed words' % (len(hooks), len(data)))
-    if DECODE_BUFFER_CALL in hooks:
-        hooks.remove(DECODE_BUFFER_CALL)
+    if V(DECODE_BUFFER_CALL) in hooks:
+        hooks.remove(V(DECODE_BUFFER_CALL))
         cases = check_decode_buffer(official, patched)
         say('build revision 2, decode buffer size call: %d cases; the count is the official one for the height rounded up to 8, '
             'identical for heights that are multiples of 8; callee-saved registers, stack and memory as after the official call' % cases)
     else:
         say('build revision 1: no decode buffer change')
-    unknown = [hex(a) for a in SPECIAL if a not in hooks]
+    unknown = [hex(a) for a in SPECIAL_T if a not in hooks]
     assert not unknown, 'SPECIAL lists addresses that are not hooks: %s' % unknown
-    tested, failures, notes = check_transparent(official, patched, hooks, lead=LEAD)
+    tested, failures, notes = check_transparent(official, patched, hooks, lead=LEAD_T)
     for failure in failures:
         say('  NOT TRANSPARENT', failure)
     say('transparent with no added ratio involved: %d hooks, 40 random states each (%d of them leave flags or a scratch register different where the official code overwrites it before reading)' % (tested, len(notes)))
@@ -914,7 +943,7 @@ def run(official, patched, icon_bytes, official_icons, quiet=False):
     say('photo-info, playback classification and metering-map copy wrappers: %d cases' % cases)
     if failures:
         raise SystemExit('transparency check failed')
-    return {'hooks': len(hooks), 'transparent': tested, 'entry_level': sorted(a for a, v in SPECIAL.items() if v == 'entry')}
+    return {'hooks': len(hooks), 'transparent': tested, 'entry_level': sorted(a for a, v in SPECIAL_T.items() if v == 'entry')}
 
 
 if __name__ == '__main__':

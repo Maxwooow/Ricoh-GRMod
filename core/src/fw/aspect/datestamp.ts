@@ -22,6 +22,8 @@
  * black-and-white photo). The camera menu entry that sets the byte is in `datestamp-menu.ts`.
  */
 import { FirmwareError } from '../types';
+import { TARGET_111 } from '../target';
+import type { FirmwareTarget } from '../target';
 import { assembleWords } from './arm';
 import { Patch, expectWord, u32le } from './build';
 import { DATESTAMP_CODE, DATESTAMP_CODE_LENGTH, DATESTAMP_DIAG_CODE } from './datestamp-code';
@@ -38,9 +40,15 @@ const GET_TIME = 0x538ea9b0;
 /**
  * Where the setting is kept: byte 0x94B of the live user settings, alignment padding that the
  * factory-defaults initialiser never writes (like 0x90F for soft focus); saved, loaded and copied
- * to U1-U3 with the rest of the structure.
+ * to U1-U3 with the rest of the structure. In 1.20 the structure is longer (0xB44 bytes, new
+ * settings at its end) and the 30 default records leave exactly the same 53 bytes unwritten as
+ * in 1.11, this one among them (tools/port120/check_userdata.py).
  */
-export const DATESTAMP_BYTE = 0x55084dd8 + 4 + 0x94b;
+export function dateStampByte(t: FirmwareTarget): number {
+  return t.facts.userData + 4 + 0x94b;
+}
+/** The setting byte in 1.11. */
+export const DATESTAMP_BYTE = dateStampByte(TARGET_111);
 
 /** Bits of the setting byte. */
 export const DATESTAMP_ON = 1;
@@ -65,14 +73,18 @@ export function datestampModule(diag = false): Uint8Array {
 
 /** Install the imprint; `setting` is the address of its setting byte. Returns the module address. */
 export function installDateStamp(patch: Patch, setting: number, diag = false): number {
-  expectWord(patch, JPEG_EXECUTE, 0xe1a0c00d); // mov ip, sp
-  expectWord(patch, JPEG_EXECUTE + 4, 0xe92ddff0); // push {r4-r12, lr, pc}
-  expectWord(patch, JPEG_EXECUTE + 0x18, 0xe5914008); // ldr r4, [r1, #8]  (the configuration)
-  expectWord(patch, CACHE, 0xe30009c4); // movw r0, #0x9c4 (the cache object)
-  expectWord(patch, CACHE_CLEAN, 0xe1a00001);
-  expectWord(patch, CACHE_FLUSH_FOR_READ, 0xe1a0c00d);
-  expectWord(patch, GET_TIME, 0xe5d03014); // ldrb r3, [r0, #0x14]
-  const ctx = patch.append(u32le([CACHE, CACHE_FLUSH_FOR_READ, CACHE_CLEAN, PLATFORM, GET_TIME, setting]), 16);
+  const v = (a: number): number => patch.va(a);
+  const execute = v(JPEG_EXECUTE);
+  expectWord(patch, execute, 0xe1a0c00d); // mov ip, sp
+  expectWord(patch, execute + 4, 0xe92ddff0); // push {r4-r12, lr, pc}
+  expectWord(patch, execute + 0x18, 0xe5914008); // ldr r4, [r1, #8]  (the configuration)
+  // the cache object's getter: movw r0 / movt r0 (the object, 0x553A09C4 in 1.11) / bx lr
+  if ((patch.word(v(CACHE)) & 0xfff0f000) >>> 0 !== 0xe3000000 || (patch.word(v(CACHE) + 4) & 0xfff0f000) >>> 0 !== 0xe3400000) expectWord(patch, v(CACHE), 0xe30009c4);
+  expectWord(patch, v(CACHE) + 8, 0xe12fff1e);
+  expectWord(patch, v(CACHE_CLEAN), 0xe1a00001);
+  expectWord(patch, v(CACHE_FLUSH_FOR_READ), 0xe1a0c00d);
+  expectWord(patch, v(GET_TIME), 0xe5d03014); // ldrb r3, [r0, #0x14]
+  const ctx = patch.append(u32le([v(CACHE), v(CACHE_FLUSH_FOR_READ), v(CACHE_CLEAN), v(PLATFORM), v(GET_TIME), setting]), 16);
   const code = patch.append(datestampModule(diag), 16);
   const stub = patch.append((at) => assembleWords(
     `push {r0, r1, r2, r3, ip, lr}
@@ -81,8 +93,8 @@ export function installDateStamp(patch: Patch, setting: number, diag = false): n
      bl #${code}
      pop {r0, r1, r2, r3, ip, lr}
      mov ip, sp
-     b #${JPEG_EXECUTE + 4}`, at), 16);
-  const offset = (stub - (JPEG_EXECUTE + 8)) >> 2;
-  patch.setWord(JPEG_EXECUTE, (0xea000000 | (offset & 0xffffff)) >>> 0, 'date imprint: JPEG encode step');
+     b #${execute + 4}`, at), 16);
+  const offset = (stub - (execute + 8)) >> 2;
+  patch.setWord(execute, (0xea000000 | (offset & 0xffffff)) >>> 0, 'date imprint: JPEG encode step');
   return code;
 }

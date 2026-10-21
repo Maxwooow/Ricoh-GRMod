@@ -4,6 +4,7 @@
  * real address. The arithmetic is the same as in that generator, where it is tested against lld.
  */
 import { FirmwareError } from '../types';
+import type { FirmwareTarget } from '../target';
 import { NATIVE } from './native';
 import type { NativeModule } from './native';
 
@@ -13,8 +14,45 @@ export interface LinkedModule {
   symbols: Record<string, number>;
 }
 
-export function linkNative(name: keyof typeof NATIVE, count: number, origin: number, bindings: Readonly<Record<string, number>>): LinkedModule {
-  return linkModule(NATIVE[name], name, count, origin, bindings);
+/**
+ * Firmware addresses the modules call directly (compiled in as MOVW/MOVT pairs, not bound): 1.11
+ * address and how often it occurs. For another firmware they are replaced by its addresses.
+ */
+export const FIXED_ADDRESSES: Readonly<Record<string, readonly (readonly [number, number])[]>> = {
+  state: [[0x5323f018, 2]], // the current UserData (CURRENT in crop_state.c)
+  identity: [[0x536c79cc, 1]], // the size classification of a photo (crop_image_source_aspect)
+  map: [],
+};
+
+export function linkNative(name: keyof typeof NATIVE, count: number, origin: number, bindings: Readonly<Record<string, number>>, target?: FirmwareTarget): LinkedModule {
+  const linked = linkModule(NATIVE[name], name, count, origin, bindings);
+  if (target && target.id !== '1.11') portFixed(linked.code, FIXED_ADDRESSES[name], target);
+  return linked;
+}
+
+/** Replace the MOVW/MOVT pairs that load `fixed` 1.11 addresses by the target's addresses. */
+function portFixed(code: Uint8Array, fixed: readonly (readonly [number, number])[], target: FirmwareTarget): void {
+  const dv = new DataView(code.buffer, code.byteOffset, code.byteLength);
+  const n = code.length / 4;
+  for (const [address, times] of fixed) {
+    let found = 0;
+    for (let i = 0; i < n; i++) {
+      const w = dv.getUint32(i * 4, true);
+      if ((w & 0x0ff00000) !== 0x03000000 || (((w >>> 4) & 0xf000) | (w & 0xfff)) !== (address & 0xffff)) continue;
+      const rd = (w >>> 12) & 15;
+      for (let k = i + 1; k < Math.min(n, i + 9); k++) {
+        const w2 = dv.getUint32(k * 4, true);
+        if ((w2 & 0x0ff00000) !== 0x03400000 || ((w2 >>> 12) & 15) !== rd) continue;
+        if ((((w2 >>> 4) & 0xf000) | (w2 & 0xfff)) !== address >>> 16) break;
+        const to = target.va(address);
+        dv.setUint32(i * 4, ((w & 0xfff0f000) | ((to & 0xf000) << 4) | (to & 0xfff)) >>> 0, true);
+        dv.setUint32(k * 4, ((w2 & 0xfff0f000) | (((to >>> 16) & 0xf000) << 4) | ((to >>> 16) & 0xfff)) >>> 0, true);
+        found++;
+        break;
+      }
+    }
+    if (found !== times) throw new FirmwareError('internal', `module address 0x${address.toString(16)} found ${found} times, expected ${times}`);
+  }
 }
 
 /** `linkNative` for any pre-compiled module (e.g. `slotparams-native.ts`). */

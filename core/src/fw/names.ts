@@ -18,6 +18,8 @@
 import { FirmwareError } from './types';
 import type { Range } from './types';
 import { RTOS_LENGTH, RTOS_OFFSET, RTOS_VA } from './profile';
+import { TARGET_111 } from './target';
+import type { FirmwareTarget } from './target';
 
 /** Language codes, in table order. */
 export const LANGS = [
@@ -33,6 +35,20 @@ export const NAME_TABLE_RTOS_OFFSETS: readonly number[] = [
   0x1388ec8, 0x1389bdc, 0x138a8f0, 0x138b604, 0x138c318, 0x138d02c, 0x138dd40,
 ];
 export const NAME_TABLE_ENTRIES = 836;
+
+interface Tables {
+  rtosOffset: number;
+  rtosLength: number;
+  offsets: readonly number[];
+  entries: number;
+}
+
+/** Where the 21 tables are in a firmware: in 1.20 they are longer (880 strings) and elsewhere. */
+function tablesOf(t: FirmwareTarget): Tables {
+  if (t.id === '1.11') return { rtosOffset: RTOS_OFFSET, rtosLength: RTOS_LENGTH, offsets: NAME_TABLE_RTOS_OFFSETS, entries: NAME_TABLE_ENTRIES };
+  const first = t.facts.firstTextTable - RTOS_VA;
+  return { rtosOffset: t.rtosOffset, rtosLength: t.rtosLength, offsets: LANGS.map((_, k) => first + k * t.facts.textTableStride), entries: t.facts.textCount - 1 };
+}
 
 export interface NameInfo {
   text: string;
@@ -81,31 +97,32 @@ function u16at(d: Uint8Array, o: number): number {
   return d[o] | (d[o + 1] << 8);
 }
 
-function tablePointer(decoded: Uint8Array, li: number, index: number): number {
-  return u32at(decoded, RTOS_OFFSET + NAME_TABLE_RTOS_OFFSETS[li] + 4 * index);
+function tablePointer(decoded: Uint8Array, li: number, index: number, T: Tables = tablesOf(TARGET_111)): number {
+  return u32at(decoded, T.rtosOffset + T.offsets[li] + 4 * index);
 }
 
 /**
  * Decode one table entry; null when it is not a plain descriptor (count outside 0x101..0x7FF,
  * pointers outside RTOS, or no terminator where the count says the string ends).
  */
-function entryAt(decoded: Uint8Array, li: number, index: number): Entry | null {
-  if (decoded.length < RTOS_OFFSET + RTOS_LENGTH) throw new FirmwareError('unexpected-layout', 'payload is too short');
-  const ptr = tablePointer(decoded, li, index);
+function entryAt(decoded: Uint8Array, li: number, index: number, T: Tables = tablesOf(TARGET_111)): Entry | null {
+  const { rtosOffset, rtosLength } = T;
+  if (decoded.length < rtosOffset + rtosLength) throw new FirmwareError('unexpected-layout', 'payload is too short');
+  const ptr = tablePointer(decoded, li, index, T);
   const a = ptr - RTOS_VA;
-  if (!(a >= 0 && a + 8 <= RTOS_LENGTH)) return null;
-  const count = u32at(decoded, RTOS_OFFSET + a);
+  if (!(a >= 0 && a + 8 <= rtosLength)) return null;
+  const count = u32at(decoded, rtosOffset + a);
   if (!(count >= 0x101 && count <= 0x7ff)) return null;
   const nChars = (count & 0xff) - 1;
   if (nChars < 0) return null;
-  const s = u32at(decoded, RTOS_OFFSET + a + 4) - RTOS_VA;
-  if (!(s >= 0 && s + 2 * (nChars + 1) <= RTOS_LENGTH)) return null;
-  if (u16at(decoded, RTOS_OFFSET + s + 2 * nChars) !== 0) return null;
-  return { ptr, descOffset: RTOS_OFFSET + a, strOffset: RTOS_OFFSET + s, count, lines: count >>> 8, nChars };
+  const s = u32at(decoded, rtosOffset + a + 4) - RTOS_VA;
+  if (!(s >= 0 && s + 2 * (nChars + 1) <= rtosLength)) return null;
+  if (u16at(decoded, rtosOffset + s + 2 * nChars) !== 0) return null;
+  return { ptr, descOffset: rtosOffset + a, strOffset: rtosOffset + s, count, lines: count >>> 8, nChars };
 }
 
-function checkIndex(index: number): void {
-  if (!Number.isInteger(index) || index < 0 || index >= NAME_TABLE_ENTRIES) {
+function checkIndex(index: number, T: Tables = tablesOf(TARGET_111)): void {
+  if (!Number.isInteger(index) || index < 0 || index >= T.entries) {
     throw new FirmwareError('bad-name-index', `string index ${index} is out of range`);
   }
 }
@@ -117,9 +134,10 @@ function entryText(decoded: Uint8Array, e: Entry): string {
 }
 
 /** Read string `index` of a language. Offsets are decoded-payload offsets. */
-export function readName(decoded: Uint8Array, lang: LangCode, index: number): NameInfo {
-  checkIndex(index);
-  const e = entryAt(decoded, langIndex(lang), index);
+export function readName(decoded: Uint8Array, lang: LangCode, index: number, t: FirmwareTarget = TARGET_111): NameInfo {
+  const T = tablesOf(t);
+  checkIndex(index, T);
+  const e = entryAt(decoded, langIndex(lang), index, T);
   if (!e) throw new FirmwareError('bad-name-entry', `string ${lang} #${index} is not a plain descriptor`);
   return { text: entryText(decoded, e), capacity: e.nChars, descOffset: e.descOffset, strOffset: e.strOffset };
 }
@@ -129,12 +147,13 @@ export function readName(decoded: Uint8Array, lang: LangCode, index: number): Na
  * (This is a proxy for "the camera's font for this language has the glyph".) Note that the set
  * contains '\n' because of multi-line help texts; `validateName` rejects control characters itself.
  */
-export function allowedChars(decoded: Uint8Array, lang: LangCode): Set<number> {
+export function allowedChars(decoded: Uint8Array, lang: LangCode, t: FirmwareTarget = TARGET_111): Set<number> {
+  const T = tablesOf(t);
   const li = langIndex(lang);
   const set = new Set<number>();
   for (let c = 0x20; c <= 0x7e; c++) set.add(c);
-  for (let i = 0; i < NAME_TABLE_ENTRIES; i++) {
-    const e = entryAt(decoded, li, i);
+  for (let i = 0; i < T.entries; i++) {
+    const e = entryAt(decoded, li, i, T);
     if (!e) continue;
     for (let k = 0; k < e.nChars; k++) set.add(u16at(decoded, e.strOffset + 2 * k));
   }
