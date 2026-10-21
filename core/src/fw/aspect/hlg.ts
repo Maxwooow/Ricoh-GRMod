@@ -41,6 +41,7 @@ export const HOOK_SITE = 0x5380bf50; // ExifJpegWriter::SetupAppNInfo
 // Scale graphic IDs: 0x23b = native 3-step [1, 2, 3], 782 = custom 3-step [OFF, 1, 2]
 export const HDR_SCALE_ICON_ID = 782;
 const NATIVE_SCALE_ICON = 0x23b;
+const NATIVE_TONING_SCALE_ICON = 0xc4; // 3-step toning scale with official Ricoh OFF icon at cx=20
 export const HDR_SCALE_SHOOTING = 0x531c8c34; // Shooting mode detail line slider scale
 export const HDR_SCALE_PLAYBACK = 0x531cc27c; // Playback / RAW development detail line slider scale
 
@@ -137,12 +138,12 @@ export function romVa(va: number): number {
 /**
  * Custom 400x60 scale graphic for HDR Tone Level.
  * Based on native 3-step scale 0x23B, replacing tick marks with:
- *  - Level 0 (cx = 20): "OFF" text icon (clean bold letters, y = 9..16)
+ *  - Level 0 (cx = 20): Official Ricoh "OFF" icon borrowed directly from native Toning scale 0xC4
  *  - Level 1 (cx = 200): 1-bar icon (Bar 1 lit, Bar 2 & 3 dimmed, y = 6..17)
  *  - Level 2 (cx = 380): 2-bars icon (Bar 1 & 2 lit, Bar 3 dimmed, y = 6..17)
  */
-export function createHdrScale(native: Uint8Array): Uint8Array {
-  if (native.length !== 400 * 60 * 4) {
+export function createHdrScale(native: Uint8Array, toningScale: Uint8Array): Uint8Array {
+  if (native.length !== 400 * 60 * 4 || toningScale.length !== 400 * 60 * 4) {
     throw new FirmwareError('unexpected-layout', 'native scale size mismatch');
   }
   const custom = new Uint8Array(native);
@@ -150,7 +151,7 @@ export function createHdrScale(native: Uint8Array): Uint8Array {
   // Clear marks at cx = 20, 200, 380 (y = 4..34) back to panel background (0, 0, 0, 191)
   for (const cx of [20, 200, 380]) {
     for (let y = 4; y < 34; y++) {
-      for (let x = cx - 15; x <= cx + 15; x++) {
+      for (let x = cx - 18; x <= cx + 18; x++) {
         if (x >= 0 && x < 400) {
           const i = (y * 400 + x) * 4;
           custom[i] = 0;
@@ -162,7 +163,18 @@ export function createHdrScale(native: Uint8Array): Uint8Array {
     }
   }
 
-  // Draw signal bar helper:
+  // 1. Copy official Ricoh "OFF" icon directly from native Toning scale 0xC4 (x = 0..40, y = 4..34)
+  for (let y = 4; y < 34; y++) {
+    for (let x = 0; x < 40; x++) {
+      const i = (y * 400 + x) * 4;
+      custom[i] = toningScale[i];
+      custom[i + 1] = toningScale[i + 1];
+      custom[i + 2] = toningScale[i + 2];
+      custom[i + 3] = toningScale[i + 3];
+    }
+  }
+
+  // 2. Draw signal bar helper:
   // Bar 1: x = cx - 8 .. cx - 5, y = 14..17 (height 4)
   // Bar 2: x = cx - 2 .. cx + 1, y = 10..17 (height 8)
   // Bar 3: x = cx + 4 .. cx + 7, y = 6..17 (height 12)
@@ -183,33 +195,6 @@ export function createHdrScale(native: Uint8Array): Uint8Array {
       }
     }
   };
-
-  // Draw OFF bitmap at cx = 20: 17x8 pixels (x = 12..28, y = 9..16)
-  const offBitmap = [
-    ' ###   ####  ####',
-    '## ##  ##    ##  ',
-    '## ##  ##    ##  ',
-    '## ##  ####  ####',
-    '## ##  ##    ##  ',
-    '## ##  ##    ##  ',
-    '## ##  ##    ##  ',
-    ' ###   ##    ##  ',
-  ];
-
-  for (let r = 0; r < offBitmap.length; r++) {
-    const y = 9 + r;
-    const row = offBitmap[r];
-    for (let c = 0; c < row.length; c++) {
-      if (row[c] === '#') {
-        const x = 12 + c;
-        const i = (y * 400 + x) * 4;
-        custom[i] = 255;
-        custom[i + 1] = 255;
-        custom[i + 2] = 255;
-        custom[i + 3] = 255;
-      }
-    }
-  }
 
   // Draw 1-bar at cx = 200 (Level 1)
   drawBar(200, 1, true);
@@ -272,11 +257,16 @@ export function installHlgPhoto(patch: Patch, iconbin: Uint8Array): Uint8Array {
   patch.setWord(HOOK_SITE, branchWord(HOOK_SITE, hookVa), 'HLG photo: APP2 injection hook');
 
   // 9. Enable Level 0 in HDR Tone Level (HDR Intense) parameters:
-  // Render custom 3-step scale graphic [0: OFF, 1: 1-bar, 2: 2-bars]
+  // Render custom 3-step scale graphic [0: OFF (official icon), 1: 1-bar, 2: 2-bars]
   const nativeScale = new DataView(patch.readMapped(ICON_CATALOG + NATIVE_SCALE_ICON * 4, 4).buffer).getUint32(0, true);
   const scaleAt = new DataView(patch.readMapped(nativeScale + 8, 4).buffer).getUint32(0, true) * 4;
   const native = iconbin.slice(scaleAt, scaleAt + 400 * 60 * 4);
-  const scalePixels = createHdrScale(native);
+
+  const nativeToning = new DataView(patch.readMapped(ICON_CATALOG + NATIVE_TONING_SCALE_ICON * 4, 4).buffer).getUint32(0, true);
+  const toningAt = new DataView(patch.readMapped(nativeToning + 8, 4).buffer).getUint32(0, true) * 4;
+  const toning = iconbin.slice(toningAt, toningAt + 400 * 60 * 4);
+
+  const scalePixels = createHdrScale(native, toning);
 
   // Pad and append to iconbin, register in ICON_CATALOG
   const pad = (4 - (iconbin.length % 4)) % 4;
