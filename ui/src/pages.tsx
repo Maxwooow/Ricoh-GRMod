@@ -10,7 +10,7 @@ import type { Crop } from './pixels';
 import { onUiScale, uiScale } from './fit';
 import { applySlot } from './preview';
 import {
-  addRatio, addWallFiles, askForOfficial, bridgeLoaded, loadFirmwareFile, loadIconImage, loadPresetFile, loadPreviewFile, moveWall, nameProblem, openCrop, outputFirmware, previewPhoto, removePreset, removeWall,
+  addRatio, addWallFiles, askForOfficial, bridgeLoaded, colourWork, fwVersion, loadFirmwareFile, loadIconImage, loadPresetFile, loadPreviewFile, moveWall, nameProblem, openCrop, outputFirmware, previewPhoto, removePreset, removeWall,
   ratioName, ratioProblem, removeRatio, setActiveRatio, setActiveSlot, setCrop, setIcon, setName, setPreviewMode, setRatio, setRatioBackdrop, useStore, wallBitmap,
   setSoft,
   setDateStamp,
@@ -336,7 +336,8 @@ function FeatureRow({ icon, title, sub, on, onChange }: { icon: ReactNode; title
 
 /**
  * The additions that are not slots: soft focus on the ADJ lever (off / weak / medium / strong),
- * the date imprint with its menu, and the six monochrome looks (colour models only).
+ * the date imprint with its menu, and the six monochrome looks (`mono`: not offered, as on the
+ * Monochrome or with a file without the colour work).
  */
 function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: HTMLDivElement | null) => void; from?: React.MutableRefObject<DOMRect | null> }) {
   const soft = useStore((s) => s.soft);
@@ -424,6 +425,8 @@ export function ImageControlPage() {
   const info = useStore((s) => s.info);
   const fwName = useStore((s) => s.fwName);
   const model = useStore((s) => s.model);
+  const version = useStore((s) => fwVersion(s));
+  const colour = useStore((s) => colourWork(s));
   return (
     <DropZone className="page" accept={isFirmware} onFiles={(f) => { void loadFirmwareFile(f[0]); }}>
       <header className="page-head">
@@ -433,7 +436,7 @@ export function ImageControlPage() {
           <div className="head-right" data-tour="ic-stock">
             {info.bridge
               ? <span className="chip warn">{Ico.bridge}<span className="ellipsis">{fwName || 'fwdc248b.bin'} · {t('fwBridgeValue')}</span></span>
-              : <span className="chip ok">{Ico.check}<span className="ellipsis">{fwName || 'fwdc248b.bin'} · {info.version}</span></span>}
+              : <span className="chip ok">{Ico.check}<span className="ellipsis">{fwName || 'fwdc248b.bin'} · {version}</span></span>}
             <Menu items={[
               { label: t('writeStock'), run: () => { void outputFirmware({ kind: 'card' }, true); } },
               { label: t('exportStock'), run: () => { void outputFirmware({ kind: 'folder' }, true); } },
@@ -442,8 +445,8 @@ export function ImageControlPage() {
         )}
       </header>
       {!info && <FirmwareHero />}
-      {info && model !== 'MONO' && <IcBody />}
-      {info && model === 'MONO' && <div className="mono-ic" data-tour-page="ic"><p className="muted">{t('monoNoSlots')}</p><FeatureSwitches mono /></div>}
+      {info && colour && <IcBody />}
+      {info && !colour && <div className="mono-ic" data-tour-page="ic"><p className="muted">{t(model === 'MONO' ? 'monoNoSlots' : 'colourNeeds111', { v: version })}</p><FeatureSwitches mono /></div>}
     </DropZone>
   );
 }

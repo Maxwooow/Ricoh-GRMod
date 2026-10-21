@@ -6,7 +6,7 @@ import { Ico, IconCanvas, Segmented } from './components';
 import type { ParkedEntry } from './host';
 import { t } from './i18n';
 import type { Key } from './i18n';
-import { copyKey, copyList, fmtSize, setCopySource, softText, toggleCopies, useStore } from './store';
+import { copyKey, copyList, fmtSize, fwVersion, setCopySource, softText, toggleCopies, useStore } from './store';
 import type { BuildRecord, CopyInfo, CopySource } from './store';
 
 const folderOf = (p: string): string => p.slice(0, p.indexOf('/'));
@@ -28,6 +28,7 @@ function kindOf(e: ParkedEntry): Key {
 }
 
 function FirmwareLine({ info, builds, lang, name }: { info: CopyInfo | undefined; builds: BuildRecord[]; lang: LangCode; name: string }) {
+  const version = useStore((st) => fwVersion(st));
   if (!info || info.busy) return <><span className="copy-file">{Ico.chip}</span><div className="copy-text"><div className="copy-title">{name}</div><div className="copy-sub">{info?.busy && <><span className="spinner small" />{t('copyReading')}</>}</div></div></>;
   const s = info.summary;
   if (!s || s.kind === 'unknown') return <><span className="copy-file">{Ico.chip}</span><div className="copy-text"><div className="copy-title">{name}</div><div className="copy-sub"><span className="chip warn tiny">{t('copyUnknown')}</span></div></div></>;
@@ -37,9 +38,9 @@ function FirmwareLine({ info, builds, lang, name }: { info: CopyInfo | undefined
     <>
       <span className="copy-icons">{s.slots.map((sl) => <IconCanvas key={sl.id} pixels={sl.icon} scale={1} />)}</span>
       <div className="copy-text">
-        <div className="copy-title ellipsis">{s.slots.map((sl) => sl.names[lang]).join('  ·  ')}</div>
+        <div className="copy-title ellipsis">{s.slots.length ? s.slots.map((sl) => sl.names[lang]).join('  ·  ') : name}</div>
         <div className="copy-sub">
-          {s.kind === 'official' && <span className="chip ok tiny">{t('copyOfficial')}</span>}
+          {s.kind === 'official' && <span className="chip ok tiny">{t('copyOfficial', { v: version })}</span>}
           {s.kind === 'modified' && <span className="chip tiny">{t('copyModified')}</span>}
           {s.kind === 'modified' && !s.verified && <span className="chip warn tiny">{t('copyUnverified')}</span>}
           {s.kind === 'modified' && s.slots.map((sl) => {
