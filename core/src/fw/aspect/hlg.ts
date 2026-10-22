@@ -106,17 +106,6 @@ function ascii(text: string): Uint8Array {
   return out;
 }
 
-function concat(arrays: Uint8Array[]): Uint8Array {
-  const total = arrays.reduce((acc, a) => acc + a.length, 0);
-  const out = new Uint8Array(total);
-  let offset = 0;
-  for (const a of arrays) {
-    out.set(a, offset);
-    offset += a.length;
-  }
-  return out;
-}
-
 export const HLG_MATRIX = b64decode(HLG_MATRIX_B64);
 export const HLG_CURVE = b64decode(HLG_CURVE_B64);
 export const HLG_ICC = b64decode(HLG_ICC_B64);
