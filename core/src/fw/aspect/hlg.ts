@@ -106,15 +106,26 @@ function ascii(text: string): Uint8Array {
   return out;
 }
 
+/** Local join (build.ts imports this module, so its `concat` is not yet initialised at load time). */
+function join(arrays: Uint8Array[]): Uint8Array {
+  const out = new Uint8Array(arrays.reduce((acc, a) => acc + a.length, 0));
+  let offset = 0;
+  for (const a of arrays) {
+    out.set(a, offset);
+    offset += a.length;
+  }
+  return out;
+}
+
 export const HLG_MATRIX = b64decode(HLG_MATRIX_B64);
 export const HLG_CURVE = b64decode(HLG_CURVE_B64);
 export const HLG_ICC = b64decode(HLG_ICC_B64);
 export const HLG_HOOK = b64decode(HLG_HOOK_B64);
 
 /** 14B header + 532B ICC + 2B zero pad = 548B (137 words) */
-export const HLG_APP2_DATA = concat([ascii('ICC_PROFILE\0\x01\x01'), HLG_ICC, new Uint8Array(2)]);
+export const HLG_APP2_DATA = join([ascii('ICC_PROFILE\0\x01\x01'), HLG_ICC, new Uint8Array(2)]);
 /** 176B hook + 548B APP2 data = 724 bytes */
-export const HLG_HOOK_BLOCK = concat([HLG_HOOK, HLG_APP2_DATA]);
+export const HLG_HOOK_BLOCK = join([HLG_HOOK, HLG_APP2_DATA]);
 
 /** Maps a runtime RAM VA (0x55000000..0x55057480) to its ROM image address (0x5437b640..) for Patch writes */
 export function romVa(va: number): number {
