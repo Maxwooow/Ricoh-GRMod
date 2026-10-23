@@ -7,7 +7,9 @@ Every address written in the sources listed in SOURCES (comments left out) gets 
     both files, or the same up to relocation (every address it holds maps to the address the 1.20
     word holds);
   - by hand (MANUAL below) when it does not: each such entry was found with `look.py` and is
-    explained there. A hand entry for an address the map also places must agree with it.
+    explained there. A hand entry for an address the map also places must agree with it, except
+    in BSS (beyond the initialised data), which the map only interpolates: every BSS address
+    needs a hand entry, found in the code that loads it.
 
 An address that gets neither stops the generator. (The patcher's own checks run on 1.20 too:
 every instruction a hook is written around is compared before it is changed.)
@@ -76,6 +78,9 @@ MANUAL = {
     0x53187794: (0x5318877C, 'controller factory, End Screen case: bl to the allocator'),
     0x5318779C: (0x53188784, 'controller factory, End Screen case: bl to the End Screen list constructor'),
     0x531B948C: (0x531BAA54, 'power-off picture request, its second instruction (1.20 calls 0x53264390 from it)'),
+    # --- date imprint orientation (datestamp.ts, 0.8.3)
+    0x5372B640: (0x53750028, 'the variant root singleton\'s getter (0x5372B620 -> 0x53750008): movw r0 of its object, then movt'),
+    0x5537960C: (0x5537B29C, 'the variant root singleton\'s object, as its getter returns it; the display rotation reads its +4 -> +0x518 -> +0xD8 in both'),
     0x53262558: (0x53264274, 'show a picture of the full-screen JPEG table, found through its three callers'),
     0x5326255C: (0x53264278, 'the same, movw r3 of the table'),
     0x5326256C: (0x53264288, 'the same, movt r3 of the table'),
@@ -129,7 +134,9 @@ def main():
         q = m.map(va)
         if va in MANUAL:
             v, why = MANUAL[va]
-            if q is not None and q != v:
+            # In BSS the map only interpolates between values that code loads (addrmap.bss_pairs);
+            # there a hand entry found in the code itself wins.
+            if q is not None and q != v and status(va, q) != 'bss':
                 problems.append('0x%08x: hand entry 0x%08x but the map says 0x%08x' % (va, v, q))
             entries.append((va, v, why))
             continue
@@ -137,7 +144,10 @@ def main():
             problems.append('0x%08x (%s): not mapped and no hand entry' % (va, ', '.join(sorted(files))))
             continue
         st = status(va, q)
-        if st not in ('same', 'reloc', 'bss'):
+        if st == 'bss':
+            problems.append('0x%08x (%s): in BSS, where the map only interpolates: needs a hand entry' % (va, ', '.join(sorted(files))))
+            continue
+        if st not in ('same', 'reloc'):
             problems.append('0x%08x (%s): mapped to 0x%08x but the words differ' % (va, ', '.join(sorted(files)), q))
             continue
         entries.append((va, q, None))

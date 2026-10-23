@@ -15,9 +15,15 @@ Builds with GR Mod's own builder (tools/port120/build.ts) and runs what the buil
     register as it came at the prior recall).
  3. With the date imprint, the look stash: the hook of the development step's read of the look
     leaves `look | 0x10000` in the word 16 bytes into the 44 unused bytes before the heap, every
-    register as officially; the start-up zero fill reaches the heap; the imprint's context holds
-    that word, the table of the target's black-and-white looks and the Monochrome check, which
+    register as officially; when shooting (the step's flag +0x2AC set) nothing else, in RAW
+    development (flag 0) also the orientation of the record being developed (+0x2D0) by the EXIF
+    writer's rule (+0x71E84 when +0x71E83 is set, else +0xD8; 1..3 kept, anything else 0) in the
+    word 32 bytes in (0.8.3); the start-up zero fill reaches the heap; the imprint's context holds
+    the two words, the table of the target's black-and-white looks and the Monochrome check, which
     returns 1 for edition 1 only.
+ 4. The exposure hook (0.8.3): at the start of each exposure the camera's direction, read through
+    the variant root singleton (+4 -> +0x518 -> record -> +0xD8, every pointer checked), goes into
+    the orientation word (4 / 5, lens up / down, as 0); every register as it came.
 
     python3 check_guard.py [111|120 ...]
 """
@@ -227,33 +233,68 @@ def check_build(tag, name, options, ratios, soft):
         hook = m.word(site)
         check(hook >> 24 == 0xEA, f'{what}: the development step\'s read of the look is hooked')
         check(m.word(V(0x53000460)) == t.heap, f'{what}: the start-up zero fill reaches the heap (clears the stash)')
-        rec = FAKE + 0x60000
+        orient = t.bss_end + 0x20
+        rec, arg, raw = FAKE + 0x60000, FAKE + 0x62000, FAKE + 0x100000
         bad = []
-        for look in range(40):
+        cases = [(look, 1, 0, 0) for look in range(40)]  # shooting: the look only
+        cases += [(7, 0, flag, d) for flag in (0, 1) for d in range(7)]  # RAW development: and the orientation
+        for look, shooting, flag, d in cases:
             m.mu.mem_write(rec, bytes(0x800))
             m.mu.mem_write(rec + 0x79C, bytes([look]))
+            m.mu.mem_write(arg, bytes(0x400))
+            m.mu.mem_write(arg + 0x2AC, bytes([shooting]))
+            m.mu.mem_write(arg + 0x2D0, struct.pack('<I', raw))
+            m.mu.mem_write(raw, bytes(0x100))
+            m.mu.mem_write(raw + 0x71E80, bytes(8))
+            m.mu.mem_write(raw + 0x71E83, bytes([flag, d if flag else 0x77]))
+            m.mu.mem_write(raw + 0xD8, bytes([0x77 if flag else d]))
             m.mu.mem_write(stash, b'\0\0\0\0')
-            regs = [0x10, 0x11, 0x12, rec, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, FAKE + 0x3F0100, 0x1C]
+            m.mu.mem_write(orient, struct.pack('<I', 0x5EED))
+            regs = [0x10, arg, 0x12, rec, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, FAKE + 0x3F0100, 0x1C]
             m.call(site, regs, stop=site + 4)
             got = [m.mu.reg_read(r) for r in REGS[:13]]
             want = regs[:2] + [look] + regs[3:]
-            if got != want or m.word(stash) != (look | 0x10000):
-                bad.append((look, hex(m.word(stash)), [hex(g) for g in got[:4]]))
+            want_orient = 0x5EED if shooting else ((d if d <= 3 else 0) | 0x100)
+            if got != want or m.word(stash) != (look | 0x10000) or m.word(orient) != want_orient:
+                bad.append((look, shooting, flag, d, hex(m.word(stash)), hex(m.word(orient)), [hex(g) for g in got[:4]]))
         check(not bad, f'{what}: look stash: {bad[:4]}')
         execute = V(0x537034B4)
         stub = branch(execute, m.word(execute))
         mv = lambda w: ((w >> 4) & 0xF000) | (w & 0xFFF)
         ctx = mv(m.word(stub + 8)) | (mv(m.word(stub + 12)) << 16)
-        words = struct.unpack('<9I', m.mu.mem_read(ctx, 36))
+        words = struct.unpack('<10I', m.mu.mem_read(ctx, 40))
         table = bytes(m.mu.mem_read(words[7], 64))
-        check(words[6] == stash and words[8] == V(0x533EF000), f'{what}: date imprint context: stash {words[6]:#x}, Monochrome check {words[8]:#x}')
+        check(words[6] == stash and words[8] == V(0x533EF000) and words[9] == orient,
+              f'{what}: date imprint context: stash {words[6]:#x}, Monochrome check {words[8]:#x}, orientation {words[9]:#x}')
         check([i for i in range(64) if table[i]] == list(t.mono_looks), f'{what}: black-and-white looks {[i for i in range(64) if table[i]]}')
         for edition, want in ((0, 0), (1, 1), (2, 0), (3, 0)):
             m.stubs[V(0x5323EA84)] = lambda uc: FAKE + 0x70000
             m.stubs[V(0x5323FF28)] = lambda uc: FAKE + 0x71000
             m.stubs[V(0x533E0324)] = lambda uc, e=edition: e
             check(m.call(words[8]) == want, f'{what}: Monochrome check for edition {edition}')
-        print(f'   look stash at {stash:#x}: 40 looks; context, table {list(t.mono_looks)}, Monochrome check')
+        print(f'   look stash at {stash:#x}, orientation at {orient:#x}: {len(cases)} cases; context, table {list(t.mono_looks)}, Monochrome check')
+
+        # --- 4. the exposure hook
+        at = V(0x53628CD8)
+        singleton = V(0x5537960C)
+        check(m.word(at) >> 24 == 0xEA, f'{what}: the start of the exposure is hooked')
+        obj, holder, record = FAKE + 0x80000, FAKE + 0x81000, FAKE + 0x82000
+        bad = []
+        for d in list(range(7)) + [None]:
+            m.mu.mem_write(singleton, struct.pack('<2I', 0, obj if d is not None else 0x10))
+            m.mu.mem_write(obj + 0x518, struct.pack('<I', holder))
+            m.mu.mem_write(holder, struct.pack('<I', record))
+            m.mu.mem_write(record + 0xD8, bytes([d or 0]))
+            m.mu.mem_write(orient, struct.pack('<I', 0x5EED))
+            regs = [0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, FAKE + 0x3F0100, 0x1C]
+            m.call(at, regs, stop=at + 4)
+            got = [m.mu.reg_read(r) for r in REGS[:14]]
+            want = regs[:12] + [FAKE + 0x3F0000, FAKE + 0x3F0000]  # ip = sp (the displaced mov ip, sp)
+            want_orient = 0x5EED if d is None else ((d if d <= 3 else 0) | 0x100)
+            if got != want or m.word(orient) != want_orient:
+                bad.append((d, hex(m.word(orient)), [hex(g) for g in got]))
+        check(not bad, f'{what}: exposure hook: {bad[:3]}')
+        print(f'   exposure hook at {at:#x}: direction through {singleton:#x}, 7 directions and a bad pointer')
 
 
 def main():

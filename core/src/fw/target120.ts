@@ -178,6 +178,7 @@ export const VA_120: ReadonlyMap<number, number> = new Map([
   [0x53583188, 0x535a6454],
   [0x535831e8, 0x535a64b4],
   [0x53589ab4, 0x535acd84],
+  [0x53628cd8, 0x5364d640],
   [0x5362e430, 0x53652d98],
   [0x5362e434, 0x53652d9c],
   [0x5362e440, 0x53652da8],
@@ -249,7 +250,11 @@ export const VA_120: ReadonlyMap<number, number> = new Map([
   [0x5370d768, 0x537320c8],
   [0x5372ad4c, 0x5374f734],
   [0x5372b620, 0x53750008],
+  [0x5372b640, 0x53750028], // the variant root singleton's getter (0x5372B620 -> 0x53750008): movw r0 of its object, then movt
   [0x5374acfc, 0x5376fb10], // accept only identities that are in the menu: same function, found through its caller
+  [0x53755cc8, 0x5377b1d8],
+  [0x5375c31c, 0x537818a8],
+  [0x5375c320, 0x537818ac],
   [0x537f5770, 0x5381c380],
   [0x537f5774, 0x5381c384],
   [0x537f5778, 0x5381c388],
@@ -328,4 +333,5 @@ export const VA_120: ReadonlyMap<number, number> = new Map([
   [0x55013410, 0x55014280], // icon catalog, as returned by the icon getter (0x533EF604 -> 0x534013F8)
   [0x55013e70, 0x55014d98], // table of full-screen JPEGs (13 entries: 1.20 adds GB_30th.jpg), as its reader loads it
   [0x5501a474, 0x5501b3bc],
+  [0x5537960c, 0x5537b29c], // the variant root singleton's object, as its getter returns it; the display rotation reads its +4 -> +0x518 -> +0xD8 in both
 ]);

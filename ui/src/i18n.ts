@@ -112,7 +112,7 @@ const zh = {
   haloOn: '开', halationCinemaSub: '开启后，这个槽位在相机里的“色调”会变成“光晕”（关 / 开，按 Fn 调强度和颜色），载入的预设不受色调影响。不开启则保持原样',
   extraSlot: '新增槽位 {n}', extraNameLong: '最多 12 个字符', extraNameBad: '仅限英文、数字、符号', extraNeedsPreset: '需要导入预设', extraNeedsIcon: '需要图标',
   extraMax: '最多新增 {n} 个槽位', extraIncomplete: '有新增槽位还没准备好（预设、名称或图标）', extraLine: '新增影像控制槽位 {n}  ·  {l}', extraRemove: '删除这个槽位',
-  tIcSoftT: '附加功能', tIcSoftB: '柔焦：打开后，可将“柔焦”效果增添到 ADJ 快捷菜单，有关、弱、中、强四档，效果无法实时预览，可与 HDF 滤镜同时启用。\n时间戳：在照片右下角打印日期。刷入后默认关闭，在“拍摄辅助 › 拍摄时间戳”里打开，可选两种样式。\n黑白风格：解锁 GR IV Monochrome 机型的 6 个黑白风格。',
+  tIcSoftT: '附加功能', tIcSoftB: '柔焦：打开后，可将“柔焦”效果增添到 ADJ 快捷菜单，有关、弱、中、强四档，效果无法实时预览，可与 HDF 滤镜同时启用。\n时间戳：在照片右下角打印日期（竖拍时也是看照片时的右下角；菜单里的“跟随相机方向”关掉后，按横向位置打印）。刷入后默认关闭，在“拍摄辅助 › 拍摄时间戳”里打开，可选两种样式。\n黑白风格：解锁 GR IV Monochrome 机型的 6 个黑白风格。',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -228,7 +228,7 @@ const en: typeof zh = {
   haloOn: 'On', halationCinemaSub: 'When on, this slot\'s Toning becomes Halation in the camera (Off / On, Fn for strength and colour); the loaded preset does not use Toning. Off keeps it as it is',
   extraSlot: 'Added slot {n}', extraNameLong: 'At most 12 characters', extraNameBad: 'Letters, digits and symbols only', extraNeedsPreset: 'Needs a preset', extraNeedsIcon: 'Needs an icon',
   extraMax: 'At most {n} added slots', extraIncomplete: 'An added slot is not ready yet (preset, name or icon)', extraLine: 'Added Image Control slots {n}  ·  {l}', extraRemove: 'Remove this slot',
-  tIcSoftT: 'Additions', tIcSoftB: 'Soft focus: adds "Soft Focus" to the ADJ lever, with off, low, medium and high. The effect cannot be seen in live view; it can be used together with the HDF filter.\nDate imprint: prints the date in the bottom right corner of the photo. Off after flashing; turn it on under Shooting Assist › Date Imprint, two styles.\nB&W looks: unlocks the 6 black-and-white looks of the GR IV Monochrome.',
+  tIcSoftT: 'Additions', tIcSoftB: 'Soft focus: adds "Soft Focus" to the ADJ lever, with off, low, medium and high. The effect cannot be seen in live view; it can be used together with the HDF filter.\nDate imprint: prints the date in the bottom right corner of the photo (as it is viewed, also when shot upright; with "Follow Orientation" off in its menu, as stored). Off after flashing; turn it on under Shooting Assist › Date Imprint, two styles.\nB&W looks: unlocks the 6 black-and-white looks of the GR IV Monochrome.',
 };
 export type Key = keyof typeof zh;
 const dict = (navigator.language || 'zh').toLowerCase().startsWith('zh') ? zh : en;

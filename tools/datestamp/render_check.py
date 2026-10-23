@@ -97,7 +97,7 @@ def run(setting, main_w, main_h, src_w, src_h, mono=False, clock=(2026, 10, 8, 1
     mu.mem_write(SET, bytes([setting]))
     CTX = 0x70004000
     if look is None:
-        mu.mem_write(CTX, struct.pack('<9I', *(STUB + i * 16 for i in range(5)), SET, 0, 0, 0))
+        mu.mem_write(CTX, struct.pack('<10I', *(STUB + i * 16 for i in range(5)), SET, 0, 0, 0, 0))
     else:
         LOOKW, TABLE = 0x70007000, 0x70007100
         mu.mem_write(LOOKW, struct.pack('<I', look[0]))
@@ -105,7 +105,7 @@ def run(setting, main_w, main_h, src_w, src_h, mono=False, clock=(2026, 10, 8, 1
         for l in (13, 14, 15, 16, 25, 26, 27, 28, 29, 30, 35):
             table[l] = 1
         mu.mem_write(TABLE, bytes(table))
-        mu.mem_write(CTX, struct.pack('<9I', *(STUB + i * 16 for i in range(5)), SET, LOOKW, TABLE, STUB + 5 * 16))
+        mu.mem_write(CTX, struct.pack('<10I', *(STUB + i * 16 for i in range(5)), SET, LOOKW, TABLE, STUB + 5 * 16, 0))
 
     ox = ((6192 - src_w) // 2) & ~1
     oy = (4128 - src_h) // 2

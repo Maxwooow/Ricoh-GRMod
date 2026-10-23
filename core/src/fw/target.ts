@@ -46,7 +46,7 @@ export interface TargetFacts {
   /** Text numbers of this program's own texts. */
   texts: {
     softFocus: number;
-    dateStamp: { name: number; onOff: number; style: number; short: number; long: number };
+    dateStamp: { name: number; onOff: number; style: number; short: number; long: number; orient: number };
     /** Power-off pictures: "Type", "Picture", the factory row, then the pictures' names. */
     shutdown: number;
   };
@@ -153,7 +153,7 @@ export const TARGET_111: FirmwareTarget = {
     textTableStride: 0xd14,
     textCapacity: 896,
     ratioTexts: [267, 268, 266, 269],
-    texts: { softFocus: 840, dateStamp: { name: 841, onOff: 842, style: 843, short: 844, long: 845 }, shutdown: 853 },
+    texts: { softFocus: 840, dateStamp: { name: 841, onOff: 842, style: 843, short: 844, long: 845, orient: 879 }, shutdown: 853 },
     userDataSize: 0xae9,
     userData: 0x55084dd8,
     liveViewShift: 0,
@@ -198,7 +198,8 @@ export const TARGET_120: FirmwareTarget = {
     // 1.20 has texts up to 880, where 1.11 had room for this program's own; they are above 911.
     textCapacity: 960,
     ratioTexts: [281, 282, 280, 284],
-    texts: { softFocus: 912, dateStamp: { name: 913, onOff: 914, style: 915, short: 916, long: 917 }, shutdown: 918 },
+    // 929: "Follow Orientation" (0.8.3), after the power-off pictures' 918..928
+    texts: { softFocus: 912, dateStamp: { name: 913, onOff: 914, style: 915, short: 916, long: 917, orient: 929 }, shutdown: 918 },
     userDataSize: 0xb44,
     userData: 0x550832a8,
     liveViewShift: 0x14,

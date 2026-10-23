@@ -51,11 +51,11 @@ class Target:
 
 # The facts of core/src/fw/target.ts.
 T111 = Target('111', 0x13D2AC0, 0x5437B640, 0x57480, 0x558372D4, 0x55837300, 663, 837, 'movw', 0,
-              {'softFocus': 840, 'dateStamp': (841, 842, 843, 844, 845), 'shutdown': 853},
+              {'softFocus': 840, 'dateStamp': (841, 842, 843, 844, 845, 879), 'shutdown': 853},
               {'on': 1, 'off': 2, 'low': 9, 'medium': 10, 'high': 11, 'flashComp': 135, 'endScreen': 701, 'dRange': 363, 'horizon': 388, 'reset': 703, 'type1': 6, 'type2': 7},
               {'off': 310, 'on': 311}, 124, 18, 12, 0x55084DD8, 0x5437D7B0, 0xD14, 0xAE9)
 T120 = Target('120', 0x140B600, 0x543B3100, 0x58500, 0x55839014, 0x55839040, 709, 881, 'cmp', 0x14,
-              {'softFocus': 912, 'dateStamp': (913, 914, 915, 916, 917), 'shutdown': 918},
+              {'softFocus': 912, 'dateStamp': (913, 914, 915, 916, 917, 929), 'shutdown': 918},
               {'on': 1, 'off': 2, 'low': 10, 'medium': 11, 'high': 12, 'flashComp': 140, 'endScreen': 743, 'dRange': 395, 'horizon': 420, 'reset': 745, 'type1': 7, 'type2': 8},
               {'off': 329, 'on': 330}, 126, 18, 13, 0x550832A8, 0x543B5270, 0xDC4, 0xB44)
 # TargetFacts.looks / monoLooks: the camera's own looks are 0 .. looks - 1; its black-and-white ones.

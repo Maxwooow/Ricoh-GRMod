@@ -350,7 +350,11 @@ check(dm.factory_class(new, MENU_ID) == dm.factory_class(off, 0x020000d0), 'subm
 if DATESTAMP:
     check(dm.factory_class(new, 0x020001a0) == dm.factory_class(off, 0x020000d0), 'date imprint submenu id')
     check(dm.factory_class(new, 0x020001a1) == dm.factory_class(off, 0x02000094), 'date imprint list id')
-check(dm.factory_class(new, PICTURE_ID + 1) == dm.factory_class(off, PICTURE_ID + 1), 'id after the new ones as officially')
+if DATESTAMP:
+    # 0x020001A5 is the date imprint's "Follow Orientation" list (0.8.3)
+    check(dm.factory_class(new, PICTURE_ID + 1) == dm.factory_class(off, 0x02000094), 'date imprint orientation list id')
+after = PICTURE_ID + 2 if DATESTAMP else PICTURE_ID + 1
+check(dm.factory_class(new, after) == dm.factory_class(off, after), f'id after the new ones ({after:#x}) as officially')
 
 
 # The picture id: the End Screen list's own object (the official path for 0x020000C4), in picture mode.

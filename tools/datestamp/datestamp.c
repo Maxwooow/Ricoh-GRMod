@@ -7,6 +7,10 @@
  * screennail, thumbnail, ...). The date is drawn into each of them, bottom right, in orange
  * seven-segment digits scaled to the picture, as "'YY MM DD" or "YYYY.MM.DD hh:mm".
  *
+ * Since GR Mod 0.8.3 "bottom right" is that of the picture as it is shown: a photo taken with the
+ * camera held upright (or upside down) is stored as the sensor sees it, with an EXIF Orientation
+ * that viewers apply, and the imprint is drawn turned so that it reads normally there.
+ *
  * Position-independent: no global data, every address comes in through `struct ctx`. No division
  * (the module must not need a run-time library).
  */
@@ -33,17 +37,20 @@ struct ctx {
   void (*clean)(void *cache, u32 addr, u32 n);       /* 0x538f04c4 */
   void *(*platform)(void);                           /* 0x538f21a0 */
   void (*get_time)(void *clock, u8 *time);           /* 0x538ea9b0 */
-  const u8 *setting;                                 /* bit 0: on, bit 1: with year and time */
+  const u8 *setting;                                 /* bit 0: on, bit 1: with year and time, bit 2: as stored */
   /* Since GR Mod 0.8.2: the look of the picture, left by the development step (0x539113F8) as
    * look | level << 8 | 0x10000 (see lookstash.ts); 0 when the build has no such word. */
   const volatile u32 *look;
   const u8 *mono_looks;                              /* 64 bytes: 1 for a black-and-white look */
   u32 (*mono_model)(void);                           /* 0x533EF000: 1 on the GR IV Monochrome */
+  /* Since 0.8.3: the orientation of the picture, value | 0x100 (see `orientation`); 0 without. */
+  const volatile u32 *orient;
 };
 
-/* The setting byte (see `datestamp.ts`): anything above 3 counts as off. */
+/* The setting byte (see `datestamp.ts`): anything above 7 counts as off. */
 #define SETTING_ON 1u
 #define SETTING_LONG 2u
+#define SETTING_AS_STORED 4u /* 0.8.3: "Follow Orientation" off */
 
 /* Glyph codes besides the digits 0..15. */
 #define G_APOSTROPHE 16
@@ -52,6 +59,23 @@ struct ctx {
 #define G_COLON 19
 
 struct colour { u8 y, cb, cr; };
+
+/* How the picture is shown, from the camera's direction as the shooting record keeps it (what the
+ * EXIF writer at 0x537FEBC4 turns into the Orientation tag: 1 -> 8, 2 -> 3, 3 -> 6, else -> 1). */
+#define O_NONE 0u   /* EXIF 1: as stored */
+#define O_LEFT 1u   /* EXIF 8: shown turned a quarter anticlockwise */
+#define O_HALF 2u   /* EXIF 3: shown upside down */
+#define O_RIGHT 3u  /* EXIF 6: shown turned a quarter clockwise */
+#define LOOK_VALID 0x10000u
+#define ORIENT_VALID 0x100u
+
+/* The stored pixel of shown pixel (x, y), for a stored picture of W x H. */
+static void stored_at(u32 o, s32 W, s32 H, s32 x, s32 y, s32 *sx, s32 *sy) {
+  if (o == O_NONE) { *sx = x; *sy = y; }
+  else if (o == O_HALF) { *sx = W - 1 - x; *sy = H - 1 - y; }
+  else if (o == O_RIGHT) { *sx = y; *sy = H - 1 - x; }
+  else { *sx = W - 1 - y; *sy = x; }
+}
 
 /* The imprint colour: the orange of a film camera's date back. */
 static struct colour orange(void) {
@@ -139,9 +163,10 @@ static void sync(const struct ctx *k, void *cache, struct picture *p, u32 y0, u3
 }
 
 /* Draw `count` glyphs (0..15 hex digit, then ' space . :) with their top left corner at
- * (x0, y0), digit height H. With `bg`, the box behind them is filled with black first. The caller
- * has checked that the box lies inside the picture and handles the cache. */
-static void text_at(struct picture *p, const u8 *glyphs, u32 count, s32 x0, s32 y0, s32 H, struct colour col, int bg) {
+ * (x0, y0) of the picture as it is shown (orientation `o`), digit height H. With `bg` (test builds
+ * only, always O_NONE), the box behind them is filled with black first. The caller has checked
+ * that the box lies inside the picture and handles the cache. */
+static void text_at(struct picture *p, const u8 *glyphs, u32 count, s32 x0, s32 y0, s32 H, struct colour col, int bg, u32 o) {
   s32 W, T, total;
   s32 left[MAXGLYPH], width[MAXGLYPH];
   u32 i;
@@ -164,8 +189,6 @@ static void text_at(struct picture *p, const u8 *glyphs, u32 count, s32 x0, s32 
     s32 py, px;
     s32 qW = W * 4, qH = H * 4, qT = T * 2; /* half thickness in 1/4 px: T/2 * 4 */
     for (py = 0; py < H; py++) {
-      u8 *yrow = p->y + (u32)(y0 + py) * p->stride;
-      u8 *crow = p->c + (u32)(y0 + py) * p->stride;
       for (i = 0; i < count; i++) {
         u8 g = glyphs[i];
         u32 seg;
@@ -184,8 +207,11 @@ static void text_at(struct picture *p, const u8 *glyphs, u32 count, s32 x0, s32 
             } else if (digit_hit(seg, qx, qy, qW, qH, qT)) cov++;
           }
           if (cov) {
-            s32 X = left[i] + px;
-            u8 *yp = yrow + X, *cp = crow + (X & ~1);
+            s32 X, Y;
+            u8 *yp, *cp;
+            stored_at(o, p->width, p->height, left[i] + px, y0 + py, &X, &Y);
+            yp = p->y + (u32)Y * p->stride + (u32)X;
+            cp = p->c + (u32)Y * p->stride + (u32)(X & ~1);
             *yp = (u8)(*yp + (((s32)col.y - *yp) * (s32)cov >> 2));
             cp[0] = (u8)(cp[0] + (((s32)col.cb - cp[0]) * (s32)cov >> 2));
             cp[1] = (u8)(cp[1] + (((s32)col.cr - cp[1]) * (s32)cov >> 2));
@@ -236,27 +262,52 @@ static int mono_by_look(const struct ctx *k) {
   u32 v;
   if (!k->look) return -1;
   v = *k->look;
-  if (!(v & 0x10000u)) return -1;
+  if (!(v & LOOK_VALID)) return -1;
   if ((v & 0xffu) < 64u && k->mono_looks[v & 0xffu]) return 1;
   return k->mono_model() ? 1 : 0;
 }
 
-/* Draw into the rectangle (rx, ry, rw, rh) of the picture, bottom right. `mono`: -1 decide from
- * the picture's colours, else 0 / 1. */
-static void draw(const struct ctx *k, void *cache, struct picture *p, s32 rx, s32 ry, s32 rw, s32 rh, const u8 *glyphs, u32 count, struct colour col, int mono) {
-  s32 H, margin, x0, y0;
+/* Draw into the rectangle (rx, ry, rw, rh) of the picture (stored coordinates), bottom right as
+ * the picture is shown (orientation `o`). `mono`: -1 decide from the picture's colours, else 0 / 1. */
+static void draw(const struct ctx *k, void *cache, struct picture *p, s32 rx, s32 ry, s32 rw, s32 rh, const u8 *glyphs, u32 count, struct colour col, int mono, u32 o) {
+  s32 H, margin, x0, y0, tw, W = p->width, PH = p->height;
+  s32 vx, vy, vw, vh, VH, r0, r1;
   /* Digit height ~ 1/26 of the shorter side, at least 7 px. */
   H = (s32)(((u32)(rw < rh ? rw : rh) * 2521u) >> 16);
   if (H < 7) H = 7;
   margin = (H * 3) >> 1;
-  x0 = rx + rw - margin - text_width(glyphs, count, H);
-  y0 = ry + rh - margin - H;
-  if (x0 < 2 || y0 < 2 || y0 + H + 2 > (s32)p->height) return;
+  /* The rectangle as shown, in a picture of ? x VH. */
+  if (o == O_NONE) { vx = rx; vy = ry; vw = rw; vh = rh; VH = PH; }
+  else if (o == O_HALF) { vx = W - rx - rw; vy = PH - ry - rh; vw = rw; vh = rh; VH = PH; }
+  else if (o == O_RIGHT) { vx = PH - ry - rh; vy = rx; vw = rh; vh = rw; VH = W; }
+  else { vx = ry; vy = W - rx - rw; vw = rh; vh = rw; VH = W; }
+  tw = text_width(glyphs, count, H);
+  x0 = vx + vw - margin - tw;
+  y0 = vy + vh - margin - H;
+  if (x0 < 2 || y0 < 2 || y0 + H + 2 > VH) return;
+  /* Only where it fits into the photo: on a tall photo (an XPan shot held upright) the long style
+   * at the smallest digit height is wider than the thumbnail's photo; that picture gets none. */
+  if (x0 < vx || y0 < vy) return;
   if (mono < 0) mono = is_mono(k, cache, p, rx, ry, rw, rh);
   if (mono) { col.cb = 128; col.cr = 128; } /* light only, like on black-and-white film */
-  sync(k, cache, p, (u32)y0, (u32)(y0 + H + 1), 0);
-  text_at(p, glyphs, count, x0, y0, H, col, 0);
-  sync(k, cache, p, (u32)y0, (u32)(y0 + H + 1), 1);
+  /* The stored rows the box covers. */
+  if (o == O_NONE) { r0 = y0; r1 = y0 + H + 1; }
+  else if (o == O_HALF) { r0 = PH - 1 - (y0 + H); r1 = PH - y0; }
+  else if (o == O_RIGHT) { r0 = PH - 1 - (x0 + tw); r1 = PH - x0; }
+  else { r0 = x0; r1 = x0 + tw + 1; }
+  sync(k, cache, p, (u32)r0, (u32)r1, 0);
+  text_at(p, glyphs, count, x0, y0, H, col, 0, o);
+  sync(k, cache, p, (u32)r0, (u32)r1, 1);
+}
+
+/* The orientation of the picture: left at the start of the exposure (the camera's direction) or,
+ * in RAW development, by the development step (see lookstash.ts and datestamp.ts); O_NONE without. */
+static u32 orientation(const struct ctx *k) {
+  u32 v;
+  if (!k->orient) return O_NONE;
+  v = *k->orient;
+  if (!(v & ORIENT_VALID)) return O_NONE;
+  return v & 3u;
 }
 
 #ifdef DIAG
@@ -318,26 +369,26 @@ static void diag(const struct ctx *k, void *cache, u32 *config) {
       line[n++] = ram(q) ? (u8)refusal(q) : 15;
     }
     line[n++] = 17; line[n++] = (u8)s;
-    text_at(p, line, n, 4, 4, Hm, white, 1); row++;
+    text_at(p, line, n, 4, 4, Hm, white, 1, O_NONE); row++;
     sync(k, cache, p, 0, (u32)(Hm + 8), 1);
     if (p->width != 720 || p->height < 400) continue;
     sync(k, cache, p, 0, 340, 0);
     for (j = 0; j < 3; j++) {
       n = 0;
       for (i = 0; i < 4; i++) { hex_word_le(config[(0x30 >> 2) + j * 4 + i], line + n); n += 8; line[n++] = 17; }
-      text_at(p, line, n - 1, 4, 4 + (s32)row * step, Hd, white, 1); row++;
+      text_at(p, line, n - 1, 4, 4 + (s32)row * step, Hd, white, 1, O_NONE); row++;
     }
     for (j = 0; j < 4; j++) {
       const u8 *q = (const u8 *)config[(0x3c >> 2) + j];
-      if (!ram(q)) { line[0] = 15; line[1] = 15; text_at(p, line, 2, 4, 4 + (s32)row * step, Hd, white, 1); row += 2; continue; }
-      n = hex_bytes(q, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
-      n = hex_bytes(q + 16, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
+      if (!ram(q)) { line[0] = 15; line[1] = 15; text_at(p, line, 2, 4, 4 + (s32)row * step, Hd, white, 1, O_NONE); row += 2; continue; }
+      n = hex_bytes(q, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1, O_NONE); row++;
+      n = hex_bytes(q + 16, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1, O_NONE); row++;
     }
     {
       const u8 *q = (const u8 *)config[0x38 >> 2];
       if (ram(q)) {
-        n = hex_bytes(q, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
-        n = hex_bytes(q + 16, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1); row++;
+        n = hex_bytes(q, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1, O_NONE); row++;
+        n = hex_bytes(q + 16, 16, line); text_at(p, line, n, 4, 4 + (s32)row * step, Hd, white, 1, O_NONE); row++;
       }
     }
     sync(k, cache, p, 0, 340, 1);
@@ -361,7 +412,7 @@ void datestamp(const struct ctx *k, u32 *config) {
   struct picture *seen[4];
   void *cache, *platform;
   setting = *k->setting;
-  if (setting > (SETTING_ON | SETTING_LONG) || !(setting & SETTING_ON) || !ram(config)) return;
+  if (setting > (SETTING_ON | SETTING_LONG | SETTING_AS_STORED) || !(setting & SETTING_ON) || !ram(config)) return;
 #ifdef DIAG
   diag(k, k->cache(), config);
 #endif
@@ -410,8 +461,10 @@ void datestamp(const struct ctx *k, u32 *config) {
   {
     struct picture *mainp = seen[0];
     int mono;
+    u32 o;
     if (!mainp) return;
     mono = mono_by_look(k);
+    o = (setting & SETTING_AS_STORED) ? O_NONE : orientation(k);
     for (i = 0; i < 4; i++) {
       struct picture *p = seen[i];
       s32 pw, ph, rw, rh;
@@ -433,7 +486,7 @@ void datestamp(const struct ctx *k, u32 *config) {
           rh = (s32)q;
         }
       }
-      draw(k, cache, p, (pw - rw) >> 1, (ph - rh) >> 1, rw, rh, glyphs, n, orange(), mono);
+      draw(k, cache, p, (pw - rw) >> 1, (ph - rh) >> 1, rw, rh, glyphs, n, orange(), mono, o);
     }
   }
 }
