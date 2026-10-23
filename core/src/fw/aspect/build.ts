@@ -35,9 +35,13 @@ import { installAdjSoftFocus } from './softfocus';
 import { dateStampByte, installDateStamp } from './datestamp';
 import { installDateStampMenu } from './datestamp-menu';
 import { installMonoUnlock } from './monounlock';
-import { installExtraSlots } from './slots';
+import { CINEMA_STYLES, installExtraSlots, installHalation } from './slots';
+import { halationLight } from './halation';
+import type { HalationLook } from './halation';
 import type { ExtraSlotSpec } from './slots';
 import { installShutdownMenu } from './shutdown';
+import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
+import { installLookStash, lookStash, monoLook, monoTable, styleColour } from './lookstash';
 import type { ShutdownPictureSpec } from './shutdown';
 
 export const BASE = 0x53000000;
@@ -131,13 +135,20 @@ export interface ExtensionFeatures {
   dateStamp?: boolean;
   /** The six looks of the GR IV Monochrome (see `monounlock.ts`). */
   monoUnlock?: boolean;
-  /** Added Image Control slots, 1 to 6 (see `slots.ts`). */
+  /** Added Image Control slots, 1 to 20 (see `slots.ts`; up to 0.8.1 at most 6). */
   extraSlots?: readonly ExtraSlotSpec[];
+  /**
+   * Halation for Cinema Yellow / Green (0.8.2): only for a slot whose curves were replaced by a
+   * preset (its Toning then does nothing and becomes the Halation slider, see `halation.ts`).
+   */
+  cinemaHalation?: Partial<Record<'CY' | 'CG', true>>;
   /**
    * Power-off pictures chosen in the camera's End Screen menu (see `shutdown.ts`): the pictures,
    * and the four factory pictures of the payload's RES section (for their thumbnails).
    */
   shutdown?: { pictures: readonly ShutdownPictureSpec[]; factory: readonly Uint8Array[] };
+  /** Put back setting values this firmware does not know (see `guard.ts`). Every build from 0.8.2 on. */
+  guard?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -1068,14 +1079,14 @@ export function validateRatioName(name: string): 'empty' | 'too-long' | 'bad-cha
 }
 
 /** Validate a list of ratios and work out their identities, geometry and icons. Throws on any problem. */
-export function planRatios(specs: readonly RatioSpec[]): RatioEntry[] {
+export function planRatios(specs: readonly RatioSpec[], options: { portrait?: boolean } = {}): RatioEntry[] {
   if (!Array.isArray(specs)) fail('bad-ratio', 'the ratio list must be an array');
   if (specs.length > MAX_CUSTOM_RATIOS) fail('too-many-ratios', `at most ${MAX_CUSTOM_RATIOS} ratios can be added`);
   const out: RatioEntry[] = [];
   specs.forEach((s, i) => {
     const problem = validateRatioName(s.name);
     if (problem) fail('bad-name', `ratio ${i + 1}: name is ${problem}`);
-    const geometry = planRatio(s.ratio);
+    const geometry = planRatio(s.ratio, options);
     out.push({ name: s.name, ratio: s.ratio, id: FIRST_CUSTOM_ID + i, geometry, icon: drawRatioIcon(s.ratio) });
   });
   playbackRectangles(out.map((r) => r.geometry)); // throws on conflicting photo sizes
@@ -1101,12 +1112,13 @@ export function installRatios(rtos: Uint8Array, iconbin: Uint8Array, ratios: rea
 export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
   const slots = features.extraSlots ?? [];
   const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
-  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown;
+  const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
+  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0;
   if (extra) revision = 3;
   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
   const target = targetOfRtos(rtos);
   if (iconbin.length !== target.iconbinLength) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
-  if (!target.colour && (features.monoUnlock || slots.length > 0)) fail('unsupported-feature', `the monochrome looks and added slots are not available for firmware ${target.id}`);
+  if (!target.colour && (features.monoUnlock || slots.length > 0 || cinema.length > 0)) fail('unsupported-feature', `the monochrome looks, added slots and the halation of Cinema slots are not available for firmware ${target.id}`);
   if (ratios.length > MAX_CUSTOM_RATIOS) fail('too-many-ratios', `at most ${MAX_CUSTOM_RATIOS} ratios can be added`);
   if (ratios.length === 0 && !extra) fail('internal', 'nothing to install');
   ratios.forEach((r, i) => {
@@ -1134,13 +1146,31 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   if (features.monoUnlock) installMonoUnlock(patch);
   if (features.dateStamp) {
     const fixed = test.dateStampFixed;
-    installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : dateStampByte(target), !!test.dateStampDiag);
+    // From 0.8.2 (builds with the guard) the imprint goes by the picture's look.
+    const look = features.guard ? { stash: lookStash(target), monoLooks: monoTable(patch, slots.map((x) => monoLook(x.matrixQ13, x.curves, x.postQ9)), FIRST_ADDED_LOOK) } : undefined;
+    installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : dateStampByte(target), !!test.dateStampDiag, look);
     if (!fixed) icons = installDateStampMenu(patch, icons);
+    if (look && slots.length === 0) installLookStash(patch);
+  }
+  // Halation: added slots that have it, Cinema slots with a preset that are asked to.
+  const halation: HalationLook[] = [];
+  slots.forEach((x, k) => {
+    if (x.halation === true) halation.push({ style: FIRST_ADDED_LOOK + k, light: halationLight(x.curves, x.postQ9) });
+  });
+  for (const id of cinema) {
+    const style = CINEMA_STYLES[id];
+    // The engine asks for it only with a preset (curves of its own: Toning does nothing then). The
+    // check of a built file installs this on the official image too, to find the hook places.
+    const colour = styleColour(patch, style);
+    halation.push({ style, light: colour.ownCurves ? halationLight(colour.curves, colour.postQ9) : halationLight() });
   }
   // Last: the added slots compose with the monochrome looks' visibility check.
-  if (slots.length > 0) icons = installExtraSlots(patch, icons, slots);
+  if (slots.length > 0) icons = installExtraSlots(patch, icons, slots, { stashLook: (!!features.dateStamp && !!features.guard) || halation.length > 0 });
+  if (halation.length > 0) icons = installHalation(patch, icons, halation);
   if (shutdown) icons = installShutdownMenu(patch, icons, shutdown.pictures, shutdown.factory);
+  // Last: wraps every other settings save/load and user-mode recall hook.
+  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus });
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, target, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}) } };
+  return { revision, target, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}) } };
 }

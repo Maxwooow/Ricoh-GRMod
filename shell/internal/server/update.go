@@ -282,6 +282,8 @@ type UpdateOptions struct {
 	LatestPage string
 	// ReleaseNotes is a GitHub "list releases" address, for what's new.
 	ReleaseNotes string
+	// Below ends this copy's line of releases (see update.Updater.Below).
+	Below string
 }
 
 func newUpdateState(opt Options) *updateState {
@@ -297,5 +299,6 @@ func newUpdateState(opt Options) *updateState {
 		Target:   opt.Update.Target,
 
 		LatestPage: opt.Update.LatestPage,
+		Below:      opt.Update.Below,
 	}}
 }

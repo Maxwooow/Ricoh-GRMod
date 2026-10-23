@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * Added Image Control slots (styles 34, 35, ...): up to six more looks in the camera's list, each
+ * Added Image Control slots (styles 34, 35, ...): up to twenty more looks in the camera's list, each
  * with its own matrix, tone curves, post-curve ("second") matrix and adjustment parameters. Tested
  * on a GR IV HDF as GR Mod test firmwares 023..034 (four slots).
  *
@@ -20,7 +20,7 @@
  * "pointer" from the slot name that followed).
  *
  * Everything else that knows the style numbers is extended for the new ones: menu order and
- * counts, names (text 846, ...), icons (768, ...), the ADJ list's own icon lookup, the shooting
+ * counts, names (texts 846..851, then 864..877), icons (768..779, then 782..789), the ADJ list's own icon lookup, the shooting
  * overlay, RAW development and the look-visibility check (hidden on the GR IV Monochrome).
  * The adjustable parameters (saturation, contrast, grain, ...): the firmware keeps them per
  * factory style only, and whatever reads them for the selected look (live-view generator,
@@ -33,17 +33,33 @@
 import { assembleWords, branchTarget, branchWord, movImmediate, movWord } from './arm';
 import { BASE, ICON_CATALOG, LOOKUP_BOUNDS, OFFICIAL_RTOS_LENGTH, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z } from './build';
 import { linkModule } from './native-link';
+import { LOOK_STASH, STASH_ASM, installLookStash } from './lookstash';
 import { SLOT_PARAMETERS, SLOT_PARAMS_MODULE } from './slotparams-native';
-import { HALATION_NAMES, halationIcon, halationLight, halationScale, installHalationModule, readHalation } from './halation';
+import { HALATION_COLOUR_NAMES, HALATION_LOOKS, HALATION_NAMES, halationColourIcon, halationColourScale, halationIcon, installHalationModule, readHalation } from './halation';
+import { installHalationClamps, installHalationUi } from './halation-ui';
+import type { HalationLook } from './halation';
 import { FirmwareError } from '../types';
 
-export const MAX_EXTRA_SLOTS = 6;
+/** Up to 0.8.1: 6. */
+export const MAX_EXTRA_SLOTS = 20;
 /** Style number of the first added slot (the firmware has 34: 0..33). */
 export const EXTRA_FIRST_STYLE = 34;
-/** Text number of the first added slot's name. */
+/**
+ * Text number of the first added slot's name. Slots 0..5 have 846..851 (as up to 0.8.1); 852 is
+ * "Halation" and 853..863 the power-off menu, so slots 6.. have 864...
+ */
 export const EXTRA_TEXT_ID = 846;
-/** Icon number of the first added slot's icon (768..787 are free in the extended catalog). */
+const EXTRA_TEXT_SPLIT = 6;
+const EXTRA_TEXT_ID_2 = 864;
+/** Icon number of the first added slot's icon: slots 0..11 768..779 (780, 781 are halation's), slots 12.. 782..789 (790, 791 halation's). */
 export const EXTRA_ICON_ID = 768;
+const EXTRA_ICON_SPLIT = 12;
+const EXTRA_ICON_ID_2 = 782;
+export const extraTextId = (k: number): number => (k < EXTRA_TEXT_SPLIT ? EXTRA_TEXT_ID + k : EXTRA_TEXT_ID_2 + k - EXTRA_TEXT_SPLIT);
+export const extraIconId = (k: number): number => (k < EXTRA_ICON_SPLIT ? EXTRA_ICON_ID + k : EXTRA_ICON_ID_2 + k - EXTRA_ICON_SPLIT);
+/** `dst` = the text (icon) number of added slot `k` (registers; `dst` is not `k`; flags change). */
+const textAsm = (dst: string, k: string): string => `cmp ${k},#${EXTRA_TEXT_SPLIT};movw ${dst},#${EXTRA_TEXT_ID};movwhs ${dst},#${EXTRA_TEXT_ID_2 - EXTRA_TEXT_SPLIT};add ${dst},${dst},${k}`;
+const iconAsm = (dst: string, k: string): string => `cmp ${k},#${EXTRA_ICON_SPLIT};movw ${dst},#${EXTRA_ICON_ID};movwhs ${dst},#${EXTRA_ICON_ID_2 - EXTRA_ICON_SPLIT};add ${dst},${dst},${k}`;
 /** Longest name of an added slot (printable ASCII: every language's font has those glyphs). */
 export const EXTRA_NAME_MAX = 12;
 export const EXTRA_ICON_BYTES = 40 * 40 * 4;
@@ -59,22 +75,32 @@ export interface ExtraSlotSpec {
   postQ9?: ArrayLike<number>;
   /** 40x40 RGBA. Fully transparent pixels stay transparent, others are made opaque. */
   icon: Uint8Array;
-  /** Halation (CineStill 800T, fixed look) for the slot's "Halation" levels Off / Weak / Strong (the slider of Cinema's Toning); absent or false = none. */
+  /**
+   * Halation (CineStill 800T, fixed look) for the slot's "Halation" levels Off / Weak / Strong (the
+   * slider of Cinema's Toning); absent or false = none.
+   */
   halation?: boolean;
 }
 
-/** Text of the parameter name "Halation", icon of its list entry and of its slider scale. */
+/**
+ * Text of the parameter name "Halation", icon of its list entry; in its submenu (0.8.2) the colour
+ * row's name, the colour slider's scale and the red and white row icons. (Icon 781 was the Off /
+ * Weak / Strong scale up to test 042.)
+ */
 export const HALATION_TEXT_ID = 852;
+export const HALATION_COLOUR_TEXT_ID = 878;
 export const HALATION_ICON_ID = 780;
-export const HALATION_SCALE_ICON_ID = 781;
+export const HALATION_COLOUR_SCALE_ICON_ID = 781;
+export const HALATION_RED_ICON_ID = 790;
+export const HALATION_WHITE_ICON_ID = 791;
 /** Text of Cinema's Toning (and of the black-and-white toning, which no added look has). */
 const TONING_TEXT = 339;
 /** Toning's list icon. */
 const TONING_ICON = 0x16f;
-/** The native three-position scale whose panel and track the halation scale reuses. */
-const NATIVE_SCALE_ICON = 0x23b;
+/** The native two-position (Off / On) scale whose panel and track the colour scale reuses. */
+const NATIVE_SCALE_ICON = 0x3a;
 /** The word the development step leaves for the halation module: style | level << 8 | valid. */
-const HALATION_STASH = 0x558372e4;
+const HALATION_STASH = LOOK_STASH;
 
 const TONES = 34;
 const VARIANTS = 3;
@@ -234,7 +260,7 @@ function swap(p: Patch, at: number, before: string, after: string, reason: strin
  * Install `slots` (1..MAX_EXTRA_SLOTS) into an RTOS image that already has the scaffold of
  * `build.ts` (extended catalogs), appending their icons to `iconbin`. Returns the new ICONBIN data.
  */
-export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly ExtraSlotSpec[]): Uint8Array {
+export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly ExtraSlotSpec[], options: { stashLook?: boolean } = {}): Uint8Array {
   const count = slots.length;
   if (!(count >= 1 && count <= MAX_EXTRA_SLOTS)) fail('too-many-slots', `1 to ${MAX_EXTRA_SLOTS} slots can be added`);
   if (p.textBoundSites.length === 0) fail('internal', 'the catalog scaffold is not installed');
@@ -259,6 +285,7 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
   for (let i = 1; i < MA_POINTERS; i++) if (wordOf(p.readMapped(stdArray + 4 * i, 4)) !== stdBlock) fail('unexpected-layout', 'Standard multi-axis pointers differ');
 
   const records: number[][] = [];
+  const prints: number[] = [];
   const parts: Uint8Array[] = [iconbin];
   let iconLength = iconbin.length;
   slots.forEach((s, k) => {
@@ -292,27 +319,28 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
     new DataView(m.buffer).setUint32(8, maArray, true);
     const maNew = p.append(m, 4);
     records.push([recNew, maNew, ycc, gammaNew]);
+    prints.push(fingerprint([mBytes, ...cBytes, s.postQ9 !== undefined ? u32le(Array.from(s.postQ9, (v) => v >>> 0)) : new Uint8Array(0)]));
 
     const text = p.append(utf16z(s.name), 4);
     const textDesc = p.append(concat([Uint8Array.from([s.name.length + 1, 1, 0, 0]), u32le([text])]), 4);
     for (let l = 0; l < 21; l++) {
       const row = p.word(TEXT_CATALOG + l * 4);
-      expectWord(p, row + (EXTRA_TEXT_ID + k) * 4, 0);
-      p.write(row + (EXTRA_TEXT_ID + k) * 4, u32le([textDesc]));
+      expectWord(p, row + extraTextId(k) * 4, 0);
+      p.write(row + extraTextId(k) * 4, u32le([textDesc]));
     }
     const pad = (4 - (iconLength % 4)) % 4;
     if (pad) {
       parts.push(new Uint8Array(pad));
       iconLength += pad;
     }
-    expectWord(p, ICON_CATALOG + (EXTRA_ICON_ID + k) * 4, 0);
+    expectWord(p, ICON_CATALOG + extraIconId(k) * 4, 0);
     const iconDesc = p.append(concat([u16le([1, 40, 40, 0]), u32le([iconLength / 4])]), 16);
-    p.setWord(ICON_CATALOG + (EXTRA_ICON_ID + k) * 4, iconDesc, 'added slot icon');
+    p.setWord(ICON_CATALOG + extraIconId(k) * 4, iconDesc, 'added slot icon');
     parts.push(icon);
     iconLength += icon.length;
   });
-  const lastText = EXTRA_TEXT_ID + count - 1;
-  const lastIcon = EXTRA_ICON_ID + count - 1;
+  const lastText = extraTextId(count - 1);
+  const lastIcon = extraIconId(count - 1);
   for (const site of p.textBoundSites) p.setWord(site, movWord(3, Math.max(lastText, movImmediate(p.word(site)))), 'text upper bound');
   for (const [site, r] of LOOKUP_BOUNDS) p.setWord(site, movWord(r, Math.max(lastIcon, movImmediate(p.word(site)))), 'icon upper bound');
 
@@ -334,11 +362,9 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
   hook(p, 0x53912cf4, 0xe352001e, `sub r1,r2,#${EXTRA_FIRST_STYLE};cmp r1,#${count - 1};bhi native;mov r3,r2;b #0x53912d08;native:cmp r2,#30;b #0x53912cf8`, 'added slots: style to table index');
   // The common input fields (grain among them) are read as for Cinema Yellow; only the local
   // dispatch register changes, the frame's style and the table index stay the new ones. With
-  // halation, the frame's style and Toning (halation) level are also left for the JPEG step.
-  const halation = slots.some((s) => s.halation === true);
-  const stash = halation
-    ? `push {r0,r1};ldrb r0,[r3,#0x79c];ldrb r1,[r3,#0x7a6];orr r0,r0,r1,lsl #8;orr r0,r0,#0x10000;movw r1,#${HALATION_STASH & 65535};movt r1,#${HALATION_STASH >>> 16};str r0,[r1];pop {r0,r1};`
-    : '';
+  // halation or the date imprint by look, the frame's style and Toning (halation) level are also
+  // left for the JPEG step (see lookstash.ts).
+  const stash = options.stashLook ? STASH_ASM : '';
   hook(p, 0x539113f8, 0xe5d3279c, `${stash}ldrb r2,[r3,#0x79c];sub ip,r2,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};movls r2,#${CY};b #0x539113fc`, 'added slots: Cinema input fields');
 
   // Menu order and counts.
@@ -359,50 +385,25 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
   hook(p, 0x533cc6e0, unlocked ? 0xe3510018 : 0xe3520000,
     `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;cmp r2,#0;moveq r0,#1;movne r0,#0;bx lr;native:${unlocked ? 'cmp r1,#24;bhi' : 'cmp r2,#0;bne'} #0x533cc750;b #0x533cc6e8`, 'added slots: visibility');
   // Names and icons.
-  hook(p, 0x5337f824, 0xe351000a, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;add r0,ip,#${EXTRA_TEXT_ID & 0xf00};add r0,r0,#${EXTRA_TEXT_ID & 0xff};bx lr;native:cmp r1,#10;b #0x5337f828`, 'added slots: name');
+  hook(p, 0x5337f824, 0xe351000a, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;${textAsm('r0', 'ip')};bx lr;native:cmp r1,#10;b #0x5337f828`, 'added slots: name');
   // The ADJ list has an icon lookup of its own (blank entries in test 022 without this).
-  hook(p, 0x53380fac, 0xe351000a, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;cmp r2,#0;movne r0,#0;addeq r0,ip,#${EXTRA_ICON_ID};bx lr;native:cmp r1,#10;b #0x53380fb0`, 'added slots: ADJ icon');
-  early(p, 0x53397044, `add r0,ip,#${EXTRA_TEXT_ID & 0xf00};add r0,r0,#${EXTRA_TEXT_ID & 0xff}`, count, 'added slots: name');
-  early(p, 0x533971cc, `add r0,ip,#${EXTRA_ICON_ID}`, count, 'added slots: icon');
+  hook(p, 0x53380fac, 0xe351000a, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;cmp r2,#0;movne r0,#0;bxne lr;${iconAsm('r0', 'ip')};bx lr;native:cmp r1,#10;b #0x53380fb0`, 'added slots: ADJ icon');
+  early(p, 0x53397044, textAsm('r0', 'ip'), count, 'added slots: name');
+  early(p, 0x533971cc, iconAsm('r0', 'ip'), count, 'added slots: icon');
   // The shooting overlay's icon (through CommonProperty); r3 is the style minus 8 there.
-  hook(p, 0x533a6880, 0xe3530016, `sub ip,r3,#${EXTRA_FIRST_STYLE - 8};cmp ip,#${count - 1};bhi native;add r0,ip,#${EXTRA_ICON_ID};b #0x533a6898;native:cmp r3,#22;b #0x533a6884`, 'added slots: shooting overlay icon');
+  hook(p, 0x533a6880, 0xe3530016, `sub ip,r3,#${EXTRA_FIRST_STYLE - 8};cmp ip,#${count - 1};bhi native;${iconAsm('r0', 'ip')};b #0x533a6898;native:cmp r3,#22;b #0x533a6884`, 'added slots: shooting overlay icon');
   // RAW development has its own numbering (0 = as shot, factory looks up to 20): new ones 21, ...
   for (const at of [0x53373f84, 0x53374118]) {
     hook(p, at, 0xe1a0c00d, `sub ip,r1,#21;cmp ip,#${count - 1};bhi native;add r0,ip,#${EXTRA_FIRST_STYLE};bx lr;native:mov ip,sp;b #${at + 4}`, 'added slots: RAW development look');
   }
   hook(p, 0x53373bc0, 0xe241100b, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;add r0,ip,#21;bx lr;native:sub r1,r1,#11;b #0x53373bc4`, 'added slots: RAW development look');
 
-  const module = installOwnParameters(p, count);
+  const module = installOwnParameters(p, count, prints);
   installPreviewMapping(p, count);
   installChangeFunctors(p, count);
   installLookChecks(p, count);
   installRawDevelopment(p, count, module);
   installPictureInfo(p, count);
-  if (halation) {
-    // Name, list icon and slider scale of the parameter for the added looks.
-    for (let l = 0; l < 21; l++) {
-      const row = p.word(TEXT_CATALOG + l * 4);
-      expectWord(p, row + HALATION_TEXT_ID * 4, 0);
-      const name = HALATION_NAMES[l];
-      const text = p.append(utf16z(name), 4);
-      p.write(row + HALATION_TEXT_ID * 4, u32le([p.append(concat([Uint8Array.from([name.length + 1, 1, 0, 0]), u32le([text])]), 4)]));
-    }
-    for (const site of p.textBoundSites) p.setWord(site, movWord(3, Math.max(HALATION_TEXT_ID, movImmediate(p.word(site)))), 'text upper bound');
-    const nativeScale = wordOf(p.readMapped(ICON_CATALOG + NATIVE_SCALE_ICON * 4, 4));
-    const scaleAt = wordOf(p.readMapped(nativeScale + 8, 4)) * 4;
-    const native = iconbin.slice(scaleAt, scaleAt + 400 * 60 * 4);
-    for (const [id, w, h, pixels] of [[HALATION_ICON_ID, 40, 40, halationIcon()], [HALATION_SCALE_ICON_ID, 400, 60, halationScale(native)]] as const) {
-      const pad = (4 - (iconLength % 4)) % 4;
-      if (pad) { parts.push(new Uint8Array(pad)); iconLength += pad; }
-      expectWord(p, ICON_CATALOG + id * 4, 0);
-      p.setWord(ICON_CATALOG + id * 4, p.append(concat([u16le([1, w, h, 0]), u32le([iconLength / 4])]), 16), 'halation icon');
-      parts.push(pixels);
-      iconLength += pixels.length;
-    }
-    for (const [site, r] of LOOKUP_BOUNDS) p.setWord(site, movWord(r, Math.max(HALATION_SCALE_ICON_ID, movImmediate(p.word(site)))), 'icon upper bound');
-    installHalationScreens(p, count);
-    installHalationModule(p, slots.map((s) => s.halation === true), EXTRA_FIRST_STYLE, HALATION_STASH, slots.map((s) => halationLight(s.curves, s.postQ9)));
-  }
   return concat(parts);
 }
 
@@ -438,7 +439,15 @@ const SLOT_STATE = 0x558372e0;
  * parameters, and two direct readers, still take the added styles as 18. Developed as test
  * firmwares 026..034.
  */
-function installOwnParameters(p: Patch, count: number): Record<string, number> {
+/** FNV-1a of a slot's colour data: the module starts a slot again from neutral when it changes (never 0). */
+function fingerprint(parts: readonly Uint8Array[]): number {
+  let h = 0x811c9dc5;
+  for (const b of parts) for (const x of b) h = Math.imul(h ^ x, 0x01000193) >>> 0;
+  return h || 1;
+}
+
+function installOwnParameters(p: Patch, count: number, prints: readonly number[]): Record<string, number> {
+  if (prints.length !== count) fail('internal', 'a fingerprint per added slot');
   const normalize = (at: number, reg: string, original: number, tail: string): void => {
     // The flags are set again by every native entry before use; no callee-saved register, LR or SP changes.
     hook(p, at, original, `sub ip,${reg},#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};movls ${reg},#${CY};${tail};b #${at + 4}`, 'added slots: parameters of Cinema Yellow');
@@ -458,15 +467,16 @@ function installOwnParameters(p: Patch, count: number): Record<string, number> {
   // The controller's direct custom-set getter: its freshly returned style, locally.
   normalize(0x533b6d6c, 'r0', 0xe1a06000, 'mov r6,r0');
 
-  expectWord(p, ZERO_FILL_END, 0x558372d4);
+  if (p.word(ZERO_FILL_END) !== 0x55837300) expectWord(p, ZERO_FILL_END, 0x558372d4); // (or already extended, e.g. for the live-view repaint)
   const priorSave = branchTarget(SETTINGS_SAVE, p.word(SETTINGS_SAVE));
   const priorLoad = branchTarget(SETTINGS_LOAD, p.word(SETTINGS_LOAD));
   if (priorSave < BASE + OFFICIAL_RTOS_LENGTH || priorLoad < BASE + OFFICIAL_RTOS_LENGTH) fail('internal', 'the settings save/load scaffold is not installed');
   for (const at of [...SLOT_PARAMETERS.map((i) => GETTERS[i]), ...SLOT_PARAMETERS.map((i) => SETTERS[i]), ...STYLE_SETTERS]) expectWord(p, at, 0xe1a0c00d);
+  const printTable = p.append(u32le(prints), 4);
   const origin = p.next(16);
   const mod = linkModule(SLOT_PARAMS_MODULE, 'slot parameters', count, origin, {
     prior_native_save: priorSave, prior_native_load: priorLoad, storage_singleton: 0x53a81480, store_write: 0x53a7e518,
-    store_read: 0x53a7e434, store_size: 0x53a7e208, heap_alloc: 0x538e09b0, sp_gap: SLOT_STATE, settings_object: 0x55084dd8,
+    store_read: 0x53a7e434, store_size: 0x53a7e208, heap_alloc: 0x538e09b0, sp_gap: SLOT_STATE, settings_object: 0x55084dd8, slot_prints: printTable,
   });
   if (p.append(mod.code, 16) !== origin) fail('internal', 'module address changed');
   SLOT_PARAMETERS.forEach((i, j) => {
@@ -478,7 +488,7 @@ function installOwnParameters(p: Patch, count: number): Record<string, number> {
   p.setWord(SETTINGS_LOAD, branchWord(SETTINGS_LOAD, mod.symbols.sp_load), 'settings load, then the added slots\' parameters');
   // The module keeps its state pointer in the 44 bytes between the end of the zero fill and the
   // heap; they are cleared at every start from now on.
-  p.setWord(ZERO_FILL_END, 0x55837300, 'start-up zero fill also clears the 44 unused bytes before the heap');
+  if (p.word(ZERO_FILL_END) !== 0x55837300) p.setWord(ZERO_FILL_END, 0x55837300, 'start-up zero fill also clears the 44 unused bytes before the heap');
   return mod.symbols;
 }
 
@@ -756,37 +766,112 @@ function installPictureInfo(p: Patch, count: number): void {
   hook(p, 0x533a7628, 0xe3530016, `cmp r3,#${EXTRA_FIRST_STYLE - 8};blo native;cmp r3,#${EXTRA_FIRST_STYLE - 8 + count};movlo r3,#${CY - 8};native:cmp r3,#0x16;b #0x533a762c`, 'added slots: playback parameters of Cinema Yellow');
 }
 
-// -------------------------------------------------------------- halation on the parameter screens
+// -------------------------------------------------------------- halation
 
 /** The RAW development model's look of the current base, through the model getter chain. */
 const RAW_LOOK_CALLS = 'bl #0x5323ea84;bl #0x5323f078;bl #0x5336bde8';
+/** Cinema Yellow and Green: style numbers and RAW development's. */
+export const CINEMA_STYLES = { CY: 18, CG: 19 } as const;
+const CINEMA_RAW: Readonly<Record<number, number>> = { 18: 9, 19: 10 };
+
+/** RAW development's number of a look with halation (an added slot or a Cinema slot). */
+function rawLook(style: number): number {
+  if (style >= EXTRA_FIRST_STYLE) return RAW_FIRST_EXTRA + style - EXTRA_FIRST_STYLE;
+  const raw = CINEMA_RAW[style];
+  if (raw === undefined) fail('internal', 'halation: a look without a RAW development number');
+  return raw;
+}
+
+/** `dst` = table[`reg`] (0 for `reg` >= 64), through `tmp`; `reg` keeps its value unless it is `dst`. */
+function lookupAsm(dst: string, reg: string, tmp: string, table: number): string {
+  return `cmp ${reg},#64;movw ${tmp},#${table & 65535};movt ${tmp},#${table >>> 16};ldrblo ${dst},[${tmp},${reg}];movhs ${dst},#0`;
+}
 
 /**
- * For an added look, Cinema's Toning on the parameter screens (shooting: ImageControlDetail-
+ * Halation for `looks` (added slots and Cinema slots with a preset): the parameter's name, list
+ * icon and screens, and the module at the JPEG step. Returns the new ICONBIN data. The development
+ * step must leave the look for the JPEG step (`lookstash.ts`; the added slots' hook does it when
+ * asked, without added slots it is installed here).
+ *
+ * For such a look, Cinema's Toning on the parameter screens (shooting: ImageControlDetail-
  * Controller, the style at +0x19C; RAW development: RawDevelopmentImageControlDetailSetController,
  * the look asked from the model) shows as Halation: its name (the subtitle, from a table of texts
- * per parameter kind: Toning is text 339), its icon in the list (0x16F) and its slider scale
- * (Cinema's colour scales 0x23D / 0x23E). The values are Toning's 0..2: Off, Weak, Strong.
+ * per parameter kind: Toning is text 339) and its icon in the list (0x16F). From 0.8.2 it is an
+ * Off / On row like Grain Effect's, and Fn opens Grain Effect's submenu as Halation's (Strength,
+ * Colour); the setting is kept in the Toning byte (`halation-ui.ts`). Which looks: two tables of 64
+ * bytes (by style, by RAW development's number).
  */
-function installHalationScreens(p: Patch, count: number): void {
-  const n = count - 1;
-  const RAW = RAW_FIRST_EXTRA;
+export function installHalation(p: Patch, iconbin: Uint8Array, looks: readonly HalationLook[]): Uint8Array {
+  if (looks.length === 0) return iconbin;
+  const byStyle = new Uint8Array(HALATION_LOOKS);
+  const byRaw = new Uint8Array(HALATION_LOOKS);
+  for (const l of looks) {
+    if (!(l.style >= 0 && l.style < HALATION_LOOKS)) fail('internal', 'halation: style');
+    byStyle[l.style] = 1;
+    byRaw[rawLook(l.style)] = 1;
+  }
+  const styles = p.append(byStyle, 4);
+  const raws = p.append(byRaw, 4);
+
+  // Name, list icon and slider scale of the parameter.
+  const parts: Uint8Array[] = [iconbin];
+  let iconLength = iconbin.length;
+  for (let l = 0; l < 21; l++) {
+    const row = p.word(TEXT_CATALOG + l * 4);
+    for (const [id, name] of [[HALATION_TEXT_ID, HALATION_NAMES[l]], [HALATION_COLOUR_TEXT_ID, HALATION_COLOUR_NAMES[l]]] as const) {
+      expectWord(p, row + id * 4, 0);
+      const text = p.append(utf16z(name), 4);
+      p.write(row + id * 4, u32le([p.append(concat([Uint8Array.from([name.length + 1, 1, 0, 0]), u32le([text])]), 4)]));
+    }
+  }
+  for (const site of p.textBoundSites) p.setWord(site, movWord(3, Math.max(HALATION_COLOUR_TEXT_ID, movImmediate(p.word(site)))), 'text upper bound');
+  const nativeScale = wordOf(p.readMapped(ICON_CATALOG + NATIVE_SCALE_ICON * 4, 4));
+  const scaleAt = wordOf(p.readMapped(nativeScale + 8, 4)) * 4;
+  const native = iconbin.slice(scaleAt, scaleAt + 400 * 60 * 4);
+  for (const [id, w, h, pixels] of [[HALATION_ICON_ID, 40, 40, halationIcon()], [HALATION_COLOUR_SCALE_ICON_ID, 400, 60, halationColourScale(native)],
+    [HALATION_RED_ICON_ID, 40, 40, halationColourIcon('red')], [HALATION_WHITE_ICON_ID, 40, 40, halationColourIcon('white')]] as const) {
+    const pad = (4 - (iconLength % 4)) % 4;
+    if (pad) { parts.push(new Uint8Array(pad)); iconLength += pad; }
+    expectWord(p, ICON_CATALOG + id * 4, 0);
+    p.setWord(ICON_CATALOG + id * 4, p.append(concat([u16le([1, w, h, 0]), u32le([iconLength / 4])]), 16), 'halation icon');
+    parts.push(pixels);
+    iconLength += pixels.length;
+  }
+  for (const [site, r] of LOOKUP_BOUNDS) p.setWord(site, movWord(r, Math.max(HALATION_WHITE_ICON_ID, movImmediate(p.word(site)))), 'icon upper bound');
+
   // Shooting: subtitle (r6 the table entry, r5 the controller).
-  hook(p, 0x531ca7cc, 0xe1d610b2, `ldrh r1,[r6,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;ldrb ip,[r5,#0x19c];sub ip,ip,#${EXTRA_FIRST_STYLE};cmp ip,#${n};movwls r1,#${HALATION_TEXT_ID};done:b #0x531ca7d0`, 'halation: name of the parameter');
-  // Shooting: slider scale (r3 the style, r6 the controller).
-  hook(p, 0x531c7ae0, 0xe3530012, `sub ip,r3,#${EXTRA_FIRST_STYLE};cmp ip,#${n};movwls r3,#${HALATION_SCALE_ICON_ID};bls #0x531c7af8;cmp r3,#0x12;b #0x531c7ae4`, 'halation: slider scale');
+  hook(p, 0x531ca7cc, 0xe1d610b2, `ldrh r1,[r6,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;ldrb ip,[r5,#0x19c];push {r0};${lookupAsm('ip', 'ip', 'r0', styles)};pop {r0};cmp ip,#0;movwne r1,#${HALATION_TEXT_ID};done:b #0x531ca7d0`, 'halation: name of the parameter');
   // Shooting: list icon (controller r7, r6).
   for (const [at, ctl] of [[0x531c973c, 'r7'], [0x531c982c, 'r6']] as const) {
-    hook(p, at, 0xe300116f, `ldrb r1,[${ctl},#0x19c];sub r1,r1,#${EXTRA_FIRST_STYLE};cmp r1,#${n};movw r1,#${TONING_ICON};movwls r1,#${HALATION_ICON_ID};b #${at + 4}`, 'halation: list icon');
+    hook(p, at, 0xe300116f, `ldrb r1,[${ctl},#0x19c];push {r0};${lookupAsm('r1', 'r1', 'r0', styles)};pop {r0};cmp r1,#0;movw r1,#${TONING_ICON};movwne r1,#${HALATION_ICON_ID};b #${at + 4}`, 'halation: list icon');
   }
   // RAW development: subtitle (r7 the table entry).
-  hook(p, 0x531a833c, 0xe1d710b2, `ldrh r1,[r7,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;push {r0,r2,r3,lr};${RAW_LOOK_CALLS};sub r0,r0,#${RAW};cmp r0,#${n};movw r1,#${TONING_TEXT};movwls r1,#${HALATION_TEXT_ID};pop {r0,r2,r3,lr};done:b #0x531a8340`, 'halation: name of the parameter (RAW development)');
-  // RAW development: slider scale (r3 the base kind, 8 = Cinema Yellow's).
-  hook(p, 0x531a6acc, 0xe3530008, `push {r0,r1,r2,lr};${RAW_LOOK_CALLS};sub ip,r0,#${RAW};pop {r0,r1,r2,lr};ldrb r3,[r6,#0x19b];cmp ip,#${n};movwls r3,#${HALATION_SCALE_ICON_ID};bls #0x531a6ae4;cmp r3,#8;b #0x531a6ad0`, 'halation: slider scale (RAW development)');
+  hook(p, 0x531a833c, 0xe1d710b2, `ldrh r1,[r7,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_TEXT};movwne r1,#${HALATION_TEXT_ID};pop {r0,r2,r3,lr};done:b #0x531a8340`, 'halation: name of the parameter (RAW development)');
   // RAW development: list icon.
   for (const at of [0x531a88d0, 0x531a89e8]) {
-    hook(p, at, 0xe300116f, `push {r0,r2,r3,lr};${RAW_LOOK_CALLS};sub r0,r0,#${RAW};cmp r0,#${n};movw r1,#${TONING_ICON};movwls r1,#${HALATION_ICON_ID};pop {r0,r2,r3,lr};b #${at + 4}`, 'halation: list icon (RAW development)');
+    hook(p, at, 0xe300116f, `push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_ICON};movwne r1,#${HALATION_ICON_ID};pop {r0,r2,r3,lr};b #${at + 4}`, 'halation: list icon (RAW development)');
   }
+
+  // Off / On, Fn to the submenu (Strength, Colour); native Toning readers kept to 0..2.
+  installHalationUi(p, {
+    styles, raws, nameText: HALATION_TEXT_ID, icon: HALATION_ICON_ID, colourText: HALATION_COLOUR_TEXT_ID,
+    colourScale: HALATION_COLOUR_SCALE_ICON_ID, redIcon: HALATION_RED_ICON_ID, whiteIcon: HALATION_WHITE_ICON_ID,
+  });
+  installHalationClamps(p);
+
+  // The look of the picture for the JPEG step: without added slots their hook is not there.
+  if (p.word(0x539113f8) === 0xe5d3279c) installLookStash(p);
+  else if (!isLookStashed(p)) fail('internal', 'halation: the development step does not leave the look');
+  installHalationModule(p, looks, HALATION_STASH);
+  return concat(parts);
+}
+
+/** The development step's hook (added slots or `installLookStash`) leaves the look. */
+function isLookStashed(p: Patch): boolean {
+  const w = p.word(0x539113f8);
+  if (w >>> 24 !== 0xea) return false;
+  const [first] = assembleWords(STASH_ASM, 0);
+  return p.word(branchTarget(0x539113f8, w)) === first;
 }
 
 // -------------------------------------------------------------- reading them back
@@ -822,19 +907,19 @@ export function readExtraSlots(rtos: Uint8Array, iconbin: Uint8Array, count: num
         const e = new DataView(p.readMapped(wordOf(p.readMapped(post + 4 * POST_NEUTRAL, 4)), 18).buffer);
         postQ9 = Array.from({ length: 9 }, (_, i) => e.getInt16(2 * i, true) / 16);
       }
-      const textDesc = p.word(p.word(TEXT_CATALOG) + (EXTRA_TEXT_ID + k) * 4);
+      const textDesc = p.word(p.word(TEXT_CATALOG) + extraTextId(k) * 4);
       const units = p.read(textDesc, 1)[0];
       const tb = p.read(p.word(textDesc + 4), (units - 1) * 2);
       let name = '';
       for (let i = 0; i < units - 1; i++) name += String.fromCharCode(tb[2 * i] | (tb[2 * i + 1] << 8));
-      const iconDesc = p.word(ICON_CATALOG + (EXTRA_ICON_ID + k) * 4);
+      const iconDesc = p.word(ICON_CATALOG + extraIconId(k) * 4);
       const iconOffset = p.word(iconDesc + 8) * 4;
       if (iconOffset + EXTRA_ICON_BYTES > iconbin.length) return null;
       const icon = iconbin.slice(iconOffset, iconOffset + EXTRA_ICON_BYTES);
       out.push({ name, matrixQ13, curves, ...(postQ9 ? { postQ9 } : {}), icon });
     }
-    const halation = readHalation(p, count);
-    if (halation) halation.forEach((h, k) => { if (h) out[k].halation = true; });
+    const halation = readHalation(p, EXTRA_FIRST_STYLE, count);
+    if (halation) out.forEach((x, k) => { if (halation.has(EXTRA_FIRST_STYLE + k)) x.halation = true; });
     return out;
   } catch {
     return null;

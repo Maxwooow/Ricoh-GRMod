@@ -27,6 +27,7 @@ import type { FirmwareTarget } from '../target';
 import { assembleWords } from './arm';
 import { Patch, expectWord, u32le } from './build';
 import { DATESTAMP_CODE, DATESTAMP_CODE_LENGTH, DATESTAMP_DIAG_CODE } from './datestamp-code';
+import { MONO_MODEL } from './lookstash';
 
 /** JpegEncodeMacroProcess::Execute. */
 export const JPEG_EXECUTE = 0x537034b4;
@@ -71,8 +72,13 @@ export function datestampModule(diag = false): Uint8Array {
   return raw;
 }
 
-/** Install the imprint; `setting` is the address of its setting byte. Returns the module address. */
-export function installDateStamp(patch: Patch, setting: number, diag = false): number {
+/**
+ * Install the imprint; `setting` is the address of its setting byte. `look` (0.8.2 on): the word
+ * the development step leaves the look in and the 64-byte table of black-and-white looks; the
+ * imprint is then light only exactly for those looks (and on the GR IV Monochrome) instead of
+ * for pictures whose colours look neutral. Returns the module address.
+ */
+export function installDateStamp(patch: Patch, setting: number, diag = false, look?: { stash: number; monoLooks: Uint8Array }): number {
   const v = (a: number): number => patch.va(a);
   const execute = v(JPEG_EXECUTE);
   expectWord(patch, execute, 0xe1a0c00d); // mov ip, sp
@@ -84,7 +90,9 @@ export function installDateStamp(patch: Patch, setting: number, diag = false): n
   expectWord(patch, v(CACHE_CLEAN), 0xe1a00001);
   expectWord(patch, v(CACHE_FLUSH_FOR_READ), 0xe1a0c00d);
   expectWord(patch, v(GET_TIME), 0xe5d03014); // ldrb r3, [r0, #0x14]
-  const ctx = patch.append(u32le([v(CACHE), v(CACHE_FLUSH_FOR_READ), v(CACHE_CLEAN), v(PLATFORM), v(GET_TIME), setting]), 16);
+  if (look && look.monoLooks.length !== 64) fail('internal', 'date imprint: table of black-and-white looks');
+  const table = look ? patch.append(look.monoLooks, 4) : 0;
+  const ctx = patch.append(u32le([v(CACHE), v(CACHE_FLUSH_FOR_READ), v(CACHE_CLEAN), v(PLATFORM), v(GET_TIME), setting, look ? look.stash : 0, table, look ? v(MONO_MODEL) : 0]), 16);
   const code = patch.append(datestampModule(diag), 16);
   const stub = patch.append((at) => assembleWords(
     `push {r0, r1, r2, r3, ip, lr}

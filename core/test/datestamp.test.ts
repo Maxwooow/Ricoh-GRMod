@@ -39,14 +39,14 @@ describe.skipIf(!have)('date imprint: firmware files', () => {
     const eng = await Engine.open(new Uint8Array(readFileSync(P + 'official.bin')));
     const b = await eng.buildFirmware([], [], [], { dateStamp: true });
     expect(Object.values(b.checks).every((v) => v === true)).toBe(true);
-    expect(b.features).toEqual({ adjSoftFocus: false, dateStamp: true });
+    expect(b.features).toEqual({ adjSoftFocus: false, dateStamp: true, guard: true });
     const s = await eng.inspect(b.file);
     expect(s.kind).toBe('modified');
     expect(s.verified).toBe(true);
     const d = new fw.Firmware(b.file).decoded;
     const rtos = fw.sectionsOf(d).find((x) => x.name === 'RTOS')!;
     const data = d.subarray(rtos.offset, rtos.offset + rtos.size);
-    expect(fw.readExtensionFeatures(data)).toEqual({ dateStamp: true });
+    expect(fw.readExtensionFeatures(data)).toEqual({ dateStamp: true, guard: true });
     const word = (va: number): number => new DataView(data.buffer, data.byteOffset).getUint32(va - 0x53000000, true);
     // The hooks: still-menu builder, controller factory, the two SetCurrentMenu.
     for (const at of [0x531b3ecc, 0x53185f7c, 0x531e1bd0, 0x531d5e8c, 0x537034b4]) expect(word(at) >>> 24).toBe(0xea);

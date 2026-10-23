@@ -43,7 +43,7 @@ describe.skipIf(!have)('ADJ soft focus: firmware files', () => {
     const b = await eng.buildFirmware([], [], [], { adjSoftFocus: true });
     expect(Object.values(b.checks).every((v) => v === true)).toBe(true);
     expect(b.ratios).toEqual([]);
-    expect(b.features).toEqual({ adjSoftFocus: true });
+    expect(b.features).toEqual({ adjSoftFocus: true, guard: true });
     const s = await eng.inspect(b.file);
     expect(s.kind).toBe('modified');
     expect(s.verified).toBe(true);
@@ -56,7 +56,7 @@ describe.skipIf(!have)('ADJ soft focus: firmware files', () => {
     const data = d.subarray(rtos.offset, rtos.offset + rtos.size);
     expect(fw.readBuildRevision(data)).toBe(3);
     expect(fw.readRatioRecord(data)).toEqual([]);
-    expect(fw.readExtensionFeatures(data)).toEqual({ adjSoftFocus: true });
+    expect(fw.readExtensionFeatures(data)).toEqual({ adjSoftFocus: true, guard: true });
   });
   it('the clarity table itself stays official', async () => {
     const b = await eng.buildFirmware([], [], [], { adjSoftFocus: true });
@@ -70,8 +70,8 @@ describe.skipIf(!have)('ADJ soft focus: firmware files', () => {
     expect(s.adjSoftFocus).toBe(true);
     expect(s.ratios.map((r) => r.name)).toEqual(['XPan', '2.39']);
   });
-  it('ratios alone are still revision 2 and byte-identical to the build without this feature', async () => {
-    const b = await eng.buildFirmware([], [{ name: 'XPan', ratio: '65:24' }]);
+  it('ratios alone (without the guard, as up to 0.8.1) are still revision 2 and byte-identical to the build without this feature', async () => {
+    const b = await eng.buildFirmware([], [{ name: 'XPan', ratio: '65:24' }], [], { guard: false });
     const d = new fw.Firmware(b.file).decoded;
     const rtos = fw.sectionsOf(d).find((x) => x.name === 'RTOS')!;
     expect(fw.readBuildRevision(d.subarray(rtos.offset, rtos.offset + rtos.size))).toBe(2);
@@ -87,7 +87,7 @@ describe.skipIf(!have)('ADJ soft focus: firmware files', () => {
     expect(e.revision).toBe(2);
   });
   it('a file whose record claims soft focus without the code is not verified', async () => {
-    const b = await eng.buildFirmware([], [{ name: 'XPan', ratio: '65:24' }]);
+    const b = await eng.buildFirmware([], [{ name: 'XPan', ratio: '65:24' }], [], { guard: false });
     const f = new fw.Firmware(b.file);
     const d = f.decoded.slice();
     const rtos = fw.sectionsOf(d).find((x) => x.name === 'RTOS')!;

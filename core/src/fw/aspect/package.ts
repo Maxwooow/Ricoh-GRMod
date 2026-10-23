@@ -55,6 +55,8 @@ const FEATURE_DATE_STAMP = 2;
 const FEATURE_MONO_UNLOCK = 4;
 const FEATURE_EXTRA_SLOTS = 8;
 const FEATURE_SHUTDOWN = 16;
+/** The settings guard (`guard.ts`), in every build from 0.8.2 on. */
+const FEATURE_GUARD = 32;
 
 /**
  * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
@@ -70,7 +72,7 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
   }
   const slots = features.extraSlots?.length ?? 0;
   const pictures = features.shutdown?.pictures.length ?? 0;
-  if (revision >= 3) bytes.push((features.adjSoftFocus ? FEATURE_ADJ_SOFT_FOCUS : 0) | (features.dateStamp ? FEATURE_DATE_STAMP : 0) | (features.monoUnlock ? FEATURE_MONO_UNLOCK : 0) | (slots > 0 ? FEATURE_EXTRA_SLOTS : 0) | (pictures > 0 ? FEATURE_SHUTDOWN : 0));
+  if (revision >= 3) bytes.push((features.adjSoftFocus ? FEATURE_ADJ_SOFT_FOCUS : 0) | (features.dateStamp ? FEATURE_DATE_STAMP : 0) | (features.monoUnlock ? FEATURE_MONO_UNLOCK : 0) | (slots > 0 ? FEATURE_EXTRA_SLOTS : 0) | (pictures > 0 ? FEATURE_SHUTDOWN : 0) | (features.guard ? FEATURE_GUARD : 0));
   if (revision >= 3 && slots > 0) bytes.push(slots);
   else if (slots > 0) fail('internal', 'added slots need revision 3');
   if (revision >= 3 && pictures > 0) bytes.push(pictures);
@@ -137,7 +139,8 @@ function parseRecord(rtos: Uint8Array, officialLength = OFFICIAL_RTOS_LENGTH): P
   if (revision >= 3) {
     if (p >= rec.length) return null;
     const f = rec[p++];
-    if ((f & ~(FEATURE_ADJ_SOFT_FOCUS | FEATURE_DATE_STAMP | FEATURE_MONO_UNLOCK | FEATURE_EXTRA_SLOTS | FEATURE_SHUTDOWN)) !== 0) return null;
+    if ((f & ~(FEATURE_ADJ_SOFT_FOCUS | FEATURE_DATE_STAMP | FEATURE_MONO_UNLOCK | FEATURE_EXTRA_SLOTS | FEATURE_SHUTDOWN | FEATURE_GUARD)) !== 0) return null;
+    if (f & FEATURE_GUARD) features.guard = true;
     if (f & FEATURE_ADJ_SOFT_FOCUS) features.adjSoftFocus = true;
     if (f & FEATURE_DATE_STAMP) features.dateStamp = true;
     if (f & FEATURE_MONO_UNLOCK) features.monoUnlock = true;
@@ -151,7 +154,7 @@ function parseRecord(rtos: Uint8Array, officialLength = OFFICIAL_RTOS_LENGTH): P
       shutdownPictures = rec[p++];
       if (!(shutdownPictures >= 1 && shutdownPictures <= SHUTDOWN_MAX_PICTURES)) return null;
     }
-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && extraSlots === 0 && shutdownPictures === 0) return null;
+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0) return null;
   }
   for (; p < rec.length; p++) if (rec[p] !== 0) return null;
   return { specs: out, features, extraSlots, shutdownPictures };

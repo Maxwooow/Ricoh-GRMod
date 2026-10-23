@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { color, EXTRA_NAME_MAX, halateRgba, halationLight, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_H, SHUTDOWN_NAME_MAX, SHUTDOWN_W } from '@grmod/core';
 import type { SlotId } from '@grmod/core';
 import type { ReactNode } from 'react';
-import { DropZone, FileButton, Ico, IconCanvas, Menu, Prop, RatioIcon, RgbCanvas, Segmented, Switch } from './components';
+import { DropZone, FileButton, Ico, IconCanvas, Menu, Prop, RatioIcon, RgbCanvas, Segmented, Select, Switch } from './components';
 import { FirmwareHero } from './firmware';
 import { t } from './i18n';
 import type { Key } from './i18n';
@@ -18,7 +18,7 @@ import {
   extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, slotOf,
   setWallName, wallMax, wallMenuProblem,
 } from './store';
-import type { ExtraSlot, RatioItem, WallItem } from './store';
+import type { ExtraSlot, RatioItem, SlotKey, WallItem } from './store';
 
 const isPreset = (f: File): boolean => /\.(xmp|cube)$/i.test(f.name);
 const isFirmware = (f: File): boolean => /\.bin$/i.test(f.name);
@@ -49,18 +49,21 @@ function Swatches({ params }: { params?: color.SlotParams }) {
 /** The sample photograph with the original on the left of a draggable divider and the preset on the right. */
 function PhotoCompare({ params }: { params?: color.SlotParams }) {
   const photo = usePhoto();
-  const halo = useStore((s) => { const x = s.extras.find((e) => e.key === s.activeSlot); return x?.halation?.preview ? x.halation : undefined; });
+  // (primitive selections: the store hook needs a stable value)
+  const haloLevel = useStore((s) => { const h = halationOf(s.activeSlot, s); return h.on ? h.preview : 0; });
+  const haloColour = useStore((s) => halationOf(s.activeSlot, s).colour ?? 'red');
+  const halo = haloLevel ? { preview: haloLevel } : undefined;
   // where the slot's light starts: its own look decides how bright the highlights end up
-  const result = useStore((s) => s.extras.find((e) => e.key === s.activeSlot)?.preset?.result);
+  const result = useStore((s) => slotOf(s.activeSlot, s)?.preset?.result);
   const light = useMemo(() => (result ? halationLight(result.curves, result.postQ9) : undefined), [result]);
   const base = useMemo(() => (photo && params ? applySlot(params, photo) : null), [photo, params]);
   // The added slot's halation at the level chosen for the preview, as the camera computes it.
   const after = useMemo(() => {
     if (!base || !halo) return base;
     const out = new ImageData(new Uint8ClampedArray(base.data), base.width, base.height);
-    halateRgba(out.data, out.width, out.height, halo.preview as 1 | 2, light);
+    halateRgba(out.data, out.width, out.height, halo.preview as 1 | 2 | 3, light, haloColour);
     return out;
-  }, [base, halo, light]);
+  }, [base, haloLevel, light, haloColour]);
   return <Compare photo={photo} after={after} label={t('preset')} />;
 }
 
@@ -217,6 +220,7 @@ function SlotCard({ id }: { id: SlotId }) {
               {slot.icon.mode === 'image' && <FileButton className="btn small" accept="image/*" onFiles={(f) => { void loadIconImage(id, f[0]); }}>{t('chooseImage')}</FileButton>}
             </div>
           </Prop>
+          {p?.result && <HalationProp k={id} />}
         </div>
       </div>
     </DropZone>
@@ -236,7 +240,7 @@ function ExtrasHead() {
           <span className="muted small ellipsis">{t('extraSub', { n: MAX_EXTRA_SLOTS })}</span>
         </div>
       </div>
-      <div className="extras-count"><Segmented value={String(n)} onChange={(v) => setExtraCount(Number(v))} options={options} /></div>
+      <div className="extras-count"><Select variant="box" value={String(n)} onChange={(v) => setExtraCount(Number(v))} options={options} label={t('extraTitle')} /></div>
     </div>
   );
 }
@@ -290,7 +294,7 @@ function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
               {x.icon.mode === 'image' && <FileButton className="btn small" accept="image/*" onFiles={(f) => { void loadIconImage(k, f[0]); }}>{t('chooseImage')}</FileButton>}
             </div>
           </Prop>
-          <HalationProp x={x} />
+          <HalationProp k={x.key} />
           {problem && !p?.busy && !p?.error && !nameBad && <div className="chips extra-problem"><span className="chip warn"><span className="ellipsis">{problem}</span></span></div>}
         </div>
       </div>
@@ -299,22 +303,33 @@ function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
 }
 
 /**
- * An added slot's halation: on / off and the level the preview shows. The look is fixed (fitted
- * to CineStill 800T); in the camera the level is chosen on the slot's parameter screen
- * ("Halation": Off / Weak / Strong).
+ * A slot's halation, and the level and colour the preview shows. The look is fixed (fitted to
+ * CineStill 800T); in the camera it is set on the slot's parameter screen ("Halation": Off / On, Fn
+ * for Strength Weak / Medium / Strong and Colour red / white). Every added slot has it; Cinema
+ * Yellow / Green only with a preset (their Toning then does nothing and becomes Halation) and when
+ * it is switched on here.
  */
-function HalationProp({ x }: { x: ExtraSlot }) {
-  const h = halationOf(x);
-  const k = x.key;
+function HalationProp({ k }: { k: SlotKey }) {
+  const on = useStore((s) => halationOf(k, s).on);
+  const preview = useStore((s) => halationOf(k, s).preview);
+  const colour = useStore((s) => halationOf(k, s).colour ?? 'red');
+  const cinema = !k.startsWith('x-');
   return (
     <Prop label={t('haloLabel')}>
       <div className="halo">
-        {/* Every added slot has it: the camera switches it (the slot's "Halation" parameter); here only the preview. */}
-        <div className="chips">
-          <span className="muted small">{t('haloPreview')}</span>
-          <Segmented value={String(h.preview)} onChange={(v) => setHalation(k, { preview: Number(v) as 0 | 1 | 2 })} options={[{ value: '0', label: t('haloOff') }, { value: '1', label: t('haloWeak') }, { value: '2', label: t('haloStrong') }]} />
-        </div>
-        <span className="muted small halo-note">{t('halationSub')}</span>
+        {cinema && (
+          <div className="chips">
+            <Segmented value={on ? 'on' : 'off'} onChange={(v) => setHalation(k, { on: v === 'on' })} options={[{ value: 'off', label: t('haloOff') }, { value: 'on', label: t('haloOn') }]} />
+          </div>
+        )}
+        {on && (
+          <div className="chips">
+            <span className="muted small">{t('haloPreview')}</span>
+            <Segmented value={String(preview)} onChange={(v) => setHalation(k, { preview: Number(v) as 0 | 1 | 2 | 3 })} options={[{ value: '0', label: t('haloOff') }, { value: '1', label: t('haloWeak') }, { value: '2', label: t('haloMedium') }, { value: '3', label: t('haloStrong') }]} />
+            {preview > 0 && <Segmented value={colour} onChange={(v) => setHalation(k, { colour: v as 'red' | 'white' })} options={[{ value: 'red', label: t('haloRed') }, { value: 'white', label: t('haloWhite') }]} />}
+          </div>
+        )}
+        <span className="muted small halo-note">{t(cinema ? 'halationCinemaSub' : 'halationSub')}</span>
       </div>
     </Prop>
   );
@@ -454,18 +469,20 @@ export function ImageControlPage() {
 // ---------------------------------------------------------------- added aspect ratios
 // in the camera's menu order
 const FACTORY_RATIOS = ['3:2', '4:3', '1:1', '16:9'];
-const COMMON_RATIOS = ['65:24', '2.39:1', '2:1', '5:4', '7:6', '4:5'];
+const COMMON_RATIOS = ['65:24', '2.39:1', '2:1', '5:4', '7:6'];
 const size = (s: [number, number]): string => `${s[0]}×${s[1]}`;
 
 function RatioRow({ r, active, tour }: { r: RatioItem; active: boolean; tour?: string }) {
-  const problem = ratioProblem(r);
   const p = r.preview;
+  // A ratio narrower than 1:1 is only marked (the input in red, the reason as its tooltip).
+  const portrait = p?.problem === 'ratio-portrait';
+  const problem = portrait ? null : ratioProblem(r);
   const busy = !!r.ratio.trim() && !p;
   return (
     <div className={`ratio-row ${active ? 'on' : ''}`} data-tour={tour} onPointerDownCapture={() => setActiveRatio(r.id)} onFocusCapture={() => setActiveRatio(r.id)}>
       <RatioIcon pixels={p?.icon} width={48} />
       <input
-        className={`input ratio-in ${p?.problem ? 'bad' : ''}`} value={r.ratio} maxLength={16} spellCheck={false} placeholder={t('ratioPlaceholder')} aria-label={t('navRatio')}
+        className={`input ratio-in ${p?.problem ? 'bad' : ''}`} title={portrait ? ratioProblem(r) ?? undefined : undefined} value={r.ratio} maxLength={16} spellCheck={false} placeholder={t('ratioPlaceholder')} aria-label={t('navRatio')}
         autoFocus={!r.ratio} onChange={(e) => setRatio(r.id, { ratio: e.target.value.replace(/[^0-9:.：/xX×]/g, '').replace(/[：/xX×]/g, ':') })}
       />
       <input
@@ -519,7 +536,7 @@ function RatioPane({ r }: { r?: RatioItem }) {
         </div>
         <div className={`chips ratio-out ${p?.sizes ? 'sizes' : ''}`}>
           {p?.sizes && p.sizes.map((s, i) => <span key={i} className="chip"><b>{labels[i]}</b>{size(s)}</span>)}
-          {p?.problem && <span className="chip bad">{r ? ratioProblem(r) : ''}</span>}
+          {p?.problem && p.problem !== 'ratio-portrait' && <span className="chip bad">{r ? ratioProblem(r) : ''}</span>}
           {p?.problem && r && (p.nearest || []).map((n) => <button key={n} className="btn small" onClick={() => setRatio(r.id, { ratio: n })}>{n}</button>)}
         </div>
       </div>

@@ -22,6 +22,8 @@ export interface UpdateInfo {
   updatedFrom?: string;
   /** The latest version has already been downloaded and checked. */
   ready: boolean;
+  /** A release of a later line of GR Mod (for camera firmware 1.20), which this copy does not install. */
+  other?: { version: string; page?: string };
 }
 
 /** One published release of GR Mod and its text (Markdown), from GET /api/update/notes. */

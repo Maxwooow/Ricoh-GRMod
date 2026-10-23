@@ -125,6 +125,8 @@ export interface SlotRequest {
   preset?: { matrixQ13: ArrayLike<number>; curves: [ArrayLike<number>, ArrayLike<number>, ArrayLike<number>]; postQ9?: ArrayLike<number> };
   icon?: Uint8Array;
   names?: Partial<Record<LangCode, string>>;
+  /** Halation (0.8.2): needs a preset (its Toning becomes the Halation slider). */
+  halation?: boolean;
 }
 
 /** Soft focus on one negative clarity setting: its row of the clarity table gets the gains of `strength`. */
@@ -137,7 +139,7 @@ export type FirmwareBuild = Omit<BuildResult, 'decoded'>;
 
 /** What adding a ratio would give, for the UI; `problem` is set (and the rest absent) when it cannot be added. */
 export interface RatioPreview {
-  problem?: 'bad-ratio' | 'ratio-factory' | 'ratio-too-extreme' | 'ratio-quick-view' | 'ratio-metering' | 'ratio-conflict' | 'ratio-duplicate';
+  problem?: 'bad-ratio' | 'ratio-factory' | 'ratio-portrait' | 'ratio-too-extreme' | 'ratio-quick-view' | 'ratio-metering' | 'ratio-conflict' | 'ratio-duplicate';
   /** The ratio the pixel grid really gives, reduced (e.g. `30:11` for 65:24). */
   actual?: string;
   /** Relative difference between the actual and the requested ratio, in percent. */
@@ -200,10 +202,15 @@ export interface BuildOptions {
   dateStamp?: boolean;
   /** The six black-and-white looks of the GR IV Monochrome. */
   monoUnlock?: boolean;
-  /** Added Image Control slots (1 to 6), after the factory ones. */
+  /** Added Image Control slots (1 to 20), after the factory ones. */
   extraSlots?: ExtraSlotSpec[];
   /** Power-off pictures (1 to 8) chosen in the camera's End Screen menu; see `encodeShutdownPicture`. */
   shutdownPictures?: ShutdownPictureSpec[];
+  /**
+   * The settings guard and what comes with it from 0.8.2 (see `aspect/guard.ts`); default true.
+   * False only to build files as GR Mod 0.8.1 and earlier did (regression tests).
+   */
+  guard?: boolean;
   /** Test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
   dateStampFixed?: number;
   /** Test builds only: print the encoder configuration on the 720x480 picture. */
@@ -471,6 +478,11 @@ export class Engine {
       if (!slots) return { ...unknown, kind: 'modified' };
       features.extraSlots = slots;
     }
+    // Halation of Cinema Yellow / Green (0.8.2): from the image as well (colour work: 1.11 only).
+    const halation = t.colour ? aspect.readHalation(new aspect.Patch(dec.slice(RTOS_OFFSET, rtosEnd + rtosGrowth), t), aspect.EXTRA_FIRST_STYLE, extraCount) : null;
+    const cinemaHalation: Partial<Record<'CY' | 'CG', true>> = {};
+    for (const [id, style] of [['CY', 18], ['CG', 19]] as const) if (halation?.has(style)) cinemaHalation[id] = true;
+    if (Object.keys(cinemaHalation).length > 0) features.cinemaHalation = cinemaHalation;
     // Power-off pictures: names and identities from the image, JPEGs from RES.
     const pictureCount = readShutdownCount(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth), RTOS_LENGTH) ?? 0;
     if (pictureCount > 0 || resInsert) {
@@ -492,7 +504,8 @@ export class Engine {
     if (!specs) return modified(false, [], aligned);
     let ratios: BuiltRatio[] = [];
     try {
-      const plan = planRatios(specs);
+      // Files of earlier versions may hold ratios narrower than 1:1, which are no longer built.
+      const plan = planRatios(specs, { portrait: true });
       ratios = plan.map((r) => ({ id: r.id, name: r.name, ratio: r.ratio, actual: ratioText(r.geometry.actual.n, r.geometry.actual.d), sizes: gr4Sizes(r.geometry) }));
       // Undo the hook words (their places are the same for every list of ratios of this length
       // or any other: they are found by building once on the official image).
@@ -566,7 +579,7 @@ export class Engine {
       };
     } catch (e) {
       if (e instanceof FirmwareError) {
-        const known = ['bad-ratio', 'ratio-factory', 'ratio-too-extreme', 'ratio-quick-view', 'ratio-metering', 'ratio-conflict'];
+        const known = ['bad-ratio', 'ratio-factory', 'ratio-portrait', 'ratio-too-extreme', 'ratio-quick-view', 'ratio-metering', 'ratio-conflict'];
         const problem = (known.includes(e.code) ? e.code : 'bad-ratio') as RatioPreview['problem'];
         if (problem !== 'ratio-quick-view' || !suggest) return { problem };
         // Step the screen rectangle 4 pixels at a time in both directions until a ratio works.
@@ -630,7 +643,13 @@ export class Engine {
   async buildFirmware(requests: SlotRequest[], ratios: readonly RatioSpec[] = [], softFocus: readonly SoftFocusRequest[] = [], options: BuildOptions = {}): Promise<FirmwareBuild> {
     if (this.info.bridge) throw new FirmwareError('bridge-firmware', 'open the official firmware: the bridge firmware is not a base for builds');
     const edits: SlotEdit[] = [];
+    const cinemaHalation: Partial<Record<'CY' | 'CG', true>> = {};
     for (const r of requests) {
+      if (r.halation !== undefined && r.halation !== false) {
+        if (r.halation !== true) throw new FirmwareError('bad-halation', `${r.slot}: halation is on or off`);
+        if (!r.preset) throw new FirmwareError('bad-halation', `${r.slot}: halation needs a preset`);
+        cinemaHalation[r.slot] = true;
+      }
       const e: SlotEdit = { slot: r.slot };
       if (r.preset) e.color = { matrixQ13: r.preset.matrixQ13, curves: r.preset.curves, ...(r.preset.postQ9 ? { postQ9: r.preset.postQ9 } : {}) };
       if (r.icon) e.icon = r.icon;
@@ -652,8 +671,11 @@ export class Engine {
     if (dateStamp && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the date imprint cannot be combined with the clarity-table soft focus of 0.4.x');
     if (extraSlots.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'added slots cannot be combined with the clarity-table soft focus of 0.4.x');
     if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0) throw new FirmwareError('bad-edit', 'nothing to change');
-    const features = { adjSoftFocus, ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: aspect.factoryShutdownJpegs(this.decoded) } } : {}) };
-    const test = options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {};
+    if (Object.keys(cinemaHalation).length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'halation cannot be combined with the clarity-table soft focus of 0.4.x');
+    const features = { adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: aspect.factoryShutdownJpegs(this.decoded) } } : {}) };
+    const test = {
+      ...(options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {}),
+    };
     const { decoded: _decoded, ...rest } = await buildFirmware(this.raw, edits, ratios, clarity, features, test);
     return rest;
   }

@@ -79,6 +79,17 @@ export interface TargetFacts {
   jpegCount: number;
   /** Decoded offsets of the 40x40 icons the icon tiles are drawn from: Nega and Cinema (Yellow). */
   tileIcons: { nega: number; cinemaYellow: number };
+  /**
+   * The camera's own looks (Image Controls) are 0 .. looks - 1, the numbers its look-name switch
+   * (0x5337F824) knows: 31 in 1.11; 33 in 1.20, which adds Pictorialist Effect (31) and Solarized
+   * Effect (32, "Added the [Solarized Effect] Image Control" in the Monochrome's 1.10 notes).
+   */
+  looks: number;
+  /**
+   * The camera's own black-and-white looks: Monotone, Soft Monotone, Hard Monotone, Hi-Contrast
+   * B&W (13..16) and the Monochrome's own (25..30; in 1.20 also 31 and 32).
+   */
+  monoLooks: readonly number[];
 }
 
 export interface FirmwareTarget {
@@ -157,6 +168,8 @@ export const TARGET_111: FirmwareTarget = {
     submenuRecords: 18,
     jpegCount: 12,
     tileIcons: { nega: 0x2fc2cf0, cinemaYellow: 0x30221f0 },
+    looks: 31,
+    monoLooks: [13, 14, 15, 16, 25, 26, 27, 28, 29, 30],
   },
   va: (address: number): number => address,
   foff: makeFoff(0x17d10, 0x13d2ac0, 0x5437b640, 0x57480),
@@ -201,6 +214,8 @@ export const TARGET_120: FirmwareTarget = {
     jpegCount: 13,
     // the same pixels as in 1.11, found in 1.20's ICONBIN
     tileIcons: { nega: 0x301b288, cinemaYellow: 0x30efa88 },
+    looks: 33,
+    monoLooks: [13, 14, 15, 16, 25, 26, 27, 28, 29, 30, 31, 32],
   },
   va: (address: number): number => {
     const v = VA_120.get(address);

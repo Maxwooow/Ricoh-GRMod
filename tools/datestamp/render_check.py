@@ -32,7 +32,9 @@ ORG = 0x10000
 STRIDE, BUF_H = 6208, 4128
 
 
-def run(setting, main_w, main_h, src_w, src_h, mono=False, clock=(2026, 10, 8, 17, 34, 53), base=0x80000000):
+def run(setting, main_w, main_h, src_w, src_h, mono=False, clock=(2026, 10, 8, 17, 34, 53), base=0x80000000, look=None):
+    """look: None (no look word: decide from the colours) or (word, model): the word the development
+    step left (look | 0x10000) and what the Monochrome check returns."""
     mu = Uc(UC_ARCH_ARM, UC_MODE_ARM)
     mu.mem_map(ORG, 0x10000)
     mu.mem_write(ORG, CODE)
@@ -76,7 +78,7 @@ def run(setting, main_w, main_h, src_w, src_h, mono=False, clock=(2026, 10, 8, 1
     mu.mem_write(TH + 0x8000, bytes(tc))
 
     STUB = 0x70000000
-    for i in range(5):
+    for i in range(6):
         mu.mem_write(STUB + i * 16, struct.pack('<I', 0xe12fff1e))  # bx lr
 
     def hook(uc, addr, size, ud):
@@ -87,12 +89,23 @@ def run(setting, main_w, main_h, src_w, src_h, mono=False, clock=(2026, 10, 8, 1
             uc.reg_write(UC_ARM_REG_R0, 0x70001000)
         if i == 4:
             uc.mem_write(uc.reg_read(UC_ARM_REG_R1), struct.pack('<HBBBBB', *clock))
-    mu.hook_add(UC_HOOK_CODE, hook, begin=STUB, end=STUB + 0x50)
+        if i == 5:
+            uc.reg_write(UC_ARM_REG_R0, look[1] if look else 0)
+    mu.hook_add(UC_HOOK_CODE, hook, begin=STUB, end=STUB + 0x60)
     mu.mem_write(0x70001004, struct.pack('<I', 0x70002000))
     SET = 0x70003000
     mu.mem_write(SET, bytes([setting]))
     CTX = 0x70004000
-    mu.mem_write(CTX, struct.pack('<6I', *(STUB + i * 16 for i in range(5)), SET))
+    if look is None:
+        mu.mem_write(CTX, struct.pack('<9I', *(STUB + i * 16 for i in range(5)), SET, 0, 0, 0))
+    else:
+        LOOKW, TABLE = 0x70007000, 0x70007100
+        mu.mem_write(LOOKW, struct.pack('<I', look[0]))
+        table = bytearray(64)
+        for l in (13, 14, 15, 16, 25, 26, 27, 28, 29, 30, 35):
+            table[l] = 1
+        mu.mem_write(TABLE, bytes(table))
+        mu.mem_write(CTX, struct.pack('<9I', *(STUB + i * 16 for i in range(5)), SET, LOOKW, TABLE, STUB + 5 * 16))
 
     ox = ((6192 - src_w) // 2) & ~1
     oy = (4128 - src_h) // 2
@@ -219,6 +232,33 @@ def main():
     if bbox_rows(r['main'], 4944, 70):
         failures.append('main picture at 0xC0000000 got an imprint')
     print('RAW+JPEG main picture at 0xB1xxxxxx:', 'imprinted' if check_high else 'MISSING')
+    # 0.8.2: by the look the development step left. (photo has colour?, look word, model) -> light only?
+    def tint(r, mw, mh):
+        b = bbox_rows(r['main'], mw, 70)
+        if not b:
+            return None
+        cy = (b[1] + b[3]) // 2
+        row, crow = r['main'][cy], r['mainc'][cy]
+        lit = [xx for xx in range(b[0], b[2] + 1) if row[xx] >= 140]
+        xx = lit[len(lit) // 2] & ~1
+        return crow[xx], crow[xx + 1]
+    for colour_photo, look, want_mono, what in [
+        (False, (0x10000 | 11, 0), False, 'neutral colour photo, Standard: orange (the 0.8.1 bug)'),
+        (True, (0x10000 | 13, 0), True, 'Monotone with toning: light only'),
+        (True, (0x10000 | 27, 0), True, 'Monochrome look (unlocked): light only'),
+        (True, (0x10000 | 35, 0), True, 'added slot with a black-and-white preset: light only'),
+        (True, (0x10000 | 34, 0), False, 'added colour slot: orange'),
+        (True, (0x10000 | 11, 1), True, 'GR IV Monochrome: light only'),
+        (False, (11, 0), True, 'no valid look word: from the colours (neutral -> light only)'),
+        (True, (0x10000 | 200, 0), False, 'look out of the table: orange'),
+    ]:
+        r = run(1, 4944, 3296, 6192, 4128, mono=not colour_photo, look=look)
+        t = tint(r, 4944, 3296)
+        got_mono = t == (128, 128)
+        ok = t is not None and got_mono == want_mono and (got_mono or (t[0] < 80 and t[1] > 180))
+        print(('ok  ' if ok else 'FAIL'), what, t)
+        if not ok:
+            failures.append(what)
     print('module', len(CODE), 'bytes;', 'FAILED:\n  ' + '\n  '.join(failures) if failures else 'all checks passed')
     sys.exit(1 if failures else 0)
 

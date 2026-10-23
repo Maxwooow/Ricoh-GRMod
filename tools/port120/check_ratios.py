@@ -19,7 +19,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / 'aspect'))
 import fwimage  # noqa: E402
 
-RATIOS = [{'name': 'XPan', 'ratio': '65:24'}, {'name': '5:4', 'ratio': '5:4'}, {'name': '2.39:1', 'ratio': '2.39:1'}, {'name': '6:7', 'ratio': '6:7'}]
+RATIOS = [{'name': 'XPan', 'ratio': '65:24'}, {'name': '5:4', 'ratio': '5:4'}, {'name': '2.39:1', 'ratio': '2.39:1'}, {'name': '7:6', 'ratio': '7:6'}]  # landscape only from 0.8.2
 OUT = fwimage.CACHE / 'builds'
 
 
@@ -39,7 +39,8 @@ def main():
     import boot_checks
     tags = sys.argv[1:] or ['111', '120']
     for tag in tags:
-        out, summary = build(tag, 'ratios', ratios=RATIOS)
+        # without the settings guard (0.8.2), which changes the settings on purpose: check_guard.py
+        out, summary = build(tag, 'ratios', options={'guard': False}, ratios=RATIOS)
         print(f'== {tag}: {out.name}, {summary["bytes"]} bytes, verified by the engine')
         official = fwimage.rtos(tag)
         patched = (out.parent / (out.name + '.rtos')).read_bytes()

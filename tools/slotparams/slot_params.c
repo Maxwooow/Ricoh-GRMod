@@ -21,19 +21,24 @@
 #include <stdint.h>
 
 #ifndef SLOT_COUNT
-#error SLOT_COUNT (1..6) is set by gen_slotparams.py
+#error SLOT_COUNT (1..20) is set by gen_slotparams.py
 #endif
 #define CY 18u
 #define FIRST 34u
-#define OWNERS 7u                 /* Cinema Yellow and up to six added slots */
+#define OWNERS 21u                /* Cinema Yellow and up to twenty added slots */
 #define COMBOS 8u                 /* photo sets 0..3, movie sets 0..3 */
 #define NP 13u
 #define REC_ID 12u
 #define REC_MAGIC 0x32505247u     /* 'GRP2' (test 027's 'GRP1' tables were built from an empty record) */
-#define REC_VERSION 2u            /* 1: tests 028..033 */
+#define REC_VERSION 3u            /* 3: GR Mod 0.8.2 (20 slots, fingerprints); 2: 0.7.1..0.8.1 (6 slots); 1: tests 028..033 */
 #define STATE_MAGIC 0x50534c54u
 #define TBYTES (OWNERS * COMBOS * NP)
-#define REC_WORDS (3u + TBYTES / 4u + 1u)
+/* magic, version, TBYTES, the fingerprint of each owner's preset, the table, checksum */
+#define REC_WORDS (3u + OWNERS + TBYTES / 4u + 1u)
+/* The record of 0.7.1..0.8.1: seven owners, no fingerprints. */
+#define OWNERS_V2 7u
+#define TBYTES_V2 (OWNERS_V2 * COMBOS * NP)
+#define REC_WORDS_V2 (3u + TBYTES_V2 / 4u + 1u)
 
 extern uint8_t *storage_singleton(void);
 extern uint32_t store_write(void *store, uint32_t id, uint32_t size, const void *data);
@@ -44,6 +49,9 @@ extern uint32_t prior_native_save(uint8_t *mode);
 extern uint32_t prior_native_load(uint8_t *mode, uint8_t *current, void *a2, void *a3);
 extern volatile uint32_t sp_gap[];       /* zeroed at every start; [0] = state */
 extern uint8_t settings_object[];        /* 0x55084DD8: the record the setters write is at +4 */
+/* The fingerprint of each added slot's preset in this build (matrix, curves, post-curve matrix):
+ * a slot whose preset is not the one its saved values were made with starts again from neutral. */
+extern const uint32_t slot_prints[];
 
 /* Offsets in the settings object of Cinema Yellow's fields, per parameter and combination
  * (0 = none: four parameters exist for photos only). The setters write these. */
@@ -106,6 +114,7 @@ typedef struct {
 typedef struct {
     uint32_t magic, loaded, dirty, last_write;
     uint8_t t[OWNERS][COMBOS][NP];
+    uint32_t fp[OWNERS];
     uint32_t rec[REC_WORDS];
     Raw raw;
 } State;
@@ -134,6 +143,17 @@ static int owner_of(uint32_t style) {
     if (style == CY) return 0;
     if (style >= FIRST && style < FIRST + SLOT_COUNT) return (int)(style - FIRST + 1);
     return -1;
+}
+
+/* The fingerprint of owner o's preset (1..SLOT_COUNT). Not inlined: the generator pairs each
+ * symbol's movw with the movt that follows it. */
+__attribute__((noinline)) static uint32_t print_of(uint32_t o) {
+    return slot_prints[o - 1];
+}
+
+/* Owner index (SLOT_COUNT + 1 .. OWNERS - 1) of an added style this build does not have, else 0. */
+static uint32_t removed_owner(uint32_t style) {
+    return style >= FIRST + SLOT_COUNT && style < FIRST + OWNERS - 1 ? style - FIRST + 1 : 0;
 }
 
 static int owner(int c) {
@@ -310,28 +330,63 @@ static void copy_bytes(uint8_t *d, const uint8_t *src, uint32_t n) {
 #define OLD_MAGIC 0x31505247u     /* 'GRP1', test 027 */
 
 /* 1: valid table read; 0: none; 2: test 027's table (its sets may have been emptied);
- * 3: a table of tests 028..033 (version 1), where the added slots started from Cinema Yellow's
- * values: Cinema Yellow's values are kept, the added slots start again from neutral (034). */
+ * 3: Cinema Yellow's values only: a table of tests 028..033 (version 1), where the added slots
+ * started from Cinema Yellow's values (they start again from neutral, 034);
+ * 4: a table of 0.7.1..0.8.1 (version 2: six slots, no fingerprints). Its values are kept, taken
+ * as made with the presets of this build. */
 static int read_record(State *s) {
     void *st = ht_store();
+    uint32_t size;
     if (!st) return 0;
-    if (store_size(st, REC_ID) != REC_WORDS * 4) return 0;
+    size = store_size(st, REC_ID);
+    if (size == REC_WORDS_V2 * 4) {
+        uint32_t *r = s->rec;   /* larger than the old record */
+        if (!store_read(st, REC_ID, REC_WORDS_V2 * 4, r)) return 0;
+        if (r[0] != REC_MAGIC || (r[1] != 1 && r[1] != 2) || r[2] != TBYTES_V2) return 0;
+        if (r[REC_WORDS_V2 - 1] != checksum(r, REC_WORDS_V2 - 1)) return 0;
+        if (r[1] == 1) return 3;
+        /* Version 2: the table of Cinema Yellow and six slots, laid out as owners 0..6 here. */
+        copy_bytes(&s->t[0][0][0], (const uint8_t *)&r[3], TBYTES_V2);
+        return 4;
+    }
+    if (size != REC_WORDS * 4) return 0;
     if (!store_read(st, REC_ID, REC_WORDS * 4, s->rec)) return 0;
     if (s->rec[0] == OLD_MAGIC) return 2;
-    if (s->rec[0] != REC_MAGIC || (s->rec[1] != 1 && s->rec[1] != REC_VERSION) || s->rec[2] != TBYTES) return 0;
+    if (s->rec[0] != REC_MAGIC || s->rec[1] != REC_VERSION || s->rec[2] != TBYTES) return 0;
     if (s->rec[REC_WORDS - 1] != checksum(s->rec, REC_WORDS - 1)) return 0;
-    copy_bytes(&s->t[0][0][0], (const uint8_t *)&s->rec[3], TBYTES);
-    return s->rec[1] == REC_VERSION ? 1 : 3;
+    for (uint32_t o = 0; o < OWNERS; o++) s->fp[o] = s->rec[3 + o];
+    copy_bytes(&s->t[0][0][0], (const uint8_t *)&s->rec[3 + OWNERS], TBYTES);
+    return 1;
 }
 
 static void write_record(State *s) {
     void *st = ht_store();
     if (!st) return;
     s->rec[0] = REC_MAGIC; s->rec[1] = REC_VERSION; s->rec[2] = TBYTES;
-    copy_bytes((uint8_t *)&s->rec[3], &s->t[0][0][0], TBYTES);
+    for (uint32_t o = 0; o < OWNERS; o++) s->rec[3 + o] = s->fp[o];
+    copy_bytes((uint8_t *)&s->rec[3 + OWNERS], &s->t[0][0][0], TBYTES);
     s->rec[REC_WORDS - 1] = checksum(s->rec, REC_WORDS - 1);
     s->last_write = store_write(st, REC_ID, REC_WORDS * 4, s->rec) ? 1 : 2;
     if (s->last_write == 1) s->dirty = 0;
+}
+
+/* In a record laid out from its first byte (the one being loaded, or a user mode's snapshot), the
+ * fields of the sets that have owner o selected become neutral. */
+static void neutral_fields(uint8_t *rec, uint32_t o) {
+    if (!rec) return;
+    for (uint32_t c = 0; c < COMBOS; c++) {
+        if (owner_of(rec[(c < 4 ? 0x153 + c : 0x515 + (c - 4)) - 4]) != (int)o) continue;
+        for (uint32_t j = 0; j < NP; j++) if (FIELD[j][c]) rec[FIELD[j][c] - 4] = NEUTRAL[j];
+    }
+}
+
+/* Owner o (an added slot) starts again from neutral: its table entries and, in every set that has
+ * it selected (the record being loaded and the user modes' snapshots at mode + 4), the fields. */
+static void neutral_owner(State *s, uint8_t *mode, uint8_t *current, uint32_t o) {
+    for (uint32_t c = 0; c < COMBOS; c++)
+        for (uint32_t j = 0; j < NP; j++) s->t[o][c][j] = FIELD[j][c] ? NEUTRAL[j] : 0;
+    neutral_fields(current, o);
+    if (mode) for (uint32_t i = 0; i < 10; i++) neutral_fields(((uint8_t **)(mode + 4))[i], o);
 }
 
 /* Settings load: the first one (at start) loads the table. `current` is the record just read
@@ -354,7 +409,13 @@ uint32_t sp_load(uint8_t *mode, uint8_t *current, void *a2, void *a3) {
         if (zeros == n || (found == 2 && zeros >= 6))
             for (uint32_t j = 0; j < NP; j++) if (FIELD[j][c]) current[FIELD[j][c] - 4] = FACTORY[j];
     }
-    if (found != 1) {
+    if (found == 4) {
+        for (uint32_t o = OWNERS_V2; o < OWNERS; o++)
+            for (uint32_t c = 0; c < COMBOS; c++)
+                for (uint32_t j = 0; j < NP; j++) s->t[o][c][j] = FIELD[j][c] ? NEUTRAL[j] : 0;
+        for (uint32_t o = 1; o <= SLOT_COUNT; o++) s->fp[o] = print_of(o);
+        s->dirty = 1;
+    } else if (found != 1) {
         /* Cinema Yellow keeps its values (the record's, or the old table's); the added slots
          * start neutral. A set that has an added slot selected holds that slot's values in the
          * record (Cinema Yellow's are in the table), so those fields are set neutral as well. */
@@ -367,7 +428,41 @@ uint32_t sp_load(uint8_t *mode, uint8_t *current, void *a2, void *a3) {
                 if (f && own > 0) current[f - 4] = NEUTRAL[j];
             }
         }
+        for (uint32_t o = 1; o <= SLOT_COUNT; o++) s->fp[o] = print_of(o);
         s->dirty = 1;
+    } else {
+        /* A slot that now holds another preset starts again from neutral. Slots beyond this
+         * build's count keep their values and fingerprints (added back with the same preset, they
+         * get their values back). */
+        for (uint32_t o = 1; o <= SLOT_COUNT; o++) {
+            if (s->fp[o] == print_of(o)) continue;
+            neutral_owner(s, mode, current, o);
+            s->fp[o] = print_of(o);
+            s->dirty = 1;
+        }
+    }
+    if (found == 1 || found == 4) {
+        /* A set with a slot beyond this build's count (the settings guard makes it Standard after
+         * this): its fields hold that slot's values, which go to the table; Cinema Yellow's come back. */
+        for (uint32_t c = 0; c < COMBOS; c++) {
+            uint32_t o = removed_owner(current[(c < 4 ? 0x153 + c : 0x515 + (c - 4)) - 4]);
+            if (!o) continue;
+            for (uint32_t j = 0; j < NP; j++) {
+                uint32_t f = FIELD[j][c];
+                if (!f) continue;
+                s->t[o][c][j] = current[f - 4];
+                current[f - 4] = s->t[0][c][j];
+            }
+            s->dirty = 1;
+        }
+        if (mode) for (uint32_t i = 0; i < 10; i++) {
+            uint8_t *rec = ((uint8_t **)(mode + 4))[i];
+            if (!rec) continue;
+            for (uint32_t c = 0; c < COMBOS; c++) {
+                if (!removed_owner(rec[(c < 4 ? 0x153 + c : 0x515 + (c - 4)) - 4])) continue;
+                for (uint32_t j = 0; j < NP; j++) if (FIELD[j][c]) rec[FIELD[j][c] - 4] = s->t[0][c][j];
+            }
+        }
     }
     s->loaded = 1;
     s->magic = STATE_MAGIC;

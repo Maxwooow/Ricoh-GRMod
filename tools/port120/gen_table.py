@@ -35,6 +35,8 @@ SOURCES = [
     'core/src/fw/aspect/shutdown.ts',
     'core/src/fw/factory.ts',
     'core/src/fw/aspect/native-link.ts',
+    'core/src/fw/aspect/guard.ts',
+    'core/src/fw/aspect/lookstash.ts',
     'tools/shutdown/shutdown.c',
 ]
 # This program's own appended area (catalogs, see build.ts `catalogs`): not a firmware address.

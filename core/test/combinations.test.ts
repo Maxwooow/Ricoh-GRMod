@@ -3,7 +3,8 @@
  * Every combination of the additions builds, passes the self-check, and reads back with the right
  * features (`Engine.inspect`). Needs the official firmware in testdata/private (skipped without it).
  *
- *  - the monochrome looks on their own are written in place (official layout, 13 words and the
+ *  - from 0.8.2 every build has the settings guard (it appends code); without it (as up to 0.8.1)
+ *    the monochrome looks on their own are written in place (official layout, 13 words and the
  *    checksum compensation word);
  *  - anything that appends code grows RTOS; ICONBIN grows only when icons are added (a test build
  *    of the date imprint with a fixed setting adds code only);
@@ -58,15 +59,16 @@ describe.skipIf(!have)('combinations of the additions', () => {
       const { decoded, rtos, icon } = sections(b.file);
       expect(rtos.size).toBeGreaterThan(fw.RTOS_LENGTH);
       expect(icon.size > fw.ICONBIN_LENGTH).toBe(c.iconGrows);
-      const want: Record<string, boolean> = {};
+      const want: Record<string, boolean> = { guard: true };
       for (const [k, v] of Object.entries(c.features)) if (v) want[k] = true;
       expect(fw.readExtensionFeatures(decoded.subarray(rtos.offset, rtos.offset + rtos.size))).toEqual(want);
-      if (c.name === 'soft focus only') expect(b.sha256).toBe(SOFT_ONLY_SHA256);
+      // as GR Mod 0.8.1 built it (without the settings guard): the same file as before
+      if (c.name === 'soft focus only') expect((await eng.buildFirmware([], [], [], { ...c.options, guard: false })).sha256).toBe(SOFT_ONLY_SHA256);
     });
   }
 
-  it('monochrome looks only: written in place, 13 words and the compensation word', async () => {
-    const b = await eng.buildFirmware([], [], [], { monoUnlock: true });
+  it('monochrome looks only (without the guard, as up to 0.8.1): written in place, 13 words and the compensation word', async () => {
+    const b = await eng.buildFirmware([], [], [], { monoUnlock: true, guard: false });
     expect(Object.values(b.checks).every((v) => v === true)).toBe(true);
     expect(b.features).toEqual({ adjSoftFocus: false, monoUnlock: true });
     const s = await eng.inspect(b.file);
@@ -90,7 +92,7 @@ describe.skipIf(!have)('combinations of the additions', () => {
   });
 
   it('monochrome looks only: a file with one of the words missing is not recognised as such', async () => {
-    const b = await eng.buildFirmware([], [], [], { monoUnlock: true });
+    const b = await eng.buildFirmware([], [], [], { monoUnlock: true, guard: false });
     const parsed = new fw.Firmware(b.file);
     const d = parsed.decoded.slice();
     const o = official();
@@ -115,19 +117,21 @@ describe.skipIf(!have)('combinations of the additions', () => {
     expect(icon.size).toBe(fw.ICONBIN_LENGTH);
     const o = official();
     expect(fw.equalRange(decoded, icon.offset, o, fw.ICONBIN_OFFSET, fw.ICONBIN_LENGTH)).toBe(true);
-    expect(fw.readExtensionFeatures(decoded.subarray(rtos.offset, rtos.offset + rtos.size))).toEqual({ dateStamp: true });
+    expect(fw.readExtensionFeatures(decoded.subarray(rtos.offset, rtos.offset + rtos.size))).toEqual({ dateStamp: true, guard: true });
     const s = await eng.inspect(b.file);
     expect(s.kind).toBe('modified');
     expect(s.dateStamp).toBe(true);
   });
 
-  it('all additions with the earlier test contents: test firmware 017 byte for byte', async () => {
-    const b = await eng.buildFirmware(testPresetRequests(eng), testRatios(eng), [], { adjSoftFocus: true, dateStamp: true, monoUnlock: true });
+  it('all additions with the earlier test contents (test firmware 017)', async () => {
+    // Up to 0.8.1 this was test firmware 017 byte for byte (TEST_017_SHA256). From 0.8.2 the date
+    // imprint module is another build (it can go by the picture's look), so no build reproduces 017.
+    const b = await eng.buildFirmware(testPresetRequests(eng), testRatios(eng), [], { adjSoftFocus: true, dateStamp: true, monoUnlock: true, guard: false });
     expect(Object.values(b.checks).every((v) => v === true)).toBe(true);
-    expect(b.sha256).toBe(TEST_017_SHA256);
+    expect(b.sha256).not.toBe(TEST_017_SHA256);
     const s = await eng.inspect(b.file);
     expect(s.verified).toBe(true);
     expect({ adjSoftFocus: s.adjSoftFocus, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock }).toEqual({ adjSoftFocus: true, dateStamp: true, monoUnlock: true });
-    expect(s.ratios.map((r) => r.name)).toEqual(['XPan', '2.39:1', '5:4', '4:5']);
+    expect(s.ratios.map((r) => r.name)).toEqual(['XPan', '2.39:1', '5:4', '2:1']); // 4:5 is no longer built (0.8.2)
   });
 });

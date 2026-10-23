@@ -34,6 +34,11 @@ struct ctx {
   void *(*platform)(void);                           /* 0x538f21a0 */
   void (*get_time)(void *clock, u8 *time);           /* 0x538ea9b0 */
   const u8 *setting;                                 /* bit 0: on, bit 1: with year and time */
+  /* Since GR Mod 0.8.2: the look of the picture, left by the development step (0x539113F8) as
+   * look | level << 8 | 0x10000 (see lookstash.ts); 0 when the build has no such word. */
+  const volatile u32 *look;
+  const u8 *mono_looks;                              /* 64 bytes: 1 for a black-and-white look */
+  u32 (*mono_model)(void);                           /* 0x533EF000: 1 on the GR IV Monochrome */
 };
 
 /* The setting byte (see `datestamp.ts`): anything above 3 counts as off. */
@@ -225,8 +230,20 @@ static int is_mono(const struct ctx *k, void *cache, struct picture *p, s32 rx, 
   return 1;
 }
 
-/* Draw into the rectangle (rx, ry, rw, rh) of the picture, bottom right. */
-static void draw(const struct ctx *k, void *cache, struct picture *p, s32 rx, s32 ry, s32 rw, s32 rh, const u8 *glyphs, u32 count, struct colour col) {
+/* Whether the photo is black and white: from its look (and the camera model) when the build
+ * leaves the look; otherwise, as up to 0.8.1, from its colours. -1: decide from the colours. */
+static int mono_by_look(const struct ctx *k) {
+  u32 v;
+  if (!k->look) return -1;
+  v = *k->look;
+  if (!(v & 0x10000u)) return -1;
+  if ((v & 0xffu) < 64u && k->mono_looks[v & 0xffu]) return 1;
+  return k->mono_model() ? 1 : 0;
+}
+
+/* Draw into the rectangle (rx, ry, rw, rh) of the picture, bottom right. `mono`: -1 decide from
+ * the picture's colours, else 0 / 1. */
+static void draw(const struct ctx *k, void *cache, struct picture *p, s32 rx, s32 ry, s32 rw, s32 rh, const u8 *glyphs, u32 count, struct colour col, int mono) {
   s32 H, margin, x0, y0;
   /* Digit height ~ 1/26 of the shorter side, at least 7 px. */
   H = (s32)(((u32)(rw < rh ? rw : rh) * 2521u) >> 16);
@@ -235,7 +252,8 @@ static void draw(const struct ctx *k, void *cache, struct picture *p, s32 rx, s3
   x0 = rx + rw - margin - text_width(glyphs, count, H);
   y0 = ry + rh - margin - H;
   if (x0 < 2 || y0 < 2 || y0 + H + 2 > (s32)p->height) return;
-  if (is_mono(k, cache, p, rx, ry, rw, rh)) { col.cb = 128; col.cr = 128; } /* light only, like on black-and-white film */
+  if (mono < 0) mono = is_mono(k, cache, p, rx, ry, rw, rh);
+  if (mono) { col.cb = 128; col.cr = 128; } /* light only, like on black-and-white film */
   sync(k, cache, p, (u32)y0, (u32)(y0 + H + 1), 0);
   text_at(p, glyphs, count, x0, y0, H, col, 0);
   sync(k, cache, p, (u32)y0, (u32)(y0 + H + 1), 1);
@@ -391,7 +409,9 @@ void datestamp(const struct ctx *k, u32 *config) {
    * black bars when their shape differs: draw inside the part the photo takes up. */
   {
     struct picture *mainp = seen[0];
+    int mono;
     if (!mainp) return;
+    mono = mono_by_look(k);
     for (i = 0; i < 4; i++) {
       struct picture *p = seen[i];
       s32 pw, ph, rw, rh;
@@ -413,7 +433,7 @@ void datestamp(const struct ctx *k, u32 *config) {
           rh = (s32)q;
         }
       }
-      draw(k, cache, p, (pw - rw) >> 1, (ph - rh) >> 1, rw, rh, glyphs, n, orange());
+      draw(k, cache, p, (pw - rw) >> 1, (ph - rh) >> 1, rw, rh, glyphs, n, orange(), mono);
     }
   }
 }

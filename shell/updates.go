@@ -18,10 +18,19 @@ import (
 // with the matching private key, which is not part of the source).
 const updatePublicKey = "SmDyXQIIsZYfZ06bPIdeuzDMvpT4FbELxGu9BuCVx+I="
 
-// updateSources are where releases are looked for, in order.
+// updateSources are where releases are looked for, in order: this line's own
+// channel first (a release tagged fw1.11 whose files are replaced by every
+// 0.8.x release), then the newest release (which a GR Mod for camera firmware
+// 1.20 will be one day; its manifest is then only reported, see updateBelow).
 var updateSources = []string{
+	"https://github.com/Maxwooow/Ricoh-GRMod/releases/download/fw1.11/",
 	"https://github.com/Maxwooow/Ricoh-GRMod/releases/latest/download/",
 }
+
+// updateBelow ends this line: GR Mod 0.8.x is for camera firmware 1.11; 0.9
+// and later are for 1.20 (a camera updated to 1.20 cannot go back), so they
+// are never installed over this copy, only reported.
+const updateBelow = "0.9"
 
 // releaseNotesAPI lists the published releases with their text (what's new).
 const releaseNotesAPI = "https://api.github.com/repos/Maxwooow/Ricoh-GRMod/releases?per_page=30"
@@ -79,7 +88,7 @@ func updateOptions(target update.Target) *server.UpdateOptions {
 			notes = n
 		}
 	}
-	return &server.UpdateOptions{Key: key, Sources: sources, Platform: updatePlatform(), Target: target, LatestPage: latest, ReleaseNotes: notes}
+	return &server.UpdateOptions{Key: key, Sources: sources, Platform: updatePlatform(), Target: target, LatestPage: latest, ReleaseNotes: notes, Below: updateBelow}
 }
 
 // afterUpdate runs at the start of the program an update has launched: it

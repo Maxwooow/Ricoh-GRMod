@@ -27,9 +27,9 @@ SOURCE = HERE / 'slot_params.c'
 TARGET = REPO / 'core/src/fw/aspect/slotparams-native.ts'
 FLAGS = ['-target', 'armv7-none-eabi', '-mcpu=cortex-a9', '-marm', '-mfloat-abi=soft', '-Os', '-ffreestanding',
          '-fno-builtin', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-nostdlib', '-Wall', '-Werror']
-COUNTS = range(1, 7)
+COUNTS = range(1, 21)
 BINDINGS = ['prior_native_save', 'prior_native_load', 'storage_singleton', 'store_write', 'store_read', 'store_size',
-            'heap_alloc', 'sp_gap', 'settings_object']
+            'heap_alloc', 'sp_gap', 'settings_object', 'slot_prints']
 SETTERS = [0x533ad4e0, 0x533adce0, 0x533ae4e0, 0x533af100, 0x533afd20, 0x533b0940, 0x533b1560, 0x533b2180, 0x533b28e0,
            0x533b2b5c, 0x533b2d18, 0x533b2ed4, 0x533b3044, 0x533b3200, 0x533b34dc, 0x533b387c, 0x533b3c1c, 0x533b3fbc,
            0x533b4bdc, 0x533b51c0, 0x533b5704, 0x533b5c48, 0x533b618c]

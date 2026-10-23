@@ -135,7 +135,7 @@ function UpdateDialog() {
   let body;
   if (s.phase === 'checking') body = <div className="fw-rel idle"><span className="spinner small" /><span className="muted">{t('updChecking')}</span></div>;
   else if (s.phase === 'error') body = <div className="fw-rel idle"><span className="muted">{t('updNetError')}</span><span className="grow" /><button type="button" className="btn small" onClick={() => { void checkForUpdate(false); }}>{t('retry')}</button></div>;
-  else if (s.phase === 'latest') body = <p className="upd-latest">{t('updLatestBody', { v: info?.current || host.info?.version || '' })}</p>;
+  else if (s.phase === 'latest') body = <><p className="upd-latest">{t('updLatestBody', { v: info?.current || host.info?.version || '' })}</p>{info?.other && <p className="muted small upd-note">{t('updOtherLine', { v: info.other.version })}</p>}</>;
   else if (info) {
     body = (
       <>
@@ -146,6 +146,7 @@ function UpdateDialog() {
         {full ? <div className="wn-body upd-full"><Markdown text={full.body} skip={SKIP_SECTIONS} onLink={() => { void host.releasePage(full.version); }} /></div> : notes && <div className="upd-notes">{notes}</div>}
         {reason ? <p className="dialog-warn">{t(reason)}</p> : <p className="muted small upd-note">{t('updNote')}</p>}
         {s.message && <p className="dialog-warn">{s.message}</p>}
+        {info.other && <p className="muted small upd-note">{t('updOtherLine', { v: info.other.version })}</p>}
         {busy && (
           <div className="upd-progress">
             <div className="upd-bar"><i style={{ width: `${s.phase === 'installing' ? 100 : percent}%` }} /></div>

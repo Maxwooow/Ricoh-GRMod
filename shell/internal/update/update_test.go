@@ -405,3 +405,66 @@ func TestFetchReleases(t *testing.T) {
 		t.Fatalf("release %+v / %+v", list[1], list[0])
 	}
 }
+
+// A later line (GR Mod for a later camera firmware) is reported, never offered.
+func TestLines(t *testing.T) {
+	own := newRelease(t)
+	later := newRelease(t)
+	later.pub, later.priv = own.pub, own.priv // the same project key
+	own.publish("0.8.3", map[string][]byte{PlatformWindows: []byte("fix")}, map[string]string{PlatformWindows: "GRMod-0.8.3.exe"})
+	later.publish("0.9.0", map[string][]byte{PlatformWindows: []byte("new line")}, map[string]string{PlatformWindows: "GRMod-0.9.0.exe"})
+	tag := "v0.9.0"
+	mux := http.NewServeMux()
+	mux.Handle("/own/", http.StripPrefix("/own", own))
+	mux.Handle("/later/", http.StripPrefix("/later", later))
+	mux.HandleFunc("/releases/latest", func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, "/releases/tag/"+tag, http.StatusFound)
+	})
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	dir := t.TempDir()
+	exe := filepath.Join(dir, "GRMod.exe")
+	os.WriteFile(exe, []byte("old"), 0o755)
+	target := &FileTarget{Exe: exe}
+
+	// The channel of this line first, then the newest release (a later line): 0.8.3 is the update.
+	u := &Updater{Current: "0.8.2", Sources: []string{srv.URL + "/own/rel/", srv.URL + "/later/rel/"}, Key: own.pub, Platform: PlatformWindows, Target: target, LatestPage: srv.URL + "/releases/latest", Below: "0.9"}
+	in, err := u.Check(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !in.Available || in.Latest != "0.8.3" || !in.CanInstall || in.Other == nil || in.Other.Version != "0.9.0" {
+		t.Fatalf("own line: %+v %+v", in, in.Other)
+	}
+	// Without the channel (not published yet): the later line is only reported.
+	u.Sources = []string{srv.URL + "/missing/rel/", srv.URL + "/later/rel/"}
+	in, err = u.Check(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if in.Available || in.CanInstall || in.Latest != "0.8.2" || in.Other == nil || in.Other.Version != "0.9.0" {
+		t.Fatalf("later line offered: %+v", in)
+	}
+	if err := u.Download(context.Background(), in, nil); err == nil {
+		t.Fatal("a release of a later line was downloaded")
+	}
+	// No manifest anywhere, the newest release is of the later line: reported only.
+	u.Sources = []string{srv.URL + "/missing/rel/"}
+	in, err = u.Check(context.Background())
+	if err != nil || in.Available || in.Other == nil || in.Other.Version != "0.9.0" {
+		t.Fatalf("latest page of a later line: %+v %v", in, err)
+	}
+	// While the newest release is still of this line, nothing is reported.
+	tag = "v0.8.3"
+	u.Sources = []string{srv.URL + "/own/rel/"}
+	in, err = u.Check(context.Background())
+	if err != nil || !in.Available || in.Other != nil {
+		t.Fatalf("same line: %+v %v", in, err)
+	}
+	// Without Below every release is of this line (as before 0.8.2).
+	u.Below = ""
+	u.Sources = []string{srv.URL + "/later/rel/"}
+	if in, err = u.Check(context.Background()); err != nil || !in.Available || in.Latest != "0.9.0" {
+		t.Fatalf("no line: %+v %v", in, err)
+	}
+}
