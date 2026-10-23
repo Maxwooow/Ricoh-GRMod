@@ -58,6 +58,9 @@ T120 = Target('120', 0x140B600, 0x543B3100, 0x58500, 0x55839014, 0x55839040, 709
               {'softFocus': 912, 'dateStamp': (913, 914, 915, 916, 917), 'shutdown': 918},
               {'on': 1, 'off': 2, 'low': 10, 'medium': 11, 'high': 12, 'flashComp': 140, 'endScreen': 743, 'dRange': 395, 'horizon': 420, 'reset': 745, 'type1': 7, 'type2': 8},
               {'off': 329, 'on': 330}, 126, 18, 13, 0x550832A8, 0x543B5270, 0xDC4, 0xB44)
+# TargetFacts.looks / monoLooks: the camera's own looks are 0 .. looks - 1; its black-and-white ones.
+T111.looks, T111.mono_looks = 31, (13, 14, 15, 16, 25, 26, 27, 28, 29, 30)
+T120.looks, T120.mono_looks = 33, (13, 14, 15, 16, 25, 26, 27, 28, 29, 30, 31, 32)
 
 _active = T111
 _table = None
