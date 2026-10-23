@@ -13,7 +13,8 @@
  *    (32 bytes of text, 1 flag byte; a set flag asks for an extra authorisation).
  */
 import { FirmwareError } from './types';
-import { foff } from './profile';
+import { TARGET_111 } from './target';
+import type { FirmwareTarget } from './target';
 
 /** 10 bytes compared with the content of the key file. */
 const KEY_VA = 0x53fe59a8;
@@ -52,7 +53,8 @@ const bad = (what: string): never => {
 };
 
 /** Keywords the mode-set file may contain, with their authorisation flag. */
-export function modeSetKeywords(decoded: Uint8Array): { keyword: string; restricted: boolean }[] {
+export function modeSetKeywords(decoded: Uint8Array, t: FirmwareTarget = TARGET_111): { keyword: string; restricted: boolean }[] {
+  const foff = (va: number): number => t.foff(t.va(va));
   const out: { keyword: string; restricted: boolean }[] = [];
   const base = foff(KEYWORD_TABLE_VA);
   for (let i = 0; i < KEYWORD_MAX; i++) {
@@ -65,7 +67,8 @@ export function modeSetKeywords(decoded: Uint8Array): { keyword: string; restric
 }
 
 /** Locate and cross-check everything the factory-menu entry needs. Throws when anything is off. */
-export function readFactoryEntry(decoded: Uint8Array): FactoryEntry {
+export function readFactoryEntry(decoded: Uint8Array, t: FirmwareTarget = TARGET_111): FactoryEntry {
+  const foff = (va: number): number => t.foff(t.va(va));
   if (ascii(decoded, foff(MODESET_FORMAT_VA), 32) !== MODESET_FORMAT) bad('file name format not found');
 
   const numbers = MODEL_RECORD_VAS.map((va) => ({ project: u32(decoded, foff(va) + 0x10), product: u32(decoded, foff(va) + 0x14) }));
@@ -88,7 +91,7 @@ export function readFactoryEntry(decoded: Uint8Array): FactoryEntry {
   const key = decoded.slice(foff(KEY_VA), foff(KEY_VA) + KEY_LENGTH);
   if (key.every((b) => b === 0) || key.every((b) => b === 0xff)) bad('key not found');
 
-  const kw = modeSetKeywords(decoded).find((k) => k.keyword === OPEN_FACTORY_MENU);
+  const kw = modeSetKeywords(decoded, t).find((k) => k.keyword === OPEN_FACTORY_MENU);
   if (!kw) bad('keyword not found');
   if (kw!.restricted) bad('keyword needs an authorisation this tool does not have');
 

@@ -10,8 +10,9 @@ import { build, buildGrown, sectionData, sectionsOf, sha256Hex, sum32 } from './
 import type { Firmware } from './container';
 import { FirmwareError } from './types';
 import type { Range } from './types';
-import { COMP_OFFSET, ICONBIN_LENGTH, ICONBIN_OFFSET, ICON_BYTES, LEN, POST, RTOS_LENGTH, RTOS_OFFSET, SLOTS, foff, openOfficial, resolveLayout, slotDef } from './profile';
+import { COMP_OFFSET, ICON_BYTES, LEN, POST, RTOS_LENGTH, RTOS_OFFSET, SLOTS, foff, openOfficial, resolveLayout, slotDef } from './profile';
 import type { SlotId, SlotInfo } from './profile';
+import type { FirmwareTarget } from './target';
 import { LANGS, applyName, nameRanges, validateName } from './names';
 import type { LangCode } from './names';
 import { normalizeIcon, readIcon } from './icons';
@@ -196,17 +197,21 @@ function transparentPixels(icon: Uint8Array): number[] {
 }
 
 /**
- * Build a firmware file from the official 1.11 file and a list of slot edits.
- * Throws `FirmwareError` on any invalid input or failed assertion; never returns a file that did
- * not pass the self-check.
+ * Build a firmware file from an official file (1.11, or 1.20; see `target.ts`) and a list of slot
+ * edits. Throws `FirmwareError` on any invalid input or failed assertion; never returns a file that
+ * did not pass the self-check. For 1.20 the slot edits, the clarity table, the monochrome looks and
+ * added slots are refused (`unsupported-feature`).
  */
 export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = [], clarity: readonly ClarityEdit[] = [], features: ExtensionFeatures = {}, test: TestOptions = {}): Promise<BuildResult> {
   // Additions that append code or icons need the grown layout. The monochrome looks change 13
   // words in place: on their own (or with only same-length edits) the file keeps the official layout.
   const grows = ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation;
   const inPlaceMono = !grows && !!features.monoUnlock;
-  const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity, inPlaceMono);
-  if (grows) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios, features, test);
+  const { fw, DEC, img, ranges, target } = await editPayload(officialRaw, edits, clarity, inPlaceMono);
+  if (!target.colour && (features.monoUnlock || (features.extraSlots?.length ?? 0) > 0)) {
+    bad('unsupported-feature', `the monochrome looks and added Image Control slots are not available for firmware ${target.id}`);
+  }
+  if (grows) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios, features, test, target);
 
   // 7. Container.
   const built = build(fw, img);
@@ -252,13 +257,14 @@ export function monoUnlockWords(official: Uint8Array): { offset: number; bytes: 
  * sections grow (see `aspect/`), so the container is rebuilt with `buildGrown` and checked with
  * `selfCheckGrown`.
  */
-async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8Array, img: Uint8Array, ranges: Range[], ratios: readonly RatioSpec[], features: ExtensionFeatures = {}, test: TestOptions = {}): Promise<BuildResult> {
+async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8Array, img: Uint8Array, ranges: Range[], ratios: readonly RatioSpec[], features: ExtensionFeatures = {}, test: TestOptions = {}, target: FirmwareTarget): Promise<BuildResult> {
   const specs = ratios.map((r) => ({ name: r.name, ratio: r.ratio.trim() }));
   const plan = planRatios(specs);
-  const aspect = installExtensions(img.slice(RTOS_OFFSET, RTOS_OFFSET + RTOS_LENGTH), img.slice(ICONBIN_OFFSET, ICONBIN_OFFSET + ICONBIN_LENGTH), plan, features, undefined, test);
+  const { rtosOffset, rtosLength, iconbinOffset, iconbinLength } = target;
+  const aspect = installExtensions(img.slice(rtosOffset, rtosOffset + rtosLength), img.slice(iconbinOffset, iconbinOffset + iconbinLength), plan, features, undefined, test);
   const grown = growPayload(img, aspect, specs);
   // Edits made before growing keep their place in RTOS; those in ICONBIN move with it.
-  const all: Range[] = ranges.map((r) => (r.offset >= ICONBIN_OFFSET ? { ...r, offset: r.offset + grown.rtosGrowth } : r));
+  const all: Range[] = ranges.map((r) => (r.offset >= iconbinOffset ? { ...r, offset: r.offset + grown.rtosGrowth } : r));
   const added = grownRanges(grown, aspect);
   const hooks = added.filter((r) => r.length === 4 && r.what.startsWith('ratio hook'));
   for (const h of hooks) {
@@ -294,10 +300,15 @@ async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8
 }
 
 /** Steps 1-6: open the official file and apply the same-length slot (and clarity) edits to a copy of its payload. */
-async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: readonly ClarityEdit[] = [], monoUnlock = false): Promise<{ fw: Firmware; DEC: Uint8Array; img: Uint8Array; ranges: Range[] }> {
+async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: readonly ClarityEdit[] = [], monoUnlock = false): Promise<{ fw: Firmware; DEC: Uint8Array; img: Uint8Array; ranges: Range[]; target: FirmwareTarget }> {
   // 1. Open the official file, copy the payload.
-  const { fw, decoded: DEC } = await openOfficial(officialRaw);
+  const { fw, decoded: DEC, target } = await openOfficial(officialRaw);
   const sorted = sortEdits(edits);
+  if (!target.colour) {
+    // 1.20: no same-length edit is available (see target.ts); the payload is the official one.
+    if (sorted.length > 0 || clarity.length > 0 || monoUnlock) bad('unsupported-feature', `Image Control slot edits, the clarity table and the monochrome looks are not available for firmware ${target.id}`);
+    return { fw, DEC, img: DEC.slice(), ranges: [], target };
+  }
   const layout = resolveLayout(DEC);
   const img = DEC.slice();
   const ranges: Range[] = [];
@@ -458,7 +469,7 @@ async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: 
     for (const id of pool) {
       const def = slotDef(id);
       const what = replaced.has(id) ? `${id} icon` : `${id} icon (transparent pixels only, checksum compensation)`;
-      if (!(def.iconOffset >= ICONBIN_OFFSET && def.iconOffset + ICON_BYTES <= ICONBIN_OFFSET + ICONBIN_LENGTH)) bad('assert-failed', 'icon is outside ICONBIN');
+      if (!(def.iconOffset >= target.iconbinOffset && def.iconOffset + ICON_BYTES <= target.iconbinOffset + target.iconbinLength)) bad('assert-failed', 'icon is outside ICONBIN');
       write(what, def.iconOffset, fresh[id], ICON_BYTES);
     }
   }
@@ -481,7 +492,7 @@ async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: 
     if (sum32(sectionData(DEC, so[i])) !== sum32(sectionData(img, sn[i]))) bad('assert-failed', `section ${so[i].name} word sum changed`);
   }
 
-  return { fw, DEC, img, ranges };
+  return { fw, DEC, img, ranges, target };
 }
 
 /**

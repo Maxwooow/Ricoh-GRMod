@@ -3,10 +3,10 @@
 //
 // The model's page, the version, the date and the file are read from the
 // site every time, so a new release is shown as soon as Ricoh publishes it.
-// The one thing hard-coded besides the site and its list page is Supported:
-// the release this program builds on, which stays on the site at a fixed
-// address after newer ones replace it on the pages. Every request stays on
-// the site's host.
+// The one thing hard-coded besides the site and its list page is what this
+// program builds on, Supported and SupportedMono: releases that stay on the
+// site at fixed addresses after newer ones replace them on the pages. Every
+// request stays on the site's host.
 package ricoh
 
 import (
@@ -103,9 +103,9 @@ type Archive struct {
 	Page string
 }
 
-// Supported is the release this program builds on: GR IV / GR IV HDF 1.11
-// (2026/02/13). Checked 2026-10-21: still served at this address, whose
-// archive holds the fwdc248b.bin with SHA-256 a2f664df…655f.
+// Supported is the release this program builds on for the GR IV and GR IV
+// HDF: 1.11 (2026/02/13). Checked 2026-10-21: still served at this address,
+// whose archive holds the fwdc248b.bin with SHA-256 a2f664df…655f.
 var Supported = Archive{
 	Version: "1.11",
 	Date:    "2026/02/13",
@@ -117,6 +117,24 @@ var Supported = Archive{
 	Page:    "/english/support/digital/gr4_s.html",
 }
 
+// SupportedMono is the release this program builds on for the GR IV
+// Monochrome: 1.10 (2026/10/21), whose fwdc248b.bin (SHA-256 7563d7e4…650d) is
+// also the one of GR IV 1.20. Checked 2026-10-21: served at this address,
+// linked from the Monochrome's page.
+var SupportedMono = Archive{
+	Version: "1.10",
+	Date:    "2026/10/21",
+	Path:    "/resources/english/support/digital/FIRMWARE/gr4_mono_v110.zip",
+	Size:    34702809,
+	SHA256:  "bde05b3bf56a29c272284556d6795cb772eaccbbd0091d433fd52368d4d8af12",
+	Models:  []string{"MONO"},
+	Applies: "RICOH GR IV Monochrome",
+	Page:    "/english/support/digital/gr-4-mono_s.html",
+}
+
+// supported are the releases this program builds on, at most one per model.
+var supported = []*Archive{&Supported, &SupportedMono}
+
 // Client talks to the site.
 type Client struct {
 	// Base replaces Site (tests).
@@ -124,15 +142,25 @@ type Client struct {
 	// HTTP is the client to use; nil selects http.DefaultClient. Redirects
 	// are followed by that client; the final address is checked here.
 	HTTP *http.Client
-	// Pinned replaces Supported (tests).
+	// Pinned replaces Supported and SupportedMono (tests): the one supported
+	// release, for the models it names.
 	Pinned *Archive
 }
 
-func (c *Client) pinned() *Archive {
+// pinned is the supported release for a model, or nil.
+func (c *Client) pinned(model string) *Archive {
+	list := supported
 	if c.Pinned != nil {
-		return c.Pinned
+		list = []*Archive{c.Pinned}
 	}
-	return &Supported
+	for _, a := range list {
+		for _, m := range a.Models {
+			if m == model {
+				return a
+			}
+		}
+	}
+	return nil
 }
 
 func (c *Client) base() (*url.URL, error) {
@@ -378,12 +406,8 @@ func (c *Client) Latest(ctx context.Context, model string) (*Release, error) {
 // another version, or offers nothing (latest == nil); nil when the model is
 // not one the supported release is for, or when latest is that release.
 func (c *Client) Fallback(model string, latest *Release) (*Release, error) {
-	a := c.pinned()
-	covered := false
-	for _, m := range a.Models {
-		covered = covered || m == model
-	}
-	if !covered || (latest != nil && latest.Version == a.Version) {
+	a := c.pinned(model)
+	if a == nil || (latest != nil && latest.Version == a.Version) {
 		return nil, nil
 	}
 	base, err := c.base()
@@ -392,7 +416,11 @@ func (c *Client) Fallback(model string, latest *Release) (*Release, error) {
 	}
 	fileURL := base.ResolveReference(&url.URL{Path: a.Path})
 	page := base.ResolveReference(&url.URL{Path: a.Page}).String()
+	// the row of the list: the base model's, or the model's own for a release of one model
 	name := baseModel
+	if len(a.Models) == 1 {
+		name = Models[a.Models[0]]
+	}
 	if latest != nil {
 		page = latest.Page
 	}

@@ -30,10 +30,12 @@
  * as stored.
  */
 import { FirmwareError } from '../types';
-import { assembleWords } from './arm';
+import { TARGET_111 } from '../target';
+import type { FirmwareTarget } from '../target';
+import { assembleWords, movWord } from './arm';
 import { Patch, expectWord, u32le } from './build';
 import { DATESTAMP_CODE, DATESTAMP_CODE_LENGTH, DATESTAMP_DIAG_CODE } from './datestamp-code';
-import { MONO_MODEL, ORIENT_VALID, ORIENT_WORD } from './lookstash';
+import { MONO_MODEL, ORIENT_VALID, orientWord } from './lookstash';
 
 /** JpegEncodeMacroProcess::Execute. */
 export const JPEG_EXECUTE = 0x537034b4;
@@ -47,9 +49,15 @@ const GET_TIME = 0x538ea9b0;
 /**
  * Where the setting is kept: byte 0x94B of the live user settings, alignment padding that the
  * factory-defaults initialiser never writes (like 0x90F for soft focus); saved, loaded and copied
- * to U1-U3 with the rest of the structure.
+ * to U1-U3 with the rest of the structure. In 1.20 the structure is longer (0xB44 bytes, new
+ * settings at its end) and the 30 default records leave exactly the same 53 bytes unwritten as
+ * in 1.11, this one among them (tools/port120/check_userdata.py).
  */
-export const DATESTAMP_BYTE = 0x55084dd8 + 4 + 0x94b;
+export function dateStampByte(t: FirmwareTarget): number {
+  return t.facts.userData + 4 + 0x94b;
+}
+/** The setting byte in 1.11. */
+export const DATESTAMP_BYTE = dateStampByte(TARGET_111);
 
 /** Bits of the setting byte. */
 export const DATESTAMP_ON = 1;
@@ -85,16 +93,20 @@ export function datestampModule(diag = false): Uint8Array {
  * for pictures whose colours look neutral. Returns the module address.
  */
 export function installDateStamp(patch: Patch, setting: number, diag = false, look?: { stash: number; monoLooks: Uint8Array }): number {
-  expectWord(patch, JPEG_EXECUTE, 0xe1a0c00d); // mov ip, sp
-  expectWord(patch, JPEG_EXECUTE + 4, 0xe92ddff0); // push {r4-r12, lr, pc}
-  expectWord(patch, JPEG_EXECUTE + 0x18, 0xe5914008); // ldr r4, [r1, #8]  (the configuration)
-  expectWord(patch, CACHE, 0xe30009c4); // movw r0, #0x9c4 (the cache object)
-  expectWord(patch, CACHE_CLEAN, 0xe1a00001);
-  expectWord(patch, CACHE_FLUSH_FOR_READ, 0xe1a0c00d);
-  expectWord(patch, GET_TIME, 0xe5d03014); // ldrb r3, [r0, #0x14]
+  const v = (a: number): number => patch.va(a);
+  const execute = v(JPEG_EXECUTE);
+  expectWord(patch, execute, 0xe1a0c00d); // mov ip, sp
+  expectWord(patch, execute + 4, 0xe92ddff0); // push {r4-r12, lr, pc}
+  expectWord(patch, execute + 0x18, 0xe5914008); // ldr r4, [r1, #8]  (the configuration)
+  // the cache object's getter: movw r0 / movt r0 (the object, 0x553A09C4 in 1.11) / bx lr
+  if ((patch.word(v(CACHE)) & 0xfff0f000) >>> 0 !== 0xe3000000 || (patch.word(v(CACHE) + 4) & 0xfff0f000) >>> 0 !== 0xe3400000) expectWord(patch, v(CACHE), 0xe30009c4);
+  expectWord(patch, v(CACHE) + 8, 0xe12fff1e);
+  expectWord(patch, v(CACHE_CLEAN), 0xe1a00001);
+  expectWord(patch, v(CACHE_FLUSH_FOR_READ), 0xe1a0c00d);
+  expectWord(patch, v(GET_TIME), 0xe5d03014); // ldrb r3, [r0, #0x14]
   if (look && look.monoLooks.length !== 64) fail('internal', 'date imprint: table of black-and-white looks');
   const table = look ? patch.append(look.monoLooks, 4) : 0;
-  const ctx = patch.append(u32le([CACHE, CACHE_FLUSH_FOR_READ, CACHE_CLEAN, PLATFORM, GET_TIME, setting, look ? look.stash : 0, table, look ? MONO_MODEL : 0, look ? ORIENT_WORD : 0]), 16);
+  const ctx = patch.append(u32le([v(CACHE), v(CACHE_FLUSH_FOR_READ), v(CACHE_CLEAN), v(PLATFORM), v(GET_TIME), setting, look ? look.stash : 0, table, look ? v(MONO_MODEL) : 0, look ? orientWord(patch.target) : 0]), 16);
   if (look) installExposureOrientation(patch);
   const code = patch.append(datestampModule(diag), 16);
   const stub = patch.append((at) => assembleWords(
@@ -104,9 +116,9 @@ export function installDateStamp(patch: Patch, setting: number, diag = false, lo
      bl #${code}
      pop {r0, r1, r2, r3, ip, lr}
      mov ip, sp
-     b #${JPEG_EXECUTE + 4}`, at), 16);
-  const offset = (stub - (JPEG_EXECUTE + 8)) >> 2;
-  patch.setWord(JPEG_EXECUTE, (0xea000000 | (offset & 0xffffff)) >>> 0, 'date imprint: JPEG encode step');
+     b #${execute + 4}`, at), 16);
+  const offset = (stub - (execute + 8)) >> 2;
+  patch.setWord(execute, (0xea000000 | (offset & 0xffffff)) >>> 0, 'date imprint: JPEG encode step');
   return code;
 }
 
@@ -118,21 +130,32 @@ export function installDateStamp(patch: Patch, setting: number, diag = false, lo
  * its +4 -> +0x518 -> record; 0x5323A6F0 -> 0x53755CA0 -> 0x5375C31C), 1..3 kept, anything else
  * (up, lens up / down) 0, as the EXIF writer maps it. Every pointer is checked; nothing but the
  * word is written; the hook keeps every register (and runs `mov ip, sp` itself, after them).
+ *
+ * Firmware 1.20: the same code at other addresses (0x5364D640; the display rotation reads the
+ * same +4 -> +0x518 -> record -> +0xD8 of the same singleton, 0x5537B29C, which 0x53750008 returns).
  */
 export const BEFORE_EXPOSE = 0x53628cd8;
 const DIRECTION_SINGLETON = 0x5537960c;
+/** The singleton's getter (0x5372B620) returns it with this MOVW and the MOVT after it. */
+const SINGLETON_MOVW = 0x5372b640;
 
 export function installExposureOrientation(patch: Patch): void {
-  if (patch.word(BEFORE_EXPOSE) >>> 24 === 0xea) return;
-  expectWord(patch, BEFORE_EXPOSE, 0xe1a0c00d); // mov ip, sp
-  expectWord(patch, BEFORE_EXPOSE + 4, 0xe92dd830); // push {r4, r5, fp, ip, lr, pc}
-  expectWord(patch, 0x5375c31c, 0xe5903000); // ldr r3, [r0]
-  expectWord(patch, 0x5375c320, 0xe5d300d8); // ldrb r0, [r3, #0xd8]
-  expectWord(patch, 0x53755cc8, 0xe5950518); // ldr r0, [r5, #0x518]
-  expectWord(patch, 0x5372b640, 0xe309060c); // movw r0, #0x960c (the singleton the direction is read through)
+  const v = (a: number): number => patch.va(a);
+  const at0 = v(BEFORE_EXPOSE);
+  const singleton = v(DIRECTION_SINGLETON);
+  const orient = orientWord(patch.target);
+  if (patch.word(at0) >>> 24 === 0xea) return;
+  expectWord(patch, at0, 0xe1a0c00d); // mov ip, sp
+  expectWord(patch, at0 + 4, 0xe92dd830); // push {r4, r5, fp, ip, lr, pc}
+  expectWord(patch, v(0x5375c31c), 0xe5903000); // ldr r3, [r0]
+  expectWord(patch, v(0x5375c320), 0xe5d300d8); // ldrb r0, [r3, #0xd8]
+  expectWord(patch, v(0x53755cc8), 0xe5950518); // ldr r0, [r5, #0x518]
+  // the singleton the direction is read through (movw r0, #0x960c / movt r0, #0x5537 in 1.11)
+  expectWord(patch, v(SINGLETON_MOVW), movWord(0, lo(singleton)));
+  expectWord(patch, v(SINGLETON_MOVW) + 4, movWord(0, hi(singleton), true));
   const stub = patch.append((at) => assembleWords(
     `push {r0, r1}
-     movw r0, #${lo(DIRECTION_SINGLETON)}; movt r0, #${hi(DIRECTION_SINGLETON)}
+     movw r0, #${lo(singleton)}; movt r0, #${hi(singleton)}
      ldr r0, [r0, #4]
      cmp r0, #0x40000000; blo done; cmp r0, #0xc0000000; bhs done
      ldr r0, [r0, #0x518]
@@ -142,10 +165,10 @@ export function installExposureOrientation(patch: Patch): void {
      ldrb r0, [r0, #0xd8]
      cmp r0, #3; movhi r0, #0
      orr r0, r0, #0x${ORIENT_VALID.toString(16)}
-     movw r1, #${lo(ORIENT_WORD)}; movt r1, #${hi(ORIENT_WORD)}
+     movw r1, #${lo(orient)}; movt r1, #${hi(orient)}
      str r0, [r1]
      done: pop {r0, r1}
      mov ip, sp
-     b #${BEFORE_EXPOSE + 4}`, at), 16);
-  patch.setWord(BEFORE_EXPOSE, (0xea000000 | (((stub - (BEFORE_EXPOSE + 8)) >> 2) & 0xffffff)) >>> 0, 'date imprint: camera direction at the start of the exposure');
+     b #${at0 + 4}`, at), 16);
+  patch.setWord(at0, (0xea000000 | (((stub - (at0 + 8)) >> 2) & 0xffffff)) >>> 0, 'date imprint: camera direction at the start of the exposure');
 }

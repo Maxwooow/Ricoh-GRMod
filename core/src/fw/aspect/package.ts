@@ -25,7 +25,7 @@ import { FRAME_SIZE, sectionsOf, sum32 } from '../container';
 import type { Insertion, Section } from '../container';
 import { FirmwareError } from '../types';
 import type { Range } from '../types';
-import { MAX_CUSTOM_RATIOS, OFFICIAL_ICONBIN_LENGTH, OFFICIAL_RTOS_LENGTH } from './build';
+import { MAX_CUSTOM_RATIOS, OFFICIAL_RTOS_LENGTH } from './build';
 import type { AspectResult, BuildRevision, ExtensionFeatures, RatioSpec } from './build';
 import { MAX_EXTRA_SLOTS } from './slots';
 import { RES_ANCHOR, SHUTDOWN_MAX_PICTURES, shutdownFiles } from './shutdown';
@@ -81,9 +81,12 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
   return Uint8Array.from(bytes);
 }
 
-/** The build revision named at the end of a grown RTOS section, or null when there is no record of this program. */
-export function readBuildRevision(rtos: Uint8Array): BuildRevision | null {
-  if (rtos.length < OFFICIAL_RTOS_LENGTH + TRAILER_FIXED || rtos.length % 4 !== 0) return null;
+/**
+ * The build revision named at the end of a grown RTOS section, or null when there is no record of
+ * this program. `officialLength` is the length of the official RTOS it grew from (1.11's by default).
+ */
+export function readBuildRevision(rtos: Uint8Array, officialLength = OFFICIAL_RTOS_LENGTH): BuildRevision | null {
+  if (rtos.length < officialLength + TRAILER_FIXED || rtos.length % 4 !== 0) return null;
   const at = rtos.length - 4 - MAGIC_LENGTH;
   for (let i = 0; i < MAGIC_STEM.length; i++) if (rtos[at + i] !== MAGIC_STEM.charCodeAt(i)) return null;
   const digit = rtos[at + MAGIC_STEM.length] - 0x30;
@@ -99,13 +102,13 @@ interface ParsedRecord {
   shutdownPictures: number;
 }
 
-function parseRecord(rtos: Uint8Array): ParsedRecord | null {
-  const revision = readBuildRevision(rtos);
+function parseRecord(rtos: Uint8Array, officialLength = OFFICIAL_RTOS_LENGTH): ParsedRecord | null {
+  const revision = readBuildRevision(rtos, officialLength);
   if (revision === null) return null;
   const end = rtos.length - 4;
   const lp = end - MAGIC_LENGTH - 4;
   const length = (rtos[lp] | (rtos[lp + 1] << 8) | (rtos[lp + 2] << 16) | (rtos[lp + 3] << 24)) >>> 0;
-  if (length % 4 !== 0 || length < 4 || lp - length < OFFICIAL_RTOS_LENGTH) return null;
+  if (length % 4 !== 0 || length < 4 || lp - length < officialLength) return null;
   const rec = rtos.subarray(lp - length, lp);
   const count = rec[0];
   if (!(count >= (revision >= 3 ? 0 : 1) && count <= MAX_CUSTOM_RATIOS)) return null;
@@ -157,26 +160,26 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
   return { specs: out, features, extraSlots, shutdownPictures };
 }
 /** How many power-off pictures a grown RTOS section's record says were added (0 when none, null without a valid record). */
-export function readShutdownCount(rtos: Uint8Array): number | null {
-  const r = parseRecord(rtos);
+export function readShutdownCount(rtos: Uint8Array, officialLength = OFFICIAL_RTOS_LENGTH): number | null {
+  const r = parseRecord(rtos, officialLength);
   return r ? r.shutdownPictures : null;
 }
 
 /** How many Image Control slots a grown RTOS section's record says were added (0 when none, null without a valid record). */
-export function readExtraSlotCount(rtos: Uint8Array): number | null {
-  const r = parseRecord(rtos);
+export function readExtraSlotCount(rtos: Uint8Array, officialLength = OFFICIAL_RTOS_LENGTH): number | null {
+  const r = parseRecord(rtos, officialLength);
   return r ? r.extraSlots : null;
 }
 
 /** The ratios recorded at the end of a grown RTOS section (possibly none, from revision 3), or null when there is no (valid) record. */
-export function readRatioRecord(rtos: Uint8Array): RatioSpec[] | null {
-  const r = parseRecord(rtos);
+export function readRatioRecord(rtos: Uint8Array, officialLength = OFFICIAL_RTOS_LENGTH): RatioSpec[] | null {
+  const r = parseRecord(rtos, officialLength);
   return r ? r.specs : null;
 }
 
 /** This program's other additions recorded at the end of a grown RTOS section, or null when there is no (valid) record. */
-export function readExtensionFeatures(rtos: Uint8Array): ExtensionFeatures | null {
-  const r = parseRecord(rtos);
+export function readExtensionFeatures(rtos: Uint8Array, officialLength = OFFICIAL_RTOS_LENGTH): ExtensionFeatures | null {
+  const r = parseRecord(rtos, officialLength);
   return r ? r.features : null;
 }
 
@@ -215,6 +218,8 @@ function putU32(d: Uint8Array, o: number, v: number): void {
  * `aspect` was built from ITS RTOS and ICONBIN data. Returns the longer payload, word sum zero.
  */
 export function growPayload(payload: Uint8Array, aspect: AspectResult, specs: readonly RatioSpec[]): GrownPayload {
+  const OFFICIAL_RTOS_LENGTH = aspect.target.rtosLength;
+  const OFFICIAL_ICONBIN_LENGTH = aspect.target.iconbinLength;
   const sections = sectionsOf(payload);
   const rtos = section(sections, 'RTOS');
   const icon = section(sections, 'ICONBIN');
@@ -295,6 +300,8 @@ export function growPayload(payload: Uint8Array, aspect: AspectResult, specs: re
 
 /** Planned ranges (NEW payload offsets) of everything `growPayload` adds or changes, for the self-check. */
 export function grownRanges(g: GrownPayload, aspect: AspectResult): Range[] {
+  const OFFICIAL_RTOS_LENGTH = aspect.target.rtosLength;
+  const OFFICIAL_ICONBIN_LENGTH = aspect.target.iconbinLength;
   const out: Range[] = [];
   for (const w of aspect.words) out.push({ what: `ratio hook 0x${w.address.toString(16)}`, offset: g.rtosOffset + (w.address - 0x53000000), length: 4 });
   out.push({ what: 'RTOS section size', offset: g.rtosOffset - 4, length: 4 });

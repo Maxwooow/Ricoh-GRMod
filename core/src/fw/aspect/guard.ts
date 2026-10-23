@@ -14,13 +14,18 @@
  *  - the look of each photo set (standard, custom 1..3) at 0x153..0x156 and of each movie set at
  *    0x515..0x518. Looks 0..30 are the camera's own (31..33 the firmware itself treats as invalid);
  *    an added slot is 34 + k. Anything from 31 that is not an installed added slot becomes
- *    Standard (11).
+ *    Standard (11). In 1.20 the camera's own are 0..32 (`TargetFacts.looks`) and there are no
+ *    added slots: anything from 33 becomes Standard.
  *  - the aspect ratio at 0x49F: 0..3 are the factory ones. With added ratios the ratio module
  *    (crop_state.c) already resets one that is no longer in the menu; without, anything above 3
  *    becomes 3:2 (0).
  *  - the function of each ADJ slot at 0x920..0x924 (0..0x14). Without soft focus on the ADJ lever,
  *    0x0A (soft focus in a GR Mod build) and anything above 0x14 become 0, which is what the slot
  *    getters of a build with soft focus already make of a value above 0x14.
+ *
+ * Firmware 1.20 keeps these offsets (its getters of 0x153, 0x49F, 0x515..0x518 and 0x920..0x924
+ * are those of 1.11 at other addresses) and the ADJ functions (the same official list, see
+ * softfocus.ts); the hooks are those of 1.11 through `va()`.
  */
 import { assembleWords, branchTarget, branchWord } from './arm';
 import { FirmwareError } from '../types';
@@ -53,11 +58,14 @@ export interface GuardOptions {
   adjSoftFocus: boolean;
 }
 
-/** The guard's own `fix(settings, adjust)`, in assembly: settings pointer minus `adjust` is the layout of CURRENT(). */
-function fixSource(o: GuardOptions): string {
+/**
+ * The guard's own `fix(settings, adjust)`, in assembly: settings pointer minus `adjust` is the
+ * layout of CURRENT(). `looks`: the number of the camera's own looks (`TargetFacts.looks`).
+ */
+function fixSource(o: GuardOptions, looks: number): string {
   const lines: string[] = ['cmp r0,#0', 'bxeq lr', 'sub r0,r0,r1'];
   LOOKS.forEach((off, i) => {
-    lines.push(`ldrb r2,[r0,#${off}]`, 'cmp r2,#31', `blo look${i}`);
+    lines.push(`ldrb r2,[r0,#${off}]`, `cmp r2,#${looks}`, `blo look${i}`);
     if (o.slots > 0) lines.push(`sub r3,r2,#${FIRST_ADDED_LOOK}`, `cmp r3,#${o.slots}`, `blo look${i}`);
     lines.push(`mov r2,#${STANDARD}`, `strb r2,[r0,#${off}]`, `look${i}:`);
   });
@@ -77,29 +85,32 @@ function fixSource(o: GuardOptions): string {
  */
 export function installSettingsGuard(p: Patch, o: GuardOptions): { fix: number; fixMode: number } {
   if (!(Number.isInteger(o.slots) && o.slots >= 0 && o.slots <= 200)) fail('internal', 'guard: number of slots');
-  const priorSave = branchTarget(SETTINGS_SAVE, p.word(SETTINGS_SAVE));
-  const priorLoad = branchTarget(SETTINGS_LOAD, p.word(SETTINGS_LOAD));
-  if (p.word(SETTINGS_SAVE) >>> 24 !== 0xea || p.word(SETTINGS_LOAD) >>> 24 !== 0xea) fail('internal', 'the settings save/load scaffold is not installed');
-  const recallWord = p.word(RECALL);
+  if (o.slots > 0 && !p.target.colour) fail('internal', 'guard: added slots on a firmware without them');
+  const v = (a: number): number => p.va(a);
+  const [settingsSave, settingsLoad, recallAt, recallNative, current] = [v(SETTINGS_SAVE), v(SETTINGS_LOAD), v(RECALL), v(RECALL_NATIVE), v(CURRENT)];
+  const priorSave = branchTarget(settingsSave, p.word(settingsSave));
+  const priorLoad = branchTarget(settingsLoad, p.word(settingsLoad));
+  if (p.word(settingsSave) >>> 24 !== 0xea || p.word(settingsLoad) >>> 24 !== 0xea) fail('internal', 'the settings save/load scaffold is not installed');
+  const recallWord = p.word(recallAt);
   if (recallWord >>> 24 !== 0xeb) fail('unexpected-layout', 'user-mode recall is not a call');
-  const priorRecall = branchTarget(RECALL, recallWord);
-  if (priorRecall === RECALL_NATIVE) expectWord(p, RECALL, 0xebfe566c);
+  const priorRecall = branchTarget(recallAt, recallWord);
+  if (priorRecall === recallNative) expectWord(p, recallAt, branchWord(recallAt, recallNative, 14, true)); // bl (0xEBFE566C in 1.11)
 
-  const fix = p.append((a) => assembleWords(fixSource(o), a), 16);
+  const fix = p.append((a) => assembleWords(fixSource(o, p.target.facts.looks), a), 16);
   // fix_mode(mode): the ten snapshots at mode + 4.
   const fixMode = p.append((a) => assembleWords(
     `cmp r0,#0;bxeq lr;push {r4,r5,r6,lr};mov r4,r0;mov r5,#0;
      loop:add r6,r4,r5,lsl #2;ldr r0,[r6,#4];mov r1,#4;bl #${fix};add r5,r5,#1;cmp r5,#10;blo loop;pop {r4,r5,r6,pc}`, a), 16);
   const load = p.append((a) => assembleWords(
     `push {r4,r5,r6,lr};mov r4,r0;mov r5,r1;bl #${priorLoad};mov r6,r0;
-     mov r0,r5;mov r1,#4;bl #${fix};mov r0,r4;bl #${fixMode};bl #${CURRENT};mov r1,#0;bl #${fix};
+     mov r0,r5;mov r1,#4;bl #${fix};mov r0,r4;bl #${fixMode};bl #${current};mov r1,#0;bl #${fix};
      mov r0,r6;pop {r4,r5,r6,pc}`, a), 16);
   const save = p.append((a) => assembleWords(
-    `push {r4,lr};mov r4,r0;bl #${CURRENT};mov r1,#0;bl #${fix};mov r0,r4;bl #${fixMode};mov r0,r4;pop {r4,lr};b #${priorSave}`, a), 16);
+    `push {r4,lr};mov r4,r0;bl #${current};mov r1,#0;bl #${fix};mov r0,r4;bl #${fixMode};mov r0,r4;pop {r4,lr};b #${priorSave}`, a), 16);
   const recall = p.append((a) => assembleWords(
     `push {r0,r1,r2,r3,ip,lr};mov r0,r4;mov r1,#0;bl #${fix};pop {r0,r1,r2,r3,ip,lr};b #${priorRecall}`, a), 16);
-  p.setWord(SETTINGS_LOAD, branchWord(SETTINGS_LOAD, load), 'settings load: put back values this firmware does not know');
-  p.setWord(SETTINGS_SAVE, branchWord(SETTINGS_SAVE, save), 'settings save: put back values this firmware does not know');
-  p.setWord(RECALL, branchWord(RECALL, recall, 14, true), 'user-mode recall: put back values this firmware does not know');
+  p.setWord(settingsLoad, branchWord(settingsLoad, load), 'settings load: put back values this firmware does not know');
+  p.setWord(settingsSave, branchWord(settingsSave, save), 'settings save: put back values this firmware does not know');
+  p.setWord(recallAt, branchWord(recallAt, recall, 14, true), 'user-mode recall: put back values this firmware does not know');
   return { fix, fixMode };
 }

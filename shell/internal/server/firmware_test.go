@@ -62,6 +62,8 @@ func newFakeSite(t *testing.T) *fakeSite {
 		fmt.Fprint(w, `<table><tr><th>Applied product</th><td>RICOH GR IV / RICOH GR IV HDF</td></tr><tr><th>Release date</th><td>2026/02/13</td></tr></table>
 			<a href="/resources/FIRMWARE/gr4_v111.zip">Download</a>`)
 	})
+	// the Monochrome's supported release at its fixed address: another file than the real one
+	mux.HandleFunc(ricoh.SupportedMono.Path, func(w http.ResponseWriter, r *http.Request) { w.Write(archive) })
 	mux.HandleFunc("/resources/FIRMWARE/gr4_v111.zip", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprint(len(archive)))
 		if r.Method == http.MethodHead {
@@ -124,7 +126,14 @@ func TestFirmwareLatest(t *testing.T) {
 			t.Errorf("the archive's address is none of the page's business: %s", rec.Body)
 		}
 	}
-	wantStatus(t, e.do("GET", "/api/firmware/latest?model=MONO", nil), 404, codeNotFound)
+	// the site lists nothing for the Monochrome: its supported release is the answer
+	rec := e.do("GET", "/api/firmware/latest?model=MONO", nil)
+	var mono firmwareLatest
+	if err := json.Unmarshal(rec.Body.Bytes(), &mono); err != nil || rec.Code != 200 || mono.Model != "MONO" || mono.Name != "GR IV Monochrome" ||
+		mono.Version != "1.10" || mono.Date != "2026/10/21" || mono.File != "gr4_mono_v110.zip" || mono.Fallback != nil ||
+		mono.Page != site.srv.URL+ricoh.SupportedMono.Page || strings.Contains(rec.Body.String(), "/resources/") {
+		t.Errorf("MONO: %d %s", rec.Code, rec.Body)
+	}
 	wantStatus(t, e.do("GET", "/api/firmware/latest?model=GR3", nil), 400, codeInvalid)
 	wantStatus(t, e.do("GET", "/api/firmware/latest", nil), 400, codeInvalid)
 	wantStatus(t, e.do("POST", "/api/firmware/latest?model=HDF", nil), 405, codeInvalid)
@@ -167,7 +176,8 @@ func TestFirmwareDownload(t *testing.T) {
 	if p.Active || p.Received == 0 || p.Received != p.Total {
 		t.Errorf("progress after a finished download: %+v", p)
 	}
-	wantStatus(t, e.do("POST", "/api/firmware/download", map[string]string{"model": "MONO"}), 404, codeNotFound)
+	// the Monochrome's supported release is checked against its own SHA-256 (the fake site has another file there)
+	wantStatus(t, e.do("POST", "/api/firmware/download", map[string]string{"model": "MONO"}), 502, codeChecksum)
 	wantStatus(t, e.do("POST", "/api/firmware/download", map[string]string{"model": "x"}), 400, codeInvalid)
 	wantStatus(t, e.do("POST", "/api/firmware/download", "{"), 400, codeInvalid)
 	// the page cannot name an address
@@ -239,9 +249,15 @@ func TestFirmwarePage(t *testing.T) {
 	if len(host.opened) != 1 || host.opened[0] != site.srv.URL+"/english/support/digital/gr4_s.html" {
 		t.Errorf("opened: %v", host.opened)
 	}
-	wantStatus(t, e.do("POST", "/api/firmware/page", map[string]string{"model": "MONO"}), 404, codeNotFound)
+	// the Monochrome, which the site does not list here: the page of its supported release
+	if rec := e.do("POST", "/api/firmware/page", map[string]string{"model": "MONO"}); rec.Code != 200 {
+		t.Fatalf("MONO: %d %s", rec.Code, rec.Body)
+	}
+	if len(host.opened) != 2 || host.opened[1] != site.srv.URL+ricoh.SupportedMono.Page {
+		t.Errorf("opened: %v", host.opened)
+	}
 	wantStatus(t, e.do("POST", "/api/firmware/page", map[string]string{"page": "https://example.com/"}), 400, codeInvalid)
-	if len(host.opened) != 1 {
+	if len(host.opened) != 2 {
 		t.Errorf("opened: %v", host.opened)
 	}
 }
@@ -288,7 +304,7 @@ func TestFirmwareFallback(t *testing.T) {
 		t.Errorf("the site's release: %d %v", rec.Code, rec.Header())
 	}
 	wantStatus(t, e.do("POST", "/api/firmware/download", map[string]string{"model": "HDF", "version": "1.05"}), 404, codeNotFound)
-	// the Monochrome has no supported release
+	// a model the pinned release is not for
 	if rec := e.do("GET", "/api/firmware/latest?model=MONO", nil); rec.Code != 404 {
 		t.Errorf("MONO: %d %s", rec.Code, rec.Body)
 	}

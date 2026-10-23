@@ -270,7 +270,8 @@ async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Pr
     for (const id of allSlotKeys()) {
       void renderIcon(id);
       const p = slotOf(id)?.preset;
-      if (p && !p.result && !p.busy) void runPreset(id, p.fileName, p.kind, p.text);
+      // Presets are converted for the colour work, which a 1.20 file does not have.
+      if (p && !p.result && !p.busy && info.colour) void runPreset(id, p.fileName, p.kind, p.text);
     }
     for (const w of state.wall) void encodeWall(w.id);
     void refreshRatios();
@@ -298,6 +299,13 @@ export async function adoptFirmware(name: string, version: string, data: Uint8Ar
   if (ok && after) { set({ bridgeAfter: undefined }); setTimeout(() => { void outputBridge(after); }, 0); }
   return ok;
 }
+/** The version of the open firmware as the chosen model shows it (the Monochrome's numbers are its own), or ''. */
+export function fwVersion(s: State = state): string { return s.info ? s.info.versions[s.model] : ''; }
+/**
+ * Whether the colour work (the Cinema slots, added slots, the monochrome looks) is offered: a colour
+ * model, and an open file that has it (1.11; not the 1.20 file of GR IV 1.20 / GR IV Monochrome 1.10).
+ */
+export function colourWork(s: State = state): boolean { return s.model !== 'MONO' && s.info?.colour !== false; }
 /** True while the open firmware is the 1.12 bridge firmware: nothing is written until the official one is open. */
 export const bridgeLoaded = (s: State = state): boolean => !!s.info?.bridge;
 /** What a write or export does while the bridge firmware is open: offer the official download instead. */
@@ -372,10 +380,10 @@ export function extraProblem(x: ExtraSlot, s: State = state): string | null {
   if (!x.icon.pixels) return t('extraNeedsIcon');
   return null;
 }
-export function hasExtraErrors(s: State = state): boolean { return s.model !== 'MONO' && s.extras.some((x) => !!extraProblem(x, s)); }
-/** What the added slots give the build (none on the Monochrome, which has no colour looks). */
+export function hasExtraErrors(s: State = state): boolean { return colourWork(s) && s.extras.some((x) => !!extraProblem(x, s)); }
+/** What the added slots give the build (none without the colour work, see `colourWork`). */
 export function extraSpecs(s: State = state): ExtraSlotSpec[] {
-  if (s.model === 'MONO') return [];
+  if (!colourWork(s)) return [];
   return s.extras.map((x) => {
     const r = x.preset!.result!;
     return { name: extraName(x, s), matrixQ13: r.matrixQ13, curves: r.curves, ...(r.postQ9 ? { postQ9: r.postQ9 } : {}), icon: x.icon.pixels!, halation: true };
@@ -428,7 +436,8 @@ export function setExtraName(key: string, name: string): void {
 // ------------------------------------------------------------------ names
 export function nameProblem(info: FirmwareInfo, id: SlotId, lang: LangCode, text: string): string | null {
   if (!text) return null;
-  const slot = info.slots.find((s) => s.id === id)!;
+  const slot = info.slots.find((s) => s.id === id);
+  if (!slot) return null; // a file without the colour work has no slots to name
   const cap = slot.names[lang].capacity;
   if (text.length > cap) return t('nameTooLong', { n: cap });
   const allowed = info.allowed[lang];
@@ -585,7 +594,7 @@ export function softOn(s: State = state): boolean { return !!s.soft; }
 export function setDateStamp(dateStamp: boolean): void { set({ dateStamp }); scheduleSave(); }
 /** The six looks of the GR IV Monochrome on a colour GR IV. Nothing to unlock on the Monochrome. */
 export function setMonoUnlock(monoUnlock: boolean): void { set({ monoUnlock }); scheduleSave(); }
-export function monoUnlockOn(s: State = state): boolean { return !!s.monoUnlock && s.model !== 'MONO'; }
+export function monoUnlockOn(s: State = state): boolean { return !!s.monoUnlock && colourWork(s); }
 /** Any addition that is not a slot or a ratio. */
 export function extrasOn(s: State = state): boolean { return softOn(s) || !!s.dateStamp || monoUnlockOn(s); }
 const MINUS = '\u2212';
@@ -720,7 +729,7 @@ export function setShowAll(v: boolean): void { set({ showAll: v }); scheduleSave
 export interface SlotChange { id: SlotId; parts: string[]; labels: string[]; request: SlotRequest }
 export function pendingChanges(s: State = state): SlotChange[] {
   const out: SlotChange[] = [];
-  if (!s.info || s.model === 'MONO') return out;
+  if (!s.info || !colourWork(s)) return out;
   for (const id of SLOT_IDS) {
     const sl = s.slots[id]; const off = s.info.slots.find((x) => x.id === id)!;
     const req: SlotRequest = { slot: id }; const parts: string[] = []; const labels: string[] = [];
@@ -738,7 +747,7 @@ export function pendingChanges(s: State = state): SlotChange[] {
   return out;
 }
 export function hasNameErrors(s: State = state): boolean {
-  if (!s.info) return false;
+  if (!s.info || !colourWork(s)) return false;
   return SLOT_IDS.some((id) => LANGS.some((lang) => !!nameProblem(s.info!, id, lang, s.slots[id].names[lang] || '')));
 }
 const stamp = (): string => { const d = new Date(); const p = (n: number): string => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
@@ -802,7 +811,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   if (!stock && state.wall.length > 0 && !menuReady()) { toast(t('wallMenuIncomplete'), 'error'); return; }
   const pictures = stock ? [] : menuPictures();
   if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && extras.length === 0 && pictures.length === 0) { toast(t('nothingToDo'), 'info'); return; }
-  if (stock && !(await askOfficial([t('copyOfficial')]))) return;
+  if (stock && !(await askOfficial([t('copyOfficial', { v: fwVersion() })]))) return;
   if (dest.kind === 'card' && !stock) {
     const lines = changes.map((c) => `${t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
     if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
@@ -841,7 +850,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
  */
 export async function outputBridge(dest: Dest): Promise<void> {
   if (state.busy) return;
-  if (!state.info) { set({ bridgeAfter: dest }); setOnlineOpen(true, 'bridge-base'); return; }
+  if (!state.info || state.info.target !== '1.11') { set({ bridgeAfter: dest }); setOnlineOpen(true, 'bridge-base'); return; }
   const target = await destination(dest);
   if (!target) return;
   try {
@@ -997,7 +1006,7 @@ export function writableCopy(s: State = state): { entry: ParkedEntry; summary: F
 }
 /** A one-line description of a firmware copy, for the confirmation. */
 export function describeCopy(summary: FirmwareSummary, s: State = state): string[] {
-  if (summary.kind === 'official') return [t('copyOfficial')];
+  if (summary.kind === 'official') return [t('copyOfficial', { v: fwVersion(s) })];
   if (summary.kind === 'bridge') return [t('copyBridge')];
   const build = s.builds.find((b) => b.sha256 === summary.sha256);
   const lines = summary.slots.map((sl) => {

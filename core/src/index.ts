@@ -12,6 +12,8 @@ export type { CameraModel } from './wallpaper';
 export type { Sampling } from './jpeg';
 export { BRIDGE_VERSION, FIRMWARE_VERSION, LANGS, SLOTS, ICON_W, ICON_H, OFFICIAL_CLARITY, SOFT_FOCUS_GAINS, SOFT_FOCUS_LEVELS, SOFT_FOCUS_STRENGTHS } from './fw';
 export type { ClarityChange, SoftFocusLevel, SoftFocusStrength } from './fw';
+export { SUPPORTED_RELEASE, targetOfRelease } from './fw';
+export type { TargetId } from './fw';
 export type { BuiltRatio, RatioSpec } from './fw';
 export { MAX_CUSTOM_RATIOS, MAX_NAME_LENGTH, validateRatioName, EXTRA_NAME_MAX, MAX_EXTRA_SLOTS, validateExtraSlotName, SHUTDOWN_MAX_PICTURES, SHUTDOWN_NAME_MAX, encodeShutdownPicture, validateShutdownName } from './fw';
 export type { ExtraSlotSpec, ShutdownPictureSpec } from './fw';

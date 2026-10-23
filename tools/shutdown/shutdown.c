@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only
  *
- * GR Mod: power-off pictures chosen in the camera (Ricoh GR IV, firmware 1.11).
+ * GR Mod: power-off pictures chosen in the camera (Ricoh GR IV, firmware 1.11; built with
+ * -DGRMOD_FW_120 for 1.20, the file of GR IV 1.20 and GR IV Monochrome 1.10, see below).
  *
  * The camera's "End Screen" line (Setup > Display) opens a submenu of two lines (see shutdown.ts):
  *   Type      the camera's own End Screen list (type 1 / type 2: whether the shooting statistics
@@ -31,6 +32,12 @@
  *
  * Position-independent: no global data; firmware functions are called at their fixed addresses,
  * everything else comes in through `struct sd_ctx` (built by shutdown.ts).
+ *
+ * Firmware 1.20 (GRMOD_FW_120): the same functions at other addresses (shutdown-fw120.h, written
+ * by gen.py from core/src/fw/target120.ts), and the factory picture is chosen otherwise (see
+ * factory_index). The power-off picture request of 1.20 draws the End Screen picture chosen at
+ * power-off (factory, or one downloaded with GR WORLD); sd_background shows the picture of the
+ * list instead when one is chosen, and leaves everything else to it.
  */
 typedef unsigned char u8;
 typedef unsigned short u16;
@@ -62,6 +69,9 @@ typedef void *(*item_fn)(void *, u32);
 typedef void (*set2_fn)(void *, u32);
 typedef void (*move_fn)(void *, int, u32);
 
+#ifdef GRMOD_FW_120
+#include "shutdown-fw120.h"
+#else
 #define APP_GET          ((get0_fn)0x5323ea84u)
 #define USERDATA_GET     ((get1_fn)0x5323f018u)
 #define MODEL_GET        ((get1_fn)0x5323ff28u)
@@ -83,6 +93,7 @@ typedef void (*move_fn)(void *, int, u32);
 #define STORE_SIZE       ((u32 (*)(void *, u32))0x53a7e208u)
 #define STORE_READ       ((u32 (*)(void *, u32, u32, void *))0x53a7e434u)
 #define STORE_WRITE      ((u32 (*)(void *, u32, u32, const void *))0x53a7e518u)
+#endif
 
 struct record { u32 magic, choice; };
 
@@ -152,6 +163,7 @@ static u32 chosen_row(const struct sd_ctx *k) {
   return picture >= 0 ? 1u + (u32)picture : 0u;
 }
 
+#ifndef GRMOD_FW_120
 /* The factory picture this camera shows (as 0x531B9488 chooses it), as an index of factory_icon. */
 static u32 factory_index(void) {
   u8 *node = (u8 *)VARIANT_ROOT();
@@ -165,6 +177,22 @@ static u32 factory_index(void) {
   edition = EDITION_GET(MODEL_GET(APP_GET()));
   return edition == 1 ? 2 : edition == 2 ? 1 : 0;   /* 3: Monochrome, 2: HDF, 1: GoodBye */
 }
+#else
+/* The picture 1.20 shows without a choice of this list, as an index of factory_icon, 4 when it has
+ * no thumbnail. 1.20 chooses it at power-off (0x5378F5C0) from its End Screen object (at +0x28 of
+ * VARIANT_ROOT): byte 0x15, the choice made with GR WORLD, 0..4 a picture of its table (GoodBye,
+ * HDF, Monochrome, 20th, 30th: the order of factory_icon), above 50 the downloaded picture
+ * (B:\GB_DL.jpg); otherwise byte 0x14, the camera's own. The 30th's picture is not in the firmware. */
+static u32 factory_index(void) {
+  u8 *screen = *(u8 **)((u8 *)VARIANT_ROOT() + 0x28);
+  u32 choice;
+  if (!screen) return 4;
+  choice = screen[0x15];
+  if (choice > 50) return 4;
+  if (choice > 4) choice = screen[0x14];
+  return choice <= 3 ? choice : 4;
+}
+#endif
 
 static void update(void *controller, const struct sd_ctx *k, int focus) {
   void *widget = list(controller);
@@ -211,7 +239,11 @@ void sd_right(void *controller, u32 stop, const struct sd_ctx *k) {
 void sd_footer(void *controller, const struct sd_ctx *k) {
   void *graphic = *(void **)((u8 *)controller + 0x164);
   u32 row = LIST_SELECTED(list(controller)), icon = 0;
+#ifndef GRMOD_FW_120
   if (ok(k) && row == 0) icon = k->factory_icon[factory_index()];
+#else
+  if (ok(k) && row == 0) { u32 f = factory_index(); icon = f < 4 ? k->factory_icon[f] : 0; }
+#endif
   else if (ok(k) && row < rows(k)) icon = k->icon[row - 1];
   if (icon) GRAPHIC_ICON(graphic, icon);
   GRAPHIC_VISIBLE(graphic, icon != 0);

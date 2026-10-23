@@ -54,11 +54,13 @@
  *    within what added ratios use).
  */
 import { FirmwareError } from '../types';
+import { RAM_VA } from '../target';
+import type { FirmwareTarget } from '../target';
 import { assembleWords, branchTarget, movImmediate, movWord } from './arm';
 import {
-  ICON_CATALOG, LANGUAGES, LOOKUP_BOUNDS, NATIVE_TEXT_ROOTS, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z,
+  LANGUAGES, NATIVE_TEXT_ROOTS, Patch, concat, expectWord, raiseIconBound, u16le, u32le, utf16z,
 } from './build';
-import { DATESTAMP_AS_STORED, DATESTAMP_BYTE } from './datestamp';
+import { DATESTAMP_AS_STORED, dateStampByte } from './datestamp';
 
 /** Controller ids of the submenu and of its two lists. */
 export const DATESTAMP_MENU_ID = 0x020001a0;
@@ -67,14 +69,10 @@ export const DATESTAMP_STYLE_ID = 0x020001a2;
 /** 0.8.3: the "Follow Orientation" list. */
 export const DATESTAMP_ORIENT_ID = 0x020001a5;
 
-/** Texts: line / submenu name, the two line names, the two style names. */
+/** Texts of 1.11: line / submenu name, the two line names, the two style names, "Follow Orientation" (1.20: `TargetFacts.texts`). */
 export const DATESTAMP_TEXT_IDS = { name: 841, onOff: 842, style: 843, short: 844, long: 845, orient: 879 } as const;
 /** Icons of the two styles. */
 export const DATESTAMP_ICON_IDS = { short: 721, long: 722 } as const;
-const ICON_OFF = 310;
-const ICON_ON = 311;
-const TEXT_OFF = 2;
-const TEXT_ON = 1;
 
 /** In `LANGS` order (cs da en fi fr de el hu it ja ko nl pl pt ru zh-CN es sv th zh-TW tr). */
 export const DATESTAMP_NAMES: readonly string[] = [
@@ -125,13 +123,11 @@ const SUB_SET_CURRENT = 0x531e1bd0;
 const SELECT_SET_CURRENT = 0x531d5e8c;
 const SUB_TABLE = 0x53da6718;
 const SUB_RECORD = 0x64;
-const SUB_RECORDS = 18;
 const SUB_SITES: readonly (readonly [number, number, number])[] = [
   [0x531e2064, 0x531e206c, 3], [0x531e20cc, 0x531e20d4, 2], [0x531e2438, 0x531e2444, 8], [0x531e2668, 0x531e266c, 5], [0x531e2734, 0x531e2740, 3],
 ];
 const SELECT_TABLE = 0x53da2d20;
 const SELECT_RECORD = 0x4c;
-const SELECT_RECORDS = 124;
 const SELECT_SITES: readonly (readonly [number, number, number])[] = [
   [0x531d6868, 0x531d6878, 6], [0x531d6a08, 0x531d6a0c, 3], [0x531d6a54, 0x531d6a5c, 7], [0x531d6b10, 0x531d6b18, 3],
   [0x531d6b7c, 0x531d6b80, 3], [0x531d6d54, 0x531d6d64, 4], [0x531d6e80, 0x531d6e88, 3], [0x531d7040, 0x531d7048, 3],
@@ -149,11 +145,16 @@ const D_RANGE_RECORD = 6;
 const D_RANGE_ID = 0x020000d0;
 const HORIZON_RECORD = 45;
 const HORIZON_ID = 0x02000094;
-/** Record numbers of the additions. */
-export const SUB_RECORD_NUMBER = SUB_RECORDS + 1;
-export const SWITCH_RECORD_NUMBER = SELECT_RECORDS + 1;
-export const STYLE_RECORD_NUMBER = SELECT_RECORDS + 2;
-export const ORIENT_RECORD_NUMBER = SELECT_RECORDS + 3;
+/** Record numbers of the additions (1.11; see `recordNumbers`). */
+export const SUB_RECORD_NUMBER = 18 + 1;
+export const SWITCH_RECORD_NUMBER = 124 + 1;
+export const STYLE_RECORD_NUMBER = 124 + 2;
+export const ORIENT_RECORD_NUMBER = 124 + 3;
+
+/** Record numbers of the additions: one after the record each constructor starts with. */
+export function recordNumbers(t: FirmwareTarget): { submenu: number; onOff: number; style: number; orient: number } {
+  return { submenu: t.facts.submenuRecords + 1, onOff: t.facts.listRecords + 1, style: t.facts.listRecords + 2, orient: t.facts.listRecords + 3 };
+}
 
 // Functions the handlers call.
 const APP = 0x5323ea84; // application singleton
@@ -164,8 +165,6 @@ const TOP_SET_TITLE = 0x5357a1c0; // (menu line, text)
 const SUB_SET_ICON = 0x53583188; // (submenu line, icon)
 const LIST_SET_ITEM = 0x5357aef0; // (list item, icon, text)
 
-const TABLE_STRIDE = 0xd14;
-const FIRST_TABLE_RAM = 0x55000000 + (0x5437d7b0 - 0x5437b640);
 
 export const STYLE_ICON_W = 40;
 export const STYLE_ICON_H = 40;
@@ -250,17 +249,25 @@ export function drawStyleIcon(long: boolean): Uint8Array {
 // --------------------------------------------------------------------------------------------
 // Texts
 
-function installTexts(patch: Patch, entries: readonly { id: number; names: readonly string[] }[]): void {
-  const roots = new DataView(patch.readMapped(NATIVE_TEXT_ROOTS, LANGUAGES * 4).buffer);
+/** Language row l (as the program indexes languages) -> its table number in `LANGS` order. */
+export function languageOrder(patch: Patch): number[] {
+  const t = patch.target;
+  const firstTableRam = RAM_VA + (t.facts.firstTextTable - t.ramImage);
+  const roots = new DataView(patch.readMapped(patch.va(NATIVE_TEXT_ROOTS), LANGUAGES * 4).buffer);
   const order: number[] = [];
   const seen = new Set<number>();
   for (let l = 0; l < LANGUAGES; l++) {
     // Root l (as the program indexes languages) is table k (in `LANGS` order), 4 bytes before it.
-    const k = (roots.getUint32(l * 4, true) + 4 - FIRST_TABLE_RAM) / TABLE_STRIDE;
+    const k = (roots.getUint32(l * 4, true) + 4 - firstTableRam) / t.facts.textTableStride;
     if (!(Number.isInteger(k) && k >= 0 && k < LANGUAGES) || seen.has(k)) fail('unexpected-layout', 'language tables are not where they were expected');
     seen.add(k);
     order.push(k);
   }
+  return order;
+}
+
+function installTexts(patch: Patch, entries: readonly { id: number; names: readonly string[] }[]): void {
+  const order = languageOrder(patch);
   let upper = 0;
   for (const { id, names } of entries) {
     if (names.length !== LANGUAGES) fail('internal', 'a text needs all 21 languages');
@@ -273,7 +280,7 @@ function installTexts(patch: Patch, entries: readonly { id: number; names: reado
       return patch.append(concat([Uint8Array.from([units, 1, 0, 0]), u32le([address])]), 4);
     });
     for (let l = 0; l < LANGUAGES; l++) {
-      const row = patch.word(TEXT_CATALOG + l * 4);
+      const row = patch.word(patch.textCatalog + l * 4);
       if (patch.word(row + id * 4) !== 0) fail('unexpected-layout', 'text number already in use');
       patch.write(row + id * 4, u32le([descriptors[order[l]]]));
     }
@@ -287,7 +294,7 @@ function installIcons(patch: Patch, iconbin: Uint8Array): Uint8Array {
   let length = iconbin.length;
   let upper = 0;
   for (const [id, long] of [[DATESTAMP_ICON_IDS.short, false], [DATESTAMP_ICON_IDS.long, true]] as const) {
-    if (patch.word(ICON_CATALOG + id * 4) !== 0) fail('unexpected-layout', 'icon number already in use');
+    if (patch.word(patch.iconCatalog + id * 4) !== 0) fail('unexpected-layout', 'icon number already in use');
     const pad = (4 - (length % 4)) % 4;
     if (pad) {
       parts.push(new Uint8Array(pad));
@@ -299,13 +306,10 @@ function installIcons(patch: Patch, iconbin: Uint8Array): Uint8Array {
     length += icon.length;
     // {u16 kind = 1, u16 width, u16 height, u16 flags = 0, u32 offset in 4-byte units}
     const descriptor = patch.append(concat([u16le([1, STYLE_ICON_W, STYLE_ICON_H, 0]), u32le([offset / 4])]), 16);
-    patch.write(ICON_CATALOG + id * 4, u32le([descriptor]));
+    patch.write(patch.iconCatalog + id * 4, u32le([descriptor]));
     upper = Math.max(upper, id);
   }
-  for (const [site, register] of LOOKUP_BOUNDS) {
-    if ((patch.word(site) & 0xfff0f000) >>> 0 !== (0xe3000000 | (register << 12)) >>> 0) fail('unexpected-layout', 'icon bound is not a MOVW');
-    patch.setWord(site, movWord(register, Math.max(upper, movImmediate(patch.word(site)))), 'icon upper bound');
-  }
+  raiseIconBound(patch, upper);
   return concat(parts);
 }
 
@@ -316,12 +320,17 @@ export { FACTORY as CONTROLLER_FACTORY, D_RANGE_ID as SUBMENU_CONTROLLER_ID };
 
 /** A submenu record (0x64 bytes) to start from: Reset (Setup), two lines without values. */
 export function submenuTemplate(patch: Patch): Uint8Array {
-  const r = patch.read(SUB_TABLE + 17 * SUB_RECORD, SUB_RECORD);
+  const r = patch.read(patch.va(SUB_TABLE) + 17 * SUB_RECORD, SUB_RECORD);
   const v = new DataView(r.buffer);
-  if (v.getUint16(0, true) !== 0 || v.getUint16(2, true) !== 703 || r[6] !== 2 || v.getUint32(0x14, true) !== 0x02000112 || v.getUint32(0x18, true) !== 0x02000116) {
+  if (v.getUint16(0, true) !== 0 || v.getUint16(2, true) !== patch.target.facts.camera.texts.reset || r[6] !== 2 || v.getUint32(0x14, true) !== 0x02000112 || v.getUint32(0x18, true) !== 0x02000116) {
     fail('unexpected-layout', 'Reset submenu record is not as expected');
   }
   return r;
+}
+
+/** The five places that load the submenu table, translated. */
+function subSites(patch: Patch): [number, number, number][] {
+  return SUB_SITES.map(([low, high, r]) => [patch.va(low), patch.va(high), r]);
 }
 
 /**
@@ -333,26 +342,28 @@ export function submenuTemplate(patch: Patch): Uint8Array {
  */
 export function addSubmenuRecord(patch: Patch, id: number, record: Uint8Array, what: string): number {
   if (record.length !== SUB_RECORD) fail('internal', 'submenu record size');
-  const at = SUB_SITES.map(([low, high, r]) => {
+  const sites = subSites(patch);
+  const at = sites.map(([low, high, r]) => {
     const a = patch.word(low), b = patch.word(high);
     if (a !== movWord(r, movImmediate(a)) || b !== movWord(r, movImmediate(b), true)) fail('unexpected-layout', 'submenu table site is not a MOVW/MOVT pair');
     return (movImmediate(a) | (movImmediate(b) << 16)) >>> 0;
   });
   const table = at[0];
-  if (at.some((t) => t !== table) || (table === SUB_TABLE) !== (patch.submenuRecords === 0)) fail('unexpected-layout', 'submenu table is not where it was expected');
-  const copy = patch.submenuRecords || SUB_RECORDS + 1;
+  if (at.some((t) => t !== table) || (table === patch.va(SUB_TABLE)) !== (patch.submenuRecords === 0)) fail('unexpected-layout', 'submenu table is not where it was expected');
+  const copy = patch.submenuRecords || patch.target.facts.submenuRecords + 1;
   if (copy > 0xff) fail('internal', 'too many submenu records');
-  relocateTable(patch, table, SUB_RECORD, copy, [record], SUB_SITES, `${what}: submenu records`);
-  const first = patch.word(SUB_SET_CURRENT);
+  relocateTable(patch, table, SUB_RECORD, copy, [record], sites, `${what}: submenu records`);
+  const set = patch.va(SUB_SET_CURRENT);
+  const first = patch.word(set);
   const prior = first === 0xe28134fe
-    ? patch.append((a) => assembleWords(`add r3, r1, #0xfe000000; b #${SUB_SET_CURRENT + 4}`, a), 16)
-    : first >>> 24 === 0xea ? branchTarget(SUB_SET_CURRENT, first) : fail('unexpected-layout', 'submenu SetCurrentMenu is not as expected');
+    ? patch.append((a) => assembleWords(`add r3, r1, #0xfe000000; b #${set + 4}`, a), 16)
+    : first >>> 24 === 0xea ? branchTarget(set, first) : fail('unexpected-layout', 'submenu SetCurrentMenu is not as expected');
   const current = patch.append((a) => assembleWords(
     `movw ip, #${lo(id)}; movt ip, #${hi(id)}
      cmp r1, ip
      moveq r3, #${copy}; strbeq r3, [r0, #0x174]; bxeq lr
      b #${prior}`, a), 16);
-  patch.setWord(SUB_SET_CURRENT, branchWord(SUB_SET_CURRENT, current), `${what}: submenu record`);
+  patch.setWord(set, branchWord(set, current), `${what}: submenu record`);
   patch.submenuRecords = copy + 1;
   return copy;
 }
@@ -363,19 +374,23 @@ export function addSubmenuRecord(patch: Patch, id: number, record: Uint8Array, w
  * in r0 itself.
  */
 export function hookControllerFactory(patch: Patch, body: string, what: string): void {
-  const first = patch.word(FACTORY);
+  const factory = patch.va(FACTORY);
+  const first = patch.word(factory);
   const prior = first === movWord(3, 0x12e)
-    ? patch.append((a) => assembleWords(`movw r3, #0x12e; b #${FACTORY + 4}`, a), 16)
-    : first >>> 24 === 0xea ? branchTarget(FACTORY, first) : fail('unexpected-layout', 'controller factory is not as expected');
+    ? patch.append((a) => assembleWords(`movw r3, #0x12e; b #${factory + 4}`, a), 16)
+    : first >>> 24 === 0xea ? branchTarget(factory, first) : fail('unexpected-layout', 'controller factory is not as expected');
   const hook = patch.append((a) => assembleWords(`${body}\n prior: b #${prior}`, a), 16);
-  patch.setWord(FACTORY, branchWord(FACTORY, hook), what);
+  patch.setWord(factory, branchWord(factory, hook), what);
 }
 
 // --------------------------------------------------------------------------------------------
 
 /** Load the setting byte into r3 (r2 = its address); anything above 7 becomes (and is stored as) 0. */
-const LOAD_SETTING = `movw r2, #${lo(DATESTAMP_BYTE)}; movt r2, #${hi(DATESTAMP_BYTE)}; ldrb r3, [r2]
+function loadSetting(t: FirmwareTarget): string {
+  const b = dateStampByte(t);
+  return `movw r2, #${lo(b)}; movt r2, #${hi(b)}; ldrb r3, [r2]
   cmp r3, #7; movhi r3, #0; strbhi r3, [r2]`;
+}
 
 function relocateTable(patch: Patch, table: number, record: number, copyRecords: number, added: readonly Uint8Array[], sites: readonly (readonly [number, number, number])[], what: string): number {
   for (const [low, high, r] of sites) {
@@ -396,44 +411,57 @@ function relocateTable(patch: Patch, table: number, record: number, copyRecords:
  * catalogs) and the imprint itself. Returns the ICONBIN data with the two style icons appended.
  */
 export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Array {
+  const v = (a: number): number => patch.va(a);
+  const t = patch.target;
+  const cam = t.facts.camera;
+  const N = recordNumbers(t);
+  const LOAD_SETTING = loadSetting(t);
+  const builderAt = v(BUILDER);
+  const factory = v(FACTORY);
+  const subSet = v(SUB_SET_CURRENT);
+  const selectSet = v(SELECT_SET_CURRENT);
+  const stillMenu = v(STILL_MENU);
+  const menuTable = v(MENU_TABLE);
+  const subTable = v(SUB_TABLE);
+  const selectTable = v(SELECT_TABLE);
   // --- Checks of the official code and data this relies on.
-  expectWord(patch, BUILDER, 0xe1a0c00d); // mov ip, sp
-  expectWord(patch, BUILDER + 4, movWord(3, lo(MENU_TABLE)));
-  expectWord(patch, BUILDER + 0x10, movWord(3, hi(MENU_TABLE), true));
-  if (new DataView(patch.readMapped(MENU_TABLE, 4).buffer).getUint32(0, true) !== STILL_MENU) fail('unexpected-layout', 'still menu descriptor is not where it was expected');
-  expectWord(patch, FACTORY, movWord(3, 0x12e));
-  expectWord(patch, FACTORY + 4, 0xe1a0c00d);
-  expectWord(patch, SUB_SET_CURRENT, 0xe28134fe); // add r3, r1, #0xfe000000
-  expectWord(patch, SELECT_SET_CURRENT, 0xe28134fe);
-  expectWord(patch, 0x531e2a10, 0xe3a02012); // the submenu constructor starts at record 18
-  expectWord(patch, 0x531db2c4, 0xe3a0e07c); // the list constructor starts at record 124
-  for (const f of [APP, SPEC_MODEL, TOP_SET_TWO_ICONS, TOP_SET_TITLE, SUB_SET_ICON, LIST_SET_ITEM]) expectWord(patch, f, 0xe1a0c00d);
-  expectWord(patch, MODEL_NUMBER, 0xe5903000); // ldr r3, [r0]
-  expectWord(patch, MODEL_NUMBER + 4, 0xe5930004); // ldr r0, [r3, #4]
+  expectWord(patch, builderAt, 0xe1a0c00d); // mov ip, sp
+  expectWord(patch, builderAt + 4, movWord(3, lo(menuTable)));
+  expectWord(patch, builderAt + 0x10, movWord(3, hi(menuTable), true));
+  if (new DataView(patch.readMapped(menuTable, 4).buffer).getUint32(0, true) !== stillMenu) fail('unexpected-layout', 'still menu descriptor is not where it was expected');
+  expectWord(patch, factory, movWord(3, 0x12e));
+  expectWord(patch, factory + 4, 0xe1a0c00d);
+  expectWord(patch, subSet, 0xe28134fe); // add r3, r1, #0xfe000000
+  expectWord(patch, selectSet, 0xe28134fe);
+  expectWord(patch, v(0x531e2a10), 0xe3a02000 | t.facts.submenuRecords); // the submenu constructor's start record
+  expectWord(patch, v(0x531db2c4), 0xe3a0e000 | t.facts.listRecords); // the list constructor's start record
+  for (const f of [APP, SPEC_MODEL, TOP_SET_TWO_ICONS, TOP_SET_TITLE, SUB_SET_ICON, LIST_SET_ITEM]) expectWord(patch, v(f), 0xe1a0c00d);
+  expectWord(patch, v(MODEL_NUMBER), 0xe5903000); // ldr r3, [r0]
+  expectWord(patch, v(MODEL_NUMBER) + 4, 0xe5930004); // ldr r0, [r3, #4]
 
-  const still = patch.read(STILL_MENU, DESCRIPTOR);
+  const still = patch.read(stillMenu, DESCRIPTOR);
   const dv = new DataView(still.buffer);
   const firsts = [...still.subarray(D_FIRST, D_FIRST + 6)];
   if (still[D_PAGES] !== 6 || firsts.join() !== '0,10,18,24,30,35' || still[D_COUNT] !== MAX_ITEMS) fail('unexpected-layout', 'still menu pages are not the official ones');
   const id = (i: number): number => dv.getUint32(D_ID + i * 4, true);
   const visible = (i: number): number => dv.getUint32(D_VISIBLE + i * 8, true);
-  if (id(HDF_ITEM) !== 0x02000133 || id(RED_FILTER_ITEM) !== 0x02000135 || visible(HDF_ITEM) !== 0x531afbe4 || visible(RED_FILTER_ITEM) !== 0x531afc0c) {
+  if (id(HDF_ITEM) !== 0x02000133 || id(RED_FILTER_ITEM) !== 0x02000135 || visible(HDF_ITEM) !== v(0x531afbe4) || visible(RED_FILTER_ITEM) !== v(0x531afc0c)) {
     fail('unexpected-layout', 'HDF and Red Filter items are not the official ones');
   }
   if (id(35) !== 0x02000092 || id(36) !== 0x02000093 || id(37) !== 0x02000094) fail('unexpected-layout', 'Shooting Assist items are not the official ones');
   for (let i = 0; i < MAX_ITEMS; i++) if ([DATESTAMP_MENU_ID, DATESTAMP_SWITCH_ID, DATESTAMP_STYLE_ID, DATESTAMP_ORIENT_ID].includes(id(i))) fail('unexpected-layout', 'controller id already in use');
 
-  const subTemplate = patch.read(SUB_TABLE + D_RANGE_RECORD * SUB_RECORD, SUB_RECORD);
+  const subTemplate = patch.read(subTable + D_RANGE_RECORD * SUB_RECORD, SUB_RECORD);
   const sv = new DataView(subTemplate.buffer);
-  if (sv.getUint16(2, true) !== 363 || subTemplate[6] !== 2 || sv.getUint32(0x14, true) !== 0x0200008e || sv.getUint32(0x18, true) !== 0x0200008f) fail('unexpected-layout', 'D-Range Correction submenu record is not as expected');
-  const listTemplate = patch.read(SELECT_TABLE + HORIZON_RECORD * SELECT_RECORD, SELECT_RECORD);
+  if (sv.getUint16(2, true) !== cam.texts.dRange || subTemplate[6] !== 2 || sv.getUint32(0x14, true) !== 0x0200008e || sv.getUint32(0x18, true) !== 0x0200008f) fail('unexpected-layout', 'D-Range Correction submenu record is not as expected');
+  const listTemplate = patch.read(selectTable + HORIZON_RECORD * SELECT_RECORD, SELECT_RECORD);
   const lv = new DataView(listTemplate.buffer);
-  if (lv.getUint32(0, true) !== 0x00010000 || lv.getUint16(4, true) !== 388 || lv.getUint32(0x0c, true) !== 0x531cf2f0 || lv.getUint32(0x24, true) !== 0x531d319c || lv.getUint32(0x2c, true) !== 0x531d4aec) {
+  if (lv.getUint32(0, true) !== 0x00010000 || lv.getUint16(4, true) !== cam.texts.horizon || lv.getUint32(0x0c, true) !== v(0x531cf2f0) || lv.getUint32(0x24, true) !== v(0x531d319c) || lv.getUint32(0x2c, true) !== v(0x531d4aec)) {
     fail('unexpected-layout', 'Horizon Correction list record is not as expected');
   }
 
   // --- Texts and icons.
-  const T = DATESTAMP_TEXT_IDS;
+  const T = t.facts.texts.dateStamp;
   installTexts(patch, [
     { id: T.name, names: DATESTAMP_NAMES },
     { id: T.onOff, names: DATESTAMP_ON_OFF_NAMES },
@@ -450,37 +478,37 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Ar
     `push {r4, lr}
      mov r4, r1
      ${LOAD_SETTING}
-     tst r3, #1; movweq r1, #${ICON_OFF}; movwne r1, #${ICON_ON}
+     tst r3, #1; movweq r1, #${cam.icons.off}; movwne r1, #${cam.icons.on}
      tst r3, #2; movweq r2, #${I.short}; movwne r2, #${I.long}
-     mov r0, r4; bl #${TOP_SET_TWO_ICONS}
+     mov r0, r4; bl #${v(TOP_SET_TWO_ICONS)}
      mov r0, r4; movw r1, #${T.name}
-     pop {r4, lr}; b #${TOP_SET_TITLE}`, at), 16);
+     pop {r4, lr}; b #${v(TOP_SET_TITLE)}`, at), 16);
 
   // --- Submenu lines: the icon of the current value.
   const lineOnOff = patch.append((at) => assembleWords(
     `${LOAD_SETTING}
      mov r0, r1
-     tst r3, #1; movweq r1, #${ICON_OFF}; movwne r1, #${ICON_ON}
-     b #${SUB_SET_ICON}`, at), 16);
+     tst r3, #1; movweq r1, #${cam.icons.off}; movwne r1, #${cam.icons.on}
+     b #${v(SUB_SET_ICON)}`, at), 16);
   const lineStyle = patch.append((at) => assembleWords(
     `${LOAD_SETTING}
      mov r0, r1
      tst r3, #2; movweq r1, #${I.short}; movwne r1, #${I.long}
-     b #${SUB_SET_ICON}`, at), 16);
+     b #${v(SUB_SET_ICON)}`, at), 16);
   // "Follow Orientation": On while bit 2 is clear.
   const lineOrient = patch.append((at) => assembleWords(
     `${LOAD_SETTING}
      mov r0, r1
-     tst r3, #${DATESTAMP_AS_STORED}; movweq r1, #${ICON_ON}; movwne r1, #${ICON_OFF}
-     b #${SUB_SET_ICON}`, at), 16);
+     tst r3, #${DATESTAMP_AS_STORED}; movweq r1, #${cam.icons.on}; movwne r1, #${cam.icons.off}
+     b #${v(SUB_SET_ICON)}`, at), 16);
 
   // --- Lists (this = r0; draw: item = r1, value = r2; set / is current: value = r1).
   const count = patch.append((at) => assembleWords('mov r0, #2; bx lr', at), 16);
   const drawOnOff = patch.append((at) => assembleWords(
     `mov r0, r1; cmp r2, #0
-     movweq r1, #${ICON_OFF}; movweq r2, #${TEXT_OFF}
-     movwne r1, #${ICON_ON}; movwne r2, #${TEXT_ON}
-     b #${LIST_SET_ITEM}`, at), 16);
+     movweq r1, #${cam.icons.off}; movweq r2, #${cam.texts.off}
+     movwne r1, #${cam.icons.on}; movwne r2, #${cam.texts.on}
+     b #${v(LIST_SET_ITEM)}`, at), 16);
   const setOnOff = patch.append((at) => assembleWords(
     `cmp r1, #1; bxhi lr
      ${LOAD_SETTING}
@@ -492,7 +520,7 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Ar
     `mov r0, r1; cmp r2, #0
      movweq r1, #${I.short}; movweq r2, #${T.short}
      movwne r1, #${I.long}; movwne r2, #${T.long}
-     b #${LIST_SET_ITEM}`, at), 16);
+     b #${v(LIST_SET_ITEM)}`, at), 16);
   const setStyle = patch.append((at) => assembleWords(
     `cmp r1, #1; bxhi lr
      ${LOAD_SETTING}
@@ -512,60 +540,61 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Ar
 
   const listRecord = (title: number, draw: number, set: number, isCurrent: number): Uint8Array => {
     const r = listTemplate.slice();
-    const v = new DataView(r.buffer);
-    v.setUint16(4, title, true);
-    v.setUint32(0x0c, count, true);
-    v.setUint32(0x14, draw, true);
-    v.setUint32(0x24, set, true);
-    v.setUint32(0x2c, isCurrent, true);
-    for (const off of [0x10, 0x18, 0x28, 0x30]) v.setUint32(off, 0, true);
+    const rv = new DataView(r.buffer);
+    rv.setUint16(4, title, true);
+    rv.setUint32(0x0c, count, true);
+    rv.setUint32(0x14, draw, true);
+    rv.setUint32(0x24, set, true);
+    rv.setUint32(0x2c, isCurrent, true);
+    for (const off of [0x10, 0x18, 0x28, 0x30]) rv.setUint32(off, 0, true);
     return r;
   };
-  expectWord(patch, SELECT_TABLE_END_LITERAL, SELECT_TABLE + SELECT_RECORDS * SELECT_RECORD);
-  expectWord(patch, SELECT_TABLE_END_LOAD, 0xe59f704c); // ldr r7, [pc, #0x4c]
-  const lists = relocateTable(patch, SELECT_TABLE, SELECT_RECORD, SELECT_RECORDS + 1, [
+  const endLiteral = v(SELECT_TABLE_END_LITERAL);
+  expectWord(patch, endLiteral, selectTable + t.facts.listRecords * SELECT_RECORD);
+  expectWord(patch, v(SELECT_TABLE_END_LOAD), 0xe59f704c); // ldr r7, [pc, #0x4c]
+  const lists = relocateTable(patch, selectTable, SELECT_RECORD, t.facts.listRecords + 1, [
     listRecord(T.onOff, drawOnOff, setOnOff, isOnOff),
     listRecord(T.style, drawStyle, setStyle, isStyle),
     listRecord(T.orient, drawOnOff, setOrient, isOrient),
-  ], SELECT_SITES, 'date imprint: list records');
+  ], SELECT_SITES.map(([low, high, r]) => [v(low), v(high), r]), 'date imprint: list records');
   // The constructor's scan for the longest list stops at the end of the official records (the
   // new lists have 2 values, fewer than many official ones).
-  patch.setWord(SELECT_TABLE_END_LITERAL, lists + SELECT_RECORDS * SELECT_RECORD, 'date imprint: end of the official list records');
+  patch.setWord(endLiteral, lists + t.facts.listRecords * SELECT_RECORD, 'date imprint: end of the official list records');
 
   const subRecord = subTemplate.slice();
   {
-    const v = new DataView(subRecord.buffer);
-    v.setUint16(2, T.name, true);
+    const rv = new DataView(subRecord.buffer);
+    rv.setUint16(2, T.name, true);
     // Three lines, laid out as Instant Review's (record 11): texts from +8 (0 after the last),
     // controller ids from +0x14 (0x10000000 after the last), per line from +0x28 the x of its value
     // icon (540; SubMenuController's line drawing 0x531E2424 hands it to 0x5358304C, the line
     // widget's +0x108; test 048 left it 0 for the third line: its icon was drawn at the left, over
     // the name), value-draw functions from +0x3C.
     subRecord[6] = 3;
-    if (v.getUint32(0x28, true) !== 0x21c || v.getUint32(0x2c, true) !== 0x21c || v.getUint32(0x30, true) !== 0) fail('unexpected-layout', 'D-Range Correction submenu record: value icon places');
-    v.setUint32(0x30, v.getUint32(0x28, true), true);
-    v.setUint16(8, T.onOff, true);
-    v.setUint16(10, T.style, true);
-    v.setUint16(12, T.orient, true);
-    v.setUint16(14, 0, true);
-    v.setUint32(0x14, DATESTAMP_SWITCH_ID, true);
-    v.setUint32(0x18, DATESTAMP_STYLE_ID, true);
-    v.setUint32(0x1c, DATESTAMP_ORIENT_ID, true);
-    v.setUint32(0x20, 0x10000000, true);
-    v.setUint32(0x3c, lineOnOff, true);
-    v.setUint32(0x40, 0, true);
-    v.setUint32(0x44, lineStyle, true);
-    v.setUint32(0x48, 0, true);
-    v.setUint32(0x4c, lineOrient, true);
-    v.setUint32(0x50, 0, true);
+    if (rv.getUint32(0x28, true) !== 0x21c || rv.getUint32(0x2c, true) !== 0x21c || rv.getUint32(0x30, true) !== 0) fail('unexpected-layout', 'D-Range Correction submenu record: value icon places');
+    rv.setUint32(0x30, rv.getUint32(0x28, true), true);
+    rv.setUint16(8, T.onOff, true);
+    rv.setUint16(10, T.style, true);
+    rv.setUint16(12, T.orient, true);
+    rv.setUint16(14, 0, true);
+    rv.setUint32(0x14, DATESTAMP_SWITCH_ID, true);
+    rv.setUint32(0x18, DATESTAMP_STYLE_ID, true);
+    rv.setUint32(0x1c, DATESTAMP_ORIENT_ID, true);
+    rv.setUint32(0x20, 0x10000000, true);
+    rv.setUint32(0x3c, lineOnOff, true);
+    rv.setUint32(0x40, 0, true);
+    rv.setUint32(0x44, lineStyle, true);
+    rv.setUint32(0x48, 0, true);
+    rv.setUint32(0x4c, lineOrient, true);
+    rv.setUint32(0x50, 0, true);
   }
-  relocateTable(patch, SUB_TABLE, SUB_RECORD, SUB_RECORDS + 1, [subRecord], SUB_SITES, 'date imprint: submenu records');
-  patch.submenuRecords = SUB_RECORD_NUMBER + 1;
+  relocateTable(patch, subTable, SUB_RECORD, t.facts.submenuRecords + 1, [subRecord], subSites(patch), 'date imprint: submenu records');
+  patch.submenuRecords = N.submenu + 1;
 
   // --- Two still-menu descriptors.
   const descriptor = (keep: number): Uint8Array => {
     const d = still.slice();
-    const v = new DataView(d.buffer);
+    const dd = new DataView(d.buffer);
     const items: number[] = [];
     for (let i = 0; i < MAX_ITEMS; i++) if (i !== HDF_ITEM && i !== RED_FILTER_ITEM) items.push(i);
     items.splice(HDF_ITEM, 0, keep);
@@ -576,11 +605,11 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Ar
       d.set(still.subarray(D_VISIBLE + i * 8, D_VISIBLE + i * 8 + 8), D_VISIBLE + j * 8);
     }
     const last = MAX_ITEMS - 1;
-    v.setUint32(D_DRAW + last * 8, topDraw, true);
-    v.setUint32(D_DRAW + last * 8 + 4, 0, true);
-    v.setUint32(D_ID + last * 4, DATESTAMP_MENU_ID, true);
-    v.setUint32(D_VISIBLE + last * 8, 0, true);
-    v.setUint32(D_VISIBLE + last * 8 + 4, 0, true);
+    dd.setUint32(D_DRAW + last * 8, topDraw, true);
+    dd.setUint32(D_DRAW + last * 8 + 4, 0, true);
+    dd.setUint32(D_ID + last * 4, DATESTAMP_MENU_ID, true);
+    dd.setUint32(D_VISIBLE + last * 8, 0, true);
+    dd.setUint32(D_VISIBLE + last * 8 + 4, 0, true);
     d.set([0, 10, 18, 23, 29, 34], D_FIRST);
     d[D_COUNT] = MAX_ITEMS;
     return d;
@@ -589,19 +618,19 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Ar
   const withRedFilter = patch.append(descriptor(RED_FILTER_ITEM), 16);
   const builder = patch.append((at) => assembleWords(
     `push {r0, r1, r2, r3, ip, lr}
-     bl #${APP}; bl #${SPEC_MODEL}; bl #${MODEL_NUMBER}
+     bl #${v(APP)}; bl #${v(SPEC_MODEL)}; bl #${v(MODEL_NUMBER)}
      movw r1, #${lo(withHdf)}; movt r1, #${hi(withHdf)}
      cmp r0, #2
      movweq r1, #${lo(withRedFilter)}; movteq r1, #${hi(withRedFilter)}
-     movw r2, #${lo(MENU_TABLE)}; movt r2, #${hi(MENU_TABLE)}
+     movw r2, #${lo(menuTable)}; movt r2, #${hi(menuTable)}
      str r1, [r2]
      pop {r0, r1, r2, r3, ip, lr}
      mov ip, sp
-     b #${BUILDER + 4}`, at), 16);
-  patch.setWord(BUILDER, branchWord(BUILDER, builder), 'date imprint: still menu for this model');
+     b #${builderAt + 4}`, at), 16);
+  patch.setWord(builderAt, branchWord(builderAt, builder), 'date imprint: still menu for this model');
 
   // --- Controller ids.
-  const factory = patch.append((at) => assembleWords(
+  const factoryHook = patch.append((at) => assembleWords(
     `movw ip, #${lo(DATESTAMP_MENU_ID)}; movt ip, #${hi(DATESTAMP_MENU_ID)}
      subs ip, r1, ip; beq sub
      cmp ip, #${DATESTAMP_ORIENT_ID - DATESTAMP_MENU_ID}; beq list
@@ -609,26 +638,26 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Ar
      list: movw r1, #${lo(HORIZON_ID)}; movt r1, #${hi(HORIZON_ID)}; b out
      sub: movw r1, #${lo(D_RANGE_ID)}; movt r1, #${hi(D_RANGE_ID)}
      out: movw r3, #0x12e
-     b #${FACTORY + 4}`, at), 16);
-  patch.setWord(FACTORY, branchWord(FACTORY, factory), 'date imprint: controllers of the menu entry');
+     b #${factory + 4}`, at), 16);
+  patch.setWord(factory, branchWord(factory, factoryHook), 'date imprint: controllers of the menu entry');
   const subCurrent = patch.append((at) => assembleWords(
     `movw ip, #${lo(DATESTAMP_MENU_ID)}; movt ip, #${hi(DATESTAMP_MENU_ID)}
      cmp r1, ip
-     moveq r3, #${SUB_RECORD_NUMBER}; strbeq r3, [r0, #0x174]; bxeq lr
+     moveq r3, #${N.submenu}; strbeq r3, [r0, #0x174]; bxeq lr
      add r3, r1, #0xfe000000
-     b #${SUB_SET_CURRENT + 4}`, at), 16);
-  patch.setWord(SUB_SET_CURRENT, branchWord(SUB_SET_CURRENT, subCurrent), 'date imprint: submenu record');
+     b #${subSet + 4}`, at), 16);
+  patch.setWord(subSet, branchWord(subSet, subCurrent), 'date imprint: submenu record');
   const selectCurrent = patch.append((at) => assembleWords(
     `movw ip, #${lo(DATESTAMP_SWITCH_ID)}; movt ip, #${hi(DATESTAMP_SWITCH_ID)}
      subs ip, r1, ip
-     moveq r3, #${SWITCH_RECORD_NUMBER}; strbeq r3, [r0, #0x1a4]; bxeq lr
+     moveq r3, #${N.onOff}; strbeq r3, [r0, #0x1a4]; bxeq lr
      cmp ip, #1
-     moveq r3, #${STYLE_RECORD_NUMBER}; strbeq r3, [r0, #0x1a4]; bxeq lr
+     moveq r3, #${N.style}; strbeq r3, [r0, #0x1a4]; bxeq lr
      cmp ip, #${DATESTAMP_ORIENT_ID - DATESTAMP_SWITCH_ID}
-     moveq r3, #${ORIENT_RECORD_NUMBER}; strbeq r3, [r0, #0x1a4]; bxeq lr
+     moveq r3, #${N.orient}; strbeq r3, [r0, #0x1a4]; bxeq lr
      add r3, r1, #0xfe000000
-     b #${SELECT_SET_CURRENT + 4}`, at), 16);
-  patch.setWord(SELECT_SET_CURRENT, branchWord(SELECT_SET_CURRENT, selectCurrent), 'date imprint: list records');
+     b #${selectSet + 4}`, at), 16);
+  patch.setWord(selectSet, branchWord(selectSet, selectCurrent), 'date imprint: list records');
 
   return icons;
 }
