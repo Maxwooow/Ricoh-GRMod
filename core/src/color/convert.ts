@@ -4,8 +4,9 @@ import type { SlotParams } from './camera';
 import { applyCube, parseCube } from './cube';
 import { CAL_ADOBE, CAL_CAM } from './data';
 import { fitSlot } from './fit';
+import { refineSlot } from './refine';
 import { FullLook } from './look';
-import { linToSrgb, srgbToLin } from './math';
+import { deltaE, linToSrgb, mean, percentile, srgbToLin } from './math';
 import { parseXmp } from './xmp';
 
 export type { SlotParams } from './camera';
@@ -153,24 +154,106 @@ export function cubeFitSamples(): Float64Array {
   return out;
 }
 
+const SKIN_TONES: readonly (readonly [number, number, number])[] = [
+  [237, 199, 176], [217, 171, 143], [194, 145, 114], [148, 102, 77],
+];
+
+function encodeLinear(x: number): number {
+  return x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055;
+}
+
+/** Extra fitting colours: a dense neutral ramp (repeated for weight), the LUT grid corners and skin. */
+function extraFitSamples(): Float64Array {
+  const out: number[] = [];
+  // 64 neutral steps, six copies: greys must stay grey and the black/white ends must be right.
+  for (let c = 0; c < 6; c++) for (let i = 0; i < 64; i++) {
+    const v = i / 63;
+    out.push(v, v, v);
+  }
+  // 9^3 grid, including the eight corners the synthetic set rarely reaches.
+  for (let b = 0; b < 9; b++) for (let g = 0; g < 9; g++) for (let r = 0; r < 9; r++) out.push(r / 8, g / 8, b / 8);
+  // Skin tones at five exposures, in linear light, back to sRGB.
+  for (const tone of SKIN_TONES) for (const ev of [-2, -1, 0, 1, 2]) {
+    const k = Math.pow(2, ev);
+    out.push(...tone.map((v) => encodeLinear(srgbToLin(v / 255) * k)));
+  }
+  return Float64Array.from(out);
+}
+
+/** Fitting colours for the initial RGB fit: the old set plus neutral ramp, corners and skin. */
+export function cubeFitSamplesExpanded(): Float64Array {
+  const base = cubeFitSamples();
+  const extra = extraFitSamples();
+  const out = new Float64Array(base.length + extra.length);
+  out.set(base, 0);
+  out.set(extra, base.length);
+  return out;
+}
+
+export interface WeightedSamples { P: Float64Array; weights: Float64Array }
+
+/** Independent, weighted samples for the CIEDE2000 refinement (fresh values, not the fit set). */
+export function cubeRefineSamples(): WeightedSamples {
+  const p: number[] = [], w: number[] = [];
+  const add = (r: number, g: number, b: number, weight: number): void => { p.push(r, g, b); w.push(weight); };
+  // 48 neutral steps: the most visible errors.
+  for (let i = 0; i < 48; i++) { const v = i / 47; add(v, v, v, 10); }
+  // Hue wheel at three saturations and five values.
+  for (let h = 0; h < 24; h++) for (const s of [0.3, 0.6, 0.9]) for (const v of [0.2, 0.35, 0.5, 0.7, 1]) {
+    add(...hsvToRgbValue(h / 24, s, v), 8);
+  }
+  // Skin at five exposures.
+  for (const tone of SKIN_TONES) for (const ev of [-2, -1, 0, 1, 2]) {
+    const k = Math.pow(2, ev);
+    add(encodeLinear(srgbToLin(tone[0] / 255) * k), encodeLinear(srgbToLin(tone[1] / 255) * k), encodeLinear(srgbToLin(tone[2] / 255) * k), 10);
+  }
+  // Random display colours (a different seed from the fit set).
+  const rand = mulberry32(2);
+  for (let i = 0; i < 300; i++) add(rand(), rand(), rand(), 2);
+  // A 7^3 grid including corners.
+  for (let b = 0; b < 7; b++) for (let g = 0; g < 7; g++) for (let r = 0; r < 7; r++) add(r / 6, g / 6, b / 6, 2);
+  return { P: Float64Array.from(p), weights: Float64Array.from(w) };
+}
+
+function hsvToRgbValue(h: number, s: number, v: number): [number, number, number] {
+  const out = new Float64Array(3);
+  hsvToRgb(h, s, v, out, 0);
+  return [out[0], out[1], out[2]];
+}
+
 /**
  * Convert a .cube LUT. The LUT is taken to act on an sRGB display image, so the target is simply
- * cube(P) where P are colours as output by the camera's Standard preset. Errors are reported on
- * the fitting set (calibration colours plus synthetic colours).
+ * cube(P) where P are colours as output by the camera's Standard preset. A CIEDE2000 refinement
+ * follows the RGB fit (unless `post: false`): neutral greys, corners, skin and the LUT grid are
+ * weighted, and the curve knots get a perceptual correction.
  */
 export function convertCube(text: string, opts?: ConvertOptions): Conversion {
   const cube = parseCube(text);
   opts?.onProgress?.(0.05);
-  const P = cubeFitSamples();
+  const P = cubeFitSamplesExpanded();
   const target = applyCube(cube, P);
   opts?.onProgress?.(0.1);
-  const fit = fitSlot(P, target, { onProgress: subProgress(opts, 0.1, 1), post: opts?.post !== false });
+  const post = opts?.post !== false;
+  const fit = fitSlot(P, target, { onProgress: subProgress(opts, 0.1, post ? 0.55 : 1), post });
+  let params: SlotParams = fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck };
+  if (post) {
+    const ref = cubeRefineSamples();
+    const refTarget = applyCube(cube, ref.P);
+    const refined = refineSlot(params, ref.P, refTarget, {
+      weights: ref.weights, iterations: 8,
+      onProgress: subProgress(opts, 0.55, 0.98),
+    });
+    params = refined.P2 ? { M1: refined.M1, ck: refined.ck, P2: refined.P2 } : { M1: refined.M1, ck: refined.ck };
+  }
+  const pred = slotApply(params, P);
+  const de76 = deltaE(pred, target);
+  opts?.onProgress?.(1);
   return {
     kind: 'cube',
     title: cube.title,
-    params: fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck },
-    meanDE: fit.meanDE,
-    p95DE: fit.p95DE,
+    params,
+    meanDE: mean(de76),
+    p95DE: percentile(de76, 95),
     warnings: [],
     unsupported: [],
   };
