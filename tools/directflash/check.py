@@ -170,12 +170,18 @@ def choices(s):
     Shutter, 3 as 0) from the two setting bytes, as the camera menu keeps them."""
     gn = (s['gnb'] & 63) or 3
     k = (s['byte'] >> 1) & 15
-    if k == 0 or k > 9:
+    if k == 0 or k > 15:
         k = 3
     n = s['byte'] >> 5
     # Test 060: bits 6..7 = 2 Max Sync (the shutter at the sync limit; 2 here), anything else Standard (1 here).
     prio = 2 if (s['gnb'] >> 6) & 3 == 2 else 1
     return gn, k / 3, 5.0 if n == 0 else float(5 - n) if n <= 5 else float(n), prio
+
+
+def comp_of(s):
+    """The EV compensation the camera took off the scene's Ev (0x536789FC): 0x108, plus 0xE4 when 0xFC is 0, within -8..8."""
+    c = s.get('c108', 0.0) + (s.get('ce4', 0.0) if not s.get('cfc', 1) else 0.0)
+    return min(max(c, -8.0), 8.0)
 
 
 def reference(s, flip=False):
@@ -189,6 +195,7 @@ def reference(s, flip=False):
     f0 = 2 * math.log2(gn) - 2 * math.log2(mm / 1000)
     if s['output'] == 2:
         f0 -= 2
+    f0 -= comp_of(s)   # test 061: the EV compensation on the flash too
     sv_lo, sv_hi = s['sv_min'], s['sv_max']
     if s['isoauto']:
         a, b = sorted((s['auto_lo'], s['auto_hi']))
@@ -333,7 +340,7 @@ def situations():
         yield dict(base, **k)
 
 
-def check_exposure(img, gnb=0, high=0, keep=None):
+def check_exposure(img, gnb=0, high=0, keep=None, comp=None):
     """gnb: byte 0x99A; high: bits 1..7 of byte 0x99B, ORed into every situation's byte."""
     wrapper = img.branch(CALL_SITE)
     check(wrapper != FLASH_PROGRAM and wrapper >= BASE + 0x13d2ac0, 'the flash program call does not go to the wrapper')
@@ -359,6 +366,8 @@ def check_exposure(img, gnb=0, high=0, keep=None):
     sync_seen = set()
     for s in situations():
         s = dict(s, byte=s['byte'] | high, gnb=s['gnb'] or gnb)
+        if comp:
+            s.update(c108=comp[0], ce4=comp[1], cfc=comp[2])
         if keep and not keep(s):
             continue
         n += 1
@@ -383,6 +392,9 @@ def check_exposure(img, gnb=0, high=0, keep=None):
         e.wf(info + 0xf0, s['av_max'])
         e.w8(info + 0x55d, s['nd'])
         e.w8(info + 0x5dd, s['hs'])
+        e.wf(info + 0x108, s.get('c108', 0.0))
+        e.wf(info + 0xe4, s.get('ce4', 0.0))
+        e.w8(info + 0xfc, s.get('cfc', 1))
         e.w32(info + 0x584, s['mm'])
         for o, v in ((0xd0, 99.0), (0xd4, 98.0), (0xd8, 97.0)):
             e.wf(info + o, v)
@@ -431,7 +443,8 @@ def check_exposure(img, gnb=0, high=0, keep=None):
                 faster += 1
         # The physics, independently of the rule: flash and ambient shares of the subject's light.
         mm = min(max(s['mm'], 100), 8000)
-        f = 2 * math.log2(gn) - 2 * math.log2(mm / 1000) - (2 if s['output'] == 2 else 0) - 2 * nd
+        # (relative to the compensated exposure: the flash's share taken down by the compensation as the ambient light's is)
+        f = 2 * math.log2(gn) - 2 * math.log2(mm / 1000) - (2 if s['output'] == 2 else 0) - 2 * nd - comp_of(s)
         flash = 2 ** (f - 5 - (av - sv))
         amb = 2 ** (s['ev'] - 5 - 2 * nd - (av - sv) - tv)
         total = math.log2(flash + amb)
@@ -649,6 +662,10 @@ def main():
             for high in (0, (9 << 1) | (7 << 5)):
                 check_exposure(new, prio | (0 if g == 3 else g), high,
                                keep=lambda s: s['output'] == 1 and s['program'] == 0 and s['nd'] != 1 and s['gnb'] in (prio | (0 if g == 3 else g),))
+    print('1i. test 061: EV compensation (0x108, 0xE4 when 0xFC is 0) on flash and ambient light alike; backgrounds to -5.0 EV')
+    for comp in ((1.0, 0.0, 1), (-1.6666666, 0.0, 1), (2.0, 0.5, 0), (2.0, 0.5, 1), (10.0, 0.0, 1), (0.3333333, 0.0, 1)):
+        for gnb, high in ((0, 9 << 1), (18, 12 << 1), (128 | 18, 15 << 1), (6, (14 << 1) | (7 << 5))):
+            check_exposure(new, gnb, high, keep=lambda s: s['output'] == 1 and s['program'] == 0 and s['nd'] != 1 and s['gnb'] == gnb, comp=comp)
     print('2./3. menus')
     check_menus(new)
     print('4. text and icon')

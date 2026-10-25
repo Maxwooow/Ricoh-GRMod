@@ -58,8 +58,8 @@ struct ctx {
 #define AV_F16 8.0f         /* f/16 */
 /*
  * Camera-menu choices in the setting byte `direct` (0: the default):
- *  background, bits 1..4: k, the background k/3 EV darker than a correct exposure; 1..9 (-0.3 ..
- *    -3.0 EV); 0 or any other value: 3 (-1.0 EV);
+ *  background, bits 1..4: k, the background k/3 EV darker than a correct exposure; 1..15 (-0.3 ..
+ *    -5.0 EV, test 061); 0: 3 (-1.0 EV);
  *  slowest shutter speed, bits 5..7: 0 1/30 s (Tv 5), 1..5 1/15 .. 1 s (Tv 4 .. 0), 6 1/60 s, 7 1/125 s.
  */
 #define BG_DEFAULT 3u
@@ -383,6 +383,16 @@ void df_plan(u8 *ae, const struct ctx *k)
   i = *k->gn & 63u;                      /* bits 0..5: the guide number; bit 6: Max Sync */
   f0 = (i ? 2.0f * log2_((float)i) : k->gn_default) - 2.0f * (log2_((float)mm) - 9.965784284662087f); /* - 2 log2(mm / 1000) */
   if (*k->flash_output == 2) f0 -= 2.0f; /* 1/4 power */
+  {
+    /* Test 061: the EV compensation on the flash too. The camera took it off the scene's Ev (0x64)
+     * already (0x536789FC: the compensation 0x108, plus 0xE4 when 0xFC is 0, within -8..8), so only
+     * the ambient light followed it; taken off the flash's f as well, the subject and the background
+     * are both brighter by it (the background still the chosen EV below that). */
+    float c = F(0x108);
+    if (!B(0xfc)) c += F(0xe4);
+    c = clamp(c, -8.0f, 8.0f);
+    f0 -= c;
+  }
 
   l.k = k;
   l.apex = apex;
@@ -391,7 +401,7 @@ void df_plan(u8 *ae, const struct ctx *k)
   l.sync_first = i != 2;
   l.fastest = i == 2;
   i = (setting >> 1) & 15u;
-  if (i == 0 || i > 9) i = BG_DEFAULT;
+  if (i == 0 || i > 15) i = BG_DEFAULT;  /* test 061: to -5.0 EV (k = 15) */
   a = (float)i * (1.0f / 3.0f);          /* the background a EV darker */
   l.b = a;
   l.c = a + log2_(1.0f - exp2_(-a));

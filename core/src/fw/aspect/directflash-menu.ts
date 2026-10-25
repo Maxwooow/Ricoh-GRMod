@@ -7,7 +7,7 @@
  * (SelectMenuController):
  *
  *   Guide Number            GN 2 .. GN 36           the flash's guide number (ISO 100, metres)
- *   Background Brightness   -0.3 EV .. -3.0 EV      how much darker than a correct exposure the
+ *   Background Brightness   -0.3 EV .. -5.0 EV      how much darker than a correct exposure the
  *                                                   background (ambient light only) is
  *   Minimum Shutter Speed   1/125 .. 1"             the slowest shutter speed (the camera's text)
  *   Exposure Priority       Standard / Max Sync     Standard: the background as chosen; where the
@@ -68,8 +68,8 @@ export const DF_GN_DEFAULT = 3;
 export const DF_GN_MASK = 0x3f;
 /** Bits 6..7 of byte 0x99A: the exposure priority, 2 Max Sync, anything else Standard (test 060). */
 export const DF_PRIORITY_SHIFT = 6;
-/** Backgrounds: k / 3 EV darker, k = 1..9 (-0.3 .. -3.0 EV); stored as k, the default (-1.0 EV, k = 3) as 0. */
-export const DF_BACKGROUND_THIRDS: readonly number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+/** Backgrounds: k / 3 EV darker, k = 1..15 (-0.3 .. -5.0 EV, test 061); stored as k, the default (-1.0 EV, k = 3) as 0. */
+export const DF_BACKGROUND_THIRDS: readonly number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 export const DF_BACKGROUND_DEFAULT = 3;
 /** Slowest shutter speeds: name, stored code (bits 5..7 of 0x99B), Tv. */
 export const DF_SLOWEST: readonly { name: string; code: number; tv: number }[] = [

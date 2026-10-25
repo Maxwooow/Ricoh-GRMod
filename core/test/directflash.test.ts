@@ -44,7 +44,7 @@ describe('Direct Flash: data', () => {
 describe('Direct Flash: camera-menu settings', () => {
   it('lists at most 21 values (the list controller makes rows for the camera\'s longest list), defaults stored as 0', () => {
     const lists = aspect.directFlashLists();
-    expect(lists.map((l) => l.codes.length)).toEqual([21, 9, 8, 2]);
+    expect(lists.map((l) => l.codes.length)).toEqual([21, 15, 8, 2]);
     for (const l of lists) {
       expect(l.codes.length).toBeLessThanOrEqual(21);
       expect(new Set(l.codes).size).toBe(l.codes.length);
@@ -67,7 +67,7 @@ describe('Direct Flash: camera-menu settings', () => {
     // The shutter line is the camera's own "Minimum Shutter Speed" (text 125).
     expect(lists.map((l) => l.title)).toEqual([911, 912, 125, 913]);
     // Texts after the ratio names (901..908), icons below the ratio icons (720..).
-    expect(lists[3].firstText + lists[3].codes.length - 1).toBe(953);
+    expect(lists[3].firstText + lists[3].codes.length - 1).toBe(959);
     expect(lists[3].firstIcon + lists[3].codes.length - 1).toBeLessThan(720);
   });
   it.skipIf(!have)('line names fit beside the camera\'s own submenu lines, with glyphs of its own texts', () => {
