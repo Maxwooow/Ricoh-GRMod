@@ -113,6 +113,7 @@ struct plan {
 
 struct limits {
   float sv_lo, sv_hi, av_lo, av_hi, tv_lo, tv_hi, ev, c;
+  float b;                           /* the background chosen, b EV darker */
   int sync_first;                    /* exposure priority Max Sync */
   void *apex;
   const struct ctx *k;
@@ -151,6 +152,21 @@ static void solve_at(const struct limits *l, float f0, int nd, float av_lo, stru
     tv = th; /* faster than the flash syncs with: the ambient light gives more, the flash less */
   }
   if (tv > th) tv = th;
+  /* Test 058: too bright even at the smallest aperture and the lowest ISO (a strong flash close by
+   * in daylight): the balance above assumed a correct exposure, so the background is lighter than
+   * chosen. The shutter faster: Low ISO to the background chosen, Max Sync as fast as it syncs;
+   * either no faster than a correct exposure of the subject (where the flash alone is not too
+   * bright). */
+  if (x - (av - sv) > 0.01f && tv < th) {
+    float fl = exp2_(f - 5.0f), lim = exp2_(av - sv);
+    float t = fl >= lim * 0.999f ? th : e - log2_(lim - fl);
+    if (!l->sync_first && t > e - (av - sv) + l->b) t = e - (av - sv) + l->b;
+    if (t > th) t = th;
+    if (t > tv) {
+      tv = t;
+      x = log2_(fl + exp2_(e - tv));
+    }
+  }
   p->tv = tv;
   p->av = av;
   p->sv = sv;
@@ -288,6 +304,7 @@ void df_plan(u8 *ae, const struct ctx *k)
   i = (setting >> 1) & 15u;
   if (i == 0 || i > 9) i = BG_DEFAULT;
   a = (float)i * (1.0f / 3.0f);          /* the background a EV darker */
+  l.b = a;
   l.c = a + log2_(1.0f - exp2_(-a));
   l.ev = F(0x64);
   l.sv_lo = F(0x14);
