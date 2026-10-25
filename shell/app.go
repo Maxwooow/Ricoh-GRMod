@@ -57,6 +57,9 @@ func newApp(cfg config) (*app, error) {
 		if dir, err = platform.DataDirFor(runtime.GOOS, os.Getenv, home); err != nil {
 			return nil, fmt.Errorf("no data directory: %w", err)
 		}
+		if experimental() {
+			dir += experimentalDataSuffix
+		}
 	}
 	dir, err := filepath.Abs(dir)
 	if err != nil {
@@ -76,6 +79,15 @@ func newApp(cfg config) (*app, error) {
 	log.SetOutput(a.logFile)
 	log.SetPrefix(fmt.Sprintf("[%d] ", os.Getpid()))
 	log.SetFlags(log.LstdFlags | log.Lmsgprefix)
+
+	// A release takes over the GR III work of the GR III test builds (their own data folder) once.
+	if cfg.dataDir == "" && !experimental() {
+		if moved, err := migrateGR3TestData(dir); err != nil {
+			a.log.Printf("GR III test builds' data not taken over: %v", err)
+		} else if moved {
+			a.log.Printf("took over the GR III work of the test builds from %s", dir+gr3TestDataSuffix)
+		}
+	}
 
 	// A Go runtime crash normally goes to standard error, which does not
 	// exist in a Windows GUI program. Keep a copy where it can be found.

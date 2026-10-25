@@ -50,7 +50,8 @@ extern uint32_t prior_native_load(uint8_t *mode, uint8_t *current, void *a2, voi
 extern volatile uint32_t sp_gap[];       /* zeroed at every start; [0] = state */
 extern uint8_t settings_object[];        /* 0x55084DD8: the record the setters write is at +4 */
 /* The fingerprint of each added slot's preset in this build (matrix, curves, post-curve matrix):
- * a slot whose preset is not the one its saved values were made with starts again from neutral. */
+ * a slot whose preset is not the one its saved values were made with starts again from neutral.
+ * After them (0.8.4): one word, bit k set when added slot k is hidden from the Image Control lists. */
 extern const uint32_t slot_prints[];
 
 /* Offsets in the settings object of Cinema Yellow's fields, per parameter and combination
@@ -151,9 +152,20 @@ __attribute__((noinline)) static uint32_t print_of(uint32_t o) {
     return slot_prints[o - 1];
 }
 
-/* Owner index (SLOT_COUNT + 1 .. OWNERS - 1) of an added style this build does not have, else 0. */
-static uint32_t removed_owner(uint32_t style) {
-    return style >= FIRST + SLOT_COUNT && style < FIRST + OWNERS - 1 ? style - FIRST + 1 : 0;
+/* The hidden added slots of this build (bit k: slot k). Not inlined, as print_of. */
+__attribute__((noinline)) static uint32_t hidden_slots(void) {
+    return slot_prints[SLOT_COUNT];
+}
+
+/* Owner index of a set's look that the settings guard turns into Standard after this load, else 0:
+ * an added style this build does not have (SLOT_COUNT + 1 .. OWNERS - 1, in any set), or (0.8.4)
+ * an added slot hidden from the lists, in the standard photo or movie set (c 0 or 4; the custom
+ * sets keep their look). */
+static uint32_t away_owner(uint32_t style, uint32_t c) {
+    if (style >= FIRST + SLOT_COUNT && style < FIRST + OWNERS - 1) return style - FIRST + 1;
+    if ((c == 0 || c == 4) && style >= FIRST && style < FIRST + SLOT_COUNT && (hidden_slots() >> (style - FIRST)) & 1u)
+        return style - FIRST + 1;
+    return 0;
 }
 
 static int owner(int c) {
@@ -442,10 +454,12 @@ uint32_t sp_load(uint8_t *mode, uint8_t *current, void *a2, void *a3) {
         }
     }
     if (found == 1 || found == 4) {
-        /* A set with a slot beyond this build's count (the settings guard makes it Standard after
-         * this): its fields hold that slot's values, which go to the table; Cinema Yellow's come back. */
+        /* A set with a slot beyond this build's count, or a hidden slot in a standard set (the
+         * settings guard makes it Standard after this): its fields hold that slot's values, which go
+         * to the table (a hidden slot shown again with the same preset gets them back); Cinema
+         * Yellow's come back. */
         for (uint32_t c = 0; c < COMBOS; c++) {
-            uint32_t o = removed_owner(current[(c < 4 ? 0x153 + c : 0x515 + (c - 4)) - 4]);
+            uint32_t o = away_owner(current[(c < 4 ? 0x153 + c : 0x515 + (c - 4)) - 4], c);
             if (!o) continue;
             for (uint32_t j = 0; j < NP; j++) {
                 uint32_t f = FIELD[j][c];
@@ -459,7 +473,7 @@ uint32_t sp_load(uint8_t *mode, uint8_t *current, void *a2, void *a3) {
             uint8_t *rec = ((uint8_t **)(mode + 4))[i];
             if (!rec) continue;
             for (uint32_t c = 0; c < COMBOS; c++) {
-                if (!removed_owner(rec[(c < 4 ? 0x153 + c : 0x515 + (c - 4)) - 4])) continue;
+                if (!away_owner(rec[(c < 4 ? 0x153 + c : 0x515 + (c - 4)) - 4], c)) continue;
                 for (uint32_t j = 0; j < NP; j++) if (FIELD[j][c]) rec[FIELD[j][c] - 4] = s->t[0][c][j];
             }
         }

@@ -18,13 +18,16 @@ official ones:
     (view functions stubbed): two values, exactly one marked current, line texts, title, icons.
  6. SelectMenuController's constructor scan over all list records (0x531D6D4C, start and end of
     the relocated table): same number of records and the same longest list as officially.
- 7. Texts 841..845 and 879 (1.20: 913..917 and 929) in all 21 languages and the two icons (catalog
-    entries, lookup bounds).
+ 7. Texts 841..845, 879..881 (1.20: 913..917, 929..931) in all 21 languages and the four icons
+    (catalog entries, lookup bounds).
  8. The settings guard's fix (run on load, power-off save and user-mode recall) keeps the setting
     byte, whatever its value: the third item (bit 2) is kept with the rest of the user settings.
 
 0.8.3: a third line "Follow Orientation" (list record 127, 1.20: 129; controller id 0x020001A5): On while bit 2
 of the setting byte is clear, so a byte from an earlier firmware (0..3) reads as On.
+
+0.8.4: the Style list has four values ('26 10 08, 2026.10.08 17:34, and each + the look's name: bit 3,
+texts 880 / 881 (1.20: 930 / 931), icons 731 / 732); the byte keeps 0..15.
 
     python3 menu_check.py BUILT.bin OFFICIAL.bin [ICONS.png]
 
@@ -48,17 +51,31 @@ BASE = 0x53000000
 RAMVA = 0x55000000
 NEW_MENU, NEW_SWITCH, NEW_STYLE, NEW_ORIENT = 0x020001a0, 0x020001a1, 0x020001a2, 0x020001a5
 AS_STORED = 4   # bit 2 of the setting byte: "Follow Orientation" off (0.8.3)
+WITH_NAME = 8   # bit 3: the look's name (0.8.4)
 I_SHORT, I_LONG = 721, 722
+I_SHORT_NAME, I_LONG_NAME = 731, 732
+STYLE_ICONS = [I_SHORT, I_LONG, I_SHORT_NAME, I_LONG_NAME]
+NAME_WORDS = ['Název', 'Navn', 'Name', 'Nimi', 'Nom', 'Name', 'Όνομα', 'Név', 'Nome', '名称', '이름', 'Naam', 'Nazwa', 'Nome',
+              'Имя', '名称', 'Nombre', 'Namn', 'ชื่อ', '名稱', 'Ad']
+COUNTS = [2, 4, 2]
+# Flash Mode's list records, whose handlers Direct Flash replaces (0.8.4; 1.11 only, see use()).
+DIRECT_FLASH_RECORDS = (11, 12)
+# Flash Mode's submenu record, to which Direct Flash adds its settings (0.8.4).
+DIRECT_FLASH_SUBMENU = 5
 
 
 def use(official):
     """The firmware of the images (1.11 or 1.20): its layout, texts, icons and record numbers."""
     global T, OFFICIAL_LEN, RAMIMG, RAMLEN, B, T_NAME, T_ONOFF, T_STYLE, T_SHORT, T_LONG, T_ORIENT, I_OFF, I_ON, TEXT_CATALOG, ICON_CATALOG
+    global T_SHORT_NAME, T_LONG_NAME, STYLE_TEXTS, DIRECT_FLASH
     global SUB_NEW, LIST_ON, LIST_STYLE, LIST_ORIENT, LISTS, FACTORY, FACTORY_END, VIEWS
     T = fwtarget.select(official)
     OFFICIAL_LEN, RAMIMG, RAMLEN = T.rtos_len, T.ram_src, T.ram_len
     B = T.user_data + 4 + 0x94b
-    T_NAME, T_ONOFF, T_STYLE, T_SHORT, T_LONG, T_ORIENT = T.texts_own['dateStamp']
+    T_NAME, T_ONOFF, T_STYLE, T_SHORT, T_LONG, T_ORIENT, T_SHORT_NAME, T_LONG_NAME = T.texts_own['dateStamp']
+    STYLE_TEXTS = [T_SHORT, T_LONG, T_SHORT_NAME, T_LONG_NAME]
+    # Direct Flash (0.8.4) is built on 1.11 only: on 1.20 Flash Mode's records stay official.
+    DIRECT_FLASH = T.direct_flash
     I_OFF, I_ON = T.camera_icons['off'], T.camera_icons['on']
     TEXT_CATALOG, ICON_CATALOG = T.text_catalog, T.icon_catalog
     SUB_NEW, LISTS = T.submenu_records + 1, T.list_records
@@ -89,21 +106,29 @@ ORIENT_NAMES = ['Podle orientace', 'Følg retning', 'Follow Orientation', 'Seura
 
 
 def norm(raw):
-    """What the menu makes of a setting byte: 0..7 kept, anything else 0."""
-    return raw if raw <= 7 else 0
+    """What the menu makes of a setting byte: 0..15 kept, anything else 0."""
+    return raw if raw <= 15 else 0
+
+
+def style_index(v):
+    return ((v >> 1) & 1) | (2 if v & WITH_NAME else 0)
 
 
 def list_bit(v, which):
     """Current value (index) of list `which` (0 On/Off, 1 Style, 2 Follow Orientation) for byte v."""
     if which == 2:
         return 0 if v & AS_STORED else 1
-    return (v >> which) & 1
+    if which == 1:
+        return style_index(v)
+    return v & 1
 
 
 def list_set(v, which, i):
     if which == 2:
         return (v & ~AS_STORED) | (0 if i == 1 else AS_STORED)
-    return (v & ~(1 << which)) | (i << which)
+    if which == 1:
+        return (v & ~(2 | WITH_NAME)) | ((i & 1) << 1) | (WITH_NAME if i & 2 else 0)
+    return (v & ~1) | i
 
 failures = []
 
@@ -325,8 +350,21 @@ def check_records(new, off):
     check(len(subs) == 1 and len(sels) == 1, 'relocated tables: sites disagree')
     st, lt = subs.pop(), sels.pop()
     check(st >= BASE + OFFICIAL_LEN and lt >= BASE + OFFICIAL_LEN, 'relocated tables are not in the appended area')
-    check(new.rd(st, SUB_NEW * 0x64) == off.rd(V(0x53da6718), SUB_NEW * 0x64), 'submenu table: official records changed')
-    check(new.rd(lt, LIST_ON * 0x4c) == off.rd(V(0x53da2d20), LIST_ON * 0x4c), 'list table: official records changed')
+    # Direct Flash (0.8.4, directflash-menu.ts) adds three lines to record 5 (Flash Mode): checked
+    # by tools/directflash/menu_check.py, left out here.
+    sub_new, sub_off = bytearray(new.rd(st, SUB_NEW * 0x64)), bytearray(off.rd(V(0x53da6718), SUB_NEW * 0x64))
+    if DIRECT_FLASH:
+        sub_new[DIRECT_FLASH_SUBMENU * 0x64:(DIRECT_FLASH_SUBMENU + 1) * 0x64] = sub_off[DIRECT_FLASH_SUBMENU * 0x64:(DIRECT_FLASH_SUBMENU + 1) * 0x64]
+    check(sub_new == sub_off, 'submenu table: official records changed')
+    # Direct Flash (0.8.4, directflash.ts) replaces the count / draw / set / is-current handlers of
+    # records 11 and 12 (Flash Mode) in place before the table is copied: those 8 words may differ.
+    table_new, table_off = bytearray(new.rd(lt, LIST_ON * 0x4c)), bytearray(off.rd(V(0x53da2d20), LIST_ON * 0x4c))
+    for rec in DIRECT_FLASH_RECORDS if DIRECT_FLASH else ():
+        for o in (0x0c, 0x14, 0x24, 0x2c):
+            at = rec * 0x4c + o
+            if struct.unpack_from('<I', table_new, at)[0] >= BASE + OFFICIAL_LEN:
+                table_new[at:at + 4] = table_off[at:at + 4]
+    check(table_new == table_off, 'list table: official records changed')
     r = st + SUB_NEW * 0x64
     check(new.u16(r + 2) == T_NAME and new.rd(r + 6, 1)[0] == 3 and new.u16(r + 8) == T_ONOFF and new.u16(r + 10) == T_STYLE
           and new.u16(r + 12) == T_ORIENT and new.u16(r + 14) == 0, 'submenu record: title / count / line texts')
@@ -358,32 +396,33 @@ def check_records(new, off):
     top = draws[ids.index(NEW_MENU)]
 
     item = 0x70800000
-    expect_icons = {0: (I_OFF, I_SHORT), 1: (I_ON, I_SHORT), 2: (I_OFF, I_LONG), 3: (I_ON, I_LONG)}
-    for raw in (0, 1, 2, 3, 4, 5, 6, 7, 8, 0x80, 0xff):
+    for raw in tuple(range(17)) + (0x80, 0xff):
         v = norm(raw)
+        style_icon = STYLE_ICONS[style_index(v)]
         e = Emu(new)
         e.mu.mem_write(B, bytes([raw]))
         e.call(top, (0x70000000, item))
         icons = [c for c in e.calls if c[0] == 'top-icons']
         titles = [c for c in e.calls if c[0] == 'top-title']
-        check(icons == [('top-icons', item, *expect_icons[v & 3])] and titles and titles[0][1:3] == (item, T_NAME),
+        check(icons == [('top-icons', item, I_ON if v & 1 else I_OFF, style_icon)] and titles and titles[0][1:3] == (item, T_NAME),
               f'top line, byte {raw}: {e.calls}')
         check(e.byte(B) == v, f'top line, byte {raw}: not normalised')
         for which, fn in enumerate(line_draw):
             e = Emu(new)
             e.mu.mem_write(B, bytes([raw]))
             e.call(fn, (0x70000000, item))
-            want = expect_icons[v & 3][which] if which < 2 else (I_OFF if v & AS_STORED else I_ON)
+            want = [I_ON if v & 1 else I_OFF, style_icon, I_OFF if v & AS_STORED else I_ON][which]
             check(e.calls == [('sub-icon', item, want, e.calls[0][3] if e.calls else 0)], f'submenu line {which}, byte {raw}: {e.calls}')
         for which, h in enumerate(lists):
             e = Emu(new)
             e.mu.mem_write(B, bytes([raw]))
-            check(e.call(h['count'], (0x70000000,)) == 2, 'list count')
-            cur = [e.call(h['current'], (0x70000000, i)) for i in (0, 1)]
+            n = COUNTS[which]
+            check(e.call(h['count'], (0x70000000,)) == n, f'list {which} count')
+            cur = [e.call(h['current'], (0x70000000, i)) for i in range(n)]
             bit = list_bit(v, which)
-            check(cur == [1 - bit, bit], f'list {which}, byte {raw}: current {cur}')
+            check(cur == [int(i == bit) for i in range(n)], f'list {which}, byte {raw}: current {cur}')
             check(e.byte(B) == v, f'list {which}, byte {raw}: not normalised')
-            for i in (0, 1):
+            for i in range(n):
                 e2 = Emu(new)
                 e2.mu.mem_write(B, bytes([raw]))
                 e2.call(h['set'], (0x70000000, i))
@@ -391,17 +430,17 @@ def check_records(new, off):
                 check(e2.byte(B) == want, f'list {which} set {i}, byte {raw}: {e2.byte(B)} want {want}')
             e3 = Emu(new)
             e3.mu.mem_write(B, bytes([raw]))
-            e3.call(h['set'], (0x70000000, 2))
-            check(e3.byte(B) == raw, f'list {which}: set 2 changed the byte')
+            e3.call(h['set'], (0x70000000, n))
+            check(e3.byte(B) == raw, f'list {which}: set {n} changed the byte')
     for which, h in enumerate(lists):
         e = Emu(new)
         out = []
-        for i in (0, 1):
+        for i in range(COUNTS[which]):
             e.calls.clear()
             e.call(h['draw'], (0x70000000, item, i))
             out.append(e.calls[0][1:] if e.calls else None)
         on_off = [(item, I_OFF, T.camera_texts['off']), (item, I_ON, T.camera_texts['on'])]
-        want = [on_off, [(item, I_SHORT, T_SHORT), (item, I_LONG, T_LONG)], on_off][which]
+        want = [on_off, [(item, STYLE_ICONS[i], STYLE_TEXTS[i]) for i in range(4)], on_off][which]
         check(out == want, f'list {which} draw: {out}')
     print('  records: submenu table', hex(st), 'list table', hex(lt))
 
@@ -420,8 +459,9 @@ def check_texts_icons(new, off, png):
     first = 0x55000000 + (T.text_table - T.ram_src)
     for l in range(21):
         k = (roots[l] + 4 - first) // T.text_stride
-        got = [text(new, l, t) for t in (T_NAME, T_ONOFF, T_STYLE, T_SHORT, T_LONG, T_ORIENT)]
-        check(got[0] == NAMES[k] and got[3] == "'26 10 08" and got[4] == '2026.10.08 17:34' and got[1] and got[2] and got[5] == ORIENT_NAMES[k], f'texts, language row {l}: {got}')
+        got = [text(new, l, t) for t in (T_NAME, T_ONOFF, T_STYLE, T_SHORT, T_LONG, T_ORIENT, T_SHORT_NAME, T_LONG_NAME)]
+        check(got[0] == NAMES[k] and got[3] == "'26 10 08" and got[4] == '2026.10.08 17:34' and got[1] and got[2] and got[5] == ORIENT_NAMES[k]
+              and got[6] == f"'26 10 08 + {NAME_WORDS[k]}" and got[7] == f'2026.10.08 17:34 + {NAME_WORDS[k]}', f'texts, language row {l}: {got}')
         check(text(new, l, 2) == text(off, l, 2) if False else True, '')
     for low in (V(0x5323dbb4), V(0x5323e40c)):
         w = new.u32(low)
@@ -430,8 +470,8 @@ def check_texts_icons(new, off, png):
         else:
             rot, imm = ((w >> 8) & 15) * 2, w & 0xff
             bound = ((imm >> rot) | (imm << (32 - rot))) & 0xffffffff if rot else imm
-        check(bound >= 722, f'icon bound at {low:#x}: {bound}')
-    for tid in (I_SHORT, I_LONG):
+        check(bound >= 732, f'icon bound at {low:#x}: {bound}')
+    for tid in STYLE_ICONS:
         d = new.u32(ICON_CATALOG + tid * 4)
         kind, w, h, flags = struct.unpack('<4H', new.rd(d, 8))
         check((kind, w, h, flags) == (1, 40, 40, 0), f'icon {tid}: descriptor {kind, w, h, flags}')
@@ -468,7 +508,7 @@ def views(img, raw, setup):
 def check_controllers(new):
     """SelectMenuController's list building (0x531DA9D4) and SubMenuController's drawing
     (V(0x531E271C)) with the new records."""
-    for raw in (0, 1, 2, 3, 4, 7, 0xff):
+    for raw in (0, 1, 2, 3, 4, 7, 9, 11, 15, 16, 0xff):
         v = norm(raw)
         for which, rec in enumerate((LIST_ON, LIST_STYLE, LIST_ORIENT)):
             def setup(e, this, rec=rec):
@@ -480,11 +520,12 @@ def check_controllers(new):
             items = [c for c in e.calls if c[0] == 'list-item']
             marks = [(c[1], c[2]) for c in seen if c[0] == hex(V(0x5357ad40))]
             cur = list_bit(v, which)
-            check(len(items) == 2, f'list {which}, byte {raw}: {len(items)} items drawn')
-            check([m[0] for m in marks] == [1 - cur, cur], f'list {which}, byte {raw}: current marks {marks}')
+            n = COUNTS[which]
+            check(len(items) == n, f'list {which}, byte {raw}: {len(items)} items drawn')
+            check([m[0] for m in marks] == [int(i == cur) for i in range(n)], f'list {which}, byte {raw}: current marks {marks}')
             check(e.byte(0x70000000 + 0x1a6) == cur, f'list {which}, byte {raw}: cursor {e.byte(0x70000000 + 0x1a6)}')
-            if raw == 3:
-                print(f'  list {which}: items', [(c[2], c[3]) for c in items], 'marks', [m[0] for m in marks], 'title', [c for c in seen if c[0] in (hex(V(0x5357f2b0)), hex(V(0x5357338c)))][:2])
+            if raw in (3, 11):
+                print(f'  byte {raw} list {which}: items', [(c[2], c[3]) for c in items], 'marks', [m[0] for m in marks], 'title', [c for c in seen if c[0] in (hex(V(0x5357f2b0)), hex(V(0x5357338c)))][:2])
 
         def setup(e, this):
             for off in (0x15c, 0x160, 0x164, 0x168, 0x16c, 0x170):
@@ -495,7 +536,7 @@ def check_controllers(new):
         icons = [c[2] for c in e.calls if c[0] == 'sub-icon']
         texts = [c[1] for c in seen if c[0] == hex(V(0x53583014))]
         titles = [c[1] for c in seen if c[0] == hex(V(0x5357f2b0))]
-        want = [I_ON if v & 1 else I_OFF, I_LONG if v & 2 else I_SHORT, I_OFF if v & AS_STORED else I_ON]
+        want = [I_ON if v & 1 else I_OFF, STYLE_ICONS[style_index(v)], I_OFF if v & AS_STORED else I_ON]
         check(icons == want and texts == [T_ONOFF, T_STYLE, T_ORIENT] and titles == [T_NAME], f'submenu, byte {raw}: icons {icons} texts {texts} titles {titles}')
         if raw == 3:
             print('  submenu: title', titles, 'lines', texts, 'icons', icons)
@@ -546,6 +587,13 @@ def check_constructor_scan(new, off):
             r = f'did not end: {str(ex)[:60]}'
         res.append((r, len(targets), tuple(targets)))
     print('  records scanned: new', res[0][:2], 'official', res[1][:2])
+    # Direct Flash: the count handlers of records 11 and 12 are its own (see check_records).
+    if DIRECT_FLASH and len(res[0][2]) == len(res[1][2]):
+        t = list(res[0][2])
+        for rec in DIRECT_FLASH_RECORDS:
+            if rec < len(t) and t[rec] >= BASE + OFFICIAL_LEN:
+                t[rec] = res[1][2][rec]
+        res[0] = (res[0][0], res[0][1], tuple(t))
     check(res[0] == res[1] and res[1][1] == LISTS, f'list constructor scan: new {res[0][:2]} official {res[1][:2]}')
     end = new.u32(V(0x531d6dac))
     start = new.movw_movt(V(0x531d6d54), V(0x531d6d64))
@@ -594,13 +642,13 @@ def check_guard(new):
         if (x >> 24) == 0xeb:
             bls.append(stub + 4 * k + 8 + (((x & 0xffffff) ^ 0x800000) - 0x800000) * 4)
     fix = bls[1]
-    for raw in (0, 1, 2, 3, 4, 5, 6, 7):
+    for raw in range(16):
         e = Emu(new)
         settings = 0x70400000
         e.mu.mem_write(settings + 0x94b, bytes([raw]))
         e.call(fix, (settings, 0))
         check(e.byte(settings + 0x94b) == raw, f'guard fix changed the setting byte {raw}')
-    print('  guard fix', hex(fix), 'keeps the setting byte 0..7')
+    print('  guard fix', hex(fix), 'keeps the setting byte 0..15')
 
 
 if __name__ == '__main__':

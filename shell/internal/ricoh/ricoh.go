@@ -1,4 +1,4 @@
-// Package ricoh finds and downloads the current firmware update of a GR IV
+// Package ricoh finds and downloads the current firmware update of a supported GR
 // model from RICOH IMAGING's own download pages.
 //
 // The model's page, the version, the date and the file are read from the
@@ -42,13 +42,44 @@ const (
 
 // Models maps the model keys of the interface to the names Ricoh uses.
 var Models = map[string]string{
+	"GR3":      "GR III",
+	"GR3_HDF":  "GR III HDF",
+	"GR3X":     "GR IIIx",
+	"GR3X_HDF": "GR IIIx HDF",
 	"STANDARD": "GR IV",
 	"HDF":      "GR IV HDF",
 	"MONO":     "GR IV Monochrome",
 }
 
 // baseModel is the row that covers several variants of the camera.
-const baseModel = "GR IV"
+func baseModelFor(model string) string {
+	if model == "GR3X_HDF" || model == "GR3X" {
+		return "GR IIIx"
+	}
+	if model == "GR3_HDF" || model == "GR3" {
+		return "GR III"
+	}
+	return "GR IV"
+}
+
+// pinned are the exact releases GR Mod's GR III / IIIx support is built on. Ricoh's current
+// release for these cameras (GR III 2.20, GR IIIx 1.70, October 2026) is a different program
+// with every address moved, so the latest file must not be offered for them: these older
+// archives are fetched by name instead (the engine checks the SHA-256 of the file inside).
+var pinned = map[string]Release{
+	"GR3_HDF": {Name: "GR III", Applies: "RICOH GR III / GR III Street Edition / GR III Diary Edition / GR III HDF",
+		Version: "2.10", Date: "2025/10/23", File: "gr3_v210.zip",
+		Page: "/english/support/digital/gr3_s.html", URL: "/resources/japan/support/download/digital/FIRMWARE/gr3_v210.zip"},
+	"GR3X_HDF": {Name: "GR IIIx", Applies: "RICOH GR IIIx / GR IIIx Urban Edition / GR IIIx HDF",
+		Version: "1.60", Date: "2025/10/23", File: "gr3x_v160.zip",
+		Page: "/english/support/digital/gr3x_s.html", URL: "/resources/japan/support/download/digital/FIRMWARE/gr3x_v160.zip"},
+}
+
+func init() {
+	// The standard cameras take the same archive as the HDF ones (Ricoh's archive applies to every edition).
+	pinned["GR3"] = pinned["GR3_HDF"]
+	pinned["GR3X"] = pinned["GR3X_HDF"]
+}
 
 // ErrNoRelease means the site lists no firmware for the model.
 var ErrNoRelease = errors.New("no firmware is listed for this model")
@@ -351,6 +382,45 @@ func (c *Client) Latest(ctx context.Context, model string) (*Release, error) {
 	if err != nil {
 		return nil, err
 	}
+	if p, ok := pinned[model]; ok {
+		rel := p
+		rel.Model = model
+		pageURL := base.ResolveReference(&url.URL{Path: p.Page})
+		fileURL := base.ResolveReference(&url.URL{Path: p.URL})
+		rel.Page, rel.URL = pageURL.String(), fileURL.String()
+		rel.Size = c.size(ctx, base, fileURL)
+		return &rel, nil
+	}
+	return c.current(ctx, base, model, name)
+}
+
+// IsPinned reports whether a model's supported release is fetched by name (GR III / IIIx).
+func IsPinned(model string) bool {
+	_, ok := pinned[model]
+	return ok
+}
+
+// PinnedVersion is the version of a pinned model's release (the only one downloaded for it).
+func PinnedVersion(model string) (string, bool) {
+	p, ok := pinned[model]
+	return p.Version, ok
+}
+
+// Current reads the release the site's pages list for a model now, also for a pinned model
+// (whose newer release is shown, as GR IV's, with a warning but never downloaded).
+func (c *Client) Current(ctx context.Context, model string) (*Release, error) {
+	name, ok := Models[model]
+	if !ok {
+		return nil, ErrUnknownModel
+	}
+	base, err := c.base()
+	if err != nil {
+		return nil, err
+	}
+	return c.current(ctx, base, model, name)
+}
+
+func (c *Client) current(ctx context.Context, base *url.URL, model, name string) (*Release, error) {
 	indexURL := base.ResolveReference(&url.URL{Path: indexPath})
 	index, err := c.page(ctx, base, indexURL)
 	if err != nil {
@@ -359,6 +429,7 @@ func (c *Client) Latest(ctx context.Context, model string) (*Release, error) {
 	list := rows(index)
 	// A row of its own for the model, else the row of the base model when
 	// that release says it also applies to this one.
+	baseModel := baseModelFor(model)
 	candidates := []string{name}
 	if name != baseModel {
 		candidates = append(candidates, baseModel)
@@ -417,7 +488,7 @@ func (c *Client) Fallback(model string, latest *Release) (*Release, error) {
 	fileURL := base.ResolveReference(&url.URL{Path: a.Path})
 	page := base.ResolveReference(&url.URL{Path: a.Page}).String()
 	// the row of the list: the base model's, or the model's own for a release of one model
-	name := baseModel
+	name := baseModelFor(model)
 	if len(a.Models) == 1 {
 		name = Models[a.Models[0]]
 	}

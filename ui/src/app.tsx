@@ -11,7 +11,7 @@ import { CropEditor, ImageControlPage, RatioPage, WallpaperPage } from './pages'
 import { Tour, replayTour, restartTours } from './tour';
 import { UpdatePill, UpdateWatcher, checkForUpdate, openWhatsNew } from './updates';
 import {
-  askForOfficial, bridgeLoaded, backupCopies, colourWork, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
+  askForOfficial, bridgeLoaded, isGr3, backupCopies, colourWork, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
 } from './store';
 
 const gb = (n: number): string => (n >= 1e9 ? `${(n / 1e9).toFixed(n >= 1e10 ? 0 : 1)} GB` : `${Math.max(1, Math.round(n / 1e6))} MB`);
@@ -20,12 +20,14 @@ function Sidebar() {
   const page = useStore((s) => s.page);
   const model = useStore((s) => s.model);
   const lang = useStore((s) => s.lang);
+  const menuPics = useStore((s) => !!s.info?.capabilities.menuPictures);
+  const info = useStore((s) => !!s.info);
   return (
     <aside className="sidebar">
       <nav>
         <button className={`nav ${page === 'ic' ? 'on' : ''}`} data-tour="nav-ic" onClick={() => setPage('ic')}>{Ico.aperture}<span>{t('navIC')}</span></button>
         <button className={`nav ${page === 'ratio' ? 'on' : ''}`} data-tour="nav-ratio" onClick={() => setPage('ratio')}>{Ico.ratio}<span>{t('navRatio')}</span></button>
-        <button className={`nav ${page === 'wall' ? 'on' : ''}`} data-tour="nav-wall" onClick={() => setPage('wall')}>{Ico.image}<span>{t('navWall')}</span></button>
+        {(!isGr3(model) || menuPics || !info) && <button className={`nav ${page === 'wall' ? 'on' : ''}`} data-tour="nav-wall" onClick={() => setPage('wall')}>{Ico.image}<span>{t('navWall')}</span></button>}
       </nav>
       <div className="grow" />
       <button className={`nav low ${page === 'copies' ? 'on' : ''}`} data-tour="nav-copies" onClick={() => setPage('copies')}>{Ico.archive}<span>{t('navCopies')}</span></button>
@@ -74,7 +76,7 @@ function OutputBar() {
   const vol = s.volumes.find((v) => v.id === s.volumeId);
   // Image Control (with its switches), the added ratios and the power-off images go into one firmware file: every page writes the same thing.
   const isIC = s.page === 'ic' || s.page === 'ratio'; const isWall = s.page === 'wall';
-  const can = !!s.info && !s.busy && (isIC ? (pendingChanges(s).length + ratioSpecs(s).length > 0 || extrasOn(s) || (colourWork(s) && s.extras.length > 0) || menuPictures(s).length > 0) && !hasNameErrors(s) && !hasRatioErrors(s) : isWall && wallReady(s) && !hasNameErrors(s) && !hasRatioErrors(s));
+  const can = !!s.info && s.info.models.includes(s.model) && (isIC ? s.info.capabilities.build : isWall ? (s.info.capabilities.wallpaper || s.info.capabilities.menuPictures) : s.info.capabilities.factoryEntry) && !s.busy && (isIC ? (pendingChanges(s).length + ratioSpecs(s).length > 0 || extrasOn(s) || (colourWork(s) && s.info.family !== 'gr3x' && s.extras.length > 0) || menuPictures(s).length > 0) && !hasNameErrors(s) && !hasRatioErrors(s) : isWall ? wallReady(s) && !hasNameErrors(s) && !hasRatioErrors(s) : true);
   const role: Key | '' = s.role === 'firmware' ? 'roleFirmware' : s.role === 'wallpaper' ? 'roleWallpaper' : s.role === 'mixed' ? 'roleMixed' : s.role === 'empty' ? 'roleEmpty' : '';
   // With the bridge firmware open the buttons stay live but offer the official download instead.
   const bridge = bridgeLoaded(s) && !s.busy;
@@ -126,6 +128,9 @@ function HelpMenu() {
 
 export function App() {
   const page = useStore((s) => s.page);
+  const gr3 = useStore((s) => isGr3(s.model));
+  const menuPicsReady = useStore((s) => !!s.info?.capabilities.menuPictures);
+  const fwOpen = useStore((s) => !!s.info);
   const ready = useStore((s) => s.ready);
   if (!host.available) return <div className="nohost">{t('hostMissing')}</div>;
   return (
@@ -133,7 +138,7 @@ export function App() {
       <Sidebar />
       <main className="main">
         <BridgeBanner />
-        <div className="stage">{ready ? (page === 'ratio' ? <RatioPage /> : page === 'wall' ? <WallpaperPage /> : page === 'copies' ? <CopiesPage /> : <ImageControlPage />) : <div className="page"><span className="spinner" /></div>}</div>
+        <div className="stage">{ready ? (page === 'ratio' ? <RatioPage /> : page === 'wall' && (!gr3 || menuPicsReady || !fwOpen) ? <WallpaperPage /> : page === 'copies' ? <CopiesPage /> : <ImageControlPage />) : <div className="page"><span className="spinner" /></div>}</div>
         <OutputBar />
       </main>
       <CropEditor />

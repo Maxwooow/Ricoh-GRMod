@@ -26,7 +26,7 @@
  * rows, equal curves, equal rows of the post-curve matrix).
  *
  * Firmware 1.20: the same read of the look at the same offset (0x53939148), after the same use of
- * the step's argument (+0x2AC, +0x2D0); the words are 16 and 32 bytes into its 44 unused bytes.
+ * the step's argument (+0x2AC, +0x2D0); the words are 16, 32 and 36 bytes into its 44 unused bytes.
  * Halation, which uses the Toning bits, is 1.11 only.
  */
 import { assembleWords } from './arm';
@@ -54,6 +54,18 @@ export function orientWord(t: FirmwareTarget): number {
 /** The word in 1.11 (0x558372F4). */
 export const ORIENT_WORD = orientWord(TARGET_111);
 export const ORIENT_VALID = 0x100;
+/**
+ * The look of the picture being made (0.8.4, for the date imprint's look name), LOOK_STASH's word
+ * as it was at the start of the exposure (the look live view was being developed with; see
+ * datestamp.ts) or, in RAW development, the one the development step takes from the record being
+ * developed. Unlike LOOK_STASH it does not follow a look chosen while the picture is being
+ * processed. In the 44 zero-filled bytes before the heap, 36 bytes in.
+ */
+export function frameLook(t: FirmwareTarget): number {
+  return t.facts.bssEnd + 0x24;
+}
+/** The word in 1.11 (0x558372F8). */
+export const FRAME_LOOK = frameLook(TARGET_111);
 /** The development step's read of the look (the hook site). */
 export const LOOK_SITE = 0x539113f8;
 const LOOK_SITE_WORD = 0xe5d3279c; // ldrb r2, [r3, #0x79c]
@@ -72,7 +84,7 @@ export const MONO_LOOKS = TARGET_111.facts.monoLooks;
  * 1 Weak, 2 Medium, 3 Strong) and STASH_WHITE for the white glow. 0, 1, 2 (Off, Weak and Strong red,
  * as up to test 042) stay Off, Weak, Strong.
  */
-export function stashAsm(stash: number, orient: number): string {
+export function stashAsm(stash: number, orient: number, frame: number): string {
   return `ldr r2,[r1,#0x2d0];push {r0,r1};
   ldrb r0,[r1,#0x2ac];cmp r0,#0;bne stashlook;
   add r0,r2,#0x71000;ldrb r1,[r0,#0xe83];cmp r1,#0;ldrbne r2,[r0,#0xe84];ldrbeq r2,[r2,#0xd8];cmp r2,#3;movhi r2,#0;
@@ -82,10 +94,13 @@ export function stashAsm(stash: number, orient: number): string {
   cmp r1,#4;subhs r1,r1,#3;orrhs r0,r0,#0x20000;bhs stashlevel;
   cmp r1,#3;moveq r1,#2;beq stashlevel;
   cmp r1,#2;moveq r1,#3;
-  stashlevel:orr r0,r0,r1,lsl #8;orr r0,r0,#0x10000;movw r1,#${stash & 65535};movt r1,#${stash >>> 16};str r0,[r1];pop {r0,r1};`;
+  stashlevel:orr r0,r0,r1,lsl #8;orr r0,r0,#0x10000;movw r1,#${stash & 65535};movt r1,#${stash >>> 16};str r0,[r1];
+  ldr r1,[sp,#4];ldrb r1,[r1,#0x2ac];cmp r1,#0;bne stashdone;
+  movw r1,#${frame & 65535};movt r1,#${frame >>> 16};str r0,[r1];
+  stashdone:pop {r0,r1};`;
 }
 /** The store of 1.11 (the added slots' hook of the site, 1.11 only). */
-export const STASH_ASM = stashAsm(LOOK_STASH, ORIENT_WORD);
+export const STASH_ASM = stashAsm(LOOK_STASH, ORIENT_WORD, FRAME_LOOK);
 /** The white glow's bit in the stash word. */
 export const STASH_WHITE = 0x20000;
 
@@ -103,7 +118,7 @@ export function installLookStash(p: Patch): void {
   const site = p.va(LOOK_SITE);
   if (p.word(site) >>> 24 === 0xea) return; // already hooked here (an earlier call)
   expectWord(p, site, LOOK_SITE_WORD);
-  const at = p.append((a) => assembleWords(`${stashAsm(lookStash(p.target), orientWord(p.target))}ldrb r2,[r3,#0x79c];b #${site + 4}`, a), 16);
+  const at = p.append((a) => assembleWords(`${stashAsm(lookStash(p.target), orientWord(p.target), frameLook(p.target))}ldrb r2,[r3,#0x79c];b #${site + 4}`, a), 16);
   const offset = (at - (site + 8)) >> 2;
   p.setWord(site, (0xea000000 | (offset & 0xffffff)) >>> 0, 'the look of the picture, for the steps after development');
   extendZeroFill(p);

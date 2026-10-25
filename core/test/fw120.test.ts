@@ -55,7 +55,8 @@ describe.skipIf(!have)('firmware 1.20 (GR IV 1.20, GR IV Monochrome 1.10)', () =
     expect(eng.info.target).toBe('1.20');
     expect(eng.info.version).toBe('1.20');
     expect(eng.info.versions).toEqual({ STANDARD: '1.20', HDF: '1.20', MONO: '1.10' });
-    expect(eng.info.colour).toBe(false);
+    expect(eng.info.capabilities).toMatchObject({ build: true, presets: false, lookLayout: false, bridge: false });
+    expect(eng.info.features).toMatchObject({ monoUnlock: false, directFlash: false });
     expect(eng.info.bridge).toBe(false);
     expect(eng.info.slots).toEqual([]);
     expect(eng.info.shutdown.MONO?.size).toBe(56571);
@@ -90,10 +91,20 @@ describe.skipIf(!have)('firmware 1.20 (GR IV 1.20, GR IV Monochrome 1.10)', () =
     });
   }
 
+  // GR IV's ratio planning, not GR III's: the file of 1.20 has no slot layout either (0.8.5 tells GR III
+  // by the family).
+  it.skipIf(!existsSync(P + 'official.bin'))('previews added ratios as 1.11 does', async () => {
+    eng ??= await Engine.open(raw);
+    const e111 = await Engine.open(new Uint8Array(readFileSync(P + 'official.bin')));
+    for (const r of ['5:4', '65:24', '7:6', '1:1', '3:4']) expect(eng.previewRatio(r, ['2:1'])).toEqual(e111.previewRatio(r, ['2:1']));
+  });
+
   it('refuses the colour work', async () => {
     eng ??= await Engine.open(raw);
     await expect(eng.buildFirmware([], [], [], { monoUnlock: true })).rejects.toMatchObject({ code: 'unsupported-feature' });
     await expect(eng.buildFirmware([], [], [{ level: -2, strength: 'weak' }])).rejects.toMatchObject({ code: 'unsupported-feature' });
+    await expect(eng.buildFirmware([], [], [], { lookLayout: { order: [11, 12], hidden: [] } })).rejects.toMatchObject({ code: 'unsupported-feature' });
+    await expect(eng.buildFirmware([], [], [], { directFlash: true })).rejects.toMatchObject({ code: 'unsupported-feature' });
     expect(() => eng.convertPreset('cube', 'LUT_3D_SIZE 2\n0 0 0\n1 0 0\n0 1 0\n1 1 0\n0 0 1\n1 0 1\n0 1 1\n1 1 1\n')).toThrow(/not available for firmware 1.20/);
   });
 });

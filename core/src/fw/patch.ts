@@ -23,6 +23,8 @@ import type { RatioSpec } from './aspect';
 import { grownRanges, growPayload } from './aspect/package';
 import { Patch } from './aspect/build';
 import { installMonoUnlock } from './aspect/monounlock';
+import { lookLayoutWords } from './aspect/looks';
+import type { LookLayout } from './aspect/looks';
 import { CLARITY_BYTES, CLARITY_OFFSET, clarityBytes, hasOfficialClarity } from './clarity';
 import type { ClarityEdit } from './clarity';
 
@@ -199,18 +201,20 @@ function transparentPixels(icon: Uint8Array): number[] {
 /**
  * Build a firmware file from an official file (1.11, or 1.20; see `target.ts`) and a list of slot
  * edits. Throws `FirmwareError` on any invalid input or failed assertion; never returns a file that
- * did not pass the self-check. For 1.20 the slot edits, the clarity table, the monochrome looks and
- * added slots are refused (`unsupported-feature`).
+ * did not pass the self-check. For 1.20 the slot edits, the clarity table, the monochrome looks,
+ * added slots, the Image Control order and Direct Flash are refused (`unsupported-feature`).
  */
 export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = [], clarity: readonly ClarityEdit[] = [], features: ExtensionFeatures = {}, test: TestOptions = {}): Promise<BuildResult> {
   // Additions that append code or icons need the grown layout. The monochrome looks change 13
   // words in place: on their own (or with only same-length edits) the file keeps the official layout.
-  const grows = ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation;
+  const grows = ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash;
   const inPlaceMono = !grows && !!features.monoUnlock;
-  const { fw, DEC, img, ranges, target } = await editPayload(officialRaw, edits, clarity, inPlaceMono);
-  if (!target.colour && (features.monoUnlock || (features.extraSlots?.length ?? 0) > 0)) {
-    bad('unsupported-feature', `the monochrome looks and added Image Control slots are not available for firmware ${target.id}`);
+  const inPlaceLooks = !grows && !!features.lookLayout;
+  const { fw, DEC, img, ranges, target } = await editPayload(officialRaw, edits, clarity, inPlaceMono, inPlaceLooks ? features.lookLayout : undefined);
+  if (!target.colour && (features.monoUnlock || (features.extraSlots?.length ?? 0) > 0 || !!features.lookLayout)) {
+    bad('unsupported-feature', `the monochrome looks, added Image Control slots and the Image Control order are not available for firmware ${target.id}`);
   }
+  if (!target.directFlash && features.directFlash) bad('unsupported-feature', `Direct Flash is not available for firmware ${target.id} yet`);
   if (grows) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios, features, test, target);
 
   // 7. Container.
@@ -231,7 +235,7 @@ export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], 
     ranges,
     checks,
     ratios: [],
-    features: inPlaceMono ? { adjSoftFocus: false, monoUnlock: true } : {},
+    features: { adjSoftFocus: false, ...(inPlaceMono ? { monoUnlock: true } : {}), ...(inPlaceLooks ? { lookLayout: features.lookLayout } : {}) },
   };
 }
 
@@ -300,13 +304,13 @@ async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8
 }
 
 /** Steps 1-6: open the official file and apply the same-length slot (and clarity) edits to a copy of its payload. */
-async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: readonly ClarityEdit[] = [], monoUnlock = false): Promise<{ fw: Firmware; DEC: Uint8Array; img: Uint8Array; ranges: Range[]; target: FirmwareTarget }> {
+async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: readonly ClarityEdit[] = [], monoUnlock = false, lookLayout?: LookLayout): Promise<{ fw: Firmware; DEC: Uint8Array; img: Uint8Array; ranges: Range[]; target: FirmwareTarget }> {
   // 1. Open the official file, copy the payload.
   const { fw, decoded: DEC, target } = await openOfficial(officialRaw);
   const sorted = sortEdits(edits);
   if (!target.colour) {
     // 1.20: no same-length edit is available (see target.ts); the payload is the official one.
-    if (sorted.length > 0 || clarity.length > 0 || monoUnlock) bad('unsupported-feature', `Image Control slot edits, the clarity table and the monochrome looks are not available for firmware ${target.id}`);
+    if (sorted.length > 0 || clarity.length > 0 || monoUnlock || lookLayout) bad('unsupported-feature', `Image Control slot edits, the clarity table, the monochrome looks and the Image Control order are not available for firmware ${target.id}`);
     return { fw, DEC, img: DEC.slice(), ranges: [], target };
   }
   const layout = resolveLayout(DEC);
@@ -391,6 +395,15 @@ async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: 
     for (const w of monoUnlockWords(DEC)) {
       for (const r of ranges) if (r.offset < w.offset + 4 && w.offset < r.offset + r.length) bad('assert-failed', `monochrome looks overlap ${r.what}`);
       write(`monochrome looks 0x${(w.offset - RTOS_OFFSET + 0x53000000).toString(16)}`, w.offset, w.bytes, 4);
+    }
+    rtosTouched = true;
+  }
+
+  // 3d. Image Control order / hidden looks in place (route B: 20-byte order table + visibility words).
+  if (lookLayout) {
+    for (const w of lookLayoutWords(DEC, lookLayout)) {
+      for (const r of ranges) if (r.offset < w.offset + w.bytes.length && w.offset < r.offset + r.length) bad('assert-failed', `look layout overlaps ${r.what}`);
+      write(w.what, w.offset, w.bytes, w.bytes.length);
     }
     rtosTouched = true;
   }

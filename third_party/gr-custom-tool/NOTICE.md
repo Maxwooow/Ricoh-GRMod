@@ -23,3 +23,19 @@ Changes made in the port, as required by section 2(a) of the licence (October 20
 - since GR Mod 0.3.0 one piece of code that is not in the reference is appended after the reference's (`installPlaybackDecode` in `build.ts`: the playback decode buffer for photo heights that are not a multiple of 8), and `tools/aspect/playback_check.py` checks it.
 
 Every file listed in the table carries `SPDX-License-Identifier: GPL-2.0-only`. A firmware file built with added ratios contains the compiled C code above.
+
+## GR IIIx HDF 1.60 local port (11 October 2026)
+
+`core/src/fw/gr3x/` adapts the reference's crop menu, geometry, image identity,
+RAW-development and statistics-map design to the independently inspected IIIx image.
+`tools/gr3x/native/map.c` derives its crop-grid algorithm from
+`gr4_editor/native/crop_image_map.c`; the IIIx port changes the map/record sizes,
+pointer layout, aspect identifiers, three-strip accounting, allocation and clone
+handling. `core/src/fw/gr3x/map-native.ts` contains its relocatable ARM code;
+`tools/gr3x/compile_map.py` regenerates it from the included source.
+
+The IIIx fixed list uses IDs 4–10 plus native 0/3, IIIx-specific hook addresses,
+8-byte icon descriptors and a separate package marker. The version stays 1.60.
+The local validation tool imports the pinned reference Python decoder for an
+independent check; it is not copied into the runtime. Physical camera operation
+of this T1 candidate has not been tested. All added port source uses GPL-2.0-only.

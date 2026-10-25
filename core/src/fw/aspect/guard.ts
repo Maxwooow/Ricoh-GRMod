@@ -22,10 +22,20 @@
  *  - the function of each ADJ slot at 0x920..0x924 (0..0x14). Without soft focus on the ADJ lever,
  *    0x0A (soft focus in a GR Mod build) and anything above 0x14 become 0, which is what the slot
  *    getters of a build with soft focus already make of a value above 0x14.
+ *  - 0.8.4, looks hidden from the lists (`looks.ts`): the look of the standard photo set (0x153)
+ *    and of the standard movie set (0x515), the ones picked from the Image Control / ADJ lists,
+ *    becomes Standard (11; the GR IV Monochrome's Standard, 25, for one of its looks 25..30) when
+ *    it is hidden. Both lists are built without hidden looks (0x533CC784 and 0x533755BC, through
+ *    the visibility check 0x533CC6E0), so a hidden look could only be selected by settings an
+ *    earlier firmware left; this way the lists always hold the selected look. The custom sets'
+ *    looks (0x154..0x156, 0x516..0x518) are kept: those sets are entries of their own in the
+ *    lists (C1..C3), whatever their look, and the look stays installed. RAW development's look
+ *    is the file's own ("as shot") and not in the settings.
  *
  * Firmware 1.20 keeps these offsets (its getters of 0x153, 0x49F, 0x515..0x518 and 0x920..0x924
  * are those of 1.11 at other addresses) and the ADJ functions (the same official list, see
- * softfocus.ts); the hooks are those of 1.11 through `va()`.
+ * softfocus.ts); the hooks are those of 1.11 through `va()`. (Hidden looks are 1.11 only: the
+ * Image Control order is not available for 1.20.)
  */
 import { assembleWords, branchTarget, branchWord } from './arm';
 import { FirmwareError } from '../types';
@@ -56,7 +66,13 @@ export interface GuardOptions {
   ratios: boolean;
   /** Soft focus on the ADJ lever (function 0x0A) is installed. */
   adjSoftFocus: boolean;
+  /** Looks hidden from the lists (0.8.4); never 11 or 25. */
+  hiddenLooks?: readonly number[];
 }
+
+/** The standard photo and movie sets' looks (the others are custom sets' looks). */
+const CURRENT_LOOKS = [0x153, 0x515];
+export const MONO_STANDARD = 25;
 
 /**
  * The guard's own `fix(settings, adjust)`, in assembly: settings pointer minus `adjust` is the
@@ -68,6 +84,13 @@ function fixSource(o: GuardOptions, looks: number): string {
     lines.push(`ldrb r2,[r0,#${off}]`, `cmp r2,#${looks}`, `blo look${i}`);
     if (o.slots > 0) lines.push(`sub r3,r2,#${FIRST_ADDED_LOOK}`, `cmp r3,#${o.slots}`, `blo look${i}`);
     lines.push(`mov r2,#${STANDARD}`, `strb r2,[r0,#${off}]`, `look${i}:`);
+    if (CURRENT_LOOKS.includes(off) && o.hiddenLooks && o.hiddenLooks.length > 0) {
+      lines.push(`ldrb r2,[r0,#${off}]`);
+      for (const h of o.hiddenLooks) {
+        if (h === STANDARD || h === MONO_STANDARD || !(Number.isInteger(h) && h > 0 && h < 256)) fail('internal', 'guard: a Standard look cannot be hidden');
+        lines.push(`cmp r2,#${h}`, `moveq r3,#${h >= 25 && h <= 30 ? MONO_STANDARD : STANDARD}`, `strbeq r3,[r0,#${off}]`);
+      }
+    }
   });
   if (!o.ratios) lines.push(`ldrb r2,[r0,#${RATIO}]`, 'cmp r2,#3', 'movhi r2,#0', `strbhi r2,[r0,#${RATIO}]`);
   if (!o.adjSoftFocus) {

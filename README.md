@@ -1,6 +1,96 @@
 # GR Mod
 
-A small desktop tool for the Ricoh GR IV / GR IV HDF (firmware 1.11) and the GR IV Monochrome (firmware 1.10). Not a Ricoh product.
+A small desktop tool for the Ricoh GR IV / GR IV HDF (firmware 1.11), the GR IV Monochrome (firmware
+1.10), the GR III / GR III HDF (firmware 2.10) and the GR IIIx / GR IIIx HDF (firmware 1.60). Not a
+Ricoh product.
+
+0.8.5: one program for GR IV and GR III / IIIx. GR IV gets Direct Flash (a fifth Flash Mode: fixed
+power, exposure from the focus distance and the guide number; GN, background, minimum shutter speed
+and exposure priority in the camera's Flash menu, `core/src/fw/aspect/directflash*.ts`,
+`tools/directflash`; camera-tested as test firmware 057). GR III / IIIx builds are round 10 by
+default (GR IV's ways, below; camera-tested); `gr3Round: 9` rebuilds round 9's files. The standard
+GR III / GR IIIx are models of their own beside the HDF ones (the same official files: Ricoh's 2.10
+/ 1.60 archives apply to every edition). Each camera's official file is kept once downloaded or
+opened (`firmware-gr4.bin`, `firmware-gr3.bin`, `firmware-gr3x.bin` in the data folder, and
+`firmware-gr4mono.bin` for the GR IV Monochrome, which takes the file of 1.20, see below; 0.8.x's
+single `firmware.bin` moves to its camera's place, GR IV's to both of its places), so switching
+cameras opens it again without a download. GR III / IIIx pages and texts are GR IV's but for what the cameras do differently; no
+ratios or films are added until the user adds them.
+
+## GR III and GR IIIx
+
+One program for both families: GR IV files are built exactly as by GR Mod 0.8.4 (GR IV's code is
+shared and unchanged; `core/test/gr4-unchanged.test.ts` pins its outputs), and the GR III / IIIx code
+(`core/src/fw/gr3x`, `tools/gr3x`) is used only for the exact official GR III 2.10 / IIIx 1.60
+files; both get every GR III feature (GR III 2.10 is the IIIx 1.60 program, and
+`core/test/gr3-equivalence.test.ts` builds every feature for both and compares them byte for byte
+but for the identity bytes). Each family keeps its own work: GR IV's in `project.json` as before, GR III / IIIx's in
+`project-gr3.json` with its presets `gr3-preset-…` (`ui/src/store.ts`). The GR III test builds
+(0.8.0-gr3exp.1 .. 0.8.4-gr3exp.1) kept a data folder of their own (`GRMod-GR3-Experimental`); a
+release takes its GR III work over once (`shell/migrate.go`). A version containing `exp` is still a
+test build: own data folder, no updates.
+
+GR III 2.10 (`fwdc239b.bin`) and GR IIIx 1.60 (`fwdc243b.bin`) are the same build of one program:
+every address is shared and the images differ only in identity bytes (name, project/product,
+version, build time, RTC epoch year). The IIIx port is therefore applied unchanged to GR III;
+`core/test/gr3-equivalence.test.ts` checks that every GR III build is the IIIx build of the same
+recipe with only the identity bytes swapped, and the native probes in `tools/gr3x` run on either
+RTOS. Newer releases (GR III 2.20, GR IIIx 1.70) are a different program and are not supported;
+the shell downloads the pinned 2.10 / 1.60 archives.
+
+On a GR III (rounds 1..6, by the owner): custom ratio lists with full-frame RAW, up to 20 films
+(looks 64..83) with their own parameters and a second matrix, soft focus on the ADJ lever, the
+date imprint (GR IV's submenu), End Screen pictures (GR IV's Type / Picture submenu) and halation.
+Round 7 follows GR IV 0.8.2 (`core/src/fw/gr3x/guard.ts`, `halation-rows.ts`, `tools/gr3x/native/slots3.c`):
+a settings guard (unknown looks and ratios back to factory at load, save and mode recall), 0.8.2's
+halation with three strengths and red / white set in the camera (GR III's parameter screen has no
+Fn submenu, so a film gets two rows: Halation built as GR III's own Grain Effect, Off / 1 / 2 / 3,
+and Colour), preset fingerprints (a film whose preset changed starts again from neutral), and the
+date imprint light only for black-and-white looks. Files of earlier rounds are still rebuilt byte
+for byte (`guard: false`, the recipe has no `round`).
+Round 8 (the default; `gr3Round: 7` builds round 7) follows GR IV 0.8.4: the date imprint follows the
+camera's orientation at the start of the exposure (the direction GR III writes to EXIF, read at
+SetShootingInfoResultBeforeExpose; a third submenu line Follow Orientation, default On), Style has the
+four values with the look's English name (the camera's own names for looks 11..22, the build's for
+films), the Style labels as wide as the row allows (GR IV test 052), and the Image Control order and
+hidden looks (`core/src/fw/gr3x/look-layout.ts`: ImageControlModel's count, entry and reverse lookup
+answer from the layout for the still / ADJ, movie and RAW development lists, and RAW development's
+dial takes the list's length instead of its own fixed twelve (0x53283c08); a hidden look in use becomes
+Standard, a hidden film keeps its parameters, `native/slots3.c -DHIDDEN_FILMS`). Halation is 光晕 in
+Chinese again (GR III's fonts are GR IV's and have the glyph). The orientation byte and the frame's
+look share the End Screen mode word's upper bytes (0x5580437d, 0x5580437e). #7's fitting is used for
+films. Round 9 (the default; `gr3Round: 8` builds round 8): the live view's change detection
+(0x536dc860) reads the look itself at 0x536dc998 instead of a film's native base, so changing from one
+film to another (or Standard to a film) computes the matrix, second matrix and curves again; up to
+round 8 the live view kept the previous film's colour until a parameter changed
+(`tools/gr3x/live_refresh_probe.py` runs it).
+Round 10 (experimental, `gr3Round: 10`; the default stays round 9; recipe `round: 10`, revision T10)
+does GR Mod's additions the GR IV way wherever GR III has the same structures; colour fitting and the
+Image Control order / hidden looks keep GR III's implementation (`core/src/fw/gr3x/round10.ts`,
+`films-r10.ts`, `native/films.c`). The films are looks of their own: the tone, multi-axis and YCbCr
+descriptor tables grow to 84 entries and film k is look 64 + k everywhere (four rendering decisions
+and the shooting-mode restriction still take it as Standard). They borrow Bleach Bypass's parameters
+(Standard's nine and Toning, in every photo and movie set) and keep their Halation in that Toning
+byte as GR IV's twelve states; the values of the looks not in use wait in HTData record 12 ('GR3A',
+version 10; rounds 6..9's tables are taken over at the first start). The films are in the movie list
+too; RAW development, the maker note (ImageTone 0x8110 + k, Toning 0x100 + state) and playback know
+them. ADJ soft focus is function 0x09 (after Image Control, as GR IV's 0x0A; rounds 6..9's 0x13 in
+the ADJ slots becomes 0x09 at start). The start-up zero fill clears 76 bytes up to the heap's first
+block (0x558043c0): one RAM word per addition, as GR IV. The settings load and save go through GR IV's
+scaffold (the guard, the films and the End Screen hook it); the End Screen choice is its own HTData
+record (13). What stays different: RAW development shows Standard's parameter lines for a film (its
+Halation is applied as shot), the playback parameter page shows Standard's, the date imprint's
+setting byte stays in the record, the curves and the second matrix stay hooks (GR III applies
+saturation before the curves). Probes: `films_r10_verify.py`, `films_probe.py`, and round 10 branches
+of the soft focus, guard, End Screen, layout, halation rows, picture stage and date imprint probes.
+Black-and-white and toned black-and-white presets
+(output colour a function of brightness only) are fitted with equal matrix rows and a curve per
+channel, no second matrix (`isTonedMonochrome`, `fitTonedMonochrome` in `core/src/color/gr3x-import.ts`):
+they stay neutral (or toned) at any saturation setting. Round 8 probes: `look_layout_probe.py`, `datestamp8_probe.py` (orientation, names, RAW
+development, and every picture case against GR IV's 0.8.4 module), `list_width_probe.py`. Added ratios narrower than 1:1 stay allowed
+on GR III (3:4 was tested there); GR IV refuses them from 0.8.2. The GR IV Monochrome looks are
+not ported.
+Camera test procedure: [docs/GR3_HDF_210_TEST.txt](docs/GR3_HDF_210_TEST.txt); IIIx details: [docs/GR3X_HDF.md](docs/GR3X_HDF.md).
 
 - `core/`  platform-independent TypeScript: firmware container codec and patcher with built-in self-check (`src/fw`), added aspect ratios (`src/fw/aspect`), preset conversion from .xmp Look profiles and .cube LUTs (`src/color`), exact-length baseline JPEG encoder (`src/jpeg`), start-up script generator and simulator (`src/wallpaper`; used by GR Mod 0.7 and earlier, whose power-off images rotated through a start-up script on the card; 0.8 builds them into the firmware and the UI no longer offers the script), memory-card layout planning (`src/card`), and the `Engine` facade (`src/app`).
 - `ui/`    React UI (Vite). Talks to the platform through `src/host.ts` only.
@@ -21,11 +111,11 @@ No firmware file is included here. The user picks the official file (1.11 for th
 
 Ricoh's GR IV 1.20 (`gr4_v120.zip`) and GR IV Monochrome 1.10 (`gr4_mono_v110.zip`), both of 2026/10/21, hold the same `fwdc248b.bin` (SHA-256 `7563d7e4…650d`): its model records say 1.20.10.11 for the GR IV and HDF and 1.10.10.4 for the Monochrome. The 1.11 file carries the Monochrome's launch version, 1.00.00.01, so a Monochrome on 1.10 refuses it, and every build on it, as older; the Monochrome needs builds on the 1.20 file.
 
-The program opens both files (`core/src/fw/target.ts`). 1.20 is the same program as 1.11 rebuilt with additions, so the patcher keeps the 1.11 addresses it was written with and passes each through `va()`: the identity for 1.11; for 1.20 the table `core/src/fw/target120.ts`, 328 places generated by `tools/port120/gen_table.py` (code and data of the two files matched by `tools/port120/addrmap.py`, each entry's word the same or the same up to relocation; 33 found by hand, with notes, every BSS address among them). An address without an entry is an error, never a guess. Counts, record sizes and the like are the target's `facts`. With the 1.20 file the program offers added aspect ratios, soft focus on the ADJ lever, the date imprint and power-off pictures, with the settings guard of 0.8.2: everything that applies to the Monochrome. It does not offer the colour work (Cinema slot edits, monochrome looks, added Image Control slots), since 1.20 added an Image Control and rebuilt the style tables those rely on; the UI leaves it out and the engine refuses it (`unsupported-feature`). A build keeps the official model records, so the camera shows 1.20 / 1.10 and takes the official file again later. The online download offers 1.11 for the GR IV and GR IV HDF and 1.10 for the Monochrome (`SUPPORTED_RELEASE`); a GR IV already on 1.20 can open the official 1.20 file itself.
+The program opens both files (`core/src/fw/target.ts`). 1.20 is the same program as 1.11 rebuilt with additions, so the patcher keeps the 1.11 addresses it was written with and passes each through `va()`: the identity for 1.11; for 1.20 the table `core/src/fw/target120.ts`, 333 places generated by `tools/port120/gen_table.py` (code and data of the two files matched by `tools/port120/addrmap.py`, each entry's word the same or the same up to relocation; 33 found by hand, with notes, every BSS address among them). An address without an entry is an error, never a guess. Counts, record sizes and the like are the target's `facts`. With the 1.20 file the program offers added aspect ratios, soft focus on the ADJ lever, the date imprint and power-off pictures, with the settings guard of 0.8.2: everything that applies to the Monochrome. It does not offer the colour work (Cinema slot edits, monochrome looks, added Image Control slots, the Image Control menu order), since 1.20 added an Image Control and rebuilt the style tables those rely on, nor Direct Flash (0.8.4), which is not ported yet; the file's `capabilities` and `features` say so (`presets`, `lookLayout`, `monoUnlock`, `directFlash` false), the UI leaves them out and the engine refuses them (`unsupported-feature`). A build keeps the official model records, so the camera shows 1.20 / 1.10 and takes the official file again later. The online download offers 1.11 for the GR IV and GR IV HDF and 1.10 for the Monochrome (`SUPPORTED_RELEASE`); a GR IV already on 1.20 can open the official 1.20 file itself. The Monochrome keeps its own file (`firmware-gr4mono.bin`): switching between it and GR IV / HDF opens the other model's kept file.
 
-What differs in 1.20 besides addresses: 709 icons and 881 texts (this program's own texts from 912: soft focus 912, the date imprint 913..917, the power-off pictures 918..); the two icon bounds are `cmp` with an immediate, not `movw`; the user settings are 0xB44 bytes, and the factory-defaults initialiser leaves the same 53 bytes unwritten as in 1.11, 0x90F and 0x94B among them (`tools/port120/check_userdata.py`); the fields from 0x320 on of the live-view object of the tracking hooks moved by 0x14; the table of full-screen JPEGs has 13 entries and one reader; and the power-off picture request draws the End Screen picture 1.20 chooses at power-off, from byte 0x15 of its End Screen object (a picture chosen with GR WORLD: 0..4, or a downloaded one above 50) or else byte 0x14 (the camera's own). Without a choice in GR Mod's list that code runs as before, and the list's factory row shows the thumbnail of what it chooses (`factory_index` in `tools/shutdown/shutdown.c`, built for 1.20 with `GRMOD_FW=120 python3 tools/shutdown/gen.py`). The settings guard and the date imprint's look (0.8.2) work the same way: 1.20 has two more looks of its own, Pictorialist Effect (31) and Solarized Effect (32, the Monochrome's new Image Control), so the guard puts back looks from 33 instead of 31 (`TargetFacts.looks`), and both are among the date imprint's black-and-white looks (`TargetFacts.monoLooks`); the look is read at the same offset of the frame's record (0x53939148) and left 16 bytes into the 44 unused bytes before the heap; the settings offsets the guard looks at are those of 1.11. The date imprint's orientation (0.8.3) as well: the start of the exposure is hooked at 0x5364D640 and reads the camera's direction through the same singleton chain as in 1.11 (its object at 0x5537B29C), the RAW development step and the EXIF writer read the same record offsets, the word is 32 bytes into the 44 unused bytes, and "Follow Orientation" is text 929.
+What differs in 1.20 besides addresses: 709 icons and 881 texts (this program's own texts from 912: soft focus 912, the date imprint 913..917, the power-off pictures 918..); the two icon bounds are `cmp` with an immediate, not `movw`; the user settings are 0xB44 bytes, and the factory-defaults initialiser leaves the same 53 bytes unwritten as in 1.11, 0x90F and 0x94B among them (`tools/port120/check_userdata.py`); the fields from 0x320 on of the live-view object of the tracking hooks moved by 0x14; the table of full-screen JPEGs has 13 entries and one reader; and the power-off picture request draws the End Screen picture 1.20 chooses at power-off, from byte 0x15 of its End Screen object (a picture chosen with GR WORLD: 0..4, or a downloaded one above 50) or else byte 0x14 (the camera's own). Without a choice in GR Mod's list that code runs as before, and the list's factory row shows the thumbnail of what it chooses (`factory_index` in `tools/shutdown/shutdown.c`, built for 1.20 with `GRMOD_FW=120 python3 tools/shutdown/gen.py`). The settings guard and the date imprint's look (0.8.2) work the same way: 1.20 has two more looks of its own, Pictorialist Effect (31) and Solarized Effect (32, the Monochrome's new Image Control), so the guard puts back looks from 33 instead of 31 (`TargetFacts.looks`), and both are among the date imprint's black-and-white looks (`TargetFacts.monoLooks`); the look is read at the same offset of the frame's record (0x53939148) and left 16 bytes into the 44 unused bytes before the heap; the settings offsets the guard looks at are those of 1.11. The date imprint's orientation (0.8.3) as well: the start of the exposure is hooked at 0x5364D640 and reads the camera's direction through the same singleton chain as in 1.11 (its object at 0x5537B29C), the RAW development step and the EXIF writer read the same record offsets, the word is 32 bytes into the 44 unused bytes, and "Follow Orientation" is text 929. The Style values with the look's name (0.8.4) are texts 930 and 931; the names are the factory looks' English ones, Pictorialist Effect and Solarized Effect among them, and Cinema Yellow / Green keep theirs (renaming them is colour work); the frame's look is kept 36 bytes into the 44 unused bytes. The list rows, their labels and the labels' SetRect, which the wider Style labels rely on, are the same code in 1.20.
 
-Checks (the official files in `core/testdata/private/`; Python with unicorn, capstone and numpy): `core/test/fw120.test.ts`; `tools/port120/check_ratios.py`, the boot checks of `tools/aspect/boot_checks.py` on ratio builds of both files; `tools/port120/check_context.py`, the code around every word a 1.20 build changes compared with 1.11; `tools/port120/check_guard.py`, the settings guard and the look stash on builds of both files; and `tools/softfocus/check.py`, `tools/datestamp/menu_check.py` and `tools/shutdown/menu_check.py`, which take images of either file. `tools/port120/build.ts` builds test files. Not yet tried on a camera.
+Checks (the official files in `core/testdata/private/`; Python with unicorn, capstone and numpy): `core/test/fw120.test.ts`; `tools/port120/check_ratios.py`, the boot checks of `tools/aspect/boot_checks.py` on ratio builds of both files; `tools/port120/check_context.py`, the code around every word a 1.20 build changes compared with 1.11; `tools/port120/check_guard.py`, the settings guard, the look stash and the date imprint's words (orientation, the frame's look, the looks' names) on builds of both files; and `tools/softfocus/check.py`, `tools/datestamp/menu_check.py`, `tools/datestamp/list_width_check.py` and `tools/shutdown/menu_check.py`, which take images of either file. `tools/port120/build.ts` builds test files. Not yet tried on a camera.
 
 ## Added aspect ratios
 
@@ -47,15 +137,23 @@ Clarity is a Laplacian pyramid on the developed picture (RetouchService, 0x538a1
 
 ## Date imprint
 
-`core/src/fw/aspect/datestamp.ts` hooks JpegEncodeMacroProcess::Execute (0x537034b4) and runs the position-independent C module `tools/datestamp/datestamp.c` (compiled by `tools/datestamp/gen.py`; `GRMOD_ZIG=1` uses `python3 -m ziglang cc`, the compiler of the committed bytes) on every picture the JPEG encoder is given: main picture, 720x480 screennail, 160x120 thumbnail. It draws the date bottom right (pictures anywhere in 0x40000000..0xBFFFFFFF: with RAW+JPEG the scaled main picture of the smaller JPEG sizes is above 0xA0000000) in orange seven-segment digits, `'26 10 08` or `2026.10.08 17:34`, light only on black-and-white photos. The setting is byte 0x94B of the user settings (padding the factory-defaults initialiser never writes, like 0x90F for soft focus): bit 0 on, bit 1 the long style, anything above 3 is off.
+`core/src/fw/aspect/datestamp.ts` hooks JpegEncodeMacroProcess::Execute (0x537034b4) and runs the position-independent C module `tools/datestamp/datestamp.c` (compiled by `tools/datestamp/gen.py`; `GRMOD_ZIG=1` uses `python3 -m ziglang cc`, the compiler of the committed bytes) on every picture the JPEG encoder is given: main picture, 720x480 screennail, 160x120 thumbnail. It draws the date bottom right (pictures anywhere in 0x40000000..0xBFFFFFFF: with RAW+JPEG the scaled main picture of the smaller JPEG sizes is above 0xA0000000) in orange seven-segment digits, `'26 10 08` or `2026.10.08 17:34`, light only on black-and-white photos. The setting is byte 0x94B of the user settings (padding the factory-defaults initialiser never writes, like 0x90F for soft focus): bit 0 on, bit 1 the long style, bit 2 Follow Orientation off (0.8.3), bit 3 the look's name (0.8.4), anything above 15 is off.
+
+Look name (0.8.4; the idea of PR #9 by jaylee / sjclijie): Style has four values, `'26 10 08`, `2026.10.08 17:34` and each followed by the name of the picture's look (setting bit 3; texts 880 / 881, icons 731 / 732). The name is the one the camera's English menu shows (an added slot's own name; Cinema Yellow / Green as GR Mod renamed them: the English name, else one given in Chinese, Japanese, Korean, Russian, Greek or Thai if it is plain ASCII), drawn after two spaces in fourteen-segment capitals with the digits' bars, colour, height and spacing (letters 13/16 of the height wide; digits in a name stay seven-segment; characters without a segment shape become a space; at most 24). The build turns the names into glyphs, a table per look (`lookNames`, `lookNameGlyphs`). The look is the one at the start of the exposure: the exposure hook copies the development step's look word into FRAME_LOOK (0x558372F8), and in RAW development the step writes it from the developed record, so a look chosen while a picture is being processed does not change its name. The line is drawn only where it fits with a margin on either side: at the date's height, else smaller (down to 3/4), else with the name cut short; failing that, the date alone. The thumbnail gets the date alone. Drawing (0.8.4) only looks at the pixels of each row inside a bar's box: the date costs about a third of the instructions it did (L 3:2, all three pictures: short 12 M, long 23 M instead of 41 M / 81 M), with the name 39..64 M; the date's pixels are unchanged. A 0.8.3 firmware that finds bit 3 set draws nothing and its menu shows (and stores) Off. `tools/datestamp/name_check.py` checks it in the emulator.
 
 Orientation (0.8.3): with Follow Orientation on, the imprint sits in the bottom-right corner of the picture as it is viewed upright (EXIF Orientation 6, 8, 3), its digits turned to read normally, on all three pictures. The direction is the camera's at the start of the exposure (`SetShootingInfoResultBeforeExpose`, 0x53628CD8: the live shooting record's byte 0xD8, the value the EXIF writer later maps to 8 / 3 / 6), kept in a word for the module; the development step at 0x539113F8 runs for live view as well and does not see it. In-camera RAW development takes it from the record the EXIF writer reads.
 
-`core/src/fw/aspect/datestamp-menu.ts` puts it in the camera menu: a line after Horizon Correction on the Shooting Assist page of the still menu, opening a submenu (On/Off, Style, Follow Orientation; laid out like Instant Review's 3-line submenu), each line a list built like Horizon Correction's. The three items are bits 0..2 of one settings byte (+0x94B; bit 2 set means Follow Orientation off, so older bytes read as on). The still menu already has the maximum of 38 lines, so two descriptors are appended, one without Red Filter (GR IV Monochrome only) and one without HDF (GR IV HDF only), and the menu builder picks the one for the camera's model; every model sees the official menu plus the new line. The submenu and list record tables are relocated with the new records (including the end pointer the list constructor scans to, 0x531d6dac). Texts 841..845, icons 721/722. `tools/datestamp/menu_check.py BUILT-RTOS OFFICIAL-RTOS` runs the patched firmware functions in an emulator (menu builder for all three models, controller factory, SetCurrentMenu, the handlers for every value of the byte, the controllers drawing the new records, the list constructor's table scan, texts and icons); `tools/datestamp/render_check.py` runs the module on synthetic pictures.
+`core/src/fw/aspect/datestamp-menu.ts` puts it in the camera menu: a line after Horizon Correction on the Shooting Assist page of the still menu, opening a submenu (On/Off, Style, Follow Orientation; laid out like Instant Review's 3-line submenu), each line a list built like Horizon Correction's. The three items are bits 0..3 of one settings byte (+0x94B; Style is bits 1 and 3; bit 2 set means Follow Orientation off, so older bytes read as on). The still menu already has the maximum of 38 lines, so two descriptors are appended, one without Red Filter (GR IV Monochrome only) and one without HDF (GR IV HDF only), and the menu builder picks the one for the camera's model; every model sees the official menu plus the new line. The submenu and list record tables are relocated with the new records (including the end pointer the list constructor scans to, 0x531d6dac). Texts 841..845, 879..881, icons 721/722, 731/732. The list rows (SelectMenuController's class 0x5357AB24) give a value's text a 400 px label (x 100..500), too narrow for the longest Style values; after drawing a Style value the label is made as wide as the row allows (to 20 px before its right edge, never beyond x 680, through the label's own SetRect), only for that list and only for rows and labels of the expected classes (`tools/datestamp/list_width_check.py` runs the list's own code on rows built by their constructor and compares with a build without it; other lists stay byte for byte the same). `tools/datestamp/menu_check.py BUILT-RTOS OFFICIAL-RTOS` runs the patched firmware functions in an emulator (menu builder for all three models, controller factory, SetCurrentMenu, the handlers for every value of the byte, the controllers drawing the new records, the list constructor's table scan, texts and icons); `tools/datestamp/render_check.py` runs the module on synthetic pictures.
 
 ## Monochrome looks
 
 `core/src/fw/aspect/monounlock.ts` makes the six looks of the GR IV Monochrome selectable on the colour models, after [lemonadesaltbagel/GR4-MonoUnlock](https://github.com/lemonadesaltbagel/GR4-MonoUnlock) (no code copied): the check at 0x533cc6e0 becomes `cmp r1, #0x18` / `bhi`, and rows 3..8 of the look availability table at 0x53dbf36c (7 bytes per row, one column per camera model, column 1 = Monochrome) get every column except 1. The reference sets column 0 only (the standard GR IV); with every colour column the GR IV HDF has them too. 13 words in all.
+
+## Direct Flash
+
+`core/src/fw/aspect/directflash.ts` (0.8.4) adds "Direct Flash" (直闪模式) as the last value of the camera's Flash Mode (menu lists, ADJ lever, Fn list): the flash fires at a fixed power and the exposure is planned from the subject distance and the flash's guide number, f-number = GN x sqrt(ISO / 100) / distance, the way the GR III's GF-2 Flash Mode behaves (independent work: found in the official 1.11 firmware, no code of GR4-GF2Unlock or of the GR III). In P, Tv, Av and M; not in bulb / time, Snap Distance Priority, movies, or with a flash that communicates (P-TTL). ISO Auto: the lowest ISO that reaches the aperture, within the user's range; f/2.8..f/16; shutter from the ambient light, no slower than 1/32 s and no faster than the camera's own flash-sync limit (0x536792E0); Flash Output 1/4 and the ND filter count two stops each; ND Auto puts the ND in only when it helps.
+
+The choice is not a new Flash Mode value: Direct Flash is Flash Mode 0 (Flash On) plus byte 0x99B of the user settings set to 1 (padding the factory-defaults initialiser never writes), so the rest of the firmware only ever sees 0..3. The exposure: the still exposure's call of the flash program (0x5367A7B4, at 0x5367AAA8) goes through a wrapper that then runs the module `tools/directflash/directflash.c` (hard-float, position independent, compiled by `tools/directflash/gen.py`), which replaces Tv / Av / Sv (+0xD0 / +0xD4 / +0xD8 of the exposure record) and the ND decision (+0x560) before the flash data is prepared. The guide number is chosen in the camera, not in GR Mod: byte 0x99A indexes a table of guide numbers in the firmware (0 = the GF-2's, 3); this build's table has that entry only, a camera-menu list is to come. Text 882, icon 733. `tools/directflash/check.py BUILT OFFICIAL` runs the module (3500+ situations against a Python version of the rule), the menu handlers and the icons in an emulator. `tools/testfw/extend.ts` rebuilds a verified test firmware with more additions (e.g. test 053 = 052 + Direct Flash).
 
 ## Second matrix
 
@@ -72,6 +170,37 @@ Adjustable parameters: the firmware keeps them per factory style, and whatever r
 ## Settings guard
 
 `core/src/fw/aspect/guard.ts` (every build from 0.8.2): when the settings are loaded (start), saved (power off) and when U1–U3 are recalled, values this firmware does not know go back to factory ones: a look that is not an installed added slot becomes Standard, a ratio that is not in the menu 3:2, soft focus on an ADJ slot without the feature off. Such values stay in the camera after a firmware with more additions was written; the firmware then looked them up past its tables, and the camera could freeze.
+
+## Image Control menu order and hidden looks
+
+`core/src/fw/aspect/looks.ts` lets the user reorder the Image Control menu and hide looks they do
+not use. It does not add code: the menu order is a 20-byte table at `0x53DBE388` (one byte per
+style, 11..30), and hiding a look redirects its entry in the visibility jump table
+(`0x533CC6F8` for styles 11..24, `0x533CC648` for the monochrome looks 25..30) to the
+firmware's existing `mov r0, #0 ; bx lr` stub at `0x533CC748` / `0x533CC670`. The menu builder
+`0x533CC78C` walks the table in order and skips hidden looks, so the list capacity and every
+count constant stay unchanged.
+
+The UI puts the order/hide card on the Image Control page: rows can be dragged or moved with the
+arrows, the eye toggles a look, Standard (style 11, and 25 for the monochrome looks) cannot be hidden, and "reset" restores the
+factory order. The order is saved in `project.json` (`lookOrder`, `lookHidden`). Added slots
+(styles 34..53) participate in the order; hiding an added slot uses the slot visibility hook that
+`slots.ts` already installs.
+
+- Without added slots or other additions the file keeps the official layout: only the order table
+  and the visibility words change (in place, like the monochrome looks).
+- With added slots, ratios, date imprint, etc. the grown layout is used; the order table points to
+  a new array holding the factory looks and the added slots in the chosen order.
+- `validateLookLayout` refuses an incomplete order, duplicates, hiding every look and hiding
+  Standard. The order table itself was verified on a camera: order `[12,11,...]` shows Vivid then
+  Standard, and `[17,18,11,...]` shows Positive Film, Cinema Yellow, Standard.
+- A look that is hidden is also absent from the ADJ list and RAW development's list (both lists are
+  built through the same visibility check). If the camera's settings select a look that is now
+  hidden (the standard photo or movie set, also in U1–U3), the settings guard turns it into Standard
+  when the settings are loaded, saved or recalled (11, or 25, the monochrome looks' Standard, for
+  25..30; neither can be hidden). Custom sets keep their look. The layout is recorded in the file,
+  so the program recognises and verifies it (`tools/looks/looks_check.py` runs both lists and the
+  guard in an emulator).
 
 ## Power-off pictures chosen in the camera
 
@@ -97,7 +226,7 @@ Publishing a release: build, then
 
 ## The UI
 
-The Image Control page has one card of switches under the two slots: soft focus (ADJ lever), date imprint (with its menu) and monochrome looks (not shown for the Monochrome model). With the 1.20 file, or for the Monochrome model, the page shows only the switches, without the monochrome looks: the slots, added slots and presets are colour work (`colourWork` in `ui/src/store.ts`). They are saved with the project (`soft`, `dateStamp`, `monoUnlock` in `project.json`) and passed to `Engine.buildFirmware`; the firmware copies page reads them back from a file through `Engine.inspect`.
+The Image Control page has one card of switches under the two slots: soft focus (ADJ lever), date imprint (with its menu) and monochrome looks (not shown for the Monochrome model). With the 1.20 file, or for the Monochrome model, the page shows only the switches, without the monochrome looks (with the 1.20 file also without Direct Flash): the slots, added slots, presets and the menu order are colour work (`colourWork` in `ui/src/store.ts`, from the file's `capabilities.presets`). They are saved with the project (`soft`, `dateStamp`, `monoUnlock` in `project.json`) and passed to `Engine.buildFirmware`; the firmware copies page reads them back from a file through `Engine.inspect`.
 
 Going back to the factory firmware ("Write factory firmware" on the Image Control page, or an official copy on the firmware copies page) asks first, in red, whether the camera's settings were reset (Setup › Reset › Reset to Factory Default): settings made with GR Mod's firmware (an added slot or ratio selected, soft focus on the ADJ lever, the date imprint) are values the official firmware does not know. Cancel has the focus; only the red button writes.
 

@@ -46,7 +46,7 @@ export interface TargetFacts {
   /** Text numbers of this program's own texts. */
   texts: {
     softFocus: number;
-    dateStamp: { name: number; onOff: number; style: number; short: number; long: number; orient: number };
+    dateStamp: { name: number; onOff: number; style: number; short: number; long: number; orient: number; shortName: number; longName: number };
     /** Power-off pictures: "Type", "Picture", the factory row, then the pictures' names. */
     shutdown: number;
   };
@@ -113,6 +113,8 @@ export interface FirmwareTarget {
   readonly colour: boolean;
   /** The 1.12 bridge firmware is made from this file: 1.11 only. */
   readonly bridge: boolean;
+  /** Direct Flash (0.8.4), a fifth Flash Mode: 1.11 only, not yet ported to 1.20. */
+  readonly directFlash: boolean;
   readonly facts: TargetFacts;
   /** A 1.11 address (as the patcher is written) in this firmware. */
   va(address: number): number;
@@ -146,6 +148,7 @@ export const TARGET_111: FirmwareTarget = {
   iconbinLength: 0xdcf460,
   colour: true,
   bridge: true,
+  directFlash: true,
   facts: {
     iconCount: 663,
     textCount: 837,
@@ -153,7 +156,7 @@ export const TARGET_111: FirmwareTarget = {
     textTableStride: 0xd14,
     textCapacity: 896,
     ratioTexts: [267, 268, 266, 269],
-    texts: { softFocus: 840, dateStamp: { name: 841, onOff: 842, style: 843, short: 844, long: 845, orient: 879 }, shutdown: 853 },
+    texts: { softFocus: 840, dateStamp: { name: 841, onOff: 842, style: 843, short: 844, long: 845, orient: 879, shortName: 880, longName: 881 }, shutdown: 853 },
     userDataSize: 0xae9,
     userData: 0x55084dd8,
     liveViewShift: 0,
@@ -190,6 +193,7 @@ export const TARGET_120: FirmwareTarget = {
   iconbinLength: 0xf0f0e0,
   colour: false,
   bridge: false,
+  directFlash: false,
   facts: {
     iconCount: 709,
     textCount: 881,
@@ -198,8 +202,8 @@ export const TARGET_120: FirmwareTarget = {
     // 1.20 has texts up to 880, where 1.11 had room for this program's own; they are above 911.
     textCapacity: 960,
     ratioTexts: [281, 282, 280, 284],
-    // 929: "Follow Orientation" (0.8.3), after the power-off pictures' 918..928
-    texts: { softFocus: 912, dateStamp: { name: 913, onOff: 914, style: 915, short: 916, long: 917, orient: 929 }, shutdown: 918 },
+    // 929: "Follow Orientation" (0.8.3), after the power-off pictures' 918..928; 930, 931: the styles with the look's name (0.8.4)
+    texts: { softFocus: 912, dateStamp: { name: 913, onOff: 914, style: 915, short: 916, long: 917, orient: 929, shortName: 930, longName: 931 }, shutdown: 918 },
     userDataSize: 0xb44,
     userData: 0x550832a8,
     liveViewShift: 0x14,

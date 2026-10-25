@@ -139,6 +139,8 @@ def make_template(count):
             if displacement & 0x800000:
                 displacement -= 1 << 24
             destination = address + 8 + displacement * 4
+            if target[0] == 'x' and destination != value:
+                raise SystemExit(f'a branch to {symbol} does not land on it (destination {destination:#x})')
             relocs.append([offset, 'b', *target, (destination - value) & 0xFFFFFFFF])
         else:
             raise SystemExit(f'unsupported relocation {kind}')

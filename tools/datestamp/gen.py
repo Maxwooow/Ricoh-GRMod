@@ -65,12 +65,16 @@ def main():
         b = build(cc, ld, objcopy, tmp, 0x543f0000)
         da = build(cc, ld, objcopy, tmp, 0x10000, ['-DDIAG'])
         db = build(cc, ld, objcopy, tmp, 0x543f0000, ['-DDIAG'])
-    if a != b or da != db:
+        fa = build(cc, ld, objcopy, tmp, 0x10000, ['-DDFDIAG'])
+        fb = build(cc, ld, objcopy, tmp, 0x543f0000, ['-DDFDIAG'])
+    if a != b or da != db or fa != fb:
         sys.exit('module is not position independent')
     while len(a) % 4:
         a += b'\0'
     while len(da) % 4:
         da += b'\0'
+    while len(fa) % 4:
+        fa += b'\0'
     version = run(cc + ['--version']).splitlines()[0]
     src_hash = hashlib.sha256(SRC.read_bytes()).hexdigest()
     OUT.write_text(
@@ -83,6 +87,8 @@ def main():
         f'export const DATESTAMP_CODE_LENGTH = {len(a)};\n'
         '/** Test builds only (-DDIAG): also prints the encoder configuration on the 720x480 picture. */\n'
         f"export const DATESTAMP_DIAG_CODE = '{base64.b64encode(da).decode()}';\n"
+        '/** Test builds only (-DDFDIAG): also prints the Direct Flash planner\'s diagnostic buffer on the 720x480 picture. */\n'
+        f"export const DATESTAMP_DFDIAG_CODE = '{base64.b64encode(fa).decode()}';\n"
         f"export const DATESTAMP_SOURCE_SHA256 = '{src_hash}';\n")
     print(f'{OUT}: {len(a)} bytes')
 

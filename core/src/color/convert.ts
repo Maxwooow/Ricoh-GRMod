@@ -1,11 +1,12 @@
 // Conversion of a film-look preset into the parameters of one GR IV Image Control slot.
 import { slotApply } from './camera';
-import type { SlotParams } from './camera';
+import type { CameraToneModel, SlotParams } from './camera';
 import { applyCube, parseCube } from './cube';
 import { CAL_ADOBE, CAL_CAM } from './data';
 import { fitSlot } from './fit';
+import { refineSlot } from './refine';
 import { FullLook } from './look';
-import { linToSrgb, srgbToLin } from './math';
+import { deltaE, deltaE2000Lab, lab, linToSrgb, mean, percentile, srgbToLin } from './math';
 import { parseXmp } from './xmp';
 
 export type { SlotParams } from './camera';
@@ -14,9 +15,19 @@ export interface Conversion {
   kind: 'xmp' | 'cube';
   title: string;
   params: SlotParams;
-  /** Mean / 95th percentile CIE76 error of the slot against the look on the fitting colours. */
+  /**
+   * Mean / 95th percentile CIE76 error of the slot against the look on the reporting colours: the
+   * calibration colours for .xmp, the calibration plus synthetic colours (`cubeFitSamples`) for
+   * .cube. These sets are fixed, so the numbers stay comparable across fitting changes (the .cube
+   * fit itself uses more colours, see `cubeFitSamplesExpanded`).
+   */
   meanDE: number;
   p95DE: number;
+  /** The same as CIEDE2000, on the same colours. */
+  meanDE2000: number;
+  p95DE2000: number;
+  /** .cube with `refine`: whether the CIEDE2000 refinement was kept (false: the guard rejected it). */
+  refined?: boolean;
   warnings: string[];
   unsupported: string[];
 }
@@ -25,6 +36,19 @@ export interface ConvertOptions {
   onProgress?: (fraction: number) => void;
   /** Fit the post-curve ("second") matrix as well (default true). */
   post?: boolean;
+  /**
+   * .cube only: follow the fit with the CIEDE2000 refinement of refine.ts (default false). Off by
+   * default because on the benchmark looks it traded neutral / skin accuracy for saturated colours
+   * (see refine.ts); when on, the result is kept only if greys and skin do not get worse.
+   */
+  refine?: boolean;
+}
+
+/** Mean / p95 of CIE76 and CIEDE2000 between two buffers. */
+function report(a: Float64Array, b: Float64Array): { meanDE: number; p95DE: number; meanDE2000: number; p95DE2000: number } {
+  const d76 = deltaE(a, b);
+  const d00 = deltaE2000Lab(lab(a), lab(b));
+  return { meanDE: mean(d76), p95DE: percentile(d76, 95), meanDE2000: mean(d00), p95DE2000: percentile(d00, 95) };
 }
 
 const subProgress = (opts: ConvertOptions | undefined, from: number, to: number) =>
@@ -45,8 +69,7 @@ export function convertXmp(text: string, opts?: ConvertOptions): Conversion {
     kind: 'xmp',
     title: look.title,
     params: fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck },
-    meanDE: fit.meanDE,
-    p95DE: fit.p95DE,
+    ...report(slotApply(fit, Float64Array.from(CAL_CAM)), target),
     warnings: look.warnings.slice(),
     unsupported: look.unsupported.slice(),
   };
@@ -153,24 +176,140 @@ export function cubeFitSamples(): Float64Array {
   return out;
 }
 
+const SKIN_TONES: readonly (readonly [number, number, number])[] = [
+  [237, 199, 176], [217, 171, 143], [194, 145, 114], [148, 102, 77],
+];
+
+function encodeLinear(x: number): number {
+  return x <= 0.0031308 ? 12.92 * x : 1.055 * Math.pow(x, 1 / 2.4) - 0.055;
+}
+
+/** Extra fitting colours: a dense neutral ramp (repeated for weight), the LUT grid corners and skin. */
+export function extraFitSamples(): Float64Array {
+  const out: number[] = [];
+  // 64 neutral steps, six copies: greys must stay grey and the black/white ends must be right.
+  for (let c = 0; c < 6; c++) for (let i = 0; i < 64; i++) {
+    const v = i / 63;
+    out.push(v, v, v);
+  }
+  // 9^3 grid, including the eight corners the synthetic set rarely reaches.
+  for (let b = 0; b < 9; b++) for (let g = 0; g < 9; g++) for (let r = 0; r < 9; r++) out.push(r / 8, g / 8, b / 8);
+  // Skin tones at five exposures, in linear light, back to sRGB.
+  for (const tone of SKIN_TONES) for (const ev of [-2, -1, 0, 1, 2]) {
+    const k = Math.pow(2, ev);
+    out.push(...tone.map((v) => encodeLinear(srgbToLin(v / 255) * k)));
+  }
+  return Float64Array.from(out);
+}
+
+/** Fitting colours for the initial RGB fit: the old set plus neutral ramp, corners and skin. */
+export function cubeFitSamplesExpanded(): Float64Array {
+  const base = cubeFitSamples();
+  const extra = extraFitSamples();
+  const out = new Float64Array(base.length + extra.length);
+  out.set(base, 0);
+  out.set(extra, base.length);
+  return out;
+}
+
+export interface WeightedSamples { P: Float64Array; weights: Float64Array }
+
+/** Weight of each neutral sample in `cubeRefineSamples` (PR #7 used 10, about 10% of the total weight, too little to hold the grey axis). */
+const REFINE_GREY_WEIGHT = 60;
+
+/** Independent, weighted samples for the CIEDE2000 refinement (fresh values, not the fit set). */
+export function cubeRefineSamples(): WeightedSamples {
+  const p: number[] = [], w: number[] = [];
+  const add = (r: number, g: number, b: number, weight: number): void => { p.push(r, g, b); w.push(weight); };
+  // 48 neutral steps: the most visible errors (about 40% of the total weight).
+  for (let i = 0; i < 48; i++) { const v = i / 47; add(v, v, v, REFINE_GREY_WEIGHT); }
+  // Hue wheel at three saturations and five values.
+  for (let h = 0; h < 24; h++) for (const s of [0.3, 0.6, 0.9]) for (const v of [0.2, 0.35, 0.5, 0.7, 1]) {
+    add(...hsvToRgbValue(h / 24, s, v), 8);
+  }
+  // Skin at five exposures.
+  for (const tone of SKIN_TONES) for (const ev of [-2, -1, 0, 1, 2]) {
+    const k = Math.pow(2, ev);
+    add(encodeLinear(srgbToLin(tone[0] / 255) * k), encodeLinear(srgbToLin(tone[1] / 255) * k), encodeLinear(srgbToLin(tone[2] / 255) * k), 10);
+  }
+  // Random display colours (a different seed from the fit set).
+  const rand = mulberry32(2);
+  for (let i = 0; i < 300; i++) add(rand(), rand(), rand(), 2);
+  // A 7^3 grid including corners.
+  for (let b = 0; b < 7; b++) for (let g = 0; g < 7; g++) for (let r = 0; r < 7; r++) add(r / 6, g / 6, b / 6, 2);
+  return { P: Float64Array.from(p), weights: Float64Array.from(w) };
+}
+
+function hsvToRgbValue(h: number, s: number, v: number): [number, number, number] {
+  const out = new Float64Array(3);
+  hsvToRgb(h, s, v, out, 0);
+  return [out[0], out[1], out[2]];
+}
+
+/** Grey ramp and skin colours the refinement guard checks (mean and worst CIEDE2000). */
+function guardSets(): { grey: Float64Array; skin: Float64Array } {
+  const grey = new Float64Array(256 * 3);
+  for (let i = 0; i < 256; i++) grey.fill(i / 255, i * 3, i * 3 + 3);
+  const skin: number[] = [];
+  for (const tone of SKIN_TONES) for (const ev of [-2, -1, 0, 1]) skin.push(...tone.map((v) => encodeLinear(Math.min(1, srgbToLin(v / 255) * 2 ** ev))));
+  return { grey, skin: Float64Array.from(skin) };
+}
+
+function meanMax00(params: SlotParams, P: Float64Array, labT: Float64Array, camera?: CameraToneModel): [number, number] {
+  const d = deltaE2000Lab(lab(camera ? camera.slotApply(params, P) : slotApply(params, P)), labT);
+  let s = 0, m = 0;
+  for (const v of d) { s += v; if (v > m) m = v; }
+  return [s / d.length, m];
+}
+
+/**
+ * CIEDE2000 refinement of a cube fit, kept only if the grey axis and skin do not get worse than
+ * the plain fit (mean +0.02 / worst +0.05 dE00 on a 256-step grey ramp, mean +0.05 / worst +0.1 on
+ * skin tones). Returns null when the refinement is rejected.
+ */
+export function guardedRefine(cube: ReturnType<typeof parseCube>, start: SlotParams, onProgress?: (f: number) => void, camera?: CameraToneModel): SlotParams | null {
+  const ref = cubeRefineSamples();
+  const r = refineSlot(start, ref.P, applyCube(cube, ref.P), { weights: ref.weights, iterations: 8, onProgress, ...(camera ? { camera } : {}) });
+  const out: SlotParams = r.P2 ? { M1: r.M1, ck: r.ck, P2: r.P2 } : { M1: r.M1, ck: r.ck };
+  const { grey, skin } = guardSets();
+  const tg = lab(applyCube(cube, grey)), ts = lab(applyCube(cube, skin));
+  const [g0, G0] = meanMax00(start, grey, tg, camera), [g1, G1] = meanMax00(out, grey, tg, camera);
+  const [s0, S0] = meanMax00(start, skin, ts, camera), [s1, S1] = meanMax00(out, skin, ts, camera);
+  return g1 <= g0 + 0.02 && G1 <= G0 + 0.05 && s1 <= s0 + 0.05 && S1 <= S0 + 0.1 ? out : null;
+}
+
 /**
  * Convert a .cube LUT. The LUT is taken to act on an sRGB display image, so the target is simply
- * cube(P) where P are colours as output by the camera's Standard preset. Errors are reported on
- * the fitting set (calibration colours plus synthetic colours).
+ * cube(P) where P are colours as output by the camera's Standard preset. The fit uses
+ * `cubeFitSamplesExpanded` (the calibration and synthetic colours plus a dense grey ramp, a 9^3
+ * grid with its corners and skin tones); errors are reported on `cubeFitSamples`. With
+ * `refine: true` a guarded CIEDE2000 refinement follows (off by default, see refine.ts).
  */
 export function convertCube(text: string, opts?: ConvertOptions): Conversion {
   const cube = parseCube(text);
   opts?.onProgress?.(0.05);
-  const P = cubeFitSamples();
+  const P = cubeFitSamplesExpanded();
   const target = applyCube(cube, P);
   opts?.onProgress?.(0.1);
-  const fit = fitSlot(P, target, { onProgress: subProgress(opts, 0.1, 1), post: opts?.post !== false });
+  const refine = opts?.refine === true;
+  const fit = fitSlot(P, target, { onProgress: subProgress(opts, 0.1, refine ? 0.55 : 1), post: opts?.post !== false });
+  let params: SlotParams = fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck };
+  let refined: boolean | undefined;
+  if (refine) {
+    const r = guardedRefine(cube, params, subProgress(opts, 0.55, 0.98));
+    refined = r !== null;
+    if (r) params = r;
+  }
+  // report on the original fitting colours (the first part of P), comparable with earlier versions
+  const n = cubeFitSamples().length;
+  const rep = report(slotApply(params, P.subarray(0, n)), target.subarray(0, n));
+  opts?.onProgress?.(1);
   return {
     kind: 'cube',
     title: cube.title,
-    params: fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck },
-    meanDE: fit.meanDE,
-    p95DE: fit.p95DE,
+    params,
+    ...rep,
+    ...(refined !== undefined ? { refined } : {}),
     warnings: [],
     unsupported: [],
   };

@@ -5,6 +5,14 @@ core/testdata/private
 shell/web
 scratch
 __pycache__/
+.DS_Store
+research/
+# Locally downloaded LUT inputs and firmware/build outputs are not source.
+examples/gr3x/T6/*.cube
+examples/gr3x/T6/sources/
+*.bin
+*.zip
+*.app/
 
 # Update signing keys never go into the repository
 *.key

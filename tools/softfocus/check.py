@@ -220,7 +220,14 @@ check('all 23 MOVW/MOVT pairs still address the official table', [rdw(RT,V(a))==
 rec=tbl+0x0a*0x5c
 h=lambda o: rdw(RT,rec+o)
 check('record copies Crop except handlers', [rdw(RT,rec+o)==rdw(RT,tbl+0x13*0x5c+o) for o in range(0,0x5c,4) if o not in (0x18,0x20,0x28,0x30)].count(False), 0)
-check('the other 20 records unchanged', RT[tbl-BASE:rec-BASE]+RT[rec+0x5c-BASE:tbl+21*0x5c-BASE]==OFFICIAL[tbl-BASE:rec-BASE]+OFFICIAL[rec+0x5c-BASE:tbl+21*0x5c-BASE], True)
+# Direct Flash (0.8.4, directflash.ts; 1.11 only) puts its own handlers in record 0x09 (Flash Mode):
+# text, icon, is-current, set, count (0x10..0x30). Those words may point into the appended area.
+_rt=bytearray(RT[tbl-BASE:tbl+21*0x5c-BASE])
+for o in (0x10,0x18,0x20,0x28,0x30):
+    at=0x09*0x5c+o
+    if struct.unpack_from('<I',_rt,at)[0]>=BASE+T.rtos_len: _rt[at:at+4]=OFFICIAL[tbl-BASE+at:tbl-BASE+at+4]
+_rt=bytes(_rt); _off=(0x0a*0x5c,0x0b*0x5c)
+check('the other 20 records unchanged', _rt[:_off[0]]+_rt[_off[1]:]==OFFICIAL[tbl-BASE:rec-BASE]+OFFICIAL[rec+0x5c-BASE:tbl+21*0x5c-BASE], True)
 for v in range(4):
     call(mu,h(0x28),(this,v)); check(f'set {v} -> byte', mu.mem_read(SF,1)[0], v)
     check(f'  is-current({v})', [call(mu,h(0x20),(this,i)) for i in range(4)], [1 if i==v else 0 for i in range(4)])

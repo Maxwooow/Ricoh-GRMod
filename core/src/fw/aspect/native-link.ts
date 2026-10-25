@@ -78,6 +78,10 @@ export function linkModule(mod: NativeModule, name: string, count: number, origi
       const imm = kind === 'w' ? value & 0xffff : value >>> 16;
       word = ((word & 0xfff0f000) | ((imm & 0xf000) << 4) | (imm & 0xfff)) >>> 0;
     } else {
+      // A call or jump into the firmware lands exactly on the bound function. (A module whose
+      // branches were recorded 8 bytes before their targets, as a fork's 7..12-slot variants built
+      // with another toolchain were, called __stack_chk_fail at every start and hung the camera.)
+      if (where === 'x' && addend !== 0) throw new FirmwareError('internal', `${name}: a branch to ${mod.bindings[index]} does not land on it`);
       const delta = value - (origin + offset + 8);
       if (delta % 4 !== 0 || !(delta >= -(1 << 25) && delta < 1 << 25)) throw new FirmwareError('internal', 'module branch out of range');
       word = ((word & 0xff000000) | ((delta >> 2) & 0xffffff)) >>> 0;

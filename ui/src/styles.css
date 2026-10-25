@@ -69,7 +69,7 @@ svg { width: 18px; height: 18px; flex: none; }
 .hero-alt { flex: none; display: flex; justify-content: center; padding-top: 10px; }
 
 .ic { flex: 1; min-height: 0; display: grid; grid-template-columns: clamp(350px, 38%, 440px) minmax(0, 1fr); gap: 24px; }
-.cards { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow: hidden; }
+.cards { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow-y: auto; padding-right: 3px; }
 .card { border: 1px solid var(--line); border-radius: 10px; position: relative; transition: border-color 0.12s, background 0.12s; flex: none; }
 .card.on { border-color: var(--line2); background: var(--side); }
 .card.drop-over { border-color: var(--blue); background: var(--blue-bg); }
@@ -296,6 +296,8 @@ svg { width: 18px; height: 18px; flex: none; }
 .soft-switch .soft-ico { width: 32px; height: 32px; flex: none; }
 .soft-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .soft-text b { font-weight: 600; }
+/* The detail line may take two lines (GR III's are longer); then it is cut. */
+.soft-switch .soft-text .ellipsis { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.4; }
 .extras { display: flex; flex-direction: column; padding: 0; flex: none; }
 .extras .soft-switch { padding: 8px 14px; }
 .extras .soft-switch + .soft-switch { border-top: 1px solid var(--line); }
@@ -331,8 +333,11 @@ svg { width: 18px; height: 18px; flex: none; }
 .pop-sep { height: 1px; background: var(--line); margin: 4px 0; }
 
 /* The official firmware on Ricoh's site. */
-.dialog.online { width: 460px; }
-.online-models { margin: 2px 0 12px; }
+.dialog.online { width: 620px; }
+.online-models { margin: 2px 0 12px; overflow-x: auto; scrollbar-width: none; }
+.online-models::-webkit-scrollbar { display: none; }
+.online-models .seg { display: flex; min-width: 100%; }
+.online-models .seg button { flex: 1 0 auto; white-space: nowrap; padding: 0 8px; }
 .online-models.off { opacity: 0.5; pointer-events: none; }
 .fw-rel { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; min-height: 60px; padding: 10px 14px; border: 1px solid var(--line2); border-radius: 10px; background: none; text-align: left; overflow: hidden; transition: background 0.1s, border-color 0.1s; }
 button.fw-rel:hover:not(:disabled) { background: var(--hover); border-color: var(--faint); }
@@ -406,6 +411,8 @@ button.fw-rel:disabled { cursor: default; }
 .extra-problem { margin-top: 6px; }
 .extras-row .soft-ico { width: 32px; height: 32px; flex: none; }
 .extras-count { margin: 8px 0 2px 44px; }
+.film-stepper { display: flex; align-items: center; gap: 6px; flex: none; }
+.film-stepper select { min-width: 92px; }
 .extras-count .seg { display: flex; width: 100%; }
 .extras-count .seg button { flex: 1; padding: 0 6px; }
 .pane-head > .seg { flex: none; }
@@ -469,6 +476,16 @@ button.fw-rel:disabled { cursor: default; }
 .halo .chips { align-items: center; }
 .halo-note { line-height: 1.35; }
 
+.gr3x-notice { margin: 0 24px 12px; padding: 14px 16px; border: 1px solid #a78348; border-radius: 10px; background: #a7834812; }
+.gr3x-notice p { margin: 6px 0 12px; line-height: 1.5; }
+.gr3x-notice .btn + .btn { margin-left: 8px; }
+
+/* IIIx feature coverage remains readable without GR IV slot cards. */
+.gr3x-features { overflow: auto; display: grid; gap: 16px; align-content: start; max-width: 920px; }
+.gr3x-features .extras { padding-bottom: 14px; }
+.gr3x-features p { margin: 8px 18px; line-height: 1.6; }
+.gr3x-coverage { padding: 18px; }
+.gr3x-coverage p { margin: 12px 0 0; }
 /* writing the factory firmware: reset first */
 .dialog-reset { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 16px; padding: 12px 14px; border: 1px solid var(--red); border-radius: 10px; background: color-mix(in srgb, var(--red) 12%, transparent); font-size: 13px; line-height: 1.5; }
 .dialog-reset b { color: var(--red); font-size: 14px; }
@@ -480,3 +497,58 @@ button.fw-rel:disabled { cursor: default; }
 .wall-name { height: 30px; padding: 3px 0 0; overflow: visible; }
 .wall-name .input { width: 100%; min-width: 0; height: 26px; padding-top: 0; padding-bottom: 0; font-size: 13px; }
 .wall-name .input.bad { border-color: var(--danger, #d64545); }
+
+.wall-hint { margin: -4px 0 12px; }
+
+/* Image Control: two views (the slots, the menu order) side by side on a track that slides between them.
+   The frame reaches out to the edges of the content panel, so a view slides out of the panel, not out of the page's margin. */
+.ic-tabs { position: relative; flex: none; margin-left: 2px; }
+.seg.ic-tabs button { position: relative; z-index: 1; height: 26px; padding: 0 12px; font-size: 13px; transition: color 0.2s ease; }
+.seg.ic-tabs button.on { background: none; box-shadow: none; }
+.seg.ic-tabs button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+.ic-tabs-pill { position: absolute; top: 2px; left: 2px; height: 26px; border-radius: 4px; background: var(--bg); box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgba(0, 0, 0, 0.08); transition: transform 480ms cubic-bezier(0.22, 1, 0.36, 1), width 480ms cubic-bezier(0.22, 1, 0.36, 1); pointer-events: none; }
+.ic-tabs-pill.still { transition: none; }
+.ic-views { --views-gap: 52px; flex: 1; min-height: 0; display: flex; margin: 0 -26px; padding: 0 26px; overflow: hidden; overflow: clip; }
+.ic-track { flex: 1; min-width: 0; display: flex; gap: var(--views-gap); transition: transform 480ms cubic-bezier(0.22, 1, 0.36, 1); }
+.ic-track.at-order { transform: translate3d(calc(-100% - var(--views-gap)), 0, 0); }
+.ic-track.moving { will-change: transform; }
+.ic-view { flex: 0 0 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.ic-view > .ic, .ic-view > .looks { flex: 1; }
+
+/* the menu order: the list on the left, what it does on the right */
+.looks { min-height: 0; display: grid; grid-template-columns: minmax(0, 560px) minmax(232px, 320px); grid-template-rows: minmax(0, 1fr); gap: 24px; align-items: start; }
+.look-card { max-height: 100%; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.look-list { list-style: none; margin: 0; padding: 6px 10px; position: relative; flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; overflow-anchor: none; scrollbar-width: thin; scrollbar-color: var(--line2) transparent; display: flex; flex-direction: column; gap: 2px; }
+.look-slot { position: relative; flex: none; }
+/* while a row is dragged the others glide out of its way */
+.look-list.sorting .look-slot { transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1); }
+.look-list.sorting .look-slot.lifted { transition: none; z-index: 3; }
+.look-row { display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 4px 0 2px; border: 1px solid transparent; border-radius: 8px; cursor: grab; transform-origin: 50% 50%;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 220ms ease, background-color 160ms ease, border-color 160ms ease, opacity 160ms ease; }
+.look-row:hover { background: var(--hover); }
+.look-list.sorting .look-row:not(.lifted):hover { background: none; }
+.look-row.lifted { transform: scale(1.02); background: var(--bg); border-color: color-mix(in srgb, var(--blue) 55%, transparent); opacity: 0.94; cursor: grabbing;
+  box-shadow: 0 0 0 3px var(--blue-bg), 0 12px 28px rgba(15, 15, 15, 0.16), 0 3px 8px rgba(15, 15, 15, 0.1); }
+@media (prefers-color-scheme: dark) { .look-row.lifted { background: #252526; box-shadow: 0 0 0 3px var(--blue-bg), 0 14px 32px rgba(0, 0, 0, 0.6), 0 3px 8px rgba(0, 0, 0, 0.4); } }
+html.look-grabbing, html.look-grabbing * { cursor: grabbing !important; }
+.look-grip { display: grid; place-items: center; width: 24px; height: 30px; flex: none; color: var(--faint); border-radius: 5px; touch-action: none; }
+.look-grip svg { width: 16px; height: 16px; }
+.look-row:hover .look-grip, .look-row.lifted .look-grip { color: var(--muted); }
+.look-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: opacity 160ms ease; }
+.look-row.hidden .look-name { opacity: 0.45; text-decoration: line-through; }
+.look-mono { margin-left: 6px; padding: 0 5px; border: 1px solid var(--line); border-radius: 99px; font-size: 10px; font-style: normal; color: var(--muted); }
+.look-tag { flex: none; font-size: 10.5px; color: var(--amber); background: var(--amber-bg); border-radius: 99px; padding: 0 6px; line-height: 17px; }
+.look-btns { display: flex; align-items: center; gap: 1px; flex: none; }
+.look-btns .btn.icon-only { width: 28px; height: 28px; }
+.look-btns .btn.icon-only svg { width: 16px; height: 16px; }
+.look-btns .btn.icon-only:disabled { opacity: 0.25; }
+.look-eye.on { color: var(--amber); }
+.look-info { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+.look-info-head { display: flex; align-items: flex-start; gap: 12px; }
+.look-info-head .soft-ico { width: 32px; height: 32px; flex: none; }
+.look-info-head .soft-text .small { line-height: 1.45; }
+.look-stats { padding-left: 44px; }
+.look-order-hint { margin: 0 0 0 44px; line-height: 1.55; }
+.look-order-reset { align-self: flex-start; margin-left: 44px; }
+.look-order-reset svg { width: 14px; height: 14px; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

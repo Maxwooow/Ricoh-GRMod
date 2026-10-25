@@ -32,7 +32,7 @@ import struct
 import sys
 from pathlib import Path
 
-from unicorn import Uc, UC_ARCH_ARM, UC_MODE_ARM, UC_HOOK_CODE
+from unicorn import Uc, UC_ARCH_ARM, UC_MODE_ARM, UC_HOOK_CODE, UC_HOOK_BLOCK
 from unicorn.arm_const import UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_SP, UC_ARM_REG_LR
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -80,12 +80,14 @@ class Picture:
 
 
 def run(code, setting, main_wh, src_wh, sn_wh=(720, 480), th_wh=(160, 120), look=None, mono=False,
-        clock=(2026, 10, 8, 17, 34, 53), sensor=(6208, 4128), orient=None):
+        clock=(2026, 10, 8, 17, 34, 53), sensor=(6208, 4128), orient=None, frame=None, names=None, count=False):
     """main_wh: main picture; src_wh: the sensor window it was scaled from (its shape is the
     photo's); sn_wh / th_wh: screennail and thumbnail sizes (720x480 / 160x120, or turned for a
     reference); sensor: buffer stride and height of the main picture's buffer. look: None (no look
     word) or the word the development step left. orient: None (no orientation word) or its value
-    (orientation | 0x100). Returns the planes as bytes."""
+    (orientation | 0x100). frame: None or the FRAME_LOOK word (0.8.4); names: None or {look: [glyph,
+    ...]}, the module's name table (0.8.4). count: also count the module's instructions ('instr').
+    Returns the planes as bytes."""
     gc.collect()   # the previous emulator (its hook refers back to it) and its 50 MB of buffers
     mu = Uc(UC_ARCH_ARM, UC_MODE_ARM)
     mu.mem_map(ORG, 0x10000)
@@ -148,7 +150,17 @@ def run(code, setting, main_wh, src_wh, sn_wh=(720, 480), th_wh=(160, 120), look
         mu.mem_write(TABLE, bytes(table))
         ORW = 0x70007200
         mu.mem_write(ORW, struct.pack('<I', orient or 0))
-        mu.mem_write(CTX, struct.pack('<10I', *(STUB + i * 16 for i in range(5)), SET, LOOKW, TABLE, STUB + 5 * 16, ORW if orient is not None else 0))
+        FRW, NT = 0x70007300, 0x70008000
+        mu.mem_write(FRW, struct.pack('<I', frame or 0))
+        if names is not None:
+            tab, a = [0] * 64, 0x70009000
+            for style, gl in names.items():
+                mu.mem_write(a, struct.pack('<%dH' % (len(gl) + 1), len(gl), *gl))
+                tab[style] = a
+                a += (2 * len(gl) + 2 + 3) & ~3
+            mu.mem_write(NT, struct.pack('<64I', *tab))
+        mu.mem_write(CTX, struct.pack('<12I', *(STUB + i * 16 for i in range(5)), SET, LOOKW, TABLE, STUB + 5 * 16, ORW if orient is not None else 0,
+                                      FRW if frame is not None else 0, NT if names is not None else 0))
 
     def desc(a, P, w, h):
         mu.mem_write(a, struct.pack('<B3xIII HHHH HH 4x', 1, P.y, P.c, 0, w, h, P.stride, P.buf_h, 0, 0))
@@ -164,8 +176,11 @@ def run(code, setting, main_wh, src_wh, sn_wh=(720, 480), th_wh=(160, 120), look
     mu.reg_write(UC_ARM_REG_LR, 0x70000ff0)
     mu.reg_write(UC_ARM_REG_R0, CTX)
     mu.reg_write(UC_ARM_REG_R1, CFG)
+    instr = [0]
+    if count:
+        mu.hook_add(UC_HOOK_BLOCK, lambda uc, a, size, ud: instr.__setitem__(0, instr[0] + (size >> 2)), begin=ORG, end=ORG + 0x10000)
     mu.emu_start(ORG, 0x70000ff0, count=800_000_000)
-    out = {'main_buf': bytes(mu.mem_read(M.base, stride * buf_h * 2)), 'M': M}
+    out = {'main_buf': bytes(mu.mem_read(M.base, stride * buf_h * 2)), 'M': M, 'instr': instr[0]}
     for name, P in pics.items():
         out[name + '_buf'] = bytes(mu.mem_read(P.base, P.stride * P.buf_h * 2))
         out[name] = P
@@ -359,7 +374,8 @@ def main():
                     checks += 1
                     if o82['main_buf'] != flat['main_buf']:
                         failures.append(f'as stored differs from 0.8.2: {rname} {main_wh} setting {setting}')
-    for setting in (4, 6, 8, 9, 0x80, 0xff):
+    # Off (bit 0 clear) or out of range (above 15; 0.8.4: bit 3 is the look's name, see name_check.py).
+    for setting in (4, 6, 8, 10, 14, 16, 17, 0x80, 0xff):
         r = run(CODE, setting, (4944, 3296), (6192, 4128), look=0x10000 | 11, orient=0x103)
         checks += 1
         if r['main_buf'] != run(CODE, 0, (4944, 3296), (6192, 4128), look=0x10000 | 11, orient=0x103)['main_buf']:

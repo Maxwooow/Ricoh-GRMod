@@ -1,23 +1,24 @@
 // Where the firmware comes from: a file the user picks, or the current official update fetched
 // from Ricoh's site. The program itself carries no firmware.
 import { useEffect, useRef, useState } from 'react';
-import { SUPPORTED_RELEASE, targetOfRelease } from '@grmod/core';
+import { GR3_210, GR3X_160, SUPPORTED_RELEASE, targetOfRelease } from '@grmod/core';
 import type { CameraModel } from '@grmod/core';
 import { FileButton, Ico, Segmented, useDismiss } from './components';
 import { host, HostError } from './host';
 import type { FirmwareRelease } from './host';
 import { t } from './i18n';
 import type { Key } from './i18n';
-import { adoptFirmware, askForOfficial, fmtSize, fwVersion, loadFirmwareFile, outputBridge, setBridgeOpen, setModel, setOnlineOpen, toast, useStore } from './store';
+import { adoptFirmware, askForOfficial, fmtSize, fwVersion, isGr3, loadFirmwareFile, outputBridge, setBridgeOpen, setModel, setOnlineOpen, toast, useStore } from './store';
 
-export const MODELS: readonly CameraModel[] = ['HDF', 'STANDARD', 'MONO'];
+export const MODELS: readonly CameraModel[] = ['GR3', 'GR3_HDF', 'GR3X', 'GR3X_HDF', 'HDF', 'STANDARD', 'MONO'];
 export const modelLabel = (m: CameraModel): string => t(('model' + m) as Key);
 
 /** The sidebar's firmware row: a menu with the two ways to get a firmware file. */
 export function FirmwareRow() {
   const info = useStore((s) => s.info);
   const version = useStore((s) => fwVersion(s));
-  const mono = useStore((s) => s.model === 'MONO');
+  const model = useStore((s) => s.model);
+  const noBridge = model === 'MONO' || isGr3(model);
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   const file = useRef<HTMLInputElement>(null);
@@ -31,7 +32,7 @@ export function FirmwareRow() {
       </button>
       {open && (
         <div className="pop up" role="menu">
-          <button type="button" role="menuitem" className="pop-item" disabled={mono} title={mono ? t('bridgeMono') : undefined} onClick={() => { close(); setBridgeOpen(true); }}><span className="pop-ico">{Ico.bridge}</span><span>{t('fwBridge')}</span></button>
+          <button type="button" role="menuitem" className="pop-item" disabled={noBridge} title={noBridge ? t(isGr3(model) ? 'gr3xPending' : 'bridgeMono') : undefined} onClick={() => { close(); setBridgeOpen(true); }}><span className="pop-ico">{Ico.bridge}</span><span>{t('fwBridge')}</span></button>
           <div className="pop-sep" />
           <button type="button" role="menuitem" className="pop-item" onClick={() => { close(); file.current?.click(); }}><span className="pop-ico">{Ico.folder}</span><span>{t('fwPick')}</span></button>
           <button type="button" role="menuitem" className="pop-item" onClick={() => { close(); setOnlineOpen(true); }}><span className="pop-ico">{Ico.download}</span><span>{t('fwOnline')}</span></button>
@@ -87,14 +88,15 @@ function OnlineDialog() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const latest = look.state === 'ready' ? look.rel : null;
-  // The release this program builds on for the model (GR IV / HDF 1.11, Monochrome 1.10). When
-  // Ricoh's page offers a newer one, that release is still on the site.
-  const want = SUPPORTED_RELEASE[model];
-  const fallback = latest && latest.version !== want && latest.fallback?.version === want ? latest.fallback : null;
+  // The release this program builds on for the model (GR IV / HDF 1.11, Monochrome 1.10, GR III 2.10,
+  // GR IIIx 1.60). When Ricoh's page offers a newer one, that release is still on the site.
+  const gr4 = model === 'STANDARD' || model === 'HDF' || model === 'MONO' ? model : null;
+  const wanted = gr4 ? SUPPORTED_RELEASE[gr4] : model === 'GR3_HDF' || model === 'GR3' ? GR3_210.version : GR3X_160.version;
+  const fallback = latest && latest.version !== wanted && latest.fallback?.version === wanted ? latest.fallback : null;
   const rel = fallback ?? latest;
-  const supported = !!rel && rel.version === want;
+  const supported = !!rel && rel.version === wanted;
   // The page's release, when it is a file this program also builds on with fewer additions (GR IV / HDF 1.20).
-  const partial = fallback && latest ? targetOfRelease(model, latest.version) : null;
+  const partial = fallback && latest && gr4 ? targetOfRelease(gr4, latest.version) : null;
   const start = async (): Promise<void> => {
     if (!rel || !supported || progress) return;
     const ac = new AbortController();
@@ -131,7 +133,7 @@ function OnlineDialog() {
         {look.state === 'error' && <div className="fw-rel idle"><span className="muted">{t('fwNetError')}</span><span className="grow" /><button type="button" className="btn small" onClick={() => setAttempt((n) => n + 1)}>{t('retry')}</button></div>}
         {fallback && latest && (
           <>
-            <p className="dialog-warn">{t(partial ? 'fwNewerPartial' : 'fwNewer', { v: latest.version, s: want })}</p>
+            <p className="dialog-warn">{t(partial ? 'fwNewerPartial' : 'fwNewer', { v: latest.version, s: wanted })}</p>
             <div className="fw-rel newer" aria-disabled="true">
               <span className="fw-ico">{Ico.chip}</span>
               <span className="fw-text">

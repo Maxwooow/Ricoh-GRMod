@@ -6,7 +6,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { t } from './i18n';
 import type { Key } from './i18n';
-import { endTour, getState, resetTours, startTour, tourStep, useStore } from './store';
+import { endTour, getState, isGr3, resetTours, startTour, tourStep, useStore } from './store';
 import type { TourId } from './store';
 
 type Side = 'right' | 'left' | 'top' | 'bottom';
@@ -15,6 +15,9 @@ type Side = 'right' | 'left' | 'top' | 'bottom';
  * middle of the window); `side` is where the card goes if there is room.
  */
 interface Step { target?: string | string[]; title: Key; body: Key; side?: Side }
+/** GR III / IIIx have their own text where the GR IV one would be wrong (key + 'G3'). */
+const bodyFor = (key: Key, gr3: boolean): Key => (gr3 && (`${key}G3` as Key) in GR3_BODIES ? (`${key}G3` as Key) : key);
+const GR3_BODIES: Record<string, true> = { tOvFirmwareBG3: true, tOvIcBG3: true, tOvRatioBG3: true, tIcSlotBG3: true, tIcExtraBG3: true, tIcNameBG3: true, tRatioFactoryBG3: true, tWallMenuBG3: true };
 const step = (target: string | string[] | undefined, name: string, side?: Side): Step => ({ target, title: `t${name}T` as Key, body: `t${name}B` as Key, side });
 const names = (target: Step['target']): string[] => (target === undefined ? [] : Array.isArray(target) ? target : [target]);
 
@@ -37,6 +40,7 @@ export const TOURS: Record<TourId, Step[]> = {
   ],
   ic: [
     step('ic-stock', 'IcStock', 'bottom'),
+    step('ic-views', 'IcViews', 'bottom'),
     step('ic-slot', 'IcSlot'),
     step('ic-name', 'IcName', 'bottom'),
     step('ic-preset', 'IcPreset', 'bottom'),
@@ -157,6 +161,7 @@ export function Tour() {
 
 function TourLayer() {
   const tour = useStore((s) => s.tour);
+  const gr3 = useStore((s) => isGr3(s.model));
   const [hole, setHole] = useState<Rect | null>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const [live, setLive] = useState(false);
@@ -227,7 +232,7 @@ function TourLayer() {
       >
         <div className="tour-text" key={tour.index}>
           <b>{t(current.title)}</b>
-          <p>{t(current.body)}</p>
+          <p>{t(bodyFor(current.body, gr3))}</p>
         </div>
         <div className="tour-foot">
           <span className="tour-count">{tour.index + 1} / {tour.steps.length}</span>

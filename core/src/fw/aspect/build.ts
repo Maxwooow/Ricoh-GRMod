@@ -32,12 +32,16 @@ import type { RatioGeometry } from './geometry';
 import { RATIO_ICON_BYTES, RATIO_ICON_H, RATIO_ICON_W, drawRatioIcon } from './icon';
 import { linkNative } from './native-link';
 import { installAdjSoftFocus } from './softfocus';
-import { dateStampByte, installDateStamp } from './datestamp';
+import { installDirectFlash } from './directflash';
+import { installDirectFlashMenu } from './directflash-menu';
+import { dateStampByte, installDateStamp, lookNames } from './datestamp';
 import { installDateStampMenu } from './datestamp-menu';
 import { installMonoUnlock } from './monounlock';
 import { CINEMA_STYLES, installExtraSlots, installHalation } from './slots';
 import { halationLight } from './halation';
 import type { HalationLook } from './halation';
+import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
+import type { LookLayout } from './looks';
 import type { ExtraSlotSpec } from './slots';
 import { installShutdownMenu } from './shutdown';
 import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
@@ -137,6 +141,8 @@ export interface ExtensionFeatures {
   monoUnlock?: boolean;
   /** Added Image Control slots, 1 to 20 (see `slots.ts`; up to 0.8.1 at most 6). */
   extraSlots?: readonly ExtraSlotSpec[];
+  /** Image Control menu order and hidden looks (see `looks.ts`). */
+  lookLayout?: LookLayout;
   /**
    * Halation for Cinema Yellow / Green (0.8.2): only for a slot whose curves were replaced by a
    * preset (its Toning then does nothing and becomes the Halation slider, see `halation.ts`).
@@ -149,6 +155,8 @@ export interface ExtensionFeatures {
   shutdown?: { pictures: readonly ShutdownPictureSpec[]; factory: readonly Uint8Array[] };
   /** Put back setting values this firmware does not know (see `guard.ts`). Every build from 0.8.2 on. */
   guard?: boolean;
+  /** Direct Flash, a fifth Flash Mode (0.8.4, see `directflash.ts`); the guide number is chosen in the camera. */
+  directFlash?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -156,6 +164,8 @@ export interface TestOptions {
   dateStampFixed?: number;
   /** Also print the encoder configuration on the 720x480 picture. */
   dateStampDiag?: boolean;
+  /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
+  directFlashDiag?: boolean;
 }
 
 export interface AspectResult {
@@ -190,6 +200,8 @@ export class Patch {
   /** The relocated icon catalog and language rows (see `catalogs`). */
   readonly iconCatalog: number;
   readonly textCatalog: number;
+  /** List records (SelectMenuController) in the list table so far, once it is copied (see `datestamp-menu.ts`); 0 = the official table. */
+  listRecords = 0;
 
   /**
    * `official` is an RTOS image of official length (its firmware is told by the length), or, with
@@ -479,6 +491,23 @@ function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioE
 
 // --------------------------------------------------------------------------------------------
 // crop_registry.py install_menu
+
+/**
+ * Make every language row of the relocated text catalog hold text numbers up to `upper` (copies
+ * the rows, every entry kept, when they are narrower) and raise the text lookup bound to it.
+ */
+export function widenTextRows(patch: Patch, upper: number): void {
+  let prior = patch.target.facts.textCapacity;
+  for (const site of patch.textBoundSites) prior = Math.max(prior, movImmediate(patch.word(site)) + 1);
+  if (upper + 1 > prior) {
+    for (let l = 0; l < LANGUAGES; l++) {
+      const row = new Uint8Array((upper + 1) * 4);
+      row.set(patch.read(patch.word(patch.textCatalog + l * 4), prior * 4));
+      patch.setWord(patch.textCatalog + l * 4, patch.append(row, 16), 'language row, wider');
+    }
+  }
+  for (const site of patch.textBoundSites) patch.setWord(site, movWord(3, Math.max(upper, movImmediate(patch.word(site)))), 'text upper bound');
+}
 
 export function utf16z(text: string): Uint8Array {
   const out = new Uint8Array((text.length + 1) * 2);
@@ -1113,12 +1142,13 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   const slots = features.extraSlots ?? [];
   const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
   const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
-  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0;
+  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash;
   if (extra) revision = 3;
   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
   const target = targetOfRtos(rtos);
   if (iconbin.length !== target.iconbinLength) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
-  if (!target.colour && (features.monoUnlock || slots.length > 0 || cinema.length > 0)) fail('unsupported-feature', `the monochrome looks, added slots and the halation of Cinema slots are not available for firmware ${target.id}`);
+  if (!target.colour && (features.monoUnlock || slots.length > 0 || cinema.length > 0 || !!features.lookLayout)) fail('unsupported-feature', `the monochrome looks, added slots, the halation of Cinema slots and the Image Control order are not available for firmware ${target.id}`);
+  if (!target.directFlash && features.directFlash) fail('unsupported-feature', `Direct Flash is not available for firmware ${target.id} yet`);
   if (ratios.length > MAX_CUSTOM_RATIOS) fail('too-many-ratios', `at most ${MAX_CUSTOM_RATIOS} ratios can be added`);
   if (ratios.length === 0 && !extra) fail('internal', 'nothing to install');
   ratios.forEach((r, i) => {
@@ -1143,12 +1173,14 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
     if (revision >= 2) installPlaybackDecode(patch);
   }
   if (features.adjSoftFocus) icons = installAdjSoftFocus(patch, icons);
+  // Before the date imprint's menu, which copies the list table with Flash Mode's records.
+  if (features.directFlash) icons = installDirectFlash(patch, icons, !!test.directFlashDiag);
   if (features.monoUnlock) installMonoUnlock(patch);
   if (features.dateStamp) {
     const fixed = test.dateStampFixed;
     // From 0.8.2 (builds with the guard) the imprint goes by the picture's look.
-    const look = features.guard ? { stash: lookStash(target), monoLooks: monoTable(patch, slots.map((x) => monoLook(x.matrixQ13, x.curves, x.postQ9)), FIRST_ADDED_LOOK) } : undefined;
-    installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : dateStampByte(target), !!test.dateStampDiag, look);
+    const look = features.guard ? { stash: lookStash(target), monoLooks: monoTable(patch, slots.map((x) => monoLook(x.matrixQ13, x.curves, x.postQ9)), FIRST_ADDED_LOOK), names: lookNames(patch, slots.map((x) => x.name)) } : undefined;
+    installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : dateStampByte(target), test.directFlashDiag && features.directFlash ? 'df' : !!test.dateStampDiag, look);
     if (!fixed) icons = installDateStampMenu(patch, icons);
     if (look && slots.length === 0) installLookStash(patch);
   }
@@ -1165,12 +1197,19 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
     halation.push({ style, light: colour.ownCurves ? halationLight(colour.curves, colour.postQ9) : halationLight() });
   }
   // Last: the added slots compose with the monochrome looks' visibility check.
-  if (slots.length > 0) icons = installExtraSlots(patch, icons, slots, { stashLook: (!!features.dateStamp && !!features.guard) || halation.length > 0 });
+  if (slots.length > 0) icons = installExtraSlots(patch, icons, slots, { stashLook: (!!features.dateStamp && !!features.guard) || halation.length > 0, layout: features.lookLayout });
+  else if (features.lookLayout) {
+    validateLookLayout(features.lookLayout, 0);
+    installLookOrder(patch, features.lookLayout.order);
+    installFactoryHidden(patch, features.lookLayout.hidden);
+  }
   if (halation.length > 0) icons = installHalation(patch, icons, halation);
   if (shutdown) icons = installShutdownMenu(patch, icons, shutdown.pictures, shutdown.factory);
+  // After every other addition that copies the submenu or list table.
+  if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
   // Last: wraps every other settings save/load and user-mode recall hook.
-  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus });
+  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}) });
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, target, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}) } };
+  return { revision, target, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}) } };
 }

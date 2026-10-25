@@ -39,6 +39,8 @@ import { HALATION_COLOUR_NAMES, HALATION_LOOKS, HALATION_NAMES, halationColourIc
 import { installHalationClamps, installHalationUi } from './halation-ui';
 import type { HalationLook } from './halation';
 import { FirmwareError } from '../types';
+import { installFactoryHidden, validateLookLayout } from './looks';
+import type { LookLayout } from './looks';
 
 /** Up to 0.8.1: 6. */
 export const MAX_EXTRA_SLOTS = 20;
@@ -260,7 +262,7 @@ function swap(p: Patch, at: number, before: string, after: string, reason: strin
  * Install `slots` (1..MAX_EXTRA_SLOTS) into an RTOS image that already has the scaffold of
  * `build.ts` (extended catalogs), appending their icons to `iconbin`. Returns the new ICONBIN data.
  */
-export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly ExtraSlotSpec[], options: { stashLook?: boolean } = {}): Uint8Array {
+export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly ExtraSlotSpec[], options: { stashLook?: boolean; layout?: LookLayout } = {}): Uint8Array {
   const count = slots.length;
   if (!(count >= 1 && count <= MAX_EXTRA_SLOTS)) fail('too-many-slots', `1 to ${MAX_EXTRA_SLOTS} slots can be added`);
   if (p.textBoundSites.length === 0) fail('internal', 'the catalog scaffold is not installed');
@@ -367,23 +369,32 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
   const stash = options.stashLook ? STASH_ASM : '';
   hook(p, 0x539113f8, 0xe5d3279c, `${stash}ldrb r2,[r3,#0x79c];sub ip,r2,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};movls r2,#${CY};b #0x539113fc`, 'added slots: Cinema input fields');
 
-  // Menu order and counts.
-  const order = p.append(concat([p.read(ORDER_TABLE, ORDER_COUNT), Uint8Array.from(slots.map((_, i) => EXTRA_FIRST_STYLE + i))]), 4);
+  const layout = options.layout;
+  // Menu order and counts. With a user layout the order may be any permutation of the factory
+  // looks and the added slots; the list capacity grows by the same number as without one.
+  if (layout) validateLookLayout(layout, count);
+  const orderIds = layout ? [...layout.order] : [...p.read(ORDER_TABLE, ORDER_COUNT), ...slots.map((_, i) => EXTRA_FIRST_STYLE + i)];
+  const total = orderIds.length;
+  const order = p.append(Uint8Array.from(orderIds), 4);
   pointer(p, 0x5337561c, 0x53375620, 4, ORDER_TABLE, order, 'added slots: menu order');
   pointer(p, 0x533cc78c, 0x533cc794, 4, ORDER_TABLE, order, 'added slots: menu order');
-  swap(p, 0x53375628, `add r7,r4,#${ORDER_COUNT}`, `add r7,r4,#${ORDER_COUNT + count}`, 'added slots: menu count');
-  swap(p, 0x533cc7a4, `add r7,r4,#${ORDER_COUNT}`, `add r7,r4,#${ORDER_COUNT + count}`, 'added slots: menu count');
-  swap(p, 0x533cc8c8, `mov r0,#${ORDER_COUNT}`, `mov r0,#${ORDER_COUNT + count}`, 'added slots: list capacity');
-  swap(p, 0x533cc90c, `add r3,r5,#${ORDER_COUNT}`, `add r3,r5,#${ORDER_COUNT + count}`, 'added slots: list capacity');
+  if (total !== ORDER_COUNT + count) fail('internal', 'look order length does not match the added slots');
+  swap(p, 0x53375628, `add r7,r4,#${ORDER_COUNT}`, `add r7,r4,#${total}`, 'added slots: menu count');
+  swap(p, 0x533cc7a4, `add r7,r4,#${ORDER_COUNT}`, `add r7,r4,#${total}`, 'added slots: menu count');
+  swap(p, 0x533cc8c8, `mov r0,#${ORDER_COUNT}`, `mov r0,#${total}`, 'added slots: list capacity');
+  swap(p, 0x533cc90c, `add r3,r5,#${ORDER_COUNT}`, `add r3,r5,#${total}`, 'added slots: list capacity');
   // The controller reserves this many entries plus the three custom sets.
-  swap(p, 0x533bebf0, `mov r0,#${ORDER_COUNT}`, `mov r0,#${ORDER_COUNT + count}`, 'added slots: controller capacity');
+  swap(p, 0x533bebf0, `mov r0,#${ORDER_COUNT}`, `mov r0,#${total}`, 'added slots: controller capacity');
 
   // Look visibility: the new styles are colour looks, hidden on the GR IV Monochrome. Composes
   // with the monochrome looks (`monounlock.ts`) when those are installed.
   const unlocked = p.word(0x533cc6e0) === 0xe3510018;
   expectWord(p, 0x533cc6e4, unlocked ? 0x8a000019 : 0x1a000019);
+  const hiddenExtras = (layout?.hidden ?? []).filter((id) => id >= EXTRA_FIRST_STYLE && id < EXTRA_FIRST_STYLE + count);
+  const hideChecks = hiddenExtras.map((id) => `cmp r1,#${id};beq hidden;`).join('');
   hook(p, 0x533cc6e0, unlocked ? 0xe3510018 : 0xe3520000,
-    `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;cmp r2,#0;moveq r0,#1;movne r0,#0;bx lr;native:${unlocked ? 'cmp r1,#24;bhi' : 'cmp r2,#0;bne'} #0x533cc750;b #0x533cc6e8`, 'added slots: visibility');
+    `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;${hideChecks}cmp r2,#0;moveq r0,#1;movne r0,#0;bx lr;hidden:mov r0,#0;bx lr;native:${unlocked ? 'cmp r1,#24;bhi' : 'cmp r2,#0;bne'} #0x533cc750;b #0x533cc6e8`, 'added slots: visibility');
+  if (layout) installFactoryHidden(p, layout.hidden);
   // Names and icons.
   hook(p, 0x5337f824, 0xe351000a, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;${textAsm('r0', 'ip')};bx lr;native:cmp r1,#10;b #0x5337f828`, 'added slots: name');
   // The ADJ list has an icon lookup of its own (blank entries in test 022 without this).
@@ -398,7 +409,8 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
   }
   hook(p, 0x53373bc0, 0xe241100b, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;add r0,ip,#21;bx lr;native:sub r1,r1,#11;b #0x53373bc4`, 'added slots: RAW development look');
 
-  const module = installOwnParameters(p, count, prints);
+  const hiddenMask = hiddenExtras.reduce((m, id) => (m | (1 << (id - EXTRA_FIRST_STYLE))) >>> 0, 0);
+  const module = installOwnParameters(p, count, prints, hiddenMask);
   installPreviewMapping(p, count);
   installChangeFunctors(p, count);
   installLookChecks(p, count);
@@ -446,7 +458,7 @@ function fingerprint(parts: readonly Uint8Array[]): number {
   return h || 1;
 }
 
-function installOwnParameters(p: Patch, count: number, prints: readonly number[]): Record<string, number> {
+function installOwnParameters(p: Patch, count: number, prints: readonly number[], hiddenMask = 0): Record<string, number> {
   if (prints.length !== count) fail('internal', 'a fingerprint per added slot');
   const normalize = (at: number, reg: string, original: number, tail: string): void => {
     // The flags are set again by every native entry before use; no callee-saved register, LR or SP changes.
@@ -472,7 +484,8 @@ function installOwnParameters(p: Patch, count: number, prints: readonly number[]
   const priorLoad = branchTarget(SETTINGS_LOAD, p.word(SETTINGS_LOAD));
   if (priorSave < BASE + OFFICIAL_RTOS_LENGTH || priorLoad < BASE + OFFICIAL_RTOS_LENGTH) fail('internal', 'the settings save/load scaffold is not installed');
   for (const at of [...SLOT_PARAMETERS.map((i) => GETTERS[i]), ...SLOT_PARAMETERS.map((i) => SETTERS[i]), ...STYLE_SETTERS]) expectWord(p, at, 0xe1a0c00d);
-  const printTable = p.append(u32le(prints), 4);
+  // The fingerprints, then the hidden slots (bit k: slot k; see slot_params.c).
+  const printTable = p.append(u32le([...prints, hiddenMask]), 4);
   const origin = p.next(16);
   const mod = linkModule(SLOT_PARAMS_MODULE, 'slot parameters', count, origin, {
     prior_native_save: priorSave, prior_native_load: priorLoad, storage_singleton: 0x53a81480, store_write: 0x53a7e518,

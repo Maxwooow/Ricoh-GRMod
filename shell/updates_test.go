@@ -32,3 +32,16 @@ func TestRestarter(t *testing.T) {
 	}
 	<-r.requested()
 }
+
+func TestExperimentalBuildIsSeparate(t *testing.T) {
+	old := version
+	defer func() { version = old }()
+	version = "0.8.0-gr3exp.1"
+	if !experimental() || updateOptions(nil) != nil {
+		t.Fatal("an experimental build must not update itself")
+	}
+	version = "0.8.0"
+	if experimental() {
+		t.Fatal("a release is not experimental")
+	}
+}

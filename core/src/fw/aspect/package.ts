@@ -16,7 +16,9 @@
  * none, and one more byte follows the ratios: the other additions (bit 0: soft focus on the ADJ
  * lever, bit 1: date imprint, bit 2: monochrome looks, bit 3: added Image Control slots, in which
  * case their number follows in one more byte; bit 4: power-off pictures, their number follows in
- * one more byte; the data of both is read back from the image itself).
+ * one more byte; the data of both is read back from the image itself; bit 5: the settings guard;
+ * bit 6 (0.8.4): an Image Control menu order / hidden looks (`looks.ts`): u8 n, the n styles in
+ * menu order, u8 h, the h hidden styles; bit 7 (0.8.4): Direct Flash (`directflash.ts`)).
  *
  * Power-off pictures (`shutdown.ts`) also add files to the RES section, the last one: their records
  * (two container frames each) are inserted after RES_ANCHOR, and the section's file count grows.
@@ -57,6 +59,10 @@ const FEATURE_EXTRA_SLOTS = 8;
 const FEATURE_SHUTDOWN = 16;
 /** The settings guard (`guard.ts`), in every build from 0.8.2 on. */
 const FEATURE_GUARD = 32;
+/** Image Control menu order and hidden looks (`looks.ts`), 0.8.4. */
+const FEATURE_LOOK_LAYOUT = 64;
+/** Direct Flash (`directflash.ts`), 0.8.4. */
+const FEATURE_DIRECT_FLASH = 128;
 
 /**
  * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
@@ -72,11 +78,18 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
   }
   const slots = features.extraSlots?.length ?? 0;
   const pictures = features.shutdown?.pictures.length ?? 0;
-  if (revision >= 3) bytes.push((features.adjSoftFocus ? FEATURE_ADJ_SOFT_FOCUS : 0) | (features.dateStamp ? FEATURE_DATE_STAMP : 0) | (features.monoUnlock ? FEATURE_MONO_UNLOCK : 0) | (slots > 0 ? FEATURE_EXTRA_SLOTS : 0) | (pictures > 0 ? FEATURE_SHUTDOWN : 0) | (features.guard ? FEATURE_GUARD : 0));
+  const layout = features.lookLayout;
+  if (revision >= 3) bytes.push((features.adjSoftFocus ? FEATURE_ADJ_SOFT_FOCUS : 0) | (features.dateStamp ? FEATURE_DATE_STAMP : 0) | (features.monoUnlock ? FEATURE_MONO_UNLOCK : 0) | (slots > 0 ? FEATURE_EXTRA_SLOTS : 0) | (pictures > 0 ? FEATURE_SHUTDOWN : 0) | (features.guard ? FEATURE_GUARD : 0) | (layout ? FEATURE_LOOK_LAYOUT : 0) | (features.directFlash ? FEATURE_DIRECT_FLASH : 0));
   if (revision >= 3 && slots > 0) bytes.push(slots);
   else if (slots > 0) fail('internal', 'added slots need revision 3');
   if (revision >= 3 && pictures > 0) bytes.push(pictures);
   else if (pictures > 0) fail('internal', 'power-off pictures need revision 3');
+  if (layout) {
+    if (revision < 3) fail('internal', 'a look layout needs revision 3');
+    if (layout.order.length > 255 || layout.hidden.length > 255 || [...layout.order, ...layout.hidden].some((v) => !(Number.isInteger(v) && v >= 0 && v < 256))) fail('internal', 'look layout cannot be recorded');
+    bytes.push(layout.order.length, ...layout.order, layout.hidden.length, ...layout.hidden);
+  }
+  if (features.directFlash && revision < 3) fail('internal', 'Direct Flash needs revision 3');
   while (bytes.length % 4) bytes.push(0);
   return Uint8Array.from(bytes);
 }
@@ -139,7 +152,7 @@ function parseRecord(rtos: Uint8Array, officialLength = OFFICIAL_RTOS_LENGTH): P
   if (revision >= 3) {
     if (p >= rec.length) return null;
     const f = rec[p++];
-    if ((f & ~(FEATURE_ADJ_SOFT_FOCUS | FEATURE_DATE_STAMP | FEATURE_MONO_UNLOCK | FEATURE_EXTRA_SLOTS | FEATURE_SHUTDOWN | FEATURE_GUARD)) !== 0) return null;
+    if ((f & ~(FEATURE_ADJ_SOFT_FOCUS | FEATURE_DATE_STAMP | FEATURE_MONO_UNLOCK | FEATURE_EXTRA_SLOTS | FEATURE_SHUTDOWN | FEATURE_GUARD | FEATURE_LOOK_LAYOUT | FEATURE_DIRECT_FLASH)) !== 0) return null;
     if (f & FEATURE_GUARD) features.guard = true;
     if (f & FEATURE_ADJ_SOFT_FOCUS) features.adjSoftFocus = true;
     if (f & FEATURE_DATE_STAMP) features.dateStamp = true;
@@ -154,7 +167,20 @@ function parseRecord(rtos: Uint8Array, officialLength = OFFICIAL_RTOS_LENGTH): P
       shutdownPictures = rec[p++];
       if (!(shutdownPictures >= 1 && shutdownPictures <= SHUTDOWN_MAX_PICTURES)) return null;
     }
-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0) return null;
+    if (f & FEATURE_LOOK_LAYOUT) {
+      if (p >= rec.length) return null;
+      const n = rec[p++];
+      if (p + n >= rec.length) return null;
+      const order = [...rec.subarray(p, p + n)];
+      p += n;
+      const h = rec[p++];
+      if (p + h > rec.length) return null;
+      const hidden = [...rec.subarray(p, p + h)];
+      p += h;
+      features.lookLayout = { order, hidden };
+    }
+    if (f & FEATURE_DIRECT_FLASH) features.directFlash = true;
+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash) return null;
   }
   for (; p < rec.length; p++) if (rec[p] !== 0) return null;
   return { specs: out, features, extraSlots, shutdownPictures };

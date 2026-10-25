@@ -18,12 +18,14 @@ Builds with GR Mod's own builder (tools/port120/build.ts) and runs what the buil
     register as officially; when shooting (the step's flag +0x2AC set) nothing else, in RAW
     development (flag 0) also the orientation of the record being developed (+0x2D0) by the EXIF
     writer's rule (+0x71E84 when +0x71E83 is set, else +0xD8; 1..3 kept, anything else 0) in the
-    word 32 bytes in (0.8.3); the start-up zero fill reaches the heap; the imprint's context holds
-    the two words, the table of the target's black-and-white looks and the Monochrome check, which
-    returns 1 for edition 1 only.
+    word 32 bytes in (0.8.3), and the look also in the frame's look word 36 bytes in (0.8.4); the
+    start-up zero fill reaches the heap; the imprint's context holds the three words, the table of
+    the target's black-and-white looks, the Monochrome check, which returns 1 for edition 1 only, and
+    the table of the looks' names (the factory looks', 1.20's two more among them).
  4. The exposure hook (0.8.3): at the start of each exposure the camera's direction, read through
     the variant root singleton (+4 -> +0x518 -> record -> +0xD8, every pointer checked), goes into
-    the orientation word (4 / 5, lens up / down, as 0); every register as it came.
+    the orientation word (4 / 5, lens up / down, as 0), and the look stash into the frame's look word
+    (0.8.4); every register as it came.
 
     python3 check_guard.py [111|120 ...]
 """
@@ -53,6 +55,13 @@ RATIO = 0x49F
 ADJ = (0x920, 0x921, 0x922, 0x923, 0x924)
 SIZE = 0xB44  # the longer user settings (1.20); 1.11's are 0xAE9
 STANDARD = 11
+# The looks' names of the date imprint (datestamp.ts FACTORY_LOOK_NAMES, LATER_LOOK_NAMES: 31 and 32 are 1.20's).
+LOOK_NAMES = {
+    11: 'Standard', 12: 'Vivid', 13: 'Monotone', 14: 'Soft Monotone', 15: 'Hard Monotone', 16: 'Hi-Contrast B&W',
+    17: 'Positive Film', 18: 'Cinema (Yellow)', 19: 'Cinema (Green)', 20: 'Bleach Bypass', 21: 'Retro', 22: 'HDR Tone',
+    23: 'Cross Processing', 24: 'Negative Film', 25: 'Standard', 26: 'Soft', 27: 'High Contrast', 28: 'Grainy', 29: 'Solid',
+    30: 'HDR Tone', 31: 'Pictorialist Effect', 32: 'Solarized Effect',
+}
 failures = []
 
 
@@ -234,6 +243,7 @@ def check_build(tag, name, options, ratios, soft):
         check(hook >> 24 == 0xEA, f'{what}: the development step\'s read of the look is hooked')
         check(m.word(V(0x53000460)) == t.heap, f'{what}: the start-up zero fill reaches the heap (clears the stash)')
         orient = t.bss_end + 0x20
+        frame = t.bss_end + 0x24
         rec, arg, raw = FAKE + 0x60000, FAKE + 0x62000, FAKE + 0x100000
         bad = []
         cases = [(look, 1, 0, 0) for look in range(40)]  # shooting: the look only
@@ -250,29 +260,45 @@ def check_build(tag, name, options, ratios, soft):
             m.mu.mem_write(raw + 0xD8, bytes([0x77 if flag else d]))
             m.mu.mem_write(stash, b'\0\0\0\0')
             m.mu.mem_write(orient, struct.pack('<I', 0x5EED))
+            m.mu.mem_write(frame, struct.pack('<I', 0xF00D))
             regs = [0x10, arg, 0x12, rec, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, FAKE + 0x3F0100, 0x1C]
             m.call(site, regs, stop=site + 4)
             got = [m.mu.reg_read(r) for r in REGS[:13]]
             want = regs[:2] + [look] + regs[3:]
             want_orient = 0x5EED if shooting else ((d if d <= 3 else 0) | 0x100)
-            if got != want or m.word(stash) != (look | 0x10000) or m.word(orient) != want_orient:
-                bad.append((look, shooting, flag, d, hex(m.word(stash)), hex(m.word(orient)), [hex(g) for g in got[:4]]))
+            # shooting: the frame's look is taken at the start of the exposure (4.); RAW development: this one
+            want_frame = 0xF00D if shooting else (look | 0x10000)
+            if got != want or m.word(stash) != (look | 0x10000) or m.word(orient) != want_orient or m.word(frame) != want_frame:
+                bad.append((look, shooting, flag, d, hex(m.word(stash)), hex(m.word(orient)), hex(m.word(frame)), [hex(g) for g in got[:4]]))
         check(not bad, f'{what}: look stash: {bad[:4]}')
         execute = V(0x537034B4)
         stub = branch(execute, m.word(execute))
         mv = lambda w: ((w >> 4) & 0xF000) | (w & 0xFFF)
         ctx = mv(m.word(stub + 8)) | (mv(m.word(stub + 12)) << 16)
-        words = struct.unpack('<10I', m.mu.mem_read(ctx, 40))
+        words = struct.unpack('<12I', m.mu.mem_read(ctx, 48))
         table = bytes(m.mu.mem_read(words[7], 64))
-        check(words[6] == stash and words[8] == V(0x533EF000) and words[9] == orient,
-              f'{what}: date imprint context: stash {words[6]:#x}, Monochrome check {words[8]:#x}, orientation {words[9]:#x}')
+        check(words[6] == stash and words[8] == V(0x533EF000) and words[9] == orient and words[10] == frame,
+              f'{what}: date imprint context: stash {words[6]:#x}, Monochrome check {words[8]:#x}, orientation {words[9]:#x}, frame look {words[10]:#x}')
+        # the looks' names (datestamp.ts lookNames: no added slots, the Cinema slots as officially named)
+        names = {k: v for k, v in LOOK_NAMES.items() if k < t.looks}
+        got_names, bad_names = {}, []
+        for k, at in enumerate(struct.unpack('<64I', m.mu.mem_read(words[11], 256))):
+            if not at:
+                continue
+            n = struct.unpack('<H', m.mu.mem_read(at, 2))[0]
+            glyphs = struct.unpack('<%dH' % n, m.mu.mem_read(at + 2, 2 * n)) if 0 < n <= 24 else ()
+            got_names[k] = glyphs
+            want = names.get(k, '').upper()
+            if len(glyphs) != len(want) or any((g == 17) != (c == ' ') or (c.isalpha() and not (g & 0x4000 and g & 0x3FFF)) for g, c in zip(glyphs, want)):
+                bad_names.append((k, n, want))
+        check(set(got_names) == set(names) and not bad_names, f'{what}: look names: looks {sorted(set(got_names) ^ set(names))} differ, {bad_names[:3]}')
         check([i for i in range(64) if table[i]] == list(t.mono_looks), f'{what}: black-and-white looks {[i for i in range(64) if table[i]]}')
         for edition, want in ((0, 0), (1, 1), (2, 0), (3, 0)):
             m.stubs[V(0x5323EA84)] = lambda uc: FAKE + 0x70000
             m.stubs[V(0x5323FF28)] = lambda uc: FAKE + 0x71000
             m.stubs[V(0x533E0324)] = lambda uc, e=edition: e
             check(m.call(words[8]) == want, f'{what}: Monochrome check for edition {edition}')
-        print(f'   look stash at {stash:#x}, orientation at {orient:#x}: {len(cases)} cases; context, table {list(t.mono_looks)}, Monochrome check')
+        print(f'   look stash at {stash:#x}, orientation at {orient:#x}, frame look at {frame:#x}: {len(cases)} cases; context, table {list(t.mono_looks)}, Monochrome check, names of looks {min(names)}..{max(names)}')
 
         # --- 4. the exposure hook
         at = V(0x53628CD8)
@@ -286,15 +312,18 @@ def check_build(tag, name, options, ratios, soft):
             m.mu.mem_write(holder, struct.pack('<I', record))
             m.mu.mem_write(record + 0xD8, bytes([d or 0]))
             m.mu.mem_write(orient, struct.pack('<I', 0x5EED))
+            look_word = 0x10000 | (2 << 8) | (20 + (d or 0))
+            m.mu.mem_write(stash, struct.pack('<I', look_word))
+            m.mu.mem_write(frame, struct.pack('<I', 0xF00D))
             regs = [0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, FAKE + 0x3F0100, 0x1C]
             m.call(at, regs, stop=at + 4)
             got = [m.mu.reg_read(r) for r in REGS[:14]]
             want = regs[:12] + [FAKE + 0x3F0000, FAKE + 0x3F0000]  # ip = sp (the displaced mov ip, sp)
             want_orient = 0x5EED if d is None else ((d if d <= 3 else 0) | 0x100)
-            if got != want or m.word(orient) != want_orient:
-                bad.append((d, hex(m.word(orient)), [hex(g) for g in got]))
+            if got != want or m.word(orient) != want_orient or m.word(frame) != look_word or m.word(stash) != look_word:
+                bad.append((d, hex(m.word(orient)), hex(m.word(frame)), [hex(g) for g in got]))
         check(not bad, f'{what}: exposure hook: {bad[:3]}')
-        print(f'   exposure hook at {at:#x}: direction through {singleton:#x}, 7 directions and a bad pointer')
+        print(f'   exposure hook at {at:#x}: direction through {singleton:#x}, 7 directions and a bad pointer; the look stash into the frame\'s look')
 
 
 def main():

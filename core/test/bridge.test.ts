@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { Engine, fw } from '../src';
@@ -14,7 +14,8 @@ describe('bridge patch format', () => {
 });
 
 describe.skipIf(!have)('1.12 bridge firmware', () => {
-  const official = new Uint8Array(readFileSync(P + 'official.bin'));
+  let official: Uint8Array;
+  beforeAll(() => { official = new Uint8Array(readFileSync(P + 'official.bin')); });
   let bridge: Uint8Array;
   it('is made from the official file, byte for byte the tested file', async () => {
     bridge = await fw.makeBridgeFirmware(official);

@@ -128,7 +128,12 @@ func TestAppEndToEnd(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(logData), "wrote "+file) || !strings.Contains(string(logData), "/api/write") {
+	// The file service logs the resolved path; macOS /var is a symlink to /private/var.
+	loggedFile, err := filepath.EvalSymlinks(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(logData), "wrote "+loggedFile) || !strings.Contains(string(logData), "/api/write") {
 		t.Errorf("log lacks the write:\n%s", logData)
 	}
 	if strings.Contains(string(logData), a.token) {

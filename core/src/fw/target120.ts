@@ -163,6 +163,7 @@ export const VA_120: ReadonlyMap<number, number> = new Map([
   [0x53572ae0, 0x53595da8], // text number bound (measuring): cmpls r7, #880
   [0x53572aec, 0x53595db4],
   [0x53572af4, 0x53595dbc],
+  [0x53572e34, 0x535960fc],
   [0x535734f4, 0x535967c0], // text number bound (drawing): cmp r7, #880
   [0x53573500, 0x535967cc],
   [0x53573504, 0x535967d0],
@@ -170,6 +171,7 @@ export const VA_120: ReadonlyMap<number, number> = new Map([
   [0x5357a1c0, 0x5359d48c],
   [0x5357a428, 0x5359d6f4],
   [0x5357a510, 0x5359d7dc],
+  [0x5357ad3c, 0x5359e008],
   [0x5357ad40, 0x5359e00c],
   [0x5357ade0, 0x5359e0ac],
   [0x5357aef0, 0x5359e1bc],
@@ -177,6 +179,7 @@ export const VA_120: ReadonlyMap<number, number> = new Map([
   [0x5357f2b0, 0x535a257c],
   [0x53583188, 0x535a6454],
   [0x535831e8, 0x535a64b4],
+  [0x53587c3c, 0x535aaf0c],
   [0x53589ab4, 0x535acd84],
   [0x53628cd8, 0x5364d640],
   [0x5362e430, 0x53652d98],
@@ -321,6 +324,8 @@ export const VA_120: ReadonlyMap<number, number> = new Map([
   [0x53da2d20, 0x53dcd470], // list records (126 in 1.20), from its sixteen MOVW/MOVT references
   [0x53da6718, 0x53dd0f00], // submenu records (18, as in 1.11), from its five MOVW/MOVT references
   [0x53dba8c0, 0x53de50f0],
+  [0x53e984e0, 0x53ece708],
+  [0x53e98f18, 0x53ecf140],
   [0x53fe4328, 0x5401aef8],
   [0x53fe50d0, 0x5401bdd4],
   [0x53fe5180, 0x5401be84],

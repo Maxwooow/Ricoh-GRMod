@@ -27,9 +27,9 @@ var updateSources = []string{
 	"https://github.com/Maxwooow/Ricoh-GRMod/releases/latest/download/",
 }
 
-// updateBelow ends this line: GR Mod 0.8.x is for camera firmware 1.11; 0.9
-// and later are for 1.20 (a camera updated to 1.20 cannot go back), so they
-// are never installed over this copy, only reported.
+// updateBelow ends this line: GR Mod 0.8.x is for GR IV camera firmware 1.11 (and, from 0.8.5,
+// GR III 2.10 / GR IIIx 1.60); 0.9 and later are for GR IV 1.20 (a camera updated to 1.20 cannot go
+// back), so they are never installed over this copy, only reported.
 const updateBelow = "0.9"
 
 // releaseNotesAPI lists the published releases with their text (what's new).
@@ -76,7 +76,19 @@ func updateTarget() update.Target {
 	return &update.FileTarget{Exe: exe}
 }
 
+// experimental reports a test build (a version such as 0.8.0-gr3exp.1). It keeps a data folder
+// of its own and never updates itself, so it can neither replace the released GR Mod nor be
+// replaced by it.
+func experimental() bool { return strings.Contains(version, "exp") }
+
+// experimentalDataSuffix is appended to the default data folder of an experimental build (the
+// GR III test builds' folder; a release takes their GR III work over once, migrate.go).
+const experimentalDataSuffix = gr3TestDataSuffix
+
 func updateOptions(target update.Target) *server.UpdateOptions {
+	if experimental() {
+		return nil
+	}
 	key, err := base64.StdEncoding.DecodeString(updatePublicKey)
 	if err != nil {
 		return nil

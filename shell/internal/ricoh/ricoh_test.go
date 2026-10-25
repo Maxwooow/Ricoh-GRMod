@@ -151,7 +151,7 @@ func TestLatest(t *testing.T) {
 	if _, err := c.Latest(context.Background(), "MONO"); !errors.Is(err, ErrNoRelease) {
 		t.Errorf("MONO: %v", err)
 	}
-	if _, err := c.Latest(context.Background(), "GR3"); !errors.Is(err, ErrUnknownModel) {
+	if _, err := c.Latest(context.Background(), "GR2"); !errors.Is(err, ErrUnknownModel) {
 		t.Errorf("unknown model: %v", err)
 	}
 	if s.hits.Load() != 0 {
@@ -405,11 +405,11 @@ func TestSupported(t *testing.T) {
 			}
 		}
 	}
-	// one supported release per model
+	// one supported release per model: an archive for GR IV, a release fetched by name for GR III / IIIx
 	var c Client
 	for model := range Models {
-		if c.pinned(model) == nil {
-			t.Errorf("%s: no supported release", model)
+		if (c.pinned(model) == nil) != IsPinned(model) {
+			t.Errorf("%s: not exactly one supported release", model)
 		}
 	}
 	if c.pinned("HDF") != &Supported || c.pinned("STANDARD") != &Supported || c.pinned("MONO") != &SupportedMono {

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { color, EXTRA_NAME_MAX, halateRgba, halationLight, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_H, SHUTDOWN_NAME_MAX, SHUTDOWN_W } from '@grmod/core';
+import { color, EXTRA_NAME_MAX, GR3X_RATIO_NAME_MAX, halateRgba, halationLight, MAX_EXTRA_SLOTS, SHUTDOWN_H, SHUTDOWN_NAME_MAX, SHUTDOWN_W } from '@grmod/core';
 import type { SlotId } from '@grmod/core';
 import type { ReactNode } from 'react';
 import { DropZone, FileButton, Ico, IconCanvas, Menu, Prop, RatioIcon, RgbCanvas, Segmented, Select, Switch } from './components';
@@ -10,12 +10,15 @@ import type { Crop } from './pixels';
 import { onUiScale, uiScale } from './fit';
 import { applySlot } from './preview';
 import {
-  addRatio, addWallFiles, askForOfficial, bridgeLoaded, colourWork, fwVersion, loadFirmwareFile, loadIconImage, loadPresetFile, loadPreviewFile, moveWall, nameProblem, openCrop, outputFirmware, previewPhoto, removePreset, removeWall,
-  ratioName, ratioProblem, removeRatio, setActiveRatio, setActiveSlot, setCrop, setIcon, setName, setPreviewMode, setRatio, setRatioBackdrop, useStore, wallBitmap,
+  addRatio, addWallFiles, askForOfficial, bridgeLoaded, fwVersion, loadFirmwareFile, loadIconImage, loadPresetFile, loadPreviewFile, moveWall, nameProblem, openCrop, outputFirmware, previewPhoto, removePreset, removeWall,
+  maxRatios, ratioName, ratioProblem, removeRatio, setActiveRatio, setActiveSlot, setCrop, setIcon, setName, setPreviewMode, setRatio, setRatioBackdrop, useStore, wallBitmap,
   setSoft,
   setDateStamp,
   setMonoUnlock,
+  setDirectFlash,
   extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, slotOf,
+  filmCountChoosable, setFilmCount,
+  hasLookLayout, isGr3, KEEP_VISIBLE, lookHiddenNow, lookMonoOnly, lookName, lookOrderAvailable, lookOrderNow, moveLook, moveLookTo, resetLookLayout, setLookHidden,
   setWallName, wallMax, wallMenuProblem,
 } from './store';
 import type { ExtraSlot, RatioItem, SlotKey, WallItem } from './store';
@@ -29,13 +32,14 @@ const CC24 = [[115, 82, 68], [194, 150, 130], [98, 122, 157], [87, 108, 67], [13
   [56, 61, 150], [70, 148, 73], [175, 54, 60], [231, 199, 31], [187, 86, 149], [8, 133, 161], [243, 243, 242], [200, 200, 200], [160, 160, 160], [122, 122, 121], [85, 85, 85], [52, 52, 52]];
 
 function Swatches({ params }: { params?: color.SlotParams }) {
+  const gr3x = useStore(s => s.info?.family === 'gr3x');
   const out = useMemo(() => {
     if (!params) return null;
     const inp = new Float64Array(CC24.length * 3);
     CC24.forEach((c, i) => { inp[i * 3] = c[0] / 255; inp[i * 3 + 1] = c[1] / 255; inp[i * 3 + 2] = c[2] / 255; });
-    const o = color.previewSlot(params, inp);
+    const o = gr3x ? color.GR3X_CAMERA.slotApply(params, inp) : color.previewSlot(params, inp);
     return CC24.map((_, i) => `rgb(${Math.round(o[i * 3] * 255)},${Math.round(o[i * 3 + 1] * 255)},${Math.round(o[i * 3 + 2] * 255)})`);
-  }, [params]);
+  }, [params, gr3x]);
   return (
     <div className="swatches" aria-hidden>
       {CC24.map((c, i) => {
@@ -49,14 +53,15 @@ function Swatches({ params }: { params?: color.SlotParams }) {
 /** The sample photograph with the original on the left of a draggable divider and the preset on the right. */
 function PhotoCompare({ params }: { params?: color.SlotParams }) {
   const photo = usePhoto();
+  const gr3x = useStore(s => s.info?.family === 'gr3x');
   // (primitive selections: the store hook needs a stable value)
   const haloLevel = useStore((s) => { const h = halationOf(s.activeSlot, s); return h.on ? h.preview : 0; });
-  const haloColour = useStore((s) => halationOf(s.activeSlot, s).colour ?? 'red');
+  const haloColour = useStore((s) => (s.info?.family === 'gr3x' && !filmCountChoosable(s) ? 'red' : halationOf(s.activeSlot, s).colour ?? 'red'));
   const halo = haloLevel ? { preview: haloLevel } : undefined;
   // where the slot's light starts: its own look decides how bright the highlights end up
   const result = useStore((s) => slotOf(s.activeSlot, s)?.preset?.result);
   const light = useMemo(() => (result ? halationLight(result.curves, result.postQ9) : undefined), [result]);
-  const base = useMemo(() => (photo && params ? applySlot(params, photo) : null), [photo, params]);
+  const base = useMemo(() => (photo && params ? applySlot(params, photo, gr3x) : null), [photo, params, gr3x]);
   // The added slot's halation at the level chosen for the preview, as the camera computes it.
   const after = useMemo(() => {
     if (!base || !halo) return base;
@@ -130,12 +135,20 @@ function Compare({ photo, after, label }: { photo: ImageData | null; after: Imag
 /** The one preview of the page: it shows whichever slot is active and fills the space the window leaves. */
 /** The preview; `below` (with its height in `belowH`) goes under the picture, which leaves room for it. */
 function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number }) {
+  const gr3x = useStore(s => s.info?.family === 'gr3x');
+  const allSlots = useStore(s => s.info?.slots);
+  const filmCount = useStore(s => (filmCountChoosable(s) ? s.filmCount : -1));
+  const slotOptions = useMemo(() => (allSlots ? (filmCount >= 0 ? allSlots.slice(0, filmCount) : allSlots) : []), [allSlots, filmCount]);
+  const slots = useStore(s => s.slots);
   const mode = useStore((s) => s.previewMode);
   const active = useStore((s) => s.activeSlot);
   const params = useStore((s) => slotOf(s.activeSlot, s)?.preset?.result?.params);
   const extras = useStore((s) => s.extras);
   const extraLabels = useStore((s) => s.extras.map((x) => extraName(x, s)).join('\u0000'));
-  const tabs = [{ value: 'CY', label: t('slotCY') }, { value: 'CG', label: t('slotCG') }, ...extras.map((x, i) => ({ value: x.key, label: extraLabels.split('\u0000')[i] }))];
+  const lang = useStore((s) => s.lang);
+  // GR III / IIIx: every slot is an added film (named as in the camera's menu, else its default name).
+  const tabs = gr3x ? slotOptions.map((x) => ({ value: x.id, label: slots[x.id].names[lang] || x.names[lang]?.text || x.defaultName }))
+    : [{ value: 'CY', label: t('slotCY') }, { value: 'CG', label: t('slotCG') }, ...extras.map((x, i) => ({ value: x.key, label: extraLabels.split('\u0000')[i] }))];
   const tabsRef = useRef<HTMLDivElement>(null);
   useEffect(() => { tabsRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }, [active]);
   // With many added slots in a narrow window the tabs do not all fit: arrows step through them.
@@ -156,9 +169,11 @@ function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number
   return (
     <DropZone className="pane" accept={isImage} onFiles={(f) => { void loadPreviewFile(f[0]); }}>
       <div className="pane-head">
+        {tabs.length > 0 && <>
         {overflow && <button className="btn ghost icon-only seg-arrow" title={t('prevSlot')} aria-label={t('prevSlot')} disabled={at === 0} onClick={() => step(-1)}>{Ico.left}</button>}
-        <div className="seg-scroll" ref={tabsRef} onWheel={wheel}><Segmented tour="ic-tabs" value={tabs.some((x) => x.value === active) ? active : 'CY'} onChange={setActiveSlot} options={tabs} /></div>
+        <div className="seg-scroll" ref={tabsRef} onWheel={wheel}><Segmented tour="ic-tabs" value={tabs.some((x) => x.value === active) ? active : tabs[0].value} onChange={setActiveSlot} options={tabs} /></div>
         {overflow && <button className="btn ghost icon-only seg-arrow" title={t('nextSlot')} aria-label={t('nextSlot')} disabled={at === tabs.length - 1} onClick={() => step(1)}>{Ico.right}</button>}
+        </>}
         <span className="grow" />
         <Segmented tour="ic-mode" value={mode} onChange={setPreviewMode} options={[{ value: 'photo', label: t('previewPhoto') }, { value: 'swatch', label: t('previewSwatch') }]} />
       </div>
@@ -172,10 +187,13 @@ function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number
 
 function SlotCard({ id }: { id: SlotId }) {
   const slot = useStore((s) => s.slots[id]);
+  // GR III / IIIx: Halation is set in the camera; here only the preview level.
+  const choosable = useStore((s) => filmCountChoosable(s));
   const info = useStore((s) => s.info)!;
   const lang = useStore((s) => s.lang);
   const active = useStore((s) => s.activeSlot === id);
   const off = info.slots.find((x) => x.id === id)!;
+  const gr3x = info.family === 'gr3x';
   const name = slot.names[lang] ?? '';
   const cap = off.names[lang].capacity;
   const problem = nameProblem(info, id, lang, name);
@@ -189,7 +207,7 @@ function SlotCard({ id }: { id: SlotId }) {
           <div className="card-title" data-tour={first ? 'ic-name' : undefined}>
             <input className={`title-input ${problem ? 'bad' : ''}`} value={name} placeholder={off.names[lang].text} spellCheck={false} aria-label={t('name')} onChange={(e) => setName(id, lang, e.target.value)} />
             <div className="sub">
-              <span className="ellipsis">{t(('slot' + id) as Key)}</span>
+              <span className="ellipsis">{gr3x ? off.defaultName : t(('slot' + id) as Key)}</span>
               <span className={`count ${problem ? 'bad' : ''}`}>{problem || `${name.length || off.names[lang].text.length}/${cap}`}</span>
             </div>
           </div>
@@ -203,6 +221,7 @@ function SlotCard({ id }: { id: SlotId }) {
                   <FileButton className="file-main" accept=".xmp,.cube" title={t('replace')} onFiles={(f) => { void loadPresetFile(id, f[0]); }}>{Ico.file}<span className="ellipsis">{p.result?.title || p.fileName}</span></FileButton>
                   <button className="file-x" title={t('remove')} aria-label={t('remove')} onClick={() => removePreset(id)}>{Ico.x}</button>
                 </div>
+                {gr3x && p.result && <p className="small muted">{t('gr3xFit', { mean: p.result.meanDE.toFixed(1), p95: p.result.p95DE.toFixed(1) })}{p.result.p95DE > 6 && <><br />{t('gr3xFitPoor')}</>}</p>}
                 {(p.busy || p.error) && (
                   <div className="chips">
                     {p.busy && <span className="chip muted"><span className="spinner small" />{t('converting')}</span>}
@@ -220,10 +239,29 @@ function SlotCard({ id }: { id: SlotId }) {
               {slot.icon.mode === 'image' && <FileButton className="btn small" accept="image/*" onFiles={(f) => { void loadIconImage(id, f[0]); }}>{t('chooseImage')}</FileButton>}
             </div>
           </Prop>
-          {p?.result && <HalationProp k={id} />}
+          {(gr3x || p?.result) && <HalationProp k={id} />}
         </div>
       </div>
     </DropZone>
+  );
+}
+
+/** GR III / IIIx: how many films are added (0 to maxFilms), laid out as GR IV's added slots (ExtrasHead). */
+function FilmCountHead() {
+  const n = useStore((s) => s.filmCount);
+  const max = useStore((s) => s.info?.features.maxFilms ?? 9);
+  const options = Array.from({ length: max + 1 }, (_, i) => ({ value: String(i), label: String(i) }));
+  return (
+    <div className="card extras-head" data-tour="ic-extra">
+      <div className="extras-row">
+        <span className="page-icon soft-ico">{Ico.plus}</span>
+        <div className="soft-text">
+          <b>{t('extraTitle')}</b>
+          <span className="muted small ellipsis">{t('filmCountSub', { n: max })}</span>
+        </div>
+      </div>
+      <div className="extras-count"><Select variant="box" value={String(n)} onChange={(v) => setFilmCount(Number(v))} options={options} label={t('extraTitle')} /></div>
+    </div>
   );
 }
 
@@ -241,6 +279,278 @@ function ExtrasHead() {
         </div>
       </div>
       <div className="extras-count"><Select variant="box" value={String(n)} onChange={(v) => setExtraCount(Number(v))} options={options} label={t('extraTitle')} /></div>
+    </div>
+  );
+}
+
+/** The easing of everything that moves on this page: fast at first, then a long soft landing (no overshoot). */
+const EASE_OUT = 'cubic-bezier(0.22, 1, 0.36, 1)';
+const reducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** A row being dragged. Positions are in the list's layout pixels (the interface may be zoomed: see fit.ts). */
+interface LookDrag {
+  key: string; li: HTMLElement; rows: HTMLElement[];
+  from: number; to: number;
+  /** each row's place in the list (offsetTop / offsetHeight) when the drag began */
+  tops: number[]; heights: number[];
+  /** how far the others move to make room: the dragged row's height and the gap under it */
+  step: number;
+  /** the pointer (window pixels) where the row was taken, and where it is now */
+  startY: number; y: number; pointerId: number;
+  startScroll: number;
+  shifts: number[];
+  frame: number;
+}
+/** A press on a row that may become a drag: the mouse has to move a little first, a finger has to stay a moment. */
+interface LookPress { key: string; li: HTMLElement; pointerId: number; type: string; x: number; y: number; timer: number }
+/** Where the rows were on screen before the order changed, so that they can glide to their new places. */
+interface LookFlip { tops: Map<string, number>; focus: HTMLElement | null; lifted?: string; reveal?: string }
+
+/** Scrolls `list` so that `row` is inside it (a row moved with the keyboard stays in sight). */
+function keepInView(list: HTMLElement, row: HTMLElement): void {
+  const pad = 6;
+  if (row.offsetTop - pad < list.scrollTop) list.scrollTop = row.offsetTop - pad;
+  else if (row.offsetTop + row.offsetHeight + pad > list.scrollTop + list.clientHeight) list.scrollTop = row.offsetTop + row.offsetHeight + pad - list.clientHeight;
+}
+
+/**
+ * The Image Control menu order and hidden looks, a view of its own. A row is taken by its grip (at
+ * once), by the rest of the row with the mouse (after a few pixels) or with a finger (held for a
+ * moment); it lifts, follows the pointer, and the other rows slide out of its way. On release it
+ * settles into its place. The arrows move a row by one, the eye hides a look from every camera
+ * list (Standard and the monochrome Standard cannot be hidden); those moves glide too (FLIP).
+ */
+function LookOrderView() {
+  const changed = useStore((s) => hasLookLayout(s));
+  // names follow the language and the slots' own names (a primitive, so the store hook stays stable);
+  // the order and the hidden keys of the open camera family (GR III keeps its own), as primitives too
+  const nameList = useStore((s) => lookOrderNow(s).map((k) => `${k}\u0001${lookName(k, s)}`).join('\u0000'));
+  const names = useMemo(() => new Map(nameList.split('\u0000').map((x) => x.split('\u0001') as [string, string])), [nameList]);
+  const orderList = useStore((s) => lookOrderNow(s).join(','));
+  const hiddenList = useStore((s) => lookHiddenNow(s).join(','));
+  const monoList = useStore((s) => lookOrderNow(s).filter((k) => lookMonoOnly(k, s)).join(','));
+  const gr3 = useStore((s) => (s.info ? s.info.family === 'gr3x' : isGr3(s.model)));
+  const order = useMemo(() => (orderList ? orderList.split(',') : []), [orderList]);
+  const hidden = useMemo(() => new Set(hiddenList ? hiddenList.split(',') : []), [hiddenList]);
+  const monoOnly = useMemo(() => new Set(monoList ? monoList.split(',') : []), [monoList]);
+  const nameOf = (k: string): string => names.get(k) ?? lookName(k);
+
+  const listRef = useRef<HTMLOListElement>(null);
+  const [lifted, setLifted] = useState<string | null>(null);
+  const [said, setSaid] = useState('');
+  const drag = useRef<LookDrag | null>(null);
+  const press = useRef<LookPress | null>(null);
+  const flip = useRef<LookFlip | null>(null);
+
+  const rowsOf = (): HTMLElement[] => Array.from(listRef.current?.children ?? []) as HTMLElement[];
+  /** Remember where every row is now (as seen, with any movement under way); call before the order changes. */
+  const snapshot = (extra?: { lifted?: string; reveal?: string }): void => {
+    const tops = new Map<string, number>();
+    for (const r of rowsOf()) tops.set(r.dataset.key!, r.getBoundingClientRect().top);
+    const a = document.activeElement as HTMLElement | null;
+    flip.current = { tops, focus: a && listRef.current?.contains(a) ? a : null, ...extra };
+  };
+
+  // After a change of order: drop what the drag left on the rows and let every row glide from where
+  // it was seen to its new place. Runs before the browser paints, so nothing jumps.
+  useLayoutEffect(() => {
+    const f = flip.current; const list = listRef.current;
+    if (!f || !list) return;
+    flip.current = null;
+    const rows = rowsOf();
+    for (const r of rows) { r.getAnimations().forEach((a) => a.cancel()); r.style.transform = ''; r.style.zIndex = ''; }
+    // A row moved with its arrow keeps the keyboard focus (the browser drops it when the row is moved in the page).
+    if (f.focus && f.focus !== document.activeElement && f.focus.isConnected) {
+      const b = f.focus as HTMLButtonElement;
+      const to = b.disabled ? b.closest('.look-btns')?.querySelector<HTMLButtonElement>('button:not(:disabled)') : b;
+      to?.focus({ preventScroll: true });
+    }
+    if (f.reveal) { const r = rows.find((x) => x.dataset.key === f.reveal); if (r) keepInView(list, r); }
+    if (reducedMotion()) return;
+    const k = uiScale() || 1;
+    for (const r of rows) {
+      const was = f.tops.get(r.dataset.key!);
+      if (was === undefined) continue;
+      const dy = (was - r.getBoundingClientRect().top) / k;
+      if (Math.abs(dy) < 0.5) continue;
+      const own = r.dataset.key === f.lifted;
+      if (own) r.style.zIndex = '3'; // the dropped row stays above the others until it has landed
+      const a = r.animate([{ transform: `translate3d(0, ${dy}px, 0)` }, { transform: 'translate3d(0, 0, 0)' }], { duration: own ? 300 : 360, easing: EASE_OUT });
+      if (own) a.onfinish = a.oncancel = () => { r.style.zIndex = ''; };
+    }
+  });
+
+  // One frame of a drag: scroll near the edges, put the row under the pointer, move the others aside.
+  const tick = (): void => {
+    const d = drag.current; const list = listRef.current;
+    if (!d || !list) return;
+    const k = uiScale() || 1;
+    const box = list.getBoundingClientRect();
+    const edge = Math.min(56 * k, box.height / 4);
+    let v = 0;
+    if (d.y < box.top + edge) v = -(1 - Math.max(0, d.y - box.top) / edge);
+    else if (d.y > box.bottom - edge) v = 1 - Math.max(0, box.bottom - d.y) / edge;
+    if (v) list.scrollTop += Math.sign(v) * Math.max(1, Math.round(Math.min(1, Math.abs(v)) ** 2 * 18));
+    const last = d.rows.length - 1;
+    const lo = d.tops[0] - d.tops[d.from];
+    const hi = d.tops[last] + d.heights[last] - d.heights[d.from] - d.tops[d.from];
+    const dy = Math.max(lo, Math.min(hi, (d.y - d.startY) / k + (list.scrollTop - d.startScroll)));
+    d.li.style.transform = `translate3d(0, ${dy}px, 0)`;
+    const centre = d.tops[d.from] + dy + d.heights[d.from] / 2;
+    let to = d.from;
+    for (let i = 0; i <= last; i++) {
+      if (i === d.from) continue;
+      const mid = d.tops[i] + d.heights[i] / 2;
+      let s = 0;
+      // (at a bound the centres meet exactly: the first and last places must still be reachable)
+      if (i < d.from && centre <= mid) { s = d.step; to--; }
+      else if (i > d.from && centre >= mid) { s = -d.step; to++; }
+      if (s !== d.shifts[i]) { d.shifts[i] = s; d.rows[i].style.transform = s ? `translate3d(0, ${s}px, 0)` : ''; }
+    }
+    d.to = to;
+    d.frame = requestAnimationFrame(tick);
+  };
+
+  const begin = (p: LookPress, y: number): void => {
+    const list = listRef.current;
+    clearTimeout(p.timer);
+    press.current = null;
+    if (!list || drag.current) return;
+    const rows = rowsOf();
+    const from = rows.indexOf(p.li);
+    if (from < 0) return;
+    rows.forEach((r) => r.getAnimations().forEach((a) => a.finish()));
+    const tops = rows.map((r) => r.offsetTop); const heights = rows.map((r) => r.offsetHeight);
+    const gap = rows.length > 1 ? tops[1] - tops[0] - heights[0] : 0;
+    drag.current = {
+      key: p.key, li: p.li, rows, from, to: from, tops, heights, step: heights[from] + gap,
+      startY: p.y, y, pointerId: p.pointerId, startScroll: list.scrollTop, shifts: rows.map(() => 0), frame: 0,
+    };
+    p.li.classList.add('lifted'); // at once (React renders it too): the row must not glide after the pointer
+    list.classList.add('sorting');
+    document.documentElement.classList.add('look-grabbing');
+    setLifted(p.key);
+    drag.current.frame = requestAnimationFrame(tick);
+  };
+
+  const drop = (cancel: boolean): void => {
+    const d = drag.current;
+    if (!d) return;
+    drag.current = null;
+    cancelAnimationFrame(d.frame);
+    // where the rows are seen now (some may still be sliding aside), before their transitions are switched off
+    snapshot({ lifted: d.key });
+    listRef.current?.classList.remove('sorting');
+    d.li.classList.remove('lifted');
+    document.documentElement.classList.remove('look-grabbing');
+    const to = cancel ? d.from : d.to;
+    setLifted(null);
+    if (to !== d.from) { moveLookTo(d.key, to); setSaid(t('lookOrderMoved', { name: nameOf(d.key), n: to + 1 })); }
+  };
+  const dropRef = useRef(drop); dropRef.current = drop;
+  const beginRef = useRef(begin); beginRef.current = begin;
+
+  useEffect(() => {
+    const unpress = (): void => { if (press.current) { clearTimeout(press.current.timer); press.current = null; } };
+    const move = (e: PointerEvent): void => {
+      const p = press.current;
+      if (p && e.pointerId === p.pointerId) {
+        const far = Math.hypot(e.clientX - p.x, e.clientY - p.y);
+        if (p.type === 'touch') { if (far > 8) unpress(); } // the finger scrolls the list instead
+        else if (far > 4) beginRef.current(p, e.clientY);
+        return;
+      }
+      const d = drag.current;
+      if (d && e.pointerId === d.pointerId) { d.y = e.clientY; e.preventDefault(); }
+    };
+    const up = (e: PointerEvent): void => {
+      if (press.current?.pointerId === e.pointerId) unpress();
+      if (drag.current?.pointerId === e.pointerId) dropRef.current(e.type === 'pointercancel');
+    };
+    const key = (e: KeyboardEvent): void => { if (e.key === 'Escape' && drag.current) { e.preventDefault(); e.stopPropagation(); dropRef.current(true); } };
+    const blur = (): void => { unpress(); dropRef.current(true); };
+    // while a finger drags, the page must not scroll (or the browser takes the gesture over)
+    const touch = (e: TouchEvent): void => { if (drag.current) e.preventDefault(); };
+    const menu = (e: Event): void => { if (drag.current || press.current?.type === 'touch') e.preventDefault(); };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    window.addEventListener('keydown', key, true);
+    window.addEventListener('blur', blur);
+    window.addEventListener('touchmove', touch, { passive: false });
+    window.addEventListener('contextmenu', menu);
+    return () => {
+      unpress();
+      const d = drag.current;
+      if (d) { cancelAnimationFrame(d.frame); drag.current = null; document.documentElement.classList.remove('look-grabbing'); }
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      window.removeEventListener('keydown', key, true);
+      window.removeEventListener('blur', blur);
+      window.removeEventListener('touchmove', touch);
+      window.removeEventListener('contextmenu', menu);
+    };
+  }, []);
+
+  const onDown = (e: React.PointerEvent<HTMLLIElement>, key: string): void => {
+    if (drag.current || press.current || e.button !== 0 || (e.target as HTMLElement).closest('button')) return;
+    const p: LookPress = { key, li: e.currentTarget, pointerId: e.pointerId, type: e.pointerType, x: e.clientX, y: e.clientY, timer: 0 };
+    if ((e.target as HTMLElement).closest('.look-grip')) { e.preventDefault(); begin(p, e.clientY); return; }
+    press.current = p;
+    if (p.type === 'touch') p.timer = window.setTimeout(() => { if (press.current === p) beginRef.current(p, p.y); }, 320);
+  };
+  const step = (k: string, i: number, delta: -1 | 1): void => {
+    snapshot({ reveal: k });
+    moveLook(k, delta);
+    setSaid(t('lookOrderMoved', { name: nameOf(k), n: i + delta + 1 }));
+  };
+
+  return (
+    <div className="looks">
+      <div className="card look-card" data-tour="ic-order">
+        <ol className="look-list" ref={listRef} aria-label={t('lookOrderTitle')}>
+          {order.map((k, i) => {
+            const isHidden = hidden.has(k);
+            const mono = monoOnly.has(k);
+            const keep = KEEP_VISIBLE.includes(k);
+            return (
+              <li key={k} data-key={k} className={`look-slot ${lifted === k ? 'lifted' : ''}`} onPointerDown={(e) => onDown(e, k)}>
+                <div className={`look-row ${isHidden ? 'hidden' : ''} ${lifted === k ? 'lifted' : ''}`}>
+                  <span className="look-grip" title={t('lookOrderDrag')} aria-hidden>{Ico.grip}</span>
+                  <span className="look-name">{nameOf(k)}{mono ? <em className="look-mono">{t('lookOrderMono')}</em> : null}</span>
+                  {isHidden && <span className="look-tag">{t('lookOrderHiddenTag')}</span>}
+                  <span className="look-btns">
+                    <button className="btn ghost icon-only" title={t('lookOrderUp')} aria-label={`${t('lookOrderUp')} · ${nameOf(k)}`} disabled={i === 0} onClick={() => step(k, i, -1)}>{Ico.up}</button>
+                    <button className="btn ghost icon-only" title={t('lookOrderDown')} aria-label={`${t('lookOrderDown')} · ${nameOf(k)}`} disabled={i === order.length - 1} onClick={() => step(k, i, 1)}>{Ico.down}</button>
+                    <button
+                      className={`btn ghost icon-only look-eye ${isHidden ? 'on' : ''}`} title={keep ? t(gr3 ? 'lookOrderKeepStandardGr3' : 'lookOrderKeepStandard') : isHidden ? t('lookOrderShow') : t('lookOrderHide')}
+                      aria-label={`${isHidden ? t('lookOrderShow') : t('lookOrderHide')} · ${nameOf(k)}`} aria-pressed={isHidden} disabled={keep} onClick={() => setLookHidden(k, !isHidden)}
+                    >{isHidden ? Ico.eyeOff : Ico.eye}</button>
+                  </span>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
+      <aside className="card look-info">
+        <div className="look-info-head">
+          <span className="page-icon soft-ico">{Ico.updown}</span>
+          <div className="soft-text">
+            <b>{t('lookOrderTitle')}</b>
+            <span className="muted small">{t('lookOrderSub')}</span>
+          </div>
+        </div>
+        <div className="chips look-stats">
+          <span className="chip">{t('lookOrderShown', { n: order.length - hidden.size })}</span>
+          <span className={`chip ${hidden.size ? 'warn' : 'muted'}`}>{t('lookOrderCount', { n: hidden.size })}</span>
+        </div>
+        <p className="muted small look-order-hint">{t('lookOrderHint')}</p>
+        {gr3 && <p className="muted small look-order-hint">{t('lookOrderGr3Note')}</p>}
+        <button className="btn small look-order-reset" disabled={!changed} onClick={() => { snapshot(); resetLookLayout(); }}>{Ico.refresh}<span>{t('lookOrderReset')}</span></button>
+      </aside>
+      <span className="sr-only" aria-live="polite">{said}</span>
     </div>
   );
 }
@@ -313,7 +623,10 @@ function HalationProp({ k }: { k: SlotKey }) {
   const on = useStore((s) => halationOf(k, s).on);
   const preview = useStore((s) => halationOf(k, s).preview);
   const colour = useStore((s) => halationOf(k, s).colour ?? 'red');
-  const cinema = !k.startsWith('x-');
+  // GR III / IIIx films all have it, as GR IV's added slots (legacy builds without a film count fix the level).
+  const gr3x = useStore((s) => s.info?.family === 'gr3x');
+  const fixed = useStore((s) => s.info?.family === 'gr3x' && !filmCountChoosable(s));
+  const cinema = !k.startsWith('x-') && !gr3x;
   return (
     <Prop label={t('haloLabel')}>
       <div className="halo">
@@ -325,11 +638,14 @@ function HalationProp({ k }: { k: SlotKey }) {
         {on && (
           <div className="chips">
             <span className="muted small">{t('haloPreview')}</span>
-            <Segmented value={String(preview)} onChange={(v) => setHalation(k, { preview: Number(v) as 0 | 1 | 2 | 3 })} options={[{ value: '0', label: t('haloOff') }, { value: '1', label: t('haloWeak') }, { value: '2', label: t('haloMedium') }, { value: '3', label: t('haloStrong') }]} />
-            {preview > 0 && <Segmented value={colour} onChange={(v) => setHalation(k, { colour: v as 'red' | 'white' })} options={[{ value: 'red', label: t('haloRed') }, { value: 'white', label: t('haloWhite') }]} />}
+            {/* GR III / IIIx legacy builds (no film count) fix Weak or Strong red in the build: those only. */}
+            <Segmented value={String(fixed && preview === 2 ? 3 : preview)} onChange={(v) => setHalation(k, { preview: Number(v) as 0 | 1 | 2 | 3 })} options={fixed
+              ? [{ value: '0', label: t('haloOff') }, { value: '1', label: t('haloWeak') }, { value: '3', label: t('haloStrong') }]
+              : [{ value: '0', label: t('haloOff') }, { value: '1', label: t('haloWeak') }, { value: '2', label: t('haloMedium') }, { value: '3', label: t('haloStrong') }]} />
+            {preview > 0 && !fixed && <Segmented value={colour} onChange={(v) => setHalation(k, { colour: v as 'red' | 'white' })} options={[{ value: 'red', label: t('haloRed') }, { value: 'white', label: t('haloWhite') }]} />}
           </div>
         )}
-        <span className="muted small halo-note">{t(cinema ? 'halationCinemaSub' : 'halationSub')}</span>
+        <span className="muted small halo-note">{t(cinema ? 'halationCinemaSub' : fixed ? 'gr3xHalationSub' : 'halationSub')}</span>
       </div>
     </Prop>
   );
@@ -358,6 +674,10 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
   const soft = useStore((s) => s.soft);
   const date = useStore((s) => s.dateStamp);
   const looks = useStore((s) => s.monoUnlock);
+  const gr3x = useStore(s => s.info?.family === 'gr3x');
+  const dateOk = useStore(s => !!s.info?.features.dateStamp);
+  const flash = useStore((s) => s.directFlash);
+  const flashOk = useStore((s) => !!s.info?.features.directFlash);
   const own = useRef<HTMLDivElement | null>(null);
   // Moved to the other column: glide from where it was (FLIP). Rectangles are in window pixels,
   // the transform is in the zoomed interface's pixels.
@@ -373,9 +693,10 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
   }, [from]);
   return (
     <div className="card extras" data-tour="ic-soft" ref={(el) => { own.current = el; boxRef?.(el); }}>
-      <FeatureRow icon={Ico.soft} title={t('navSoft')} sub={t('softAdjSub')} on={soft} onChange={setSoft} />
-      <FeatureRow icon={Ico.date} title={t('navDate')} sub={t('dateSub')} on={date} onChange={setDateStamp} />
-      {!mono && <FeatureRow icon={Ico.mono} title={t('navMono')} sub={t('monoSub')} on={looks} onChange={setMonoUnlock} />}
+      <FeatureRow icon={Ico.soft} title={t('navSoft')} sub={t(gr3x ? 'gr3xSoftSub' : 'softAdjSub')} on={soft} onChange={setSoft} />
+      {(!gr3x || dateOk) && <FeatureRow icon={Ico.date} title={t('navDate')} sub={t('dateSub')} on={date} onChange={setDateStamp} />}
+      {!mono && !gr3x && <FeatureRow icon={Ico.mono} title={t(gr3x ? 'gr3xReplicaTitle' : 'navMono')} sub={t(gr3x ? 'gr3xReplicaSub' : 'monoSub')} on={looks} onChange={setMonoUnlock} />}
+      {flashOk && <FeatureRow icon={Ico.flash} title={t('navFlash')} sub={t('flashSub')} on={flash} onChange={setDirectFlash} />}
     </div>
   );
 }
@@ -387,6 +708,11 @@ type Place = 'left' | 'right';
  * the preview on the right, and back when there is room again.
  */
 function IcBody() {
+  const allSlots = useStore(s => s.info!.slots);
+  const choosable = useStore((s) => filmCountChoosable(s));
+  const filmCount = useStore((s) => s.filmCount);
+  const slots = useMemo(() => (choosable ? allSlots.slice(0, filmCount) : allSlots), [allSlots, choosable, filmCount]);
+  const gr3x = useStore((s) => s.info?.family === 'gr3x');
   const cardsRef = useRef<HTMLDivElement>(null);
   const boxRef = useRef<HTMLDivElement | null>(null);
   const from = useRef<DOMRect | null>(null);
@@ -425,13 +751,99 @@ function IcBody() {
   const extras = useStore((s) => s.extras);
   return (
     <div className="ic" data-tour-page="ic">
-      <div className="cards" ref={cardsRef}>
+      {gr3x
+        ? <div className="cards" ref={cardsRef}>{choosable && <FilmCountHead />}{slots.map((slot) => <SlotCard key={slot.id} id={slot.id} />)}{place === 'left' && switches}</div>
+        : (
+        <div className="cards" ref={cardsRef}>
         <SlotCard id="CY" /><SlotCard id="CG" />
         <ExtrasHead />
         {extras.map((x, i) => <ExtraSlotCard key={x.key} x={x} index={i} />)}
         {place === 'left' && switches}
       </div>
+        )}
       <PreviewPane below={place === 'right' ? switches : undefined} belowH={belowH} />
+    </div>
+  );
+}
+
+type IcView = 'slots' | 'order';
+const IC_VIEWS: IcView[] = ['slots', 'order'];
+/** The view last shown, kept while the program runs (going to another page and back keeps it). */
+let lastIcView: IcView = 'slots';
+
+/**
+ * The two views of the page as tabs next to its title. The highlight glides from one to the other
+ * with the same easing as the views themselves. Arrow keys, Home and End move between the tabs.
+ */
+function ViewTabs({ value, onChange }: { value: IcView; onChange: (v: IcView) => void }) {
+  const tabs = useRef<(HTMLButtonElement | null)[]>([]);
+  const pill = useRef<HTMLSpanElement>(null);
+  const box = useRef<HTMLDivElement>(null);
+  const label: Record<IcView, string> = { slots: t('icViewSlots'), order: t('icViewOrder') };
+  const current = useRef(value); current.current = value;
+  const place = (): void => {
+    const b = tabs.current[IC_VIEWS.indexOf(current.current)]; const p = pill.current;
+    if (!b || !p) return;
+    p.style.width = `${b.offsetWidth}px`;
+    p.style.transform = `translateX(${b.offsetLeft - 2}px)`;
+  };
+  useLayoutEffect(place, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    // placed without gliding at first, and when the labels change width (fonts, language)
+    const p = pill.current;
+    const frame = requestAnimationFrame(() => p?.classList.remove('still'));
+    let first = true;
+    const ro = new ResizeObserver(() => {
+      if (first) { first = false; return; }
+      p?.classList.add('still'); place(); requestAnimationFrame(() => p?.classList.remove('still'));
+    });
+    if (box.current) ro.observe(box.current);
+    return () => { cancelAnimationFrame(frame); ro.disconnect(); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const key = (e: React.KeyboardEvent, i: number): void => {
+    const n = IC_VIEWS.length;
+    const to = e.key === 'ArrowRight' ? (i + 1) % n : e.key === 'ArrowLeft' ? (i - 1 + n) % n : e.key === 'Home' ? 0 : e.key === 'End' ? n - 1 : -1;
+    if (to < 0) return;
+    e.preventDefault();
+    onChange(IC_VIEWS[to]);
+    tabs.current[to]?.focus();
+  };
+  return (
+    <div className="seg ic-tabs" role="tablist" aria-label={t('icViews')} data-tour="ic-views" ref={box}>
+      <span className="ic-tabs-pill still" ref={pill} aria-hidden />
+      {IC_VIEWS.map((v, i) => (
+        <button
+          key={v} type="button" role="tab" id={`ic-tab-${v}`} aria-controls={`ic-view-${v}`} aria-selected={v === value} tabIndex={v === value ? 0 : -1}
+          ref={(el) => { tabs.current[i] = el; }} className={v === value ? 'on' : ''} onClick={() => onChange(v)} onKeyDown={(e) => key(e, i)}
+        >{label[v]}</button>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * The slots and the menu order side by side on one track, which slides to the chosen one like a
+ * page being turned. Both stay mounted, so each keeps its own scroll position; the one out of
+ * sight is inert (no focus, no pointer, hidden from assistive technology).
+ */
+function IcViews({ view }: { view: IcView }) {
+  const track = useRef<HTMLDivElement>(null);
+  const panels = useRef<Record<IcView, HTMLElement | null>>({ slots: null, order: null });
+  const first = useRef(true);
+  useLayoutEffect(() => {
+    for (const v of IC_VIEWS) panels.current[v]?.toggleAttribute('inert', v !== view);
+    if (first.current) { first.current = false; return; }
+    // a layer of its own only while it moves (text keeps its sharpest rendering at rest)
+    if (!reducedMotion()) track.current?.classList.add('moving');
+  }, [view]);
+  // the clipped frame must never be scrolled sideways (e.g. by focus); the track alone moves
+  const unscroll = (e: React.UIEvent<HTMLDivElement>): void => { if (e.currentTarget.scrollLeft) e.currentTarget.scrollLeft = 0; };
+  return (
+    <div className="ic-views" onScroll={unscroll}>
+      <div className={`ic-track ${view === 'order' ? 'at-order' : ''}`} ref={track} onTransitionEnd={(e) => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('moving'); }}>
+        <section className="ic-view" id="ic-view-slots" role="tabpanel" aria-labelledby="ic-tab-slots" ref={(el) => { panels.current.slots = el; }}><IcBody /></section>
+        <section className="ic-view" id="ic-view-order" role="tabpanel" aria-labelledby="ic-tab-order" ref={(el) => { panels.current.order = el; }}><LookOrderView /></section>
+      </div>
     </div>
   );
 }
@@ -441,17 +853,26 @@ export function ImageControlPage() {
   const fwName = useStore((s) => s.fwName);
   const model = useStore((s) => s.model);
   const version = useStore((s) => fwVersion(s));
-  const colour = useStore((s) => colourWork(s));
+  const [view, setViewState] = useState<IcView>(lastIcView);
+  const setView = (v: IcView): void => { lastIcView = v; setViewState(v); };
+  // the page's guide points at the slots: show them while it runs
+  const touring = useStore((s) => s.tour?.id === 'ic');
+  useEffect(() => { if (touring) setView('slots'); }, [touring]);
+  // The slots (and the menu order) are the colour work: not on the Monochrome, not with 1.20's file.
+  const views = !!info && info.capabilities.presets && model !== 'MONO';
+  // The menu order is a view of its own where the firmware has it (GR IV; GR III / IIIx).
+  const orderView = useStore((s) => lookOrderAvailable(s));
   return (
     <DropZone className="page" accept={isFirmware} onFiles={(f) => { void loadFirmwareFile(f[0]); }}>
       <header className="page-head">
         <span className="page-icon">{Ico.aperture}</span>
         <h1>{t('navIC')}</h1>
+        {views && orderView && <ViewTabs value={view} onChange={setView} />}
         {info && (
           <div className="head-right" data-tour="ic-stock">
             {info.bridge
-              ? <span className="chip warn">{Ico.bridge}<span className="ellipsis">{fwName || 'fwdc248b.bin'} · {t('fwBridgeValue')}</span></span>
-              : <span className="chip ok">{Ico.check}<span className="ellipsis">{fwName || 'fwdc248b.bin'} · {version}</span></span>}
+              ? <span className="chip warn">{Ico.bridge}<span className="ellipsis">{fwName || info.filename} · {t('fwBridgeValue')}</span></span>
+              : <span className="chip ok">{Ico.check}<span className="ellipsis">{fwName || info.filename} · {version}</span></span>}
             <Menu items={[
               { label: t('writeStock'), run: () => { void outputFirmware({ kind: 'card' }, true); } },
               { label: t('exportStock'), run: () => { void outputFirmware({ kind: 'folder' }, true); } },
@@ -460,8 +881,8 @@ export function ImageControlPage() {
         )}
       </header>
       {!info && <FirmwareHero />}
-      {info && colour && <IcBody />}
-      {info && !colour && <div className="mono-ic" data-tour-page="ic"><p className="muted">{t(model === 'MONO' ? 'monoNoSlots' : 'colourNeeds111', { v: version })}</p><FeatureSwitches mono /></div>}
+      {views && (orderView ? <IcViews view={view} /> : <IcBody />)}
+      {info && !views && <div className="mono-ic" data-tour-page="ic"><p className="muted">{t(model === 'MONO' ? 'monoNoSlots' : 'colourNeeds111', { v: version })}</p><FeatureSwitches mono /></div>}
     </DropZone>
   );
 }
@@ -473,6 +894,7 @@ const COMMON_RATIOS = ['65:24', '2.39:1', '2:1', '5:4', '7:6'];
 const size = (s: [number, number]): string => `${s[0]}×${s[1]}`;
 
 function RatioRow({ r, active, tour }: { r: RatioItem; active: boolean; tour?: string }) {
+  const gr3x = useStore(s => s.info?.family === 'gr3x');
   const p = r.preview;
   // A ratio narrower than 1:1 is only marked (the input in red, the reason as its tooltip).
   const portrait = p?.problem === 'ratio-portrait';
@@ -486,7 +908,7 @@ function RatioRow({ r, active, tour }: { r: RatioItem; active: boolean; tour?: s
         autoFocus={!r.ratio} onChange={(e) => setRatio(r.id, { ratio: e.target.value.replace(/[^0-9:.：/xX×]/g, '').replace(/[：/xX×]/g, ':') })}
       />
       <input
-        className={`input ratio-name ${problem && !p?.problem ? 'bad' : ''}`} value={r.name} maxLength={24} spellCheck={false} placeholder={p?.label || t('name')} aria-label={t('name')}
+        className={`input ratio-name ${problem && !p?.problem ? 'bad' : ''}`} value={r.name} maxLength={gr3x ? GR3X_RATIO_NAME_MAX : 24} spellCheck={false} placeholder={p?.label || t('name')} aria-label={t('name')}
         onChange={(e) => setRatio(r.id, { name: e.target.value })}
       />
       <span className={`ratio-size ${problem ? 'bad' : ''}`} title={problem || undefined}>
@@ -549,14 +971,15 @@ export function RatioPage() {
   const ratios = useStore((s) => s.ratios);
   const activeId = useStore((s) => s.activeRatio);
   const active = ratios.find((r) => r.id === activeId) || ratios[0];
-  const full = ratios.length >= MAX_CUSTOM_RATIOS;
+  const max = useStore((s) => maxRatios(s));
+  const full = ratios.length >= max;
   const used = new Set(ratios.map((r) => r.ratio.trim()));
   return (
     <DropZone className="page" accept={isFirmware} onFiles={(f) => { void loadFirmwareFile(f[0]); }}>
       <header className="page-head">
         <span className="page-icon">{Ico.ratio}</span>
         <h1>{t('navRatio')}</h1>
-        {info && <div className="head-right"><span className="chip">{ratios.filter((r) => r.ratio.trim()).length}/{MAX_CUSTOM_RATIOS}</span></div>}
+        {info && <div className="head-right"><span className="chip">{`${ratios.filter(r => r.ratio.trim()).length}/${max}`}</span></div>}
       </header>
       {!info && <FirmwareHero />}
       {info && (
@@ -564,8 +987,9 @@ export function RatioPage() {
           <div className="ratio-list">
             <div className="ratio-factory" data-tour="ratio-factory">
               <span className="muted small">{t('ratioFactory')}</span>
-              {FACTORY_RATIOS.map((f) => <span key={f} className="chip muted">{f}</span>)}
+              {(info.factoryRatios || FACTORY_RATIOS).map((f) => <span key={f} className="chip muted">{f}</span>)}
             </div>
+            {info.family === 'gr3x' && <p className="muted small">{t('gr3xRatioAdj')}</p>}
             {ratios.map((r, i) => <RatioRow key={r.id} r={r} active={r.id === active?.id} tour={i === 0 ? 'ratio-row' : undefined} />)}
             {!full && (
               <div className="ratio-add">
