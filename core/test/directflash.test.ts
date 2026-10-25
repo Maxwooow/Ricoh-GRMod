@@ -44,7 +44,7 @@ describe('Direct Flash: data', () => {
 describe('Direct Flash: camera-menu settings', () => {
   it('lists at most 21 values (the list controller makes rows for the camera\'s longest list), defaults stored as 0', () => {
     const lists = aspect.directFlashLists();
-    expect(lists.map((l) => l.codes.length)).toEqual([21, 9, 8, 3]);
+    expect(lists.map((l) => l.codes.length)).toEqual([21, 9, 8, 2]);
     for (const l of lists) {
       expect(l.codes.length).toBeLessThanOrEqual(21);
       expect(new Set(l.codes).size).toBe(l.codes.length);
@@ -55,7 +55,8 @@ describe('Direct Flash: camera-menu settings', () => {
     expect(lists[0].names[lists[0].fallback][2]).toBe('GN 3');
     expect(lists[1].names[lists[1].fallback][2]).toBe('-1.0 EV');
     expect(lists[2].names[lists[2].fallback][2]).toBe('1/30');
-    expect(lists[3].names[lists[3].fallback][2]).toBe('Low ISO');
+    expect(lists[3].names[lists[3].fallback][2]).toBe('Standard');
+    expect(lists[3].codes).toEqual([0, 2]);
     expect(lists.every((l) => l.names.every((n) => n.length === 21))).toBe(true);
     // Byte 0x99A: bits 0..5 GN (every listed one fits), bits 6..7 the priority; byte 0x99B: bit 0 Direct
     // Flash, 1..4 background, 5..7 slowest shutter speed.
@@ -66,7 +67,7 @@ describe('Direct Flash: camera-menu settings', () => {
     // The shutter line is the camera's own "Minimum Shutter Speed" (text 125).
     expect(lists.map((l) => l.title)).toEqual([911, 912, 125, 913]);
     // Texts after the ratio names (901..908), icons below the ratio icons (720..).
-    expect(lists[3].firstText + lists[3].codes.length - 1).toBe(954);
+    expect(lists[3].firstText + lists[3].codes.length - 1).toBe(953);
     expect(lists[3].firstIcon + lists[3].codes.length - 1).toBeLessThan(720);
   });
   it.skipIf(!have)('line names fit beside the camera\'s own submenu lines, with glyphs of its own texts', () => {

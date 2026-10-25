@@ -38,7 +38,7 @@ struct ctx {
   float (*sync_tv)(void *apex, u32 flag, float av); /* 0x536792E0: fastest Tv the flash syncs with */
   const volatile u8 *gn;            /* setting byte (0x99A): bits 0..5 the guide number (ISO 100,
                                      * metres, full power), 0 = the default below; bits 6..7 exposure
-                                     * priority: 1 Max Sync, 2 Fastest Shutter (see `solve`) */
+                                     * priority: 2 Max Sync, else Standard (see `solve`) */
   float gn_default;                 /* 2 log2(GN) of the default guide number */
 #ifdef DIAG
   /* Test builds only: a RAM word (zero at start) that holds a buffer, allocated with `alloc` on the
@@ -204,11 +204,28 @@ static void fast_at(const struct limits *l, float f0, int nd, float floor, struc
   float f = f0 - 2.0f * (float)nd;
   float e = l->ev - 5.0f - 2.0f * (float)nd;
   float tv = l->k->sync_tv(l->apex, 1, floor), x, sv, av, th, fl;
+  int pass;
   if (tv > l->tv_hi) tv = l->tv_hi;
   fl = exp2_(f - 5.0f);
-  x = log2_(fl + exp2_(e - tv));
-  sv = clamp(floor - x, l->sv_lo, l->sv_hi);
-  av = clamp(sv + x, floor, l->av_hi);
+  {
+    float t0 = tv, x0 = 0, s0 = 0, a0 = 0, h0 = 0;
+    for (pass = 0; pass < 2; pass++) {
+      x = log2_(fl + exp2_(e - tv));
+      sv = clamp(floor - x, l->sv_lo, l->sv_hi);
+      av = clamp(sv + x, floor, l->av_hi);
+      th = l->k->sync_tv(l->apex, 1, av);
+      if (th > l->tv_hi) th = l->tv_hi;
+      if (pass) {
+        /* the faster speed needs a wider aperture that no longer syncs with it: back */
+        if (th < tv) { tv = t0; x = x0; sv = s0; av = a0; th = h0; }
+        break;
+      }
+      if (th <= tv) break;
+      x0 = x; s0 = sv; a0 = av; h0 = th;
+      t0 = tv;
+      tv = th; /* the aperture this needs syncs faster than the floor's: try that speed */
+    }
+  }
   if (x - (av - sv) < -0.001f) {
     /* too dark at this speed: slower, for the ambient light to make up the rest */
     float lim = exp2_(av - sv);
@@ -369,8 +386,9 @@ void df_plan(u8 *ae, const struct ctx *k)
 
   l.k = k;
   l.apex = apex;
-  i = (*k->gn >> 6) & 3u;                /* bits 6..7: 0 Low ISO, 1 Max Sync, 2 Fastest Shutter (3: Low ISO) */
-  l.sync_first = i == 1;
+  i = (*k->gn >> 6) & 3u;                /* bits 6..7: 2 Max Sync (test 059's Fastest Shutter), else Standard
+                                          * (test 059's Max Sync; test 060 has no Low ISO any more) */
+  l.sync_first = i != 2;
   l.fastest = i == 2;
   i = (setting >> 1) & 15u;
   if (i == 0 || i > 9) i = BG_DEFAULT;

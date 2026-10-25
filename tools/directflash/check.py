@@ -173,8 +173,9 @@ def choices(s):
     if k == 0 or k > 9:
         k = 3
     n = s['byte'] >> 5
-    prio = (s['gnb'] >> 6) & 3
-    return gn, k / 3, 5.0 if n == 0 else float(5 - n) if n <= 5 else float(n), 0 if prio == 3 else prio
+    # Test 060: bits 6..7 = 2 Max Sync (the shutter at the sync limit; 2 here), anything else Standard (1 here).
+    prio = 2 if (s['gnb'] >> 6) & 3 == 2 else 1
+    return gn, k / 3, 5.0 if n == 0 else float(5 - n) if n <= 5 else float(n), prio
 
 
 def reference(s, flip=False):
@@ -235,9 +236,19 @@ def reference(s, flip=False):
         e = s['ev'] - 5 - 2 * nd
         tv = min(sync_rule(f32(floor), s['hs']), tv_hi)
         fl = 2 ** (f - 5)
-        x = math.log2(fl + 2 ** (e - tv))
-        sv = min(max(floor - x, sv_lo), sv_hi)
-        av = min(max(sv + x, floor), av_hi)
+        for pas in range(2):
+            x = math.log2(fl + 2 ** (e - tv))
+            sv = min(max(floor - x, sv_lo), sv_hi)
+            av = min(max(sv + x, floor), av_hi)
+            th = min(sync_rule(f32(av), s['hs']), tv_hi)
+            if pas:
+                if th < tv:
+                    tv, x, sv, av, th = keep
+                break
+            if th <= tv:
+                break
+            keep = (tv, x, sv, av, th)
+            tv = th
         if x - (av - sv) < -0.001:
             tv = max(e - math.log2(2 ** (av - sv) - fl), tv_lo)
             x = math.log2(fl + 2 ** (e - tv))
@@ -322,7 +333,7 @@ def situations():
         yield dict(base, **k)
 
 
-def check_exposure(img, gnb=0, high=0):
+def check_exposure(img, gnb=0, high=0, keep=None):
     """gnb: byte 0x99A; high: bits 1..7 of byte 0x99B, ORed into every situation's byte."""
     wrapper = img.branch(CALL_SITE)
     check(wrapper != FLASH_PROGRAM and wrapper >= BASE + 0x13d2ac0, 'the flash program call does not go to the wrapper')
@@ -348,6 +359,8 @@ def check_exposure(img, gnb=0, high=0):
     sync_seen = set()
     for s in situations():
         s = dict(s, byte=s['byte'] | high, gnb=s['gnb'] or gnb)
+        if keep and not keep(s):
+            continue
         n += 1
         e.mu.mem_write(info, bytes(0x600))
         e.w8(BYTE, s['byte'])
@@ -455,11 +468,9 @@ def check_exposure(img, gnb=0, high=0):
     print(f'  exposure: {n} situations, {applied} with Direct Flash, largest difference {worst:.2e} EV ({borderline} right at the ND Auto threshold), sync limits seen {sorted(sync_seen)}')
     gn, bg, slowest, prio = choices(dict(byte=1 | high, gnb=gnb))
     print(f'  subject correctly exposed in all {physics} not at an aperture / ISO limit; background {-bg:+.2f} EV in all {balanced} with a free shutter speed; too bright at f/16 and the lowest ISO: shutter at its limit in all {over}')
-    if prio == 1:
-        print(f'  Max Sync: faster shutter speed than Low ISO in {faster} situations, never slower')
     if prio == 2:
-        check(fastest_faster > 0, 'Fastest Shutter never faster than Max Sync')
-        print(f'  Fastest Shutter: faster than Max Sync in {fastest_faster} situations, never slower than Low ISO or Max Sync where all expose correctly')
+        check(fastest_faster > 0 or keep is not None, 'Max Sync never faster than Standard')
+        print(f'  Max Sync: faster than Standard in {fastest_faster} situations, never slower where both expose correctly')
     # The camera's own sync function, called as the module does, is the rule above.
     for av in (2.97, 3.5, 4.0, 4.3, 4.7, 5.5, 8.0):
         for hs in (0, 1):
@@ -620,18 +631,24 @@ def main():
     print('1d. exposure (GN 2, background -3.0 EV, slowest 1 s; an unlisted GN 50)')
     check_exposure(new, 2, (9 << 1) | (5 << 5))
     check_exposure(new, 50, (12 << 1) | (3 << 5))
-    print('1e. exposure priority Max Sync (bit 6 of 0x99A): defaults; GN 12 with -2.0 EV; GN 3 with -3.0 EV')
+    print('1e. bits 6..7 of 0x99A = 1 (test 057..059 Max Sync) read as Standard: defaults; GN 12 with -2.0 EV; GN 3 with -3.0 EV')
     check_exposure(new, 64)
     check_exposure(new, 64 | 12, 6 << 1)
     check_exposure(new, 64 | 3, 9 << 1)
-    print('1f. test 058: GN 18, background -3.0 EV, slowest 1/125 s, Max Sync (a strong flash close by in daylight)')
+    print('1f. test 058: GN 18, background -3.0 EV, slowest 1/125 s, Standard (a strong flash close by in daylight)')
     check_exposure(new, 64 | 18, (9 << 1) | (7 << 5))
     check_exposure(new, 18, (9 << 1) | (7 << 5))
-    print('1g. test 059: exposure priority Fastest Shutter (bits 6..7 of 0x99A = 2): defaults; GN 18 with 1/125 s; GN 12; bits 6..7 = 3 is Low ISO')
+    print('1g. test 060: exposure priority Max Sync (bits 6..7 of 0x99A = 2): defaults; GN 18 with 1/125 s; GN 12; bits 6..7 = 3 is Standard')
     check_exposure(new, 128)
     check_exposure(new, 128 | 18, (9 << 1) | (7 << 5))
     check_exposure(new, 128 | 12, 6 << 1)
     check_exposure(new, 192 | 12, 6 << 1)
+    print('1h. every guide number of the list (2..36), Standard and Max Sync, background -1.0 / -3.0 EV with 1/30 / 1/125 s')
+    for g in (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 25, 28, 32, 36):
+        for prio in (0, 128):
+            for high in (0, (9 << 1) | (7 << 5)):
+                check_exposure(new, prio | (0 if g == 3 else g), high,
+                               keep=lambda s: s['output'] == 1 and s['program'] == 0 and s['nd'] != 1 and s['gnb'] in (prio | (0 if g == 3 else g),))
     print('2./3. menus')
     check_menus(new)
     print('4. text and icon')

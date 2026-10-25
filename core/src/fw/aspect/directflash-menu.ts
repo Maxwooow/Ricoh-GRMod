@@ -10,17 +10,17 @@
  *   Background Brightness   -0.3 EV .. -3.0 EV      how much darker than a correct exposure the
  *                                                   background (ambient light only) is
  *   Minimum Shutter Speed   1/125 .. 1"             the slowest shutter speed (the camera's text)
- *   Exposure Priority       Low ISO / Max Sync /    Max Sync: where the flash-sync limit holds the
- *                           Fastest Shutter         shutter back, a smaller aperture and a higher
- *                                                   ISO for a faster sync limit; Fastest Shutter
- *                                                   (test 059): the shutter at the sync limit
- *                                                   wherever the subject can still be correctly
- *                                                   exposed (the planner)
+ *   Exposure Priority       Standard / Max Sync     Standard: the background as chosen; where the
+ *                                                   flash-sync limit holds the shutter back, a
+ *                                                   smaller aperture and a higher ISO for a faster
+ *                                                   sync limit. Max Sync (test 060): the shutter at
+ *                                                   the sync limit wherever the subject can still
+ *                                                   be correctly exposed (the planner)
  *
  * Where they are kept (see `tools/directflash/directflash.c`, which reads them):
  *  - byte 0x99A of the user settings (padding the factory-defaults initialiser never writes, next
  *    to Direct Flash's byte 0x99B): bits 0..5 the guide number itself (0, what the byte is on every
- *    camera, is GN 3, the GF-2's), bits 6..7 the exposure priority (1 Max Sync, 2 Fastest Shutter);
+ *    camera, is GN 3, the GF-2's), bits 6..7 the exposure priority (2 Max Sync, else Standard);
  *  - bits 1..4 and 5..7 of byte 0x99B (bit 0: Direct Flash chosen, see `directflash.ts`): the
  *    background and the slowest shutter speed; 0 is -1.0 EV and 1/30 s.
  * A value the lists do not have (a byte an earlier build left) shows as the default; the planner
@@ -66,7 +66,7 @@ export const DF_ICON_ID = 663;
 export const DF_GUIDE_NUMBERS: readonly number[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 25, 28, 32, 36];
 export const DF_GN_DEFAULT = 3;
 export const DF_GN_MASK = 0x3f;
-/** Bits 6..7 of byte 0x99A: the exposure priority, 0 Low ISO, 1 Max Sync, 2 Fastest Shutter (test 059; 3 reads as 0). */
+/** Bits 6..7 of byte 0x99A: the exposure priority, 2 Max Sync, anything else Standard (test 060). */
 export const DF_PRIORITY_SHIFT = 6;
 /** Backgrounds: k / 3 EV darker, k = 1..9 (-0.3 .. -3.0 EV); stored as k, the default (-1.0 EV, k = 3) as 0. */
 export const DF_BACKGROUND_THIRDS: readonly number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
@@ -113,11 +113,11 @@ export const DF_MAX_SYNC_NAMES: readonly string[] = [
   'Макс. синхронизация', '同步上限优先', 'Sincro. máx.', 'Max. synk', 'ซิงค์สูงสุด', '同步上限優先', 'Maks. senkron',
 ];
 
-/** Test 059: the third priority, Fastest Shutter (bits 6..7 = 2), in `LANGS` order. */
-export const DF_FASTEST_NAMES: readonly string[] = [
-  'Nejkratší čas', 'Hurtigste lukker', 'Fastest Shutter', 'Nopein suljin', 'Vitesse max.', 'Kürzeste Zeit', 'Ταχύτερο κλείστρο',
-  'Leggyorsabb zár', 'Tempo più breve', 'シャッター最速', '셔터 최고속', 'Snelste sluiter', 'Najkrótszy czas', 'Obturador máx.',
-  'Кратчайшая выдержка', '快门最快', 'Obturador máx.', 'Snabbaste slutare', 'ชัตเตอร์เร็วสุด', '快門最快', 'En hızlı enstantane',
+/** Test 060: Standard (bits 6..7 = 0: the background as chosen, the sync limit raised by a smaller aperture and a higher ISO where needed), in `LANGS` order. */
+export const DF_STANDARD_NAMES: readonly string[] = [
+  'Standardní', 'Standard', 'Standard', 'Normaali', 'Standard', 'Standard', 'Τυπικό',
+  'Normál', 'Standard', 'スタンダード', '표준', 'Standaard', 'Standardowy', 'Padrão',
+  'Стандарт', '标准', 'Estándar', 'Standard', 'มาตรฐาน', '標準', 'Standart',
 ];
 
 export const dfBackgroundName = (k: number): string => `-${(k / 3).toFixed(1)} EV`;
@@ -162,8 +162,9 @@ export function directFlashLists(): DfList[] {
       DF_BACKGROUND_THIRDS.map((k) => drawValueIcon('EV', `-${(k / 3).toFixed(1)}`))),
     make(DF_SLOWEST_ID, TEXT_MIN_SHUTTER, DIRECT_FLASH_BYTE, DF_SLOWEST_SHIFT, 7, DF_SLOWEST.map((x) => x.code), DF_SLOWEST.map((x) => same(x.name)),
       DF_SLOWEST.map((x) => (x.name.startsWith('1/') ? drawValueIcon('1/', x.name.slice(2)) : drawValueIcon('SEC', '1')))),
-    make(DF_PRIORITY_ID, DF_TEXT_ID + 3, DIRECT_FLASH_GN_BYTE, DF_PRIORITY_SHIFT, 3, [0, 1, 2], [[...DF_LOW_ISO_NAMES], [...DF_MAX_SYNC_NAMES], [...DF_FASTEST_NAMES]],
-      [drawValueIcon('LOW', 'ISO'), drawValueIcon('MAX', 'TV'), drawValueIcon('FAST', 'TV')]),
+    // Test 060: Standard (0; also 1 and 3, test 059's Max Sync and an unused value) and Max Sync (2, test 059's Fastest Shutter).
+    make(DF_PRIORITY_ID, DF_TEXT_ID + 3, DIRECT_FLASH_GN_BYTE, DF_PRIORITY_SHIFT, 3, [0, 2], [[...DF_STANDARD_NAMES], [...DF_MAX_SYNC_NAMES]],
+      [drawValueIcon('STD', 'TV'), drawValueIcon('MAX', 'TV')]),
   ];
 }
 
@@ -187,6 +188,7 @@ const GLYPHS: Record<string, readonly string[]> = {
   '/': ['..#', '..#', '.#.', '.#.', '.#.', '#..', '#..'],
   G: ['.###.', '#...#', '#....', '#.###', '#...#', '#...#', '.###.'],
   N: ['#...#', '##..#', '#.#.#', '#..##', '#...#', '#...#', '#...#'],
+  D: ['####.', '#...#', '#...#', '#...#', '#...#', '#...#', '####.'],
   E: ['#####', '#....', '#....', '####.', '#....', '#....', '#####'],
   F: ['#####', '#....', '#....', '####.', '#....', '#....', '#....'],
   V: ['#...#', '#...#', '#...#', '#...#', '.#.#.', '.#.#.', '..#..'],
