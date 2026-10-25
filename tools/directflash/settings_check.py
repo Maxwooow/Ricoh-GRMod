@@ -57,19 +57,19 @@ LISTS = [
     (GN_BYTE, 0, 63, [0 if g == 3 else g for g in GNS], [f'GN {g}' for g in GNS]),
     (BYTE, 1, 15, [0 if k == 3 else k for k in THIRDS], [f'-{k / 3:.1f} EV' for k in THIRDS]),
     (BYTE, 5, 7, [c for _, c in SLOWEST], [n for n, _ in SLOWEST]),
-    (GN_BYTE, 6, 1, [0, 1], ['Low ISO', 'Max Sync Speed']),
+    (GN_BYTE, 6, 3, [0, 1, 2], ['Low ISO', 'Max Sync Speed', 'Fastest Shutter']),
 ]
 TITLES = [T0 + 1, T0 + 2, 125, T0 + 3]
 FIRST_TEXT = [T0 + 4, T0 + 4 + 21, T0 + 4 + 30, T0 + 4 + 38]
 FIRST_ICON = [I0, I0 + 21, I0 + 30, I0 + 38]
-N_ICONS = 40
+N_ICONS = 41
 NAMES = {  # language row -> submenu name, line names (rows as the program indexes languages)
     1: ['Direct Flash Settings', 'Guide Number', 'Background Brightness', 'Exposure Priority'],
     0: ['ダイレクト発光設定', 'ガイドナンバー', '背景の明るさ', '露出優先'],
     19: ['直闪设置', '闪光指数', '背景亮度', '曝光优先'],
     18: ['直閃設定', '閃光指數', '背景亮度', '曝光優先'],
 }
-PRIORITY_ZH = ['低 ISO 优先', '同步上限优先']
+PRIORITY_ZH = ['低 ISO 优先', '同步上限优先', '快门最快']
 SUB_SITES = [(0x531e2064, 0x531e206c), (0x531e20cc, 0x531e20d4), (0x531e2438, 0x531e2444), (0x531e2668, 0x531e266c), (0x531e2734, 0x531e2740)]
 SEL_SITE = (0x531d6d54, 0x531d6d64)
 
@@ -241,7 +241,7 @@ def check_texts_icons(new, earlier, png):
     for row, want in NAMES.items():
         got = [text(new, row, T0 + k) for k in range(4)]
         check(got == want, f'line names, row {row}: {got}')
-    check([text(new, 19, FIRST_TEXT[3] + i) for i in range(2)] == PRIORITY_ZH, 'priority names (zh-CN)')
+    check([text(new, 19, FIRST_TEXT[3] + i) for i in range(3)] == PRIORITY_ZH, 'priority names (zh-CN)')
     for l in range(21):
         for k in range(4):
             check(text(new, l, T0 + k), f'line name {k} missing in row {l}')

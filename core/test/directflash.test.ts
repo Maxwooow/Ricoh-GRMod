@@ -44,7 +44,7 @@ describe('Direct Flash: data', () => {
 describe('Direct Flash: camera-menu settings', () => {
   it('lists at most 21 values (the list controller makes rows for the camera\'s longest list), defaults stored as 0', () => {
     const lists = aspect.directFlashLists();
-    expect(lists.map((l) => l.codes.length)).toEqual([21, 9, 8, 2]);
+    expect(lists.map((l) => l.codes.length)).toEqual([21, 9, 8, 3]);
     for (const l of lists) {
       expect(l.codes.length).toBeLessThanOrEqual(21);
       expect(new Set(l.codes).size).toBe(l.codes.length);
@@ -57,16 +57,16 @@ describe('Direct Flash: camera-menu settings', () => {
     expect(lists[2].names[lists[2].fallback][2]).toBe('1/30');
     expect(lists[3].names[lists[3].fallback][2]).toBe('Low ISO');
     expect(lists.every((l) => l.names.every((n) => n.length === 21))).toBe(true);
-    // Byte 0x99A: bits 0..5 GN (every listed one fits), bit 6 Max Sync; byte 0x99B: bit 0 Direct
+    // Byte 0x99A: bits 0..5 GN (every listed one fits), bits 6..7 the priority; byte 0x99B: bit 0 Direct
     // Flash, 1..4 background, 5..7 slowest shutter speed.
-    expect([lists[0].byte, lists[0].shift, lists[0].mask, lists[3].byte, lists[3].shift, lists[3].mask]).toEqual([aspect.DIRECT_FLASH_GN_BYTE, 0, 63, aspect.DIRECT_FLASH_GN_BYTE, 6, 1]);
+    expect([lists[0].byte, lists[0].shift, lists[0].mask, lists[3].byte, lists[3].shift, lists[3].mask]).toEqual([aspect.DIRECT_FLASH_GN_BYTE, 0, 63, aspect.DIRECT_FLASH_GN_BYTE, 6, 3]);
     expect(Math.max(...aspect.DF_GUIDE_NUMBERS)).toBeLessThan(64);
     expect([lists[1].byte, lists[1].shift, lists[1].mask, lists[2].byte, lists[2].shift, lists[2].mask]).toEqual([aspect.DIRECT_FLASH_BYTE, 1, 15, aspect.DIRECT_FLASH_BYTE, 5, 7]);
     expect(aspect.DF_SLOWEST.map((x) => x.tv)).toEqual([7, 6, 5, 4, 3, 2, 1, 0]);
     // The shutter line is the camera's own "Minimum Shutter Speed" (text 125).
     expect(lists.map((l) => l.title)).toEqual([911, 912, 125, 913]);
     // Texts after the ratio names (901..908), icons below the ratio icons (720..).
-    expect(lists[3].firstText + lists[3].codes.length - 1).toBe(953);
+    expect(lists[3].firstText + lists[3].codes.length - 1).toBe(954);
     expect(lists[3].firstIcon + lists[3].codes.length - 1).toBeLessThan(720);
   });
   it.skipIf(!have)('line names fit beside the camera\'s own submenu lines, with glyphs of its own texts', () => {

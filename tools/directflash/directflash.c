@@ -37,8 +37,8 @@ struct ctx {
   const volatile u8 *flash_output;  /* Flash Output setting: 0 Auto, 1 1/1, 2 1/4 */
   float (*sync_tv)(void *apex, u32 flag, float av); /* 0x536792E0: fastest Tv the flash syncs with */
   const volatile u8 *gn;            /* setting byte (0x99A): bits 0..5 the guide number (ISO 100,
-                                     * metres, full power), 0 = the default below; bit 6 exposure
-                                     * priority Max Sync (see `solve`) */
+                                     * metres, full power), 0 = the default below; bits 6..7 exposure
+                                     * priority: 1 Max Sync, 2 Fastest Shutter (see `solve`) */
   float gn_default;                 /* 2 log2(GN) of the default guide number */
 #ifdef DIAG
   /* Test builds only: a RAM word (zero at start) that holds a buffer, allocated with `alloc` on the
@@ -115,6 +115,7 @@ struct limits {
   float sv_lo, sv_hi, av_lo, av_hi, tv_lo, tv_hi, ev, c;
   float b;                           /* the background chosen, b EV darker */
   int sync_first;                    /* exposure priority Max Sync */
+  int fastest;                       /* exposure priority Fastest Shutter (test 059) */
   void *apex;
   const struct ctx *k;
 };
@@ -188,11 +189,79 @@ static float absf(float v)
 #define AV_SYNC_FASTEST 4.70f
 #define AV_SYNC_FASTER 4.02f
 
+/*
+ * Exposure priority Fastest Shutter (test 059; bits 6..7 of the guide-number byte = 2): the shutter
+ * as fast as the flash syncs with, wherever the subject can still be correctly exposed; the
+ * background then as dark as that makes it (the background chosen is not used). For each of the
+ * camera's sync limits (an aperture of at least Av 4.67, 4, or any): the fastest shutter speed it
+ * allows, the lowest ISO with an aperture at least that, and where even the widest aperture and the
+ * highest ISO are too dark at that speed, the shutter speed slower until the ambient light makes
+ * up the rest (no slower than the slowest chosen). Taken: a correct exposure first, then the
+ * fastest shutter speed, then the lowest ISO.
+ */
+static void fast_at(const struct limits *l, float f0, int nd, float floor, struct plan *p)
+{
+  float f = f0 - 2.0f * (float)nd;
+  float e = l->ev - 5.0f - 2.0f * (float)nd;
+  float tv = l->k->sync_tv(l->apex, 1, floor), x, sv, av, th, fl;
+  if (tv > l->tv_hi) tv = l->tv_hi;
+  fl = exp2_(f - 5.0f);
+  x = log2_(fl + exp2_(e - tv));
+  sv = clamp(floor - x, l->sv_lo, l->sv_hi);
+  av = clamp(sv + x, floor, l->av_hi);
+  if (x - (av - sv) < -0.001f) {
+    /* too dark at this speed: slower, for the ambient light to make up the rest */
+    float lim = exp2_(av - sv);
+    tv = e - log2_(lim - fl);
+    if (tv < l->tv_lo) tv = l->tv_lo;
+    x = log2_(fl + exp2_(e - tv));
+  }
+  th = l->k->sync_tv(l->apex, 1, av);
+  if (th > l->tv_hi) th = l->tv_hi;
+  if (tv > th) tv = th;
+  if (x - (av - sv) > 0.01f && tv < th) {
+    /* too bright even at the smallest aperture and lowest ISO: as fast as that aperture syncs */
+    tv = th;
+    x = log2_(fl + exp2_(e - tv));
+  }
+  p->tv = tv;
+  p->av = av;
+  p->sv = sv;
+  p->want = tv;
+  p->err = x - (av - sv);
+  p->bg = e - (av - sv) - tv;
+}
+
+static int better_fast(const struct plan *q, const struct plan *p)
+{
+  int qa = absf(q->err) <= 0.02f, pa = absf(p->err) <= 0.02f;
+  if (qa != pa) return qa;
+  if (!qa) {
+    if (absf(q->err) < absf(p->err) - 0.01f) return 1;
+    if (absf(q->err) > absf(p->err) + 0.01f) return 0;
+    return q->tv > p->tv + 0.01f;
+  }
+  if (q->tv > p->tv + 0.01f) return 1;
+  if (q->tv < p->tv - 0.01f) return 0;
+  return q->sv < p->sv - 0.01f;
+}
+
 static void solve(const struct limits *l, float f0, int nd, struct plan *p)
 {
   struct plan q;
   float floors[2];
   int i;
+  if (l->fastest) {
+    floors[0] = AV_SYNC_FASTEST;
+    floors[1] = AV_SYNC_FASTER;
+    fast_at(l, f0, nd, l->av_lo, p);
+    for (i = 0; i < 2; i++) {
+      if (floors[i] <= l->av_lo || floors[i] > l->av_hi) continue;
+      fast_at(l, f0, nd, floors[i], &q);
+      if (better_fast(&q, p)) *p = q;
+    }
+    return;
+  }
   solve_at(l, f0, nd, l->av_lo, p);
   if (!l->sync_first) return;
   floors[0] = AV_SYNC_FASTEST;
@@ -300,7 +369,9 @@ void df_plan(u8 *ae, const struct ctx *k)
 
   l.k = k;
   l.apex = apex;
-  l.sync_first = (*k->gn >> 6) & 1;
+  i = (*k->gn >> 6) & 3u;                /* bits 6..7: 0 Low ISO, 1 Max Sync, 2 Fastest Shutter (3: Low ISO) */
+  l.sync_first = i == 1;
+  l.fastest = i == 2;
   i = (setting >> 1) & 15u;
   if (i == 0 || i > 9) i = BG_DEFAULT;
   a = (float)i * (1.0f / 3.0f);          /* the background a EV darker */
