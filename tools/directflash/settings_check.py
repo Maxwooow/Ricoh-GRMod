@@ -50,26 +50,26 @@ MENU_ID = 0x020001b3
 T0 = 910
 I0 = 663
 GNS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 25, 28, 32, 36]
-THIRDS = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+THIRDS = list(range(1, 16))
 SLOWEST = [('1/125', 7), ('1/60', 6), ('1/30', 0), ('1/15', 1), ('1/8', 2), ('1/4', 3), ('1/2', 4), ('1"', 5)]
 # (byte, shift, mask, codes, English names)
 LISTS = [
     (GN_BYTE, 0, 63, [0 if g == 3 else g for g in GNS], [f'GN {g}' for g in GNS]),
     (BYTE, 1, 15, [0 if k == 3 else k for k in THIRDS], [f'-{k / 3:.1f} EV' for k in THIRDS]),
     (BYTE, 5, 7, [c for _, c in SLOWEST], [n for n, _ in SLOWEST]),
-    (GN_BYTE, 6, 1, [0, 1], ['Low ISO', 'Max Sync Speed']),
+    (GN_BYTE, 6, 3, [0, 2], ['Standard', 'Max Sync Speed']),
 ]
 TITLES = [T0 + 1, T0 + 2, 125, T0 + 3]
-FIRST_TEXT = [T0 + 4, T0 + 4 + 21, T0 + 4 + 30, T0 + 4 + 38]
-FIRST_ICON = [I0, I0 + 21, I0 + 30, I0 + 38]
-N_ICONS = 40
+FIRST_TEXT = [T0 + 4, T0 + 4 + 21, T0 + 4 + 36, T0 + 4 + 44]
+FIRST_ICON = [I0, I0 + 21, I0 + 36, I0 + 44]
+N_ICONS = 46
 NAMES = {  # language row -> submenu name, line names (rows as the program indexes languages)
     1: ['Direct Flash Settings', 'Guide Number', 'Background Brightness', 'Exposure Priority'],
     0: ['ダイレクト発光設定', 'ガイドナンバー', '背景の明るさ', '露出優先'],
     19: ['直闪设置', '闪光指数', '背景亮度', '曝光优先'],
     18: ['直閃設定', '閃光指數', '背景亮度', '曝光優先'],
 }
-PRIORITY_ZH = ['低 ISO 优先', '同步上限优先']
+PRIORITY_ZH = ['标准', '同步上限优先']
 SUB_SITES = [(0x531e2064, 0x531e206c), (0x531e20cc, 0x531e20d4), (0x531e2438, 0x531e2444), (0x531e2668, 0x531e266c), (0x531e2734, 0x531e2740)]
 SEL_SITE = (0x531d6d54, 0x531d6d64)
 

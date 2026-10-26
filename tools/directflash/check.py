@@ -166,14 +166,22 @@ def sync_rule(av, hs):
 
 
 def choices(s):
-    """(GN, background EV darker, slowest Tv, Max Sync) from the two setting bytes, as the camera
-    menu keeps them."""
+    """(GN, background EV darker, slowest Tv, exposure priority: 0 Low ISO, 1 Max Sync, 2 Fastest
+    Shutter, 3 as 0) from the two setting bytes, as the camera menu keeps them."""
     gn = (s['gnb'] & 63) or 3
     k = (s['byte'] >> 1) & 15
-    if k == 0 or k > 9:
+    if k == 0 or k > 15:
         k = 3
     n = s['byte'] >> 5
-    return gn, k / 3, 5.0 if n == 0 else float(5 - n) if n <= 5 else float(n), (s['gnb'] >> 6) & 1
+    # Test 060: bits 6..7 = 2 Max Sync (the shutter at the sync limit; 2 here), anything else Standard (1 here).
+    prio = 2 if (s['gnb'] >> 6) & 3 == 2 else 1
+    return gn, k / 3, 5.0 if n == 0 else float(5 - n) if n <= 5 else float(n), prio
+
+
+def comp_of(s):
+    """The EV compensation the camera took off the scene's Ev (0x536789FC): 0x108, plus 0xE4 when 0xFC is 0, within -8..8."""
+    c = s.get('c108', 0.0) + (s.get('ce4', 0.0) if not s.get('cfc', 1) else 0.0)
+    return min(max(c, -8.0), 8.0)
 
 
 def reference(s, flip=False):
@@ -181,11 +189,13 @@ def reference(s, flip=False):
     Flash does not apply."""
     if not s['byte'] & 1 or s['fm'] != 0 or s['program'] > 4 or s['mode'] == 7 or 1 <= s['kind'] <= 4 or s['mm'] == 0:
         return None
-    gn, bg, slowest, sync_first = choices(s)
+    gn, bg, slowest, prio = choices(s)
+    sync_first, fastest = prio == 1, prio == 2
     mm = min(max(s['mm'], 100), 8000)
     f0 = 2 * math.log2(gn) - 2 * math.log2(mm / 1000)
     if s['output'] == 2:
         f0 -= 2
+    f0 -= comp_of(s)   # test 061: the EV compensation on the flash too
     sv_lo, sv_hi = s['sv_min'], s['sv_max']
     if s['isoauto']:
         a, b = sorted((s['auto_lo'], s['auto_hi']))
@@ -214,9 +224,74 @@ def reference(s, flip=False):
                 break
             tv = th
         tv = min(tv, th)
+        # Too bright at the smallest aperture and lowest ISO: the shutter faster (test 058), to a
+        # correct exposure where the flash alone is not too bright, else up to the sync limit.
+        if x - (av - sv) > 0.01 and tv < th:
+            fl, lim = 2 ** (f - 5), 2 ** (av - sv)
+            t = th if fl >= lim * 0.999 else e - math.log2(lim - fl)
+            if not sync_first:
+                t = min(t, e - (av - sv) + bg)   # Low ISO: to the background chosen
+            t = min(t, th)
+            if t > tv:
+                tv = t; x = math.log2(fl + 2 ** (e - tv))
         return dict(tv=tv, av=av, sv=sv, err=x - (av - sv), bg=e - (av - sv) - tv, want=want)
 
+    def fast_at(nd, floor):
+        # Fastest Shutter (test 059): the sync limit of an aperture of at least `floor`, the lowest
+        # ISO with that aperture; slower where even wide open at the highest ISO it is too dark.
+        f = f0 - 2 * nd
+        e = s['ev'] - 5 - 2 * nd
+        tv = min(sync_rule(f32(floor), s['hs']), tv_hi)
+        fl = 2 ** (f - 5)
+        for pas in range(2):
+            x = math.log2(fl + 2 ** (e - tv))
+            sv = min(max(floor - x, sv_lo), sv_hi)
+            av = min(max(sv + x, floor), av_hi)
+            th = min(sync_rule(f32(av), s['hs']), tv_hi)
+            if pas:
+                if th < tv:
+                    tv, x, sv, av, th = keep
+                break
+            if th <= tv:
+                break
+            keep = (tv, x, sv, av, th)
+            tv = th
+        if x - (av - sv) < -0.001:
+            tv = max(e - math.log2(2 ** (av - sv) - fl), tv_lo)
+            x = math.log2(fl + 2 ** (e - tv))
+        th = min(sync_rule(f32(av), s['hs']), tv_hi)
+        tv = min(tv, th)
+        if x - (av - sv) > 0.01 and tv < th:
+            tv = th
+            x = math.log2(fl + 2 ** (e - tv))
+        return dict(tv=tv, av=av, sv=sv, err=x - (av - sv), bg=e - (av - sv) - tv, want=tv)
+
+    def better(q, p):
+        qa, pa = abs(q['err']) <= 0.02, abs(p['err']) <= 0.02
+        if qa != pa:
+            return qa
+        if not qa:
+            if abs(q['err']) < abs(p['err']) - 0.01:
+                return True
+            if abs(q['err']) > abs(p['err']) + 0.01:
+                return False
+            return q['tv'] > p['tv'] + 0.01
+        if q['tv'] > p['tv'] + 0.01:
+            return True
+        if q['tv'] < p['tv'] - 0.01:
+            return False
+        return q['sv'] < p['sv'] - 0.01
+
     def solve(nd):
+        if fastest:
+            p = fast_at(nd, av_lo)
+            for floor in (4.70, 4.02):
+                if floor <= av_lo or floor > av_hi:
+                    continue
+                q = fast_at(nd, floor)
+                if better(q, p):
+                    p = q
+            return p
         p = solve_at(nd, av_lo)
         if sync_first:
             # Max Sync: a smaller aperture (higher ISO) where the sync limit holds the shutter back.
@@ -265,7 +340,7 @@ def situations():
         yield dict(base, **k)
 
 
-def check_exposure(img, gnb=0, high=0):
+def check_exposure(img, gnb=0, high=0, keep=None, comp=None):
     """gnb: byte 0x99A; high: bits 1..7 of byte 0x99B, ORed into every situation's byte."""
     wrapper = img.branch(CALL_SITE)
     check(wrapper != FLASH_PROGRAM and wrapper >= BASE + 0x13d2ac0, 'the flash program call does not go to the wrapper')
@@ -286,11 +361,15 @@ def check_exposure(img, gnb=0, high=0):
     e.w32(ae + 0x28, info)
     e.w32(diag + 4, apex)
     e.w32(apex + 4, info)
-    n = applied = physics = balanced = borderline = faster = 0
+    n = applied = physics = balanced = borderline = faster = over = fastest_faster = 0
     worst = 0.0
     sync_seen = set()
     for s in situations():
         s = dict(s, byte=s['byte'] | high, gnb=s['gnb'] or gnb)
+        if comp:
+            s.update(c108=comp[0], ce4=comp[1], cfc=comp[2])
+        if keep and not keep(s):
+            continue
         n += 1
         e.mu.mem_write(info, bytes(0x600))
         e.w8(BYTE, s['byte'])
@@ -313,6 +392,9 @@ def check_exposure(img, gnb=0, high=0):
         e.wf(info + 0xf0, s['av_max'])
         e.w8(info + 0x55d, s['nd'])
         e.w8(info + 0x5dd, s['hs'])
+        e.wf(info + 0x108, s.get('c108', 0.0))
+        e.wf(info + 0xe4, s.get('ce4', 0.0))
+        e.w8(info + 0xfc, s.get('cfc', 1))
         e.w32(info + 0x584, s['mm'])
         for o, v in ((0xd0, 99.0), (0xd4, 98.0), (0xd8, 97.0)):
             e.wf(info + o, v)
@@ -341,18 +423,28 @@ def check_exposure(img, gnb=0, high=0):
         check(lo - 1e-4 <= sv <= max(lo, hi) + 1e-4, f'ISO outside the range: {s} -> {got}')
         sync = sync_rule(av, s['hs'])
         sync_seen.add(round(sync, 3))
-        gn, bg, slowest, sync_first = choices(s)
+        gn, bg, slowest, prio = choices(s)
+        sync_first, fastest = prio == 1, prio == 2
         check(tv <= sync + 1e-4 and tv >= min(slowest, sync, s['tv_max']) - 1e-4, f'shutter outside the slowest .. sync: {s} -> {got}')
         if s['nd'] == 2:
             check(nd == 0, f'ND used with ND Off: {s}')
+        if fastest:
+            # Never slower than Low ISO or Max Sync where both expose the subject correctly.
+            for other in (0, 64):
+                o = reference(dict(s, gnb=(s['gnb'] & 63) | other))
+                if o is not None and abs(ref[4]) <= 0.02 and abs(o[4]) <= 0.02:
+                    check(tv >= o[0] - 1e-3, f'Fastest Shutter slower than {other}: {s} -> {got} vs {o}')
+                    if other == 64 and tv > o[0] + 1e-3:
+                        fastest_faster += 1
         if sync_first:
-            low = reference(dict(s, gnb=s['gnb'] & ~64))
+            low = reference(dict(s, gnb=s['gnb'] & ~192))
             check(low is not None and tv >= low[0] - 1e-3, f'Max Sync slower than Low ISO: {s} -> {got} vs {low}')
             if low is not None and tv > low[0] + 1e-3:
                 faster += 1
         # The physics, independently of the rule: flash and ambient shares of the subject's light.
         mm = min(max(s['mm'], 100), 8000)
-        f = 2 * math.log2(gn) - 2 * math.log2(mm / 1000) - (2 if s['output'] == 2 else 0) - 2 * nd
+        # (relative to the compensated exposure: the flash's share taken down by the compensation as the ambient light's is)
+        f = 2 * math.log2(gn) - 2 * math.log2(mm / 1000) - (2 if s['output'] == 2 else 0) - 2 * nd - comp_of(s)
         flash = 2 ** (f - 5 - (av - sv))
         amb = 2 ** (s['ev'] - 5 - 2 * nd - (av - sv) - tv)
         total = math.log2(flash + amb)
@@ -362,10 +454,18 @@ def check_exposure(img, gnb=0, high=0):
             physics += 1
         else:
             check(abs(total - ref[4]) < 2e-3, f'error {total} vs rule {ref[4]}: {s}')
+            # Test 058: still too bright at the smallest aperture and lowest ISO: Max Sync, the shutter as
+            # fast as it syncs; Low ISO, the background no lighter than chosen.
+            if total > 0.01 and av >= min(s['av_max'], 8.0) - 1e-4 and sv <= lo + 1e-4:
+                if sync_first or fastest:
+                    check(tv >= min(sync, s['tv_max']) - 1e-3, f'too bright ({total:+.3f} EV) with the shutter not at its limit: {s} -> {got}')
+                else:
+                    check(tv >= min(sync, s['tv_max']) - 1e-3 or math.log2(amb) <= -bg + 2e-3, f'too bright ({total:+.3f} EV), background {math.log2(amb):+.2f}: {s} -> {got}')
+                over += 1
         # (At a sync limit, also one of a wider aperture: the rule's limits jump with the aperture.)
         tv_free = (min(slowest, s['tv_max']) + 1e-3 < tv < min(sync, s['tv_max']) - 1e-3
                    and all(abs(tv - f32(v)) > 1e-3 for v in (11.333333, 11.666667, 12.0, 14.0)))
-        if tv_free and not at_limit:
+        if tv_free and not at_limit and not fastest:
             check(abs(math.log2(amb) + bg) < 2e-3, f'background {math.log2(amb):+.3f} EV, not {-bg}: {s} -> {got}')
             balanced += 1
     # Flash Output 1/4 is two stops brighter.
@@ -379,10 +479,11 @@ def check_exposure(img, gnb=0, high=0):
             check(abs((a[1] - b[1]) - 2) < 1e-2, f'1/4 is not two stops: {a} {b}')
     check(pairs > 0, 'no distance to compare 1/1 and 1/4 at')
     print(f'  exposure: {n} situations, {applied} with Direct Flash, largest difference {worst:.2e} EV ({borderline} right at the ND Auto threshold), sync limits seen {sorted(sync_seen)}')
-    gn, bg, slowest, sync_first = choices(dict(byte=1 | high, gnb=gnb))
-    print(f'  subject correctly exposed in all {physics} not at an aperture / ISO limit; background {-bg:+.2f} EV in all {balanced} with a free shutter speed')
-    if sync_first:
-        print(f'  Max Sync: faster shutter speed than Low ISO in {faster} situations, never slower')
+    gn, bg, slowest, prio = choices(dict(byte=1 | high, gnb=gnb))
+    print(f'  subject correctly exposed in all {physics} not at an aperture / ISO limit; background {-bg:+.2f} EV in all {balanced} with a free shutter speed; too bright at f/16 and the lowest ISO: shutter at its limit in all {over}')
+    if prio == 2:
+        check(fastest_faster > 0 or keep is not None, 'Max Sync never faster than Standard')
+        print(f'  Max Sync: faster than Standard in {fastest_faster} situations, never slower where both expose correctly')
     # The camera's own sync function, called as the module does, is the rule above.
     for av in (2.97, 3.5, 4.0, 4.3, 4.7, 5.5, 8.0):
         for hs in (0, 1):
@@ -543,10 +644,28 @@ def main():
     print('1d. exposure (GN 2, background -3.0 EV, slowest 1 s; an unlisted GN 50)')
     check_exposure(new, 2, (9 << 1) | (5 << 5))
     check_exposure(new, 50, (12 << 1) | (3 << 5))
-    print('1e. exposure priority Max Sync (bit 6 of 0x99A): defaults; GN 12 with -2.0 EV; GN 3 with -3.0 EV')
+    print('1e. bits 6..7 of 0x99A = 1 (test 057..059 Max Sync) read as Standard: defaults; GN 12 with -2.0 EV; GN 3 with -3.0 EV')
     check_exposure(new, 64)
     check_exposure(new, 64 | 12, 6 << 1)
     check_exposure(new, 64 | 3, 9 << 1)
+    print('1f. test 058: GN 18, background -3.0 EV, slowest 1/125 s, Standard (a strong flash close by in daylight)')
+    check_exposure(new, 64 | 18, (9 << 1) | (7 << 5))
+    check_exposure(new, 18, (9 << 1) | (7 << 5))
+    print('1g. test 060: exposure priority Max Sync (bits 6..7 of 0x99A = 2): defaults; GN 18 with 1/125 s; GN 12; bits 6..7 = 3 is Standard')
+    check_exposure(new, 128)
+    check_exposure(new, 128 | 18, (9 << 1) | (7 << 5))
+    check_exposure(new, 128 | 12, 6 << 1)
+    check_exposure(new, 192 | 12, 6 << 1)
+    print('1h. every guide number of the list (2..36), Standard and Max Sync, background -1.0 / -3.0 EV with 1/30 / 1/125 s')
+    for g in (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 25, 28, 32, 36):
+        for prio in (0, 128):
+            for high in (0, (9 << 1) | (7 << 5)):
+                check_exposure(new, prio | (0 if g == 3 else g), high,
+                               keep=lambda s: s['output'] == 1 and s['program'] == 0 and s['nd'] != 1 and s['gnb'] in (prio | (0 if g == 3 else g),))
+    print('1i. test 061: EV compensation (0x108, 0xE4 when 0xFC is 0) on flash and ambient light alike; backgrounds to -5.0 EV')
+    for comp in ((1.0, 0.0, 1), (-1.6666666, 0.0, 1), (2.0, 0.5, 0), (2.0, 0.5, 1), (10.0, 0.0, 1), (0.3333333, 0.0, 1)):
+        for gnb, high in ((0, 9 << 1), (18, 12 << 1), (128 | 18, 15 << 1), (6, (14 << 1) | (7 << 5))):
+            check_exposure(new, gnb, high, keep=lambda s: s['output'] == 1 and s['program'] == 0 and s['nd'] != 1 and s['gnb'] == gnb, comp=comp)
     print('2./3. menus')
     check_menus(new)
     print('4. text and icon')
