@@ -41,7 +41,7 @@ struct ctx {
                                      * priority: 2 Max Sync, else Standard (see `solve`) */
   float gn_default;                 /* 2 log2(GN) of the default guide number */
   const volatile u8 *tvmax;         /* setting byte (0x109, test 062): bits 0..2 the fastest shutter
-                                     * speed (see TV_MAX_*), 0 = 1/500 s */
+                                     * speed (see TV_MAX_*), 0 = the camera's sync limit */
 #ifdef DIAG
   /* Test builds only: a RAM word (zero at start) that holds a buffer, allocated with `alloc` on the
    * first call, where every call leaves what it saw and decided (see `diag_record`); the date
@@ -66,13 +66,12 @@ struct ctx {
  */
 #define BG_DEFAULT 3u
 /*
- * Test 062: the fastest shutter speed for Direct Flash (byte 0x109, bits 0..2): 0 1/500 s (the
- * default), 1 the camera's flash-sync limit (1/2500 .. 1/4000 s), 2 1/2000, 3 1/1000, 4 1/250,
- * anything else 1/500. A flash of some power (a speedlight at full power burns for about 1/1000 s)
+ * Test 062: the fastest shutter speed for Direct Flash (byte 0x109, bits 0..2): 0 the camera's
+ * flash-sync limit (1/2500 .. 1/4000 s; the default, as before 062), 1 1/2000, 2 1/1000, 3 1/500,
+ * 4 1/250, anything else the sync limit. A flash of some power (a speedlight at full power burns for about 1/1000 s)
  * is only partly caught by a shutter faster than its burn: the planner takes all of the flash, so
  * the picture was darker (about 3 EV with a Godox iT32 at 1/4000 s). The GF-2 burns short enough.
  */
-#define TV_MAX_DEFAULT 9.0f
 /* Standard, too bright even at f/16 and the lowest ISO: the shutter no faster than this many EV
  * past the background chosen (no jump to the sync limit; test 062). */
 #define BG_STRETCH 2.0f
@@ -439,8 +438,8 @@ void df_plan(u8 *ae, const struct ctx *k)
   if (l.av_lo > l.av_hi) l.av_lo = l.av_hi;
   l.tv_hi = F(0x70);
   i = *k->tvmax & 7u;                    /* test 062: the fastest shutter speed chosen */
-  if (i != 1) {
-    a = i == 2 ? 11.0f : i == 3 ? 10.0f : i == 4 ? 8.0f : TV_MAX_DEFAULT;
+  if (i >= 1 && i <= 4) {
+    a = 12.0f - (float)i;                /* 1/2000, 1/1000, 1/500, 1/250 */
     if (a < l.tv_hi) l.tv_hi = a;
   }
   i = setting >> 5;                      /* the slowest shutter speed chosen (the camera's own setting of

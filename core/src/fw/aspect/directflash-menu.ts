@@ -24,7 +24,7 @@
  *  - bits 1..4 and 5..7 of byte 0x99B (bit 0: Direct Flash chosen, see `directflash.ts`): the
  *    background and the slowest shutter speed; 0 is -1.0 EV and 1/30 s;
  *  - test 062: bits 0..2 of byte 0x109 (padding, see `DIRECT_FLASH_TV_BYTE`): the fastest shutter
- *    speed (Maximum Shutter Speed, the fifth line); 0 is 1/500 s.
+ *    speed (Maximum Shutter Speed, the fifth line); 0 is the camera's flash-sync limit.
  * A value the lists do not have (a byte an earlier build left) shows as the default; the planner
  * reads it the same way (an unlisted guide number 1..63 is used as it is).
  *
@@ -105,7 +105,7 @@ export const DF_BACKGROUND_NAMES: readonly string[] = [
 export const DF_PRIORITY_NAMES: readonly string[] = [
   'Priorita expozice', 'Eksponeringsprioritet', 'Exposure Priority', 'Valotuksen etusija', 'Priorité exposition', 'Belichtungspriorität', 'Προτεραιότητα έκθεσης',
   'Expozíciós prioritás', 'Priorità esposizione', '露出優先', '노출 우선', 'Belichtingsprioriteit', 'Priorytet ekspozycji', 'Prioridade exposição',
-  'Приоритет экспозиции', '曝光优先', 'Prioridad exposición', 'Exponeringsprioritet', 'ลำดับการรับแสง', '曝光優先', 'Pozlama önceliği',
+  'Приоритет экспозиции', '曝光优先级', 'Prioridad exposición', 'Exponeringsprioritet', 'ลำดับการรับแสง', '曝光優先級', 'Pozlama önceliği',
 ];
 /** The two priorities, in `LANGS` order. */
 export const DF_LOW_ISO_NAMES: readonly string[] = [
@@ -128,11 +128,11 @@ export const DF_STANDARD_NAMES: readonly string[] = [
 
 /**
  * Test 062: the fastest shutter speed for Direct Flash (byte 0x109, bits 0..2; see directflash.c):
- * the camera's flash-sync limit, 1/2000, 1/1000, 1/500 (0, the default) and 1/250 s. A strong flash
+ * the camera's flash-sync limit (0, the default), 1/2000, 1/1000, 1/500 and 1/250 s. A strong flash
  * at full power burns longer than a shutter of 1/2500 s or faster is open.
  */
 export const DF_FASTEST: readonly { name: string; code: number }[] = [
-  { name: 'sync', code: 1 }, { name: '1/2000', code: 2 }, { name: '1/1000', code: 3 }, { name: '1/500', code: 0 }, { name: '1/250', code: 4 },
+  { name: 'sync', code: 0 }, { name: '1/2000', code: 1 }, { name: '1/1000', code: 2 }, { name: '1/500', code: 3 }, { name: '1/250', code: 4 },
 ];
 /** The line name, in `LANGS` order (the camera's own Minimum Shutter Speed, text 125, turned round). */
 export const DF_FASTEST_NAMES: readonly string[] = [
@@ -195,8 +195,8 @@ export function directFlashLists(): DfList[] {
       [drawValueIcon('STD', 'TV'), drawValueIcon('MAX', 'TV')]),
     // Test 062: its line name comes after all the values' texts (DF_FASTEST_TEXT_ID).
     make(DF_FASTEST_ID, DF_FASTEST_TEXT_ID, DIRECT_FLASH_TV_BYTE, 0, 7, DF_FASTEST.map((x) => x.code),
-      DF_FASTEST.map((x) => (x.code === 1 ? [...DF_SYNC_LIMIT_NAMES] : same(x.name))),
-      DF_FASTEST.map((x) => (x.code === 1 ? drawValueIcon('MAX', 'SYNC') : drawValueIcon('1/', x.name.slice(2))))),
+      DF_FASTEST.map((x) => (x.code === 0 ? [...DF_SYNC_LIMIT_NAMES] : same(x.name))),
+      DF_FASTEST.map((x) => (x.code === 0 ? drawValueIcon('MAX', 'SYNC') : drawValueIcon('1/', x.name.slice(2))))),
   ];
 }
 

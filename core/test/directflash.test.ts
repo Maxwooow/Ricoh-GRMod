@@ -57,9 +57,9 @@ describe('Direct Flash: camera-menu settings', () => {
     expect(lists[2].names[lists[2].fallback][2]).toBe('1/30');
     expect(lists[3].names[lists[3].fallback][2]).toBe('Standard');
     expect(lists[3].codes).toEqual([0, 2]);
-    // Test 062: the fastest shutter speed, byte 0x109 bits 0..2: sync limit (1), 1/2000 (2), 1/1000 (3), 1/500 (0), 1/250 (4).
-    expect(lists[4].names[lists[4].fallback][2]).toBe('1/500');
-    expect(lists[4].codes).toEqual([1, 2, 3, 0, 4]);
+    // Test 062: the fastest shutter speed, byte 0x109 bits 0..2: sync limit (0, the default), 1/2000 .. 1/250 (1..4).
+    expect(lists[4].names[lists[4].fallback][2]).toBe('Sync Limit');
+    expect(lists[4].codes).toEqual([0, 1, 2, 3, 4]);
     expect([lists[4].byte, lists[4].shift, lists[4].mask]).toEqual([aspect.DIRECT_FLASH_TV_BYTE, 0, 7]);
     expect(aspect.DIRECT_FLASH_TV_BYTE).toBe(0x55084dd8 + 4 + 0x109);
     expect(lists.every((l) => l.names.every((n) => n.length === 21))).toBe(true);

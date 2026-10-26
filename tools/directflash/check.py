@@ -37,7 +37,7 @@ CURRENT = 0x55084dd8
 BYTE = CURRENT + 4 + 0x99b
 GN_BYTE = CURRENT + 4 + 0x99a
 TV_BYTE = CURRENT + 4 + 0x109   # test 062: the fastest shutter speed, bits 0..2
-TV_CAPS = {1: None, 2: 11.0, 3: 10.0, 4: 8.0}   # anything else (0 included): 1/500 s, Tv 9
+TV_CAPS = {1: 11.0, 2: 10.0, 3: 9.0, 4: 8.0}   # anything else (0 included): the camera's sync limit
 BG_STRETCH = 2.0
 LIVE_FM = CURRENT + 0xbf8
 OUTPUT = CURRENT + 0x114
@@ -183,7 +183,7 @@ def choices(s):
 
 def tv_cap(s):
     """Test 062: the fastest shutter speed chosen (byte 0x109, bits 0..2), None for the camera's sync limit."""
-    return TV_CAPS.get(s.get('tvb', 0) & 7, 9.0)
+    return TV_CAPS.get(s.get('tvb', 0) & 7)
 
 
 def comp_of(s):
@@ -685,14 +685,14 @@ def main():
     for comp in ((1.0, 0.0, 1), (-1.6666666, 0.0, 1), (2.0, 0.5, 0), (2.0, 0.5, 1), (10.0, 0.0, 1), (0.3333333, 0.0, 1)):
         for gnb, high in ((0, 9 << 1), (18, 12 << 1), (128 | 18, 15 << 1), (6, (14 << 1) | (7 << 5))):
             check_exposure(new, gnb, high, keep=lambda s: s['output'] == 1 and s['program'] == 0 and s['nd'] != 1 and s['gnb'] == gnb, comp=comp)
-    print('1j. test 062: the fastest shutter speed (byte 0x109): the sync limit, 1/2000, 1/1000, 1/500, 1/250 and unlisted values, with both priorities')
-    for tvb in (1, 2, 3, 4, 5, 7, 0x81):
+    print('1j. test 062: the fastest shutter speed (byte 0x109): 1/2000, 1/1000, 1/500, 1/250 and unlisted values (the sync limit), with both priorities')
+    for tvb in (1, 2, 3, 4, 5, 7, 0x83):
         for gnb, high in ((0, 0), (18, (9 << 1) | (7 << 5)), (128 | 18, (9 << 1) | (7 << 5)), (128, 0), (128 | 6, 15 << 1)):
             check_exposure(new, gnb, high, keep=lambda s: s['output'] == 1 and s['nd'] != 1 and s['gnb'] == gnb, tvb=tvb)
-    print('1k. test 062, the camera\'s sync limit as before 062 (byte 0x109 = 1): the sets of 1f / 1g')
-    check_exposure(new, 64 | 18, (9 << 1) | (7 << 5), tvb=1)
-    check_exposure(new, 128 | 18, (9 << 1) | (7 << 5), tvb=1)
-    check_exposure(new, 128 | 12, 6 << 1, tvb=1)
+    print('1k. test 062: 1/500 s (byte 0x109 = 3) with the sets of 1f / 1g')
+    check_exposure(new, 64 | 18, (9 << 1) | (7 << 5), tvb=3)
+    check_exposure(new, 128 | 18, (9 << 1) | (7 << 5), tvb=3)
+    check_exposure(new, 128 | 12, 6 << 1, tvb=3)
     print('2./3. menus')
     check_menus(new)
     print('4. text and icon')

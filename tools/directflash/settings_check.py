@@ -59,7 +59,7 @@ LISTS = [
     (BYTE, 1, 15, [0 if k == 3 else k for k in THIRDS], [f'-{k / 3:.1f} EV' for k in THIRDS]),
     (BYTE, 5, 7, [c for _, c in SLOWEST], [n for n, _ in SLOWEST]),
     (GN_BYTE, 6, 3, [0, 2], ['Standard', 'Max Sync Speed']),
-    (TV_BYTE, 0, 7, [1, 2, 3, 0, 4], ['Sync Limit', '1/2000', '1/1000', '1/500', '1/250']),
+    (TV_BYTE, 0, 7, [0, 1, 2, 3, 4], ['Sync Limit', '1/2000', '1/1000', '1/500', '1/250']),
 ]
 T_FASTEST = T0 + 4 + 46 + 5
 TITLES = [T0 + 1, T0 + 2, 125, T0 + 3, T_FASTEST]
@@ -71,8 +71,8 @@ FASTEST_NAMES = {1: 'Maximum Shutter Speed', 0: '高速限界値', 19: '最高�
 NAMES = {  # language row -> submenu name, line names (rows as the program indexes languages)
     1: ['Direct Flash Settings', 'Guide Number', 'Background Brightness', 'Exposure Priority'],
     0: ['ダイレクト発光設定', 'ガイドナンバー', '背景の明るさ', '露出優先'],
-    19: ['直闪设置', '闪光指数', '背景亮度', '曝光优先'],
-    18: ['直閃設定', '閃光指數', '背景亮度', '曝光優先'],
+    19: ['直闪设置', '闪光指数', '背景亮度', '曝光优先级'],
+    18: ['直閃設定', '閃光指數', '背景亮度', '曝光優先級'],
 }
 PRIORITY_ZH = ['标准', '同步上限优先']
 SUB_SITES = [(0x531e2064, 0x531e206c), (0x531e20cc, 0x531e20d4), (0x531e2438, 0x531e2444), (0x531e2668, 0x531e266c), (0x531e2734, 0x531e2740)]
