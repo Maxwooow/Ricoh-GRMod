@@ -253,7 +253,9 @@ function WhatsNewDialog() {
         )}
         {shown?.date && <div className="muted small wn-date">{shown.date}</div>}
         <div className="wn-body">{body}</div>
-        <p className="muted small wn-about">{t('aboutBody')} {t('aboutCredits')}</p>
+        <p className="muted small wn-about">{t('aboutBody')}</p>
+        <p className="muted small wn-about">{t('aboutContrib')}</p>
+        <p className="muted small wn-about">{t('aboutCredits')}</p>
         <div className="dialog-actions spread">
           {shown && <button type="button" className="btn ghost" onClick={() => { void host.releasePage(shown.version); }}>{t('wnGitHub')}{Ico.external}</button>}
           <span className="grow" />
