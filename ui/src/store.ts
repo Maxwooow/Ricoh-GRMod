@@ -113,7 +113,7 @@ export function useStore<T>(sel: (s: State) => T): T {
 function setSlot(id: SlotId, patch: Partial<SlotState> | ((s: SlotState) => Partial<SlotState>)): void {
   set((s) => ({ slots: { ...s.slots, [id]: { ...s.slots[id], ...(typeof patch === 'function' ? patch(s.slots[id]) : patch) } } }));
 }
-const isExtra = (k: SlotKey): boolean => k.startsWith('x-');
+export const isExtra = (k: SlotKey): boolean => k.startsWith('x-');
 /** The preset and icon of a factory or an added slot. */
 export function slotOf(k: SlotKey, s: State = state): { preset?: PresetState; icon: IconState } | undefined {
   return isExtra(k) ? s.extras.find((x) => x.key === k) : s.slots[k as SlotId];
@@ -727,7 +727,7 @@ export function extraSpecs(s: State = state): ExtraSlotSpec[] {
   if (s.model === 'MONO') return [];
   return s.extras.map((x) => {
     const r = x.preset!.result!;
-    return { name: extraName(x, s), matrixQ13: r.matrixQ13, curves: r.curves, ...(r.postQ9 ? { postQ9: r.postQ9 } : {}), icon: x.icon.pixels!, halation: true };
+    return { name: extraName(x, s), matrixQ13: r.matrixQ13, curves: r.curves, ...(r.postQ9 ? { postQ9: r.postQ9 } : {}), ...(r.hueQ10 ? { hueQ10: r.hueQ10.flat() } : {}), icon: x.icon.pixels!, halation: true };
   });
 }
 

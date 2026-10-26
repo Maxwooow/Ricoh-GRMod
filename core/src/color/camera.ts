@@ -3,6 +3,7 @@
 // S is the camera's base tone curve (linear -> display), M1 a 3x3 matrix whose rows sum to 1 and
 // curve_c three per-channel curves given by 17 knots on a uniform 0..1 grid.
 import { BASE_CURVE } from './data';
+import { hueApply } from './hue';
 import { ColorError, interp, linspace01, matMul3, roundHalfEven } from './math';
 
 export interface SlotParams {
@@ -16,6 +17,12 @@ export interface SlotParams {
    * curves together with the saturation setting.
    */
   P2?: number[][];
+  /**
+   * Optional hue sectors: 12 matrices of 3x3 (row-major, rows summing to 1), applied to the
+   * linear camera signal before the base tone curve, selected by the colour's hue. This is the
+   * added slot's multi-axis block (see `hue.ts`).
+   */
+  hue?: number[][];
 }
 
 export interface QuantizedSlot {
@@ -38,6 +45,8 @@ function checkParams(p: SlotParams): void {
     throw new ColorError('bad-input', 'slot curves must be 3 x 17 knots');
   if (p.P2 !== undefined && (!Array.isArray(p.P2) || p.P2.length !== 3 || p.P2.some((r) => !r || r.length !== 3 || r.some((v) => !Number.isFinite(v)))))
     throw new ColorError('bad-input', 'post matrix must be 3x3');
+  if (p.hue !== undefined && (!Array.isArray(p.hue) || p.hue.length !== 12 || p.hue.some((r) => !Array.isArray(r) || r.length !== 9 || r.some((v) => !Number.isFinite(v)))))
+    throw new ColorError('bad-input', 'hue sectors must be 12 x 9 values');
 }
 
 export interface CameraToneModel {
@@ -86,6 +95,7 @@ export function createCameraModel(baseCurve: ArrayLike<number>): CameraToneModel
   function slotApply(params: SlotParams, rgb: Float64Array): Float64Array {
     checkParams(params);
     const M = params.M1;
+    const hueSectors = params.hue;
     // per-channel matrix rows, knots and knot slopes
     const rows = [Float64Array.from(M[0]), Float64Array.from(M[1]), Float64Array.from(M[2])];
     const knots = params.ck;
@@ -103,10 +113,15 @@ export function createCameraModel(baseCurve: ArrayLike<number>): CameraToneModel
         lin[c] = j === 255 || S_TAB[j] === d ? S_X[j] : SINV_SLOPE[j] * (d - S_TAB[j]) + S_X[j];
       }
       const a0 = lin[0], a1 = lin[1], a2 = lin[2];
+      const lv = [0, 0, 0];
       for (let c = 0; c < 3; c++) {
         const row = rows[c];
-        let l = a0 * row[0] + a1 * row[1] + a2 * row[2];
-        l = l < 0 ? 0 : l > S_XMAX ? S_XMAX : l; // clip to 0..1, then S clips to its last sample
+        const l0 = a0 * row[0] + a1 * row[1] + a2 * row[2];
+        lv[c] = l0 < 0 ? 0 : l0 > S_XMAX ? S_XMAX : l0;
+      }
+      if (hueSectors) hueApply(lv, hueSectors);
+      for (let c = 0; c < 3; c++) {
+        const l = lv[c] < 0 ? 0 : lv[c] > S_XMAX ? S_XMAX : lv[c]; // clip to 0..1, then S clips to its last sample
         // S: linear -> display
         const j = Math.floor(l * 256);
         const b = j >= 255 ? S_TAB[255] : S_SLOPE[j] * (l - S_X[j]) + S_TAB[j];

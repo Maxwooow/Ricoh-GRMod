@@ -4,7 +4,8 @@ import type { CameraToneModel, SlotParams } from './camera';
 import { applyCube, parseCube } from './cube';
 import { CAL_ADOBE, CAL_CAM } from './data';
 import { fitSlot } from './fit';
-import { refineSlot } from './refine';
+import { refineHue, refineSlot } from './refine';
+import { hueQuantize } from './hue';
 import { FullLook } from './look';
 import { deltaE, deltaE2000Lab, lab, linToSrgb, mean, percentile, srgbToLin } from './math';
 import { parseXmp } from './xmp';
@@ -28,6 +29,8 @@ export interface Conversion {
   p95DE2000: number;
   /** .cube with `refine`: whether the CIEDE2000 refinement was kept (false: the guard rejected it). */
   refined?: boolean;
+  /** 12 x 9 Q10 hue matrices for the added slot's multi-axis block, when they helped. */
+  hueQ10?: number[][];
   warnings: string[];
   unsupported: string[];
 }
@@ -42,6 +45,11 @@ export interface ConvertOptions {
    * (see refine.ts); when on, the result is kept only if greys and skin do not get worse.
    */
   refine?: boolean;
+  /**
+   * .cube only: fit the added slot's own hue sectors as well (default true with `post`); kept only
+   * if it helps and greys and skin do not get worse (see `guardedHue`).
+   */
+  hue?: boolean;
 }
 
 /** Mean / p95 of CIE76 and CIEDE2000 between two buffers. */
@@ -279,6 +287,31 @@ export function guardedRefine(cube: ReturnType<typeof parseCube>, start: SlotPar
 }
 
 /**
+ * Hue-sector fit (the added slot's own multi-axis block) after the plain fit, kept only when it
+ * lowers the mean CIEDE2000 on the refinement colours by at least 0.5% and, as for `guardedRefine`,
+ * leaves the grey axis and skin tones no worse (mean +0.02 / worst +0.05 on a 256-step grey ramp,
+ * mean +0.05 / worst +0.1 on skin). Returns null when rejected.
+ */
+export function guardedHue(cube: ReturnType<typeof parseCube>, start: SlotParams, onProgress?: (f: number) => void, camera?: CameraToneModel): { params: SlotParams; hueQ10: number[][] } | null {
+  const ref = cubeRefineSamples();
+  const refTarget = applyCube(cube, ref.P);
+  const base = start.hue ? { M1: start.M1, ck: start.ck, ...(start.P2 ? { P2: start.P2 } : {}) } : start;
+  const h = refineHue(base, ref.P, refTarget, { weights: ref.weights, iterations: 6, onProgress });
+  const [m0] = meanMax00(base, ref.P, lab(refTarget), camera);
+  const [m1] = meanMax00({ M1: h.M1, ck: h.ck, ...(h.P2 ? { P2: h.P2 } : {}), hue: h.hue }, ref.P, lab(refTarget), camera);
+  if (!(m1 < m0 * 0.995)) return null;
+  const out: SlotParams = { M1: h.M1, ck: h.ck, ...(h.P2 ? { P2: h.P2 } : {}), hue: h.hue };
+  const { grey, skin } = guardSets();
+  const tg = lab(applyCube(cube, grey)), ts = lab(applyCube(cube, skin));
+  const [g0, G0] = meanMax00(base, grey, tg, camera), [g1, G1] = meanMax00(out, grey, tg, camera);
+  const [s0, S0] = meanMax00(base, skin, ts, camera), [s1, S1] = meanMax00(out, skin, ts, camera);
+  if (!(g1 <= g0 + 0.02 && G1 <= G0 + 0.05 && s1 <= s0 + 0.05 && S1 <= S0 + 0.1)) return null;
+  const hueQ10 = hueQuantize(h.hue);
+  if (hueQ10.some((m) => m.some((v) => Math.abs(v) > 2047))) return null; // beyond what the firmware writer accepts
+  return { params: out, hueQ10 };
+}
+
+/**
  * Convert a .cube LUT. The LUT is taken to act on an sRGB display image, so the target is simply
  * cube(P) where P are colours as output by the camera's Standard preset. The fit uses
  * `cubeFitSamplesExpanded` (the calibration and synthetic colours plus a dense grey ramp, a 9^3
@@ -292,13 +325,22 @@ export function convertCube(text: string, opts?: ConvertOptions): Conversion {
   const target = applyCube(cube, P);
   opts?.onProgress?.(0.1);
   const refine = opts?.refine === true;
-  const fit = fitSlot(P, target, { onProgress: subProgress(opts, 0.1, refine ? 0.55 : 1), post: opts?.post !== false });
+  const hueOn = opts?.hue !== false && opts?.post !== false;
+  const fit = fitSlot(P, target, { onProgress: subProgress(opts, 0.1, refine || hueOn ? 0.55 : 1), post: opts?.post !== false });
   let params: SlotParams = fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck };
   let refined: boolean | undefined;
   if (refine) {
-    const r = guardedRefine(cube, params, subProgress(opts, 0.55, 0.98));
+    const r = guardedRefine(cube, params, subProgress(opts, 0.55, 0.9));
     refined = r !== null;
     if (r) params = r;
+  }
+  let hueQ10: number[][] | undefined;
+  if (opts?.hue !== false && opts?.post !== false) {
+    const h = guardedHue(cube, params, subProgress(opts, refine ? 0.9 : 0.55, 0.98));
+    if (h) {
+      params = h.params;
+      hueQ10 = h.hueQ10;
+    }
   }
   // report on the original fitting colours (the first part of P), comparable with earlier versions
   const n = cubeFitSamples().length;
@@ -312,6 +354,7 @@ export function convertCube(text: string, opts?: ConvertOptions): Conversion {
     ...(refined !== undefined ? { refined } : {}),
     warnings: [],
     unsupported: [],
+    ...(hueQ10 ? { hueQ10 } : {}),
   };
 }
 

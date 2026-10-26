@@ -38,6 +38,7 @@ import { SLOT_PARAMETERS, SLOT_PARAMS_MODULE } from './slotparams-native';
 import { HALATION_COLOUR_NAMES, HALATION_LOOKS, HALATION_NAMES, halationColourIcon, halationColourScale, halationIcon, installHalationModule, readHalation } from './halation';
 import { installHalationClamps, installHalationUi } from './halation-ui';
 import type { HalationLook } from './halation';
+import { hueBlockBytes } from '../../color/hue';
 import { FirmwareError } from '../types';
 import { installFactoryHidden, validateLookLayout } from './looks';
 import type { LookLayout } from './looks';
@@ -77,6 +78,12 @@ export interface ExtraSlotSpec {
   postQ9?: ArrayLike<number>;
   /** 40x40 RGBA. Fully transparent pixels stay transparent, others are made opaque. */
   icon: Uint8Array;
+  /**
+   * Optional hue sectors: 12 x 9 integers (Q10, every row summing to 1024). When present the slot
+   * gets its own 2160-byte multi-axis block instead of Standard's block; the block is the
+   * camera's hue-sector stage (see `core/src/color/hue.ts`).
+   */
+  hueQ10?: ArrayLike<number>;
   /**
    * Halation (CineStill 800T, fixed look) for the slot's "Halation" levels Off / Weak / Strong (the
    * slider of Cinema's Toning); absent or false = none.
@@ -143,6 +150,28 @@ export function validateExtraSlotName(name: string): 'empty' | 'too-long' | 'bad
   if (name.length > EXTRA_NAME_MAX) return 'too-long';
   if (!/^[\x20-\x7e]+$/.test(name) || name !== name.trim()) return 'bad-char';
   return null;
+}
+
+/** Largest hue-sector value written (Q10), as in GR4-LUTSmith, whose looks ran on cameras with this bound. */
+const HUE_LIMIT = 2047;
+
+/** Check the 12 x 9 Q10 hue matrices the camera's multi-axis block stores. */
+function hueBytes(k: number, q: ArrayLike<number>): Uint8Array {
+  if (!q || q.length !== 108) fail('bad-hue', `added slot ${k + 1}: hue sectors must be 12 x 9 values`);
+  const rows: number[][] = [];
+  for (let i = 0; i < 12; i++) {
+    const m: number[] = [];
+    for (let j = 0; j < 9; j++) {
+      const v = q[i * 9 + j];
+      if (!Number.isInteger(v) || v < -HUE_LIMIT || v > HUE_LIMIT) fail('bad-hue', `added slot ${k + 1}: hue value ${String(v)} is outside -${HUE_LIMIT}..${HUE_LIMIT}`);
+      m.push(v);
+    }
+    for (let r = 0; r < 3; r++) {
+      if (m[r * 3] + m[r * 3 + 1] + m[r * 3 + 2] !== 1024) fail('bad-hue', `added slot ${k + 1}: hue matrix ${i} row ${r} does not sum to 1024`);
+    }
+    rows.push(m);
+  }
+  return hueBlockBytes(rows);
 }
 
 function matrixBytes(k: number, m: ArrayLike<number>): Uint8Array {
@@ -299,6 +328,7 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
     if (s.postQ9 !== undefined) checkPost(k, s.postQ9);
     if (s.halation !== undefined && typeof s.halation !== 'boolean') fail('bad-halation', `added slot ${k + 1}: halation is on or off`);
     const icon = iconBytes(k, s.icon);
+    const hueData = s.hueQ10 !== undefined ? hueBytes(k, s.hueQ10) : undefined;
 
     const matrix = p.append(mBytes, 4);
     const curves = cBytes.map((c) => p.append(c, 4));
@@ -316,12 +346,13 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
     new DataView(r.buffer).setUint32(4, matrix, true);
     new DataView(r.buffer).setUint32(POST_WORD, post, true);
     const recNew = p.append(r, 4);
-    const maArray = p.append(u32le(new Array(MA_POINTERS).fill(stdBlock)), 4);
+    const block = hueData ? p.append(hueData, 4) : stdBlock;
+    const maArray = p.append(u32le(new Array(MA_POINTERS).fill(block)), 4);
     const m = maTemplate.slice();
     new DataView(m.buffer).setUint32(8, maArray, true);
     const maNew = p.append(m, 4);
     records.push([recNew, maNew, ycc, gammaNew]);
-    prints.push(fingerprint([mBytes, ...cBytes, s.postQ9 !== undefined ? u32le(Array.from(s.postQ9, (v) => v >>> 0)) : new Uint8Array(0)]));
+    prints.push(fingerprint([mBytes, ...cBytes, s.postQ9 !== undefined ? u32le(Array.from(s.postQ9, (v) => v >>> 0)) : new Uint8Array(0), ...(hueData ? [hueData] : [])]));
 
     const text = p.append(utf16z(s.name), 4);
     const textDesc = p.append(concat([Uint8Array.from([s.name.length + 1, 1, 0, 0]), u32le([text])]), 4);
@@ -902,6 +933,8 @@ export function readExtraSlots(rtos: Uint8Array, iconbin: Uint8Array, count: num
     const table = (lo: number, hi: number): number => (movImmediate(p.word(lo)) | (movImmediate(p.word(hi)) << 16)) >>> 0;
     const tone = table(0x53925f9c, 0x53925fa4);
     const gamma = table(0x53926020, 0x53926028);
+    const maTable = table(0x53925fc8, 0x53925fd0);
+    const stdMaBlock = wordOf(p.readMapped(wordOf(p.readMapped(wordOf(p.readMapped(maTable + 4 * STANDARD, 4)) + 8, 4)), 4));
     const stdShared = wordOf(p.readMapped(wordOf(p.readMapped(tone + 4 * STANDARD, 4)) + POST_WORD, 4));
     const out: ExtraSlotSpec[] = [];
     for (let k = 0; k < count; k++) {
@@ -929,7 +962,24 @@ export function readExtraSlots(rtos: Uint8Array, iconbin: Uint8Array, count: num
       const iconOffset = p.word(iconDesc + 8) * 4;
       if (iconOffset + EXTRA_ICON_BYTES > iconbin.length) return null;
       const icon = iconbin.slice(iconOffset, iconOffset + EXTRA_ICON_BYTES);
-      out.push({ name, matrixQ13, curves, ...(postQ9 ? { postQ9 } : {}), icon });
+      // hue sectors: the slot's own multi-axis block, when it is not Standard's
+      let hueQ10: number[] | undefined;
+      const maRec = wordOf(p.readMapped(maTable + 4 * (TONES + k), 4));
+      const maArr = wordOf(p.readMapped(maRec + 8, 4));
+      const block = wordOf(p.readMapped(maArr, 4));
+      if (block !== stdMaBlock) {
+        for (let i = 1; i < MA_POINTERS; i++) if (wordOf(p.readMapped(maArr + 4 * i, 4)) !== block) return null;
+        const hv = new DataView(p.readMapped(block, 12 * 5 * 9 * 4).buffer);
+        hueQ10 = [];
+        for (let g = 0; g < 12; g++) {
+          for (let j = 0; j < 9; j++) {
+            const first = hv.getInt32((g * 5 * 9 + j) * 4, true);
+            for (let c = 1; c < 5; c++) if (hv.getInt32(((g * 5 + c) * 9 + j) * 4, true) !== first) return null;
+            hueQ10.push(first);
+          }
+        }
+      }
+      out.push({ name, matrixQ13, curves, ...(postQ9 ? { postQ9 } : {}), ...(hueQ10 ? { hueQ10 } : {}), icon });
     }
     const halation = readHalation(p, EXTRA_FIRST_STYLE, count);
     if (halation) out.forEach((x, k) => { if (halation.has(EXTRA_FIRST_STYLE + k)) x.halation = true; });

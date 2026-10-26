@@ -20,6 +20,7 @@ import {
   filmCountChoosable, setFilmCount,
   hasLookLayout, isGr3, KEEP_VISIBLE, lookHiddenNow, lookMonoOnly, lookName, lookOrderAvailable, lookOrderNow, moveLook, moveLookTo, resetLookLayout, setLookHidden,
   setWallName, wallMax, wallMenuProblem,
+  isExtra,
 } from './store';
 import type { ExtraSlot, RatioItem, SlotKey, WallItem } from './store';
 
@@ -142,7 +143,9 @@ function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number
   const slots = useStore(s => s.slots);
   const mode = useStore((s) => s.previewMode);
   const active = useStore((s) => s.activeSlot);
-  const params = useStore((s) => slotOf(s.activeSlot, s)?.preset?.result?.params);
+  const fitted = useStore((s) => slotOf(s.activeSlot, s)?.preset?.result?.params);
+  // Only added slots get their own hue sectors; Cinema Yellow / Green are written (and shown) without them.
+  const params = useMemo(() => (fitted?.hue && !isExtra(active) ? { M1: fitted.M1, ck: fitted.ck, ...(fitted.P2 ? { P2: fitted.P2 } : {}) } : fitted), [fitted, active]);
   const extras = useStore((s) => s.extras);
   const extraLabels = useStore((s) => s.extras.map((x) => extraName(x, s)).join('\u0000'));
   const lang = useStore((s) => s.lang);
