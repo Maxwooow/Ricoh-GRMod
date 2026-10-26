@@ -80,6 +80,13 @@ export const DIRECT_FLASH_BYTE = 0x55084dd8 + 4 + 0x99b;
 /** The guide number chosen in the camera menu (`directflash-menu.ts`); 0 on every camera: DIRECT_FLASH_GN_DEFAULT. */
 export const DIRECT_FLASH_GN_BYTE = 0x55084dd8 + 4 + 0x99a;
 /**
+ * Test 062: the fastest shutter speed chosen in the camera menu (`directflash-menu.ts`), bits 0..2;
+ * 0 on every camera: 1/500 s. Byte 0x109 of the user settings: alignment padding between a byte
+ * field (0x108) and a word (0x10C) that UserDataInitValue (run in the emulator, all 30 records)
+ * never writes; inside the 0xAE9 bytes the settings save keeps (0x533E1C04).
+ */
+export const DIRECT_FLASH_TV_BYTE = 0x55084dd8 + 4 + 0x109;
+/**
  * Test builds only: the RAM word that holds the planner's diagnostic buffer (allocated by the module
  * on its first call), the last of the 44 bytes before the heap that the start-up zero fill clears
  * once it is extended (see slots.ts / lookstash.ts). The date imprint's diagnostic build prints it.
@@ -369,7 +376,7 @@ export function installDirectFlash(patch: Patch, iconbin: Uint8Array, diag = fal
   const entry = diag ? DIRECTFLASH_DIAG_ENTRY : DIRECTFLASH_ENTRY;
   const module = patch.append(code, 16);
   const ctx = patch.append(u32le([
-    DIRECT_FLASH_BYTE, LIVE_FLASH_MODE, FLASH_OUTPUT, SYNC_TV, DIRECT_FLASH_GN_BYTE, guideNumberWord(DIRECT_FLASH_GN_DEFAULT),
+    DIRECT_FLASH_BYTE, LIVE_FLASH_MODE, FLASH_OUTPUT, SYNC_TV, DIRECT_FLASH_GN_BYTE, guideNumberWord(DIRECT_FLASH_GN_DEFAULT), DIRECT_FLASH_TV_BYTE,
     ...(diag ? [DIRECT_FLASH_DIAG_SLOT, HEAP_ALLOC] : []),
   ]), 16);
   const wrapper = patch.append((at) => assembleWords(
