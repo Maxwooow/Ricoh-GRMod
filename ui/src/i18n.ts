@@ -127,7 +127,7 @@ const zh = {
   gr3xScriptHint: '已适配 IIIx 1.60 的两份入口文件。启用 Script 后，回到 GR Mod 的“关机画面”页面制作图片卡；这里只用于开启 Script。入口与脚本仍待实机验证。',
   softAdjSub: '直出模拟柔光滤镜效果', softAdjLine: '柔焦  ·  ADJ 拨杆（关 / 弱 / 中 / 强）',
   navDate: '时间戳', dateSub: '把日期（可加上影像控制的名称）印在照片上', dateLine: '时间戳  ·  拍摄辅助 › 拍摄时间戳（\'26 10 08 / 2026.10.08 17:34，各可加名称）',
-  navFlash: '直闪模式', flashSub: '固定功率闪光，按对焦距离和 GN 定曝光；GN、背景亮度、最低 / 最高快门、曝光优先在相机闪光菜单的「直闪设置」里设', flashLine: '直闪模式  ·  闪光模式第 5 项（固定功率，按对焦距离曝光）',
+  navFlash: '直闪模式', flashSub: '当闪光灯以固定功率闪光时，启用直闪模式以让相机按照对焦距离与输入的闪光灯 GN 值进行曝光。', flashLine: '直闪模式  ·  闪光模式第 5 项（固定功率，按对焦距离曝光）',
   navMono: '黑白预设', monoSub: '解锁 GR IV Monochrome 的照片风格', monoLine: '黑白预设  ·  解锁 GR IV Monochrome 的照片风格',
   extraTitle: '新增槽位', extraSub: '在 Cinema 之后再加影像控制槽位，最多 {n} 个', extraAdd: '新增槽位', extraCountLabel: '新增 {n} 个', extraNone: '不新增',
   prevSlot: '上一个槽位', nextSlot: '下一个槽位',
@@ -139,7 +139,7 @@ const zh = {
   lookOrderGr3Note: 'GR III：视频的影像控制列表本来就没有软单色和 HDR色调。正在用的风格被隐藏时，相机会改用标准；自定义 1 / 2 里存的风格不变。', lookOrderHiddenTag: '已隐藏', lookOrderMono: '单色', lookOrderCount: '{n} 个隐藏',
   icViews: '影像控制页面', icViewSlots: '影像控制', icViewOrder: '菜单顺序', lookOrderShown: '{n} 个显示', lookOrderMoved: '{name} 移到第 {n} 位', lookOrderDrag: '拖动调整顺序',
   tIcViewsT: '槽位与菜单顺序', tIcViewsB: '“影像控制”设置各个槽位；“菜单顺序”调整相机影像控制菜单里 look 的顺序，也可以隐藏不用的 look。',
-  tIcSoftT: '附加功能', tIcSoftB: '柔焦：打开后，可将“柔焦”效果增添到 ADJ 快捷菜单，有关、弱、中、强四档，效果无法实时预览，可与 HDF 滤镜同时启用。\n时间戳：在照片右下角打印日期（竖拍时也是看照片时的右下角；菜单里的“跟随相机方向”关掉后，按横向位置打印）。刷入后默认关闭，在“拍摄辅助 › 拍摄时间戳”里打开，可选两种样式。\n黑白风格：解锁 GR IV Monochrome 机型的 6 个黑白风格。',
+  tIcSoftT: '附加功能', tIcSoftB: '柔焦：打开后，可将“柔焦”效果增添到 ADJ 快捷菜单，有关、弱、中、强四档，效果无法实时预览，可与 HDF 滤镜同时启用。\n时间戳：在照片右下角打印日期（竖拍时也是看照片时的右下角；菜单里的“跟随相机方向”关掉后，按横向位置打印）。刷入后默认关闭，在“拍摄辅助 › 拍摄时间戳”里打开，可选两种样式。\n黑白风格：解锁 GR IV Monochrome 机型的 6 个黑白风格。\n直闪模式：当闪光灯以固定功率闪光时，启用直闪模式以让相机按照对焦距离与输入的闪光灯 GN 值进行曝光。',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -270,7 +270,7 @@ const en: typeof zh = {
   gr3xScriptHint: 'The two entry files are specific to IIIx 1.60. After enabling Script, return to Power-off images to prepare an image card. This page only enables Script. The entry and script still need a camera test.',
   softAdjSub: 'A soft-focus filter look, straight out of camera', softAdjLine: 'Soft focus  ·  ADJ lever (off / low / medium / high)',
   navDate: 'Date imprint', dateSub: 'Print the date (and the look\'s name) on photos', dateLine: 'Date imprint  ·  Shooting Assist › Date Imprint (\'26 10 08 / 2026.10.08 17:34, each with or without the look\'s name)',
-  navFlash: 'Direct Flash', flashSub: 'Fixed-power flash, exposure from focus distance and GN; GN, background, minimum / maximum shutter speed and priority are set under Direct Flash Settings in the camera\'s Flash menu', flashLine: 'Direct Flash  ·  a fifth Flash Mode (fixed power, exposure from the focus distance)',
+  navFlash: 'Direct Flash', flashSub: 'When the flash fires at a fixed power, Direct Flash sets the exposure from the focus distance and the flash\'s guide number you enter.', flashLine: 'Direct Flash  ·  a fifth Flash Mode (fixed power, exposure from the focus distance)',
   navMono: 'B&W presets', monoSub: 'Unlock the looks of the GR IV Monochrome', monoLine: 'B&W presets  ·  the looks of the GR IV Monochrome unlocked',
   extraTitle: 'Added slots', extraSub: 'More Image Control slots after the Cinema ones, at most {n}', extraAdd: 'Add slot', extraCountLabel: '{n} added', extraNone: 'None',
   prevSlot: 'Previous slot', nextSlot: 'Next slot',
@@ -282,7 +282,7 @@ const en: typeof zh = {
   lookOrderGr3Note: 'GR III: the movie Image Control list has no Soft Monotone and HDR Tone of its own. A hidden look in use becomes Standard; Custom 1 / 2 keep theirs.', lookOrderHiddenTag: 'hidden', lookOrderMono: 'mono', lookOrderCount: '{n} hidden',
   icViews: 'Image Control views', icViewSlots: 'Image Control', icViewOrder: 'Menu order', lookOrderShown: '{n} shown', lookOrderMoved: '{name} moved to position {n}', lookOrderDrag: 'Drag to reorder',
   tIcViewsT: 'Slots and menu order', tIcViewsB: '"Image Control" sets up the slots; "Menu order" arranges the looks of the camera\'s Image Control menu and hides the ones you do not use.',
-  tIcSoftT: 'Additions', tIcSoftB: 'Soft focus: adds "Soft Focus" to the ADJ lever, with off, low, medium and high. The effect cannot be seen in live view; it can be used together with the HDF filter.\nDate imprint: prints the date in the bottom right corner of the photo (as it is viewed, also when shot upright; with "Follow Orientation" off in its menu, as stored). Off after flashing; turn it on under Shooting Assist › Date Imprint, two styles.\nB&W looks: unlocks the 6 black-and-white looks of the GR IV Monochrome.',
+  tIcSoftT: 'Additions', tIcSoftB: 'Soft focus: adds "Soft Focus" to the ADJ lever, with off, low, medium and high. The effect cannot be seen in live view; it can be used together with the HDF filter.\nDate imprint: prints the date in the bottom right corner of the photo (as it is viewed, also when shot upright; with "Follow Orientation" off in its menu, as stored). Off after flashing; turn it on under Shooting Assist › Date Imprint, two styles.\nB&W looks: unlocks the 6 black-and-white looks of the GR IV Monochrome.\nDirect Flash: when the flash fires at a fixed power, Direct Flash sets the exposure from the focus distance and the flash\'s guide number you enter.',
 };
 export type Key = keyof typeof zh;
 const dict = (navigator.language || 'zh').toLowerCase().startsWith('zh') ? zh : en;
