@@ -78,7 +78,7 @@ const fromOff = (x: ArrayLike<number>, at: number): number[][] => {
   return [[1 - a - b, a, b], [c, 1 - c - d, d], [e, f, 1 - e - f]];
 };
 
-export interface HueFitOptions { iterations?: number; onProgress?: (f: number) => void }
+export interface HueFitOptions { iterations?: number; regularise?: number; onProgress?: (f: number) => void }
 
 /**
  * Refine `start` (a plain fit: M1, curves, P2) with hue sectors of its own. `P` are colours as
@@ -98,11 +98,15 @@ export function fitHue(start: SlotParams, std: number[][], P: Float64Array, targ
     hue: composeWithStandard(std, hueMatricesFromD(x, at)),
     hueStd: std,
   });
-  const n = x0.length, m = tLab.length;
+  const n = x0.length, mc = tLab.length;
+  // a small pull of the 36 shifts towards none (`regularise`): pale colours of a sector move with its saturated ones
+  const reg = Math.sqrt(opts.regularise ?? 0);
+  const m = mc + (reg > 0 ? 36 : 0);
   const residual = (x: ArrayLike<number>): Float64Array => {
     const L = lab(applyBeforeHue(params(x), pre));
     const r = new Float64Array(m);
-    for (let i = 0; i < m; i++) r[i] = (L[i] - tLab[i]) * w[(i / 3) | 0];
+    for (let i = 0; i < mc; i++) r[i] = (L[i] - tLab[i]) * w[(i / 3) | 0];
+    if (reg > 0) for (let k = 0; k < 36; k++) r[mc + k] = reg * x[at + k];
     return r;
   };
   const cost = (r: Float64Array): number => { let s = 0; for (const v of r) s += v * v; return s; };

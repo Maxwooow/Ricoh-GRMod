@@ -294,18 +294,43 @@ export function guardedRefine(cube: ReturnType<typeof parseCube>, start: SlotPar
  * drops by at least 0.5%, the grey ramp and the skin tones get no worse (the limits of
  * `guardedRefine`) and every value fits the firmware's range. Returns null when rejected.
  */
+/** Mean and 95th percentile CIEDE2000. */
+function meanP95(params: SlotParams, P: Float64Array, labT: Float64Array): [number, number] {
+  const d = deltaE2000Lab(lab(slotApply(params, P)), labT);
+  return [mean(d), percentile(d, 95)];
+}
+
+/**
+ * Low-saturation colours around the hue circle for the hue-sector fit and its guard: hue sectors
+ * act on every colour but pure grey, so near-neutral ones (walls, skies, shadows; most of a
+ * typical picture) must not pay for saturated ones. Test 064 on a GR IV showed it: without them
+ * a warm look got its pale warm colours worse (camera vs LUT, dE00 0.85 -> 1.35 on them) for
+ * better saturated ones. A sector's matrix moves its pale colours in proportion to its saturated
+ * ones, which a look that mostly turns saturated colours does not do, so some of that trade is
+ * left even with them (the mean and the 95th percentile of these colours may not get worse).
+ */
+function nearNeutralSamples(offset: number, sats: readonly number[], vals: readonly number[], weight: number): WeightedSamples {
+  const p: number[] = [], w: number[] = [];
+  for (let h = 0; h < 24; h++) for (const sat of sats) for (const v of vals) { p.push(...hsvToRgbValue((h + offset) / 24, sat, v)); w.push(weight); }
+  return { P: Float64Array.from(p), weights: Float64Array.from(w) };
+}
+const HUE_NEAR_NEUTRAL_WEIGHT = 12;
+
 export function guardedHue(cube: ReturnType<typeof parseCube>, start: SlotParams, std: number[][], onProgress?: (f: number) => void): { params: SlotParams; hueQ10: number[] } | null {
-  const ref = cubeRefineSamples();
+  const refBase = cubeRefineSamples();
+  const near = nearNeutralSamples(0, [0.04, 0.08, 0.13, 0.2], [0.3, 0.5, 0.7, 0.85, 0.97], HUE_NEAR_NEUTRAL_WEIGHT);
+  const ref: WeightedSamples = { P: Float64Array.from([...refBase.P, ...near.P]), weights: Float64Array.from([...refBase.weights, ...near.weights]) };
   const refTarget = applyCube(cube, ref.P);
   const base: SlotParams = { ...start, hue: std, hueStd: std };
   const tr = lab(refTarget);
   const [m0] = meanMax00(base, ref.P, tr);
   const { grey, skin } = guardSets();
-  const tg = lab(applyCube(cube, grey)), ts = lab(applyCube(cube, skin));
-  const [g0, G0] = meanMax00(base, grey, tg), [s0, S0] = meanMax00(base, skin, ts);
-  // A second try weighs the greys and the skin tones four times as much (the weights 60 and 10).
+  const nearGuard = nearNeutralSamples(0.5, [0.05, 0.1, 0.16], [0.35, 0.6, 0.8, 0.95], 1).P;
+  const tg = lab(applyCube(cube, grey)), ts = lab(applyCube(cube, skin)), tn = lab(applyCube(cube, nearGuard));
+  const [g0, G0] = meanMax00(base, grey, tg), [s0, S0] = meanMax00(base, skin, ts), [n0, N0] = meanP95(base, nearGuard, tn);
+  // A second try weighs the greys, the skin tones and the near-neutrals four times as much.
   for (const boost of [1, 4]) {
-    const weights = boost === 1 ? ref.weights : ref.weights.map((w) => (w === 60 || w === 10 ? w * boost : w));
+    const weights = boost === 1 ? ref.weights : ref.weights.map((w) => (w === 60 || w === 10 || w === HUE_NEAR_NEUTRAL_WEIGHT ? w * boost : w));
     const fitted = fitHue(start, std, ref.P, refTarget, weights, { onProgress: (f) => onProgress?.(boost === 1 ? f * 0.6 : 0.6 + f * 0.4) });
     const q = hueToQ10(fitted.hue!);
     if (!q) continue;
@@ -313,8 +338,8 @@ export function guardedHue(cube: ReturnType<typeof parseCube>, start: SlotParams
     const out: SlotParams = { ...fitted, hue: Array.from({ length: 12 }, (_, g) => q.slice(g * 9, g * 9 + 9).map((v) => v / 1024)) };
     const [m1] = meanMax00(out, ref.P, tr);
     if (!(m1 < m0 * 0.995)) continue;
-    const [g1, G1] = meanMax00(out, grey, tg), [s1, S1] = meanMax00(out, skin, ts);
-    if (g1 <= g0 + 0.02 && G1 <= G0 + 0.05 && s1 <= s0 + 0.05 && S1 <= S0 + 0.1) return { params: out, hueQ10: q };
+    const [g1, G1] = meanMax00(out, grey, tg), [s1, S1] = meanMax00(out, skin, ts), [n1, N1] = meanP95(out, nearGuard, tn);
+    if (g1 <= g0 + 0.02 && G1 <= G0 + 0.05 && s1 <= s0 + 0.05 && S1 <= S0 + 0.1 && n1 <= n0 + 0.03 && N1 <= N0 + 0.1) return { params: out, hueQ10: q };
   }
   return null;
 }
