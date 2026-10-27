@@ -24,7 +24,8 @@ export interface SlotState { preset?: PresetState; names: Partial<Record<LangCod
  */
 /** A slot's halation (the fixed CineStill 800T look): on (always for an added slot), and which level the preview shows (0 = off, 1 Weak, 2 Medium, 3 Strong). */
 export interface HalationState { on: boolean; preview: 0 | 1 | 2 | 3; /** Colour the preview shows (chosen in the camera). */ colour?: 'red' | 'white' }
-export interface ExtraSlot { key: string; name: string; preset?: PresetState; icon: IconState; halation?: HalationState }
+/** `hue`: fit the slot's own hue sectors for a .cube preset (off by default; it can take several seconds). */
+export interface ExtraSlot { key: string; name: string; preset?: PresetState; icon: IconState; halation?: HalationState; hue?: boolean }
 /** A factory Cinema slot (`CY`, `CG`) or the key of an added slot. */
 export type SlotKey = SlotId | string;
 /**
@@ -113,7 +114,7 @@ export function useStore<T>(sel: (s: State) => T): T {
 function setSlot(id: SlotId, patch: Partial<SlotState> | ((s: SlotState) => Partial<SlotState>)): void {
   set((s) => ({ slots: { ...s.slots, [id]: { ...s.slots[id], ...(typeof patch === 'function' ? patch(s.slots[id]) : patch) } } }));
 }
-export const isExtra = (k: SlotKey): boolean => k.startsWith('x-');
+const isExtra = (k: SlotKey): boolean => k.startsWith('x-');
 /** The preset and icon of a factory or an added slot. */
 export function slotOf(k: SlotKey, s: State = state): { preset?: PresetState; icon: IconState } | undefined {
   return isExtra(k) ? s.extras.find((x) => x.key === k) : s.slots[k as SlotId];
@@ -205,7 +206,7 @@ function familyData(s: State): FamilyDoc {
       icon: { mode: s.slots[id].icon.mode, text: s.slots[id].icon.text, style: s.slots[id].icon.style, image: s.slots[id].icon.image },
       ...(s.slots[id].halation ? { halation: s.slots[id].halation } : {}),
     }])),
-    extras: s.extras.map((x) => ({ key: x.key, name: x.name, preset: x.preset ? { fileName: x.preset.fileName, kind: x.preset.kind } : null, icon: { mode: x.icon.mode, text: x.icon.text, style: x.icon.style, image: x.icon.image }, ...(x.halation ? { halation: x.halation } : {}) })),
+    extras: s.extras.map((x) => ({ key: x.key, name: x.name, preset: x.preset ? { fileName: x.preset.fileName, kind: x.preset.kind } : null, icon: { mode: x.icon.mode, text: x.icon.text, style: x.icon.style, image: x.icon.image }, ...(x.halation ? { halation: x.halation } : {}), ...(x.hue ? { hue: true } : {}) })),
     lookOrder: s.lookOrder, lookHidden: s.lookHidden, lookOrder3: s.lookOrder3, lookHidden3: s.lookHidden3,
     wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: 'image', width: w.width, height: w.height, crop: w.crop, ...(w.menuName !== undefined ? { menuName: w.menuName } : {}), ...(w.menuId ? { menuId: w.menuId } : {}) })),
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
@@ -227,7 +228,7 @@ function parseFamily(doc: FamilyDoc | null): Partial<State> {
   }
   const extras: ExtraSlot[] = (Array.isArray(doc?.extras) ? doc!.extras : []).slice(0, MAX_EXTRA_SLOTS)
     .filter((x: ExtraSlot) => x && typeof x.key === 'string' && /^x-[a-z0-9]{1,12}$/.test(x.key))
-    .map((x: ExtraSlot) => ({ key: x.key, name: String(x.name || '').slice(0, 40), icon: { mode: x.icon?.mode === 'image' ? 'image' : 'text', text: String(x.icon?.text ?? ''), style: x.icon?.style === 'plain' ? 'plain' : 'film', image: x.icon?.image }, ...(validHalation(x.halation) ? { halation: validHalation(x.halation)! } : {}) }));
+    .map((x: ExtraSlot) => ({ key: x.key, name: String(x.name || '').slice(0, 40), icon: { mode: x.icon?.mode === 'image' ? 'image' : 'text', text: String(x.icon?.text ?? ''), style: x.icon?.style === 'plain' ? 'plain' : 'film', image: x.icon?.image }, ...(validHalation(x.halation) ? { halation: validHalation(x.halation)! } : {}), ...(x.hue === true ? { hue: true } : {}) }));
   const ratios: RatioItem[] = (Array.isArray(doc?.ratios) ? doc!.ratios : []).slice(0, MAX_CUSTOM_RATIOS)
     .filter((r: RatioItem) => r && typeof r.id === 'string' && typeof r.ratio === 'string')
     .map((r: RatioItem) => ({ id: r.id, ratio: r.ratio.slice(0, 24), name: String(r.name || '').slice(0, 80) }));
@@ -506,12 +507,15 @@ const PRESET_ERRORS: Record<string, Key> = {
 async function runPreset(id: SlotKey, fileName: string, kind: 'xmp' | 'cube', text: string): Promise<void> {
   patchSlot(id, { preset: { fileName, kind, text, busy: !!state.info?.capabilities.presets } });
   if (!state.info?.capabilities.presets) return;
+  // Hue sectors: only an added slot with its switch on, and only for a .cube.
+  const hueNow = (): boolean => kind === 'cube' && isExtra(id) && state.extras.find((x) => x.key === id)?.hue === true;
+  const hue = hueNow();
   try {
-    const result = await engine.convert(kind, text);
-    if (slotOf(id)?.preset?.text !== text) return; // replaced or removed meanwhile
+    const result = await engine.convert(kind, text, hue);
+    if (slotOf(id)?.preset?.text !== text || hueNow() !== hue) return; // replaced, removed or switched meanwhile
     patchSlot(id, { preset: { fileName, kind, text, busy: false, result } });
   } catch (e) {
-    if (slotOf(id)?.preset?.text !== text) return;
+    if (slotOf(id)?.preset?.text !== text || hueNow() !== hue) return;
     const code = e instanceof EngineError ? e.code : '';
     patchSlot(id, { preset: { fileName, kind, text, busy: false, error: PRESET_ERRORS[code] ? t(PRESET_ERRORS[code]) : t('errNotXmp') } });
   }
@@ -750,6 +754,13 @@ export function setHalation(key: SlotKey, patch: Partial<HalationState>): void {
   const next = { ...halationOf(key), ...patch };
   if (isExtra(key)) set((s) => ({ extras: s.extras.map((x) => (x.key === key ? { ...x, halation: next } : x)) }));
   else setSlot(key as SlotId, { halation: next });
+  scheduleSave();
+}
+/** Fit (or stop fitting) an added slot's hue sectors; the preset is converted again. */
+export function setExtraHue(key: string, hue: boolean): void {
+  set((s) => ({ extras: s.extras.map((x) => (x.key === key ? { ...x, hue } : x)) }));
+  const p = slotOf(key)?.preset;
+  if (p && p.kind === 'cube') void runPreset(key, p.fileName, p.kind, p.text);
   scheduleSave();
 }
 export function addExtraSlot(): void {

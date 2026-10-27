@@ -5,7 +5,7 @@ import { applyCube, parseCube } from './cube';
 import { CAL_ADOBE, CAL_CAM } from './data';
 import { fitSlot } from './fit';
 import { refineHue, refineSlot } from './refine';
-import { hueQuantize } from './hue';
+import { HUE_MAX_Q10, hueMatricesFromD, hueQuantize } from './hue';
 import { FullLook } from './look';
 import { deltaE, deltaE2000Lab, lab, linToSrgb, mean, percentile, srgbToLin } from './math';
 import { parseXmp } from './xmp';
@@ -46,8 +46,10 @@ export interface ConvertOptions {
    */
   refine?: boolean;
   /**
-   * .cube only: fit the added slot's own hue sectors as well (default true with `post`); kept only
-   * if it helps and greys and skin do not get worse (see `guardedHue`).
+   * .cube only: also fit the added slot's own hue sectors (default false, like `refine`; needs
+   * `post`). It can take several seconds, and the result is kept only if the quantised look beats
+   * the fit without sectors overall and on the saturated, skin, grey and per-region checks,
+   * else the result is that fit bit for bit (see `guardedHue`).
    */
   hue?: boolean;
 }
@@ -193,10 +195,13 @@ function encodeLinear(x: number): number {
 }
 
 /** Extra fitting colours: a dense neutral ramp (repeated for weight), the LUT grid corners and skin. */
+/** Layout of `extraFitSamples`: the neutral ramp comes first and the skin tones are last. */
+const EXTRA_GREY_COUNT = 6 * 64;
+const EXTRA_SKIN_COUNT = SKIN_TONES.length * 5;
 export function extraFitSamples(): Float64Array {
   const out: number[] = [];
   // 64 neutral steps, six copies: greys must stay grey and the black/white ends must be right.
-  for (let c = 0; c < 6; c++) for (let i = 0; i < 64; i++) {
+  for (let c = 0; c < EXTRA_GREY_COUNT / 64; c++) for (let i = 0; i < 64; i++) {
     const v = i / 63;
     out.push(v, v, v);
   }
@@ -286,29 +291,287 @@ export function guardedRefine(cube: ReturnType<typeof parseCube>, start: SlotPar
   return g1 <= g0 + 0.02 && G1 <= G0 + 0.05 && s1 <= s0 + 0.05 && S1 <= S0 + 0.1 ? out : null;
 }
 
-/**
- * Hue-sector fit (the added slot's own multi-axis block) after the plain fit, kept only when it
- * lowers the mean CIEDE2000 on the refinement colours by at least 0.5% and, as for `guardedRefine`,
- * leaves the grey axis and skin tones no worse (mean +0.02 / worst +0.05 on a 256-step grey ramp,
- * mean +0.05 / worst +0.1 on skin). Returns null when rejected.
- */
-export function guardedHue(cube: ReturnType<typeof parseCube>, start: SlotParams, onProgress?: (f: number) => void, camera?: CameraToneModel): { params: SlotParams; hueQ10: number[][] } | null {
+/** Error figures of one look on the cube fit's own colours: whole set, saturated and skin subsets, plus guard sets. */
+export interface HueScore {
+  /** Mean / p95 CIEDE2000 on the colours `convertCube` reports on (calibration + synthetic set). */
+  fitMean: number; fitP95: number;
+  /** Mean on the whole fitting set (reported colours + neutral ramp, grid corners, skin). */
+  allMean: number;
+  /** Subsets of the fitting set by the TARGET colour: saturated (C > 25) and skin (hue 30-75, C 10-45). */
+  satMean: number; satP95: number; skinMean: number; skinP95: number;
+  /** Independent refinement colours (hue wheel, greys, skin, random, grid), weighted mean. */
+  refMean: number;
+  /** Fresh validation colours (never fitted): mean, and p95 of their saturated and skin subsets. */
+  valMean: number; valSatP95: number; valSkinP95: number;
+  /** 256-step grey ramp and the skin-tone set of the refinement guard. */
+  greyMean: number; greyMax: number; toneMean: number; toneMax: number;
+  /** Mean error in each region of colour space (hue band x chroma band of the target) over the fitting set and a fresh validation set; NaN where a region has too few colours. */
+  cells: Float64Array;
+}
+
+/** Everything `scoreHue` needs, built once per conversion. */
+export interface HueContext {
+  P: Float64Array; labT: Float64Array; n: number; sat: Uint32Array; skin: Uint32Array;
+  ref: WeightedSamples; labRef: Float64Array; grey: Float64Array; labGrey: Float64Array; tones: Float64Array; labTones: Float64Array;
+  /** Fresh validation colours (never fitted): random display colours and synthetic ones from other seeds. */
+  V: Float64Array; labV: Float64Array; satV: Uint32Array; skinV: Uint32Array;
+  /** Region of each fitting colour (`P`) and validation colour (`V`) in the pool, and how many colours each region holds. */
+  cellP: Int16Array; cellV: Int16Array; cellCount: Int32Array;
+}
+
+/** Regions of colour space for the "no region gets worse" check: 12 hue bands x 4 chroma bands of the target colour. */
+export const HUE_CELLS = 12 * 4;
+const CELL_MIN = 25;
+function cellOf(L: number, a: number, b: number): number {
+  const c = Math.hypot(a, b);
+  let h = (Math.atan2(b, a) * 180) / Math.PI;
+  if (h < 0) h += 360;
+  const cb = c < 10 ? 0 : c < 25 ? 1 : c < 45 ? 2 : 3;
+  return Math.min(11, Math.floor(h / 30)) * 4 + cb;
+}
+function cellsOfLab(labs: Float64Array): Int16Array {
+  const out = new Int16Array(labs.length / 3);
+  for (let i = 0; i < out.length; i++) out[i] = cellOf(labs[i * 3], labs[i * 3 + 1], labs[i * 3 + 2]);
+  return out;
+}
+
+/** Fresh colours the hue fit never sees: uniform display colours plus a synthetic set with another seed. */
+function validationSamples(): Float64Array {
+  const syn = syntheticSamples(4000, 7, 0);
+  const rand = mulberry32(11);
+  const out = new Float64Array(syn.length + 3000 * 3);
+  out.set(syn, 0);
+  for (let i = syn.length; i < out.length; i++) out[i] = rand();
+  return out;
+}
+
+/** Indices of the saturated (C > 25) and skin (hue 30-75, C 10-45) colours among `labs`. */
+function satSkinOf(labs: Float64Array): { sat: Uint32Array; skin: Uint32Array } {
+  const sat: number[] = [], skin: number[] = [];
+  for (let i = 0; i < labs.length / 3; i++) {
+    const a = labs[i * 3 + 1], b = labs[i * 3 + 2];
+    const c = Math.hypot(a, b);
+    let h = (Math.atan2(b, a) * 180) / Math.PI;
+    if (h < 0) h += 360;
+    if (c > 25) sat.push(i);
+    if (h >= 30 && h <= 75 && c >= 10 && c <= 45) skin.push(i);
+  }
+  return { sat: Uint32Array.from(sat), skin: Uint32Array.from(skin) };
+}
+
+export function hueContext(cube: ReturnType<typeof parseCube>): HueContext {
+  const P = cubeFitSamplesExpanded();
+  const target = applyCube(cube, P);
+  const labT = lab(target);
+  const { sat, skin } = satSkinOf(labT);
   const ref = cubeRefineSamples();
-  const refTarget = applyCube(cube, ref.P);
-  const base = start.hue ? { M1: start.M1, ck: start.ck, ...(start.P2 ? { P2: start.P2 } : {}) } : start;
-  const h = refineHue(base, ref.P, refTarget, { weights: ref.weights, iterations: 6, onProgress });
-  const [m0] = meanMax00(base, ref.P, lab(refTarget), camera);
-  const [m1] = meanMax00({ M1: h.M1, ck: h.ck, ...(h.P2 ? { P2: h.P2 } : {}), hue: h.hue }, ref.P, lab(refTarget), camera);
-  if (!(m1 < m0 * 0.995)) return null;
-  const out: SlotParams = { M1: h.M1, ck: h.ck, ...(h.P2 ? { P2: h.P2 } : {}), hue: h.hue };
-  const { grey, skin } = guardSets();
-  const tg = lab(applyCube(cube, grey)), ts = lab(applyCube(cube, skin));
-  const [g0, G0] = meanMax00(base, grey, tg, camera), [g1, G1] = meanMax00(out, grey, tg, camera);
-  const [s0, S0] = meanMax00(base, skin, ts, camera), [s1, S1] = meanMax00(out, skin, ts, camera);
-  if (!(g1 <= g0 + 0.02 && G1 <= G0 + 0.05 && s1 <= s0 + 0.05 && S1 <= S0 + 0.1)) return null;
-  const hueQ10 = hueQuantize(h.hue);
-  if (hueQ10.some((m) => m.some((v) => Math.abs(v) > 2047))) return null; // beyond what the firmware writer accepts
-  return { params: out, hueQ10 };
+  const { grey, skin: tones } = guardSets();
+  const V = validationSamples();
+  const labV = lab(applyCube(cube, V));
+  const satV = satSkinOf(labV);
+  const cellP = cellsOfLab(labT), cellV = cellsOfLab(labV);
+  const cellCount = new Int32Array(HUE_CELLS);
+  for (const c of cellP) cellCount[c]++;
+  for (const c of cellV) cellCount[c]++;
+  return {
+    V, labV, cellP, cellV, cellCount, satV: satV.sat, skinV: satV.skin,
+    P, labT, n: cubeFitSamples().length / 3, sat, skin,
+    ref, labRef: lab(applyCube(cube, ref.P)), grey, labGrey: lab(applyCube(cube, grey)), tones, labTones: lab(applyCube(cube, tones)),
+  };
+}
+
+const meanOf = (d: Float64Array, idx?: Uint32Array): number => {
+  if (!idx) return d.length ? mean(d) : 0;
+  let s = 0;
+  for (const i of idx) s += d[i];
+  return idx.length ? s / idx.length : 0;
+};
+const p95Of = (d: Float64Array, idx?: Uint32Array): number => {
+  const v = idx ? Float64Array.from(idx, (i) => d[i]) : d;
+  return v.length ? percentile(v, 95) : 0;
+};
+
+/** Score a look (hue sectors as they are in `params`, i.e. already quantised if that is what is written). */
+export function scoreHue(params: SlotParams, ctx: HueContext, camera?: CameraToneModel): HueScore {
+  const run = (P: Float64Array, labT: Float64Array): Float64Array => deltaE2000Lab(lab(camera ? camera.slotApply(params, P) : slotApply(params, P)), labT);
+  const d = run(ctx.P, ctx.labT);
+  const head = d.subarray(0, ctx.n);
+  const dr = run(ctx.ref.P, ctx.labRef);
+  let ws = 0, wm = 0;
+  for (let i = 0; i < dr.length; i++) { ws += ctx.ref.weights[i]; wm += ctx.ref.weights[i] * dr[i]; }
+  const dg = run(ctx.grey, ctx.labGrey), dt = run(ctx.tones, ctx.labTones);
+  const dv = run(ctx.V, ctx.labV);
+  const cells = new Float64Array(HUE_CELLS);
+  for (let i = 0; i < d.length; i++) cells[ctx.cellP[i]] += d[i];
+  for (let i = 0; i < dv.length; i++) cells[ctx.cellV[i]] += dv[i];
+  for (let c = 0; c < HUE_CELLS; c++) cells[c] = ctx.cellCount[c] >= CELL_MIN ? cells[c] / ctx.cellCount[c] : NaN;
+  return {
+    cells,
+    fitMean: meanOf(head), fitP95: p95Of(head), allMean: meanOf(d),
+    satMean: meanOf(d, ctx.sat), satP95: p95Of(d, ctx.sat), skinMean: meanOf(d, ctx.skin), skinP95: p95Of(d, ctx.skin),
+    refMean: wm / ws,
+    valMean: meanOf(dv), valSatP95: p95Of(dv, ctx.satV), valSkinP95: p95Of(dv, ctx.skinV),
+    greyMean: meanOf(dg), greyMax: Math.max(...dg), toneMean: meanOf(dt), toneMax: Math.max(...dt),
+  };
+}
+
+/** Smallest relative drop of the mean CIEDE2000 (reported colours and whole fitting set) that justifies hue sectors. */
+const HUE_MIN_GAIN = 0.02;
+const HUE_TOL_MEAN = 0.01, HUE_TOL_P95 = 0.05, HUE_TOL_MAX = 0.05;
+/** The skin-tone set is 16 colours at four exposures; its worst colour is a clipped highlight, hence the wider worst-case tolerance. */
+const HUE_TOL_TONE_MEAN = 0.03, HUE_TOL_TONE_MAX = 0.2;
+/** No region of colour space (hue band x chroma band) may get worse by more than this on average. */
+const HUE_TOL_CELL = 0.03;
+/** p95 of the saturated / skin subsets of the fresh validation colours (a large set, so a tighter tolerance than on the fit set). */
+const HUE_TOL_VAL_P95 = 0.02;
+function cellsWorse(o: HueScore, w: HueScore): number[] {
+  const out: number[] = [];
+  for (let c = 0; c < HUE_CELLS; c++) if (w.cells[c] > o.cells[c] + HUE_TOL_CELL) out.push(c);
+  return out;
+}
+
+/**
+ * Decision rule for hue sectors. `withHue` is the final quantised look, `without` the final look
+ * without them, both scored on the SAME colours (`HueContext`) and with the same CIEDE2000.
+ * Hue is kept only when the mean error drops by at least 2% on the reported colours and on the
+ * whole fitting set, and nothing else gets worse: p95 of the reported colours, mean and p95 of the
+ * saturated and the skin subsets (+0.01 / +0.05 tolerance), the independent refinement colours,
+ * a fresh validation set (mean +0.01, p95 of its saturated and skin subsets +0.02),
+ * the grey ramp (mean +0.01, worst +0.05), the skin-tone set (mean +0.03, worst +0.2), and the mean
+ * error of every region of colour space (hue band x chroma band, fitting plus validation colours,
+ * +0.03). Anything else, and the caller keeps the look without hue sectors.
+ */
+export function hueKept(without: HueScore, withHue: HueScore): boolean {
+  const w = withHue, o = without;
+  return w.fitMean < o.fitMean * (1 - HUE_MIN_GAIN) && w.allMean < o.allMean * (1 - HUE_MIN_GAIN)
+    && w.fitP95 <= o.fitP95 + HUE_TOL_P95
+    && w.satMean <= o.satMean + HUE_TOL_MEAN && w.satP95 <= o.satP95 + HUE_TOL_P95
+    && w.skinMean <= o.skinMean + HUE_TOL_MEAN && w.skinP95 <= o.skinP95 + HUE_TOL_P95
+    && w.refMean <= o.refMean + HUE_TOL_MEAN
+    && w.valMean <= o.valMean + HUE_TOL_MEAN && w.valSatP95 <= o.valSatP95 + HUE_TOL_VAL_P95 && w.valSkinP95 <= o.valSkinP95 + HUE_TOL_VAL_P95
+    && w.greyMean <= o.greyMean + HUE_TOL_MEAN && w.greyMax <= o.greyMax + HUE_TOL_MAX
+    && w.toneMean <= o.toneMean + HUE_TOL_TONE_MEAN && w.toneMax <= o.toneMax + HUE_TOL_TONE_MAX
+    && cellsWorse(o, w).length === 0;
+}
+
+/** Settings of the hue-sector search (the defaults are what ships; the fields exist for tests and tuning). */
+export interface HueSearch {
+  /** Seam penalties tried, in order (the shipped default is the single value 1; GR4-LUTSmith tries 0.3 .. 100, weakest first). */
+  kinks: readonly number[];
+  /** Fit / refit rounds per attempt. */
+  rounds: number;
+  /** Fractions of the fitted sector parameters tried, largest first (1 = as fitted). */
+  scales: readonly number[];
+  /** Weight of the squared error next to the mean in the objective. */
+  tail: number;
+  /** Charge for a colour ending above what it has without hue sectors (see `RefineOptions.ceiling`). */
+  ceilingWeight: number;
+  ceilingMargin: number;
+  /** Also refit the look matrix / post matrix / curves with the sectors held. */
+  joint: boolean;
+  /** Attempts per seam penalty: after a rejected attempt the groups that failed get more weight. */
+  attempts: number;
+  /** Factor by which a failed group's weight grows. */
+  reweight: number;
+  /** Called with a line per candidate (tuning and tests). */
+  log?: (line: string, score: HueScore, look: SlotParams) => void;
+}
+export const HUE_SEARCH: HueSearch = { kinks: [1], rounds: 2, scales: [1, 0.6], tail: 0.1, ceilingWeight: 2, ceilingMargin: 0.3, joint: true, attempts: 4, reweight: 2.5 };
+
+/** The quantised look: hue matrices rounded to the Q10 integers that get written, evaluated as written. */
+function quantisedHue(p: SlotParams, hue: number[][]): { params: SlotParams; hueQ10: number[][] } | null {
+  const hueQ10 = hueQuantize(hue);
+  if (hueQ10.some((m) => m.some((v) => Math.abs(v) > HUE_MAX_Q10))) return null; // beyond what the firmware writer accepts
+  return { params: { M1: p.M1, ck: p.ck, ...(p.P2 ? { P2: p.P2 } : {}), hue: hueQ10.map((m) => m.map((v) => v / 1024)) }, hueQ10 };
+}
+
+/** Which groups of fitting colours `hueKept` rejected a look for (they get more weight in the next attempt). */
+function failedGroups(o: HueScore, w: HueScore): Set<string> {
+  const f = new Set<string>();
+  for (const c of cellsWorse(o, w)) f.add(`cell${c}`);
+  if (w.satMean > o.satMean + HUE_TOL_MEAN || w.satP95 > o.satP95 + HUE_TOL_P95 || w.valSatP95 > o.valSatP95 + HUE_TOL_VAL_P95) f.add('sat');
+  if (w.skinMean > o.skinMean + HUE_TOL_MEAN || w.skinP95 > o.skinP95 + HUE_TOL_P95 || w.valSkinP95 > o.valSkinP95 + HUE_TOL_VAL_P95) f.add('skin');
+  if (w.toneMean > o.toneMean + HUE_TOL_TONE_MEAN || w.toneMax > o.toneMax + HUE_TOL_TONE_MAX) f.add('tone');
+  if (w.greyMean > o.greyMean + HUE_TOL_MEAN || w.greyMax > o.greyMax + HUE_TOL_MAX) f.add('grey');
+  if (w.fitP95 > o.fitP95 + HUE_TOL_P95 || w.refMean > o.refMean + HUE_TOL_MEAN) f.add('tail');
+  return f;
+}
+
+/**
+ * Hue-sector fit (the added slot's own multi-axis block) after the plain fit. It is fitted on the
+ * cube's own fitting colours (the set `convertCube` reports on, plus its neutral ramp, grid and skin),
+ * jointly with the rest of the slot: sectors, then look matrix / post matrix / curves with the
+ * sectors held, then the sectors again, with a charge on any colour that ends up much worse than it
+ * is without hue sectors. Every candidate is scored as the quantised look that would be written.
+ * When one fails `hueKept` for a group of colours (saturated, skin, greys, tail), that group gets more
+ * weight and the fit is repeated; a fraction of the fitted sectors is also tried. The best candidate
+ * that passes wins; otherwise null, and the caller keeps `start` unchanged.
+ */
+export function guardedHue(cube: ReturnType<typeof parseCube>, start: SlotParams, onProgress?: (f: number) => void, camera?: CameraToneModel, search: HueSearch = HUE_SEARCH): { params: SlotParams; hueQ10: number[][] } | null {
+  const ctx = hueContext(cube);
+  const target = applyCube(cube, ctx.P);
+  const nAll = ctx.P.length / 3;
+  const base: SlotParams = { M1: start.M1, ck: start.ck, ...(start.P2 ? { P2: start.P2 } : {}) };
+  const s0 = scoreHue(base, ctx, camera);
+  const ceiling = deltaE2000Lab(lab(camera ? camera.slotApply(base, ctx.P) : slotApply(base, ctx.P)), ctx.labT);
+  // groups of fitting colours by index: the neutral ramp and skin tones sit at known places in the expanded set
+  const nGrey = EXTRA_GREY_COUNT, nSkinTones = EXTRA_SKIN_COUNT;
+  const groups: Record<string, number[]> = {
+    sat: Array.from(ctx.sat), skin: Array.from(ctx.skin),
+    grey: Array.from({ length: nGrey }, (_, i) => ctx.n + i),
+    tone: Array.from({ length: nSkinTones }, (_, i) => nAll - nSkinTones + i),
+    tail: [],
+  };
+  for (let i = 0; i < nAll; i++) (groups[`cell${ctx.cellP[i]}`] ??= []).push(i);
+  let best: { params: SlotParams; hueQ10: number[][]; score: HueScore } | null = null;
+  const total = search.kinks.length * search.attempts;
+  let step = 0;
+  for (const kink of search.kinks) {
+    const weights = new Float64Array(nAll).fill(1);
+    let tail = search.tail;
+    const cur0 = base;
+    let d0: Float64Array | undefined;
+    for (let attempt = 0; attempt < search.attempts; attempt++) {
+      const o = { meanObjective: true, tail, weights, ceiling, ceilingWeight: search.ceilingWeight, ceilingMargin: search.ceilingMargin, ...(camera ? { camera } : {}) };
+      let cur = cur0;
+      let d = d0;
+      for (let round = 0; round < search.rounds; round++) {
+        const h = refineHue(cur, ctx.P, target, { iterations: 5, kink, ...o, ...(d ? { init: d } : {}) });
+        d = h.d;
+        cur = { M1: h.M1, ck: h.ck, ...(h.P2 ? { P2: h.P2 } : {}), hue: h.hue };
+        if (search.joint) {
+          // the rest of the slot follows the sectors (the sectors are carried through unchanged)
+          const r = refineSlot(cur, ctx.P, target, { iterations: 4, ...o });
+          cur = { M1: r.M1, ck: r.ck, ...(r.P2 ? { P2: r.P2 } : {}), hue: h.hue };
+        }
+      }
+      // Sectors once more for the refitted slot, then back off towards "no sectors" until the look passes.
+      const fin = refineHue(cur, ctx.P, target, { iterations: 5, kink, ...o, init: d! });
+      let failed = new Set<string>();
+      let passed = false;
+      for (const scale of search.scales) {
+        const hue = scale === 1 ? fin.hue : hueMatricesFromD(Float64Array.from(fin.d, (v) => v * scale));
+        const q = quantisedHue({ M1: fin.M1, ck: fin.ck, ...(fin.P2 ? { P2: fin.P2 } : {}) }, hue);
+        if (!q) continue;
+        const score = scoreHue(q.params, ctx, camera);
+        search.log?.(`kink ${kink} attempt ${attempt} scale ${scale}`, score, q.params);
+        if (hueKept(s0, score)) {
+          if (!best || score.allMean < best.score.allMean) best = { ...q, score };
+          passed = true;
+          break;
+        }
+        if (scale === 1) failed = failedGroups(s0, score);
+      }
+      onProgress?.(++step / total);
+      if (passed || failed.size === 0) break;
+      for (const g of failed) {
+        if (g === 'tail') tail *= search.reweight;
+        else for (const i of groups[g]) weights[i] *= search.reweight;
+      }
+      d0 = d; // the next attempt starts from the plain fit again, with these sectors as its first guess
+    }
+  }
+  return best ? { params: best.params, hueQ10: best.hueQ10 } : null;
 }
 
 /**
@@ -325,17 +588,17 @@ export function convertCube(text: string, opts?: ConvertOptions): Conversion {
   const target = applyCube(cube, P);
   opts?.onProgress?.(0.1);
   const refine = opts?.refine === true;
-  const hueOn = opts?.hue !== false && opts?.post !== false;
+  const hueOn = opts?.hue === true && opts?.post !== false;
   const fit = fitSlot(P, target, { onProgress: subProgress(opts, 0.1, refine || hueOn ? 0.55 : 1), post: opts?.post !== false });
   let params: SlotParams = fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck };
   let refined: boolean | undefined;
   if (refine) {
-    const r = guardedRefine(cube, params, subProgress(opts, 0.55, 0.9));
+    const r = guardedRefine(cube, params, subProgress(opts, 0.55, hueOn ? 0.9 : 0.98));
     refined = r !== null;
     if (r) params = r;
   }
   let hueQ10: number[][] | undefined;
-  if (opts?.hue !== false && opts?.post !== false) {
+  if (hueOn) {
     const h = guardedHue(cube, params, subProgress(opts, refine ? 0.9 : 0.55, 0.98));
     if (h) {
       params = h.params;

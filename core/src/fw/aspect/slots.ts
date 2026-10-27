@@ -38,7 +38,7 @@ import { SLOT_PARAMETERS, SLOT_PARAMS_MODULE } from './slotparams-native';
 import { HALATION_COLOUR_NAMES, HALATION_LOOKS, HALATION_NAMES, halationColourIcon, halationColourScale, halationIcon, installHalationModule, readHalation } from './halation';
 import { installHalationClamps, installHalationUi } from './halation-ui';
 import type { HalationLook } from './halation';
-import { hueBlockBytes } from '../../color/hue';
+import { HUE_MAX_Q10, hueBlockBytes } from '../../color/hue';
 import { FirmwareError } from '../types';
 import { installFactoryHidden, validateLookLayout } from './looks';
 import type { LookLayout } from './looks';
@@ -153,7 +153,6 @@ export function validateExtraSlotName(name: string): 'empty' | 'too-long' | 'bad
 }
 
 /** Largest hue-sector value written (Q10), as in GR4-LUTSmith, whose looks ran on cameras with this bound. */
-const HUE_LIMIT = 2047;
 
 /** Check the 12 x 9 Q10 hue matrices the camera's multi-axis block stores. */
 function hueBytes(k: number, q: ArrayLike<number>): Uint8Array {
@@ -163,7 +162,7 @@ function hueBytes(k: number, q: ArrayLike<number>): Uint8Array {
     const m: number[] = [];
     for (let j = 0; j < 9; j++) {
       const v = q[i * 9 + j];
-      if (!Number.isInteger(v) || v < -HUE_LIMIT || v > HUE_LIMIT) fail('bad-hue', `added slot ${k + 1}: hue value ${String(v)} is outside -${HUE_LIMIT}..${HUE_LIMIT}`);
+      if (!Number.isInteger(v) || v < -HUE_MAX_Q10 || v > HUE_MAX_Q10) fail('bad-hue', `added slot ${k + 1}: hue value ${String(v)} is outside -${HUE_MAX_Q10}..${HUE_MAX_Q10}`);
       m.push(v);
     }
     for (let r = 0; r < 3; r++) {

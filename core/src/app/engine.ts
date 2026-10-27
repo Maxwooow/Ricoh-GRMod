@@ -832,7 +832,8 @@ export class Engine {
   /**
    * Fit a preset to a slot: matrix, curves and (unless `post` is false) the post-curve matrix.
    * Without it the result is what GR Mod 0.6.1 and earlier made. `refine` (.cube only, default
-   * off) adds the guarded CIEDE2000 refinement. GR III / IIIx take .xmp and .cube too.
+   * off) adds the guarded CIEDE2000 refinement; `hue` (.cube only, default off, for an added slot)
+   * also fits its hue sectors. GR III / IIIx take .xmp and .cube too.
    */
   convertPreset(kind: 'xmp' | 'cube', text: string, onProgress?: (f: number) => void, options: { post?: boolean; refine?: boolean; hue?: boolean; legacyFit?: boolean } = {}): PresetResult {
     if (this.info.family === 'gr3x') {
@@ -849,7 +850,7 @@ export class Engine {
     }
     if (this.layout === null || !this.info.capabilities.presets) requireGr3xPort('preset conversion');
     const post = options.post !== false;
-    const c = kind === 'xmp' ? convertXmp(text, { onProgress, post }) : convertCube(text, { onProgress, post, refine: options.refine === true, ...(options.hue === false ? { hue: false } : {}) });
+    const c = kind === 'xmp' ? convertXmp(text, { onProgress, post }) : convertCube(text, { onProgress, post, refine: options.refine === true, hue: options.hue === true });
     const q = quantizeSlot(c.params, this.mStdQ13);
     return { kind: c.kind, title: c.title, meanDE: c.meanDE, p95DE: c.p95DE, meanDE2000: c.meanDE2000, p95DE2000: c.p95DE2000, warnings: c.warnings, unsupported: c.unsupported, params: c.params, matrixQ13: q.matrixQ13, curves: q.curves, ...(q.postQ9 ? { postQ9: q.postQ9 } : {}), ...(c.hueQ10 ? { hueQ10: c.hueQ10 } : {}) };
   }

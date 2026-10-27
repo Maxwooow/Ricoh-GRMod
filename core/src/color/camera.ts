@@ -103,6 +103,7 @@ export function createCameraModel(baseCurve: ArrayLike<number>): CameraToneModel
     const post = params.P2 ? params.P2.map((r) => Float64Array.from(r)) : null;
     const out = new Float64Array(rgb.length);
     const lin = [0, 0, 0];
+    const lv = [0, 0, 0];
     for (let i = 0; i < rgb.length; i += 3) {
       for (let c = 0; c < 3; c++) {
         // S^-1: display -> linear
@@ -113,11 +114,13 @@ export function createCameraModel(baseCurve: ArrayLike<number>): CameraToneModel
         lin[c] = j === 255 || S_TAB[j] === d ? S_X[j] : SINV_SLOPE[j] * (d - S_TAB[j]) + S_X[j];
       }
       const a0 = lin[0], a1 = lin[1], a2 = lin[2];
-      const lv = [0, 0, 0];
       for (let c = 0; c < 3; c++) {
         const row = rows[c];
         const l0 = a0 * row[0] + a1 * row[1] + a2 * row[2];
-        lv[c] = l0 < 0 ? 0 : l0 > S_XMAX ? S_XMAX : l0;
+        // With hue sectors the signal stays unclipped up to the sector stage (the camera's integer
+        // pipeline is signed there, and GR4-LUTSmith picks the sector on the unclipped signal):
+        // clipping first would move out-of-range saturated colours into the wrong sector.
+        lv[c] = hueSectors ? l0 : l0 < 0 ? 0 : l0 > S_XMAX ? S_XMAX : l0;
       }
       if (hueSectors) hueApply(lv, hueSectors);
       for (let c = 0; c < 3; c++) {

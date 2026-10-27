@@ -5,7 +5,7 @@ import type { BuildOptions, CameraModel, RatioSpec, SlotRequest, SoftFocusReques
 let engine: Engine | null = null;
 type Req =
   | { id: number; type: 'open'; raw: ArrayBuffer }
-  | { id: number; type: 'convert'; kind: 'xmp' | 'cube'; text: string }
+  | { id: number; type: 'convert'; kind: 'xmp' | 'cube'; text: string; hue?: boolean }
   | { id: number; type: 'build'; requests: SlotRequest[]; ratios?: RatioSpec[]; softFocus?: SoftFocusRequest[]; options?: BuildOptions }
   | { id: number; type: 'ratio'; ratio: string; others: string[] }
   | { id: number; type: 'encode'; rgb: ArrayBuffer; model: CameraModel }
@@ -31,7 +31,7 @@ ctx.onmessage = async (ev: MessageEvent<Req>) => {
         ctx.postMessage({ id: m.id, ok: true, result: engine.info });
         break;
       }
-      case 'convert': ctx.postMessage({ id: m.id, ok: true, result: need().convertPreset(m.kind, m.text, progress) }); break;
+      case 'convert': ctx.postMessage({ id: m.id, ok: true, result: need().convertPreset(m.kind, m.text, progress, m.hue ? { hue: true } : {}) }); break;
       case 'build': {
         const r = await need().buildFirmware(m.requests, m.ratios || [], m.softFocus || [], m.options || {});
         ctx.postMessage({ id: m.id, ok: true, result: r }, [r.file.buffer as ArrayBuffer]);

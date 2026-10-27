@@ -1,7 +1,7 @@
 // Hue sectors: 12 pieces of the hue circle, each with a 3x3 matrix applied before the tone curves.
 //
 // This is the camera's own "hue sector" stage, the one LUTSmith's hue fitting uses. The matrices
-// are stored per style in the 2160-byte multi-axis block (5 copies x 12 sectors x 3x3 int32, Q10,
+// are stored per style in the 2160-byte multi-axis block (12 sectors x 5 copies x 3x3 int32, sector-major, Q10,
 // every row summing to 1024). On the GR IV an added Image Control slot can carry its own block
 // instead of the neutral one copied from Standard.
 //
@@ -11,6 +11,12 @@
 
 /** Sector boundaries in degrees, as used by the camera's hue-sector stage. */
 export const HUE_BOUNDS: readonly number[] = [359.8, 27.4, 62.2, 92.6, 112.0, 142.8, 179.2, 211.4, 238.6, 267.2, 306.0, 326.5];
+
+/** Largest magnitude of a Q10 hue-matrix entry the firmware block and its writer accept. */
+export const HUE_MAX_Q10 = 2047;
+
+/** Soft bound used by the fit's range penalty (LUTSmith's 1.85 in Q10), a margin under `HUE_MAX_Q10`; not the firmware limit. */
+export const HUE_SOFT_LIMIT_Q10 = 1894;
 
 /** YCbCr matrix used to measure hue. */
 const YCC: readonly (readonly number[])[] = [
@@ -75,12 +81,56 @@ export function hueMatricesFromD(d: ArrayLike<number>): number[][] {
   return out;
 }
 
+/**
+ * Smoothness at the sector edges, as a linear map from the 36 parameters (same layout as
+ * `hueMatricesFromD`) to 36 numbers: at each edge, how far the two neighbouring matrices differ
+ * along the edge's perpendicular direction, scaled by how uncertain that edge's position is
+ * (`HUE_SIGMA`, degrees; GR4-LUTSmith's `hue_kinks`). Row-major 36 x 36.
+ */
+export const HUE_SIGMA: readonly number[] = [1.0, 2.5, 2.5, 1.0, 1.0, 2.5, 2.5, 2.0, 1.0, 2.0, 5.0, 3.0];
+
+let kinkCache: Float64Array | null = null;
+export function hueKinkMatrix(): Float64Array {
+  if (kinkCache) return kinkCache;
+  // inverse of the YCbCr matrix
+  const a = YCC;
+  const det = a[0][0] * (a[1][1] * a[2][2] - a[1][2] * a[2][1]) - a[0][1] * (a[1][0] * a[2][2] - a[1][2] * a[2][0]) + a[0][2] * (a[1][0] * a[2][1] - a[1][1] * a[2][0]);
+  const inv = [
+    [(a[1][1] * a[2][2] - a[1][2] * a[2][1]) / det, (a[0][2] * a[2][1] - a[0][1] * a[2][2]) / det, (a[0][1] * a[1][2] - a[0][2] * a[1][1]) / det],
+    [(a[1][2] * a[2][0] - a[1][0] * a[2][2]) / det, (a[0][0] * a[2][2] - a[0][2] * a[2][0]) / det, (a[0][2] * a[1][0] - a[0][0] * a[1][2]) / det],
+    [(a[1][0] * a[2][1] - a[1][1] * a[2][0]) / det, (a[0][1] * a[2][0] - a[0][0] * a[2][1]) / det, (a[0][0] * a[1][1] - a[0][1] * a[1][0]) / det],
+  ];
+  const perp: number[][] = [];
+  for (let b = 0; b < 12; b++) {
+    const th = HUE_BOUNDS[b] * RAD;
+    const v = [0, -Math.sin(th), Math.cos(th)];
+    perp.push([0, 1, 2].map((r) => inv[r][0] * v[0] + inv[r][1] * v[1] + inv[r][2] * v[2]));
+  }
+  const K = new Float64Array(36 * 36);
+  const e = new Float64Array(36);
+  for (let k = 0; k < 36; k++) {
+    e.fill(0);
+    e[k] = 1;
+    const M = hueMatricesFromD(e);
+    for (let b = 0; b < 12; b++) {
+      const m1 = M[b], m0 = M[(b + 11) % 12];
+      for (let r = 0; r < 3; r++) {
+        let s = 0;
+        for (let c = 0; c < 3; c++) s += (m1[r * 3 + c] - m0[r * 3 + c]) * perp[b][c];
+        K[(b * 3 + r) * 36 + k] = s * HUE_SIGMA[b];
+      }
+    }
+  }
+  kinkCache = K;
+  return K;
+}
+
 /** Round float matrices to the firmware's Q10 integers; every row is repaired to sum to 1024. */
 export function hueQuantize(m: readonly (readonly number[])[]): number[][] {
   const out: number[][] = [];
   for (const matrix of m) {
-    const q = matrix.map((v) => Math.round(v * 1024));
-    for (let r = 0; r < 3; r++) q[r * 3 + 2] += 1024 - (q[r * 3] + q[r * 3 + 1] + q[r * 3 + 2]);
+    const q = matrix.map((v) => Math.round(v * 1024) + 0); // + 0: no negative zero
+    for (let r = 0; r < 3; r++) q[r * 4] += 1024 - (q[r * 3] + q[r * 3 + 1] + q[r * 3 + 2]);
     out.push(q);
   }
   return out;

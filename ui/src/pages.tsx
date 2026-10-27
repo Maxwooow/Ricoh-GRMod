@@ -16,11 +16,10 @@ import {
   setDateStamp,
   setMonoUnlock,
   setDirectFlash,
-  extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, slotOf,
+  extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraHue, setExtraCount, setExtraName, setHalation, slotOf,
   filmCountChoosable, setFilmCount,
   hasLookLayout, isGr3, KEEP_VISIBLE, lookHiddenNow, lookMonoOnly, lookName, lookOrderAvailable, lookOrderNow, moveLook, moveLookTo, resetLookLayout, setLookHidden,
   setWallName, wallMax, wallMenuProblem,
-  isExtra,
 } from './store';
 import type { ExtraSlot, RatioItem, SlotKey, WallItem } from './store';
 
@@ -143,9 +142,7 @@ function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number
   const slots = useStore(s => s.slots);
   const mode = useStore((s) => s.previewMode);
   const active = useStore((s) => s.activeSlot);
-  const fitted = useStore((s) => slotOf(s.activeSlot, s)?.preset?.result?.params);
-  // Only added slots get their own hue sectors; Cinema Yellow / Green are written (and shown) without them.
-  const params = useMemo(() => (fitted?.hue && !isExtra(active) ? { M1: fitted.M1, ck: fitted.ck, ...(fitted.P2 ? { P2: fitted.P2 } : {}) } : fitted), [fitted, active]);
+  const params = useStore((s) => slotOf(s.activeSlot, s)?.preset?.result?.params);
   const extras = useStore((s) => s.extras);
   const extraLabels = useStore((s) => s.extras.map((x) => extraName(x, s)).join('\u0000'));
   const lang = useStore((s) => s.lang);
@@ -599,6 +596,14 @@ function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
               </div>
             )}
           </Prop>
+          {p?.kind === 'cube' && (
+            <Prop label={t('hueFit')}>
+              <div className="chips">
+                <Switch checked={x.hue === true} onChange={(v) => setExtraHue(k, v)} label={t('hueFit')} />
+                <span className="muted small">{t('hueFitSub')}</span>
+              </div>
+            </Prop>
+          )}
           <Prop label={t('icon')}>
             <div className="chips">
               <Segmented value={x.icon.mode === 'image' ? 'image' : 'text'} onChange={(mode) => setIcon(k, { mode })} options={[{ value: 'text', label: t('iconText') }, { value: 'image', label: t('iconImage') }]} />
