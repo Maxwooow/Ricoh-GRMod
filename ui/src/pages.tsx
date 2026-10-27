@@ -15,6 +15,7 @@ import {
   setSoft,
   setDateStamp,
   setMonoUnlock,
+  setBrightAuto,
   setDirectFlash,
   extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, slotOf,
   filmCountChoosable, setFilmCount,
@@ -675,6 +676,8 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
   const looks = useStore((s) => s.monoUnlock);
   const gr3x = useStore(s => s.info?.family === 'gr3x');
   const dateOk = useStore(s => !!s.info?.features.dateStamp);
+  const bright = useStore((s) => s.brightAuto);
+  const brightOk = useStore((s) => !!s.info?.features.brightAuto);
   const flash = useStore((s) => s.directFlash);
   const flashOk = useStore((s) => !!s.info?.features.directFlash);
   const own = useRef<HTMLDivElement | null>(null);
@@ -695,6 +698,7 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
       <FeatureRow icon={Ico.soft} title={t('navSoft')} sub={t(gr3x ? 'gr3xSoftSub' : 'softAdjSub')} on={soft} onChange={setSoft} />
       {(!gr3x || dateOk) && <FeatureRow icon={Ico.date} title={t('navDate')} sub={t('dateSub')} on={date} onChange={setDateStamp} />}
       {!mono && !gr3x && <FeatureRow icon={Ico.mono} title={t(gr3x ? 'gr3xReplicaTitle' : 'navMono')} sub={t(gr3x ? 'gr3xReplicaSub' : 'monoSub')} on={looks} onChange={setMonoUnlock} />}
+      {brightOk && <FeatureRow icon={Ico.sun} title={t('navBright')} sub={t('brightSub')} on={bright} onChange={setBrightAuto} />}
       {flashOk && <FeatureRow icon={Ico.flash} title={t('navFlash')} sub={t('flashSub')} on={flash} onChange={setDirectFlash} />}
     </div>
   );

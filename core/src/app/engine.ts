@@ -23,6 +23,7 @@ import {
   countChangedBytes,
   editableRanges,
   monoUnlockWords,
+  brightAutoWords,
   equalRange,
   foff,
   gr4Sizes,
@@ -112,6 +113,8 @@ export interface FirmwareInfo {
     /** The Image Control menu order and hidden looks (GR IV; GR III 2.10 from round 8). */
     lookLayout?: boolean };
   features: { softFocus: 'clarity' | 'adj'; dateStamp: boolean; monoUnlock: boolean;
+    /** A brighter rear screen with Outdoor View Setting = Auto (GR IV on firmware 1.11). */
+    brightAuto?: boolean;
     /** Direct Flash, a fifth Flash Mode (GR IV; GR III / IIIx have the GF-2 mode of their own). */
     directFlash?: boolean;
     /** GR III / IIIx: the most films a build can have (9; 20 on GR III 2.10, where
@@ -225,6 +228,8 @@ export interface FirmwareSummary {
   dateStamp: boolean;
   /** True when the file unlocks the six looks of the GR IV Monochrome. */
   monoUnlock: boolean;
+  /** True when the file has the brighter Auto screen curve. */
+  brightAuto?: boolean;
   /** Image Control slots the file adds (empty when none, or when they cannot be read). */
   extraSlots: { name: string; icon: Uint8Array }[];
   /** Power-off pictures chosen in the camera's End Screen menu (absent when none, or when they cannot be read). */
@@ -243,6 +248,8 @@ export interface BuildOptions {
   dateStamp?: boolean;
   /** The six black-and-white looks of the GR IV Monochrome. */
   monoUnlock?: boolean;
+  /** A brighter rear-screen curve for Outdoor View Setting = Auto (GR IV, firmware 1.11). */
+  brightAuto?: boolean;
   /** Added Image Control slots (1 to 20), after the factory ones. */
   extraSlots?: ExtraSlotSpec[];
   /** Image Control menu order and hidden looks (factory ids 11..30 plus added styles 34..;
@@ -347,6 +354,7 @@ export class Engine {
   private readonly layout: Layout | null;
   private editable: Range[] | null = null;
   private monoWords: { offset: number; bytes: Uint8Array }[] | null = null;
+  private brightWords: { offset: number; bytes: Uint8Array }[] | null = null;
   private gr3xCandidates = new Map<string, Promise<FirmwareBuild>>();
 
   private fixedGr3x(softFocus: readonly SoftFocusRequest[] = [], looks?: Gr3xLookOptions, menu: readonly Gr3xMenuRatio[] = GR3X_T4_MENU, adjSoftFocus = false, dateImprint = false, pictures: readonly Gr3xPictureSpec[] = [], dateMenu: 'list' | 'submenu' = 'submenu', pictureMenu: 'list' | 'submenu' = 'submenu',
@@ -457,7 +465,7 @@ export class Engine {
       family: 'gr4', filename: 'fwdc248b.bin', models: ['STANDARD', 'HDF', 'MONO'],
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
       capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, bridge: !bridge, menuPictures: true, lookLayout: true },
-      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, directFlash: true },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true },
       version: FIRMWARE_VERSION,
       sha256: await sha256Hex(raw),
       slots,
@@ -587,10 +595,12 @@ export class Engine {
       // The monochrome looks on their own are written in place: all of their words, or none.
       if (!this.monoWords) this.monoWords = monoUnlockWords(this.decoded);
       const monoUnlock = this.monoWords.every((w) => equalRange(fw.decoded, w.offset, w.bytes, 0, 4));
-      const allowed = monoUnlock ? [...this.editable, ...this.monoWords.map((w) => ({ what: 'monochrome looks', offset: w.offset, length: 4 }))] : this.editable;
+      if (!this.brightWords) this.brightWords = brightAutoWords(this.decoded);
+      const brightAuto = this.brightWords.every((w) => equalRange(fw.decoded, w.offset, w.bytes, 0, 4));
+      const allowed = [...this.editable, ...(monoUnlock ? this.monoWords.map((w) => ({ what: 'monochrome looks', offset: w.offset, length: 4 })) : []), ...(brightAuto ? this.brightWords.map((w) => ({ what: 'brighter Auto screen', offset: w.offset, length: 4 })) : [])];
       const checks = selfCheck(this.raw, raw, allowed);
       const verified = Object.values(checks).every((v) => v === true);
-      return { sha256, kind: 'modified', changedBytes: countChangedBytes(fw.decoded, this.decoded), verified, slots: describe(fw.decoded), ratios: [], softFocus: clarityChanges(fw.decoded), adjSoftFocus: false, dateStamp: false, monoUnlock, extraSlots: [] };
+      return { sha256, kind: 'modified', changedBytes: countChangedBytes(fw.decoded, this.decoded), verified, slots: describe(fw.decoded), ratios: [], softFocus: clarityChanges(fw.decoded), adjSoftFocus: false, dateStamp: false, monoUnlock, ...(brightAuto ? { brightAuto: true } : {}), extraSlots: [] };
     } catch {
       return { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false, extraSlots: [] };
     }
@@ -670,6 +680,7 @@ export class Engine {
       adjSoftFocus: !!features.adjSoftFocus,
       dateStamp: !!features.dateStamp,
       monoUnlock: !!features.monoUnlock,
+      ...(features.brightAuto ? { brightAuto: true } : {}),
       extraSlots: (features.extraSlots ?? []).map((x) => ({ name: x.name, icon: x.icon })),
       ...(features.shutdown ? { shutdownPictures: [...features.shutdown.pictures] } : {}),
       ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}),
@@ -954,6 +965,8 @@ export class Engine {
     const adjSoftFocus = !!(options && options.adjSoftFocus);
     const dateStamp = !!(options && options.dateStamp);
     const monoUnlock = !!(options && options.monoUnlock);
+    const brightAuto = !!(options && options.brightAuto);
+    if (brightAuto && !this.info.features.brightAuto) throw new FirmwareError('bad-edit', 'the brighter Auto screen is not available for this firmware');
     const extraSlots = options && options.extraSlots ? options.extraSlots : [];
     const pictures = options && options.shutdownPictures ? options.shutdownPictures : [];
     const lookLayout = options && options.lookLayout ? options.lookLayout : undefined;
@@ -963,9 +976,9 @@ export class Engine {
     if (adjSoftFocus && clarity.length > 0) throw new FirmwareError('bad-clarity', 'soft focus on the ADJ lever and on the clarity table cannot be combined');
     if (dateStamp && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the date imprint cannot be combined with the clarity-table soft focus of 0.4.x');
     if (extraSlots.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'added slots cannot be combined with the clarity-table soft focus of 0.4.x');
-    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash) throw new FirmwareError('bad-edit', 'nothing to change');
+    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && !brightAuto && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash) throw new FirmwareError('bad-edit', 'nothing to change');
     if (Object.keys(cinemaHalation).length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'halation cannot be combined with the clarity-table soft focus of 0.4.x');
-    const features = { adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}) };
+    const features = { adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(brightAuto ? { brightAuto } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}) };
     const test = {
       ...(options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {}),
     };

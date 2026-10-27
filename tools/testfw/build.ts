@@ -23,5 +23,5 @@ writeFileSync(out + '.rtos', d.subarray(r.offset, r.offset + r.size));
 const s = await eng.inspect(b.file);
 console.log(JSON.stringify({
   sha256: b.sha256, bytes: b.file.length, checks: Object.values(b.checks).every((v) => v === true), features: b.features,
-  inspect: { kind: s.kind, verified: s.verified, adjSoftFocus: s.adjSoftFocus, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock, ratios: s.ratios.map((x) => x.name) },
+  inspect: { kind: s.kind, verified: s.verified, adjSoftFocus: s.adjSoftFocus, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock, brightAuto: !!s.brightAuto, ratios: s.ratios.map((x) => x.name) },
 }));

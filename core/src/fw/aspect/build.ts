@@ -33,6 +33,7 @@ import { installDirectFlashMenu } from './directflash-menu';
 import { DATESTAMP_BYTE, installDateStamp, lookNames } from './datestamp';
 import { installDateStampMenu } from './datestamp-menu';
 import { installMonoUnlock } from './monounlock';
+import { installBrightAuto } from './brightauto';
 import { CINEMA_STYLES, installExtraSlots, installHalation } from './slots';
 import { halationLight } from './halation';
 import type { HalationLook } from './halation';
@@ -109,7 +110,7 @@ export interface PatchedWord { address: number; before: number; after: number; r
  * (see `ExtensionFeatures`), and there may be no added ratio at all. Recorded at the end of the
  * RTOS section (see `package.ts`). A build with added ratios only is still written as revision 2.
  */
-export type BuildRevision = 1 | 2 | 3;
+export type BuildRevision = 1 | 2 | 3 | 4;
 export const BUILD_REVISION: BuildRevision = 2;
 
 /** Additions of this program that are not aspect ratios. */
@@ -120,6 +121,8 @@ export interface ExtensionFeatures {
   dateStamp?: boolean;
   /** The six looks of the GR IV Monochrome (see `monounlock.ts`). */
   monoUnlock?: boolean;
+  /** A brighter rear screen with Outdoor View Setting = Auto (see `brightauto.ts`); build revision 4. */
+  brightAuto?: boolean;
   /** Added Image Control slots, 1 to 20 (see `slots.ts`; up to 0.8.1 at most 6). */
   extraSlots?: readonly ExtraSlotSpec[];
   /** Image Control menu order and hidden looks (see `looks.ts`). */
@@ -1008,7 +1011,7 @@ export function planRatios(specs: readonly RatioSpec[], options: { portrait?: bo
  */
 export function installRatios(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], revision: BuildRevision = BUILD_REVISION): AspectResult {
   if (!(ratios.length >= 1 && ratios.length <= MAX_CUSTOM_RATIOS)) fail('too-many-ratios', `1 to ${MAX_CUSTOM_RATIOS} ratios can be added`);
-  if (revision === 3) fail('internal', 'revision 3 is built with installExtensions');
+  if (revision >= 3) fail('internal', 'revision 3 and later are built with installExtensions');
   return installExtensions(rtos, iconbin, ratios, {}, revision);
 }
 
@@ -1021,9 +1024,9 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   const slots = features.extraSlots ?? [];
   const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
   const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
-  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash;
-  if (extra) revision = 3;
-  if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
+  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || !!features.brightAuto || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash;
+  if (extra) revision = features.brightAuto ? 4 : 3;
+  if (revision !== 1 && revision !== 2 && revision !== 3 && revision !== 4) fail('internal', 'unknown build revision');
   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
   if (ratios.length > MAX_CUSTOM_RATIOS) fail('too-many-ratios', `at most ${MAX_CUSTOM_RATIOS} ratios can be added`);
   if (ratios.length === 0 && !extra) fail('internal', 'nothing to install');
@@ -1052,6 +1055,7 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   // Before the date imprint's menu, which copies the list table with Flash Mode's records.
   if (features.directFlash) icons = installDirectFlash(patch, icons, !!test.directFlashDiag);
   if (features.monoUnlock) installMonoUnlock(patch);
+  if (features.brightAuto) installBrightAuto(patch);
   if (features.dateStamp) {
     const fixed = test.dateStampFixed;
     // From 0.8.2 (builds with the guard) the imprint goes by the picture's look.
@@ -1087,5 +1091,5 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}) });
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}) } };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(features.brightAuto ? { brightAuto: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}) } };
 }
