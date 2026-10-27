@@ -10,7 +10,7 @@ import type { Crop } from './pixels';
 import { onUiScale, uiScale } from './fit';
 import { applySlot } from './preview';
 import {
-  addRatio, addWallFiles, askForOfficial, bridgeLoaded, loadFirmwareFile, loadIconImage, loadPresetFile, loadPreviewFile, moveWall, nameProblem, openCrop, outputFirmware, previewPhoto, removePreset, removeWall,
+  addRatio, addWallFiles, askForOfficial, bridgeLoaded, fwVersion, loadFirmwareFile, loadIconImage, loadPresetFile, loadPreviewFile, moveWall, nameProblem, openCrop, outputFirmware, previewPhoto, removePreset, removeWall,
   maxRatios, ratioName, ratioProblem, removeRatio, setActiveRatio, setActiveSlot, setCrop, setIcon, setName, setPreviewMode, setRatio, setRatioBackdrop, useStore, wallBitmap,
   setSoft,
   setDateStamp,
@@ -668,7 +668,8 @@ function FeatureRow({ icon, title, sub, on, onChange }: { icon: ReactNode; title
 
 /**
  * The additions that are not slots: soft focus on the ADJ lever (off / weak / medium / strong),
- * the date imprint with its menu, and the six monochrome looks (colour models only).
+ * the date imprint with its menu, and the six monochrome looks (`mono`: not offered, as on the
+ * Monochrome or with a file without the colour work).
  */
 function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: HTMLDivElement | null) => void; from?: React.MutableRefObject<DOMRect | null> }) {
   const soft = useStore((s) => s.soft);
@@ -852,11 +853,13 @@ export function ImageControlPage() {
   const info = useStore((s) => s.info);
   const fwName = useStore((s) => s.fwName);
   const model = useStore((s) => s.model);
+  const version = useStore((s) => fwVersion(s));
   const [view, setViewState] = useState<IcView>(lastIcView);
   const setView = (v: IcView): void => { lastIcView = v; setViewState(v); };
   // the page's guide points at the slots: show them while it runs
   const touring = useStore((s) => s.tour?.id === 'ic');
   useEffect(() => { if (touring) setView('slots'); }, [touring]);
+  // The slots (and the menu order) are the colour work: not on the Monochrome, not with 1.20's file.
   const views = !!info && info.capabilities.presets && model !== 'MONO';
   // The menu order is a view of its own where the firmware has it (GR IV; GR III / IIIx).
   const orderView = useStore((s) => lookOrderAvailable(s));
@@ -870,7 +873,7 @@ export function ImageControlPage() {
           <div className="head-right" data-tour="ic-stock">
             {info.bridge
               ? <span className="chip warn">{Ico.bridge}<span className="ellipsis">{fwName || info.filename} · {t('fwBridgeValue')}</span></span>
-              : <span className="chip ok">{Ico.check}<span className="ellipsis">{fwName || info.filename} · {info.version}</span></span>}
+              : <span className="chip ok">{Ico.check}<span className="ellipsis">{fwName || info.filename} · {version}</span></span>}
             <Menu items={[
               { label: t('writeStock'), run: () => { void outputFirmware({ kind: 'card' }, true); } },
               { label: t('exportStock'), run: () => { void outputFirmware({ kind: 'folder' }, true); } },
@@ -880,7 +883,7 @@ export function ImageControlPage() {
       </header>
       {!info && <FirmwareHero />}
       {views && (orderView ? <IcViews view={view} /> : <IcBody />)}
-      {info && model === 'MONO' && <div className="mono-ic" data-tour-page="ic"><p className="muted">{t('monoNoSlots')}</p><FeatureSwitches mono /></div>}
+      {info && !views && <div className="mono-ic" data-tour-page="ic"><p className="muted">{t(model === 'MONO' ? 'monoNoSlots' : 'colourNeeds111', { v: version })}</p><FeatureSwitches mono /></div>}
     </DropZone>
   );
 }

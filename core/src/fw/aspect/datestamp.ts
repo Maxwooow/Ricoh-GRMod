@@ -41,11 +41,13 @@
  * as stored.
  */
 import { FirmwareError } from '../types';
-import { assembleWords } from './arm';
+import { TARGET_111 } from '../target';
+import type { FirmwareTarget } from '../target';
+import { assembleWords, movWord } from './arm';
 import { BASE, Patch, expectWord, u16le, u32le } from './build';
 import { DATESTAMP_CODE, DATESTAMP_CODE_LENGTH, DATESTAMP_DFDIAG_CODE, DATESTAMP_DIAG_CODE } from './datestamp-code';
 import { DIRECT_FLASH_DIAG_SLOT } from './directflash';
-import { FRAME_LOOK, LOOK_STASH, MONO_MODEL, ORIENT_VALID, ORIENT_WORD } from './lookstash';
+import { MONO_MODEL, ORIENT_VALID, frameLook, lookStash, orientWord } from './lookstash';
 import { NAME_TABLE_RTOS_OFFSETS } from '../names';
 
 /** JpegEncodeMacroProcess::Execute. */
@@ -60,9 +62,15 @@ const GET_TIME = 0x538ea9b0;
 /**
  * Where the setting is kept: byte 0x94B of the live user settings, alignment padding that the
  * factory-defaults initialiser never writes (like 0x90F for soft focus); saved, loaded and copied
- * to U1-U3 with the rest of the structure.
+ * to U1-U3 with the rest of the structure. In 1.20 the structure is longer (0xB44 bytes, new
+ * settings at its end) and the 30 default records leave exactly the same 53 bytes unwritten as
+ * in 1.11, this one among them (tools/port120/check_userdata.py).
  */
-export const DATESTAMP_BYTE = 0x55084dd8 + 4 + 0x94b;
+export function dateStampByte(t: FirmwareTarget): number {
+  return t.facts.userData + 4 + 0x94b;
+}
+/** The setting byte in 1.11. */
+export const DATESTAMP_BYTE = dateStampByte(TARGET_111);
 
 /** Bits of the setting byte. */
 export const DATESTAMP_ON = 1;
@@ -82,6 +90,8 @@ export const FACTORY_LOOK_NAMES: Readonly<Record<number, string>> = {
   17: 'Positive Film', 18: 'Cinema (Yellow)', 19: 'Cinema (Green)', 20: 'Bleach Bypass', 21: 'Retro', 22: 'HDR Tone',
   23: 'Cross Processing', 24: 'Negative Film', 25: 'Standard', 26: 'Soft', 27: 'High Contrast', 28: 'Grainy', 29: 'Solid', 30: 'HDR Tone',
 };
+/** The looks firmware 1.20 adds, the Monochrome's (texts 0x14B / 0x14A of 1.20's switch at 0x5338EDF8). */
+export const LATER_LOOK_NAMES: Readonly<Record<number, string>> = { 31: 'Pictorialist Effect', 32: 'Solarized Effect' };
 
 /** Fourteen segments of a capital (bits: a b c d e f, g1 g2, upper-left slant, upper bar, upper-right slant, lower-left slant, lower bar, lower-right slant). */
 const A = 1, B = 2, C = 4, D = 8, E = 16, F = 32, G1 = 64, G2 = 128, UL = 256, UM = 512, UR = 1024, LL = 2048, LM = 4096, LR = 8192;
@@ -120,7 +130,7 @@ export function lookNameGlyphs(name: string): number[] {
   return out.slice(0, LOOK_NAME_MAX);
 }
 
-/** Text `index` of language row `lang` (LANGS order) of the camera's own text tables, as it is in `patch`. */
+/** Text `index` of language row `lang` (LANGS order) of the camera's own text tables, as it is in `patch` (1.11). */
 function cameraText(patch: Patch, lang: number, index: number): string {
   const root = BASE + NAME_TABLE_RTOS_OFFSETS[lang];
   const w = (a: number): number => new DataView(patch.readMapped(a, 4).buffer).getUint32(0, true);
@@ -133,16 +143,19 @@ function cameraText(patch: Patch, lang: number, index: number): string {
 }
 
 /**
- * The names for the imprint, per look: the factory looks' English names; Cinema Yellow / Green as
- * renamed for English, else as renamed in a language whose own name is not in Latin letters
- * (Chinese, Japanese, Korean, Russian, Greek, Thai) when that name is all printable ASCII, else
- * their English name; added slots by their names (`extraNames`, styles from 34).
+ * The names for the imprint, per look: the factory looks' English names (1.20: also its two more,
+ * `LATER_LOOK_NAMES`); Cinema Yellow / Green as renamed for English, else as renamed in a language
+ * whose own name is not in Latin letters (Chinese, Japanese, Korean, Russian, Greek, Thai) when
+ * that name is all printable ASCII, else their English name; added slots by their names
+ * (`extraNames`, styles from 34). Renaming the Cinema slots is colour work (1.11 only): with 1.20
+ * they keep their English names.
  */
 export function lookNames(patch: Patch, extraNames: readonly string[]): Record<number, string> {
   const out: Record<number, string> = { ...FACTORY_LOOK_NAMES };
+  for (const [style, name] of Object.entries(LATER_LOOK_NAMES)) if (Number(style) < patch.target.facts.looks) out[Number(style)] = name;
   const EN = 2;
   const OTHER = [15, 19, 9, 10, 14, 6, 18]; // zh-CN zh-TW ja ko ru el th
-  for (const [style, index] of [[18, 301], [19, 302]] as const) {
+  for (const [style, index] of patch.target.colour ? [[18, 301], [19, 302]] as const : []) {
     const en = cameraText(patch, EN, index);
     let name = en;
     if (en === FACTORY_LOOK_NAMES[style]) {
@@ -195,18 +208,22 @@ export function datestampModule(diag: boolean | 'df' = false): Uint8Array {
  * for pictures whose colours look neutral. Returns the module address.
  */
 export function installDateStamp(patch: Patch, setting: number, diag: boolean | 'df' = false, look?: { stash: number; monoLooks: Uint8Array; names?: Readonly<Record<number, string>> }): number {
-  expectWord(patch, JPEG_EXECUTE, 0xe1a0c00d); // mov ip, sp
-  expectWord(patch, JPEG_EXECUTE + 4, 0xe92ddff0); // push {r4-r12, lr, pc}
-  expectWord(patch, JPEG_EXECUTE + 0x18, 0xe5914008); // ldr r4, [r1, #8]  (the configuration)
-  expectWord(patch, CACHE, 0xe30009c4); // movw r0, #0x9c4 (the cache object)
-  expectWord(patch, CACHE_CLEAN, 0xe1a00001);
-  expectWord(patch, CACHE_FLUSH_FOR_READ, 0xe1a0c00d);
-  expectWord(patch, GET_TIME, 0xe5d03014); // ldrb r3, [r0, #0x14]
+  const v = (a: number): number => patch.va(a);
+  const execute = v(JPEG_EXECUTE);
+  expectWord(patch, execute, 0xe1a0c00d); // mov ip, sp
+  expectWord(patch, execute + 4, 0xe92ddff0); // push {r4-r12, lr, pc}
+  expectWord(patch, execute + 0x18, 0xe5914008); // ldr r4, [r1, #8]  (the configuration)
+  // the cache object's getter: movw r0 / movt r0 (the object, 0x553A09C4 in 1.11) / bx lr
+  if ((patch.word(v(CACHE)) & 0xfff0f000) >>> 0 !== 0xe3000000 || (patch.word(v(CACHE) + 4) & 0xfff0f000) >>> 0 !== 0xe3400000) expectWord(patch, v(CACHE), 0xe30009c4);
+  expectWord(patch, v(CACHE) + 8, 0xe12fff1e);
+  expectWord(patch, v(CACHE_CLEAN), 0xe1a00001);
+  expectWord(patch, v(CACHE_FLUSH_FOR_READ), 0xe1a0c00d);
+  expectWord(patch, v(GET_TIME), 0xe5d03014); // ldrb r3, [r0, #0x14]
   if (look && look.monoLooks.length !== 64) fail('internal', 'date imprint: table of black-and-white looks');
   const table = look ? patch.append(look.monoLooks, 4) : 0;
   const names = look && look.names ? lookNameTable(patch, look.names) : 0;
-  const ctx = patch.append(u32le([CACHE, CACHE_FLUSH_FOR_READ, CACHE_CLEAN, PLATFORM, GET_TIME, setting, look ? look.stash : 0, table, look ? MONO_MODEL : 0, look ? ORIENT_WORD : 0,
-    look ? FRAME_LOOK : 0, names, ...(diag === 'df' ? [DIRECT_FLASH_DIAG_SLOT] : [])]), 16);
+  const ctx = patch.append(u32le([v(CACHE), v(CACHE_FLUSH_FOR_READ), v(CACHE_CLEAN), v(PLATFORM), v(GET_TIME), setting, look ? look.stash : 0, table, look ? v(MONO_MODEL) : 0, look ? orientWord(patch.target) : 0,
+    look ? frameLook(patch.target) : 0, names, ...(diag === 'df' ? [DIRECT_FLASH_DIAG_SLOT] : [])]), 16);
   if (look) installExposureOrientation(patch);
   const code = patch.append(datestampModule(diag), 16);
   const stub = patch.append((at) => assembleWords(
@@ -216,9 +233,9 @@ export function installDateStamp(patch: Patch, setting: number, diag: boolean | 
      bl #${code}
      pop {r0, r1, r2, r3, ip, lr}
      mov ip, sp
-     b #${JPEG_EXECUTE + 4}`, at), 16);
-  const offset = (stub - (JPEG_EXECUTE + 8)) >> 2;
-  patch.setWord(JPEG_EXECUTE, (0xea000000 | (offset & 0xffffff)) >>> 0, 'date imprint: JPEG encode step');
+     b #${execute + 4}`, at), 16);
+  const offset = (stub - (execute + 8)) >> 2;
+  patch.setWord(execute, (0xea000000 | (offset & 0xffffff)) >>> 0, 'date imprint: JPEG encode step');
   return code;
 }
 
@@ -232,23 +249,36 @@ export function installDateStamp(patch: Patch, setting: number, diag: boolean | 
  * copies LOOK_STASH (the look live view is being developed with) into FRAME_LOOK, for the
  * imprint's look name. Nothing but the two words is written; the hook keeps every register (and
  * runs `mov ip, sp` itself, after them).
+ *
+ * Firmware 1.20: the same code at other addresses (0x5364D640; the display rotation reads the
+ * same +4 -> +0x518 -> record -> +0xD8 of the same singleton, 0x5537B29C, which 0x53750008 returns).
  */
 export const BEFORE_EXPOSE = 0x53628cd8;
 const DIRECTION_SINGLETON = 0x5537960c;
+/** The singleton's getter (0x5372B620) returns it with this MOVW and the MOVT after it. */
+const SINGLETON_MOVW = 0x5372b640;
 
 export function installExposureOrientation(patch: Patch): void {
-  if (patch.word(BEFORE_EXPOSE) >>> 24 === 0xea) return;
-  expectWord(patch, BEFORE_EXPOSE, 0xe1a0c00d); // mov ip, sp
-  expectWord(patch, BEFORE_EXPOSE + 4, 0xe92dd830); // push {r4, r5, fp, ip, lr, pc}
-  expectWord(patch, 0x5375c31c, 0xe5903000); // ldr r3, [r0]
-  expectWord(patch, 0x5375c320, 0xe5d300d8); // ldrb r0, [r3, #0xd8]
-  expectWord(patch, 0x53755cc8, 0xe5950518); // ldr r0, [r5, #0x518]
-  expectWord(patch, 0x5372b640, 0xe309060c); // movw r0, #0x960c (the singleton the direction is read through)
+  const v = (a: number): number => patch.va(a);
+  const at0 = v(BEFORE_EXPOSE);
+  const singleton = v(DIRECTION_SINGLETON);
+  const orient = orientWord(patch.target);
+  const stash = lookStash(patch.target);
+  const frame = frameLook(patch.target);
+  if (patch.word(at0) >>> 24 === 0xea) return;
+  expectWord(patch, at0, 0xe1a0c00d); // mov ip, sp
+  expectWord(patch, at0 + 4, 0xe92dd830); // push {r4, r5, fp, ip, lr, pc}
+  expectWord(patch, v(0x5375c31c), 0xe5903000); // ldr r3, [r0]
+  expectWord(patch, v(0x5375c320), 0xe5d300d8); // ldrb r0, [r3, #0xd8]
+  expectWord(patch, v(0x53755cc8), 0xe5950518); // ldr r0, [r5, #0x518]
+  // the singleton the direction is read through (movw r0, #0x960c / movt r0, #0x5537 in 1.11)
+  expectWord(patch, v(SINGLETON_MOVW), movWord(0, lo(singleton)));
+  expectWord(patch, v(SINGLETON_MOVW) + 4, movWord(0, hi(singleton), true));
   const stub = patch.append((at) => assembleWords(
     `push {r0, r1}
-     movw r0, #${lo(LOOK_STASH)}; movt r0, #${hi(LOOK_STASH)}; ldr r0, [r0]
-     movw r1, #${lo(FRAME_LOOK)}; movt r1, #${hi(FRAME_LOOK)}; str r0, [r1]
-     movw r0, #${lo(DIRECTION_SINGLETON)}; movt r0, #${hi(DIRECTION_SINGLETON)}
+     movw r0, #${lo(stash)}; movt r0, #${hi(stash)}; ldr r0, [r0]
+     movw r1, #${lo(frame)}; movt r1, #${hi(frame)}; str r0, [r1]
+     movw r0, #${lo(singleton)}; movt r0, #${hi(singleton)}
      ldr r0, [r0, #4]
      cmp r0, #0x40000000; blo done; cmp r0, #0xc0000000; bhs done
      ldr r0, [r0, #0x518]
@@ -258,10 +288,10 @@ export function installExposureOrientation(patch: Patch): void {
      ldrb r0, [r0, #0xd8]
      cmp r0, #3; movhi r0, #0
      orr r0, r0, #0x${ORIENT_VALID.toString(16)}
-     movw r1, #${lo(ORIENT_WORD)}; movt r1, #${hi(ORIENT_WORD)}
+     movw r1, #${lo(orient)}; movt r1, #${hi(orient)}
      str r0, [r1]
      done: pop {r0, r1}
      mov ip, sp
-     b #${BEFORE_EXPOSE + 4}`, at), 16);
-  patch.setWord(BEFORE_EXPOSE, (0xea000000 | (((stub - (BEFORE_EXPOSE + 8)) >> 2) & 0xffffff)) >>> 0, 'date imprint: camera direction at the start of the exposure');
+     b #${at0 + 4}`, at), 16);
+  patch.setWord(at0, (0xea000000 | (((stub - (at0 + 8)) >> 2) & 0xffffff)) >>> 0, 'date imprint: camera direction at the start of the exposure');
 }

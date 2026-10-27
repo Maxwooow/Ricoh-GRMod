@@ -19,6 +19,7 @@
  *    later build overwrites the same files instead of leaving old ones behind;
  *  - a copy of the table of full-screen JPEGs (0x55013E70, 12 entries {u16 w, u16 h, path}) with one
  *    entry per picture (numbers 12, 13, ...), used by both of its readers (0x5326232C, 0x53262558);
+ *    in 1.20 the table has 13 entries and only the second reader reads it;
  *  - 520x200 thumbnails (as the native ones of the menu, icons 17 and 18) of the four factory
  *    pictures and of the added ones, icons SHUTDOWN_ICON_ID..;
  *  - texts from SHUTDOWN_TEXT_ID: the two line names in all 21 languages (every glyph is in the
@@ -50,16 +51,18 @@ import { decodeBaselineJpeg } from '../../jpeg/decoder';
 import { encodeCoefficients, forwardTransform, makeLayout } from '../../jpeg/encoder';
 import { qualityTables } from '../../jpeg/tables';
 import { FirmwareError } from '../types';
+import type { FirmwareTarget } from '../target';
 import { assembleWords, branchTarget, branchWord, movImmediate, movWord } from './arm';
-import { BASE, ICON_CATALOG, LOOKUP_BOUNDS, OFFICIAL_RTOS_LENGTH, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z } from './build';
+import { BASE, Patch, concat, expectWord, raiseIconBound, u16le, u32le, utf16z } from './build';
 import { SHUTDOWN_CODE, SHUTDOWN_CODE_LENGTH, SHUTDOWN_EXPORTS } from './shutdown-code';
+import { SHUTDOWN_CODE_120, SHUTDOWN_CODE_120_LENGTH, SHUTDOWN_EXPORTS_120 } from './shutdown-code-120';
 import { readRes, resFile } from './res';
 import { SUBMENU_CONTROLLER_ID, addSubmenuRecord, hookControllerFactory, submenuTemplate } from './datestamp-menu';
 
 export const SHUTDOWN_MAX_PICTURES = 8;
 /** Longest picture name (printable ASCII: the same in every camera language and font). */
 export const SHUTDOWN_NAME_MAX = 20;
-/** First text: the submenu's line names "Type" and "Picture", the factory row, the pictures' names. */
+/** First text (1.11; see `TargetFacts.texts`): the submenu's line names "Type" and "Picture", the factory row, the pictures' names. */
 export const SHUTDOWN_TEXT_ID = 853;
 export const SHUTDOWN_TYPE_TEXT = SHUTDOWN_TEXT_ID;
 export const SHUTDOWN_PICTURE_TEXT = SHUTDOWN_TEXT_ID + 1;
@@ -98,8 +101,10 @@ export interface ShutdownPictureSpec {
 }
 
 const JPEG_TABLE = 0x55013e70;
-const JPEG_TABLE_COUNT = 12;
-const TABLE_SITES = [[0x5326255c, 0x5326256c, 3], [0x53262324, 0x5326232c, 12]] as const;
+/** The table's readers: 1.11 has two; in 1.20 the second takes the picture's path from its caller and only the first reads the table. */
+const TABLE_SITE = [0x5326255c, 0x5326256c, 3] as const;
+const TABLE_SITE_111 = [0x53262324, 0x5326232c, 12] as const; // port120: skip (1.11 only)
+const TABLE_SITES = [TABLE_SITE, TABLE_SITE_111] as const;
 const BACKGROUND = 0x531b9488;
 const BACKGROUND_BODY = 0x531b948c;
 const SETTINGS_SAVE = 0x533e1c04;
@@ -108,7 +113,6 @@ const MENU_ROWS_AT = 0x53223ba4;
 const MENU_TYPES_AT = 0x53223bd4;
 const ROW_TYPE = 0x15;
 const END_SCREEN_ID = 0x020000c4;
-const END_SCREEN_TITLE = 701;
 /** List widget: rows shown (0x535711E4, at most those built); title view: text (0x5357F2B0). */
 const LIST_SHOWN = 0x535711e4;
 const TITLE_SET = 0x5357f2b0;
@@ -133,8 +137,10 @@ const ZERO_FILL_END = 0x53000460;
  */
 const KEY_MAP_ID_READS = [0x53255a20, 0x532544c0] as const;
 const CURRENT_ID = 0x5325ca14;
-/** Nonzero while the End Screen list is the picture list (set by the controller factory). */
-const PICTURE_MODE = 0x558372f0;
+/** Nonzero while the End Screen list is the picture list (set by the controller factory): 16 bytes before the heap. */
+function pictureMode(t: FirmwareTarget): number {
+  return t.facts.heap - 0x10;
+}
 const APDATA_BOUND_AT = 0x53a80adc;
 const APDATA_BOUND_NEXT = 0x53a80ae0;
 const CTX_MAGIC = 0x31445347; // 'GSD1'
@@ -235,6 +241,16 @@ export function installShutdownMenu(p: Patch, iconbin: Uint8Array, pictures: rea
   if (factoryJpegs.length !== FACTORY_PICTURES.length) fail('internal', 'four factory pictures expected');
   if (p.textBoundSites.length === 0) fail('internal', 'the catalog scaffold is not installed');
   const n = pictures.length;
+  const t = p.target;
+  const v = (a: number): number => p.va(a);
+  const TEXT = t.facts.texts.shutdown;
+  const PICTURE_TEXT = TEXT + 1;
+  const FACTORY_TEXT = TEXT + 2;
+  const END_SCREEN_TITLE = t.facts.camera.texts.endScreen;
+  const PICTURE_MODE = pictureMode(t);
+  const module = t.id === '1.11'
+    ? { code: SHUTDOWN_CODE, length: SHUTDOWN_CODE_LENGTH, exports: SHUTDOWN_EXPORTS }
+    : { code: SHUTDOWN_CODE_120, length: SHUTDOWN_CODE_120_LENGTH, exports: SHUTDOWN_EXPORTS_120 };
 
   // --- Thumbnails (icons): factory 992..995, pictures 996...
   const parts: Uint8Array[] = [iconbin];
@@ -245,15 +261,14 @@ export function installShutdownMenu(p: Patch, iconbin: Uint8Array, pictures: rea
     const id = SHUTDOWN_ICON_ID + i;
     const pad = (4 - (length % 4)) % 4;
     if (pad) { parts.push(new Uint8Array(pad)); length += pad; }
-    expectWord(p, ICON_CATALOG + id * 4, 0);
+    expectWord(p, p.iconCatalog + id * 4, 0);
     const desc = p.append(concat([u16le([1, PREVIEW_WIDTH, PREVIEW_HEIGHT, 0]), u32le([length / 4])]), 16);
-    p.setWord(ICON_CATALOG + id * 4, desc, 'power-off picture thumbnail');
+    p.setWord(p.iconCatalog + id * 4, desc, 'power-off picture thumbnail');
     parts.push(px);
     length += px.length;
     iconIds.push(id);
   });
-  const lastIcon = iconIds[iconIds.length - 1];
-  for (const [site, r] of LOOKUP_BOUNDS) p.setWord(site, movWord(r, Math.max(lastIcon, movImmediate(p.word(site)))), 'icon upper bound');
+  raiseIconBound(p, iconIds[iconIds.length - 1]);
 
   // --- Texts: the line names and the factory row per language, then the names (the same in every language).
   const desc = (text: string): number => {
@@ -266,51 +281,59 @@ export function installShutdownMenu(p: Patch, iconbin: Uint8Array, pictures: rea
   for (const [row, text] of Object.entries(FACTORY_LABELS)) own[Number(row)] = desc(text);
   const names = pictures.map((s) => desc(s.name));
   for (let l = 0; l < 21; l++) {
-    const row = p.word(TEXT_CATALOG + l * 4);
-    for (let k = 0; k < 3 + n; k++) expectWord(p, row + (SHUTDOWN_TEXT_ID + k) * 4, 0);
-    p.write(row + SHUTDOWN_TEXT_ID * 4, u32le([desc(SHUTDOWN_TYPE_NAMES[l]), desc(SHUTDOWN_PICTURE_NAMES[l]), own[l] ?? english, ...names]));
+    const row = p.word(p.textCatalog + l * 4);
+    for (let k = 0; k < 3 + n; k++) expectWord(p, row + (TEXT + k) * 4, 0);
+    p.write(row + TEXT * 4, u32le([desc(SHUTDOWN_TYPE_NAMES[l]), desc(SHUTDOWN_PICTURE_NAMES[l]), own[l] ?? english, ...names]));
   }
-  const lastText = SHUTDOWN_FACTORY_TEXT + n;
+  const lastText = FACTORY_TEXT + n;
   for (const site of p.textBoundSites) p.setWord(site, movWord(3, Math.max(lastText, movImmediate(p.word(site)))), 'text upper bound');
 
   // --- The table of full-screen JPEGs, extended.
-  const original = p.readMapped(JPEG_TABLE, JPEG_TABLE_COUNT * 4);
+  const jpegTable = v(JPEG_TABLE);
+  const original = p.readMapped(jpegTable, t.facts.jpegCount * 4);
   const entries = pictures.map((_, k) => {
     const path = p.append(concat([Uint8Array.from(shutdownPath(k), (c) => c.charCodeAt(0)), new Uint8Array(1)]), 4);
     return p.append(concat([u16le([SHUTDOWN_WIDTH, SHUTDOWN_HEIGHT]), u32le([path])]), 4);
   });
   const table = p.append(concat([original, u32le(entries)]), 16);
-  for (const [low, high, r] of TABLE_SITES) {
-    expectWord(p, low, movWord(r, JPEG_TABLE & 0xffff));
-    expectWord(p, high, movWord(r, JPEG_TABLE >>> 16, true));
-    p.setWord(low, movWord(r, table & 0xffff), 'full-screen JPEG table with the power-off pictures');
-    p.setWord(high, movWord(r, table >>> 16, true), 'full-screen JPEG table with the power-off pictures');
+  for (const [low, high, r] of t.id === '1.11' ? TABLE_SITES : TABLE_SITES.slice(0, 1)) {
+    expectWord(p, v(low), movWord(r, jpegTable & 0xffff));
+    expectWord(p, v(high), movWord(r, jpegTable >>> 16, true));
+    p.setWord(v(low), movWord(r, table & 0xffff), 'full-screen JPEG table with the power-off pictures');
+    p.setWord(v(high), movWord(r, table >>> 16, true), 'full-screen JPEG table with the power-off pictures');
   }
 
   // --- Module, context, stubs.
-  expectWord(p, BACKGROUND, 0xe1a0c00d);
-  expectWord(p, MENU.refresh, 0xe1a0c00d);
-  expectWord(p, MENU.confirm, 0xe5900168);
-  expectWord(p, MENU.left, 0xe1a0c00d);
-  expectWord(p, MENU.right, 0xe1a0c00d);
-  expectWord(p, MENU.footer, 0xe1a0c00d);
-  expectWord(p, MENU_ROWS_AT, 0xe3a02002); // mov r2, #2
-  expectWord(p, MENU_TYPES_AT, 0xe54b3034); // strb r3, [fp, #-0x34]
-  expectWord(p, APDATA_BOUND_AT, 0xe58d9000);
+  const background = v(BACKGROUND);
+  const menu = { refresh: v(MENU.refresh), confirm: v(MENU.confirm), left: v(MENU.left), right: v(MENU.right), footer: v(MENU.footer) };
+  const zeroFillEnd = v(ZERO_FILL_END);
+  expectWord(p, background, 0xe1a0c00d);
+  expectWord(p, menu.refresh, 0xe1a0c00d);
+  expectWord(p, menu.confirm, 0xe5900168);
+  expectWord(p, menu.left, 0xe1a0c00d);
+  expectWord(p, menu.right, 0xe1a0c00d);
+  expectWord(p, menu.footer, 0xe1a0c00d);
+  expectWord(p, v(MENU_ROWS_AT), 0xe3a02002); // mov r2, #2
+  expectWord(p, v(MENU_TYPES_AT), 0xe54b3034); // strb r3, [fp, #-0x34]
+  expectWord(p, v(APDATA_BOUND_AT), 0xe58d9000);
   // The factory's End Screen case: one object, cached at +0x180.
-  for (const [at, w] of [[0x53187784, 0xe5940180], [0x53187790, 0xe3a00f5b], [0x53187794, 0xeb1d6485], [0x5318779c, 0xeb0271c4]] as const) expectWord(p, at, w);
-  expectWord(p, 0x53223e9c, movWord(1, END_SCREEN_TITLE)); // its constructor's title
-  for (const f of [LIST_SHOWN, TITLE_SET, APP, 0x5323f378, 0x5323f018, SUBMENU_LINE_TEXT, LINE_VALUE_ICON, LINE_TITLE]) expectWord(p, f, 0xe1a0c00d);
-  expectWord(p, 0x5329c2d8, 0xe5d00988); // ldrb r0, [r0, #0x988]
-  expectWord(p, 0x53380874, 0xe3510000); // cmp r1, #0
-  expectWord(p, ZERO_FILL_END, p.word(ZERO_FILL_END) === 0x55837300 ? 0x55837300 : 0x558372d4);
-  const priorSave = branchTarget(SETTINGS_SAVE, p.word(SETTINGS_SAVE));
-  if (priorSave < BASE + OFFICIAL_RTOS_LENGTH) fail('internal', 'the settings save/load scaffold is not installed');
+  expectWord(p, v(0x53187784), 0xe5940180);
+  expectWord(p, v(0x53187790), 0xe3a00f5b);
+  expectWord(p, v(0x53187794), branchWord(v(0x53187794), v(0x538e09b0), 14, true));
+  expectWord(p, v(0x5318779c), branchWord(v(0x5318779c), v(0x53223eb4), 14, true));
+  expectWord(p, v(0x53223e9c), movWord(1, END_SCREEN_TITLE)); // its constructor's title
+  for (const f of [LIST_SHOWN, TITLE_SET, APP, 0x5323f378, 0x5323f018, SUBMENU_LINE_TEXT, LINE_VALUE_ICON, LINE_TITLE]) expectWord(p, v(f), 0xe1a0c00d);
+  expectWord(p, v(0x5329c2d8), 0xe5d00988); // ldrb r0, [r0, #0x988]
+  expectWord(p, v(0x53380874), 0xe3510000); // cmp r1, #0
+  expectWord(p, zeroFillEnd, p.word(zeroFillEnd) === t.facts.heap ? t.facts.heap : t.facts.bssEnd);
+  const priorSave = branchTarget(v(SETTINGS_SAVE), p.word(v(SETTINGS_SAVE)));
+  if (priorSave < BASE + t.rtosLength) fail('internal', 'the settings save/load scaffold is not installed');
   // Setup > Display > End Screen, as officially.
-  const setup = p.read(SETUP_MENU, 0x38c);
+  const setupMenu = v(SETUP_MENU);
+  const setup = p.read(setupMenu, 0x38c);
   const sv = new DataView(setup.buffer);
-  if (new DataView(p.readMapped(SETUP_MENU_ENTRY, 4).buffer).getUint32(0, true) !== SETUP_MENU || setup[0x8b] !== 31
-    || sv.getUint32(0x1bc + SETUP_ITEM * 4, true) !== END_SCREEN_ID || sv.getUint32(0x8c + SETUP_ITEM * 8, true) !== SETUP_ITEM_DRAW) {
+  if (new DataView(p.readMapped(v(SETUP_MENU_ENTRY), 4).buffer).getUint32(0, true) !== setupMenu || setup[0x8b] !== 31
+    || sv.getUint32(0x1bc + SETUP_ITEM * 4, true) !== END_SCREEN_ID || sv.getUint32(0x8c + SETUP_ITEM * 8, true) !== v(SETUP_ITEM_DRAW)) {
     fail('unexpected-layout', 'Setup menu is not the official one');
   }
   for (let i = 0; i < 38; i++) {
@@ -318,23 +341,23 @@ export function installShutdownMenu(p: Patch, iconbin: Uint8Array, pictures: rea
     if (id === SHUTDOWN_MENU_ID || id === SHUTDOWN_PICTURE_ID) fail('unexpected-layout', 'controller id already in use');
   }
 
-  const raw = Uint8Array.from(atob(SHUTDOWN_CODE), (c) => c.charCodeAt(0));
-  if (raw.length !== SHUTDOWN_CODE_LENGTH || raw.length % 4 !== 0) fail('internal', 'power-off module length');
+  const raw = Uint8Array.from(atob(module.code), (c) => c.charCodeAt(0));
+  if (raw.length !== module.length || raw.length % 4 !== 0) fail('internal', 'power-off module length');
   const code = p.append(raw, 16);
-  const body = p.append((at) => [0xe1a0c00d, branchWord(at + 4, BACKGROUND_BODY)], 16);
+  const body = p.append((at) => [0xe1a0c00d, branchWord(at + 4, v(BACKGROUND_BODY))], 16);
   const ctxBytes = new Uint8Array(CTX_BYTES);
-  const v = new DataView(ctxBytes.buffer);
-  [CTX_MAGIC, SHUTDOWN_RECORD, n, SHUTDOWN_FACTORY_TEXT, body, priorSave].forEach((w, i) => v.setUint32(i * 4, w >>> 0, true));
+  const cv = new DataView(ctxBytes.buffer);
+  [CTX_MAGIC, SHUTDOWN_RECORD, n, FACTORY_TEXT, body, priorSave].forEach((w, i) => cv.setUint32(i * 4, w >>> 0, true));
   let o = 24;
-  for (let i = 0; i < 4; i++, o += 2) v.setUint16(o, iconIds[i], true);
-  for (let k = 0; k < SHUTDOWN_MAX_PICTURES; k++, o += 2) v.setUint16(o, k < n ? iconIds[4 + k] : 0, true);
-  for (let k = 0; k < SHUTDOWN_MAX_PICTURES; k++, o += 4) v.setUint32(o, k < n ? pictures[k].id >>> 0 : 0, true);
-  for (let k = 0; k < SHUTDOWN_MAX_PICTURES; k++, o += 4) v.setUint32(o, k < n ? JPEG_TABLE_COUNT + k : 0, true);
+  for (let i = 0; i < 4; i++, o += 2) cv.setUint16(o, iconIds[i], true);
+  for (let k = 0; k < SHUTDOWN_MAX_PICTURES; k++, o += 2) cv.setUint16(o, k < n ? iconIds[4 + k] : 0, true);
+  for (let k = 0; k < SHUTDOWN_MAX_PICTURES; k++, o += 4) cv.setUint32(o, k < n ? pictures[k].id >>> 0 : 0, true);
+  for (let k = 0; k < SHUTDOWN_MAX_PICTURES; k++, o += 4) cv.setUint32(o, k < n ? t.facts.jpegCount + k : 0, true);
   const ctx = p.append(ctxBytes, 16);
   const stub = (reg: number, fn: keyof typeof SHUTDOWN_EXPORTS): number =>
-    p.append((at) => [movWord(reg, ctx & 0xffff), movWord(reg, ctx >>> 16, true), branchWord(at + 8, code + SHUTDOWN_EXPORTS[fn])], 16);
-  p.setWord(BACKGROUND, branchWord(BACKGROUND, stub(1, 'sd_background')), 'power-off picture: the one chosen in the menu');
-  p.setWord(SETTINGS_SAVE, branchWord(SETTINGS_SAVE, stub(1, 'sd_save')), 'settings save, then the power-off picture choice');
+    p.append((at) => [movWord(reg, ctx & 0xffff), movWord(reg, ctx >>> 16, true), branchWord(at + 8, code + module.exports[fn])], 16);
+  p.setWord(background, branchWord(background, stub(1, 'sd_background')), 'power-off picture: the one chosen in the menu');
+  p.setWord(v(SETTINGS_SAVE), branchWord(v(SETTINGS_SAVE), stub(1, 'sd_save')), 'settings save, then the power-off picture choice');
 
   // One End Screen list, two modes: opened as SHUTDOWN_PICTURE_ID it is the picture list (PICTURE_MODE
   // set), as 0x020000C4 the camera's own list. The camera has one controller object per kind of
@@ -343,14 +366,14 @@ export function installShutdownMenu(p: Patch, iconbin: Uint8Array, pictures: rea
   const handler = (at: number, original: string, reg: number, fn: keyof typeof SHUTDOWN_EXPORTS, what: string): void => {
     const target = p.append((a) => assembleWords(
       `${MODE}; beq native
-       movw r${reg}, #${ctx & 0xffff}; movt r${reg}, #${ctx >>> 16}; b #${code + SHUTDOWN_EXPORTS[fn]}
+       movw r${reg}, #${ctx & 0xffff}; movt r${reg}, #${ctx >>> 16}; b #${code + module.exports[fn]}
        native: ${original}; b #${at + 4}`, a), 16);
     p.setWord(at, branchWord(at, target), what);
   };
-  handler(MENU.confirm, 'ldr r0, [r0, #0x168]', 1, 'sd_confirm', 'End Screen picture list: confirm');
-  handler(MENU.left, 'mov ip, sp', 2, 'sd_left', 'End Screen picture list: up');
-  handler(MENU.right, 'mov ip, sp', 2, 'sd_right', 'End Screen picture list: down');
-  handler(MENU.footer, 'mov ip, sp', 1, 'sd_footer', 'End Screen picture list: thumbnail');
+  handler(menu.confirm, 'ldr r0, [r0, #0x168]', 1, 'sd_confirm', 'End Screen picture list: confirm');
+  handler(menu.left, 'mov ip, sp', 2, 'sd_left', 'End Screen picture list: up');
+  handler(menu.right, 'mov ip, sp', 2, 'sd_right', 'End Screen picture list: down');
+  handler(menu.footer, 'mov ip, sp', 1, 'sd_footer', 'End Screen picture list: thumbnail');
   // Refresh (run when the list opens): the rows shown (2, or 1 + n) and the title of the mode, then
   // the module's rows and ticks or the official ones.
   const activate = p.append((a) => assembleWords(
@@ -358,35 +381,35 @@ export function installShutdownMenu(p: Patch, iconbin: Uint8Array, pictures: rea
      mov r4, r0
      ${MODE}
      ldr r0, [r4, #0x168]; moveq r1, #2; movne r1, #${1 + n}
-     bl #${LIST_SHOWN}
+     bl #${v(LIST_SHOWN)}
      ${MODE}
-     ldr r0, [r4, #0x15c]; movweq r1, #${END_SCREEN_TITLE}; movwne r1, #${SHUTDOWN_PICTURE_TEXT}
-     bl #${TITLE_SET}
+     ldr r0, [r4, #0x15c]; movweq r1, #${END_SCREEN_TITLE}; movwne r1, #${PICTURE_TEXT}
+     bl #${v(TITLE_SET)}
      ${MODE}
      mov r0, r4
      pop {r4, lr}
      beq native
-     movw r1, #${ctx & 0xffff}; movt r1, #${ctx >>> 16}; b #${code + SHUTDOWN_EXPORTS.sd_refresh}
-     native: mov ip, sp; b #${MENU.refresh + 4}`, a), 16);
-  p.setWord(MENU.refresh, branchWord(MENU.refresh, activate), 'End Screen list: rows and title of the mode, then rows and ticks');
+     movw r1, #${ctx & 0xffff}; movt r1, #${ctx >>> 16}; b #${code + module.exports.sd_refresh}
+     native: mov ip, sp; b #${menu.refresh + 4}`, a), 16);
+  p.setWord(menu.refresh, branchWord(menu.refresh, activate), 'End Screen list: rows and title of the mode, then rows and ticks');
   // The constructor makes 1 + n rows (at least the official 2), their types from an appended array
   // (the official one is 2 bytes on the stack).
   const types = p.append(new Uint8Array(1 + n).fill(ROW_TYPE), 4);
-  p.setWord(MENU_ROWS_AT, (0xe3a02000 | (1 + n)) >>> 0, 'End Screen list: rows for the picture list');
-  const typesAt = p.append((a) => [0xe54b3034, movWord(1, types & 0xffff), movWord(1, types >>> 16, true), branchWord(a + 12, MENU_TYPES_AT + 4)], 16);
-  p.setWord(MENU_TYPES_AT, branchWord(MENU_TYPES_AT, typesAt), 'End Screen list: row types');
+  p.setWord(v(MENU_ROWS_AT), (0xe3a02000 | (1 + n)) >>> 0, 'End Screen list: rows for the picture list');
+  const typesAt = p.append((a) => [0xe54b3034, movWord(1, types & 0xffff), movWord(1, types >>> 16, true), branchWord(a + 12, v(MENU_TYPES_AT) + 4)], 16);
+  p.setWord(v(MENU_TYPES_AT), branchWord(v(MENU_TYPES_AT), typesAt), 'End Screen list: row types');
 
   // The key mapper sees the picture list as the End Screen list.
-  for (const at of KEY_MAP_ID_READS) expectWord(p, at, branchWord(at, CURRENT_ID, 14, true));
+  for (const at of KEY_MAP_ID_READS) expectWord(p, v(at), branchWord(v(at), v(CURRENT_ID), 14, true));
   const keyMapId = p.append((a) => assembleWords(
     `push {r4, lr}
-     bl #${CURRENT_ID}
+     bl #${v(CURRENT_ID)}
      movw r4, #${SHUTDOWN_PICTURE_ID & 0xffff}; movt r4, #${SHUTDOWN_PICTURE_ID >>> 16}
      cmp r0, r4
      movweq r0, #${END_SCREEN_ID & 0xffff}; movteq r0, #${END_SCREEN_ID >>> 16}
      pop {r4, pc}`, a), 16);
-  for (const at of KEY_MAP_ID_READS) p.setWord(at, branchWord(at, keyMapId, 14, true), 'key map: the picture list has the End Screen list\'s keys');
-  expectWord(p, CURRENT_ID, 0xe5900000); // ldr r0, [r0]
+  for (const at of KEY_MAP_ID_READS) p.setWord(v(at), branchWord(v(at), keyMapId, 14, true), 'key map: the picture list has the End Screen list\'s keys');
+  expectWord(p, v(CURRENT_ID), 0xe5900000); // ldr r0, [r0]
 
   // The controllers: the submenu (as every submenu's); the picture list is the End Screen list in
   // picture mode, the End Screen list itself in its own mode.
@@ -405,18 +428,18 @@ export function installShutdownMenu(p: Patch, iconbin: Uint8Array, pictures: rea
   const lineType = p.append((a) => assembleWords(
     `push {r4, r5, r6, lr}
      mov r4, r1
-     bl #${APP}; bl #0x5323f378; mov r5, r0
-     bl #${APP}; bl #0x5323f018; bl #0x5329c2d8
-     mov r1, r0; add r0, r5, #4; bl #0x53380874
+     bl #${v(APP)}; bl #${v(0x5323f378)}; mov r5, r0
+     bl #${v(APP)}; bl #${v(0x5323f018)}; bl #${v(0x5329c2d8)}
+     mov r1, r0; add r0, r5, #4; bl #${v(0x53380874)}
      mov r1, r0; mov r0, r4
      pop {r4, r5, r6, lr}
-     b #${SUBMENU_LINE_TEXT}`, a), 16);
+     b #${v(SUBMENU_LINE_TEXT)}`, a), 16);
   const record = submenuTemplate(p);
   {
     const r = new DataView(record.buffer);
     r.setUint16(2, END_SCREEN_TITLE, true);
-    r.setUint16(8, SHUTDOWN_TYPE_TEXT, true);
-    r.setUint16(10, SHUTDOWN_PICTURE_TEXT, true);
+    r.setUint16(8, TEXT, true);
+    r.setUint16(10, PICTURE_TEXT, true);
     r.setUint32(0x14, END_SCREEN_ID, true);
     r.setUint32(0x18, SHUTDOWN_PICTURE_ID, true);
     r.setUint32(0x3c, lineType, true);
@@ -429,34 +452,35 @@ export function installShutdownMenu(p: Patch, iconbin: Uint8Array, pictures: rea
   const setupLine = p.append((a) => assembleWords(
     `push {r4, lr}
      mov r4, r1
-     mov r0, r4; mov r1, #0; bl #${LINE_VALUE_ICON}
+     mov r0, r4; mov r1, #0; bl #${v(LINE_VALUE_ICON)}
      mov r0, r4; movw r1, #${END_SCREEN_TITLE}
      pop {r4, lr}
-     b #${LINE_TITLE}`, a), 16);
-  p.setWord(SETUP_MENU + 0x8c + SETUP_ITEM * 8, setupLine, 'Setup > End Screen: line of a submenu');
-  p.setWord(SETUP_MENU + 0x1bc + SETUP_ITEM * 4, SHUTDOWN_MENU_ID, 'Setup > End Screen: opens the submenu');
+     b #${v(LINE_TITLE)}`, a), 16);
+  p.setWord(setupMenu + 0x8c + SETUP_ITEM * 8, setupLine, 'Setup > End Screen: line of a submenu');
+  p.setWord(setupMenu + 0x1bc + SETUP_ITEM * 4, SHUTDOWN_MENU_ID, 'Setup > End Screen: opens the submenu');
 
   // The settings store APData with room for the choice's record.
   // movw r3,#records; str r3,[sp] (the count argument); continue after the original `str sb,[sp]`.
-  const bound = p.append((at) => [movWord(3, SHUTDOWN_RECORD + 1), 0xe58d3000, branchWord(at + 8, APDATA_BOUND_NEXT)], 16);
-  p.setWord(APDATA_BOUND_AT, branchWord(APDATA_BOUND_AT, bound), 'settings store APData: room for the power-off picture record');
-  if (p.word(ZERO_FILL_END) !== 0x55837300) p.setWord(ZERO_FILL_END, 0x55837300, 'start-up zero fill also clears the 44 unused bytes before the heap');
+  const bound = p.append((at) => [movWord(3, SHUTDOWN_RECORD + 1), 0xe58d3000, branchWord(at + 8, v(APDATA_BOUND_NEXT))], 16);
+  p.setWord(v(APDATA_BOUND_AT), branchWord(v(APDATA_BOUND_AT), bound), 'settings store APData: room for the power-off picture record');
+  if (p.word(zeroFillEnd) !== t.facts.heap) p.setWord(zeroFillEnd, t.facts.heap, 'start-up zero fill also clears the 44 unused bytes before the heap');
   return concat(parts);
 }
 
 /** What a built image holds: the pictures' identities and names (their JPEGs are RES files), or null. */
 export function readShutdownMenu(p: Patch): { id: number; name: string }[] | null {
   try {
-    const first = p.word(BACKGROUND);
+    const background = p.va(BACKGROUND);
+    const first = p.word(background);
     if (first >>> 24 !== 0xea) return null;
-    const stub = branchTarget(BACKGROUND, first);
+    const stub = branchTarget(background, first);
     const ctx = (movImmediate(p.word(stub)) | (movImmediate(p.word(stub + 4)) << 16)) >>> 0;
     const v = new DataView(p.read(ctx, CTX_BYTES).buffer);
     if (v.getUint32(0, true) !== CTX_MAGIC || v.getUint32(4, true) !== SHUTDOWN_RECORD) return null;
     const n = v.getUint32(8, true);
     const textId = v.getUint32(12, true);
-    if (!(n >= 1 && n <= SHUTDOWN_MAX_PICTURES) || textId !== SHUTDOWN_FACTORY_TEXT) return null;
-    const row = p.word(TEXT_CATALOG + 1 * 4);
+    if (!(n >= 1 && n <= SHUTDOWN_MAX_PICTURES) || textId !== p.target.facts.texts.shutdown + 2) return null;
+    const row = p.word(p.textCatalog + 1 * 4);
     const out: { id: number; name: string }[] = [];
     for (let k = 0; k < n; k++) {
       const id = v.getUint32(24 + 8 + 2 * SHUTDOWN_MAX_PICTURES + 4 * k, true);

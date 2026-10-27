@@ -93,7 +93,7 @@ func newFirmwareSource(opt Options) *firmwareSource {
 
 // release returns what the site offers for a model and, when that is not
 // the release this program supports, the supported one (see
-// ricoh.Supported), asking the site unless it was asked a moment ago. With
+// ricoh.Supported, ricoh.SupportedMono), asking the site unless it was asked a moment ago. With
 // no release listed for the model, rel is nil and fallback may still be set;
 // when both are nil the error is ricoh.ErrNoRelease.
 func (f *firmwareSource) release(ctx context.Context, model string, now time.Time) (rel, fallback *ricoh.Release, err error) {

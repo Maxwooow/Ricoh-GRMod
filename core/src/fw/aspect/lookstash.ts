@@ -21,41 +21,61 @@
  * file) this hook takes it from that record by the EXIF writer's rule.
  *
  * Black-and-white looks: Monotone, Soft Monotone, Hard Monotone, Hi-Contrast B&W (13..16; their
- * names through 0x5337F824) and the GR IV Monochrome's six (25..30), plus any slot whose preset
- * gives grey for every colour (equal matrix rows, equal curves, equal rows of the post-curve
- * matrix).
+ * names through 0x5337F824) and the GR IV Monochrome's six (25..30; 1.20 adds 31 and 32, see
+ * `TargetFacts.monoLooks`), plus any slot whose preset gives grey for every colour (equal matrix
+ * rows, equal curves, equal rows of the post-curve matrix).
+ *
+ * Firmware 1.20: the same read of the look at the same offset (0x53939148), after the same use of
+ * the step's argument (+0x2AC, +0x2D0); the words are 16, 32 and 36 bytes into its 44 unused bytes.
+ * Halation, which uses the Toning bits, is 1.11 only.
  */
 import { assembleWords } from './arm';
 import { Patch, expectWord } from './build';
 import { T_GAM, T_REC } from '../profile';
+import { TARGET_111 } from '../target';
+import type { FirmwareTarget } from '../target';
 
-export const LOOK_STASH = 0x558372e4;
+/** The word the look is left in: 16 bytes into the 44 unused bytes before the heap. */
+export function lookStash(t: FirmwareTarget): number {
+  return t.facts.bssEnd + 0x10;
+}
+/** The word in 1.11 (0x558372E4). */
+export const LOOK_STASH = lookStash(TARGET_111);
 /**
  * The orientation of the picture being made (0.8.3, for the date imprint): `value | ORIENT_VALID`,
  * value 0 as stored, 1 / 2 / 3 = EXIF Orientation 8 / 3 / 6. Written at the start of each still
  * exposure from the camera's direction (see datestamp.ts) and, in RAW development, by the
- * development step from the record being developed. In the 44 zero-filled bytes before the heap.
+ * development step from the record being developed. In the 44 zero-filled bytes before the heap,
+ * 32 bytes in.
  */
-export const ORIENT_WORD = 0x558372f4;
+export function orientWord(t: FirmwareTarget): number {
+  return t.facts.bssEnd + 0x20;
+}
+/** The word in 1.11 (0x558372F4). */
+export const ORIENT_WORD = orientWord(TARGET_111);
 export const ORIENT_VALID = 0x100;
 /**
  * The look of the picture being made (0.8.4, for the date imprint's look name), LOOK_STASH's word
  * as it was at the start of the exposure (the look live view was being developed with; see
  * datestamp.ts) or, in RAW development, the one the development step takes from the record being
  * developed. Unlike LOOK_STASH it does not follow a look chosen while the picture is being
- * processed. In the 44 zero-filled bytes before the heap.
+ * processed. In the 44 zero-filled bytes before the heap, 36 bytes in.
  */
-export const FRAME_LOOK = 0x558372f8;
+export function frameLook(t: FirmwareTarget): number {
+  return t.facts.bssEnd + 0x24;
+}
+/** The word in 1.11 (0x558372F8). */
+export const FRAME_LOOK = frameLook(TARGET_111);
 /** The development step's read of the look (the hook site). */
 export const LOOK_SITE = 0x539113f8;
 const LOOK_SITE_WORD = 0xe5d3279c; // ldrb r2, [r3, #0x79c]
-/** Literal: end of the start-up zero fill; 44 unused bytes up to the heap (0x55837300) follow it. */
+/** Literal: end of the start-up zero fill; the 44 unused bytes up to the heap follow it. */
 const ZERO_FILL_END = 0x53000460;
 /** GR IV Monochrome check (1 on that model). */
 export const MONO_MODEL = 0x533ef000;
 
-/** The camera's own black-and-white looks. */
-export const MONO_LOOKS = [13, 14, 15, 16, 25, 26, 27, 28, 29, 30];
+/** The camera's own black-and-white looks (1.11). */
+export const MONO_LOOKS = TARGET_111.facts.monoLooks;
 
 /**
  * Store the look: keeps every register but r2 (which the site's own instruction loads next) and the
@@ -64,37 +84,43 @@ export const MONO_LOOKS = [13, 14, 15, 16, 25, 26, 27, 28, 29, 30];
  * 1 Weak, 2 Medium, 3 Strong) and STASH_WHITE for the white glow. 0, 1, 2 (Off, Weak and Strong red,
  * as up to test 042) stay Off, Weak, Strong.
  */
-export const STASH_ASM = `ldr r2,[r1,#0x2d0];push {r0,r1};
+export function stashAsm(stash: number, orient: number, frame: number): string {
+  return `ldr r2,[r1,#0x2d0];push {r0,r1};
   ldrb r0,[r1,#0x2ac];cmp r0,#0;bne stashlook;
   add r0,r2,#0x71000;ldrb r1,[r0,#0xe83];cmp r1,#0;ldrbne r2,[r0,#0xe84];ldrbeq r2,[r2,#0xd8];cmp r2,#3;movhi r2,#0;
-  orr r2,r2,#0x${ORIENT_VALID.toString(16)};movw r1,#${ORIENT_WORD & 65535};movt r1,#${ORIENT_WORD >>> 16};str r2,[r1];
+  orr r2,r2,#0x${ORIENT_VALID.toString(16)};movw r1,#${orient & 65535};movt r1,#${orient >>> 16};str r2,[r1];
   stashlook:ldrb r0,[r3,#0x79c];ldrb r1,[r3,#0x7a6];
   cmp r1,#7;movhs r1,#0;
   cmp r1,#4;subhs r1,r1,#3;orrhs r0,r0,#0x20000;bhs stashlevel;
   cmp r1,#3;moveq r1,#2;beq stashlevel;
   cmp r1,#2;moveq r1,#3;
-  stashlevel:orr r0,r0,r1,lsl #8;orr r0,r0,#0x10000;movw r1,#${LOOK_STASH & 65535};movt r1,#${LOOK_STASH >>> 16};str r0,[r1];
+  stashlevel:orr r0,r0,r1,lsl #8;orr r0,r0,#0x10000;movw r1,#${stash & 65535};movt r1,#${stash >>> 16};str r0,[r1];
   ldr r1,[sp,#4];ldrb r1,[r1,#0x2ac];cmp r1,#0;bne stashdone;
-  movw r1,#${FRAME_LOOK & 65535};movt r1,#${FRAME_LOOK >>> 16};str r0,[r1];
+  movw r1,#${frame & 65535};movt r1,#${frame >>> 16};str r0,[r1];
   stashdone:pop {r0,r1};`;
+}
+/** The store of 1.11 (the added slots' hook of the site, 1.11 only). */
+export const STASH_ASM = stashAsm(LOOK_STASH, ORIENT_WORD, FRAME_LOOK);
 /** The white glow's bit in the stash word. */
 export const STASH_WHITE = 0x20000;
 
 
 export function extendZeroFill(p: Patch): void {
-  const w = p.word(ZERO_FILL_END);
-  if (w === 0x55837300) return;
-  expectWord(p, ZERO_FILL_END, 0x558372d4);
-  p.setWord(ZERO_FILL_END, 0x55837300, 'start-up zero fill also clears the 44 unused bytes before the heap');
+  const { bssEnd, heap } = p.target.facts;
+  const at = p.va(ZERO_FILL_END);
+  if (p.word(at) === heap) return;
+  expectWord(p, at, bssEnd);
+  p.setWord(at, heap, 'start-up zero fill also clears the 44 unused bytes before the heap');
 }
 
 /** The hook on its own (no added slots: `slots.ts` puts the same code in its hook of the site). */
 export function installLookStash(p: Patch): void {
-  if (p.word(LOOK_SITE) >>> 24 === 0xea) return; // already hooked here (an earlier call)
-  expectWord(p, LOOK_SITE, LOOK_SITE_WORD);
-  const at = p.append((a) => assembleWords(`${STASH_ASM}ldrb r2,[r3,#0x79c];b #${LOOK_SITE + 4}`, a), 16);
-  const offset = (at - (LOOK_SITE + 8)) >> 2;
-  p.setWord(LOOK_SITE, (0xea000000 | (offset & 0xffffff)) >>> 0, 'the look of the picture, for the steps after development');
+  const site = p.va(LOOK_SITE);
+  if (p.word(site) >>> 24 === 0xea) return; // already hooked here (an earlier call)
+  expectWord(p, site, LOOK_SITE_WORD);
+  const at = p.append((a) => assembleWords(`${stashAsm(lookStash(p.target), orientWord(p.target), frameLook(p.target))}ldrb r2,[r3,#0x79c];b #${site + 4}`, a), 16);
+  const offset = (at - (site + 8)) >> 2;
+  p.setWord(site, (0xea000000 | (offset & 0xffffff)) >>> 0, 'the look of the picture, for the steps after development');
   extendZeroFill(p);
 }
 
@@ -140,11 +166,15 @@ export function monoStyle(p: Patch, tone: number): boolean {
   return monoLook(c.matrix, c.curves, c.postQ9);
 }
 
-/** The 64-byte table of black-and-white looks: the camera's own, edited Cinema slots, added slots from `firstAdded`. */
+/**
+ * The 64-byte table of black-and-white looks: the camera's own, edited Cinema slots, added slots
+ * from `firstAdded` (the last two are colour work, 1.11 only: with 1.20 the Cinema slots are the
+ * camera's own colour looks).
+ */
 export function monoTable(p: Patch, addedMono: readonly boolean[], firstAdded: number): Uint8Array {
   const t = new Uint8Array(64);
-  for (const l of MONO_LOOKS) t[l] = 1;
-  for (const tone of [0x12, 0x13]) if (monoStyle(p, tone)) t[tone] = 1;
+  for (const l of p.target.facts.monoLooks) t[l] = 1;
+  if (p.target.colour) for (const tone of [0x12, 0x13]) if (monoStyle(p, tone)) t[tone] = 1;
   addedMono.forEach((m, k) => {
     if (m && firstAdded + k < 64) t[firstAdded + k] = 1;
   });

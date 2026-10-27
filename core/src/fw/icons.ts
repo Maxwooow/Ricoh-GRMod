@@ -8,7 +8,9 @@
  * (128,128,128); the background inside it is (53,53,54).
  */
 import { FirmwareError } from './types';
-import { ICON_BYTES, NEGA_ICON_OFFSET, slotDef } from './profile';
+import { ICON_BYTES } from './profile';
+import { TARGET_111 } from './target';
+import type { FirmwareTarget } from './target';
 
 export const ICON_W = 40;
 export const ICON_H = 40;
@@ -52,9 +54,9 @@ function setTransparent(px: Uint8Array, i: number): void {
  *            rectangle (128,128,128), interior (53,53,54).
  * Transparent pixels are FF FF FF 00 in both.
  */
-export function tileTemplate(decoded: Uint8Array, style: TileStyle): Uint8Array {
+export function tileTemplate(decoded: Uint8Array, style: TileStyle, t: FirmwareTarget = TARGET_111): Uint8Array {
   if (style === 'film') {
-    const a = readIcon(decoded, NEGA_ICON_OFFSET);
+    const a = readIcon(decoded, t.facts.tileIcons.nega);
     const c = CONTENT_AREA.film;
     for (let y = c.y0; y <= c.y1; y++) {
       for (let x = c.x0; x <= c.x1; x++) {
@@ -68,7 +70,7 @@ export function tileTemplate(decoded: Uint8Array, style: TileStyle): Uint8Array 
     return a;
   }
   if (style !== 'plain') throw new FirmwareError('bad-icon', `unknown tile style ${String(style)}`);
-  const ref = readIcon(decoded, slotDef('CY').iconOffset);
+  const ref = readIcon(decoded, t.facts.tileIcons.cinemaYellow);
   let x0 = ICON_W;
   let y0 = ICON_H;
   let x1 = -1;

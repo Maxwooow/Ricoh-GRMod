@@ -4,8 +4,6 @@
  */
 import {
   CONTENT_AREA,
-  DECODED_SIZE,
-  FIRMWARE_VERSION,
   FRAME_SIZE,
   Firmware,
   FirmwareError,
@@ -14,8 +12,6 @@ import {
   LANGS,
   LEN,
   MAX_CUSTOM_RATIOS,
-  RTOS_LENGTH,
-  RTOS_OFFSET,
   SLOTS,
   allowedChars,
   aspect,
@@ -24,7 +20,6 @@ import {
   editableRanges,
   monoUnlockWords,
   equalRange,
-  foff,
   gr4Sizes,
   listResources,
   openOfficial,
@@ -54,6 +49,7 @@ import {
   clarityChanges,
 } from '../fw';
 import type { BuildResult, BuiltRatio, ClarityChange, ClarityEdit, ExtensionFeatures, ExtraSlotSpec, LookLayout, ShutdownPictureSpec, SoftFocusLevel, SoftFocusStrength, FactoryEntry, LangCode, Layout, NameValidation, Range, RatioSpec, SlotEdit, SlotId as NativeSlotId } from '../fw';
+import type { FirmwareTarget, TargetId } from '../fw/target';
 import { grownRanges, growPayload } from '../fw/aspect/package';
 import { BRIDGE_SHA256, BRIDGE_SIZE, isBridgeFirmware, makeBridgeFirmware, officialFromBridge } from '../fw/bridge';
 import { convertCube, convertXmp, hueCopy0, hueFromQ10, HUE_BLOCK_BYTES, quantizeSlot } from '../color';
@@ -117,7 +113,12 @@ export interface FirmwareInfo {
     /** GR III / IIIx: the most films a build can have (9; 20 on GR III 2.10, where
      * the number is chosen with BuildOptions.filmCount and Halation is set in the camera). */
     maxFilms?: number };
+  /** The version of the GR IV and GR IV HDF, or of the GR III / IIIx (`versions` has each GR IV model's). */
   version: string;
+  /** GR IV files: the official file this is, 1.11 or 1.20 (the file of GR IV 1.20 and GR IV Monochrome 1.10). */
+  target?: TargetId;
+  /** GR IV files: the version each model shows with this file (the Monochrome's numbers are its own: 1.00 / 1.10). */
+  versions?: Partial<Record<CameraModel, string>>;
   sha256: string;
   slots: SlotInfoView[];
   tiles: { film: Uint8Array; plain: Uint8Array };
@@ -345,7 +346,10 @@ export class Engine {
   readonly info: FirmwareInfo;
   private readonly raw: Uint8Array;
   private readonly decoded: Uint8Array;
-  private readonly mStdQ13: Int16Array;
+  /** The GR IV file this is (1.11, 1.20); null for GR III / IIIx. */
+  private readonly target: FirmwareTarget | null;
+  /** Standard's matrix (GR IV: the colour work, 1.11 only; GR III / IIIx: the films'). */
+  private readonly mStdQ13: Int16Array | null;
   private readonly layout: Layout | null;
   private editable: Range[] | null = null;
   private monoWords: { offset: number; bytes: Uint8Array }[] | null = null;
@@ -374,17 +378,19 @@ export class Engine {
     return candidate;
   }
 
-  private constructor(raw: Uint8Array, decoded: Uint8Array, info: FirmwareInfo, mStd: Int16Array, layout: Layout | null) {
+  private constructor(raw: Uint8Array, decoded: Uint8Array, target: FirmwareTarget | null, info: FirmwareInfo, mStd: Int16Array | null, layout: Layout | null) {
     this.raw = raw;
     this.decoded = decoded;
+    this.target = target;
     this.info = info;
     this.mStdQ13 = mStd;
     this.layout = layout;
   }
 
   /**
-   * Accepts the official 1.11 file, or the 1.12 bridge firmware (opened as the official file it
-   * was made from, with `info.bridge` set); throws `FirmwareError('unsupported-firmware')` otherwise.
+   * Accepts an official file this program builds on (GR IV 1.11, or the file of GR IV 1.20 and
+   * GR IV Monochrome 1.10), or the 1.12 bridge firmware (opened as the official 1.11 file it was
+   * made from, with `info.bridge` set); throws `FirmwareError('unsupported-firmware')` otherwise.
    */
   static async open(input: Uint8Array): Promise<Engine> {
     if (await gr3ProfileOf(input)) {
@@ -419,26 +425,30 @@ export class Engine {
         allowed: Object.fromEntries(LANGS.map(l => [l, gr3xAllowedChars(decoded, l)])) as Record<LangCode, string>,
         shutdown: Object.fromEntries([profile.model, profile.standardModel].map(m => [m, { size: resource.length, sampling: samplingOf(data), data }])), factoryEntry: readGr3xFactoryEntry(decoded, profile),
       };
-      return new Engine(input.slice(), decoded, info, lookResources.matrix, null);
+      return new Engine(input.slice(), decoded, null, info, lookResources.matrix, null);
     }
     const bridge = await isBridgeFirmware(input);
     const raw = bridge ? await officialFromBridge(input) : input;
-    const { decoded } = await openOfficial(raw);
-    const layout = resolveLayout(decoded);
-    const mo = foff(layout.standard.matrix);
-    const mStd = new Int16Array(9);
-    const dv = new DataView(decoded.buffer, decoded.byteOffset, decoded.byteLength);
-    for (let i = 0; i < 9; i++) mStd[i] = dv.getInt16(mo + 2 * i, true);
+    const { decoded, target } = await openOfficial(raw);
+    let layout: Layout | null = null;
+    let mStd: Int16Array | null = null;
+    if (target.colour) {
+      layout = resolveLayout(decoded);
+      const mo = target.foff(layout.standard.matrix);
+      mStd = new Int16Array(9);
+      const dv = new DataView(decoded.buffer, decoded.byteOffset, decoded.byteLength);
+      for (let i = 0; i < 9; i++) mStd[i] = dv.getInt16(mo + 2 * i, true);
+    }
 
     const allowed = {} as Record<LangCode, string>;
     for (const lang of LANGS) {
-      const set = allowedChars(decoded, lang);
+      const set = allowedChars(decoded, lang, target);
       const chars: number[] = [];
       for (const u of set) if (u >= 0x20 && !(u >= 0x7f && u <= 0x9f) && !(u >= 0xd800 && u <= 0xdfff)) chars.push(u);
       chars.sort((a, b) => a - b);
       allowed[lang] = String.fromCharCode(...chars);
     }
-    const slots: SlotInfoView[] = SLOTS.map((s) => {
+    const slots: SlotInfoView[] = !target.colour ? [] : SLOTS.map((s) => {
       const names = {} as Record<LangCode, { text: string; capacity: number }>;
       for (const lang of LANGS) {
         const n = readName(decoded, lang, s.nameIndex);
@@ -458,19 +468,23 @@ export class Engine {
     const info: FirmwareInfo = {
       family: 'gr4', filename: 'fwdc248b.bin', models: ['STANDARD', 'HDF', 'MONO'],
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
-      capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, bridge: !bridge, menuPictures: true, lookLayout: true },
-      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, directFlash: true },
-      version: FIRMWARE_VERSION,
+      // 1.20 (the file of GR IV 1.20 / GR IV Monochrome 1.10): no colour work (presets, the
+      // monochrome looks, the menu order), no Direct Flash yet, and the bridge is made from 1.11.
+      capabilities: { build: true, presets: target.colour, wallpaper: true, factoryEntry: true, bridge: !bridge && target.bridge, menuPictures: true, lookLayout: target.colour },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: target.colour, directFlash: target.directFlash },
+      version: target.versions.STANDARD,
+      target: target.id,
+      versions: { ...target.versions },
       sha256: await sha256Hex(raw),
       slots,
-      tiles: { film: tileTemplate(decoded, 'film'), plain: tileTemplate(decoded, 'plain') },
+      tiles: { film: tileTemplate(decoded, 'film', target), plain: tileTemplate(decoded, 'plain', target) },
       contentArea: CONTENT_AREA,
       allowed,
       shutdown,
-      factoryEntry: readFactoryEntry(decoded),
+      factoryEntry: readFactoryEntry(decoded, target),
       bridge,
     };
-    return new Engine(raw, decoded, info, mStd, layout);
+    return new Engine(raw, decoded, target, info, mStd, layout);
   }
 
   /** Set by `extendVerified` while it inspects a file: the additions to build on top of it. */
@@ -498,8 +512,8 @@ export class Engine {
 
   /** The 1.12 bridge firmware, made from the official file this engine holds (see `fw/bridge.ts`). */
   async bridgeFirmware(): Promise<Uint8Array> {
-    if (this.layout === null) requireGr3xPort('bridge firmware');
-    return makeBridgeFirmware(this.raw);
+    if (this.info.family === 'gr3x') requireGr3xPort('bridge firmware');
+    return makeBridgeFirmware(this.raw); // the official 1.11 file only
   }
 
   /**
@@ -508,7 +522,7 @@ export class Engine {
    */
   async inspect(raw: Uint8Array): Promise<FirmwareSummary> {
     const sha256 = await sha256Hex(raw);
-    if (this.layout === null) {
+    if (this.info.family === 'gr3x') {
       const official = sha256 === this.info.sha256 && raw.length === this.raw.length;
       let candidate: FirmwareBuild | null = null;
       let softFocus: ClarityChange[] = [];
@@ -565,7 +579,10 @@ export class Engine {
         ...(matched && lookLayout ? { lookLayout: { order: [...lookLayout.order], hidden: [...lookLayout.hidden] } } : {}) };
     }
     if (raw.length === BRIDGE_SIZE && sha256 === BRIDGE_SHA256) return { sha256, kind: 'bridge', changedBytes: 0, verified: true, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false, extraSlots: [] };
-    const describe = (d: Uint8Array): FirmwareSummary['slots'] =>
+    const layout = this.layout;
+    const target = this.target!; // a GR IV file (GR III / IIIx returned above)
+    const foff = (va: number): number => target.foff(va);
+    const describe = (d: Uint8Array): FirmwareSummary['slots'] => !layout ? [] :
       SLOTS.map((s) => {
         const names = {} as Record<LangCode, string>;
         let nameChanged = false;
@@ -573,7 +590,7 @@ export class Engine {
           names[lang] = readName(d, lang, s.nameIndex).text;
           if (names[lang] !== readName(this.decoded, lang, s.nameIndex).text) nameChanged = true;
         }
-        const li = this.layout![s.id];
+        const li = layout[s.id];
         const same = (va: number, len: number): boolean => equalRange(d, foff(va), this.decoded, foff(va), len);
         const colorChanged = !(same(li.matrix, LEN.matrix) && same(li.desc, LEN.desc) && same(li.R, LEN.R) && same(li.G, LEN.G) && same(li.B, LEN.B) && same(li.maBlock, LEN.ma_block));
         const icon = readIcon(d, s.iconOffset);
@@ -583,16 +600,17 @@ export class Engine {
     if (sha256 === this.info.sha256) return { sha256, kind: 'official', changedBytes: 0, verified: true, slots: describe(this.decoded), ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false, extraSlots: [] };
     try {
       const fw = new Firmware(raw);
-      if (!equalRange(fw.header, 0, this.raw, 0, fw.header.length)) throw new Error('not 1.11');
-      if (!this.editable) this.editable = editableRanges(this.decoded);
-      if (fw.decoded.length !== DECODED_SIZE) return this.inspectGrown(sha256, raw, fw.decoded, describe);
+      if (!equalRange(fw.header, 0, this.raw, 0, fw.header.length)) throw new Error('not this firmware');
+      // Same-length edits (slots, clarity table, monochrome looks) exist for the colour work only.
+      if (!this.editable) this.editable = target.colour ? editableRanges(this.decoded) : [];
+      if (fw.decoded.length !== target.decodedSize) return this.inspectGrown(sha256, raw, fw.decoded, describe);
       // The monochrome looks on their own are written in place: all of their words, or none.
-      if (!this.monoWords) this.monoWords = monoUnlockWords(this.decoded);
-      const monoUnlock = this.monoWords.every((w) => equalRange(fw.decoded, w.offset, w.bytes, 0, 4));
+      if (!this.monoWords) this.monoWords = target.colour ? monoUnlockWords(this.decoded) : [];
+      const monoUnlock = this.monoWords.length > 0 && this.monoWords.every((w) => equalRange(fw.decoded, w.offset, w.bytes, 0, 4));
       const allowed = monoUnlock ? [...this.editable, ...this.monoWords.map((w) => ({ what: 'monochrome looks', offset: w.offset, length: 4 }))] : this.editable;
       const checks = selfCheck(this.raw, raw, allowed);
       const verified = Object.values(checks).every((v) => v === true);
-      return { sha256, kind: 'modified', changedBytes: countChangedBytes(fw.decoded, this.decoded), verified, slots: describe(fw.decoded), ratios: [], softFocus: clarityChanges(fw.decoded), adjSoftFocus: false, dateStamp: false, monoUnlock, extraSlots: [] };
+      return { sha256, kind: 'modified', changedBytes: countChangedBytes(fw.decoded, this.decoded), verified: verified && target.colour, slots: describe(fw.decoded), ratios: [], softFocus: target.colour ? clarityChanges(fw.decoded) : [], adjSoftFocus: false, dateStamp: false, monoUnlock, extraSlots: [] };
     } catch {
       return { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false, extraSlots: [] };
     }
@@ -606,6 +624,13 @@ export class Engine {
    */
   private inspectGrown(sha256: string, raw: Uint8Array, dec: Uint8Array, describe: (d: Uint8Array) => FirmwareSummary['slots']): FirmwareSummary {
     const unknown: FirmwareSummary = { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false, extraSlots: [] };
+    const t = this.target!; // GR IV only
+    const DECODED_SIZE = t.decodedSize;
+    const RTOS_OFFSET = t.rtosOffset;
+    const RTOS_LENGTH = t.rtosLength;
+    const ICONBIN_OFFSET = t.iconbinOffset;
+    const ICONBIN_LENGTH = t.iconbinLength;
+    const softFocusOf = (d: Uint8Array): ClarityChange[] => (t.colour ? clarityChanges(d) : []);
     const so = sectionsOf(this.decoded);
     const sn = sectionsOf(dec);
     if (so.length !== sn.length) return unknown;
@@ -642,33 +667,33 @@ export class Engine {
     }
     aligned.set(this.decoded.subarray(RTOS_OFFSET - 4, RTOS_OFFSET), RTOS_OFFSET - 4);
     aligned.set(this.decoded.subarray(ICONBIN_OFFSET - 4, ICONBIN_OFFSET), ICONBIN_OFFSET - 4);
-    const specs = readRatioRecord(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth));
-    const features = readExtensionFeatures(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? {};
+    const specs = readRatioRecord(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth), RTOS_LENGTH);
+    const features = readExtensionFeatures(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth), RTOS_LENGTH) ?? {};
     // Added slots: their data is read back from the file and built again like everything else.
-    const extraCount = readExtraSlotCount(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? 0;
+    const extraCount = readExtraSlotCount(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth), RTOS_LENGTH) ?? 0;
     if (extraCount > 0) {
       const iconStart = ICONBIN_OFFSET + rtosGrowth;
       const slots = aspect.readExtraSlots(dec.slice(RTOS_OFFSET, rtosEnd + rtosGrowth), dec.subarray(iconStart, iconStart + ICONBIN_LENGTH + iconGrowth), extraCount);
       if (!slots) return { ...unknown, kind: 'modified' };
       features.extraSlots = slots;
     }
-    // Halation of Cinema Yellow / Green (0.8.2): from the image as well.
-    const halation = aspect.readHalation(new aspect.Patch(dec.slice(RTOS_OFFSET, rtosEnd + rtosGrowth)), aspect.EXTRA_FIRST_STYLE, extraCount);
+    // Halation of Cinema Yellow / Green (0.8.2): from the image as well (colour work: 1.11 only).
+    const halation = t.colour ? aspect.readHalation(new aspect.Patch(dec.slice(RTOS_OFFSET, rtosEnd + rtosGrowth), t), aspect.EXTRA_FIRST_STYLE, extraCount) : null;
     const cinemaHalation: Partial<Record<'CY' | 'CG', true>> = {};
     for (const [id, style] of [['CY', 18], ['CG', 19]] as const) if (halation?.has(style)) cinemaHalation[id] = true;
     if (Object.keys(cinemaHalation).length > 0) features.cinemaHalation = cinemaHalation;
     // Power-off pictures: names and identities from the image, JPEGs from RES.
-    const pictureCount = readShutdownCount(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? 0;
+    const pictureCount = readShutdownCount(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth), RTOS_LENGTH) ?? 0;
     if (pictureCount > 0 || resInsert) {
-      const menu = aspect.readShutdownMenu(new aspect.Patch(dec.slice(RTOS_OFFSET, rtosEnd + rtosGrowth)));
+      const menu = aspect.readShutdownMenu(new aspect.Patch(dec.slice(RTOS_OFFSET, rtosEnd + rtosGrowth), t));
       const jpegs = aspect.readShutdownJpegs(dec, pictureCount);
       if (!menu || !jpegs || menu.length !== pictureCount || !resInsert) return { ...unknown, kind: 'modified' };
       features.shutdown = { pictures: menu.map((m, k) => ({ ...m, jpeg: jpegs[k] })), factory: aspect.factoryShutdownJpegs(this.decoded) };
     }
     // Files of GR Mod 0.2.x are revision 1; they are checked against what that revision builds.
-    const revision = readBuildRevision(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? 1;
+    const revision = readBuildRevision(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth), RTOS_LENGTH) ?? 1;
     const modified = (verified: boolean, ratios: BuiltRatio[], slotsFrom: Uint8Array): FirmwareSummary => ({
-      sha256, kind: 'modified', changedBytes: countChangedBytes(aligned, this.decoded) + rtosGrowth + iconGrowth + resGrowth, verified, slots: describe(slotsFrom), ratios, softFocus: clarityChanges(slotsFrom),
+      sha256, kind: 'modified', changedBytes: countChangedBytes(aligned, this.decoded) + rtosGrowth + iconGrowth + resGrowth, verified, slots: describe(slotsFrom), ratios, softFocus: softFocusOf(slotsFrom),
       adjSoftFocus: !!features.adjSoftFocus,
       dateStamp: !!features.dateStamp,
       monoUnlock: !!features.monoUnlock,
@@ -738,7 +763,7 @@ export class Engine {
 
   /** `suggest`: look for the nearest ratios that work; the candidates themselves are checked without it (else each would search again, without end). */
   private ratioPreview(ratio: string, others: readonly string[], suggest: boolean): RatioPreview {
-    if (this.layout === null) {
+    if (this.info.family === 'gr3x') {
       try {
         const g = planGr3xRatio(ratio);
         for (const text of others) {
@@ -839,7 +864,7 @@ export class Engine {
       // The second (post-curve) matrix, as on GR IV: GR III's matrix module has the stage (films only).
       const post = options.post !== false;
       const c = kind === 'xmp' ? convertGr3xXmp(text, { onProgress, post }) : convertGr3xCube(text, { onProgress, post, refine: options.refine === true, legacyFit: options.legacyFit === true });
-      const q = quantizeSlot(c.params, this.mStdQ13);
+      const q = quantizeSlot(c.params, this.mStdQ13!);
       // A (toned) black-and-white fit has equal rows; rounding each row to 8192 on its own diagonal
       // can leave them 1 apart: the camera gets the first row three times (still black and white,
       // and recognised as such by the date imprint's black-and-white test).
@@ -847,19 +872,20 @@ export class Engine {
         for (let r = 1; r < 3; r++) for (let k = 0; k < 3; k++) q.matrixQ13[r * 3 + k] = q.matrixQ13[k];
       return { ...c, ...q };
     }
+    if (this.target && !this.target.colour) throw new FirmwareError('unsupported-feature', `presets for the Image Control slots are not available for firmware ${this.target.id}`);
     if (this.layout === null || !this.info.capabilities.presets) requireGr3xPort('preset conversion');
     const post = options.post !== false;
     // Hue sectors (experimental, added slots only): fitted against Standard's own block of this firmware.
     const hueStd = options.hue === true && post ? this.standardHue() : undefined;
     const c = kind === 'xmp' ? convertXmp(text, { onProgress, post, ...(hueStd ? { hueStd } : {}) }) : convertCube(text, { onProgress, post, refine: options.refine === true, ...(hueStd ? { hueStd } : {}) });
-    const q = quantizeSlot(c.params, this.mStdQ13);
+    const q = quantizeSlot(c.params, this.mStdQ13!); // set with the colour work (checked above)
     return { kind: c.kind, title: c.title, meanDE: c.meanDE, p95DE: c.p95DE, meanDE2000: c.meanDE2000, p95DE2000: c.p95DE2000, warnings: c.warnings, unsupported: c.unsupported, params: c.params, matrixQ13: q.matrixQ13, curves: q.curves, ...(q.postQ9 ? { postQ9: q.postQ9 } : {}), ...(c.hueQ10 ? { hueQ10: c.hueQ10 } : {}) };
   }
 
-  /** Standard's hue-sector block (copy 0) as 12 matrices. */
+  /** Standard's hue-sector block (copy 0) as 12 matrices (the colour work: GR IV 1.11). */
   private standardHue(): number[][] {
-    if (!this.layout) requireGr3xPort('hue sectors');
-    const o = foff(this.layout.standard.maBlock);
+    if (!this.layout || !this.target) requireGr3xPort('hue sectors');
+    const o = this.target.foff(this.layout.standard.maBlock);
     return hueFromQ10(hueCopy0(this.decoded.subarray(o, o + HUE_BLOCK_BYTES)));
   }
 
@@ -873,6 +899,7 @@ export class Engine {
       if (text !== text.trim()) badChars.push(text[0] === ' ' ? ' ' : text[text.length - 1]);
       return badChars.length ? { ok: false, reason: 'bad-char', badChars, capacity: 24 } : { ok: true, capacity: 24 };
     }
+    if (this.target && !this.target.colour) throw new FirmwareError('unsupported-feature', `the Image Control slots' names are not available for firmware ${this.target.id}`);
     if (this.layout === null || !this.info.capabilities.presets) requireGr3xPort('Image Control names');
     const def = SLOTS.find((s) => s.id === slot);
     if (!def) throw new FirmwareError('bad-edit', `unknown slot ${String(slot)}`);
@@ -940,7 +967,7 @@ export class Engine {
         { round7, round8, round9, round10, ...(lookLayout ? { lookLayout } : {}) });
       return { ...r, file: r.file.slice() };
     }
-    if (this.layout === null || !this.info.capabilities.build) requireGr3xPort('custom firmware');
+    if (this.target === null || !this.info.capabilities.build) requireGr3xPort('custom firmware');
     if (this.info.bridge) throw new FirmwareError('bridge-firmware', 'open the official firmware: the bridge firmware is not a base for builds');
     const edits: SlotEdit[] = [];
     const cinemaHalation: Partial<Record<'CY' | 'CG', true>> = {};

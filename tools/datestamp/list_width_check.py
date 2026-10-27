@@ -8,14 +8,16 @@ widget function real (only four functions that need the running UI are stubbed):
   - the Style list's four value labels (+0xFC of each row) are 100..(row width - 20, at most 680)
     wide; in a build without the widening (REFERENCE) they are 100..500;
   - everything else of the rows and of their widgets is byte for byte as in REFERENCE;
-  - other lists (native records 3, 45, 60 and the date imprint's On/Off and Follow Orientation
-    lists) leave the rows byte for byte as in REFERENCE;
+  - other lists (native records 3, 45 (1.11: Horizon Correction's), 60 and the date imprint's On/Off
+    and Follow Orientation lists) leave the rows byte for byte as in REFERENCE;
   - the Style list's draw function keeps every callee-saved register and the stack, and leaves the
     label of a row of another class (0x53579F28) as it is.
 
     python3 list_width_check.py BUILT.rtos REFERENCE.rtos
 
-Needs the Python packages unicorn and capstone.
+1.11 or 1.20 (the file of GR IV 1.20 / GR IV Monochrome 1.10): addresses through
+tools/port120/fwtarget.py, list records of that firmware (see menu_check.py). Needs the Python
+packages unicorn and capstone.
 """
 import sys, struct, random
 NEW, OLD = sys.argv[1], sys.argv[2]
@@ -24,12 +26,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import menu_check as mc
 from capstone import Cs, CS_ARCH_ARM, CS_MODE_ARM
+mc.use(open(OLD, 'rb').read())
 from unicorn.arm_const import *
 fails = []
 def check(c, w):
     if not c: fails.append(w)
 def rect(e, w, o=0x20): return struct.unpack('<4i', e.mu.mem_read(w + o, 16))
-STUBS = {0x533ef18c: 0, 0x538e0a24: 0, 0x535711e4: 0, 0x53571788: 0}
+STUBS = {mc.V(0x533ef18c): 0, mc.V(0x538e0a24): 0, mc.V(0x535711e4): 0, mc.V(0x53571788): 0}
 def build(path, rec, raw, n, row_w):
     img = mc.Image(path)
     e = mc.Emu(img); e.record = {}
@@ -47,7 +50,7 @@ def build(path, rec, raw, n, row_w):
         for r, v in zip((UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2, UC_ARM_REG_R3), (it, 20, 100 + 60 * i, row_w)):
             mu.reg_write(r, v)
         mu.reg_write(UC_ARM_REG_LR, 0x100)
-        mu.emu_start(0x5357ab24, 0x100, count=5_000_000)
+        mu.emu_start(mc.V(0x5357ab24), 0x100, count=5_000_000)
         rows.append(it)
     L, V, W = 0x70700000, 0x70780000, 0x707c0000
     e.mu.mem_write(L, bytes(0x200))
@@ -59,14 +62,14 @@ def build(path, rec, raw, n, row_w):
     e.mu.mem_write(this + 0x198, struct.pack('<I', L))
     e.mu.mem_write(this + 0x1a4, bytes([rec]))
     e.mu.mem_write(this + 0x124, struct.pack('<I', mc.NEW_MENU))
-    e.call(0x531da9d4, (this,), strict=False)
+    e.call(mc.V(0x531da9d4), (this,), strict=False)
     return e, rows
 def dump(e, rows):
     return b''.join(bytes(e.mu.mem_read(r, 0x300)) + b''.join(bytes(e.mu.mem_read(e.u32(r + o), 0x120)) for o in range(0xec, 0x10c, 4) if 0x70400000 <= e.u32(r + o) < 0x70800000) for r in rows)
 for row_w in (720, 700, 680, 640, 600):
     for raw in (1, 3, 9, 11, 0xff):
-        a, ra = build(NEW, 126, raw, 4, row_w)
-        b, rb = build(OLD, 126, raw, 4, row_w)
+        a, ra = build(NEW, mc.LIST_STYLE, raw, 4, row_w)
+        b, rb = build(OLD, mc.LIST_STYLE, raw, 4, row_w)
         texts = []
         for k, (x, y) in enumerate(zip(ra, rb)):
             la, lb = a.u32(x + 0xfc), b.u32(y + 0xfc)
@@ -88,18 +91,18 @@ for row_w in (720, 700, 680, 640, 600):
             check(bytes(a.mu.mem_read(x, 0x300)) == bytes(b.mu.mem_read(y, 0x300)), f'row {k}: row object differs')
         if raw == 11:
             print(f'  row width {row_w}: labels', [rect(a, a.u32(x + 0xfc)) for x in ra], 'texts', texts, 'drawn rects', [rect(a, a.u32(x + 0xfc), 0x30) for x in ra])
-# a native list (Horizon Correction's record 45, and the On/Off and Follow Orientation lists, 125 / 127): the same in 051 and 052
-for rec in (45, 125, 127, 3, 60):
+# a native list (1.11: Horizon Correction's record 45), and the On/Off and Follow Orientation lists: the same in 051 and 052
+for rec in (45, mc.LIST_ON, mc.LIST_ORIENT, 3, 60):
     a, ra = build(NEW, rec, 1, 4, 680)
     b, rb = build(OLD, rec, 1, 4, 680)
     check(dump(a, ra) == dump(b, rb), f'list record {rec}: rows differ between 051 and 052')
 print('  native lists and our other two lists: rows identical in 051 and 052')
 # registers: the Style list's draw function with random callee-saved registers, and with a row of another class
 img = mc.Image(NEW)
-lt = img.movw_movt(0x531d6868, 0x531d6878)
-draw = img.u32(lt + 126 * 0x4c + 0x14)
+lt = img.movw_movt(mc.V(0x531d6868), mc.V(0x531d6878))
+draw = img.u32(lt + mc.LIST_STYLE * 0x4c + 0x14)
 for case in ('row', 'other'):
-    e, rows = build(NEW, 126, 11, 1, 700)
+    e, rows = build(NEW, mc.LIST_STYLE, 11, 1, 700)
     row = rows[0]
     lab = rows[0]
     if case == 'other':
@@ -109,7 +112,7 @@ for case in ('row', 'other'):
         e.mu.reg_write(UC_ARM_REG_SP, 0x600f0000)
         for r, v in zip((UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2), (row, 20, 400)): e.mu.reg_write(r, v)
         e.mu.reg_write(UC_ARM_REG_LR, 0x100)
-        e.mu.emu_start(0x53579f28, 0x100, count=5_000_000)
+        e.mu.emu_start(mc.V(0x53579f28), 0x100, count=5_000_000)
         lab = row
     before = rect(e, e.u32(lab + 0xfc))
     regs = {r: random.randrange(1 << 32) for r in (UC_ARM_REG_R4, UC_ARM_REG_R5, UC_ARM_REG_R6, UC_ARM_REG_R7, UC_ARM_REG_R8, UC_ARM_REG_R9, UC_ARM_REG_R10, UC_ARM_REG_R11)}

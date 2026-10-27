@@ -167,14 +167,16 @@ type Family = 'gr4' | 'gr3';
 const familyOf = (m: CameraModel): Family => (isGr3(m) ? 'gr3' : 'gr4');
 const GR3_PROJECT = 'project-gr3.json';
 /** The official file each camera takes (GR IV, GR III, GR IIIx: one file for all of each one's models),
- * kept once downloaded or opened: switching to another camera opens its file again without a download. */
-type FwGroup = 'gr4' | 'gr3' | 'gr3x';
-const fwGroupOf = (m: CameraModel): FwGroup => (m === 'GR3' || m === 'GR3_HDF' ? 'gr3' : m === 'GR3X' || m === 'GR3X_HDF' ? 'gr3x' : 'gr4');
+ * kept once downloaded or opened: switching to another camera opens its file again without a download.
+ * The GR IV Monochrome keeps its own: once on 1.10 it takes the file of 1.20 only (1.11's says 1.00 to it),
+ * where GR IV / HDF keep 1.11's, which has every addition. */
+type FwGroup = 'gr4' | 'gr4mono' | 'gr3' | 'gr3x';
+const fwGroupOf = (m: CameraModel): FwGroup => (m === 'GR3' || m === 'GR3_HDF' ? 'gr3' : m === 'GR3X' || m === 'GR3X_HDF' ? 'gr3x' : m === 'MONO' ? 'gr4mono' : 'gr4');
 const fwKey = (g: FwGroup): string => `firmware-${g}.bin`;
 /** Up to 0.8.x one file was kept for whichever camera was open. */
 const LEGACY_FW_KEY = 'firmware.bin';
 const LEGACY_FW_GROUP: Record<string, FwGroup> = { 'fwdc248b.bin': 'gr4', 'fwdc239b.bin': 'gr3', 'fwdc243b.bin': 'gr3x' };
-const LEGACY_FW_GROUP_NAME: Record<FwGroup, string> = { gr4: 'fwdc248b.bin', gr3: 'fwdc239b.bin', gr3x: 'fwdc243b.bin' };
+const LEGACY_FW_GROUP_NAME: Record<FwGroup, string> = { gr4: 'fwdc248b.bin', gr4mono: 'fwdc248b.bin', gr3: 'fwdc239b.bin', gr3x: 'fwdc243b.bin' };
 /** The kept file of a camera, or null. A file kept by 0.8.x moves to its camera's place first. */
 async function keptFirmware(g: FwGroup, legacyName?: string): Promise<Uint8Array | null> {
   const own = await host.storeGet(fwKey(g)).catch(() => null);
@@ -183,9 +185,13 @@ async function keptFirmware(g: FwGroup, legacyName?: string): Promise<Uint8Array
   if (!legacy) return null;
   // Its camera: by the name it was opened with, else by its size (the two GR III files differ in size, GR IV's is larger).
   const lg = (legacyName ? LEGACY_FW_GROUP[legacyName.toLowerCase()] : undefined) ?? (legacy.length === 30391780 ? 'gr3' : legacy.length === 30391788 ? 'gr3x' : 'gr4');
-  // The old file is removed only once it is kept in its new place (else it is moved next time).
-  if (await host.storeSet(fwKey(lg), legacy).then(() => true, () => false)) await host.storeDel(LEGACY_FW_KEY).catch(() => undefined);
-  return lg === g ? legacy : null;
+  // GR IV's file was the Monochrome's too: it is kept in both places.
+  const places: FwGroup[] = lg === 'gr4' ? ['gr4', 'gr4mono'] : [lg];
+  // The old file is removed only once it is kept in its new places (else it is moved next time).
+  let kept = true;
+  for (const place of places) kept = (await host.storeSet(fwKey(place), legacy).then(() => true, () => false)) && kept;
+  if (kept) await host.storeDel(LEGACY_FW_KEY).catch(() => undefined);
+  return places.includes(g) ? legacy : null;
 }
 const presetKey = (id: SlotKey, fam: Family = familyOf(state.model)): string => (fam === 'gr3' ? 'gr3-preset-' : 'preset-') + id.toLowerCase();
 type FamilyDoc = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -408,7 +414,8 @@ export function setModel(model: CameraModel): void {
   ++ratioGen;
   clearTimeout(ratioTimer);
   if (differentFamily) leaveFamily();
-  const otherFile = !!state.info && !state.info.models.includes(model);
+  // Another camera's file, or GR IV's and the Monochrome's (each keeps its own, see `fwGroupOf`).
+  const otherFile = !!state.info && (!state.info.models.includes(model) || fwGroupOf(model) !== fwGroupOf(state.model));
   if (otherFile) {
     void engine.reset();
     set({ info: undefined, raw: undefined, fwName: undefined, bridgeOpen: false, bridgeAfter: undefined,
@@ -490,12 +497,21 @@ export async function adoptFirmware(name: string, version: string, data: Uint8Ar
   if (ok && after) { set({ bridgeAfter: undefined }); setTimeout(() => { void outputBridge(after); }, 0); }
   return ok;
 }
+/** The version of the open firmware as the chosen model shows it (the GR IV Monochrome's numbers are its own), or ''. */
+export function fwVersion(s: State = state): string { return s.info ? s.info.versions?.[s.model] ?? s.info.version : ''; }
+/**
+ * Whether the colour work (the slots, added slots, the monochrome looks) is offered: a colour model,
+ * and an open file that has it (GR IV 1.11, GR III / IIIx; not the 1.20 file of GR IV 1.20 / GR IV
+ * Monochrome 1.10, whose `capabilities.presets` is false).
+ */
+export function colourWork(s: State = state): boolean { return s.model !== 'MONO' && s.info?.capabilities.presets !== false; }
 /** True while the open firmware is the 1.12 bridge firmware: nothing is written until the official one is open. */
 export const bridgeLoaded = (s: State = state): boolean => !!s.info?.bridge;
 /** What a write or export does while the bridge firmware is open: offer the official download instead. */
 export function askForOfficial(): void { setOnlineOpen(true, 'bridge-loaded'); }
 export function setBridgeOpen(bridgeOpen: boolean): void {
-  if (bridgeOpen && (isGr3(state.model) || (state.info && !state.info.capabilities.bridge))) return;
+  // Not for GR III / IIIx, nor while the bridge is open; with the file of 1.20, 1.11's is downloaded first (`outputBridge`).
+  if (bridgeOpen && (isGr3(state.model) || state.info?.family === 'gr3x' || state.info?.bridge)) return;
   set({ bridgeOpen });
 }
 
@@ -588,9 +604,10 @@ function lookExtras(s: State): ExtraSlot[] { return s.model === 'MONO' ? [] : s.
 const gr3Order = (s: State): boolean => (s.info ? s.info.family === 'gr3x' : isGr3(s.model));
 /** GR III: the films of the build (looks 64..), when they are built. */
 function gr3Films(s: State): number { return filmCountChoosable(s) ? s.filmCount : 0; }
-/** The menu order can be set: GR IV, and GR III / IIIx (round 8). */
+/** The menu order can be set: GR IV (1.11), and GR III / IIIx (round 8). */
 export function lookOrderAvailable(s: State = state): boolean {
-  return !gr3Order(s) || (s.info?.family === 'gr3x' && s.info.capabilities.lookLayout === true);
+  if (gr3Order(s)) return s.info?.family === 'gr3x' && s.info.capabilities.lookLayout === true;
+  return s.info?.capabilities.lookLayout !== false; // GR IV: not with the file of 1.20
 }
 /** Every key the order can contain, in the camera's order: GR IV's 20 looks and the added slots; GR III's twelve and its films. */
 export function lookKeys(s: State = state): string[] {
@@ -729,10 +746,10 @@ export function extraProblem(x: ExtraSlot, s: State = state): string | null {
   if (!x.icon.pixels) return t('extraNeedsIcon');
   return null;
 }
-export function hasExtraErrors(s: State = state): boolean { return s.model !== 'MONO' && s.extras.some((x) => !!extraProblem(x, s)); }
-/** What the added slots give the build (none on the Monochrome, which has no colour looks). */
+export function hasExtraErrors(s: State = state): boolean { return colourWork(s) && s.extras.some((x) => !!extraProblem(x, s)); }
+/** What the added slots give the build (none without the colour work, see `colourWork`). */
 export function extraSpecs(s: State = state): ExtraSlotSpec[] {
-  if (s.model === 'MONO') return [];
+  if (!colourWork(s)) return [];
   return s.extras.map((x) => {
     const r = x.preset!.result!;
     return { name: extraName(x, s), matrixQ13: r.matrixQ13, curves: r.curves, ...(r.postQ9 ? { postQ9: r.postQ9 } : {}), ...(r.hueQ10 ? { hueQ10: r.hueQ10 } : {}), icon: x.icon.pixels!, halation: true };
@@ -788,7 +805,7 @@ export function setExtraName(key: string, name: string): void {
 export function nameProblem(info: FirmwareInfo, id: SlotId, lang: LangCode, text: string): string | null {
   if (!text) return null;
   const slot = info.slots.find((s) => s.id === id);
-  if (!slot) return null;
+  if (!slot) return null; // a file without the colour work has no slots to name
   const cap = slot.names[lang].capacity;
   if (text.length > cap) return t('nameTooLong', { n: cap });
   const allowed = info.allowed[lang];
@@ -1151,7 +1168,7 @@ export interface SlotChange { id: SlotId; parts: string[]; labels: string[]; req
 export function pendingChanges(s: State = state): SlotChange[] {
   if (!s.info?.capabilities.presets) return [];
   const out: SlotChange[] = [];
-  if (!s.info || s.model === 'MONO') return out;
+  if (!s.info || !colourWork(s)) return out;
   for (const id of availableSlots(s)) {
     const sl = s.slots[id]; const off = s.info.slots.find((x) => x.id === id)!;
     const req: SlotRequest = { slot: id }; const parts: string[] = []; const labels: string[] = [];
@@ -1175,8 +1192,7 @@ export function pendingChanges(s: State = state): SlotChange[] {
   return out;
 }
 export function hasNameErrors(s: State = state): boolean {
-  if (!s.info?.capabilities.presets) return false;
-  if (!s.info) return false;
+  if (!s.info || !colourWork(s)) return false;
   return availableSlots(s).some((id) => LANGS.some((lang) => !!nameProblem(s.info!, id, lang, s.slots[id].names[lang] || '')));
 }
 const stamp = (): string => { const d = new Date(); const p = (n: number): string => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
@@ -1256,7 +1272,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const films = filmCountChoosable() ? state.filmCount : 0;
   const lookLayout = stock ? undefined : lookLayoutSpec();
   if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && !directFlash && extras.length === 0 && pictures.length === 0 && films === 0 && !lookLayout) { toast(t('nothingToDo'), 'info'); return; }
-  if (stock && !(await askOfficial([t('copyOfficial')]))) return;
+  if (stock && !(await askOfficial([t('copyOfficial', { v: fwVersion() })]))) return;
   if (dest.kind === 'card' && !stock) {
     const lines = changes.map((c) => `${state.info?.family === 'gr3x' ? (state.slots[c.id].names[state.lang] || state.info.slots.find(s => s.id === c.id)?.defaultName || c.id) : t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
     if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
@@ -1297,13 +1313,15 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
 }
 
 /**
- * Write the 1.12 bridge firmware (made from the official file, see core `fw/bridge.ts`). With no
- * firmware open, the official one is downloaded first and the write continues after it.
+ * Write the 1.12 bridge firmware (made from the official 1.11 file, see core `fw/bridge.ts`). With
+ * no firmware open, or the file of 1.20, the official 1.11 file is downloaded first and the write
+ * continues after it.
  */
 export async function outputBridge(dest: Dest): Promise<void> {
-  if (isGr3(state.model) || (state.info && !state.info.capabilities.bridge)) return;
+  if (isGr3(state.model) || state.info?.family === 'gr3x' || state.info?.bridge) return;
   if (state.busy || state.fwBusy) return;
-  if (!state.info) { set({ bridgeAfter: dest }); setOnlineOpen(true, 'bridge-base'); return; }
+  // Made from 1.11: without that file open (none, or the file of 1.20), it is downloaded first.
+  if (!state.info || !state.info.capabilities.bridge) { set({ bridgeAfter: dest }); setOnlineOpen(true, 'bridge-base'); return; }
   const sourceInfo = state.info, sourceModel = state.model;
   const target = await destination(dest);
   if (!target || state.info !== sourceInfo || state.model !== sourceModel || state.fwBusy) return;
@@ -1460,7 +1478,7 @@ export function writableCopy(s: State = state): { entry: ParkedEntry; summary: F
 }
 /** A one-line description of a firmware copy, for the confirmation. */
 export function describeCopy(summary: FirmwareSummary, s: State = state): string[] {
-  if (summary.kind === 'official') return [t('copyOfficial')];
+  if (summary.kind === 'official') return [t('copyOfficial', { v: fwVersion(s) })];
   if (summary.kind === 'bridge') return [t('copyBridge')];
   const build = s.builds.find((b) => b.sha256 === summary.sha256);
   const lines = summary.slots.map((sl) => {

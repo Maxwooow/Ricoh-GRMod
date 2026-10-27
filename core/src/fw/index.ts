@@ -1,4 +1,4 @@
-/** Public API of the firmware toolchain (GR IV firmware 1.11). */
+/** Public API of the firmware toolchain (GR IV firmware 1.11; 1.20, the file of GR IV Monochrome 1.10, see `target.ts`). */
 export { FirmwareError } from './types';
 export type { Range } from './types';
 
@@ -58,6 +58,9 @@ export {
   slotInfo,
 } from './profile';
 export type { Layout, SlotDef, SlotId, SlotInfo } from './profile';
+
+export { SUPPORTED_RELEASE, TARGETS, TARGET_111, TARGET_120, targetOfOfficial, targetOfRelease } from './target';
+export type { FirmwareTarget, TargetId, TargetModel } from './target';
 
 export { LANGS, NAME_TABLE_ENTRIES, NAME_TABLE_RTOS_OFFSETS, allowedChars, applyName, nameRanges, readName, validateName } from './names';
 export type { LangCode, NameInfo, NameValidation } from './names';

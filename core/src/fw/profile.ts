@@ -6,6 +6,8 @@
  * offsets in the decoded payload exactly like `plan.py`.
  */
 import { Firmware, FirmwareError, sha256Hex } from './container';
+import { targetOfOfficial } from './target';
+import type { FirmwareTarget } from './target';
 
 export const FIRMWARE_VERSION = '1.11';
 export const OFFICIAL_SHA256 = 'a2f664dfca034059eb0fd6e18ab08684c326b4a034d85c164dad7e1ec9b5655f';
@@ -200,16 +202,19 @@ export function resolveLayout(decoded: Uint8Array): Layout {
 }
 
 /**
- * Accept only the official 1.11 file. Throws `FirmwareError('unsupported-firmware')` unless the
- * file's SHA-256 is `OFFICIAL_SHA256`; then parses it and also asserts the decoded SHA-256.
+ * Accept only an official file this program builds on (see `target.ts`): GR IV 1.11, or the
+ * file of GR IV 1.20 / GR IV Monochrome 1.10. Throws `FirmwareError('unsupported-firmware')`
+ * unless the file's size and SHA-256 are one of theirs; then parses it and also asserts the
+ * decoded SHA-256.
  */
-export async function openOfficial(raw: Uint8Array): Promise<{ fw: Firmware; decoded: Uint8Array }> {
-  if (raw.length !== OFFICIAL_SIZE || (await sha256Hex(raw)) !== OFFICIAL_SHA256) {
-    throw new FirmwareError('unsupported-firmware', 'this is not the official GR IV firmware 1.11 file (fwdc248b.bin)');
+export async function openOfficial(raw: Uint8Array): Promise<{ fw: Firmware; decoded: Uint8Array; target: FirmwareTarget }> {
+  const target = targetOfOfficial(raw.length, await sha256Hex(raw));
+  if (!target) {
+    throw new FirmwareError('unsupported-firmware', 'this is not an official firmware file this program supports (fwdc248b.bin of GR IV 1.11, or of GR IV 1.20 / GR IV Monochrome 1.10)');
   }
   const fw = new Firmware(raw);
-  if (fw.decoded.length !== DECODED_SIZE || (await sha256Hex(fw.decoded)) !== DECODED_SHA256) {
-    throw new FirmwareError('unsupported-firmware', 'decoded payload does not match firmware 1.11');
+  if (fw.decoded.length !== target.decodedSize || (await sha256Hex(fw.decoded)) !== target.decodedSha256) {
+    throw new FirmwareError('unsupported-firmware', `decoded payload does not match firmware ${target.id}`);
   }
-  return { fw, decoded: fw.decoded };
+  return { fw, decoded: fw.decoded, target };
 }
