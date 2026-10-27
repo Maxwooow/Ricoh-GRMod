@@ -19,6 +19,9 @@
  * one more byte; the data of both is read back from the image itself; bit 5: the settings guard;
  * bit 6 (0.8.4): an Image Control menu order / hidden looks (`looks.ts`): u8 n, the n styles in
  * menu order, u8 h, the h hidden styles; bit 7 (0.8.4): Direct Flash (`directflash.ts`)).
+ * Revision 4 (only written with the brighter Auto screen, `brightauto.ts`) has a second feature
+ * byte right after the first one (bit 0: brighter Auto screen); all eight bits of the first are used.
+ * Builds without it stay revision 3, byte for byte.
  *
  * Power-off pictures (`shutdown.ts`) also add files to the RES section, the last one: their records
  * (two container frames each) are inserted after RES_ANCHOR, and the section's file count grows.
@@ -63,6 +66,8 @@ const FEATURE_GUARD = 32;
 const FEATURE_LOOK_LAYOUT = 64;
 /** Direct Flash (`directflash.ts`), 0.8.4. */
 const FEATURE_DIRECT_FLASH = 128;
+/** Second feature byte (revision 4): the brighter Auto screen (`brightauto.ts`). */
+const FEATURE2_BRIGHT_AUTO = 1;
 
 /**
  * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
@@ -80,6 +85,8 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
   const pictures = features.shutdown?.pictures.length ?? 0;
   const layout = features.lookLayout;
   if (revision >= 3) bytes.push((features.adjSoftFocus ? FEATURE_ADJ_SOFT_FOCUS : 0) | (features.dateStamp ? FEATURE_DATE_STAMP : 0) | (features.monoUnlock ? FEATURE_MONO_UNLOCK : 0) | (slots > 0 ? FEATURE_EXTRA_SLOTS : 0) | (pictures > 0 ? FEATURE_SHUTDOWN : 0) | (features.guard ? FEATURE_GUARD : 0) | (layout ? FEATURE_LOOK_LAYOUT : 0) | (features.directFlash ? FEATURE_DIRECT_FLASH : 0));
+  if (revision >= 4) bytes.push(features.brightAuto ? FEATURE2_BRIGHT_AUTO : 0);
+  else if (features.brightAuto) fail('internal', 'the brighter Auto screen needs revision 4');
   if (revision >= 3 && slots > 0) bytes.push(slots);
   else if (slots > 0) fail('internal', 'added slots need revision 3');
   if (revision >= 3 && pictures > 0) bytes.push(pictures);
@@ -100,7 +107,7 @@ export function readBuildRevision(rtos: Uint8Array): BuildRevision | null {
   const at = rtos.length - 4 - MAGIC_LENGTH;
   for (let i = 0; i < MAGIC_STEM.length; i++) if (rtos[at + i] !== MAGIC_STEM.charCodeAt(i)) return null;
   const digit = rtos[at + MAGIC_STEM.length] - 0x30;
-  return digit === 1 || digit === 2 || digit === 3 ? digit : null;
+  return digit === 1 || digit === 2 || digit === 3 || digit === 4 ? digit : null;
 }
 
 interface ParsedRecord {
@@ -150,6 +157,12 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
     if (p >= rec.length) return null;
     const f = rec[p++];
     if ((f & ~(FEATURE_ADJ_SOFT_FOCUS | FEATURE_DATE_STAMP | FEATURE_MONO_UNLOCK | FEATURE_EXTRA_SLOTS | FEATURE_SHUTDOWN | FEATURE_GUARD | FEATURE_LOOK_LAYOUT | FEATURE_DIRECT_FLASH)) !== 0) return null;
+    if (revision >= 4) {
+      if (p >= rec.length) return null;
+      const f2 = rec[p++];
+      if ((f2 & ~FEATURE2_BRIGHT_AUTO) !== 0 || f2 === 0) return null;
+      features.brightAuto = true;
+    }
     if (f & FEATURE_GUARD) features.guard = true;
     if (f & FEATURE_ADJ_SOFT_FOCUS) features.adjSoftFocus = true;
     if (f & FEATURE_DATE_STAMP) features.dateStamp = true;
@@ -177,7 +190,7 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
       features.lookLayout = { order, hidden };
     }
     if (f & FEATURE_DIRECT_FLASH) features.directFlash = true;
-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash) return null;
+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.brightAuto && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash) return null;
   }
   for (; p < rec.length; p++) if (rec[p] !== 0) return null;
   return { specs: out, features, extraSlots, shutdownPictures };

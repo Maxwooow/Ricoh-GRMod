@@ -22,6 +22,7 @@ import type { RatioSpec } from './aspect';
 import { grownRanges, growPayload } from './aspect/package';
 import { Patch } from './aspect/build';
 import { installMonoUnlock } from './aspect/monounlock';
+import { installBrightAuto } from './aspect/brightauto';
 import { lookLayoutWords } from './aspect/looks';
 import type { LookLayout } from './aspect/looks';
 import { CLARITY_BYTES, CLARITY_OFFSET, clarityBytes, hasOfficialClarity } from './clarity';
@@ -206,9 +207,10 @@ export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], 
   // Additions that append code or icons need the grown layout. The monochrome looks change 13
   // words in place: on their own (or with only same-length edits) the file keeps the official layout.
   const grows = ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash;
+  const inPlaceBright = !grows && !!features.brightAuto;
   const inPlaceMono = !grows && !!features.monoUnlock;
   const inPlaceLooks = !grows && !!features.lookLayout;
-  const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity, inPlaceMono, inPlaceLooks ? features.lookLayout : undefined);
+  const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity, inPlaceMono, inPlaceLooks ? features.lookLayout : undefined, inPlaceBright);
   if (grows) return buildWithRatios(officialRaw, fw, DEC, img, ranges, ratios, features, test);
 
   // 7. Container.
@@ -229,7 +231,7 @@ export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], 
     ranges,
     checks,
     ratios: [],
-    features: { adjSoftFocus: false, ...(inPlaceMono ? { monoUnlock: true } : {}), ...(inPlaceLooks ? { lookLayout: features.lookLayout } : {}) },
+    features: { adjSoftFocus: false, ...(inPlaceMono ? { monoUnlock: true } : {}), ...(inPlaceBright ? { brightAuto: true } : {}), ...(inPlaceLooks ? { lookLayout: features.lookLayout } : {}) },
   };
 }
 
@@ -248,6 +250,20 @@ export function monoUnlockWords(official: Uint8Array): { offset: number; bytes: 
     new DataView(bytes.buffer).setUint32(0, after, true);
     return { offset: RTOS_OFFSET + (address - 0x53000000), bytes };
   });
+}
+
+/**
+ * The words the brighter Auto screen changes (see `aspect/brightauto.ts`), as payload offsets of an
+ * official-layout payload and their new bytes. `official` is such a payload (decoded).
+ */
+export function brightAutoWords(official: Uint8Array): { offset: number; bytes: Uint8Array }[] {
+  const patch = new Patch(official.slice(RTOS_OFFSET, RTOS_OFFSET + RTOS_LENGTH));
+  installBrightAuto(patch);
+  return patch.words.map((w) => {
+    const bytes = new Uint8Array(4);
+    new DataView(bytes.buffer).setUint32(0, w.after, true);
+    return { offset: RTOS_OFFSET + (w.address - 0x53000000), bytes };
+  }).sort((a, b) => a.offset - b.offset);
 }
 
 /**
@@ -297,7 +313,7 @@ async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8
 }
 
 /** Steps 1-6: open the official file and apply the same-length slot (and clarity) edits to a copy of its payload. */
-async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: readonly ClarityEdit[] = [], monoUnlock = false, lookLayout?: LookLayout): Promise<{ fw: Firmware; DEC: Uint8Array; img: Uint8Array; ranges: Range[] }> {
+async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: readonly ClarityEdit[] = [], monoUnlock = false, lookLayout?: LookLayout, brightAuto = false): Promise<{ fw: Firmware; DEC: Uint8Array; img: Uint8Array; ranges: Range[] }> {
   // 1. Open the official file, copy the payload.
   const { fw, decoded: DEC } = await openOfficial(officialRaw);
   const sorted = sortEdits(edits);
@@ -383,6 +399,15 @@ async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: 
     for (const w of monoUnlockWords(DEC)) {
       for (const r of ranges) if (r.offset < w.offset + 4 && w.offset < r.offset + r.length) bad('assert-failed', `monochrome looks overlap ${r.what}`);
       write(`monochrome looks 0x${(w.offset - RTOS_OFFSET + 0x53000000).toString(16)}`, w.offset, w.bytes, 4);
+    }
+    rtosTouched = true;
+  }
+
+  // 3c2. Brighter Auto screen in place (the curve's y words and two immediates; only when nothing grows).
+  if (brightAuto) {
+    for (const w of brightAutoWords(DEC)) {
+      for (const r of ranges) if (r.offset < w.offset + 4 && w.offset < r.offset + r.length) bad('assert-failed', `brighter Auto screen overlaps ${r.what}`);
+      write(`brighter Auto screen 0x${(w.offset - RTOS_OFFSET + 0x53000000).toString(16)}`, w.offset, w.bytes, 4);
     }
     rtosTouched = true;
   }

@@ -23,6 +23,6 @@ const s = await eng.inspect(file);
 console.log(JSON.stringify({
   sha256: s.sha256, bytes: file.length, kind: s.kind, verified: s.verified, adjSoftFocus: s.adjSoftFocus, dateStamp: s.dateStamp,
   monoUnlock: s.monoUnlock, ratios: s.ratios.map((x) => x.name), extraSlots: s.extraSlots.length, lookLayout: !!s.lookLayout,
-  shutdownPictures: s.shutdownPictures?.length ?? 0, directFlash: !!s.directFlash,
+  shutdownPictures: s.shutdownPictures?.length ?? 0, directFlash: !!s.directFlash, brightAuto: !!s.brightAuto,
   slots: s.slots.map((x) => ({ id: x.id, name: x.names.en, colorChanged: x.colorChanged })),
 }));
