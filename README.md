@@ -3,7 +3,7 @@
 A small desktop tool for the Ricoh GR IV / GR IV HDF / GR IV Monochrome (firmware 1.11), the GR III /
 GR III HDF (firmware 2.10) and the GR IIIx / GR IIIx HDF (firmware 1.60). Not a Ricoh product.
 
-0.8.6: on the GR IV, MENU works again in the Flash submenu after coming back from Direct Flash Settings (the firmware keeps a nested submenu's back target only for its own nested submenus; `installNestedBack` in `core/src/fw/aspect/directflash-menu.ts` adds Direct Flash Settings to both checks); the What's New dialog names the code contributors.
+0.8.6: on the GR IV, MENU works again in the Flash submenu after coming back from Direct Flash Settings (the firmware keeps a nested submenu's back target only for its own nested submenus; `installNestedBack` in `core/src/fw/aspect/directflash-menu.ts` adds Direct Flash Settings to both checks); the What's New dialog names the code contributors; GR III / IIIx films get a remove button each, as GR IV's added slots (`removeFilm` in `ui/src/store.ts`).
 
 0.8.5: one program for GR IV and GR III / IIIx. GR IV gets Direct Flash (a fifth Flash Mode: fixed
 power, exposure from the focus distance and the guide number; GN, background down to -5.0 EV,
