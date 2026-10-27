@@ -22,7 +22,7 @@ official ones (the harness of tools/datestamp/menu_check.py):
  5. The list constructor's scan still ends after the 124 official records with the same result.
  6. Texts (line names in 21 languages, value names), every official text kept in the widened
     language rows, icons (catalog, bounds) and a picture of all icons (ICONS.png).
- 7. The settings guard keeps bytes 0x99A and 0x99B.
+ 7. The settings guard keeps bytes 0x99A and 0x99B, and 0x109 (test 062).
 
     python3 settings_check.py BUILT-RTOS OFFICIAL-RTOS [ICONS.png|-] [EARLIER-BUILT-RTOS]
 
@@ -45,31 +45,36 @@ OFFICIAL_LEN = 0x13d2ac0
 CURRENT = 0x55084dd8
 BYTE = CURRENT + 4 + 0x99b
 GN_BYTE = CURRENT + 4 + 0x99a
-IDS = [0x020001b0, 0x020001b1, 0x020001b2, 0x020001b4]
+TV_BYTE = CURRENT + 4 + 0x109   # test 062
+IDS = [0x020001b0, 0x020001b1, 0x020001b2, 0x020001b4, 0x020001b5]
 MENU_ID = 0x020001b3
 T0 = 910
 I0 = 663
 GNS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 25, 28, 32, 36]
-THIRDS = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+THIRDS = list(range(1, 16))
 SLOWEST = [('1/125', 7), ('1/60', 6), ('1/30', 0), ('1/15', 1), ('1/8', 2), ('1/4', 3), ('1/2', 4), ('1"', 5)]
 # (byte, shift, mask, codes, English names)
 LISTS = [
     (GN_BYTE, 0, 63, [0 if g == 3 else g for g in GNS], [f'GN {g}' for g in GNS]),
     (BYTE, 1, 15, [0 if k == 3 else k for k in THIRDS], [f'-{k / 3:.1f} EV' for k in THIRDS]),
     (BYTE, 5, 7, [c for _, c in SLOWEST], [n for n, _ in SLOWEST]),
-    (GN_BYTE, 6, 1, [0, 1], ['Low ISO', 'Max Sync Speed']),
+    (GN_BYTE, 6, 3, [0, 2], ['Standard', 'Max Sync Speed']),
+    (TV_BYTE, 0, 7, [0, 1, 2, 3, 4], ['Sync Limit', '1/2000', '1/1000', '1/500', '1/250']),
 ]
-TITLES = [T0 + 1, T0 + 2, 125, T0 + 3]
-FIRST_TEXT = [T0 + 4, T0 + 4 + 21, T0 + 4 + 30, T0 + 4 + 38]
-FIRST_ICON = [I0, I0 + 21, I0 + 30, I0 + 38]
-N_ICONS = 40
+T_FASTEST = T0 + 4 + 46 + 5
+TITLES = [T0 + 1, T0 + 2, 125, T0 + 3, T_FASTEST]
+FIRST_TEXT = [T0 + 4, T0 + 4 + 21, T0 + 4 + 36, T0 + 4 + 44, T0 + 4 + 46]
+FIRST_ICON = [I0, I0 + 21, I0 + 36, I0 + 44, I0 + 46]
+N_ICONS = 51
+LOCALISED = (3, 4)   # lists whose value names differ by language (the others: the same everywhere)
+FASTEST_NAMES = {1: 'Maximum Shutter Speed', 0: '高速限界値', 19: '最高快门速度', 18: '最高快門速度'}
 NAMES = {  # language row -> submenu name, line names (rows as the program indexes languages)
     1: ['Direct Flash Settings', 'Guide Number', 'Background Brightness', 'Exposure Priority'],
     0: ['ダイレクト発光設定', 'ガイドナンバー', '背景の明るさ', '露出優先'],
-    19: ['直闪设置', '闪光指数', '背景亮度', '曝光优先'],
-    18: ['直閃設定', '閃光指數', '背景亮度', '曝光優先'],
+    19: ['直闪设置', '闪光指数', '背景亮度', '曝光优先级'],
+    18: ['直閃設定', '閃光指數', '背景亮度', '曝光優先級'],
 }
-PRIORITY_ZH = ['低 ISO 优先', '同步上限优先']
+PRIORITY_ZH = ['标准', '同步上限优先']
 SUB_SITES = [(0x531e2064, 0x531e206c), (0x531e20cc, 0x531e20d4), (0x531e2438, 0x531e2444), (0x531e2668, 0x531e266c), (0x531e2734, 0x531e2740)]
 SEL_SITE = (0x531d6d54, 0x531d6d64)
 
@@ -94,14 +99,14 @@ def check_factory_current(new, off):
     for cid in IDS:
         check(factory_class(new, cid) == lst, f'factory: {cid:#x} is not the list controller')
     check(factory_class(new, MENU_ID) == sub, 'factory: the submenu id is not the submenu controller')
-    for cid in (0x020001af, 0x020001b5, 0x020001b6):
+    for cid in (0x020001af, 0x020001b6, 0x020001b7):
         check(factory_class(new, cid) == factory_class(off, cid), f'factory: {cid:#x} (not ours) changed')
     dm.check_set_current(new, off)
     recs = [set_current(new, 0x531d5e8c, 0x1a4, cid) for cid in IDS]
-    check(recs == [128, 129, 130, 131], f'list SetCurrentMenu of the new ids: {recs}')
+    check(recs == [128, 129, 130, 131, 132], f'list SetCurrentMenu of the new ids: {recs}')
     subrec = set_current(new, 0x531e1bd0, 0x174, MENU_ID)
     check(subrec == 20, f'submenu SetCurrentMenu of the new id: {subrec}')
-    for cid in (0x020001af, 0x020001b5):
+    for cid in (0x020001af, 0x020001b6):
         for fn, o in ((0x531d5e8c, 0x1a4), (0x531e1bd0, 0x174)):
             check(set_current(new, fn, o, cid) == set_current(off, fn, o, cid), f'SetCurrentMenu {fn:#x}({cid:#x}) not ours')
     print('  list controller for', [hex(i) for i in IDS], '; records', recs, '; submenu', hex(MENU_ID), 'record', subrec)
@@ -122,14 +127,18 @@ def check_submenu_record(new, off, subrec):
     check(not diff, f'record 5: other fields changed {diff}')
     q = st + subrec * 0x64
     m = 0x53da6718 + 14 * 0x64
-    check(new.u16(q + 2) == T0 and new.rd(q + 6, 1)[0] == 4, 'submenu record: title / count')
-    check([new.u16(q + 8 + 2 * k) for k in range(5)] == TITLES + [0], 'submenu record: line texts')
-    check([new.u32(q + 0x14 + 4 * k) for k in range(5)] == IDS + [0x10000000], 'submenu record: line ids')
-    draws = [new.u32(q + 0x3c + 8 * k) for k in range(4)]
-    check(all(d >= BASE + OFFICIAL_LEN for d in draws) and all(new.u32(q + 0x40 + 8 * k) == 0 for k in range(4)), 'submenu record: value draws')
-    changed = {2, 3} | set(range(8, 16)) | set(range(0x14, 0x24)) | set(range(0x3c, 0x5c))
+    check(new.u16(q + 2) == T0 and new.rd(q + 6, 1)[0] == 5, 'submenu record: title / count')
+    check([new.u16(q + 8 + 2 * k) for k in range(6)] == TITLES + [0], 'submenu record: line texts')
+    check([new.u32(q + 0x14 + 4 * k) for k in range(5)] == IDS, 'submenu record: line ids')
+    check([new.u32(q + 0x28 + 4 * k) for k in range(5)] == [540] * 5, 'submenu record: value icon places')
+    draws = [new.u32(q + 0x3c + 8 * k) for k in range(5)]
+    check(all(d >= BASE + OFFICIAL_LEN for d in draws) and all(new.u32(q + 0x40 + 8 * k) == 0 for k in range(5)), 'submenu record: value draws')
+    changed = {2, 3, 6} | set(range(8, 18)) | set(range(0x14, 0x28)) | set(range(0x38, 0x3c)) | set(range(0x3c, 0x64))
     diff = [hex(k) for k in range(0x64) if k not in changed and new.rd(q + k, 1) != off.rd(m + k, 1)]
     check(not diff, f'submenu record: fields differ from Smartphone Link {diff}')
+    # Test 062: five lines as the camera's own five-line record 10 has them (count, line slots).
+    t = 0x53da6718 + 10 * 0x64
+    check(off.rd(t + 6, 1)[0] == 5 and all(off.u32(t + 0x28 + 4 * k) == 540 for k in range(5)), 'official record 10 is not a five-line submenu')
     return draws
 
 
@@ -205,13 +214,14 @@ def check_views(new, off, recs, subrec):
             check(e.byte(0x70000000 + 0x1a6) == cur, f'list {which}, field {f}: cursor {e.byte(0x70000000 + 0x1a6)}')
         print(f'  list {which}: rows', [(c[2], c[3]) for c in items][:4], '...')
 
-    def draw_sub(img, rec, gnb=0, dfb=0):
+    def draw_sub(img, rec, gnb=0, dfb=0, tvb=0):
         def setup(e, this):
             for o in (0x15c, 0x160, 0x164, 0x168, 0x16c, 0x170):
                 e.mu.mem_write(this + o, struct.pack('<I', 0x70700000 + o * 0x100))
             e.mu.mem_write(this + 0x174, bytes([rec]))
             e.mu.mem_write(GN_BYTE, bytes([gnb]))
             e.mu.mem_write(BYTE, bytes([dfb]))
+            e.mu.mem_write(TV_BYTE, bytes([tvb]))
             return 0x531e271c
         e, seen = views(img, 0, setup)
         icons = [c[2] for c in e.calls if c[0] == 'sub-icon']
@@ -227,13 +237,14 @@ def check_views(new, off, recs, subrec):
     _, _, _, wireless = draw_sub(off, 13)
     check(placed == wireless, 'Flash submenu: lines placed differently from the three-line Wireless submenu')
     print('  Flash submenu: title', titles, 'lines', texts, 'value icons', icons)
-    # Ours: four lines with their values' icons.
-    for gnb, dfb in ((0, 1), (64 | 12, 1 | (6 << 1) | (1 << 5)), (36, (9 << 1) | (7 << 5))):
-        icons, texts, titles, placed = draw_sub(new, subrec, gnb, dfb)
-        want = [FIRST_ICON[w] + expected_index(gnb if LISTS[w][0] == GN_BYTE else dfb, LISTS[w][1], LISTS[w][2], LISTS[w][3]) for w in range(4)]
-        check(texts == TITLES and titles == [T0] and icons == want, f'submenu ({gnb}, {dfb:#x}): texts {texts} titles {titles} icons {icons} want {want}')
-    _, _, _, smartphone = draw_sub(off, 14)
-    check(placed == smartphone, 'submenu: lines placed differently from the four-line Smartphone Link submenu')
+    # Ours: five lines with their values' icons.
+    for gnb, dfb, tvb in ((0, 1, 0), (64 | 12, 1 | (6 << 1) | (1 << 5), 1), (36, (9 << 1) | (7 << 5), 4), (128, 1, 0xfe)):
+        icons, texts, titles, placed = draw_sub(new, subrec, gnb, dfb, tvb)
+        raw = {GN_BYTE: gnb, BYTE: dfb, TV_BYTE: tvb}
+        want = [FIRST_ICON[w] + expected_index(raw[LISTS[w][0]], LISTS[w][1], LISTS[w][2], LISTS[w][3]) for w in range(len(LISTS))]
+        check(texts == TITLES and titles == [T0] and icons == want, f'submenu ({gnb}, {dfb:#x}, {tvb:#x}): texts {texts} titles {titles} icons {icons} want {want}')
+    _, _, _, five = draw_sub(off, 10)
+    check(placed == five, 'submenu: lines placed differently from the camera\'s five-line submenu (record 10)')
     print('  Direct Flash Settings: title', titles, 'lines', texts, 'value icons', icons)
 
 
@@ -242,12 +253,19 @@ def check_texts_icons(new, earlier, png):
         got = [text(new, row, T0 + k) for k in range(4)]
         check(got == want, f'line names, row {row}: {got}')
     check([text(new, 19, FIRST_TEXT[3] + i) for i in range(2)] == PRIORITY_ZH, 'priority names (zh-CN)')
+    for row, want in FASTEST_NAMES.items():
+        check(text(new, row, T_FASTEST) == want, f'fastest shutter line name, row {row}: {text(new, row, T_FASTEST)}')
+    check(text(new, 19, FIRST_TEXT[4]) == '同步上限', 'sync limit name (zh-CN)')
     for l in range(21):
-        for k in range(4):
+        for k in list(range(4)) + [T_FASTEST - T0]:
             check(text(new, l, T0 + k), f'line name {k} missing in row {l}')
         for which, (_, _, _, codes, names) in enumerate(LISTS):
             got = [text(new, l, FIRST_TEXT[which] + i) for i in range(len(codes))]
-            check(all(got) and (which == 3 or got == names) and (which != 3 or l != 1 or got == names), f'value names {which}, row {l}: {got}')
+            loc = which in LOCALISED
+            ok = all(got) and (loc or got == names) and (not loc or l != 1 or got == names)
+            if which == 4:
+                ok = ok and got[1:] == names[1:]
+            check(ok, f'value names {which}, row {l}: {got}')
         # Every text of a build without these lines kept in the widened rows.
         if earlier:
             lost = [t for t in range(0, 896) if text(new, l, t) != text(earlier, l, t)]
@@ -263,7 +281,8 @@ def check_texts_icons(new, earlier, png):
         check(d != 0 and struct.unpack('<4H', new.rd(d, 8)) == (1, 40, 40, 0), f'icon {I0 + k} descriptor')
         pics.append(d)
     print('  texts: rows 1 / 19:', [text(new, 1, T0 + k) for k in range(4)], [text(new, 19, T0 + k) for k in range(4)])
-    print('  values:', [text(new, 1, FIRST_TEXT[w]) + ' .. ' + text(new, 1, FIRST_TEXT[w] + len(LISTS[w][3]) - 1) for w in range(4)])
+    print('  values:', [text(new, 1, FIRST_TEXT[w]) + ' .. ' + text(new, 1, FIRST_TEXT[w] + len(LISTS[w][3]) - 1) for w in range(len(LISTS))])
+    print('  fastest shutter line:', text(new, 1, T_FASTEST), '/', text(new, 19, T_FASTEST))
     if png:
         render_icons(png)
 
@@ -313,9 +332,11 @@ def check_guard(new):
         e = Emu(new)
         settings = 0x70400000
         e.mu.mem_write(settings + 0x99a, bytes([raw, 255 - raw]))
+        e.mu.mem_write(settings + 0x109, bytes([raw ^ 0x5a]))
         e.call(fix, (settings, 0))
         check(bytes(e.mu.mem_read(settings + 0x99a, 2)) == bytes([raw, 255 - raw]), f'guard fix changed bytes 0x99A/B ({raw})')
-    print('  guard fix', hex(fix), 'keeps bytes 0x99A and 0x99B')
+        check(bytes(e.mu.mem_read(settings + 0x109, 1)) == bytes([raw ^ 0x5a]), f'guard fix changed byte 0x109 ({raw})')
+    print('  guard fix', hex(fix), 'keeps bytes 0x99A, 0x99B and 0x109')
 
 
 OFF = None

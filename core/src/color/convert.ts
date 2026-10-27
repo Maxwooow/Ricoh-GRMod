@@ -5,6 +5,8 @@ import { applyCube, parseCube } from './cube';
 import { CAL_ADOBE, CAL_CAM } from './data';
 import { fitSlot } from './fit';
 import { refineSlot } from './refine';
+import { fitHue } from './hue-fit';
+import { hueToQ10 } from './hue';
 import { FullLook } from './look';
 import { deltaE, deltaE2000Lab, lab, linToSrgb, mean, percentile, srgbToLin } from './math';
 import { parseXmp } from './xmp';
@@ -28,6 +30,8 @@ export interface Conversion {
   p95DE2000: number;
   /** .cube with `refine`: whether the CIEDE2000 refinement was kept (false: the guard rejected it). */
   refined?: boolean;
+  /** .cube with `hueStd`: the slot's own hue sectors (copy 0, Q10, 12 x 9) when they were kept. */
+  hueQ10?: number[];
   warnings: string[];
   unsupported: string[];
 }
@@ -42,6 +46,12 @@ export interface ConvertOptions {
    * (see refine.ts); when on, the result is kept only if greys and skin do not get worse.
    */
   refine?: boolean;
+  /**
+   * For an added slot: Standard's hue-sector block (12 matrices, from the firmware).
+   * With it the slot also gets hue sectors of its own (hue.ts, hue-fit.ts), kept only if they help
+   * clearly closer while greys and skin get at most a little worse (`huePasses`). Off unless given.
+   */
+  hueStd?: number[][];
 }
 
 /** Mean / p95 of CIE76 and CIEDE2000 between two buffers. */
@@ -64,15 +74,106 @@ export function convertXmp(text: string, opts?: ConvertOptions): Conversion {
   opts?.onProgress?.(0.05);
   const target = new FullLook(look).apply(Float64Array.from(CAL_ADOBE));
   opts?.onProgress?.(0.1);
-  const fit = fitSlot(Float64Array.from(CAL_CAM), target, { onProgress: subProgress(opts, 0.1, 1), post: opts?.post !== false });
+  const hueStd = opts?.hueStd;
+  const fit = fitSlot(Float64Array.from(CAL_CAM), target, { onProgress: subProgress(opts, 0.1, hueStd ? 0.5 : 1), post: opts?.post !== false });
+  let params: SlotParams = fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck };
+  let hueQ10: number[] | undefined;
+  if (hueStd) {
+    const h = guardedHueXmp(target, params, hueStd, subProgress(opts, 0.5, 0.98));
+    if (h) { params = h.params; hueQ10 = h.hueQ10; }
+  }
   return {
     kind: 'xmp',
     title: look.title,
-    params: fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck },
-    ...report(slotApply(fit, Float64Array.from(CAL_CAM)), target),
+    params,
+    ...report(slotApply(params, Float64Array.from(CAL_CAM)), target),
+    ...(hueQ10 ? { hueQ10 } : {}),
     warnings: look.warnings.slice(),
     unsupported: look.unsupported.slice(),
   };
+}
+
+/**
+ * Whether hue sectors are worth using, and how good a candidate is. The whole look must get at
+ * least 2% closer. A protected group (greys, near-neutrals, skin) may then get a little worse, by
+ * an amount that grows with the overall gain (half of it) but stays within `cap`: a clearly closer
+ * look may trade a hardly visible change in skin, never a visible one. Among the candidates that
+ * pass, the one with the lowest `huePenalty` is used.
+ */
+export interface HueCheck { m0: number; m1: number; groups: { a0: number; a1: number; b0: number; b1: number; base: number; cap: number }[] }
+const huePasses = (c: HueCheck): boolean => {
+  if (!(c.m1 < c.m0 * 0.98)) return false;
+  const gain = c.m0 - c.m1;
+  return c.groups.every((g) => {
+    const tol = Math.min(g.cap, Math.max(g.base, 0.5 * gain));
+    return g.a1 <= g.a0 + tol && g.b1 <= g.b0 + 2 * tol;
+  });
+};
+const huePenalty = (c: HueCheck): number => c.m1 + c.groups.reduce((s, g) => s + Math.max(0, g.a1 - g.a0), 0);
+/** Tolerances: [base, cap] of the mean; the worst values may move twice as much. */
+const HUE_TOL = { grey: [0.02, 0.06], near: [0.03, 0.12], skin: [0.05, 0.15] } as const;
+
+/** Calibration colours (as Standard renders them) the .xmp hue fit leaves out to check itself: every third. */
+export const XMP_HUE_HELD_OUT = (i: number): boolean => i % 3 === 2;
+
+/**
+ * Hue sectors for an .xmp look. Its target is known only on the calibration colours (the look acts
+ * on Adobe Standard, which GR Mod knows for those colours alone), so the sectors are fitted on two
+ * thirds of them and checked on the other third (see `huePasses`; the protected groups are its
+ * pale colours, chroma below 10, and the skin-like ones).
+ */
+export function guardedHueXmp(target: Float64Array, start: SlotParams, std: number[][], onProgress?: (f: number) => void): { params: SlotParams; hueQ10: number[] } | null {
+  const cam = Float64Array.from(CAL_CAM);
+  const n = cam.length / 3;
+  const pick = (held: boolean, src: Float64Array): Float64Array => {
+    const out: number[] = [];
+    for (let i = 0; i < n; i++) if (XMP_HUE_HELD_OUT(i) === held) out.push(src[3 * i], src[3 * i + 1], src[3 * i + 2]);
+    return Float64Array.from(out);
+  };
+  const fitP = pick(false, cam), fitT = pick(false, target), heldP = pick(true, cam), heldT = pick(true, target);
+  const L = lab(fitP);
+  const weights = Float64Array.from({ length: fitP.length / 3 }, (_, i) => (Math.hypot(L[3 * i + 1], L[3 * i + 2]) < 10 ? 3 : 1));
+  const skinFit = Array.from({ length: fitP.length / 3 }, (_, i) => {
+    const c = Math.hypot(L[3 * i + 1], L[3 * i + 2]), h = (Math.atan2(L[3 * i + 2], L[3 * i + 1]) * 180) / Math.PI, l = L[3 * i];
+    return l > 30 && l < 88 && c >= 10 && c < 40 && h > 20 && h < 75;
+  });
+  const groupOf = (P: Float64Array, keep: (l: number, c: number, h: number) => boolean): Float64Array => {
+    const l = lab(P), out: number[] = [];
+    for (let i = 0; i < P.length / 3; i++) {
+      const c = Math.hypot(l[3 * i + 1], l[3 * i + 2]), h = (Math.atan2(l[3 * i + 2], l[3 * i + 1]) * 180) / Math.PI;
+      if (keep(l[3 * i], c, h)) out.push(i);
+    }
+    return Float64Array.from(out);
+  };
+  const pale = groupOf(heldP, (_l, c) => c < 10), skin = groupOf(heldP, (l, c, h) => l > 30 && l < 88 && c >= 10 && c < 40 && h > 20 && h < 75);
+  const base: SlotParams = { ...start, hue: std, hueStd: std };
+  const tl = lab(heldT);
+  const errs = (p: SlotParams): Float64Array => deltaE2000Lab(lab(slotApply(p, heldP)), tl);
+  const stats = (e: Float64Array, idx: Float64Array): [number, number] => {
+    const v = idx.length ? Array.from(idx, (i) => e[i]) : [0];
+    return [mean(v), percentile(v, 95)];
+  };
+  const e0 = errs(base);
+  const [p0, P0] = stats(e0, pale), [s0, S0] = stats(e0, skin);
+  let best: { params: SlotParams; hueQ10: number[]; penalty: number } | null = null;
+  // A second try weighs the pale colours and the skin tones more.
+  for (const boost of [1, 4]) {
+    const w = boost === 1 ? weights : weights.map((v, i) => v * (v > 1 || skinFit[i] ? boost : 1));
+    const fitted = fitHue(start, std, fitP, fitT, w, { onProgress: (f) => onProgress?.(boost === 1 ? f * 0.5 : 0.5 + f * 0.5) });
+    const q = hueToQ10(fitted.hue!);
+    if (!q) continue;
+    const out: SlotParams = { ...fitted, hue: Array.from({ length: 12 }, (_, g) => q.slice(g * 9, g * 9 + 9).map((v) => v / 1024)) };
+    const e1 = errs(out);
+    const [p1, P1] = stats(e1, pale), [s1, S1] = stats(e1, skin);
+    const check: HueCheck = { m0: mean(e0), m1: mean(e1), groups: [
+      { a0: p0, a1: p1, b0: P0, b1: P1, base: HUE_TOL.near[0], cap: HUE_TOL.near[1] },
+      { a0: s0, a1: s1, b0: S0, b1: S1, base: HUE_TOL.skin[0], cap: HUE_TOL.skin[1] },
+    ] };
+    if (!huePasses(check)) continue;
+    const penalty = huePenalty(check);
+    if (!best || penalty < best.penalty) best = { params: out, hueQ10: q, penalty };
+  }
+  return best && { params: best.params, hueQ10: best.hueQ10 };
 }
 
 // ---------------------------------------------------------------- fitting colours for cube LUTs
@@ -279,6 +380,71 @@ export function guardedRefine(cube: ReturnType<typeof parseCube>, start: SlotPar
 }
 
 /**
+ * Hue sectors of the slot's own after the plain fit, compared in the camera's order with the slot
+ * as it renders with Standard's block: kept when the mean CIEDE2000 on the refinement colours
+ * drops by at least 0.5%, the grey ramp and the skin tones get no worse (the limits of
+ * `guardedRefine`) and every value fits the firmware's range. Returns null when rejected.
+ */
+/** Mean and 95th percentile CIEDE2000. */
+function meanP95(params: SlotParams, P: Float64Array, labT: Float64Array): [number, number] {
+  const d = deltaE2000Lab(lab(slotApply(params, P)), labT);
+  return [mean(d), percentile(d, 95)];
+}
+
+/**
+ * Low-saturation colours around the hue circle for the hue-sector fit and its guard: hue sectors
+ * act on every colour but pure grey, so near-neutral ones (walls, skies, shadows; most of a
+ * typical picture) must not pay for saturated ones. Test 064 on a GR IV showed it: without them
+ * a warm look got its pale warm colours worse (camera vs LUT, dE00 0.85 -> 1.35 on them) for
+ * better saturated ones. A sector's matrix moves its pale colours in proportion to its saturated
+ * ones, which a look that mostly turns saturated colours does not do, so some of that trade is
+ * left even with them (the mean and the 95th percentile of these colours may not get worse).
+ */
+function nearNeutralSamples(offset: number, sats: readonly number[], vals: readonly number[], weight: number): WeightedSamples {
+  const p: number[] = [], w: number[] = [];
+  for (let h = 0; h < 24; h++) for (const sat of sats) for (const v of vals) { p.push(...hsvToRgbValue((h + offset) / 24, sat, v)); w.push(weight); }
+  return { P: Float64Array.from(p), weights: Float64Array.from(w) };
+}
+const HUE_NEAR_NEUTRAL_WEIGHT = 12;
+
+export function guardedHue(cube: ReturnType<typeof parseCube>, start: SlotParams, std: number[][], onProgress?: (f: number) => void): { params: SlotParams; hueQ10: number[] } | null {
+  const refBase = cubeRefineSamples();
+  const near = nearNeutralSamples(0, [0.04, 0.08, 0.13, 0.2], [0.3, 0.5, 0.7, 0.85, 0.97], HUE_NEAR_NEUTRAL_WEIGHT);
+  const ref: WeightedSamples = { P: Float64Array.from([...refBase.P, ...near.P]), weights: Float64Array.from([...refBase.weights, ...near.weights]) };
+  const refTarget = applyCube(cube, ref.P);
+  const base: SlotParams = { ...start, hue: std, hueStd: std };
+  const tr = lab(refTarget);
+  const [m0] = meanMax00(base, ref.P, tr);
+  const { grey, skin } = guardSets();
+  const nearGuard = nearNeutralSamples(0.5, [0.05, 0.1, 0.16], [0.35, 0.6, 0.8, 0.95], 1).P;
+  const tg = lab(applyCube(cube, grey)), ts = lab(applyCube(cube, skin)), tn = lab(applyCube(cube, nearGuard));
+  const [g0, G0] = meanMax00(base, grey, tg), [s0, S0] = meanMax00(base, skin, ts), [n0, N0] = meanP95(base, nearGuard, tn);
+  let best: { params: SlotParams; hueQ10: number[]; penalty: number } | null = null;
+  // A second try weighs the greys, the skin tones and the near-neutrals four times as much; it is
+  // skipped when the first one already leaves every protected group as good as it was.
+  for (const boost of [1, 4]) {
+    const weights = boost === 1 ? ref.weights : ref.weights.map((w) => (w === 60 || w === 10 || w === HUE_NEAR_NEUTRAL_WEIGHT ? w * boost : w));
+    const fitted = fitHue(start, std, ref.P, refTarget, weights, { onProgress: (f) => onProgress?.(boost === 1 ? f * 0.6 : 0.6 + f * 0.4) });
+    const q = hueToQ10(fitted.hue!);
+    if (!q) continue;
+    // what the firmware gets: the block rounded to Q10
+    const out: SlotParams = { ...fitted, hue: Array.from({ length: 12 }, (_, g) => q.slice(g * 9, g * 9 + 9).map((v) => v / 1024)) };
+    const [m1] = meanMax00(out, ref.P, tr);
+    const [g1, G1] = meanMax00(out, grey, tg), [s1, S1] = meanMax00(out, skin, ts), [n1, N1] = meanP95(out, nearGuard, tn);
+    const check: HueCheck = { m0, m1, groups: [
+      { a0: g0, a1: g1, b0: G0, b1: G1, base: HUE_TOL.grey[0], cap: HUE_TOL.grey[1] },
+      { a0: n0, a1: n1, b0: N0, b1: N1, base: HUE_TOL.near[0], cap: HUE_TOL.near[1] },
+      { a0: s0, a1: s1, b0: S0, b1: S1, base: HUE_TOL.skin[0], cap: HUE_TOL.skin[1] },
+    ] };
+    if (!huePasses(check)) continue;
+    const penalty = huePenalty(check);
+    if (!best || penalty < best.penalty) best = { params: out, hueQ10: q, penalty };
+    if (check.groups.every((g) => g.a1 <= g.a0)) break;
+  }
+  return best && { params: best.params, hueQ10: best.hueQ10 };
+}
+
+/**
  * Convert a .cube LUT. The LUT is taken to act on an sRGB display image, so the target is simply
  * cube(P) where P are colours as output by the camera's Standard preset. The fit uses
  * `cubeFitSamplesExpanded` (the calibration and synthetic colours plus a dense grey ramp, a 9^3
@@ -292,13 +458,19 @@ export function convertCube(text: string, opts?: ConvertOptions): Conversion {
   const target = applyCube(cube, P);
   opts?.onProgress?.(0.1);
   const refine = opts?.refine === true;
-  const fit = fitSlot(P, target, { onProgress: subProgress(opts, 0.1, refine ? 0.55 : 1), post: opts?.post !== false });
+  const hueStd = opts?.hueStd;
+  const fit = fitSlot(P, target, { onProgress: subProgress(opts, 0.1, refine || hueStd ? 0.55 : 1), post: opts?.post !== false });
   let params: SlotParams = fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck };
   let refined: boolean | undefined;
   if (refine) {
-    const r = guardedRefine(cube, params, subProgress(opts, 0.55, 0.98));
+    const r = guardedRefine(cube, params, subProgress(opts, 0.55, hueStd ? 0.7 : 0.98));
     refined = r !== null;
     if (r) params = r;
+  }
+  let hueQ10: number[] | undefined;
+  if (hueStd) {
+    const h = guardedHue(cube, params, hueStd, subProgress(opts, refine ? 0.7 : 0.55, 0.98));
+    if (h) { params = h.params; hueQ10 = h.hueQ10; }
   }
   // report on the original fitting colours (the first part of P), comparable with earlier versions
   const n = cubeFitSamples().length;
@@ -310,6 +482,7 @@ export function convertCube(text: string, opts?: ConvertOptions): Conversion {
     params,
     ...rep,
     ...(refined !== undefined ? { refined } : {}),
+    ...(hueQ10 ? { hueQ10 } : {}),
     warnings: [],
     unsupported: [],
   };

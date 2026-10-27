@@ -65,6 +65,7 @@ export interface State {
   soft: boolean; dateStamp: boolean; monoUnlock: boolean;
   /** GR IV: Direct Flash, a fifth Flash Mode (GR III / IIIx have the GF-2 mode of their own). */
   directFlash: boolean;
+  /** GR IV, experimental: .cube presets of added slots get hue sectors of their own (core color/hue.ts). */
   /** GR III / IIIx: how many films the build has (1..info.features.maxFilms). */
   filmCount: number;
   previewMode: PreviewMode; photoRev: number; activeSlot: SlotKey;
@@ -519,15 +520,22 @@ const PRESET_ERRORS: Record<string, Key> = {
   'not-xmp': 'errNotXmp', 'no-table': 'errNoTable', 'look-profile-missing': 'errLookMissing', 'unsupported-table': 'errUnsupportedTable', 'bad-table': 'errUnsupportedTable',
   'not-cube': 'errNotXmp', 'bad-cube': 'errBadCube', 'gr3x-cube-only': 'gr3xCubeOnly',
 };
+/** The newest conversion of each slot: an older one that finishes later is dropped. */
+const presetRuns = new Map<SlotKey, number>();
+let presetRun = 0;
 async function runPreset(id: SlotKey, fileName: string, kind: 'xmp' | 'cube', text: string): Promise<void> {
   patchSlot(id, { preset: { fileName, kind, text, busy: !!state.info?.capabilities.presets } });
   if (!state.info?.capabilities.presets) return;
+  const run = ++presetRun;
+  presetRuns.set(id, run);
+  // GR IV added slots also try hue sectors; the conversion keeps them only when they come out closer.
+  const hue = isExtra(id) && state.info.family !== 'gr3x';
   try {
-    const result = await engine.convert(kind, text);
-    if (slotOf(id)?.preset?.text !== text) return; // replaced or removed meanwhile
+    const result = await engine.convert(kind, text, hue ? { hue: true } : {});
+    if (presetRuns.get(id) !== run || slotOf(id)?.preset?.text !== text) return; // replaced, removed or converted again meanwhile
     patchSlot(id, { preset: { fileName, kind, text, busy: false, result } });
   } catch (e) {
-    if (slotOf(id)?.preset?.text !== text) return;
+    if (presetRuns.get(id) !== run || slotOf(id)?.preset?.text !== text) return;
     const code = e instanceof EngineError ? e.code : '';
     patchSlot(id, { preset: { fileName, kind, text, busy: false, error: PRESET_ERRORS[code] ? t(PRESET_ERRORS[code]) : t('errNotXmp') } });
   }
@@ -744,7 +752,7 @@ export function extraSpecs(s: State = state): ExtraSlotSpec[] {
   if (!colourWork(s)) return [];
   return s.extras.map((x) => {
     const r = x.preset!.result!;
-    return { name: extraName(x, s), matrixQ13: r.matrixQ13, curves: r.curves, ...(r.postQ9 ? { postQ9: r.postQ9 } : {}), icon: x.icon.pixels!, halation: true };
+    return { name: extraName(x, s), matrixQ13: r.matrixQ13, curves: r.curves, ...(r.postQ9 ? { postQ9: r.postQ9 } : {}), ...(r.hueQ10 ? { hueQ10: r.hueQ10 } : {}), icon: x.icon.pixels!, halation: true };
   });
 }
 
@@ -1052,6 +1060,48 @@ export function setFilmCount(n: number): void {
     return { filmCount: want, activeSlot: ids.includes(s.activeSlot as SlotId) ? s.activeSlot : (ids[Math.max(0, want - 1)] ?? 'CY') };
   });
   scheduleSave();
+}
+/**
+ * GR III / IIIx: take one film away, as GR IV's added slots: the films after it move up one place
+ * (preset, names, icon, halation, their place in the menu order and hidden list), and the count
+ * drops by one. Not while a preset of a moving film is still being converted.
+ */
+export function removeFilm(id: SlotId): void {
+  if (!filmCountChoosable()) return;
+  const ids = (state.info?.slots ?? []).map((x) => x.id);
+  const n = state.filmCount;
+  const k = ids.indexOf(id);
+  if (k < 0 || k >= n) return;
+  if (ids.slice(k, n).some((x) => state.slots[x].preset?.busy)) { toast(t('converting'), 'info'); return; }
+  const look = (key: string): string | null => {
+    const f = key.startsWith('g') ? Number(key.slice(1)) - 64 : -1;
+    if (!(f >= 0 && f < n)) return key;
+    return f === k ? null : f > k ? `g${64 + f - 1}` : key;
+  };
+  set((s) => {
+    const slots = { ...s.slots };
+    for (let i = k; i < n - 1; i++) slots[ids[i]] = s.slots[ids[i + 1]];
+    slots[ids[n - 1]] = emptySlot();
+    const a = ids.indexOf(s.activeSlot as SlotId);
+    const activeSlot = a < 0 || a < k ? s.activeSlot : a > k ? ids[a - 1] : (ids[Math.min(k, n - 2)] ?? 'CY');
+    return {
+      slots, filmCount: n - 1, activeSlot,
+      lookOrder3: s.lookOrder3.map(look).filter((x): x is string => x !== null),
+      lookHidden3: s.lookHidden3.map(look).filter((x): x is string => x !== null),
+    };
+  });
+  scheduleSave();
+  // The preset files kept for the films move with them.
+  if (host.available) {
+    void (async () => {
+      for (let i = k; i < n - 1; i++) {
+        const text = await host.storeGet(presetKey(ids[i + 1])).catch(() => null);
+        if (text) await host.storeSet(presetKey(ids[i]), text).catch(() => undefined);
+        else await host.storeDel(presetKey(ids[i])).catch(() => undefined);
+      }
+      await host.storeDel(presetKey(ids[n - 1])).catch(() => undefined);
+    })();
+  }
 }
 export function setActiveRatio(id: string): void { if (state.activeRatio !== id) set({ activeRatio: id }); }
 

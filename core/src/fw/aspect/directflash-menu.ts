@@ -7,19 +7,24 @@
  * (SelectMenuController):
  *
  *   Guide Number            GN 2 .. GN 36           the flash's guide number (ISO 100, metres)
- *   Background Brightness   -0.3 EV .. -3.0 EV      how much darker than a correct exposure the
+ *   Background Brightness   -0.3 EV .. -5.0 EV      how much darker than a correct exposure the
  *                                                   background (ambient light only) is
  *   Minimum Shutter Speed   1/125 .. 1"             the slowest shutter speed (the camera's text)
- *   Exposure Priority       Low ISO / Max Sync      Max Sync: where the flash-sync limit holds the
- *                                                   shutter back, a smaller aperture and a higher
- *                                                   ISO for a faster sync limit (the planner)
+ *   Exposure Priority       Standard / Max Sync     Standard: the background as chosen; where the
+ *                                                   flash-sync limit holds the shutter back, a
+ *                                                   smaller aperture and a higher ISO for a faster
+ *                                                   sync limit. Max Sync (test 060): the shutter at
+ *                                                   the sync limit wherever the subject can still
+ *                                                   be correctly exposed (the planner)
  *
  * Where they are kept (see `tools/directflash/directflash.c`, which reads them):
  *  - byte 0x99A of the user settings (padding the factory-defaults initialiser never writes, next
  *    to Direct Flash's byte 0x99B): bits 0..5 the guide number itself (0, what the byte is on every
- *    camera, is GN 3, the GF-2's), bit 6 Max Sync;
+ *    camera, is GN 3, the GF-2's), bits 6..7 the exposure priority (2 Max Sync, else Standard);
  *  - bits 1..4 and 5..7 of byte 0x99B (bit 0: Direct Flash chosen, see `directflash.ts`): the
- *    background and the slowest shutter speed; 0 is -1.0 EV and 1/30 s.
+ *    background and the slowest shutter speed; 0 is -1.0 EV and 1/30 s;
+ *  - test 062: bits 0..2 of byte 0x109 (padding, see `DIRECT_FLASH_TV_BYTE`): the fastest shutter
+ *    speed (Maximum Shutter Speed, the fifth line); 0 is the camera's flash-sync limit.
  * A value the lists do not have (a byte an earlier build left) shows as the default; the planner
  * reads it the same way (an unlisted guide number 1..63 is used as it is).
  *
@@ -28,23 +33,23 @@
  *    controller id DF_MENU_ID, value icon place 540 and no value icon, as the Wireless submenu's
  *    (record 13) line that opens Pairing (record 12);
  *  - a submenu record for DF_MENU_ID (`addSubmenuRecord`), laid out as the camera's four-line
- *    Smartphone Link submenu (record 14);
- *  - four list records (Horizon Correction's, `addListRecords`), SetCurrentMenu mapping their ids;
+ *    Smartphone Link submenu (record 14), with a fifth line (as the camera's five-line record 10);
+ *  - five list records (Horizon Correction's, `addListRecords`), SetCurrentMenu mapping their ids;
  *  - the controller factory: the submenu controller for DF_MENU_ID, the list controller for the
- *    four list ids (as for the date imprint's);
- *  - texts DF_TEXT_ID.. (the submenu's name, three line names, the priority values in 21
+ *    five list ids (as for the date imprint's);
+ *  - texts DF_TEXT_ID.. (the submenu's name, four line names, the priority and sync-limit values in 21
  *    languages; the other values the same in every language) and 40x40 icons DF_ICON_ID.. (one
  *    per value).
  * Every list has at most 21 values: the list controller makes its rows for the longest list among
  * the camera's own records (21).
  */
 import { FirmwareError } from '../types';
-import { assembleWords, movImmediate, movWord } from './arm';
+import { assembleWords, branchWord, movImmediate, movWord } from './arm';
 import { ICON_CATALOG, LOOKUP_BOUNDS, LANGUAGES, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z, widenTextRows } from './build';
 import {
   LIST_CONTROLLER_ID, LIST_SET_ITEM, SUBMENU_CONTROLLER_ID, SUB_RECORD, SUB_SET_ICON, addListRecords, addSubmenuRecord, hookControllerFactory, listTemplate, submenuTable,
 } from './datestamp-menu';
-import { DIRECT_FLASH_BYTE, DIRECT_FLASH_GN_BYTE } from './directflash';
+import { DIRECT_FLASH_BYTE, DIRECT_FLASH_GN_BYTE, DIRECT_FLASH_TV_BYTE } from './directflash';
 
 /** Controller ids (not used by the firmware): the lists, the submenu. */
 export const DF_GN_ID = 0x020001b0;
@@ -52,8 +57,12 @@ export const DF_BACKGROUND_ID = 0x020001b1;
 export const DF_SLOWEST_ID = 0x020001b2;
 export const DF_MENU_ID = 0x020001b3;
 export const DF_PRIORITY_ID = 0x020001b4;
+/** Test 062: the fastest shutter speed (the last list). */
+export const DF_FASTEST_ID = 0x020001b5;
 /** Texts: the submenu's name, the line names (GN, background, priority), then the values' names. */
 export const DF_TEXT_ID = 910;
+/** Test 062: the name of the fastest-shutter line, after every value's text (914 + 21 + 15 + 8 + 2 + 5). */
+export const DF_FASTEST_TEXT_ID = DF_TEXT_ID + 4 + 21 + 15 + 8 + 2 + 5;
 /** The camera's own "Minimum Shutter Speed" (ISO submenu), the name of the shutter line. */
 export const TEXT_MIN_SHUTTER = 125;
 /** Icons: one per value, guide numbers, backgrounds, shutter speeds, priorities. */
@@ -63,10 +72,10 @@ export const DF_ICON_ID = 663;
 export const DF_GUIDE_NUMBERS: readonly number[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 25, 28, 32, 36];
 export const DF_GN_DEFAULT = 3;
 export const DF_GN_MASK = 0x3f;
-/** Bit 6 of byte 0x99A: Max Sync. */
+/** Bits 6..7 of byte 0x99A: the exposure priority, 2 Max Sync, anything else Standard (test 060). */
 export const DF_PRIORITY_SHIFT = 6;
-/** Backgrounds: k / 3 EV darker, k = 1..9 (-0.3 .. -3.0 EV); stored as k, the default (-1.0 EV, k = 3) as 0. */
-export const DF_BACKGROUND_THIRDS: readonly number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+/** Backgrounds: k / 3 EV darker, k = 1..15 (-0.3 .. -5.0 EV, test 061); stored as k, the default (-1.0 EV, k = 3) as 0. */
+export const DF_BACKGROUND_THIRDS: readonly number[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
 export const DF_BACKGROUND_DEFAULT = 3;
 /** Slowest shutter speeds: name, stored code (bits 5..7 of 0x99B), Tv. */
 export const DF_SLOWEST: readonly { name: string; code: number; tv: number }[] = [
@@ -96,7 +105,7 @@ export const DF_BACKGROUND_NAMES: readonly string[] = [
 export const DF_PRIORITY_NAMES: readonly string[] = [
   'Priorita expozice', 'Eksponeringsprioritet', 'Exposure Priority', 'Valotuksen etusija', 'Priorité exposition', 'Belichtungspriorität', 'Προτεραιότητα έκθεσης',
   'Expozíciós prioritás', 'Priorità esposizione', '露出優先', '노출 우선', 'Belichtingsprioriteit', 'Priorytet ekspozycji', 'Prioridade exposição',
-  'Приоритет экспозиции', '曝光优先', 'Prioridad exposición', 'Exponeringsprioritet', 'ลำดับการรับแสง', '曝光優先', 'Pozlama önceliği',
+  'Приоритет экспозиции', '曝光优先级', 'Prioridad exposición', 'Exponeringsprioritet', 'ลำดับการรับแสง', '曝光優先級', 'Pozlama önceliği',
 ];
 /** The two priorities, in `LANGS` order. */
 export const DF_LOW_ISO_NAMES: readonly string[] = [
@@ -108,6 +117,35 @@ export const DF_MAX_SYNC_NAMES: readonly string[] = [
   'Max. synchronizace', 'Maks. synk.', 'Max Sync Speed', 'Maks. synkronointi', 'Synchro max.', 'Max. Synchronzeit', 'Μέγ. συγχρονισμός',
   'Max. szinkron', 'Sincro max.', '同調上限優先', '동조 상한 우선', 'Max. synchronisatie', 'Maks. synchronizacja', 'Sincronização máx.',
   'Макс. синхронизация', '同步上限优先', 'Sincro. máx.', 'Max. synk', 'ซิงค์สูงสุด', '同步上限優先', 'Maks. senkron',
+];
+
+/** Test 060: Standard (bits 6..7 = 0: the background as chosen, the sync limit raised by a smaller aperture and a higher ISO where needed), in `LANGS` order. */
+export const DF_STANDARD_NAMES: readonly string[] = [
+  'Standardní', 'Standard', 'Standard', 'Normaali', 'Standard', 'Standard', 'Τυπικό',
+  'Normál', 'Standard', 'スタンダード', '표준', 'Standaard', 'Standardowy', 'Padrão',
+  'Стандарт', '标准', 'Estándar', 'Standard', 'มาตรฐาน', '標準', 'Standart',
+];
+
+/**
+ * Test 062: the fastest shutter speed for Direct Flash (byte 0x109, bits 0..2; see directflash.c):
+ * the camera's flash-sync limit (0, the default), 1/2000, 1/1000, 1/500 and 1/250 s. A strong flash
+ * at full power burns longer than a shutter of 1/2500 s or faster is open.
+ */
+export const DF_FASTEST: readonly { name: string; code: number }[] = [
+  { name: 'sync', code: 0 }, { name: '1/2000', code: 1 }, { name: '1/1000', code: 2 }, { name: '1/500', code: 3 }, { name: '1/250', code: 4 },
+];
+/** The line name, in `LANGS` order (the camera's own Minimum Shutter Speed, text 125, turned round). */
+export const DF_FASTEST_NAMES: readonly string[] = [
+  'Nejkratší čas závěrky', 'Maks. lukkerhastighed', 'Maximum Shutter Speed', 'Lyhin suljinaika', 'Vitesse obturation max.',
+  'Kürzeste Verschlusszeit', 'Μέγ.Ταχύτ.Κλείστρου', 'Maximális zársebesség', 'Tempo posa più breve', '高速限界値', '고속한계치',
+  'Kortste sluitertijd', 'Maks. prędk. migawki', 'Veloc. obturação máxima', 'Кратчайш. выдержка', '最高快门速度', 'Velocidad obturador máx.',
+  'Kortaste slutartid', 'ความเร็วชัตเตอร์สูงสุด', '最高快門速度', 'Maks. Enstantane Hızı',
+];
+/** The first value: the camera's own flash-sync limit, in `LANGS` order. */
+export const DF_SYNC_LIMIT_NAMES: readonly string[] = [
+  'Limit synchr.', 'Synk.-grænse', 'Sync Limit', 'Synkr. raja', 'Limite synchro', 'Sync-Grenze', 'Όριο συγχρ.',
+  'Szinkronhatár', 'Limite sincro', '同調上限', '동조 상한', 'Synchrolimiet', 'Limit synchr.', 'Limite sincro.',
+  'Предел синхр.', '同步上限', 'Límite sincro.', 'Synkgräns', 'ขีดจำกัดซิงค์', '同步上限', 'Senk. sınırı',
 ];
 
 export const dfBackgroundName = (k: number): string => `-${(k / 3).toFixed(1)} EV`;
@@ -133,7 +171,7 @@ export interface DfList {
   icons: readonly Uint8Array[];
 }
 
-/** The four lists, in the submenu's order. */
+/** The five lists, in the submenu's order. */
 export function directFlashLists(): DfList[] {
   const gnCodes = DF_GUIDE_NUMBERS.map((g) => (g === DF_GN_DEFAULT ? 0 : g));
   const bgCodes = DF_BACKGROUND_THIRDS.map((k) => (k === DF_BACKGROUND_DEFAULT ? 0 : k));
@@ -152,8 +190,13 @@ export function directFlashLists(): DfList[] {
       DF_BACKGROUND_THIRDS.map((k) => drawValueIcon('EV', `-${(k / 3).toFixed(1)}`))),
     make(DF_SLOWEST_ID, TEXT_MIN_SHUTTER, DIRECT_FLASH_BYTE, DF_SLOWEST_SHIFT, 7, DF_SLOWEST.map((x) => x.code), DF_SLOWEST.map((x) => same(x.name)),
       DF_SLOWEST.map((x) => (x.name.startsWith('1/') ? drawValueIcon('1/', x.name.slice(2)) : drawValueIcon('SEC', '1')))),
-    make(DF_PRIORITY_ID, DF_TEXT_ID + 3, DIRECT_FLASH_GN_BYTE, DF_PRIORITY_SHIFT, 1, [0, 1], [[...DF_LOW_ISO_NAMES], [...DF_MAX_SYNC_NAMES]],
-      [drawValueIcon('LOW', 'ISO'), drawValueIcon('MAX', 'TV')]),
+    // Test 060: Standard (0; also 1 and 3, test 059's Max Sync and an unused value) and Max Sync (2, test 059's Fastest Shutter).
+    make(DF_PRIORITY_ID, DF_TEXT_ID + 3, DIRECT_FLASH_GN_BYTE, DF_PRIORITY_SHIFT, 3, [0, 2], [[...DF_STANDARD_NAMES], [...DF_MAX_SYNC_NAMES]],
+      [drawValueIcon('STD', 'TV'), drawValueIcon('MAX', 'TV')]),
+    // Test 062: its line name comes after all the values' texts (DF_FASTEST_TEXT_ID).
+    make(DF_FASTEST_ID, DF_FASTEST_TEXT_ID, DIRECT_FLASH_TV_BYTE, 0, 7, DF_FASTEST.map((x) => x.code),
+      DF_FASTEST.map((x) => (x.code === 0 ? [...DF_SYNC_LIMIT_NAMES] : same(x.name))),
+      DF_FASTEST.map((x) => (x.code === 0 ? drawValueIcon('MAX', 'SYNC') : drawValueIcon('1/', x.name.slice(2))))),
   ];
 }
 
@@ -177,7 +220,9 @@ const GLYPHS: Record<string, readonly string[]> = {
   '/': ['..#', '..#', '.#.', '.#.', '.#.', '#..', '#..'],
   G: ['.###.', '#...#', '#....', '#.###', '#...#', '#...#', '.###.'],
   N: ['#...#', '##..#', '#.#.#', '#..##', '#...#', '#...#', '#...#'],
+  D: ['####.', '#...#', '#...#', '#...#', '#...#', '#...#', '####.'],
   E: ['#####', '#....', '#....', '####.', '#....', '#....', '#####'],
+  F: ['#####', '#....', '#....', '####.', '#....', '#....', '#....'],
   V: ['#...#', '#...#', '#...#', '#...#', '.#.#.', '.#.#.', '..#..'],
   S: ['.####', '#....', '#....', '.###.', '....#', '....#', '####.'],
   C: ['.###.', '#...#', '#....', '#....', '#....', '#...#', '.###.'],
@@ -189,6 +234,7 @@ const GLYPHS: Record<string, readonly string[]> = {
   A: ['.###.', '#...#', '#...#', '#####', '#...#', '#...#', '#...#'],
   X: ['#...#', '#...#', '.#.#.', '..#..', '.#.#.', '#...#', '#...#'],
   T: ['#####', '..#..', '..#..', '..#..', '..#..', '..#..', '..#..'],
+  Y: ['#...#', '#...#', '.#.#.', '..#..', '..#..', '..#..', '..#..'],
 };
 
 export const DF_ICON_W = 40;
@@ -199,29 +245,33 @@ export function drawValueIcon(label: string, value: string): Uint8Array {
   const W = DF_ICON_W;
   const H = DF_ICON_H;
   const ink = new Uint8Array(W * H);
-  const draw = (text: string, scale: number, y0: number, colour: number): void => {
+  const draw = (text: string, scale: number, y0: number, colour: number, sx = scale): void => {
     const glyphs = [...text].map((c) => {
       const g = GLYPHS[c];
       if (!g) throw new FirmwareError('internal', `no icon glyph for ${c}`);
       return g;
     });
     // One pixel of space between glyphs (the large row's glyphs are two pixels per column).
-    const space = (k: number): number => (k < glyphs.length - 1 ? (scale === 1 ? 1 : 2 - Number(text[k] === '.' || text[k + 1] === '.')) : 0);
-    const width = glyphs.reduce((n, g, k) => n + g[0].length * scale + space(k), 0);
-    if (width > 32) throw new FirmwareError('internal', `icon text too wide: ${text}`);
+    const space = (k: number): number => (k < glyphs.length - 1 ? (sx === 1 ? 1 : 2 - Number(text[k] === '.' || text[k + 1] === '.')) : 0);
+    const width = glyphs.reduce((n, g, k) => n + g[0].length * sx + space(k), 0);
+    if (width > (sx === scale ? 32 : 34)) throw new FirmwareError('internal', `icon text too wide: ${text}`);
     let x = Math.floor((W - width) / 2);
     glyphs.forEach((g, k) => {
       for (let r = 0; r < 7; r++) {
         for (let c = 0; c < g[r].length; c++) {
           if (g[r][c] !== '#') continue;
-          for (let dy = 0; dy < scale; dy++) for (let dx = 0; dx < scale; dx++) ink[(y0 + r * scale + dy) * W + x + c * scale + dx] = colour;
+          for (let dy = 0; dy < scale; dy++) for (let dx = 0; dx < sx; dx++) ink[(y0 + r * scale + dy) * W + x + c * sx + dx] = colour;
         }
       }
-      x += g[0].length * scale + space(k);
+      x += g[0].length * sx + space(k);
     });
   };
   draw(label, 1, 6, 1);
-  draw(value, 2, 18, 2);
+  // Test 062: a value too wide at twice the size (four digits, SYNC) is drawn twice as high only.
+  const chars = [...value];
+  const wide = chars.reduce((n, c, k) => n + (GLYPHS[c] ? GLYPHS[c][0].length * 2 : 0)
+    + (k < chars.length - 1 ? 2 - Number(c === '.' || chars[k + 1] === '.') : 0), 0) > 32;
+  draw(value, 2, 18, 2, wide ? 1 : 2);
   const px = new Uint8Array(W * H * 4);
   for (let y = 0; y < H; y++) {
     for (let x = 0; x < W; x++) {
@@ -320,6 +370,37 @@ function installIcons(patch: Patch, iconbin: Uint8Array, icons: readonly { id: n
   return concat(parts);
 }
 
+/**
+ * 0.8.6: MENU after coming back from Direct Flash Settings. Every submenu is one SubMenuController
+ * (the factory keeps a single instance, +0xC4). Its back target is +0x150; when a line opens a
+ * submenu nested in this one, OK (0x531E20A8) first keeps +0x150 at +0x17C, and on the way back
+ * (0x531E2140) a submenu that is not nested takes it again from +0x17C. The firmware does that for
+ * its own two nested submenus only, Pairing (0x020000D5) and Smartphone Link's 0x02000124; for
+ * any other id the Flash submenu came back with no back target, so MENU did nothing (0.8.4 / 0.8.5).
+ * Both checks now count DF_MENU_ID as nested too.
+ */
+const NESTED_OPEN = 0x531e20fc; // mov r3,#0x124; movt r3,#0x200; cmp r5,r3; beq keep
+const NESTED_OPEN_KEEP = 0x531e212c, NESTED_OPEN_ON = 0x531e210c;
+const NESTED_BACK = 0x531e2164; // mov r3,#0x124; movt r3,#0x200; cmp r0,r3; beq done
+const NESTED_BACK_DONE = 0x531e2188, NESTED_BACK_ON = 0x531e2174;
+
+function installNestedBack(patch: Patch): void {
+  for (const [at, cmp, beq] of [[NESTED_OPEN, 0xe1550003, 0x0a000007], [NESTED_BACK, 0xe1500003, 0x0a000004]]) {
+    expectWord(patch, at, 0xe3a03f49);
+    expectWord(patch, at + 4, 0xe3403200);
+    expectWord(patch, at + 8, cmp);
+    expectWord(patch, at + 12, beq);
+  }
+  const stub = (reg: string, hit: number, miss: number): number => patch.append((a) => assembleWords(
+    `mov r3, #0x124; movt r3, #0x200; cmp ${reg}, r3; beq #${hit}
+     movw r3, #${lo(DF_MENU_ID)}; movt r3, #${hi(DF_MENU_ID)}; cmp ${reg}, r3; beq #${hit}
+     b #${miss}`, a), 16);
+  const open = stub('r5', NESTED_OPEN_KEEP, NESTED_OPEN_ON);
+  const back = stub('r0', NESTED_BACK_DONE, NESTED_BACK_ON);
+  patch.setWord(NESTED_OPEN, branchWord(NESTED_OPEN, open), 'Direct Flash settings: a nested submenu keeps the back target');
+  patch.setWord(NESTED_BACK, branchWord(NESTED_BACK, back), 'Direct Flash settings: the back target again on the way back');
+}
+
 /** The Smartphone Link submenu (record 14), the model of the new submenu: four lines with value icons. */
 const MODEL_SUBMENU = 14;
 const MODEL_LINE_IDS = [0x020000dc, 0x02000124, 0x020000dd, 0x020000de];
@@ -340,6 +421,7 @@ export function installDirectFlashMenu(patch: Patch, iconbin: Uint8Array): Uint8
     { id: DF_TEXT_ID + 1, names: DF_GN_NAMES },
     { id: DF_TEXT_ID + 2, names: DF_BACKGROUND_NAMES },
     { id: DF_TEXT_ID + 3, names: DF_PRIORITY_NAMES },
+    { id: DF_FASTEST_TEXT_ID, names: DF_FASTEST_NAMES },
     ...lists.flatMap((l) => l.names.map((names, i) => ({ id: l.firstText + i, names }))),
   ]);
   const icons = installIcons(patch, iconbin, lists.flatMap((l) => l.icons.map((px, i) => ({ id: l.firstIcon + i, px }))));
@@ -392,9 +474,9 @@ export function installDirectFlashMenu(patch: Patch, iconbin: Uint8Array): Uint8
   }
   addListRecords(patch, records, 'Direct Flash settings');
   const listIds = lists.map((l) => l.id);
-  if (Math.min(...listIds) !== DF_GN_ID || Math.max(...listIds) !== DF_PRIORITY_ID || DF_MENU_ID <= DF_GN_ID || DF_MENU_ID >= DF_PRIORITY_ID) fail('internal', 'Direct Flash ids');
+  if (Math.min(...listIds) !== DF_GN_ID || Math.max(...listIds) !== DF_FASTEST_ID || DF_MENU_ID <= DF_GN_ID || DF_MENU_ID >= DF_PRIORITY_ID) fail('internal', 'Direct Flash ids');
   hookControllerFactory(patch, `movw ip, #${lo(DF_GN_ID)}; movt ip, #${hi(DF_GN_ID)}
-     sub ip, r1, ip; cmp ip, #${DF_PRIORITY_ID - DF_GN_ID}; bhi prior
+     sub ip, r1, ip; cmp ip, #${DF_FASTEST_ID - DF_GN_ID}; bhi prior
      cmp ip, #${DF_MENU_ID - DF_GN_ID}
      movweq r1, #${lo(SUBMENU_CONTROLLER_ID)}; movteq r1, #${hi(SUBMENU_CONTROLLER_ID)}
      movwne r1, #${lo(LIST_CONTROLLER_ID)}; movtne r1, #${hi(LIST_CONTROLLER_ID)}`, 'Direct Flash settings: submenu and list controllers');
@@ -409,6 +491,11 @@ export function installDirectFlashMenu(patch: Patch, iconbin: Uint8Array): Uint8
   const sub = model.slice();
   const sv = new DataView(sub.buffer);
   sv.setUint16(2, DF_TEXT_ID, true);
+  // Test 062: five lines, the most a submenu record has (record 10 of the firmware's own has five:
+  // titles to +0x10, ids to +0x24, value x to +0x38, line draws to +0x5C).
+  if (lists.length > 5) fail('internal', 'Direct Flash submenu lines');
+  sub[6] = lists.length;
+  for (let k = 4; k < lists.length; k++) sv.setUint32(0x28 + 4 * k, VALUE_X, true);
   lists.forEach((l, k) => {
     sv.setUint16(8 + 2 * k, l.title, true);
     sv.setUint32(0x14 + 4 * k, l.id, true);
@@ -416,6 +503,7 @@ export function installDirectFlashMenu(patch: Patch, iconbin: Uint8Array): Uint8
     sv.setUint32(0x40 + 8 * k, 0, true);
   });
   addSubmenuRecord(patch, DF_MENU_ID, sub, 'Direct Flash settings');
+  installNestedBack(patch);
 
   // --- Flash Mode's submenu: a third line that opens it (no value icon, as Wireless > Pairing).
   const rec = submenuTable(patch) + FLASH_SUBMENU * SUB_RECORD;

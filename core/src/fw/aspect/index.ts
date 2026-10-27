@@ -24,8 +24,8 @@ export { HALATION, HALATION_COLOUR_NAMES, HALATION_NAMES, halateRgba, halateYcc,
 export type { HalationColour, HalationLevel } from './halation';
 export type { HalationLight, HalationLook } from './halation';
 export { LOOK_STASH, ORIENT_VALID, ORIENT_WORD, STASH_WHITE } from './lookstash';
-export { DIRECT_FLASH_BYTE, DIRECT_FLASH_GN_BYTE, DIRECT_FLASH_GN_DEFAULT, DIRECT_FLASH_ICON_ID, DIRECT_FLASH_NAMES, DIRECT_FLASH_TEXT_ID, drawDirectFlashIcon, guideNumberWord, installDirectFlash } from './directflash';
+export { DIRECT_FLASH_BYTE, DIRECT_FLASH_GN_BYTE, DIRECT_FLASH_TV_BYTE, DIRECT_FLASH_GN_DEFAULT, DIRECT_FLASH_ICON_ID, DIRECT_FLASH_NAMES, DIRECT_FLASH_TEXT_ID, drawDirectFlashIcon, guideNumberWord, installDirectFlash } from './directflash';
 export {
   DF_BACKGROUND_ID, DF_BACKGROUND_NAMES, DF_BACKGROUND_THIRDS, DF_GN_ID, DF_GN_NAMES, DF_GUIDE_NUMBERS, DF_ICON_ID, DF_LOW_ISO_NAMES, DF_MAX_SYNC_NAMES,
-  DF_MENU_ID, DF_MENU_NAMES, DF_PRIORITY_ID, DF_PRIORITY_NAMES, DF_SLOWEST, DF_SLOWEST_ID, DF_TEXT_ID, directFlashLists, drawValueIcon, installDirectFlashMenu,
+  DF_MENU_ID, DF_MENU_NAMES, DF_PRIORITY_ID, DF_PRIORITY_NAMES, DF_SLOWEST, DF_SLOWEST_ID, DF_TEXT_ID, DF_FASTEST, DF_FASTEST_ID, DF_FASTEST_NAMES, DF_FASTEST_TEXT_ID, DF_SYNC_LIMIT_NAMES, directFlashLists, drawValueIcon, installDirectFlashMenu,
 } from './directflash-menu';

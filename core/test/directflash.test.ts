@@ -44,7 +44,7 @@ describe('Direct Flash: data', () => {
 describe('Direct Flash: camera-menu settings', () => {
   it('lists at most 21 values (the list controller makes rows for the camera\'s longest list), defaults stored as 0', () => {
     const lists = aspect.directFlashLists();
-    expect(lists.map((l) => l.codes.length)).toEqual([21, 9, 8, 2]);
+    expect(lists.map((l) => l.codes.length)).toEqual([21, 15, 8, 2, 5]);
     for (const l of lists) {
       expect(l.codes.length).toBeLessThanOrEqual(21);
       expect(new Set(l.codes).size).toBe(l.codes.length);
@@ -55,19 +55,27 @@ describe('Direct Flash: camera-menu settings', () => {
     expect(lists[0].names[lists[0].fallback][2]).toBe('GN 3');
     expect(lists[1].names[lists[1].fallback][2]).toBe('-1.0 EV');
     expect(lists[2].names[lists[2].fallback][2]).toBe('1/30');
-    expect(lists[3].names[lists[3].fallback][2]).toBe('Low ISO');
+    expect(lists[3].names[lists[3].fallback][2]).toBe('Standard');
+    expect(lists[3].codes).toEqual([0, 2]);
+    // Test 062: the fastest shutter speed, byte 0x109 bits 0..2: sync limit (0, the default), 1/2000 .. 1/250 (1..4).
+    expect(lists[4].names[lists[4].fallback][2]).toBe('Sync Limit');
+    expect(lists[4].codes).toEqual([0, 1, 2, 3, 4]);
+    expect([lists[4].byte, lists[4].shift, lists[4].mask]).toEqual([aspect.DIRECT_FLASH_TV_BYTE, 0, 7]);
+    expect(aspect.DIRECT_FLASH_TV_BYTE).toBe(0x55084dd8 + 4 + 0x109);
     expect(lists.every((l) => l.names.every((n) => n.length === 21))).toBe(true);
-    // Byte 0x99A: bits 0..5 GN (every listed one fits), bit 6 Max Sync; byte 0x99B: bit 0 Direct
+    // Byte 0x99A: bits 0..5 GN (every listed one fits), bits 6..7 the priority; byte 0x99B: bit 0 Direct
     // Flash, 1..4 background, 5..7 slowest shutter speed.
-    expect([lists[0].byte, lists[0].shift, lists[0].mask, lists[3].byte, lists[3].shift, lists[3].mask]).toEqual([aspect.DIRECT_FLASH_GN_BYTE, 0, 63, aspect.DIRECT_FLASH_GN_BYTE, 6, 1]);
+    expect([lists[0].byte, lists[0].shift, lists[0].mask, lists[3].byte, lists[3].shift, lists[3].mask]).toEqual([aspect.DIRECT_FLASH_GN_BYTE, 0, 63, aspect.DIRECT_FLASH_GN_BYTE, 6, 3]);
     expect(Math.max(...aspect.DF_GUIDE_NUMBERS)).toBeLessThan(64);
     expect([lists[1].byte, lists[1].shift, lists[1].mask, lists[2].byte, lists[2].shift, lists[2].mask]).toEqual([aspect.DIRECT_FLASH_BYTE, 1, 15, aspect.DIRECT_FLASH_BYTE, 5, 7]);
     expect(aspect.DF_SLOWEST.map((x) => x.tv)).toEqual([7, 6, 5, 4, 3, 2, 1, 0]);
     // The shutter line is the camera's own "Minimum Shutter Speed" (text 125).
-    expect(lists.map((l) => l.title)).toEqual([911, 912, 125, 913]);
+    expect(lists.map((l) => l.title)).toEqual([911, 912, 125, 913, 965]);
     // Texts after the ratio names (901..908), icons below the ratio icons (720..).
-    expect(lists[3].firstText + lists[3].codes.length - 1).toBe(953);
-    expect(lists[3].firstIcon + lists[3].codes.length - 1).toBeLessThan(720);
+    expect(lists[3].firstText + lists[3].codes.length - 1).toBe(959);
+    expect(lists[4].firstText + lists[4].codes.length - 1).toBe(964);
+    expect(aspect.DF_FASTEST_TEXT_ID).toBe(965);
+    expect(lists[4].firstIcon + lists[4].codes.length - 1).toBeLessThan(720);
   });
   it.skipIf(!have)('line names fit beside the camera\'s own submenu lines, with glyphs of its own texts', () => {
     const d = new fw.Firmware(new Uint8Array(readFileSync(P + 'official.bin'))).decoded;
@@ -75,7 +83,7 @@ describe('Direct Flash: camera-menu settings', () => {
     LANGS.forEach((lang, k) => {
       const longest = Math.max(...lines.map((id) => readName(d, lang, id).text.length));
       const allowed = allowedChars(d, lang);
-      for (const names of [aspect.DF_MENU_NAMES, aspect.DF_GN_NAMES, aspect.DF_BACKGROUND_NAMES, aspect.DF_PRIORITY_NAMES]) {
+      for (const names of [aspect.DF_MENU_NAMES, aspect.DF_GN_NAMES, aspect.DF_BACKGROUND_NAMES, aspect.DF_PRIORITY_NAMES, aspect.DF_FASTEST_NAMES]) {
         expect(names.length).toBe(21);
         expect(names[k].length, `${lang} ${names[k]}`).toBeLessThanOrEqual(longest);
         // 背 / 景 are not among the camera's own Chinese / Japanese texts, but in its fonts (RT_CN_S,

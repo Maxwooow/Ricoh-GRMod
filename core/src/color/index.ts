@@ -9,6 +9,7 @@ export { FullLook, Tone } from './look';
 export { parseCube, applyCube } from './cube';
 export type { Cube } from './cube';
 export { fitSlot } from './fit';
+export { hueBlockBytes, hueFromBlock, hueCopy0, hueFromQ10, hueToQ10, HUE_VALUES, HUE_LIMIT, HUE_BLOCK_BYTES } from './hue';
 export { refineSlot } from './refine';
 export type { RefineOptions, RefineResult } from './refine';
 export type { FitOptions, FitResult } from './fit';
