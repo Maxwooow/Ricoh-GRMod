@@ -44,7 +44,7 @@
  * the camera's own records (21).
  */
 import { FirmwareError } from '../types';
-import { assembleWords, movImmediate, movWord } from './arm';
+import { assembleWords, branchWord, movImmediate, movWord } from './arm';
 import { ICON_CATALOG, LOOKUP_BOUNDS, LANGUAGES, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z, widenTextRows } from './build';
 import {
   LIST_CONTROLLER_ID, LIST_SET_ITEM, SUBMENU_CONTROLLER_ID, SUB_RECORD, SUB_SET_ICON, addListRecords, addSubmenuRecord, hookControllerFactory, listTemplate, submenuTable,
@@ -370,6 +370,37 @@ function installIcons(patch: Patch, iconbin: Uint8Array, icons: readonly { id: n
   return concat(parts);
 }
 
+/**
+ * 0.8.6: MENU after coming back from Direct Flash Settings. Every submenu is one SubMenuController
+ * (the factory keeps a single instance, +0xC4). Its back target is +0x150; when a line opens a
+ * submenu nested in this one, OK (0x531E20A8) first keeps +0x150 at +0x17C, and on the way back
+ * (0x531E2140) a submenu that is not nested takes it again from +0x17C. The firmware does that for
+ * its own two nested submenus only, Pairing (0x020000D5) and Smartphone Link's 0x02000124; for
+ * any other id the Flash submenu came back with no back target, so MENU did nothing (0.8.4 / 0.8.5).
+ * Both checks now count DF_MENU_ID as nested too.
+ */
+const NESTED_OPEN = 0x531e20fc; // mov r3,#0x124; movt r3,#0x200; cmp r5,r3; beq keep
+const NESTED_OPEN_KEEP = 0x531e212c, NESTED_OPEN_ON = 0x531e210c;
+const NESTED_BACK = 0x531e2164; // mov r3,#0x124; movt r3,#0x200; cmp r0,r3; beq done
+const NESTED_BACK_DONE = 0x531e2188, NESTED_BACK_ON = 0x531e2174;
+
+function installNestedBack(patch: Patch): void {
+  for (const [at, cmp, beq] of [[NESTED_OPEN, 0xe1550003, 0x0a000007], [NESTED_BACK, 0xe1500003, 0x0a000004]]) {
+    expectWord(patch, at, 0xe3a03f49);
+    expectWord(patch, at + 4, 0xe3403200);
+    expectWord(patch, at + 8, cmp);
+    expectWord(patch, at + 12, beq);
+  }
+  const stub = (reg: string, hit: number, miss: number): number => patch.append((a) => assembleWords(
+    `mov r3, #0x124; movt r3, #0x200; cmp ${reg}, r3; beq #${hit}
+     movw r3, #${lo(DF_MENU_ID)}; movt r3, #${hi(DF_MENU_ID)}; cmp ${reg}, r3; beq #${hit}
+     b #${miss}`, a), 16);
+  const open = stub('r5', NESTED_OPEN_KEEP, NESTED_OPEN_ON);
+  const back = stub('r0', NESTED_BACK_DONE, NESTED_BACK_ON);
+  patch.setWord(NESTED_OPEN, branchWord(NESTED_OPEN, open), 'Direct Flash settings: a nested submenu keeps the back target');
+  patch.setWord(NESTED_BACK, branchWord(NESTED_BACK, back), 'Direct Flash settings: the back target again on the way back');
+}
+
 /** The Smartphone Link submenu (record 14), the model of the new submenu: four lines with value icons. */
 const MODEL_SUBMENU = 14;
 const MODEL_LINE_IDS = [0x020000dc, 0x02000124, 0x020000dd, 0x020000de];
@@ -472,6 +503,7 @@ export function installDirectFlashMenu(patch: Patch, iconbin: Uint8Array): Uint8
     sv.setUint32(0x40 + 8 * k, 0, true);
   });
   addSubmenuRecord(patch, DF_MENU_ID, sub, 'Direct Flash settings');
+  installNestedBack(patch);
 
   // --- Flash Mode's submenu: a third line that opens it (no value icon, as Wireless > Pairing).
   const rec = submenuTable(patch) + FLASH_SUBMENU * SUB_RECORD;
