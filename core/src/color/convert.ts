@@ -47,7 +47,7 @@ export interface ConvertOptions {
    */
   refine?: boolean;
   /**
-   * .cube only, for an added slot: Standard's hue-sector block (12 matrices, from the firmware).
+   * For an added slot: Standard's hue-sector block (12 matrices, from the firmware).
    * With it the slot also gets hue sectors of its own (hue.ts, hue-fit.ts), kept only if they help
    * and greys and skin do not get worse (`guardedHue`). Off unless given.
    */
@@ -74,15 +74,70 @@ export function convertXmp(text: string, opts?: ConvertOptions): Conversion {
   opts?.onProgress?.(0.05);
   const target = new FullLook(look).apply(Float64Array.from(CAL_ADOBE));
   opts?.onProgress?.(0.1);
-  const fit = fitSlot(Float64Array.from(CAL_CAM), target, { onProgress: subProgress(opts, 0.1, 1), post: opts?.post !== false });
+  const hueStd = opts?.hueStd;
+  const fit = fitSlot(Float64Array.from(CAL_CAM), target, { onProgress: subProgress(opts, 0.1, hueStd ? 0.5 : 1), post: opts?.post !== false });
+  let params: SlotParams = fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck };
+  let hueQ10: number[] | undefined;
+  if (hueStd) {
+    const h = guardedHueXmp(target, params, hueStd, subProgress(opts, 0.5, 0.98));
+    if (h) { params = h.params; hueQ10 = h.hueQ10; }
+  }
   return {
     kind: 'xmp',
     title: look.title,
-    params: fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck },
-    ...report(slotApply(fit, Float64Array.from(CAL_CAM)), target),
+    params,
+    ...report(slotApply(params, Float64Array.from(CAL_CAM)), target),
+    ...(hueQ10 ? { hueQ10 } : {}),
     warnings: look.warnings.slice(),
     unsupported: look.unsupported.slice(),
   };
+}
+
+/** Calibration colours (as Standard renders them) the .xmp hue fit leaves out to check itself: every third. */
+export const XMP_HUE_HELD_OUT = (i: number): boolean => i % 3 === 2;
+
+/**
+ * Hue sectors for an .xmp look. Its target is known only on the calibration colours (the look acts
+ * on Adobe Standard, which GR Mod knows for those colours alone), so the sectors are fitted on two
+ * thirds of them and checked on the other third: kept when the mean CIEDE2000 there drops by at
+ * least 0.5%, and its pale colours (chroma below 10), and the skin-like ones, get no worse.
+ */
+export function guardedHueXmp(target: Float64Array, start: SlotParams, std: number[][], onProgress?: (f: number) => void): { params: SlotParams; hueQ10: number[] } | null {
+  const cam = Float64Array.from(CAL_CAM);
+  const n = cam.length / 3;
+  const pick = (held: boolean, src: Float64Array): Float64Array => {
+    const out: number[] = [];
+    for (let i = 0; i < n; i++) if (XMP_HUE_HELD_OUT(i) === held) out.push(src[3 * i], src[3 * i + 1], src[3 * i + 2]);
+    return Float64Array.from(out);
+  };
+  const fitP = pick(false, cam), fitT = pick(false, target), heldP = pick(true, cam), heldT = pick(true, target);
+  const L = lab(fitP);
+  const weights = Float64Array.from({ length: fitP.length / 3 }, (_, i) => (Math.hypot(L[3 * i + 1], L[3 * i + 2]) < 10 ? 3 : 1));
+  const groupOf = (P: Float64Array, keep: (l: number, c: number, h: number) => boolean): Float64Array => {
+    const l = lab(P), out: number[] = [];
+    for (let i = 0; i < P.length / 3; i++) {
+      const c = Math.hypot(l[3 * i + 1], l[3 * i + 2]), h = (Math.atan2(l[3 * i + 2], l[3 * i + 1]) * 180) / Math.PI;
+      if (keep(l[3 * i], c, h)) out.push(i);
+    }
+    return Float64Array.from(out);
+  };
+  const pale = groupOf(heldP, (_l, c) => c < 10), skin = groupOf(heldP, (l, c, h) => l > 30 && l < 88 && c >= 10 && c < 40 && h > 20 && h < 75);
+  const base: SlotParams = { ...start, hue: std, hueStd: std };
+  const tl = lab(heldT);
+  const errs = (p: SlotParams): Float64Array => deltaE2000Lab(lab(slotApply(p, heldP)), tl);
+  const stats = (e: Float64Array, idx: Float64Array): [number, number] => {
+    const v = idx.length ? Array.from(idx, (i) => e[i]) : [0];
+    return [mean(v), percentile(v, 95)];
+  };
+  const e0 = errs(base);
+  const fitted = fitHue(start, std, fitP, fitT, weights, { onProgress });
+  const q = hueToQ10(fitted.hue!);
+  if (!q) return null;
+  const out: SlotParams = { ...fitted, hue: Array.from({ length: 12 }, (_, g) => q.slice(g * 9, g * 9 + 9).map((v) => v / 1024)) };
+  const e1 = errs(out);
+  if (!(mean(e1) < mean(e0) * 0.995)) return null;
+  const [p0, P0] = stats(e0, pale), [p1, P1] = stats(e1, pale), [s0, S0] = stats(e0, skin), [s1, S1] = stats(e1, skin);
+  return p1 <= p0 + 0.03 && P1 <= P0 + 0.1 && s1 <= s0 + 0.05 && S1 <= S0 + 0.1 ? { params: out, hueQ10: q } : null;
 }
 
 // ---------------------------------------------------------------- fitting colours for cube LUTs

@@ -513,8 +513,8 @@ async function runPreset(id: SlotKey, fileName: string, kind: 'xmp' | 'cube', te
   if (!state.info?.capabilities.presets) return;
   const run = ++presetRun;
   presetRuns.set(id, run);
-  // Hue sectors (experimental): GR IV added slots, .cube only.
-  const hue = state.hueFit && isExtra(id) && kind === 'cube' && state.info.family !== 'gr3x';
+  // Hue sectors (experimental): GR IV added slots.
+  const hue = state.hueFit && isExtra(id) && state.info.family !== 'gr3x';
   try {
     const result = await engine.convert(kind, text, hue ? { hue: true } : {});
     if (presetRuns.get(id) !== run || slotOf(id)?.preset?.text !== text) return; // replaced, removed or converted again meanwhile
@@ -962,13 +962,13 @@ export function setDirectFlash(directFlash: boolean): void {
   if (directFlash && !state.info?.features.directFlash) return;
   set({ directFlash }); scheduleSave();
 }
-/** GR IV, experimental: hue sectors for the added slots' .cube presets; their presets are converted again. */
+/** GR IV, experimental: hue sectors for the added slots' presets; their presets are converted again. */
 export function setHueFit(hueFit: boolean): void {
   if (state.hueFit === hueFit) return;
   set({ hueFit }); scheduleSave();
   for (const x of state.extras) {
     const p = x.preset;
-    if (p && p.kind === 'cube' && p.text) void runPreset(x.key, p.fileName, p.kind, p.text);
+    if (p && p.text) void runPreset(x.key, p.fileName, p.kind, p.text);
   }
 }
 export function directFlashOn(s: State = state): boolean { return !!s.directFlash && !!s.info?.features.directFlash; }

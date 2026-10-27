@@ -599,7 +599,7 @@ function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
                   <FileButton className="file-main" accept=".xmp,.cube" title={t('replace')} onFiles={(f) => { void loadPresetFile(k, f[0]); }}>{Ico.file}<span className="ellipsis">{p.result?.title || p.fileName}</span></FileButton>
                   <button className="file-x" title={t('remove')} aria-label={t('remove')} onClick={() => removePreset(k)}>{Ico.x}</button>
                 </div>
-                {hueFit && p.kind === 'cube' && p.result && !p.busy && <p className="small muted">{t(p.result.hueQ10 ? 'hueFitUsed' : 'hueFitSkipped')}</p>}
+                {hueFit && p.result && !p.busy && <p className="small muted">{t(p.result.hueQ10 ? 'hueFitUsed' : 'hueFitSkipped')}</p>}
                 {(p.busy || p.error) && (
                   <div className="chips">
                     {p.busy && <span className="chip muted"><span className="spinner small" />{t('converting')}</span>}
