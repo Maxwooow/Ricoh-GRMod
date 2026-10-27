@@ -17,7 +17,7 @@ import {
   setMonoUnlock,
   setDirectFlash,
   extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, slotOf,
-  filmCountChoosable, setFilmCount,
+  filmCountChoosable, removeFilm, setFilmCount,
   hasLookLayout, isGr3, KEEP_VISIBLE, lookHiddenNow, lookMonoOnly, lookName, lookOrderAvailable, lookOrderNow, moveLook, moveLookTo, resetLookLayout, setLookHidden,
   setWallName, wallMax, wallMenuProblem,
 } from './store';
@@ -211,6 +211,7 @@ function SlotCard({ id }: { id: SlotId }) {
               <span className={`count ${problem ? 'bad' : ''}`}>{problem || `${name.length || off.names[lang].text.length}/${cap}`}</span>
             </div>
           </div>
+          {choosable && <button className="btn ghost icon-only extra-x" title={t('extraRemove')} aria-label={t('extraRemove')} onClick={() => removeFilm(id)}>{Ico.x}</button>}
         </div>
         <div className="props">
           <Prop label={t('preset')} tour={first ? 'ic-preset' : undefined}>

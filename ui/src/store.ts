@@ -1036,6 +1036,48 @@ export function setFilmCount(n: number): void {
   });
   scheduleSave();
 }
+/**
+ * GR III / IIIx: take one film away, as GR IV's added slots: the films after it move up one place
+ * (preset, names, icon, halation, their place in the menu order and hidden list), and the count
+ * drops by one. Not while a preset of a moving film is still being converted.
+ */
+export function removeFilm(id: SlotId): void {
+  if (!filmCountChoosable()) return;
+  const ids = (state.info?.slots ?? []).map((x) => x.id);
+  const n = state.filmCount;
+  const k = ids.indexOf(id);
+  if (k < 0 || k >= n) return;
+  if (ids.slice(k, n).some((x) => state.slots[x].preset?.busy)) { toast(t('converting'), 'info'); return; }
+  const look = (key: string): string | null => {
+    const f = key.startsWith('g') ? Number(key.slice(1)) - 64 : -1;
+    if (!(f >= 0 && f < n)) return key;
+    return f === k ? null : f > k ? `g${64 + f - 1}` : key;
+  };
+  set((s) => {
+    const slots = { ...s.slots };
+    for (let i = k; i < n - 1; i++) slots[ids[i]] = s.slots[ids[i + 1]];
+    slots[ids[n - 1]] = emptySlot();
+    const a = ids.indexOf(s.activeSlot as SlotId);
+    const activeSlot = a < 0 || a < k ? s.activeSlot : a > k ? ids[a - 1] : (ids[Math.min(k, n - 2)] ?? 'CY');
+    return {
+      slots, filmCount: n - 1, activeSlot,
+      lookOrder3: s.lookOrder3.map(look).filter((x): x is string => x !== null),
+      lookHidden3: s.lookHidden3.map(look).filter((x): x is string => x !== null),
+    };
+  });
+  scheduleSave();
+  // The preset files kept for the films move with them.
+  if (host.available) {
+    void (async () => {
+      for (let i = k; i < n - 1; i++) {
+        const text = await host.storeGet(presetKey(ids[i + 1])).catch(() => null);
+        if (text) await host.storeSet(presetKey(ids[i]), text).catch(() => undefined);
+        else await host.storeDel(presetKey(ids[i])).catch(() => undefined);
+      }
+      await host.storeDel(presetKey(ids[n - 1])).catch(() => undefined);
+    })();
+  }
+}
 export function setActiveRatio(id: string): void { if (state.activeRatio !== id) set({ activeRatio: id }); }
 
 // ------------------------------------------------------------------ preview photo
