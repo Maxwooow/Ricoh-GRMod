@@ -66,7 +66,6 @@ export interface State {
   /** GR IV: Direct Flash, a fifth Flash Mode (GR III / IIIx have the GF-2 mode of their own). */
   directFlash: boolean;
   /** GR IV, experimental: .cube presets of added slots get hue sectors of their own (core color/hue.ts). */
-  hueFit: boolean;
   /** GR III / IIIx: how many films the build has (1..info.features.maxFilms). */
   filmCount: number;
   previewMode: PreviewMode; photoRev: number; activeSlot: SlotKey;
@@ -100,7 +99,7 @@ const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '',
 const emptySlots = (): Record<SlotId, SlotState> => Object.fromEntries(SLOT_IDS.map(id => [id, emptySlot()])) as Record<SlotId, SlotState>;
 let state: State = {
   ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: 'zh-CN',
-  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hueFit: false, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], bridgeOpen: false,
+  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, directFlash: false, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], bridgeOpen: false,
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
@@ -211,7 +210,7 @@ function familyData(s: State): FamilyDoc {
     lookOrder: s.lookOrder, lookHidden: s.lookHidden, lookOrder3: s.lookOrder3, lookHidden3: s.lookHidden3,
     wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: 'image', width: w.width, height: w.height, crop: w.crop, ...(w.menuName !== undefined ? { menuName: w.menuName } : {}), ...(w.menuId ? { menuId: w.menuId } : {}) })),
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
-    soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock, directFlash: s.directFlash, hueFit: s.hueFit, filmCount: s.filmCount,
+    soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock, directFlash: s.directFlash, filmCount: s.filmCount,
   };
 }
 
@@ -239,7 +238,7 @@ function parseFamily(doc: FamilyDoc | null): Partial<State> {
     lookHidden: normalizeLookHidden(Array.isArray(doc?.lookHidden) ? doc!.lookHidden : [], extras),
     lookOrder3: gr3SavedKeys(doc?.lookOrder3), lookHidden3: gr3SavedKeys(doc?.lookHidden3).filter((k) => k !== 'g11'),
     soft: doc?.soft === true || (!!doc?.softFocus && typeof doc.softFocus === 'object' && Object.keys(doc.softFocus).length > 0),
-    dateStamp: doc?.dateStamp === true, monoUnlock: doc?.monoUnlock === true, directFlash: doc?.directFlash === true, hueFit: doc?.hueFit === true,
+    dateStamp: doc?.dateStamp === true, monoUnlock: doc?.monoUnlock === true, directFlash: doc?.directFlash === true,
     filmCount: Number.isInteger(doc?.filmCount) && doc!.filmCount >= 0 && doc!.filmCount <= GR3X_FILM_IDS.length ? doc!.filmCount : doc && doc.filmCount === undefined && doc.slots ? 9 : 0,
   };
 }
@@ -513,8 +512,8 @@ async function runPreset(id: SlotKey, fileName: string, kind: 'xmp' | 'cube', te
   if (!state.info?.capabilities.presets) return;
   const run = ++presetRun;
   presetRuns.set(id, run);
-  // Hue sectors (experimental): GR IV added slots.
-  const hue = state.hueFit && isExtra(id) && state.info.family !== 'gr3x';
+  // GR IV added slots also try hue sectors; the conversion keeps them only when they come out closer.
+  const hue = isExtra(id) && state.info.family !== 'gr3x';
   try {
     const result = await engine.convert(kind, text, hue ? { hue: true } : {});
     if (presetRuns.get(id) !== run || slotOf(id)?.preset?.text !== text) return; // replaced, removed or converted again meanwhile
@@ -961,15 +960,6 @@ export const GR3X_SOFT_FOCUS: readonly SoftFocusRequest[] = [
 export function setDirectFlash(directFlash: boolean): void {
   if (directFlash && !state.info?.features.directFlash) return;
   set({ directFlash }); scheduleSave();
-}
-/** GR IV, experimental: hue sectors for the added slots' presets; their presets are converted again. */
-export function setHueFit(hueFit: boolean): void {
-  if (state.hueFit === hueFit) return;
-  set({ hueFit }); scheduleSave();
-  for (const x of state.extras) {
-    const p = x.preset;
-    if (p && p.text) void runPreset(x.key, p.fileName, p.kind, p.text);
-  }
 }
 export function directFlashOn(s: State = state): boolean { return !!s.directFlash && !!s.info?.features.directFlash; }
 /** Any addition that is not a slot or a ratio. */

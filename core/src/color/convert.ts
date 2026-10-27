@@ -49,7 +49,7 @@ export interface ConvertOptions {
   /**
    * For an added slot: Standard's hue-sector block (12 matrices, from the firmware).
    * With it the slot also gets hue sectors of its own (hue.ts, hue-fit.ts), kept only if they help
-   * and greys and skin do not get worse (`guardedHue`). Off unless given.
+   * clearly closer while greys and skin get at most a little worse (`huePasses`). Off unless given.
    */
   hueStd?: number[][];
 }
@@ -93,14 +93,34 @@ export function convertXmp(text: string, opts?: ConvertOptions): Conversion {
   };
 }
 
+/**
+ * Whether hue sectors are worth using, and how good a candidate is. The whole look must get at
+ * least 2% closer. A protected group (greys, near-neutrals, skin) may then get a little worse, by
+ * an amount that grows with the overall gain (half of it) but stays within `cap`: a clearly closer
+ * look may trade a hardly visible change in skin, never a visible one. Among the candidates that
+ * pass, the one with the lowest `huePenalty` is used.
+ */
+export interface HueCheck { m0: number; m1: number; groups: { a0: number; a1: number; b0: number; b1: number; base: number; cap: number }[] }
+const huePasses = (c: HueCheck): boolean => {
+  if (!(c.m1 < c.m0 * 0.98)) return false;
+  const gain = c.m0 - c.m1;
+  return c.groups.every((g) => {
+    const tol = Math.min(g.cap, Math.max(g.base, 0.5 * gain));
+    return g.a1 <= g.a0 + tol && g.b1 <= g.b0 + 2 * tol;
+  });
+};
+const huePenalty = (c: HueCheck): number => c.m1 + c.groups.reduce((s, g) => s + Math.max(0, g.a1 - g.a0), 0);
+/** Tolerances: [base, cap] of the mean; the worst values may move twice as much. */
+const HUE_TOL = { grey: [0.02, 0.06], near: [0.03, 0.12], skin: [0.05, 0.15] } as const;
+
 /** Calibration colours (as Standard renders them) the .xmp hue fit leaves out to check itself: every third. */
 export const XMP_HUE_HELD_OUT = (i: number): boolean => i % 3 === 2;
 
 /**
  * Hue sectors for an .xmp look. Its target is known only on the calibration colours (the look acts
  * on Adobe Standard, which GR Mod knows for those colours alone), so the sectors are fitted on two
- * thirds of them and checked on the other third: kept when the mean CIEDE2000 there drops by at
- * least 0.5%, and its pale colours (chroma below 10), and the skin-like ones, get no worse.
+ * thirds of them and checked on the other third (see `huePasses`; the protected groups are its
+ * pale colours, chroma below 10, and the skin-like ones).
  */
 export function guardedHueXmp(target: Float64Array, start: SlotParams, std: number[][], onProgress?: (f: number) => void): { params: SlotParams; hueQ10: number[] } | null {
   const cam = Float64Array.from(CAL_CAM);
@@ -113,6 +133,10 @@ export function guardedHueXmp(target: Float64Array, start: SlotParams, std: numb
   const fitP = pick(false, cam), fitT = pick(false, target), heldP = pick(true, cam), heldT = pick(true, target);
   const L = lab(fitP);
   const weights = Float64Array.from({ length: fitP.length / 3 }, (_, i) => (Math.hypot(L[3 * i + 1], L[3 * i + 2]) < 10 ? 3 : 1));
+  const skinFit = Array.from({ length: fitP.length / 3 }, (_, i) => {
+    const c = Math.hypot(L[3 * i + 1], L[3 * i + 2]), h = (Math.atan2(L[3 * i + 2], L[3 * i + 1]) * 180) / Math.PI, l = L[3 * i];
+    return l > 30 && l < 88 && c >= 10 && c < 40 && h > 20 && h < 75;
+  });
   const groupOf = (P: Float64Array, keep: (l: number, c: number, h: number) => boolean): Float64Array => {
     const l = lab(P), out: number[] = [];
     for (let i = 0; i < P.length / 3; i++) {
@@ -130,14 +154,26 @@ export function guardedHueXmp(target: Float64Array, start: SlotParams, std: numb
     return [mean(v), percentile(v, 95)];
   };
   const e0 = errs(base);
-  const fitted = fitHue(start, std, fitP, fitT, weights, { onProgress });
-  const q = hueToQ10(fitted.hue!);
-  if (!q) return null;
-  const out: SlotParams = { ...fitted, hue: Array.from({ length: 12 }, (_, g) => q.slice(g * 9, g * 9 + 9).map((v) => v / 1024)) };
-  const e1 = errs(out);
-  if (!(mean(e1) < mean(e0) * 0.995)) return null;
-  const [p0, P0] = stats(e0, pale), [p1, P1] = stats(e1, pale), [s0, S0] = stats(e0, skin), [s1, S1] = stats(e1, skin);
-  return p1 <= p0 + 0.03 && P1 <= P0 + 0.1 && s1 <= s0 + 0.05 && S1 <= S0 + 0.1 ? { params: out, hueQ10: q } : null;
+  const [p0, P0] = stats(e0, pale), [s0, S0] = stats(e0, skin);
+  let best: { params: SlotParams; hueQ10: number[]; penalty: number } | null = null;
+  // A second try weighs the pale colours and the skin tones more.
+  for (const boost of [1, 4]) {
+    const w = boost === 1 ? weights : weights.map((v, i) => v * (v > 1 || skinFit[i] ? boost : 1));
+    const fitted = fitHue(start, std, fitP, fitT, w, { onProgress: (f) => onProgress?.(boost === 1 ? f * 0.5 : 0.5 + f * 0.5) });
+    const q = hueToQ10(fitted.hue!);
+    if (!q) continue;
+    const out: SlotParams = { ...fitted, hue: Array.from({ length: 12 }, (_, g) => q.slice(g * 9, g * 9 + 9).map((v) => v / 1024)) };
+    const e1 = errs(out);
+    const [p1, P1] = stats(e1, pale), [s1, S1] = stats(e1, skin);
+    const check: HueCheck = { m0: mean(e0), m1: mean(e1), groups: [
+      { a0: p0, a1: p1, b0: P0, b1: P1, base: HUE_TOL.near[0], cap: HUE_TOL.near[1] },
+      { a0: s0, a1: s1, b0: S0, b1: S1, base: HUE_TOL.skin[0], cap: HUE_TOL.skin[1] },
+    ] };
+    if (!huePasses(check)) continue;
+    const penalty = huePenalty(check);
+    if (!best || penalty < best.penalty) best = { params: out, hueQ10: q, penalty };
+  }
+  return best && { params: best.params, hueQ10: best.hueQ10 };
 }
 
 // ---------------------------------------------------------------- fitting colours for cube LUTs
@@ -383,7 +419,9 @@ export function guardedHue(cube: ReturnType<typeof parseCube>, start: SlotParams
   const nearGuard = nearNeutralSamples(0.5, [0.05, 0.1, 0.16], [0.35, 0.6, 0.8, 0.95], 1).P;
   const tg = lab(applyCube(cube, grey)), ts = lab(applyCube(cube, skin)), tn = lab(applyCube(cube, nearGuard));
   const [g0, G0] = meanMax00(base, grey, tg), [s0, S0] = meanMax00(base, skin, ts), [n0, N0] = meanP95(base, nearGuard, tn);
-  // A second try weighs the greys, the skin tones and the near-neutrals four times as much.
+  let best: { params: SlotParams; hueQ10: number[]; penalty: number } | null = null;
+  // A second try weighs the greys, the skin tones and the near-neutrals four times as much; it is
+  // skipped when the first one already leaves every protected group as good as it was.
   for (const boost of [1, 4]) {
     const weights = boost === 1 ? ref.weights : ref.weights.map((w) => (w === 60 || w === 10 || w === HUE_NEAR_NEUTRAL_WEIGHT ? w * boost : w));
     const fitted = fitHue(start, std, ref.P, refTarget, weights, { onProgress: (f) => onProgress?.(boost === 1 ? f * 0.6 : 0.6 + f * 0.4) });
@@ -392,11 +430,18 @@ export function guardedHue(cube: ReturnType<typeof parseCube>, start: SlotParams
     // what the firmware gets: the block rounded to Q10
     const out: SlotParams = { ...fitted, hue: Array.from({ length: 12 }, (_, g) => q.slice(g * 9, g * 9 + 9).map((v) => v / 1024)) };
     const [m1] = meanMax00(out, ref.P, tr);
-    if (!(m1 < m0 * 0.995)) continue;
     const [g1, G1] = meanMax00(out, grey, tg), [s1, S1] = meanMax00(out, skin, ts), [n1, N1] = meanP95(out, nearGuard, tn);
-    if (g1 <= g0 + 0.02 && G1 <= G0 + 0.05 && s1 <= s0 + 0.05 && S1 <= S0 + 0.1 && n1 <= n0 + 0.03 && N1 <= N0 + 0.1) return { params: out, hueQ10: q };
+    const check: HueCheck = { m0, m1, groups: [
+      { a0: g0, a1: g1, b0: G0, b1: G1, base: HUE_TOL.grey[0], cap: HUE_TOL.grey[1] },
+      { a0: n0, a1: n1, b0: N0, b1: N1, base: HUE_TOL.near[0], cap: HUE_TOL.near[1] },
+      { a0: s0, a1: s1, b0: S0, b1: S1, base: HUE_TOL.skin[0], cap: HUE_TOL.skin[1] },
+    ] };
+    if (!huePasses(check)) continue;
+    const penalty = huePenalty(check);
+    if (!best || penalty < best.penalty) best = { params: out, hueQ10: q, penalty };
+    if (check.groups.every((g) => g.a1 <= g.a0)) break;
   }
-  return null;
+  return best && { params: best.params, hueQ10: best.hueQ10 };
 }
 
 /**

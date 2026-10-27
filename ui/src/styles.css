@@ -410,8 +410,6 @@ button.fw-rel:disabled { cursor: default; }
 .extra-x { flex: none; align-self: flex-start; }
 .extra-problem { margin-top: 6px; }
 .extras-row .soft-ico { width: 32px; height: 32px; flex: none; }
-.extras-row.hue-fit { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
-.extras-row.hue-fit .soft-text { display: flex; flex-direction: column; gap: 2px; margin-left: 44px; }
 .extras-count { margin: 8px 0 2px 44px; }
 .film-stepper { display: flex; align-items: center; gap: 6px; flex: none; }
 .film-stepper select { min-width: 92px; }
