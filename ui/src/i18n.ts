@@ -110,7 +110,7 @@ const zh = {
   tCopiesListT: '副本', tCopiesListB: '按写入时间分组。固件会被读出来辨认：官方、修改版（改了什么）或无法识别。勾选后在底部操作。',
   tCopiesActionsT: '操作', tCopiesActionsB: '备份到电脑、删除（删除后无法恢复），或者勾选一个固件，将其写回存储卡。',
   aboutBody: '修改固件和机内文件有风险，由使用者自行承担。',
-  aboutContrib: '代码贡献：Mrjie7205（GR IIIx HDF 1.60 的固件与色彩引擎移植）；sjclijie（影像控制菜单顺序与隐藏、预设拟合改进、时间戳印风格名的思路）；xxmathias（Linux 桌面版）',
+  aboutContrib: '代码贡献：Mrjie7205（GR IIIx HDF 1.60 的固件与色彩引擎移植）；sjclijie（影像控制菜单顺序与隐藏、预设拟合改进、时间戳印风格名的思路）；orbitsail（色相区拟合）；xxmathias（Linux 桌面版）',
   aboutCredits: '特别鸣谢：radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion；DoYitNow/gr-custom-tool；样张来源DPReview；图标字体 Barlow Condensed',
   navSoft: '柔焦', softWeak: '弱', softMedium: '中', softStrong: '强', softCustom: '自定义', softLine: '柔焦  ·  清晰度 {l}', softLevels: '清晰度 {l}',
 
@@ -254,7 +254,7 @@ const en: typeof zh = {
   tCopiesListT: 'Copies', tCopiesListB: 'Grouped by the time of the write. Firmware files are read and recognised: official, modified (and what was changed) or unknown. Tick, then act at the bottom.',
   tCopiesActionsT: 'Actions', tCopiesActionsB: 'Back up to the computer, delete (cannot be undone), or tick one firmware file to write it back to the card.',
   aboutBody: 'Modifying firmware and internal files is at your own risk.',
-  aboutContrib: 'Code contributions: Mrjie7205 (GR IIIx HDF 1.60 firmware and colour engine port); sjclijie (Image Control menu order and hidden looks, preset fitting improvements, the idea of the look name in the date imprint); xxmathias (Linux desktop build)',
+  aboutContrib: 'Code contributions: Mrjie7205 (GR IIIx HDF 1.60 firmware and colour engine port); sjclijie (Image Control menu order and hidden looks, preset fitting improvements, the idea of the look name in the date imprint); orbitsail (hue-sector fitting); xxmathias (Linux desktop build)',
   aboutCredits: 'Special thanks: radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion; DoYitNow/gr-custom-tool; sample picture from DPReview; icon font Barlow Condensed',
   navSoft: 'Soft focus', softWeak: 'weak', softMedium: 'medium', softStrong: 'strong', softCustom: 'custom', softLine: 'Soft focus  ·  Clarity {l}', softLevels: 'Clarity {l}',
 
