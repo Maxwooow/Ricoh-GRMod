@@ -56,7 +56,7 @@ import {
 import type { BuildResult, BuiltRatio, ClarityChange, ClarityEdit, ExtensionFeatures, ExtraSlotSpec, LookLayout, ShutdownPictureSpec, SoftFocusLevel, SoftFocusStrength, FactoryEntry, LangCode, Layout, NameValidation, Range, RatioSpec, SlotEdit, SlotId as NativeSlotId } from '../fw';
 import { grownRanges, growPayload } from '../fw/aspect/package';
 import { BRIDGE_SHA256, BRIDGE_SIZE, isBridgeFirmware, makeBridgeFirmware, officialFromBridge } from '../fw/bridge';
-import { convertCube, convertXmp, quantizeSlot } from '../color';
+import { convertCube, convertXmp, hueCopy0, hueFromQ10, HUE_BLOCK_BYTES, quantizeSlot } from '../color';
 import type { SlotParams } from '../color';
 import { JpegError, checkShutdownJpeg, decodeBaselineJpeg, encodeExactJpeg, inspectJpeg } from '../jpeg';
 import type { Sampling } from '../jpeg';
@@ -151,6 +151,8 @@ export interface PresetResult {
   curves: [Uint16Array, Uint16Array, Uint16Array];
   /** The post-curve ("second") matrix in Q9, rows summing to 512. */
   postQ9?: Int16Array;
+  /** Converted with `hue` and kept: the added slot's own hue sectors (copy 0, Q10, 12 x 9). */
+  hueQ10?: number[];
 }
 
 export interface SlotRequest {
@@ -832,7 +834,7 @@ export class Engine {
    * Without it the result is what GR Mod 0.6.1 and earlier made. `refine` (.cube only, default
    * off) adds the guarded CIEDE2000 refinement. GR III / IIIx take .xmp and .cube too.
    */
-  convertPreset(kind: 'xmp' | 'cube', text: string, onProgress?: (f: number) => void, options: { post?: boolean; refine?: boolean; legacyFit?: boolean } = {}): PresetResult {
+  convertPreset(kind: 'xmp' | 'cube', text: string, onProgress?: (f: number) => void, options: { post?: boolean; refine?: boolean; hue?: boolean; legacyFit?: boolean } = {}): PresetResult {
     if (this.info.family === 'gr3x') {
       // The second (post-curve) matrix, as on GR IV: GR III's matrix module has the stage (films only).
       const post = options.post !== false;
@@ -847,9 +849,18 @@ export class Engine {
     }
     if (this.layout === null || !this.info.capabilities.presets) requireGr3xPort('preset conversion');
     const post = options.post !== false;
-    const c = kind === 'xmp' ? convertXmp(text, { onProgress, post }) : convertCube(text, { onProgress, post, refine: options.refine === true });
+    // Hue sectors (experimental, added slots only): fitted against Standard's own block of this firmware.
+    const hueStd = options.hue === true && kind === 'cube' && post ? this.standardHue() : undefined;
+    const c = kind === 'xmp' ? convertXmp(text, { onProgress, post }) : convertCube(text, { onProgress, post, refine: options.refine === true, ...(hueStd ? { hueStd } : {}) });
     const q = quantizeSlot(c.params, this.mStdQ13);
-    return { kind: c.kind, title: c.title, meanDE: c.meanDE, p95DE: c.p95DE, meanDE2000: c.meanDE2000, p95DE2000: c.p95DE2000, warnings: c.warnings, unsupported: c.unsupported, params: c.params, matrixQ13: q.matrixQ13, curves: q.curves, ...(q.postQ9 ? { postQ9: q.postQ9 } : {}) };
+    return { kind: c.kind, title: c.title, meanDE: c.meanDE, p95DE: c.p95DE, meanDE2000: c.meanDE2000, p95DE2000: c.p95DE2000, warnings: c.warnings, unsupported: c.unsupported, params: c.params, matrixQ13: q.matrixQ13, curves: q.curves, ...(q.postQ9 ? { postQ9: q.postQ9 } : {}), ...(c.hueQ10 ? { hueQ10: c.hueQ10 } : {}) };
+  }
+
+  /** Standard's hue-sector block (copy 0) as 12 matrices. */
+  private standardHue(): number[][] {
+    if (!this.layout) requireGr3xPort('hue sectors');
+    const o = foff(this.layout.standard.maBlock);
+    return hueFromQ10(hueCopy0(this.decoded.subarray(o, o + HUE_BLOCK_BYTES)));
   }
 
   validateName(slot: SlotId, lang: LangCode, text: string): NameValidation {

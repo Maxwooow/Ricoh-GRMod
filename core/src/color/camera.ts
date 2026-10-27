@@ -3,6 +3,7 @@
 // S is the camera's base tone curve (linear -> display), M1 a 3x3 matrix whose rows sum to 1 and
 // curve_c three per-channel curves given by 17 knots on a uniform 0..1 grid.
 import { BASE_CURVE } from './data';
+import { hueSector } from './hue';
 import { ColorError, interp, linspace01, matMul3, roundHalfEven } from './math';
 
 export interface SlotParams {
@@ -16,6 +17,15 @@ export interface SlotParams {
    * curves together with the saturation setting.
    */
   P2?: number[][];
+  /**
+   * Optional hue sectors of an added slot (hue.ts): the slot's own block, 12 matrices of 3x3
+   * (row-major, rows summing to 1), and Standard's block, `hueStd`, which the Standard picture the
+   * slot is fitted to has been through. With them the slot is applied in the camera's own order:
+   * the linear signal before Standard's stage (Standard's stage undone), M1, the slot's stage,
+   * clipped, S, curves, P2. Without them, as always: M1 on the Standard picture's linear signal.
+   */
+  hue?: number[][];
+  hueStd?: number[][];
 }
 
 export interface QuantizedSlot {
@@ -38,6 +48,31 @@ function checkParams(p: SlotParams): void {
     throw new ColorError('bad-input', 'slot curves must be 3 x 17 knots');
   if (p.P2 !== undefined && (!Array.isArray(p.P2) || p.P2.length !== 3 || p.P2.some((r) => !r || r.length !== 3 || r.some((v) => !Number.isFinite(v)))))
     throw new ColorError('bad-input', 'post matrix must be 3x3');
+  const blk = (h: unknown): boolean => Array.isArray(h) && h.length === 12 && h.every((r) => Array.isArray(r) && r.length === 9 && r.every((v) => Number.isFinite(v)));
+  if ((p.hue !== undefined || p.hueStd !== undefined) && !(blk(p.hue) && blk(p.hueStd)))
+    throw new ColorError('bad-input', 'hue sectors must be 12 x 9 values, with Standard\'s');
+}
+
+function inv3(m: readonly number[]): number[] {
+  const [a, b, c, d, e, f, g, h, i] = m;
+  const A = e * i - f * h, B = -(d * i - f * g), C = d * h - e * g;
+  const det = a * A + b * B + c * C;
+  if (!(Math.abs(det) > 1e-9)) throw new ColorError('bad-input', 'hue sector matrix is singular');
+  return [A / det, -(b * i - c * h) / det, (b * f - c * e) / det, B / det, (a * i - c * g) / det, -(a * f - c * d) / det, C / det, -(a * h - b * g) / det, (a * e - b * d) / det];
+}
+const inverses = new WeakMap<object, number[][]>();
+/** The linear signal before a sector stage `std`, from the one after it (fixed point; the sector follows the signal before). */
+export function undoHue(std: number[][], y0: number, y1: number, y2: number, out: number[]): void {
+  let inv = inverses.get(std);
+  if (!inv) { inv = std.map(inv3); inverses.set(std, inv); }
+  let x0 = y0, x1 = y1, x2 = y2;
+  for (let it = 0; it < 10; it++) {
+    const m = inv[hueSector(x0, x1, x2)];
+    const n0 = m[0] * y0 + m[1] * y1 + m[2] * y2, n1 = m[3] * y0 + m[4] * y1 + m[5] * y2, n2 = m[6] * y0 + m[7] * y1 + m[8] * y2;
+    if (n0 === x0 && n1 === x1 && n2 === x2) break;
+    x0 = n0; x1 = n1; x2 = n2;
+  }
+  out[0] = x0; out[1] = x1; out[2] = x2;
 }
 
 export interface CameraToneModel {
@@ -91,8 +126,10 @@ export function createCameraModel(baseCurve: ArrayLike<number>): CameraToneModel
     const knots = params.ck;
     const slopes = knots.map((c) => Float64Array.from({ length: KNOTS - 1 }, (_, k) => (c[k + 1] - c[k]) / (KN[k + 1] - KN[k])));
     const post = params.P2 ? params.P2.map((r) => Float64Array.from(r)) : null;
+    const hue = params.hue && params.hueStd ? params.hue : null;
     const out = new Float64Array(rgb.length);
     const lin = [0, 0, 0];
+    const pre = [0, 0, 0];
     for (let i = 0; i < rgb.length; i += 3) {
       for (let c = 0; c < 3; c++) {
         // S^-1: display -> linear
@@ -102,10 +139,21 @@ export function createCameraModel(baseCurve: ArrayLike<number>): CameraToneModel
         while (j < 255 && S_TAB[j + 1] <= d) j++;
         lin[c] = j === 255 || S_TAB[j] === d ? S_X[j] : SINV_SLOPE[j] * (d - S_TAB[j]) + S_X[j];
       }
+      if (hue) {
+        // the camera's order: Standard's stage undone, M1, the slot's stage
+        undoHue(params.hueStd!, lin[0], lin[1], lin[2], pre);
+        const v0 = pre[0] * rows[0][0] + pre[1] * rows[0][1] + pre[2] * rows[0][2];
+        const v1 = pre[0] * rows[1][0] + pre[1] * rows[1][1] + pre[2] * rows[1][2];
+        const v2 = pre[0] * rows[2][0] + pre[1] * rows[2][1] + pre[2] * rows[2][2];
+        const h = hue[hueSector(v0, v1, v2)];
+        lin[0] = h[0] * v0 + h[1] * v1 + h[2] * v2;
+        lin[1] = h[3] * v0 + h[4] * v1 + h[5] * v2;
+        lin[2] = h[6] * v0 + h[7] * v1 + h[8] * v2;
+      }
       const a0 = lin[0], a1 = lin[1], a2 = lin[2];
       for (let c = 0; c < 3; c++) {
         const row = rows[c];
-        let l = a0 * row[0] + a1 * row[1] + a2 * row[2];
+        let l = hue ? lin[c] : a0 * row[0] + a1 * row[1] + a2 * row[2];
         l = l < 0 ? 0 : l > S_XMAX ? S_XMAX : l; // clip to 0..1, then S clips to its last sample
         // S: linear -> display
         const j = Math.floor(l * 256);

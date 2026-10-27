@@ -16,7 +16,7 @@ import {
   setDateStamp,
   setMonoUnlock,
   setDirectFlash,
-  extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, slotOf,
+  extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, setHueFit, slotOf,
   filmCountChoosable, removeFilm, setFilmCount,
   hasLookLayout, isGr3, KEEP_VISIBLE, lookHiddenNow, lookMonoOnly, lookName, lookOrderAvailable, lookOrderNow, moveLook, moveLookTo, resetLookLayout, setLookHidden,
   setWallName, wallMax, wallMenuProblem,
@@ -269,6 +269,7 @@ function FilmCountHead() {
 /** How many slots are added (0 to MAX_EXTRA_SLOTS). */
 function ExtrasHead() {
   const n = useStore((s) => s.extras.length);
+  const hueFit = useStore((s) => s.hueFit);
   const options = Array.from({ length: MAX_EXTRA_SLOTS + 1 }, (_, i) => ({ value: String(i), label: String(i) }));
   return (
     <div className="card extras-head" data-tour="ic-extra">
@@ -280,6 +281,15 @@ function ExtrasHead() {
         </div>
       </div>
       <div className="extras-count"><Select variant="box" value={String(n)} onChange={(v) => setExtraCount(Number(v))} options={options} label={t('extraTitle')} /></div>
+      {n > 0 && (
+        <div className="extras-row hue-fit">
+          <div className="soft-text">
+            <b>{t('hueFitTitle')}</b>
+            <span className="muted small">{t('hueFitSub')}</span>
+          </div>
+          <Switch checked={hueFit} onChange={setHueFit} label={t('hueFitTitle')} />
+        </div>
+      )}
     </div>
   );
 }
@@ -559,6 +569,7 @@ function LookOrderView() {
 /** An added slot: one name for every language (ASCII), a preset, an icon. */
 function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
   const active = useStore((s) => s.activeSlot === x.key);
+  const hueFit = useStore((s) => s.hueFit);
   const name = useStore((s) => extraName(x, s));
   const nameBad = useStore((s) => extraNameProblem(x, s));
   const problem = useStore((s) => extraProblem(x, s));
@@ -588,6 +599,7 @@ function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
                   <FileButton className="file-main" accept=".xmp,.cube" title={t('replace')} onFiles={(f) => { void loadPresetFile(k, f[0]); }}>{Ico.file}<span className="ellipsis">{p.result?.title || p.fileName}</span></FileButton>
                   <button className="file-x" title={t('remove')} aria-label={t('remove')} onClick={() => removePreset(k)}>{Ico.x}</button>
                 </div>
+                {hueFit && p.kind === 'cube' && p.result && !p.busy && <p className="small muted">{t(p.result.hueQ10 ? 'hueFitUsed' : 'hueFitSkipped')}</p>}
                 {(p.busy || p.error) && (
                   <div className="chips">
                     {p.busy && <span className="chip muted"><span className="spinner small" />{t('converting')}</span>}
