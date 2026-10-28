@@ -31,6 +31,7 @@ import { installAdjSoftFocus } from './softfocus';
 import { installDirectFlash } from './directflash';
 import { installDirectFlashMenu } from './directflash-menu';
 import { DATESTAMP_BYTE, installDateStamp, lookNames } from './datestamp';
+import { installHdrGainMap } from './hdrgain';
 import { installDateStampMenu } from './datestamp-menu';
 import { installMonoUnlock } from './monounlock';
 import { CINEMA_STYLES, installExtraSlots, installHalation } from './slots';
@@ -138,6 +139,8 @@ export interface ExtensionFeatures {
   guard?: boolean;
   /** Direct Flash, a fifth Flash Mode (0.8.4, see `directflash.ts`); the guide number is chosen in the camera. */
   directFlash?: boolean;
+  /** An HDR gain map in every JPEG (test builds of 0.8.6, see `hdrgain.ts`). */
+  hdrGainMap?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -147,6 +150,8 @@ export interface TestOptions {
   dateStampDiag?: boolean;
   /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
   directFlashDiag?: boolean;
+  /** HDR gain map: an APP15 segment with the module's counters in every JPEG. */
+  hdrDiag?: boolean;
 }
 
 export interface AspectResult {
@@ -1021,7 +1026,7 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   const slots = features.extraSlots ?? [];
   const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
   const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
-  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash;
+  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || !!features.hdrGainMap;
   if (extra) revision = 3;
   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
@@ -1080,6 +1085,8 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
     installFactoryHidden(patch, features.lookLayout.hidden);
   }
   if (halation.length > 0) icons = installHalation(patch, icons, halation);
+  // After halation and the date imprint: wraps the JPEG step they hook at its entry.
+  if (features.hdrGainMap) installHdrGainMap(patch, !!test.hdrDiag);
   if (shutdown) icons = installShutdownMenu(patch, icons, shutdown.pictures, shutdown.factory);
   // After every other addition that copies the submenu or list table.
   if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
@@ -1087,5 +1094,5 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}) });
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}) } };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}) } };
 }

@@ -200,6 +200,8 @@ export interface FirmwareSummary {
   lookLayout?: LookLayout;
   /** True when the file adds Direct Flash, a fifth Flash Mode (0.8.4). */
   directFlash?: boolean;
+  /** True when the file writes an HDR gain map into the JPEGs (0.8.6 test builds). */
+  hdrGainMap?: boolean;
 }
 
 /** Additions besides the slots and the ratios. */
@@ -221,6 +223,8 @@ export interface BuildOptions {
   shutdownPictures?: ShutdownPictureSpec[];
   /** Direct Flash, a fifth Flash Mode (0.8.4); its guide number is chosen in the camera. */
   directFlash?: boolean;
+  /** An HDR gain map in every JPEG (0.8.6 test builds, see `aspect/hdrgain.ts`). */
+  hdrGainMap?: boolean;
   /**
    * The settings guard and what comes with it from 0.8.2 (see `aspect/guard.ts`); default true.
    * False only to build files as GR Mod 0.8.1 and earlier did (regression tests).
@@ -232,6 +236,8 @@ export interface BuildOptions {
   dateStampDiag?: boolean;
   /** Test builds only (GR IV 1.20, with the date imprint): print the picture's look word and the halation module's status. */
   halationDiag?: boolean;
+  /** Test builds: the HDR gain map's diagnostics segment (APP15 "GRMODHDR") in every JPEG. */
+  hdrDiag?: boolean;
   /** GR III 2.10: the number of films, 1..20 (`features.maxFilms`), each with a Halation
    * line in the camera. Absent: the nine-film T6 build. */
   filmCount?: number;
@@ -703,6 +709,7 @@ export class Engine {
       ...(features.shutdown ? { shutdownPictures: [...features.shutdown.pictures] } : {}),
       ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}),
       ...(features.directFlash ? { directFlash: true } : {}),
+      ...(features.hdrGainMap ? { hdrGainMap: true } : {}),
     });
     if (!specs) return modified(false, [], aligned);
     let ratios: BuiltRatio[] = [];
@@ -996,17 +1003,20 @@ export class Engine {
     const pictures = options && options.shutdownPictures ? options.shutdownPictures : [];
     const lookLayout = options && options.lookLayout ? options.lookLayout : undefined;
     const directFlash = !!(options && options.directFlash);
+    const hdrGainMap = !!(options && options.hdrGainMap);
+    if (hdrGainMap && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the HDR gain map cannot be combined with the clarity-table soft focus of 0.4.x');
     if (directFlash && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Direct Flash cannot be combined with the clarity-table soft focus of 0.4.x');
     if (pictures.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'power-off pictures cannot be combined with the clarity-table soft focus of 0.4.x');
     if (adjSoftFocus && clarity.length > 0) throw new FirmwareError('bad-clarity', 'soft focus on the ADJ lever and on the clarity table cannot be combined');
     if (dateStamp && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the date imprint cannot be combined with the clarity-table soft focus of 0.4.x');
     if (extraSlots.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'added slots cannot be combined with the clarity-table soft focus of 0.4.x');
-    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash) throw new FirmwareError('bad-edit', 'nothing to change');
+    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash && !hdrGainMap) throw new FirmwareError('bad-edit', 'nothing to change');
     if (Object.keys(cinemaHalation).length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'halation cannot be combined with the clarity-table soft focus of 0.4.x');
-    const features = { adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}) };
+    const features = { adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}), ...(hdrGainMap ? { hdrGainMap } : {}) };
     const test = {
       ...(options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {}),
       ...(options && options.halationDiag ? { halationDiag: true } : {}),
+      ...(options && options.hdrDiag ? { hdrDiag: true } : {}),
     };
     const { decoded: _decoded, ...rest } = await this.g4.buildFirmware(this.raw, edits, ratios, clarity, features, test);
     return rest;
