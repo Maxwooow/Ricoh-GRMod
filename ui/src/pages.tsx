@@ -15,7 +15,7 @@ import {
   setSoft,
   setDateStamp,
   setMonoUnlock,
-  setDirectFlash,
+  setDirectFlash, setAdjSlots, adjSlotsOf,
   extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, slotOf,
   filmCountChoosable, removeFilm, setFilmCount,
   hasLookLayout, isGr3, KEEP_VISIBLE, lookHiddenNow, lookMonoOnly, lookName, lookOrderAvailable, lookOrderNow, moveLook, moveLookTo, resetLookLayout, setLookHidden,
@@ -666,6 +666,22 @@ function FeatureRow({ icon, title, sub, on, onChange }: { icon: ReactNode; title
   );
 }
 
+/** ADJ lever slots: the camera's five, or 6..8 (set in the camera, Customize Settings). */
+function AdjSlotsRow({ max }: { max: number }) {
+  const n = useStore((s) => adjSlotsOf(s));
+  const options = Array.from({ length: max - 4 }, (_, i) => ({ value: String(5 + i), label: String(5 + i) }));
+  return (
+    <div className={`soft-switch ${n > 5 ? 'on' : ''}`}>
+      <span className="page-icon soft-ico">{Ico.adj}</span>
+      <div className="soft-text">
+        <b>{t('navAdjSlots')}</b>
+        <span className="muted small ellipsis">{t('adjSlotsSub')}</span>
+      </div>
+      <Segmented value={String(n)} onChange={(v) => setAdjSlots(Number(v))} options={options} />
+    </div>
+  );
+}
+
 /**
  * The additions that are not slots: soft focus on the ADJ lever (off / weak / medium / strong),
  * the date imprint with its menu, and the six monochrome looks (colour models only).
@@ -678,6 +694,7 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
   const dateOk = useStore(s => !!s.info?.features.dateStamp);
   const flash = useStore((s) => s.directFlash);
   const flashOk = useStore((s) => !!s.info?.features.directFlash);
+  const adjMax = useStore((s) => s.info?.features.maxAdjSlots ?? 5);
   const own = useRef<HTMLDivElement | null>(null);
   // Moved to the other column: glide from where it was (FLIP). Rectangles are in window pixels,
   // the transform is in the zoomed interface's pixels.
@@ -697,6 +714,7 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
       {(!gr3x || dateOk) && <FeatureRow icon={Ico.date} title={t('navDate')} sub={t('dateSub')} on={date} onChange={setDateStamp} />}
       {!mono && !gr3x && <FeatureRow icon={Ico.mono} title={t(gr3x ? 'gr3xReplicaTitle' : 'navMono')} sub={t(gr3x ? 'gr3xReplicaSub' : 'monoSub')} on={looks} onChange={setMonoUnlock} />}
       {flashOk && <FeatureRow icon={Ico.flash} title={t('navFlash')} sub={t('flashSub')} on={flash} onChange={setDirectFlash} />}
+      {adjMax > 5 && <AdjSlotsRow max={adjMax} />}
     </div>
   );
 }

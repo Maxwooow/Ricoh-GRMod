@@ -73,6 +73,8 @@ export interface FirmwareInfo {
   features: { softFocus: 'clarity' | 'adj'; dateStamp: boolean; monoUnlock: boolean;
     /** Direct Flash, a fifth Flash Mode (GR IV; GR III / IIIx have the GF-2 mode of their own). */
     directFlash?: boolean;
+    /** The most ADJ lever slots a build can have (GR IV: 8; absent: the camera's five only). */
+    maxAdjSlots?: number;
     /** GR III / IIIx: the most films a build can have (9; 20 on GR III 2.10, where
      * the number is chosen with BuildOptions.filmCount and Halation is set in the camera). */
     maxFilms?: number };
@@ -200,6 +202,8 @@ export interface FirmwareSummary {
   lookLayout?: LookLayout;
   /** True when the file adds Direct Flash, a fifth Flash Mode (0.8.4). */
   directFlash?: boolean;
+  /** ADJ lever slots (6..8) when the file has more than the camera's five. */
+  adjSlots?: number;
 }
 
 /** Additions besides the slots and the ratios. */
@@ -221,6 +225,8 @@ export interface BuildOptions {
   shutdownPictures?: ShutdownPictureSpec[];
   /** Direct Flash, a fifth Flash Mode (0.8.4); its guide number is chosen in the camera. */
   directFlash?: boolean;
+  /** ADJ lever slots: 5 (the camera's, default) to 8; set in the camera (Customize Settings). GR IV only. */
+  adjSlots?: number;
   /**
    * The settings guard and what comes with it from 0.8.2 (see `aspect/guard.ts`); default true.
    * False only to build files as GR Mod 0.8.1 and earlier did (regression tests).
@@ -482,7 +488,7 @@ export class Engine {
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
       // The 1.12 bridge firmware goes back to 1.11 only: no bridge for 1.20.
       capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, bridge: !bridge && g4 === Gr4Program111, menuPictures: true, lookLayout: true },
-      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, directFlash: true },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, directFlash: true, maxAdjSlots: 8 },
       version: g4.FIRMWARE_VERSION,
       looks: { factory: [...g4.aspect.FACTORY_LOOK_IDS], extraFirst: g4.aspect.EXTRA_FIRST_STYLE, monoOnly: g4.aspect.FACTORY_LOOK_IDS.filter((n) => n >= 25) },
       sha256: await sha256Hex(raw),
@@ -703,6 +709,7 @@ export class Engine {
       ...(features.shutdown ? { shutdownPictures: [...features.shutdown.pictures] } : {}),
       ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}),
       ...(features.directFlash ? { directFlash: true } : {}),
+      ...(features.adjSlots ? { adjSlots: features.adjSlots } : {}),
     });
     if (!specs) return modified(false, [], aligned);
     let ratios: BuiltRatio[] = [];
@@ -996,14 +1003,17 @@ export class Engine {
     const pictures = options && options.shutdownPictures ? options.shutdownPictures : [];
     const lookLayout = options && options.lookLayout ? options.lookLayout : undefined;
     const directFlash = !!(options && options.directFlash);
+    const adjSlots = options && options.adjSlots !== undefined ? options.adjSlots : 5;
+    if (!(Number.isInteger(adjSlots) && adjSlots >= 5 && adjSlots <= 8)) throw new FirmwareError('bad-edit', 'ADJ lever slots: 5 to 8');
+    if (adjSlots > 5 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'more ADJ slots cannot be combined with the clarity-table soft focus of 0.4.x');
     if (directFlash && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Direct Flash cannot be combined with the clarity-table soft focus of 0.4.x');
     if (pictures.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'power-off pictures cannot be combined with the clarity-table soft focus of 0.4.x');
     if (adjSoftFocus && clarity.length > 0) throw new FirmwareError('bad-clarity', 'soft focus on the ADJ lever and on the clarity table cannot be combined');
     if (dateStamp && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the date imprint cannot be combined with the clarity-table soft focus of 0.4.x');
     if (extraSlots.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'added slots cannot be combined with the clarity-table soft focus of 0.4.x');
-    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash) throw new FirmwareError('bad-edit', 'nothing to change');
+    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash && adjSlots === 5) throw new FirmwareError('bad-edit', 'nothing to change');
     if (Object.keys(cinemaHalation).length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'halation cannot be combined with the clarity-table soft focus of 0.4.x');
-    const features = { adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}) };
+    const features = { adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}), ...(adjSlots > 5 ? { adjSlots } : {}) };
     const test = {
       ...(options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {}),
       ...(options && options.halationDiag ? { halationDiag: true } : {}),
