@@ -1,0 +1,7919 @@
+{
+ "coverage": 0.9592834666034442,
+ "old": "/tmp/claude-0/-home-claude/6f425037-7a8b-5ca4-906b-b050e8548dd4/scratchpad/feas/gr4_111/RTOS.bin",
+ "new": "/tmp/claude-0/-home-claude/6f425037-7a8b-5ca4-906b-b050e8548dd4/scratchpad/feas/gr4_120/RTOS.bin",
+ "addresses": {
+  "0x53000000": {
+   "new": "0x53000000",
+   "how": "aligned + refs 0x53000000x5",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "core/src/fw/aspect/package.ts",
+    "core/src/fw/patch.ts",
+    "core/src/fw/profile.ts",
+    "tools/aspect/boot_checks.py",
+    "tools/aspect/playback_check.py",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x53000460": {
+   "new": "0x53000460",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "core/src/fw/aspect/lookstash.ts",
+    "core/src/fw/aspect/shutdown.ts",
+    "core/src/fw/aspect/slots.ts",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53153eec": {
+   "new": "0x5315512c",
+   "how": "aligned + refs 0x5315512cx318",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/arm.ts",
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53185f7c": {
+   "new": "0x531871bc",
+   "how": "aligned + refs 0x531871bcx3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53185f80": {
+   "new": "0x531871c0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x53187784": {
+   "new": "0x5318876c",
+   "how": "aligned + refs 0x5318876cx1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x53187790": {
+   "new": "0x53188778",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x53187794": {
+   "new": "0x5318877c",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x5318779c": {
+   "new": "0x53188784",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x531879c0": {
+   "new": "0x53188c10",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x53194aa0": {
+   "new": "0x53195cf8",
+   "how": "aligned + refs 0x53195cf8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x531a13c8": {
+   "new": "0x531a2680",
+   "how": "aligned + refs 0x531a2680x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x531a5328": {
+   "new": "0x531a65e0",
+   "how": "aligned + refs 0x531a65e0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a532c": {
+   "new": "0x531a65e4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a57fc": {
+   "new": "0x531a6b10",
+   "how": "aligned + refs 0x531a6b10x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x531a5800": {
+   "new": "0x531a6b14",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x531a6a8c": {
+   "new": "0x531a7db8",
+   "how": "aligned + refs 0x531a7f40x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a6a90": {
+   "new": "0x531a7dbc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a7a94": {
+   "new": null,
+   "how": "not aligned; refs 0x531a74f8x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a7ea4": {
+   "new": "0x531a9330",
+   "how": "aligned + refs 0x531a9330x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a833c": {
+   "new": "0x531a97dc",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x531a8340": {
+   "new": "0x531a97e0",
+   "how": "aligned + refs 0x531a97e0x2",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x531a88bc": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a88c0": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a88d0": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x531a89e8": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x531a8fdc": {
+   "new": "0x531aa508",
+   "how": "aligned + refs 0x531aa508x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a9024": {
+   "new": "0x531aa550",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a9028": {
+   "new": "0x531aa554",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a9038": {
+   "new": "0x531aa564",
+   "how": "aligned + refs 0x531aa564x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a9210": {
+   "new": "0x531aa73c",
+   "how": "aligned + refs 0x531aa73cx1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a9744": {
+   "new": "0x531aac84",
+   "how": "aligned + refs 0x531aac84x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a9894": {
+   "new": null,
+   "how": "not aligned; refs 0x531aae08x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a989c": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a9af0": {
+   "new": "0x531ab044",
+   "how": "aligned + refs 0x531ab044x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a9d64": {
+   "new": "0x531ab2d4",
+   "how": "aligned + refs 0x531ab2bcx1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531a9d78": {
+   "new": "0x531ab2e8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aa18c": {
+   "new": "0x531ab6fc",
+   "how": "aligned + refs 0x531ab6fcx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aa1ac": {
+   "new": "0x531ab71c",
+   "how": "aligned + refs 0x531ab71cx1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aa1e8": {
+   "new": "0x531ab758",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aa1f0": {
+   "new": "0x531ab760",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aa1fc": {
+   "new": "0x531ab76c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aa848": {
+   "new": "0x531abdb8",
+   "how": "aligned + refs 0x531abdb8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aa860": {
+   "new": "0x531abdd0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aa864": {
+   "new": "0x531abdd4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aaa28": {
+   "new": "0x531abf98",
+   "how": "aligned + refs 0x531abf98x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aaa34": {
+   "new": "0x531abfa4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aada8": {
+   "new": "0x531ac318",
+   "how": "aligned + refs 0x531ac318x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aade4": {
+   "new": "0x531ac354",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aae00": {
+   "new": "0x531ac370",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aaef0": {
+   "new": null,
+   "how": "not aligned; refs 0x531ac460x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aaf2c": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aaf48": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aaf6c": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab0c8": {
+   "new": "0x531ac638",
+   "how": "aligned + refs 0x531ac638x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab14c": {
+   "new": "0x531ac6bc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab150": {
+   "new": "0x531ac6c0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab170": {
+   "new": "0x531ac6e0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab174": {
+   "new": "0x531ac6e4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab18c": {
+   "new": "0x531ac6fc",
+   "how": "aligned + refs 0x531ac6fcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab1bc": {
+   "new": "0x531ac72c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab1cc": {
+   "new": "0x531ac73c",
+   "how": "aligned + refs 0x531ac73cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab208": {
+   "new": "0x531ac778",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab21c": {
+   "new": "0x531ac78c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab220": {
+   "new": "0x531ac790",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab26c": {
+   "new": "0x531ac7dc",
+   "how": "aligned + refs 0x531ac7dcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab2a8": {
+   "new": "0x531ac818",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab2bc": {
+   "new": "0x531ac82c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab2c0": {
+   "new": "0x531ac830",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab2d4": {
+   "new": "0x531ac844",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab3f8": {
+   "new": "0x531ac968",
+   "how": "aligned + refs 0x531ac968x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab498": {
+   "new": "0x531aca08",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab49c": {
+   "new": "0x531aca0c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab4b8": {
+   "new": "0x531aca28",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ab4bc": {
+   "new": "0x531aca2c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531afbe4": {
+   "new": "0x531b1154",
+   "how": "aligned + refs 0x531b1154x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x531afc0c": {
+   "new": "0x531b117c",
+   "how": "aligned + refs 0x531b117cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x531b0800": {
+   "new": "0x531b1d70",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531b1cd8": {
+   "new": null,
+   "how": "not aligned; refs 0x531b32a0x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x531b3ecc": {
+   "new": "0x531b5494",
+   "how": "aligned + refs 0x531b5494x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531b9488": {
+   "new": "0x531baa50",
+   "how": "aligned + refs 0x531baa50x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x531b948c": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x531ba124": {
+   "new": "0x531bb65c",
+   "how": "aligned + refs 0x531bb65cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x531ba14c": {
+   "new": "0x531bb684",
+   "how": "aligned + refs 0x531bb684x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x531ba16c": {
+   "new": "0x531bb6a4",
+   "how": "aligned + refs 0x531bb6a4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531ba180": {
+   "new": "0x531bb6b8",
+   "how": "aligned + refs 0x531bb6b8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x531ba458": {
+   "new": "0x531bb990",
+   "how": "aligned + refs 0x531bb990x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531ba4a0": {
+   "new": "0x531bb9d8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts"
+   ]
+  },
+  "0x531ba4ac": {
+   "new": "0x531bb9e4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts"
+   ]
+  },
+  "0x531baf88": {
+   "new": "0x531bc4c0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x531bafd4": {
+   "new": "0x531bc50c",
+   "how": "aligned + refs 0x531bc50cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531bb010": {
+   "new": "0x531bc548",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts"
+   ]
+  },
+  "0x531bb014": {
+   "new": "0x531bc54c",
+   "how": "aligned + refs 0x531bc54cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x531bb26c": {
+   "new": "0x531bc7a4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x531bb410": {
+   "new": "0x531bc948",
+   "how": "aligned + refs 0x531bc948x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531bb454": {
+   "new": "0x531bc98c",
+   "how": "aligned + refs 0x531bc98cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x531bbf8c": {
+   "new": "0x531bd4c4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bbf9c": {
+   "new": "0x531bd4d4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bc9b4": {
+   "new": "0x531bdeec",
+   "how": "aligned + refs 0x531bdeecx8",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bcd00": {
+   "new": "0x531be238",
+   "how": "aligned + refs 0x531be238x38",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bd0ac": {
+   "new": "0x531be5e4",
+   "how": "aligned + refs 0x531be5e4x1",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bd0f0": {
+   "new": "0x531be628",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bd124": {
+   "new": "0x531be65c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bd580": {
+   "new": "0x531beab8",
+   "how": "aligned + refs 0x531beab8x37",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bd954": {
+   "new": "0x531bee8c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bd95c": {
+   "new": "0x531bee94",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bdaf0": {
+   "new": "0x531bf028",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bdaf8": {
+   "new": "0x531bf030",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bdb8c": {
+   "new": "0x531bf0c4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bdb94": {
+   "new": "0x531bf0cc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531be070": {
+   "new": "0x531bf5a8",
+   "how": "aligned + refs 0x531bf5a8x25",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531be088": {
+   "new": "0x531bf5c0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531be090": {
+   "new": "0x531bf5c8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531be31c": {
+   "new": "0x531bf854",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x531be3b8": {
+   "new": "0x531bf8f0",
+   "how": "aligned + refs 0x531bf8f0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531be418": {
+   "new": "0x531bf950",
+   "how": "aligned + refs 0x531bf950x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts"
+   ]
+  },
+  "0x531be420": {
+   "new": "0x531bf958",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts"
+   ]
+  },
+  "0x531be430": {
+   "new": "0x531bf968",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts"
+   ]
+  },
+  "0x531be434": {
+   "new": "0x531bf96c",
+   "how": "aligned + refs 0x531bf96cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x531bea9c": {
+   "new": "0x531bffd4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531beaa4": {
+   "new": "0x531bffdc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531beaf8": {
+   "new": "0x531c0030",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531beb00": {
+   "new": "0x531c0038",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bebf0": {
+   "new": "0x531c0128",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bebf8": {
+   "new": "0x531c0130",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bec7c": {
+   "new": "0x531c01b4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bec84": {
+   "new": "0x531c01bc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bed08": {
+   "new": "0x531c0240",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bed10": {
+   "new": "0x531c0248",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bedb0": {
+   "new": "0x531c02e8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bedb8": {
+   "new": "0x531c02f0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531beed4": {
+   "new": "0x531c040c",
+   "how": "aligned + refs 0x531c040cx3",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531beefc": {
+   "new": "0x531c0434",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bef04": {
+   "new": "0x531c043c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf09c": {
+   "new": "0x531c05d4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf0a4": {
+   "new": "0x531c05dc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf198": {
+   "new": "0x531c06d0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf1b0": {
+   "new": "0x531c06e8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf4a4": {
+   "new": "0x531c09dc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf4ac": {
+   "new": "0x531c09e4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf5b0": {
+   "new": "0x531c0ae8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf5b8": {
+   "new": "0x531c0af0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf65c": {
+   "new": "0x531c0b94",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf664": {
+   "new": "0x531c0b9c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf6c4": {
+   "new": "0x531c0bfc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf6d4": {
+   "new": "0x531c0c0c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf780": {
+   "new": "0x531c0cb8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf790": {
+   "new": "0x531c0cc8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf964": {
+   "new": "0x531c0e9c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf96c": {
+   "new": "0x531c0ea4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bfb28": {
+   "new": "0x531c1060",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bfb2c": {
+   "new": "0x531c1064",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bfce8": {
+   "new": "0x531c1220",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bfcf0": {
+   "new": "0x531c1228",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531c0844": {
+   "new": "0x531c1d7c",
+   "how": "aligned + refs 0x531c1d7cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531c0c5c": {
+   "new": "0x531c2194",
+   "how": "aligned + refs 0x531c2194x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531c0ca4": {
+   "new": "0x531c21dc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts"
+   ]
+  },
+  "0x531c0f10": {
+   "new": "0x531c2448",
+   "how": "aligned + refs 0x531c2448x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531c12c4": {
+   "new": "0x531c27fc",
+   "how": "aligned + refs 0x531c27fcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531c22e8": {
+   "new": "0x531c3820",
+   "how": "aligned + refs 0x531c3820x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531c2348": {
+   "new": "0x531c3880",
+   "how": "aligned + refs 0x531c3880x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts"
+   ]
+  },
+  "0x531c671c": {
+   "new": "0x531c7c54",
+   "how": "aligned + refs 0x531c7c54x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531c6720": {
+   "new": "0x531c7c58",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531c6b1c": {
+   "new": "0x531c80b0",
+   "how": "aligned + refs 0x531c80b0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x531c6b20": {
+   "new": "0x531c80b4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x531c7aa0": {
+   "new": "0x531c904c",
+   "how": "aligned + refs 0x531c9314x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531c7aa4": {
+   "new": "0x531c9050",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531c8a84": {
+   "new": null,
+   "how": "not aligned; refs 0x531c88ccx1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531c9728": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531c972c": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531c973c": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x531c982c": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x531ca3d0": {
+   "new": "0x531cbb58",
+   "how": "aligned + refs 0x531cbb58x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ca630": {
+   "new": "0x531cbdcc",
+   "how": "aligned + refs 0x531cbdccx10",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ca670": {
+   "new": "0x531cbe0c",
+   "how": "aligned + refs 0x531cbe0cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ca690": {
+   "new": "0x531cbe2c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ca698": {
+   "new": "0x531cbe34",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ca69c": {
+   "new": "0x531cbe38",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ca7cc": {
+   "new": "0x531cbf68",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x531ca7d0": {
+   "new": "0x531cbf6c",
+   "how": "aligned + refs 0x531cbf6cx2",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x531ca810": {
+   "new": "0x531cbfac",
+   "how": "aligned + refs 0x531cbfacx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ca828": {
+   "new": "0x531cbfc4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ca83c": {
+   "new": "0x531cbfd8",
+   "how": "aligned + refs 0x531cbfd8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ca968": {
+   "new": "0x531cc104",
+   "how": "aligned + refs 0x531cc104x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531ca9fc": {
+   "new": "0x531cc19c",
+   "how": "aligned + refs 0x531cc19cx2",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531caa94": {
+   "new": null,
+   "how": "not aligned; refs 0x531cc264x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cab84": {
+   "new": "0x531cc334",
+   "how": "aligned + refs 0x531cc334x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cb180": {
+   "new": "0x531cc944",
+   "how": "aligned + refs 0x531cc944x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cb1a0": {
+   "new": "0x531cc964",
+   "how": "aligned + refs 0x531cc964x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cb1bc": {
+   "new": "0x531cc980",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cb1c4": {
+   "new": "0x531cc988",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cb230": {
+   "new": "0x531cc9f4",
+   "how": "aligned + refs 0x531cc9f4x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cb448": {
+   "new": "0x531ccc24",
+   "how": "aligned + refs 0x531ccc10x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cb458": {
+   "new": "0x531ccc34",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cbad4": {
+   "new": "0x531cd2b0",
+   "how": "aligned + refs 0x531cd2b0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cbaec": {
+   "new": "0x531cd2c8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cbaf0": {
+   "new": "0x531cd2cc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cbd90": {
+   "new": "0x531cd56c",
+   "how": "aligned + refs 0x531cd56cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cbd9c": {
+   "new": "0x531cd578",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc0d4": {
+   "new": "0x531cd8b0",
+   "how": "aligned + refs 0x531cd8b0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc114": {
+   "new": "0x531cd8f0",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc130": {
+   "new": "0x531cd90c",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc220": {
+   "new": null,
+   "how": "not aligned; refs 0x531cd9fcx1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc260": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc27c": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc2a0": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc3fc": {
+   "new": "0x531cdbd8",
+   "how": "aligned + refs 0x531cdbd8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc484": {
+   "new": "0x531cdc60",
+   "how": "aligned + refs 0x531cdc60x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc488": {
+   "new": "0x531cdc64",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc4a0": {
+   "new": "0x531cdc7c",
+   "how": "aligned + refs 0x531cdc7cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc4a4": {
+   "new": "0x531cdc80",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc4bc": {
+   "new": "0x531cdc98",
+   "how": "aligned + refs 0x531cdc98x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc4ec": {
+   "new": "0x531cdcc8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc4fc": {
+   "new": "0x531cdcd8",
+   "how": "aligned + refs 0x531cdcd8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc538": {
+   "new": "0x531cdd14",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc550": {
+   "new": "0x531cdd2c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc588": {
+   "new": "0x531cdd64",
+   "how": "aligned + refs 0x531cdd64x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc5c4": {
+   "new": "0x531cdda0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc5dc": {
+   "new": "0x531cddb8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc720": {
+   "new": "0x531cdefc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc724": {
+   "new": "0x531cdf00",
+   "how": "aligned + refs 0x531cdf00x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc740": {
+   "new": "0x531cdf1c",
+   "how": "aligned + refs 0x531cdf1cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc7d8": {
+   "new": "0x531cdfb4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc7dc": {
+   "new": "0x531cdfb8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc7f8": {
+   "new": "0x531cdfd4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc7fc": {
+   "new": "0x531cdfd8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cf1e0": {
+   "new": "0x531d09bc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531cf1e8": {
+   "new": "0x531d09c4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531cf298": {
+   "new": "0x531d0a74",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x531cf2f0": {
+   "new": "0x531d0acc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x531d033c": {
+   "new": "0x531d1ba0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531d039c": {
+   "new": "0x531d1c00",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts"
+   ]
+  },
+  "0x531d03a0": {
+   "new": "0x531d1c04",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531d0ce8": {
+   "new": "0x531d254c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x531d2ae0": {
+   "new": "0x531d43ec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531d2b10": {
+   "new": "0x531d441c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531d2f88": {
+   "new": "0x531d4894",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x531d319c": {
+   "new": "0x531d4aa8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x531d4388": {
+   "new": "0x531d5cf4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531d43bc": {
+   "new": "0x531d5d28",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531d48a0": {
+   "new": "0x531d620c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x531d4aec": {
+   "new": "0x531d6458",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x531d5e8c": {
+   "new": "0x531d7860",
+   "how": "aligned + refs 0x531d7860x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py"
+   ]
+  },
+  "0x531d6868": {
+   "new": "0x531d825c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/list_width_check.py",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d6878": {
+   "new": "0x531d826c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/list_width_check.py",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d6a08": {
+   "new": "0x531d83fc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d6a0c": {
+   "new": "0x531d8400",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d6a54": {
+   "new": "0x531d8448",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d6a5c": {
+   "new": "0x531d8450",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d6b10": {
+   "new": "0x531d8504",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d6b18": {
+   "new": "0x531d850c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d6b7c": {
+   "new": "0x531d8570",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d6b80": {
+   "new": "0x531d8574",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d6d4c": {
+   "new": "0x531d8740",
+   "how": "aligned + refs 0x531d8740x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d6d54": {
+   "new": "0x531d8748",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py"
+   ]
+  },
+  "0x531d6d58": {
+   "new": "0x531d874c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x531d6d64": {
+   "new": "0x531d8758",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py"
+   ]
+  },
+  "0x531d6d8c": {
+   "new": "0x531d8780",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d6d90": {
+   "new": "0x531d8784",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d6dac": {
+   "new": "0x531d87a0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d6e80": {
+   "new": "0x531d8874",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d6e88": {
+   "new": "0x531d887c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d7040": {
+   "new": "0x531d8a34",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d7048": {
+   "new": "0x531d8a3c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d712c": {
+   "new": "0x531d8b20",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d7130": {
+   "new": "0x531d8b24",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d71e0": {
+   "new": "0x531d8bd4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d71ec": {
+   "new": "0x531d8be0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d7304": {
+   "new": "0x531d8cf8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d730c": {
+   "new": "0x531d8d00",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d7428": {
+   "new": "0x531d8e1c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d7430": {
+   "new": "0x531d8e24",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d75ac": {
+   "new": "0x531d8fa0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531d75b4": {
+   "new": "0x531d8fa8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531da960": {
+   "new": "0x531dc364",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531da964": {
+   "new": "0x531dc368",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531da9d4": {
+   "new": "0x531dc3d8",
+   "how": "aligned + refs 0x531dc3d8x1",
+   "ok": true,
+   "files": [
+    "tools/datestamp/list_width_check.py",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py"
+   ]
+  },
+  "0x531daa24": {
+   "new": "0x531dc428",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531daa2c": {
+   "new": "0x531dc430",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531dadc8": {
+   "new": "0x531dc7cc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531dadcc": {
+   "new": "0x531dc7d0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531dae1c": {
+   "new": "0x531dc820",
+   "how": "aligned + refs 0x531dc820x1",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531dae24": {
+   "new": "0x531dc828",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x531dae30": {
+   "new": "0x531dc834",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x531dae40": {
+   "new": "0x531dc844",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x531dae5c": {
+   "new": "0x531dc860",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x531db2c4": {
+   "new": "0x531dccc8",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x531db348": {
+   "new": "0x531dcd4c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x531e0d6c": {
+   "new": "0x531e2770",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x531e1bd0": {
+   "new": "0x531e361c",
+   "how": "aligned + refs 0x531e361cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x531e2064": {
+   "new": "0x531e3ab0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x531e206c": {
+   "new": "0x531e3ab8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x531e20a8": {
+   "new": "0x531e3af4",
+   "how": "aligned + refs 0x531e3af4x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash-menu.ts"
+   ]
+  },
+  "0x531e20cc": {
+   "new": "0x531e3b18",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x531e20d4": {
+   "new": "0x531e3b20",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x531e20fc": {
+   "new": "0x531e3b48",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash-menu.ts"
+   ]
+  },
+  "0x531e210c": {
+   "new": "0x531e3b58",
+   "how": "aligned + refs 0x531e3b58x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash-menu.ts"
+   ]
+  },
+  "0x531e212c": {
+   "new": "0x531e3b78",
+   "how": "aligned + refs 0x531e3b78x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash-menu.ts"
+   ]
+  },
+  "0x531e2140": {
+   "new": "0x531e3b8c",
+   "how": "aligned + refs 0x531e3b8cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash-menu.ts"
+   ]
+  },
+  "0x531e2164": {
+   "new": "0x531e3bb0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash-menu.ts"
+   ]
+  },
+  "0x531e2174": {
+   "new": "0x531e3bc0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash-menu.ts"
+   ]
+  },
+  "0x531e2188": {
+   "new": "0x531e3bd4",
+   "how": "aligned + refs 0x531e3bd4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash-menu.ts"
+   ]
+  },
+  "0x531e2424": {
+   "new": "0x531e3e70",
+   "how": "aligned + refs 0x531e3e70x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x531e2438": {
+   "new": "0x531e3e84",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x531e2444": {
+   "new": "0x531e3e90",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x531e2668": {
+   "new": "0x531e40b4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x531e266c": {
+   "new": "0x531e40b8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x531e271c": {
+   "new": "0x531e4168",
+   "how": "aligned + refs 0x531e4168x1",
+   "ok": true,
+   "files": [
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x531e2734": {
+   "new": "0x531e4180",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x531e2740": {
+   "new": "0x531e418c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x531e2a10": {
+   "new": "0x531e445c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x53223ba0": {
+   "new": "0x53225650",
+   "how": "aligned + refs 0x53225650x1",
+   "ok": true,
+   "files": [
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53223ba4": {
+   "new": "0x53225654",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x53223bd4": {
+   "new": "0x53225684",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53223e9c": {
+   "new": "0x5322594c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53223f14": {
+   "new": "0x532259c4",
+   "how": "aligned + refs 0x532259c4x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x53223f58": {
+   "new": "0x53225a08",
+   "how": "aligned + refs 0x53225a08x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x53223fa4": {
+   "new": "0x53225a54",
+   "how": "aligned + refs 0x53225a54x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x532240e4": {
+   "new": "0x53225b94",
+   "how": "aligned + refs 0x53225b94x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x5322419c": {
+   "new": "0x53225c4c",
+   "how": "aligned + refs 0x53225c4cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x5323a6f0": {
+   "new": "0x5323c328",
+   "how": "aligned + refs 0x5323c328x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts",
+    "core/src/fw/aspect/lookstash.ts"
+   ]
+  },
+  "0x5323dbb4": {
+   "new": "0x5323f7ec",
+   "how": "refs 0x5323f7ecx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/check.py",
+    "tools/directflash/settings_check.py"
+   ]
+  },
+  "0x5323e40c": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/check.py",
+    "tools/directflash/settings_check.py"
+   ]
+  },
+  "0x5323ea84": {
+   "new": "0x532406a4",
+   "how": "aligned + refs 0x532406a4x22741",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "core/src/fw/aspect/directflash.ts",
+    "core/src/fw/aspect/guard.ts",
+    "core/src/fw/aspect/halation-ui.ts",
+    "core/src/fw/aspect/shutdown.ts",
+    "core/src/fw/aspect/slots.ts",
+    "tools/aspect/boot_checks.py",
+    "tools/directflash/check.py",
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x5323ebf8": {
+   "new": "0x53240818",
+   "how": "aligned + refs 0x53240818x1802",
+   "ok": true,
+   "files": [
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x5323ed78": {
+   "new": "0x53240998",
+   "how": "aligned + refs 0x53240998x173",
+   "ok": true,
+   "files": [
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x5323f018": {
+   "new": "0x53240c38",
+   "how": "aligned + refs 0x53240c38x16680",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "core/src/fw/aspect/guard.ts",
+    "core/src/fw/aspect/shutdown.ts",
+    "third_party/gr-custom-tool/native/crop_state.c",
+    "tools/aspect/boot_checks.py",
+    "tools/directflash/check.py",
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x5323f038": {
+   "new": "0x53240c58",
+   "how": "aligned + refs 0x53240c58x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts"
+   ]
+  },
+  "0x5323f03c": {
+   "new": "0x53240c5c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts"
+   ]
+  },
+  "0x5323f078": {
+   "new": "0x53240c98",
+   "how": "aligned + refs 0x53240c98x182",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts",
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5323f378": {
+   "new": "0x53240f98",
+   "how": "aligned + refs 0x53240f98x433",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x5323f928": {
+   "new": "0x53241548",
+   "how": "aligned + refs 0x53241548x97",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x5323ff28": {
+   "new": "0x53241b48",
+   "how": "aligned + refs 0x53241b48x24",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x532544a4": {
+   "new": "0x532560d0",
+   "how": "aligned + refs 0x532560d0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x532544c0": {
+   "new": "0x532560ec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x53255a0c": {
+   "new": "0x53257648",
+   "how": "aligned + refs 0x53257648x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53255a20": {
+   "new": "0x5325765c",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x5325ae2c": {
+   "new": "0x5325ca8c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x5325ae34": {
+   "new": "0x5325ca94",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x5325ae6c": {
+   "new": "0x5325cacc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x5325ca14": {
+   "new": "0x5325e674",
+   "how": "aligned + refs 0x5325e674x46",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53262324": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x5326232c": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x53262558": {
+   "new": "0x53264274",
+   "how": "aligned + refs 0x53264274x3",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x5326255c": {
+   "new": "0x53264278",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x5326256c": {
+   "new": "0x53264288",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x53262598": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53270000": {
+   "new": "0x53271e60",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x532776ec": {
+   "new": null,
+   "how": "not aligned; refs 0x532795e4x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x532976ec": {
+   "new": "0x5329b514",
+   "how": "refs 0x5329b514x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x5329bf70": {
+   "new": "0x532a02b4",
+   "how": "aligned + refs 0x532a02b4x3",
+   "ok": false,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x5329bfe8": {
+   "new": "0x532a032c",
+   "how": "aligned + refs 0x532a032cx3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts"
+   ]
+  },
+  "0x5329c240": {
+   "new": "0x532a0584",
+   "how": "aligned + refs 0x532a0584x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x5329c248": {
+   "new": "0x532a058c",
+   "how": "aligned + refs 0x532a058cx5",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x5329c250": {
+   "new": "0x532a0594",
+   "how": "aligned + refs 0x532a0594x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x5329c258": {
+   "new": "0x532a059c",
+   "how": "aligned + refs 0x532a059cx5",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x5329c260": {
+   "new": "0x532a05a4",
+   "how": "aligned + refs 0x532a05a4x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x5329c2d8": {
+   "new": "0x532a061c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x5329cf30": {
+   "new": "0x532a1280",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5329cf64": {
+   "new": "0x532a12b4",
+   "how": "refs 0x532a12b4x30",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5329cf6c": {
+   "new": null,
+   "how": "not aligned; refs 0x532a12bcx1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5329cf70": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5329d154": {
+   "new": "0x532a14bc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5329d188": {
+   "new": "0x532a14f0",
+   "how": "refs 0x532a14f0x27",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5329d190": {
+   "new": null,
+   "how": "not aligned; refs 0x532a14f8x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5329d194": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5329e130": {
+   "new": "0x532a24a8",
+   "how": "aligned + refs 0x532a24a8x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x532a0000": {
+   "new": "0x532a595c",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x532a7820": {
+   "new": "0x532ac56c",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x532a90cc": {
+   "new": "0x532adedc",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "core/src/fw/aspect/guard.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x532a90d0": {
+   "new": "0x532adee0",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x532b1fdc": {
+   "new": "0x532b6ee0",
+   "how": "aligned + refs 0x532b6ee0x9",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x532b6f80": {
+   "new": "0x532bbe84",
+   "how": "aligned + refs 0x532bbe84x16",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b7110": {
+   "new": "0x532bc014",
+   "how": "aligned + refs 0x532bc014x16",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x532b72a0": {
+   "new": "0x532bc1a4",
+   "how": "aligned + refs 0x532bc1a4x16",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x532b7430": {
+   "new": "0x532bc334",
+   "how": "aligned + refs 0x532bc334x16",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x53300aa0": {
+   "new": "0x53305a6c",
+   "how": "aligned + refs 0x53305a6cx14",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x53300c34": {
+   "new": "0x532fff14",
+   "how": "aligned + refs 0x53305c00x14",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x53300dc8": {
+   "new": "0x53305d94",
+   "how": "aligned + refs 0x53305d94x14",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x53300f5c": {
+   "new": "0x53305f28",
+   "how": "aligned + refs 0x53305f28x14",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x5336b768": {
+   "new": "0x53379b38",
+   "how": "aligned + refs 0x53379b38x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x5336b89c": {
+   "new": null,
+   "how": "not aligned; refs 0x53379c6cx1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5336b8c4": {
+   "new": "0x53379c94",
+   "how": "aligned + refs 0x53379c94x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x5336bde8": {
+   "new": "0x5337a1b8",
+   "how": "refs 0x5337a1b8x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts",
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5336c000": {
+   "new": "0x5337a3d0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5336c604": {
+   "new": "0x5337a9d4",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x5336d074": {
+   "new": "0x5337b490",
+   "how": "aligned + refs 0x5337b490x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x5336d814": {
+   "new": "0x5337bc70",
+   "how": "aligned + refs 0x5337bc70x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x53372268": {
+   "new": "0x53380ba8",
+   "how": "aligned + refs 0x53380ba8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x53373160": {
+   "new": "0x53381aa8",
+   "how": "loose (immediates differ: check by hand); refs 0x53381aa8x1",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x53373400": {
+   "new": "0x53381e6c",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53373bc0": {
+   "new": "0x5338262c",
+   "how": "aligned + refs 0x5338262cx4",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/looks/looks_check.py"
+   ]
+  },
+  "0x53373bc4": {
+   "new": "0x53382630",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53373d04": {
+   "new": "0x53382788",
+   "how": "aligned + refs 0x53382788x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53373f84": {
+   "new": "0x53382a14",
+   "how": "aligned + refs 0x53382a14x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53374118": {
+   "new": "0x53382bc0",
+   "how": "aligned + refs 0x53382bc0x4",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53374360": {
+   "new": "0x53382e20",
+   "how": "aligned + refs 0x53382e20x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53374364": {
+   "new": "0x53382e24",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53374d20": {
+   "new": "0x533837f4",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x53374e24": {
+   "new": "0x533838f8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53374e28": {
+   "new": "0x533838fc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53374e98": {
+   "new": "0x5338396c",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53374e9c": {
+   "new": "0x53383970",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53375088": {
+   "new": "0x53383b68",
+   "how": "aligned + refs 0x53383b68x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x53375210": {
+   "new": "0x53383cf0",
+   "how": "aligned + refs 0x53383cf0x2",
+   "ok": false,
+   "files": [
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x533755bc": {
+   "new": "0x5338409c",
+   "how": "aligned + refs 0x5338409cx1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/guard.ts",
+    "tools/looks/looks_check.py"
+   ]
+  },
+  "0x5337561c": {
+   "new": "0x533840fc",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/looks.ts",
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53375620": {
+   "new": "0x53384100",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53375628": {
+   "new": "0x53384108",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5337f824": {
+   "new": "0x5338edf8",
+   "how": "refs 0x5338edf8x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts",
+    "core/src/fw/aspect/lookstash.ts",
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5337f828": {
+   "new": "0x5338edfc",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5337fbac": {
+   "new": "0x5338f198",
+   "how": "refs 0x5338f198x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x5337fe98": {
+   "new": "0x5338f484",
+   "how": "aligned + refs 0x5338f484x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x5337fef0": {
+   "new": "0x5338f4dc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x5337fef4": {
+   "new": "0x5338f4e0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x5337ff98": {
+   "new": null,
+   "how": "not aligned; refs 0x5338f584x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x5337ff9c": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x53380874": {
+   "new": null,
+   "how": "not aligned; refs 0x5338fe60x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x53380cfc": {
+   "new": "0x53390328",
+   "how": "refs 0x53390328x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x53380fac": {
+   "new": "0x533905d8",
+   "how": "aligned + refs 0x533905d8x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53380fb0": {
+   "new": "0x533905dc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5338143c": {
+   "new": "0x53390a88",
+   "how": "refs 0x53390a88x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py",
+    "tools/aspect/verify_file.py"
+   ]
+  },
+  "0x53381440": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x533817f0": {
+   "new": "0x53390e40",
+   "how": "aligned + refs 0x53390e40x11",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x53381850": {
+   "new": "0x53390ea0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x53381854": {
+   "new": "0x53390ea4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x53381858": {
+   "new": "0x53390ea8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x53381934": {
+   "new": null,
+   "how": "not aligned; refs 0x53390f84x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x53397044": {
+   "new": "0x533a66c8",
+   "how": "aligned + refs 0x533a66c8x7",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533971cc": {
+   "new": "0x533a6868",
+   "how": "refs 0x533a6868x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5339787c": {
+   "new": "0x533a6f30",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x5339aeb0": {
+   "new": "0x533aa568",
+   "how": "aligned + refs 0x533aa568x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x5339aeb4": {
+   "new": "0x533aa56c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x5339af5c": {
+   "new": "0x533aa614",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x5339b588": {
+   "new": "0x533aac40",
+   "how": "aligned + refs 0x533aac40x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x5339b6a4": {
+   "new": "0x533aad5c",
+   "how": "aligned + refs 0x533aae14x1, 0x533aad5cx1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x5339e73c": {
+   "new": "0x533adef4",
+   "how": "aligned + refs 0x533adef4x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5339e758": {
+   "new": "0x533adf10",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5339e924": {
+   "new": "0x533ae0dc",
+   "how": "aligned + refs 0x533ae0dcx9",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5339e990": {
+   "new": "0x533ae148",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5339e9b8": {
+   "new": "0x533ae170",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x533a3804": {
+   "new": "0x533b3040",
+   "how": "aligned + refs 0x533b3040x2",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533a3824": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533a3828": {
+   "new": "0x533b3064",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533a3844": {
+   "new": "0x533b3080",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533a3854": {
+   "new": "0x533b3090",
+   "how": "aligned + refs 0x533b3090x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533a6880": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533a6884": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533a6898": {
+   "new": null,
+   "how": "not aligned; refs 0x533b61c4x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533a75ac": {
+   "new": "0x533b6f74",
+   "how": "aligned + refs 0x533b6f74x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533a7628": {
+   "new": "0x533b6ff0",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533a762c": {
+   "new": "0x533b6ff4",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533ad4e0": {
+   "new": "0x533bd260",
+   "how": "aligned + refs 0x533bd260x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533adce0": {
+   "new": "0x533bda60",
+   "how": "refs 0x533bda60x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533ae4e0": {
+   "new": "0x533be260",
+   "how": "refs 0x533be260x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533af100": {
+   "new": "0x533befa0",
+   "how": "refs 0x533befa0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533afd20": {
+   "new": "0x533bfc20",
+   "how": "refs 0x533bfc20x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533b0940": {
+   "new": "0x533c08a0",
+   "how": "refs 0x533c08a0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533b1560": {
+   "new": "0x533c1520",
+   "how": "refs 0x533c1520x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533b2180": {
+   "new": "0x533c2260",
+   "how": "refs 0x533c2260x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533b28e0": {
+   "new": "0x533c2ae0",
+   "how": "aligned + refs 0x533c2ae0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533b2b5c": {
+   "new": "0x533c2d5c",
+   "how": "aligned + refs 0x533c2d5cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533b2d18": {
+   "new": "0x533c2f18",
+   "how": "aligned + refs 0x533c2f18x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533b2ed4": {
+   "new": "0x533c30d4",
+   "how": "aligned + refs 0x533c30d4x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533b3044": {
+   "new": "0x533c3244",
+   "how": "aligned + refs 0x533c3244x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533b3200": {
+   "new": "0x533c3400",
+   "how": "aligned + refs 0x533c3400x2",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533b34dc": {
+   "new": "0x533c36dc",
+   "how": "aligned + refs 0x533c36dcx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533b387c": {
+   "new": "0x533c3a7c",
+   "how": "aligned + refs 0x533c3a7cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533b3c1c": {
+   "new": "0x533c3e1c",
+   "how": "aligned + refs 0x533c3e1cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533b3fbc": {
+   "new": "0x533c41bc",
+   "how": "aligned + refs 0x533c41bcx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533b4bdc": {
+   "new": "0x533c4e3c",
+   "how": "aligned + refs 0x533c4e3cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533b51c0": {
+   "new": "0x533c5490",
+   "how": "refs 0x533c5490x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533b5704": {
+   "new": "0x533c5a84",
+   "how": "refs 0x533c5a84x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533b5c48": {
+   "new": "0x533c6078",
+   "how": "refs 0x533c6078x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533b618c": {
+   "new": "0x533c666c",
+   "how": "aligned + refs 0x533c67b0x1, 0x533c666cx1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533b698c": {
+   "new": "0x533c6fcc",
+   "how": "aligned + refs 0x533c6fccx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x533b6d6c": {
+   "new": "0x533c73fc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533b7130": {
+   "new": "0x533c77c0",
+   "how": "aligned + refs 0x533c77c0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533b7818": {
+   "new": "0x533c7ea8",
+   "how": "aligned + refs 0x533c7ea8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533b7f00": {
+   "new": null,
+   "how": "not aligned; refs 0x533c8590x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533b8928": {
+   "new": null,
+   "how": "not aligned; refs 0x533c90a8x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533b9350": {
+   "new": null,
+   "how": "not aligned; refs 0x533c9b20x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533b9d78": {
+   "new": null,
+   "how": "not aligned; refs 0x533ca598x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533ba7a0": {
+   "new": null,
+   "how": "not aligned; refs 0x533cb010x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533bb1c8": {
+   "new": "0x533cbb28",
+   "how": "aligned + refs 0x533cbb28x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533bb838": {
+   "new": "0x533cc288",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x533bb858": {
+   "new": "0x533cc2a8",
+   "how": "aligned + refs 0x533cc2a8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533bbab8": {
+   "new": "0x533cc508",
+   "how": "aligned + refs 0x533cc508x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533bbc78": {
+   "new": "0x533cc6c8",
+   "how": "aligned + refs 0x533cc6c8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533bbe30": {
+   "new": "0x533cc880",
+   "how": "aligned + refs 0x533cc880x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533bbfa8": {
+   "new": "0x533cc9f8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533bc148": {
+   "new": "0x533ccb98",
+   "how": "aligned + refs 0x533ccb98x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533bc438": {
+   "new": "0x533cce88",
+   "how": "aligned + refs 0x533cce88x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533bc758": {
+   "new": "0x533cd1a8",
+   "how": "aligned + refs 0x533cd1a8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533bca78": {
+   "new": "0x533cd4c8",
+   "how": "aligned + refs 0x533cd4c8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533bcdb8": {
+   "new": "0x533cd808",
+   "how": "aligned + refs 0x533cd808x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533bd7e0": {
+   "new": "0x533ce280",
+   "how": "aligned + refs 0x533ce280x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533bdcf0": {
+   "new": null,
+   "how": "not aligned; refs 0x533ce7f0x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533be188": {
+   "new": null,
+   "how": "not aligned; refs 0x533ced18x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533be620": {
+   "new": null,
+   "how": "not aligned; refs 0x533cf240x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py",
+    "tools/slotparams/slot_params.c"
+   ]
+  },
+  "0x533beab8": {
+   "new": "0x533cf768",
+   "how": "aligned + refs 0x533cf768x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x533bebf0": {
+   "new": "0x533cfa00",
+   "how": "loose (immediates differ: check by hand); refs 0x533cfa00x1",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533bf5b0": {
+   "new": "0x533d03d0",
+   "how": "aligned + refs 0x533d03d0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x533bf70c": {
+   "new": "0x533d0538",
+   "how": "aligned + refs 0x533d0538x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x533bf710": {
+   "new": "0x533d053c",
+   "how": "aligned + refs 0x533d053cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c01bc": {
+   "new": "0x533d0fe8",
+   "how": "aligned + refs 0x533d0fe8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c0c68": {
+   "new": "0x533d1a94",
+   "how": "aligned + refs 0x533d1a94x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c1c14": {
+   "new": "0x533d2b90",
+   "how": "aligned + refs 0x533d2b90x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c2bc0": {
+   "new": "0x533d3bac",
+   "how": "aligned + refs 0x533d3bacx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c3b6c": {
+   "new": "0x533d4bc8",
+   "how": "aligned + refs 0x533d4bc8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c4b18": {
+   "new": "0x533d5be4",
+   "how": "aligned + refs 0x533d5be4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c5ac4": {
+   "new": "0x533d6ce0",
+   "how": "aligned + refs 0x533d6ce0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c6494": {
+   "new": "0x533d7800",
+   "how": "aligned + refs 0x533d7800x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c68d4": {
+   "new": "0x533d7c40",
+   "how": "aligned + refs 0x533d7c40x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c6c34": {
+   "new": "0x533d7fa0",
+   "how": "aligned + refs 0x533d7fa0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c6f90": {
+   "new": "0x533d82fc",
+   "how": "aligned + refs 0x533d82fcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c71dc": {
+   "new": "0x533d8548",
+   "how": "aligned + refs 0x533d8548x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c753c": {
+   "new": "0x533d88a8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c79ec": {
+   "new": "0x533d8d58",
+   "how": "aligned + refs 0x533d8d58x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c8298": {
+   "new": "0x533d9604",
+   "how": "aligned + refs 0x533d9604x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c8b44": {
+   "new": "0x533d9eb0",
+   "how": "aligned + refs 0x533d9eb0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533c93f0": {
+   "new": "0x533da75c",
+   "how": "aligned + refs 0x533da75cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533ca39c": {
+   "new": "0x533db778",
+   "how": "aligned + refs 0x533db778x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533cab78": {
+   "new": "0x533dbfd4",
+   "how": "aligned + refs 0x533dbfd4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533cb244": {
+   "new": "0x533dc770",
+   "how": "aligned + refs 0x533dc770x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533cb910": {
+   "new": "0x533dcf0c",
+   "how": "aligned + refs 0x533dcf0cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533cbfdc": {
+   "new": "0x533dd6a8",
+   "how": "aligned + refs 0x533dd8f4x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533cc5b4": {
+   "new": "0x533ddfe0",
+   "how": "aligned + refs 0x533ddfe0x2",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533cc648": {
+   "new": "0x533de080",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/looks.ts"
+   ]
+  },
+  "0x533cc670": {
+   "new": "0x533de0b0",
+   "how": "refs 0x533de0b0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/looks.ts"
+   ]
+  },
+  "0x533cc6e0": {
+   "new": "0x533de144",
+   "how": "aligned + refs 0x533de144x2",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/guard.ts",
+    "core/src/fw/aspect/looks.ts",
+    "core/src/fw/aspect/monounlock.ts",
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533cc6e4": {
+   "new": "0x533de148",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533cc6e8": {
+   "new": "0x533de14c",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533cc6f8": {
+   "new": "0x533de15c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/looks.ts"
+   ]
+  },
+  "0x533cc730": {
+   "new": "0x533de194",
+   "how": "aligned + refs 0x533de194x12",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/looks.ts"
+   ]
+  },
+  "0x533cc738": {
+   "new": "0x533de19c",
+   "how": "aligned + refs 0x533de19cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/looks.ts"
+   ]
+  },
+  "0x533cc748": {
+   "new": "0x533de1ac",
+   "how": "aligned + refs 0x533de1acx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/looks.ts"
+   ]
+  },
+  "0x533cc750": {
+   "new": "0x533de1b4",
+   "how": "aligned + refs 0x533de1b4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/monounlock.ts",
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533cc784": {
+   "new": "0x533de1e8",
+   "how": "aligned + refs 0x533de1e8x2",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/guard.ts",
+    "tools/looks/looks_check.py"
+   ]
+  },
+  "0x533cc78c": {
+   "new": "0x533de1f0",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/looks.ts",
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533cc794": {
+   "new": "0x533de1f8",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533cc7a4": {
+   "new": "0x533de208",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533cc890": {
+   "new": "0x533de2f8",
+   "how": "aligned + refs 0x533de2f8x1",
+   "ok": false,
+   "files": [
+    "tools/looks/looks_check.py"
+   ]
+  },
+  "0x533cc8c8": {
+   "new": "0x533de330",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533cc90c": {
+   "new": "0x533de374",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x533cc928": {
+   "new": "0x533de390",
+   "how": "aligned + refs 0x533de390x5",
+   "ok": true,
+   "files": [
+    "tools/looks/looks_check.py"
+   ]
+  },
+  "0x533e0324": {
+   "new": "0x533f1db0",
+   "how": "aligned + refs 0x533f1db0x6",
+   "ok": false,
+   "files": [
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x533e0330": {
+   "new": "0x533f1dbc",
+   "how": "aligned + refs 0x533f1dbcx10",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x533e033c": {
+   "new": "0x533f1dc8",
+   "how": "loose (immediates differ: check by hand); refs 0x533f1dc8x7, 0x533de0e8x1",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/monounlock.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/looks/looks_check.py"
+   ]
+  },
+  "0x533e17cc": {
+   "new": "0x533f3254",
+   "how": "aligned + refs 0x533f3254x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "core/src/fw/aspect/guard.ts",
+    "core/src/fw/aspect/slots.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x533e1c04": {
+   "new": "0x533f3674",
+   "how": "aligned + refs 0x533f3674x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "core/src/fw/aspect/directflash.ts",
+    "core/src/fw/aspect/guard.ts",
+    "core/src/fw/aspect/shutdown.ts",
+    "core/src/fw/aspect/slots.ts",
+    "tools/aspect/boot_checks.py",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/looks/looks_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x533e1c08": {
+   "new": "0x533f3678",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x533ef000": {
+   "new": "0x53400df4",
+   "how": "aligned + refs 0x53400df4x23",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/lookstash.ts",
+    "tools/datestamp/datestamp.c",
+    "tools/datestamp/menu_check.py",
+    "tools/looks/looks_check.py",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x533ef18c": {
+   "new": "0x53400f80",
+   "how": "aligned + refs 0x53400f80x1",
+   "ok": false,
+   "files": [
+    "tools/datestamp/list_width_check.py"
+   ]
+  },
+  "0x533ef604": {
+   "new": "0x534013f8",
+   "how": "aligned + refs 0x534013f8x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x533ef608": {
+   "new": "0x534013fc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53400000": {
+   "new": "0x53411dc0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/aspect/gen_native.py",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x535278d8": {
+   "new": "0x53546c24",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x53560000": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x5357094c": {
+   "new": "0x53593c14",
+   "how": "aligned + refs 0x53593c14x45",
+   "ok": true,
+   "files": [
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53570a9c": {
+   "new": "0x53593d64",
+   "how": "aligned + refs 0x53593d64x160",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "core/src/fw/aspect/softfocus.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x53570b6c": {
+   "new": "0x53593e34",
+   "how": "aligned + refs 0x53593e34x199",
+   "ok": true,
+   "files": [
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x53570e84": {
+   "new": "0x5359414c",
+   "how": "aligned + refs 0x5359414cx48",
+   "ok": true,
+   "files": [
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x535711e4": {
+   "new": "0x535944ac",
+   "how": "aligned + refs 0x535944acx23",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/datestamp/list_width_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x535712b0": {
+   "new": "0x53594578",
+   "how": "aligned + refs 0x53594578x4",
+   "ok": true,
+   "files": [
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py"
+   ]
+  },
+  "0x535715b8": {
+   "new": "0x53594880",
+   "how": "aligned + refs 0x53594880x100",
+   "ok": true,
+   "files": [
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x53571788": {
+   "new": "0x53594a50",
+   "how": "aligned + refs 0x53594a50x40",
+   "ok": true,
+   "files": [
+    "tools/datestamp/list_width_check.py",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x53572adc": {
+   "new": "0x53595da4",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x53572ae0": {
+   "new": "0x53595da8",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53572aec": {
+   "new": "0x53595db4",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53572af4": {
+   "new": "0x53595dbc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53572b04": {
+   "new": "0x53595dcc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x53572c54": {
+   "new": "0x53595f1c",
+   "how": "aligned + refs 0x53595f1cx1",
+   "ok": true,
+   "files": [
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x53572c60": {
+   "new": "0x53595f28",
+   "how": "aligned + refs 0x53595f28x2",
+   "ok": true,
+   "files": [
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x53572d50": {
+   "new": "0x53596018",
+   "how": "aligned + refs 0x53596018x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x53572e34": {
+   "new": "0x535960fc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x5357338c": {
+   "new": "0x53596654",
+   "how": "aligned + refs 0x53596654x135",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x535734f4": {
+   "new": "0x535967c0",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x53573500": {
+   "new": "0x535967cc",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53573504": {
+   "new": "0x535967d0",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53573510": {
+   "new": "0x535967dc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x535735e4": {
+   "new": "0x535968b0",
+   "how": "aligned + refs 0x535968b0x3",
+   "ok": true,
+   "files": [
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x53576e38": {
+   "new": "0x5359a104",
+   "how": "aligned + refs 0x5359a104x280",
+   "ok": true,
+   "files": [
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x53579f28": {
+   "new": "0x5359d1f4",
+   "how": "aligned + refs 0x5359d1f4x1",
+   "ok": true,
+   "files": [
+    "tools/datestamp/list_width_check.py"
+   ]
+  },
+  "0x5357a1c0": {
+   "new": "0x5359d48c",
+   "how": "aligned + refs 0x5359d48cx33",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x5357a428": {
+   "new": "0x5359d6f4",
+   "how": "aligned + refs 0x5359d6f4x21, 0x5359d740x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x5357a510": {
+   "new": "0x5359d7dc",
+   "how": "aligned + refs 0x5359d7dcx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x5357ab24": {
+   "new": "0x5359ddf0",
+   "how": "aligned + refs 0x5359ddf0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/list_width_check.py"
+   ]
+  },
+  "0x5357ad3c": {
+   "new": "0x5359e008",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x5357ad40": {
+   "new": "0x5359e00c",
+   "how": "aligned + refs 0x5359e00cx10",
+   "ok": true,
+   "files": [
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x5357ade0": {
+   "new": "0x5359e0ac",
+   "how": "aligned + refs 0x5359e0acx47",
+   "ok": true,
+   "files": [
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x5357ae64": {
+   "new": "0x5359e130",
+   "how": "aligned + refs 0x5359e130x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x5357aef0": {
+   "new": "0x5359e1bc",
+   "how": "aligned + refs 0x5359e1bcx72",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "core/src/fw/aspect/directflash.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x5357dd98": {
+   "new": "0x535a1064",
+   "how": "aligned + refs 0x535a1064x35",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x5357de6c": {
+   "new": "0x535a1138",
+   "how": "aligned + refs 0x535a1138x8",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x5357f2b0": {
+   "new": "0x535a257c",
+   "how": "aligned + refs 0x535a257cx31",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53582fb4": {
+   "new": "0x535a6280",
+   "how": "aligned + refs 0x535a6280x5",
+   "ok": true,
+   "files": [
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py"
+   ]
+  },
+  "0x53583014": {
+   "new": "0x535a62e0",
+   "how": "aligned + refs 0x535a62e0x5",
+   "ok": true,
+   "files": [
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x5358304c": {
+   "new": "0x535a6318",
+   "how": "aligned + refs 0x535a6318x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py"
+   ]
+  },
+  "0x53583188": {
+   "new": "0x535a6454",
+   "how": "aligned + refs 0x535a6454x17",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x535831e8": {
+   "new": "0x535a64b4",
+   "how": "aligned + refs 0x535a64b4x19",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x53587c3c": {
+   "new": "0x535aaf0c",
+   "how": "aligned + refs 0x535aaf0cx59",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x53589ab4": {
+   "new": "0x535acd84",
+   "how": "aligned + refs 0x535acd84x1234",
+   "ok": true,
+   "files": [
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x535a0000": {
+   "new": "0x535c3784",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x53628cd8": {
+   "new": "0x5364d640",
+   "how": "aligned + refs 0x5364d640x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts"
+   ]
+  },
+  "0x5362e430": {
+   "new": "0x53652d98",
+   "how": "aligned + refs 0x53652d98x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5362e434": {
+   "new": "0x53652d9c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5362e440": {
+   "new": "0x53652da8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536342f0": {
+   "new": "0x53658c58",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536342f4": {
+   "new": "0x53658c5c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53634ebc": {
+   "new": "0x53659824",
+   "how": "aligned + refs 0x53659824x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53634ec0": {
+   "new": "0x53659828",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5363faa8": {
+   "new": "0x53664430",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5363fac8": {
+   "new": "0x53664450",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536462e8": {
+   "new": "0x5366ac70",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53646300": {
+   "new": "0x5366ac88",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53646310": {
+   "new": "0x5366ac98",
+   "how": "aligned + refs 0x5366ac98x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5364635c": {
+   "new": "0x5366ace4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53646384": {
+   "new": "0x5366ad0c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53646c1c": {
+   "new": "0x5366b5a4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53646c20": {
+   "new": "0x5366b5a8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53646c48": {
+   "new": "0x5366b5d0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53646c6c": {
+   "new": "0x5366b5f4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5364dc68": {
+   "new": "0x53672668",
+   "how": "loose (immediates differ: check by hand); refs 0x53672668x1",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5364dcb0": {
+   "new": "0x536726b0",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5364dcb4": {
+   "new": "0x536726b4",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5364dcd8": {
+   "new": "0x536726d8",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5364dcdc": {
+   "new": "0x536726dc",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5364dee4": {
+   "new": "0x536728e4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x5364dee8": {
+   "new": "0x536728e8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5364df8c": {
+   "new": "0x5367298c",
+   "how": "aligned + refs 0x5367298cx1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5364df94": {
+   "new": "0x53672994",
+   "how": "aligned + refs 0x53672994x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5364e3e0": {
+   "new": "0x53672de0",
+   "how": "aligned + refs 0x53672de0x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5364e440": {
+   "new": "0x53672e40",
+   "how": "aligned + refs 0x53672e40x6",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5364e484": {
+   "new": "0x53672e80",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x5364e488": {
+   "new": "0x53672e84",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5364e4d4": {
+   "new": "0x53672ed0",
+   "how": "aligned + refs 0x53672ed0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5364e750": {
+   "new": "0x53673144",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5364e7cc": {
+   "new": "0x536731c0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5364e7d4": {
+   "new": "0x536731c8",
+   "how": "aligned + refs 0x536731c8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536789fc": {
+   "new": "0x5369d3c4",
+   "how": "aligned + refs 0x5369d3c4x2",
+   "ok": true,
+   "files": [
+    "tools/directflash/check.py",
+    "tools/directflash/directflash.c"
+   ]
+  },
+  "0x536792e0": {
+   "new": "0x5369da5c",
+   "how": "aligned + refs 0x5369da5cx18",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py",
+    "tools/directflash/directflash.c",
+    "tools/directflash/gen.py"
+   ]
+  },
+  "0x5367a7b4": {
+   "new": "0x5369ef30",
+   "how": "aligned + refs 0x5369ef30x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py",
+    "tools/directflash/directflash.c"
+   ]
+  },
+  "0x5367a9e8": {
+   "new": "0x5369f164",
+   "how": "aligned + refs 0x5369f164x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts"
+   ]
+  },
+  "0x5367aaa8": {
+   "new": "0x5369f224",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py",
+    "tools/directflash/diag_check.py",
+    "tools/directflash/directflash.c"
+   ]
+  },
+  "0x5367ac5c": {
+   "new": "0x5369f3d8",
+   "how": "aligned + refs 0x5369f3d8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts"
+   ]
+  },
+  "0x53680d28": {
+   "new": "0x536a54a0",
+   "how": "aligned + refs 0x536a54a0x12",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts"
+   ]
+  },
+  "0x53695538": {
+   "new": "0x536b9ca8",
+   "how": "aligned + refs 0x536b9ca8x242",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x53695800": {
+   "new": "0x536b9f70",
+   "how": "aligned + refs 0x536b9f70x30",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x53696aa4": {
+   "new": "0x536bb214",
+   "how": "aligned + refs 0x536bb214x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x5369e444": {
+   "new": "0x536c2bbc",
+   "how": "aligned + refs 0x536c2bbcx105",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x5369e850": {
+   "new": "0x536c2fc8",
+   "how": "aligned + refs 0x536c2fc8x21",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x5369e8ec": {
+   "new": "0x536c3064",
+   "how": "aligned + refs 0x536c3064x21",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x5369ec58": {
+   "new": "0x536c33d0",
+   "how": "aligned + refs 0x536c33d0x52",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x5369ece8": {
+   "new": "0x536c3460",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py",
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x5369ecec": {
+   "new": "0x536c3464",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x5369ed18": {
+   "new": "0x536c3490",
+   "how": "aligned + refs 0x536c3490x1",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x5369eed4": {
+   "new": "0x536c364c",
+   "how": "aligned + refs 0x536c364cx25",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x536a0168": {
+   "new": "0x536c48e0",
+   "how": "aligned + refs 0x536c48e0x1",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x536a0370": {
+   "new": "0x536c4ae8",
+   "how": "aligned + refs 0x536c4ae8x26",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x536a174c": {
+   "new": "0x536c5ed0",
+   "how": "aligned + refs 0x536c5ed0x1",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x536a17a4": {
+   "new": "0x536c5f28",
+   "how": "aligned + refs 0x536c5f28x1",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x536a1ccc": {
+   "new": "0x536c6450",
+   "how": "aligned + refs 0x536c6450x5",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x536a1d3c": {
+   "new": "0x536c64c0",
+   "how": "aligned + refs 0x536c64c0x9",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x536b6848": {
+   "new": "0x536db01c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536b684c": {
+   "new": "0x536db020",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536b6850": {
+   "new": "0x536db024",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536b6868": {
+   "new": "0x536db03c",
+   "how": "aligned + refs 0x536db03cx4",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536be2c8": {
+   "new": "0x536e2a9c",
+   "how": "aligned + refs 0x536e2a9cx3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x536beaac": {
+   "new": "0x536e3280",
+   "how": "aligned + refs 0x536e3280x1",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x536bed28": {
+   "new": "0x536e34fc",
+   "how": "aligned + refs 0x536e34fcx2",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x536bedcc": {
+   "new": "0x536e35a0",
+   "how": "aligned + refs 0x536e35a0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x536bf008": {
+   "new": "0x536e37dc",
+   "how": "aligned + refs 0x536e37dcx2",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x536bf248": {
+   "new": "0x536e3a1c",
+   "how": "aligned + refs 0x536e3a1cx1",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x536c79cc": {
+   "new": "0x536ec19c",
+   "how": "aligned + refs 0x536ec19cx3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "third_party/gr-custom-tool/native/crop_image_identity.c",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x536c79e0": {
+   "new": "0x536ec1b0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536c79e4": {
+   "new": "0x536ec1b4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536c79e8": {
+   "new": "0x536ec1b8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536c7a00": {
+   "new": "0x536ec1d0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536cd414": {
+   "new": "0x536f1c14",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py",
+    "tools/aspect/common.py"
+   ]
+  },
+  "0x536cd418": {
+   "new": "0x536f1c18",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x536cd88c": {
+   "new": "0x536f208c",
+   "how": "aligned + refs 0x536f208cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536cd890": {
+   "new": "0x536f2090",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536cda80": {
+   "new": "0x536f2280",
+   "how": "aligned + refs 0x536f2280x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536cda84": {
+   "new": "0x536f2284",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536d8794": {
+   "new": "0x536fcf9c",
+   "how": "aligned + refs 0x536fcf9cx14",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x536fcc8c": {
+   "new": "0x537215e0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536fef60": {
+   "new": "0x537238b4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x536ff504": {
+   "new": "0x53723e58",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53701c40": {
+   "new": "0x53726594",
+   "how": "aligned + refs 0x53726594x2, 0x53738948x1",
+   "ok": false,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x53701c44": {
+   "new": "0x53726598",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x53701d3c": {
+   "new": "0x53726698",
+   "how": "aligned + refs 0x53726698x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53701d48": {
+   "new": "0x537266a4",
+   "how": "aligned + refs 0x537266a4x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53701d8c": {
+   "new": "0x537266e8",
+   "how": "aligned + refs 0x537266e8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53701d90": {
+   "new": "0x537266ec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53701de8": {
+   "new": "0x53726744",
+   "how": "aligned + refs 0x53726744x9",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x53702464": {
+   "new": "0x53726dc0",
+   "how": "aligned + refs 0x53726dc0x7",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53702560": {
+   "new": "0x53726ebc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53702564": {
+   "new": "0x53726ec0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x537034b4": {
+   "new": "0x53727e10",
+   "how": "aligned + refs 0x53727e10x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts",
+    "core/src/fw/aspect/halation.ts"
+   ]
+  },
+  "0x537064a0": {
+   "new": "0x5372adfc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5370655c": {
+   "new": "0x5372aeb8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5370a2e4": {
+   "new": "0x5372ec44",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5370a5dc": {
+   "new": "0x5372ef3c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/gen_native.py",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x5370d62c": {
+   "new": "0x53731f8c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5370d768": {
+   "new": "0x537320c8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5370f7d4": {
+   "new": "0x53734134",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts"
+   ]
+  },
+  "0x537150fc": {
+   "new": "0x53739a5c",
+   "how": "aligned + refs 0x53739a5cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "core/src/fw/aspect/softfocus.ts",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x53715100": {
+   "new": "0x53739a60",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5371518c": {
+   "new": "0x53739b04",
+   "how": "refs 0x53739b04x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x537151b4": {
+   "new": "0x53739b60",
+   "how": "refs 0x53739b60x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x5372ad4c": {
+   "new": "0x5374f734",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5372b620": {
+   "new": "0x53750008",
+   "how": "aligned + refs 0x53750008x1626, 0x535f8cfcx1, 0x537bec40x1",
+   "ok": false,
+   "files": [
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x5372b640": {
+   "new": "0x53750028",
+   "how": "aligned + refs 0x53750028x2",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts"
+   ]
+  },
+  "0x5374acfc": {
+   "new": null,
+   "how": "not aligned; refs 0x5376fb10x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x53755ca0": {
+   "new": "0x5377b1b0",
+   "how": "aligned + refs 0x5377b1b0x10",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts",
+    "core/src/fw/aspect/lookstash.ts"
+   ]
+  },
+  "0x53755cc8": {
+   "new": "0x5377b1d8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts"
+   ]
+  },
+  "0x5375c31c": {
+   "new": "0x537818a8",
+   "how": "aligned + refs 0x537818a8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts"
+   ]
+  },
+  "0x5375c320": {
+   "new": "0x537818ac",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts"
+   ]
+  },
+  "0x537d5748": {
+   "new": "0x537fbad0",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x537d575c": {
+   "new": "0x537fbae4",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x537d5760": {
+   "new": "0x537fbae8",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x537d57ac": {
+   "new": "0x537fbb38",
+   "how": "refs 0x537fbb38x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x537d7768": {
+   "new": "0x537fdb3c",
+   "how": "aligned + refs 0x537fdb3cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x537d776c": {
+   "new": "0x537fdb40",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x537d899c": {
+   "new": "0x537feed8",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x537d89b0": {
+   "new": "0x537feeec",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x537d89b4": {
+   "new": "0x537feef0",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x537d8a00": {
+   "new": "0x537fef3c",
+   "how": "aligned + refs 0x537fef3cx5",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x537da700": {
+   "new": "0x53800ccc",
+   "how": "aligned + refs 0x53800cccx4",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x537dd7c4": {
+   "new": "0x53804008",
+   "how": "aligned + refs 0x53804008x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x537dd7c8": {
+   "new": "0x5380400c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x537de474": {
+   "new": "0x53804f34",
+   "how": "aligned + refs 0x53804f34x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x537de478": {
+   "new": "0x53804f38",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x537e0e94": {
+   "new": "0x53807a1c",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x537e117c": {
+   "new": "0x53807d7c",
+   "how": "aligned + refs 0x53807d7cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x537e7148": {
+   "new": "0x5380dd48",
+   "how": "aligned + refs 0x5380dd48x171",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x537f5770": {
+   "new": "0x5381c380",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x537f5774": {
+   "new": "0x5381c384",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x537f5778": {
+   "new": "0x5381c388",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x537f5798": {
+   "new": "0x5381c3a8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x537f6aac": {
+   "new": "0x5381d6bc",
+   "how": "aligned + refs 0x5381d6bcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x537f6ab0": {
+   "new": "0x5381d6c0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x537f6ac0": {
+   "new": "0x5381d6d0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x537fca6c": {
+   "new": "0x5382367c",
+   "how": "aligned + refs 0x5382367cx1",
+   "ok": true,
+   "files": [
+    "tools/aspect/gen_facts.py"
+   ]
+  },
+  "0x537fcc00": {
+   "new": "0x53823810",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/aspect/gen_facts.py"
+   ]
+  },
+  "0x537febc4": {
+   "new": "0x538257d4",
+   "how": "aligned + refs 0x538257d4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/lookstash.ts",
+    "tools/datestamp/datestamp.c"
+   ]
+  },
+  "0x5380d1ec": {
+   "new": "0x53833dfc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5380d1f0": {
+   "new": "0x53833e00",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5380d1f4": {
+   "new": "0x53833e04",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5380d20c": {
+   "new": "0x53833e1c",
+   "how": "aligned + refs 0x53833e1cx4",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53877334": {
+   "new": "0x5389ec44",
+   "how": "aligned + refs 0x5389ec44x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x53877338": {
+   "new": "0x5389ec48",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x53877c9c": {
+   "new": "0x5389f5ac",
+   "how": "aligned + refs 0x5389f5acx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x53877ca0": {
+   "new": "0x5389f5b0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x538876b8": {
+   "new": "0x538aefc8",
+   "how": "aligned + refs 0x538aefc8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x538876bc": {
+   "new": "0x538aefcc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53887d48": {
+   "new": "0x538af658",
+   "how": "aligned + refs 0x538af658x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5388a954": {
+   "new": "0x538b2264",
+   "how": "aligned + refs 0x538b2264x9",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5388a958": {
+   "new": "0x538b2268",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5388af1c": {
+   "new": "0x538b282c",
+   "how": "aligned + refs 0x538b282cx12",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x5388af20": {
+   "new": "0x538b2830",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x5388b970": {
+   "new": "0x538b3280",
+   "how": "aligned + refs 0x538b3280x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5388bac8": {
+   "new": "0x538b33d8",
+   "how": "aligned + refs 0x538b33d8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5388bcb4": {
+   "new": "0x538b35c4",
+   "how": "aligned + refs 0x538b35c4x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5388bd68": {
+   "new": "0x538b3678",
+   "how": "aligned + refs 0x538b3678x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5388be10": {
+   "new": "0x538b3720",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x5388be14": {
+   "new": "0x538b3724",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5388c4b8": {
+   "new": "0x538b3dc8",
+   "how": "aligned + refs 0x538b3dc8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5388c7dc": {
+   "new": "0x538b40ec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5388c7f4": {
+   "new": "0x538b4104",
+   "how": "aligned + refs 0x538b4104x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5388c8a4": {
+   "new": "0x538b41b4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x5388c8bc": {
+   "new": "0x538b41cc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x538a1fa8": {
+   "new": "0x538c98b8",
+   "how": "aligned + refs 0x538c98b8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts",
+    "core/src/fw/clarity.ts"
+   ]
+  },
+  "0x538a1fe0": {
+   "new": "0x538c98f0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts",
+    "core/src/fw/clarity.ts"
+   ]
+  },
+  "0x538a2000": {
+   "new": "0x538c9910",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x538a2634": {
+   "new": "0x538c9f44",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts",
+    "core/src/fw/clarity.ts",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x538a2da4": {
+   "new": "0x538ca6b4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/clarity.ts"
+   ]
+  },
+  "0x538cecdc": {
+   "new": "0x538f6604",
+   "how": "aligned + refs 0x538f6604x452",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x538ced44": {
+   "new": "0x538f666c",
+   "how": "aligned + refs 0x538f666cx180",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x538cf100": {
+   "new": "0x538f6a28",
+   "how": "aligned + refs 0x538f6a28x181",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x538cf488": {
+   "new": "0x538f6db0",
+   "how": "aligned + refs 0x538f6db0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x538cf944": {
+   "new": "0x538f726c",
+   "how": "aligned + refs 0x538f726cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x538cf9fc": {
+   "new": "0x538f7324",
+   "how": "aligned + refs 0x538f7324x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x538cfbf8": {
+   "new": "0x538f7520",
+   "how": "aligned + refs 0x538f7520x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x538d00b4": {
+   "new": "0x538f79dc",
+   "how": "aligned + refs 0x538f79dcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x538d016c": {
+   "new": "0x538f7a94",
+   "how": "aligned + refs 0x538f7a94x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x538d0894": {
+   "new": "0x538f81bc",
+   "how": "aligned + refs 0x538f81bcx10",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x538d0898": {
+   "new": "0x538f81c0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x538dd620": {
+   "new": "0x5390512c",
+   "how": "aligned + refs 0x5390512cx267",
+   "ok": true,
+   "files": [
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x538e09b0": {
+   "new": "0x539084bc",
+   "how": "aligned + refs 0x539084bcx6263",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "core/src/fw/aspect/halation.ts",
+    "core/src/fw/aspect/slots.ts",
+    "tools/aspect/playback_check.py",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/diag_check.py",
+    "tools/halation/halation.c",
+    "tools/shutdown/menu_check.py",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x538e09ec": {
+   "new": "0x539084f8",
+   "how": "aligned + refs 0x539084f8x5962",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation.ts",
+    "tools/aspect/playback_check.py",
+    "tools/halation/halation.c",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x538e0a24": {
+   "new": "0x53908530",
+   "how": "aligned + refs 0x53908530x552",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py",
+    "tools/datestamp/list_width_check.py"
+   ]
+  },
+  "0x538e0a60": {
+   "new": "0x5390856c",
+   "how": "aligned + refs 0x5390856cx698",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x538e9c2c": {
+   "new": "0x539117f4",
+   "how": "aligned + refs 0x539117f4x54",
+   "ok": true,
+   "files": [
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x538ea168": {
+   "new": "0x53911d30",
+   "how": "aligned + refs 0x53911d30x30",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x538ea9b0": {
+   "new": "0x53912578",
+   "how": "aligned + refs 0x53912578x33",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts",
+    "tools/datestamp/datestamp.c"
+   ]
+  },
+  "0x538ebbec": {
+   "new": "0x539137b4",
+   "how": "aligned + refs 0x539137b4x2",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x538ec838": {
+   "new": "0x53914400",
+   "how": "aligned + refs 0x53914400x4242",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x538ed930": {
+   "new": "0x539154f8",
+   "how": "aligned + refs 0x539154f8x8710, 0x53367840x1, 0x53354228x1, 0x532e9a3cx1",
+   "ok": false,
+   "files": [
+    "tools/aspect/boot_checks.py",
+    "tools/aspect/playback_check.py",
+    "tools/datestamp/menu_check.py",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x538ee49c": {
+   "new": "0x53916064",
+   "how": "aligned + refs 0x53916064x461",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x538f0448": {
+   "new": "0x53918010",
+   "how": "aligned + refs 0x53918010x298",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts",
+    "core/src/fw/aspect/halation.ts",
+    "tools/datestamp/datestamp.c",
+    "tools/halation/halation.c"
+   ]
+  },
+  "0x538f04c4": {
+   "new": "0x5391808c",
+   "how": "aligned + refs 0x5391808cx21",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts",
+    "core/src/fw/aspect/halation.ts",
+    "tools/datestamp/datestamp.c",
+    "tools/halation/halation.c"
+   ]
+  },
+  "0x538f04d8": {
+   "new": "0x539180a0",
+   "how": "aligned + refs 0x539180a0x41",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts",
+    "core/src/fw/aspect/halation.ts",
+    "tools/datestamp/datestamp.c",
+    "tools/halation/halation.c"
+   ]
+  },
+  "0x538f21a0": {
+   "new": "0x53919d68",
+   "how": "aligned + refs 0x53919d68x117, 0x53864af8x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts",
+    "tools/datestamp/datestamp.c"
+   ]
+  },
+  "0x538f28bc": {
+   "new": "0x5391a484",
+   "how": "aligned + refs 0x5391a484x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/factory.ts"
+   ]
+  },
+  "0x538f3544": {
+   "new": "0x5391b10c",
+   "how": "aligned + refs 0x5391b10cx1, 0x5391c1a4x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/factory.ts"
+   ]
+  },
+  "0x538f41b0": {
+   "new": "0x5391bd78",
+   "how": "aligned + refs 0x5391bd78x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/factory.ts"
+   ]
+  },
+  "0x539111a8": {
+   "new": "0x53938ef8",
+   "how": "aligned + refs 0x53938ef8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x539113f8": {
+   "new": "0x53939148",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation.ts",
+    "core/src/fw/aspect/lookstash.ts",
+    "core/src/fw/aspect/slots.ts",
+    "tools/datestamp/datestamp.c"
+   ]
+  },
+  "0x539113fc": {
+   "new": "0x5393914c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53911afc": {
+   "new": "0x539397a8",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x53911b00": {
+   "new": null,
+   "how": "not aligned; refs ",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x53912cf4": {
+   "new": "0x5393aa94",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53912cf8": {
+   "new": "0x5393aa98",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53912d08": {
+   "new": "0x5393aaa8",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53914e20": {
+   "new": "0x5393cc10",
+   "how": "aligned + refs 0x5393cc10x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x53925f98": {
+   "new": "0x5394dfb0",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53925f9c": {
+   "new": "0x5394dfb4",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53925fa4": {
+   "new": "0x5394dfbc",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53925fc4": {
+   "new": "0x5394dfdc",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53925fc8": {
+   "new": "0x5394dfe0",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53925fd0": {
+   "new": "0x5394dfe8",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53925ff0": {
+   "new": "0x5394e008",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53925ff4": {
+   "new": "0x5394e00c",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53925ffc": {
+   "new": "0x5394e014",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x5392601c": {
+   "new": "0x5394e034",
+   "how": "loose (immediates differ: check by hand); refs ",
+   "ok": false,
+   "loose": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53926020": {
+   "new": "0x5394e038",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53926028": {
+   "new": "0x5394e040",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53a786c0": {
+   "new": "0x53aa08d4",
+   "how": "aligned + refs 0x53aa08d4x9605",
+   "ok": true,
+   "files": [
+    "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x53a7e208": {
+   "new": "0x53aa6524",
+   "how": "aligned + refs 0x53aa6524x21",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x53a7e2b8": {
+   "new": "0x53aa65d4",
+   "how": "aligned + refs 0x53aa65d4x12",
+   "ok": true,
+   "files": [
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x53a7e434": {
+   "new": "0x53aa6680",
+   "how": "aligned + refs 0x53aa6680x21",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x53a7e518": {
+   "new": "0x53aa6764",
+   "how": "aligned + refs 0x53aa6764x29",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x53a80adc": {
+   "new": "0x53aa8be8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53a80ae0": {
+   "new": "0x53aa8bec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x53a80ae4": {
+   "new": "0x53aa8bf0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53a81480": {
+   "new": "0x53aa958c",
+   "how": "aligned + refs 0x53aa958cx54",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "tools/shutdown/menu_check.py",
+    "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x53b4c860": {
+   "new": "0x53b754c0",
+   "how": "aligned + refs 0x53b754c0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts",
+    "core/src/fw/clarity.ts"
+   ]
+  },
+  "0x53b4d60c": {
+   "new": "0x53b7626c",
+   "how": "aligned + refs 0x53b7626cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/factory.ts"
+   ]
+  },
+  "0x53d9afb0": {
+   "new": "0x53dc56b4",
+   "how": "refs 0x53dc56b4x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x53d9afbc": {
+   "new": "0x53dc56c0",
+   "how": "refs 0x53dc56c0x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x53d9c438": {
+   "new": "0x53dc6b38",
+   "how": "aligned + refs 0x53dc6b38x1",
+   "ok": false,
+   "files": [
+    "tools/datestamp/menu_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53d9ca10": {
+   "new": "0x53dc7110",
+   "how": "aligned + refs 0x53dc7110x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53d9cdb0": {
+   "new": "0x53dc74b0",
+   "how": "aligned + refs 0x53dc74b0x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53d9d13c": {
+   "new": "0x53dc783c",
+   "how": "aligned + refs 0x53dc783cx1",
+   "ok": false,
+   "files": [
+    "tools/datestamp/menu_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53d9d4d0": {
+   "new": "0x53dc7bd0",
+   "how": "aligned + refs 0x53dc7bd0x1",
+   "ok": false,
+   "files": [
+    "tools/datestamp/menu_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53d9f714": {
+   "new": "0x53dc9dfc",
+   "how": "aligned + refs 0x53dc9dfcx22",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "core/src/fw/aspect/softfocus.ts",
+    "tools/directflash/check.py",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x53da072c": {
+   "new": "0x53dcae14",
+   "how": "aligned + refs 0x53dcae14x15",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts"
+   ]
+  },
+  "0x53da09b4": {
+   "new": "0x53dcb09c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x53da2d20": {
+   "new": "0x53dcd470",
+   "how": "refs 0x53dcd470x16",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "core/src/fw/aspect/directflash.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py"
+   ]
+  },
+  "0x53da6718": {
+   "new": "0x53dd0f00",
+   "how": "refs 0x53dd0f00x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/settings_check.py",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x53dba8c0": {
+   "new": "0x53de50f0",
+   "how": "aligned + refs 0x53de50f0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/softfocus.ts"
+   ]
+  },
+  "0x53dbaccc": {
+   "new": "0x53de5524",
+   "how": "aligned + refs 0x53de5524x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x53dbb034": {
+   "new": "0x53de5890",
+   "how": "aligned + refs 0x53de5890x7",
+   "ok": false,
+   "files": [
+    "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x53dbb8f0": {
+   "new": "0x53de61c0",
+   "how": "aligned + refs 0x53de61c0x10",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53dbda18": {
+   "new": null,
+   "how": "not aligned; refs 0x53de8374x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53dbe388": {
+   "new": "0x53de8cd0",
+   "how": "aligned + refs 0x53de8cd0x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/looks.ts",
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x53dbf36c": {
+   "new": "0x53de9cc4",
+   "how": "aligned + refs 0x53de9cc4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/monounlock.ts"
+   ]
+  },
+  "0x53e984e0": {
+   "new": "0x53ece708",
+   "how": "aligned + refs 0x53ece708x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x53e98f18": {
+   "new": "0x53ecf140",
+   "how": "aligned + refs 0x53ecf140x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x53fa6478": {
+   "new": "0x53fdcd48",
+   "how": "aligned + refs 0x53fdcd48x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/lookstash.ts"
+   ]
+  },
+  "0x53fe4328": {
+   "new": "0x5401aef8",
+   "how": "aligned + refs 0x5401aef8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/factory.ts"
+   ]
+  },
+  "0x53fe50d0": {
+   "new": "0x5401bdd4",
+   "how": "aligned + refs 0x5401bdd4x2",
+   "ok": false,
+   "files": [
+    "core/src/fw/factory.ts"
+   ]
+  },
+  "0x53fe5180": {
+   "new": "0x5401be84",
+   "how": "aligned + refs 0x5401be84x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/factory.ts"
+   ]
+  },
+  "0x53fe5220": {
+   "new": "0x5401bf24",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/factory.ts"
+   ]
+  },
+  "0x53fe59a8": {
+   "new": "0x5401c6b0",
+   "how": "aligned + refs 0x5401c6b0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/factory.ts"
+   ]
+  },
+  "0x54049394": {
+   "new": "0x5408004c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x5404952c": {
+   "new": "0x540801e4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x54049ce0": {
+   "new": "0x54080998",
+   "how": "aligned + refs 0x54080998x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x54049e00": {
+   "new": "0x54080ab8",
+   "how": "aligned + refs 0x54080ab8x8",
+   "ok": true,
+   "files": [
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x5404a6d4": {
+   "new": "0x5408138c",
+   "how": "aligned + refs 0x5408138cx8",
+   "ok": true,
+   "files": [
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x5404af70": {
+   "new": "0x54081c28",
+   "how": "aligned + refs 0x54081c28x8",
+   "ok": true,
+   "files": [
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x5407b1e0": {
+   "new": "0x540b1e98",
+   "how": "aligned + refs 0x540b4978x2, 0x540b6784x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x5407d6b8": {
+   "new": "0x540b4578",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x5407decc": {
+   "new": "0x540b4d8c",
+   "how": "aligned + refs 0x540b4978x2, 0x540b59d0x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x5407eeb4": {
+   "new": "0x540b6384",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x5407f0b4": {
+   "new": "0x540b77ac",
+   "how": "aligned + refs 0x540b77acx2",
+   "ok": false,
+   "files": [
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x5407f6b4": {
+   "new": "0x540b6798",
+   "how": "aligned",
+   "ok": false,
+   "files": [
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x5407feb4": {
+   "new": "0x540b71ac",
+   "how": "aligned + refs 0x540b71acx2",
+   "ok": false,
+   "files": [
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x540808b4": {
+   "new": "0x540b7bac",
+   "how": "aligned + refs 0x540b7bacx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x5437b640": {
+   "new": "0x543b3100",
+   "how": "aligned + refs 0x543b3100x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "core/src/fw/aspect/directflash-menu.ts",
+    "core/src/fw/aspect/directflash.ts",
+    "core/src/fw/aspect/softfocus.ts",
+    "core/src/fw/profile.ts",
+    "tools/aspect/boot_checks.py",
+    "tools/aspect/playback_check.py",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/check.py",
+    "tools/shutdown/menu_check.py",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x5437d7b0": {
+   "new": "0x543b5270",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "core/src/fw/aspect/directflash-menu.ts",
+    "core/src/fw/aspect/directflash.ts",
+    "core/src/fw/aspect/softfocus.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x543d0000": {
+   "new": "0x54408b70",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x543d3ac0": {
+   "new": null,
+   "how": "outside the image",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/check.py",
+    "tools/shutdown/menu_check.py",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x543d4ac0": {
+   "new": null,
+   "how": "outside the image",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/check.py",
+    "tools/shutdown/menu_check.py",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x543f0000": {
+   "new": null,
+   "how": "outside the image",
+   "ok": false,
+   "files": [
+    "tools/datestamp/gen.py",
+    "tools/directflash/gen.py",
+    "tools/halation/gen.py",
+    "tools/shutdown/gen.py"
+   ]
+  },
+  "0x543fc1d0": {
+   "new": null,
+   "how": "outside the image",
+   "ok": false,
+   "files": [
+    "tools/aspect/gen_native.py",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x54400000": {
+   "new": null,
+   "how": "outside the image",
+   "ok": false,
+   "files": [
+    "tools/aspect/gen_native.py",
+    "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x54500000": {
+   "new": null,
+   "how": "outside the image",
+   "ok": false,
+   "files": [
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x55000000": {
+   "new": "0x55000000",
+   "how": "refs 0x55000000x22",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "core/src/fw/aspect/datestamp-menu.ts",
+    "core/src/fw/aspect/directflash-menu.ts",
+    "core/src/fw/aspect/directflash.ts",
+    "core/src/fw/aspect/softfocus.ts",
+    "core/src/fw/profile.ts",
+    "tools/aspect/boot_checks.py",
+    "tools/aspect/playback_check.py",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/check.py",
+    "tools/shutdown/menu_check.py",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x55001e78": {
+   "new": "0x55001e78",
+   "how": "RAM image aligned + refs 0x55001e78x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x55001e88": {
+   "new": "0x55001e88",
+   "how": "RAM image aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x55002118": {
+   "new": "0x55002118",
+   "how": "refs 0x55002118x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/build.ts",
+    "core/src/fw/aspect/directflash-menu.ts",
+    "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x55013410": {
+   "new": "0x5501433c",
+   "how": "RAM image aligned + refs 0x55014280x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x55013e70": {
+   "new": "0x55014d9c",
+   "how": "RAM image aligned + refs 0x55014d98x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts"
+   ]
+  },
+  "0x5501a474": {
+   "new": "0x5501b3bc",
+   "how": "RAM image aligned + refs 0x5501b3bcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/factory.ts"
+   ]
+  },
+  "0x5501ad98": {
+   "new": "0x5501bce0",
+   "how": "RAM image aligned + refs 0x5501bd34x8, 0x5501c0a0x3, 0x5408023cx1",
+   "ok": false,
+   "files": [
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x55052cf4": {
+   "new": "0x55053ce4",
+   "how": "RAM image aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x55053138": {
+   "new": "0x55054128",
+   "how": "RAM image aligned + refs 0x55054158x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x55053504": {
+   "new": "0x550544f4",
+   "how": "RAM image aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x55053780": {
+   "new": "0x55054770",
+   "how": "RAM image aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/slots.ts",
+    "core/src/fw/profile.ts"
+   ]
+  },
+  "0x5508207c": {
+   "new": null,
+   "how": "RAM; refs 0x5508307cx1",
+   "ok": false,
+   "files": [
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/check.py",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x55082184": {
+   "new": null,
+   "how": "RAM; refs 0x55083194x1",
+   "ok": false,
+   "files": [
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/check.py"
+   ]
+  },
+  "0x55082234": {
+   "new": null,
+   "how": "RAM; refs 0x55083244x1",
+   "ok": false,
+   "files": [
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/check.py",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x55084dd8": {
+   "new": "0x550832a8",
+   "how": "refs 0x550832a8x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts",
+    "core/src/fw/aspect/directflash.ts",
+    "core/src/fw/aspect/guard.ts",
+    "core/src/fw/aspect/slots.ts",
+    "core/src/fw/aspect/softfocus.ts",
+    "tools/datestamp/menu_check.py",
+    "tools/directflash/check.py",
+    "tools/directflash/settings_check.py",
+    "tools/slotparams/slot_params.c",
+    "tools/softfocus/check.py"
+   ]
+  },
+  "0x5537960c": {
+   "new": null,
+   "how": "RAM; refs 0x5537b29cx1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/datestamp.ts"
+   ]
+  },
+  "0x553a09c4": {
+   "new": null,
+   "how": "RAM; refs 0x553a26c4x1",
+   "ok": false,
+   "files": [
+    "tools/datestamp/orient_check.py",
+    "tools/datestamp/render_check.py",
+    "tools/directflash/diag_check.py"
+   ]
+  },
+  "0x558372d4": {
+   "new": null,
+   "how": "RAM; refs 0x55839014x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "core/src/fw/aspect/lookstash.ts",
+    "core/src/fw/aspect/shutdown.ts",
+    "core/src/fw/aspect/slots.ts",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x558372e0": {
+   "new": null,
+   "how": "RAM, unreferenced",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/slots.ts"
+   ]
+  },
+  "0x558372e4": {
+   "new": null,
+   "how": "RAM, unreferenced",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/lookstash.ts"
+   ]
+  },
+  "0x558372e8": {
+   "new": null,
+   "how": "RAM, unreferenced",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x558372ec": {
+   "new": null,
+   "how": "RAM, unreferenced",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/halation-ui.ts"
+   ]
+  },
+  "0x558372f0": {
+   "new": null,
+   "how": "RAM, unreferenced",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/shutdown.ts",
+    "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x558372f4": {
+   "new": null,
+   "how": "RAM, unreferenced",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/lookstash.ts"
+   ]
+  },
+  "0x558372f8": {
+   "new": null,
+   "how": "RAM, unreferenced",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/lookstash.ts"
+   ]
+  },
+  "0x558372fc": {
+   "new": null,
+   "how": "RAM, unreferenced",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "tools/directflash/diag_check.py"
+   ]
+  },
+  "0x55837300": {
+   "new": "0x55839040",
+   "how": "refs 0x55839040x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/directflash.ts",
+    "core/src/fw/aspect/lookstash.ts",
+    "core/src/fw/aspect/shutdown.ts",
+    "core/src/fw/aspect/slots.ts",
+    "tools/shutdown/menu_check.py"
+   ]
+  }
+ }
+}

@@ -25,6 +25,7 @@ ap.add_argument('old'); ap.add_argument('new')
 ap.add_argument('--ram', required=True, help='OLD_SRC:NEW_SRC:RAM_BASE:OLD_LEN:NEW_LEN (initialised RAM image)')
 ap.add_argument('--overrides', help='JSON {"0xold": {"new": "0x..", "reason": ".."}}')
 ap.add_argument('--out', required=True)
+ap.add_argument('--loose', action='store_true', help='second alignment with data-processing / load-store immediates masked: candidates for code whose constants changed (status manual, how "loose")')
 ap.add_argument('--runs', help='also write the whole word alignment (runs) and the unanimous references, for compare_builds.mts')
 ap.add_argument('files', nargs='+')
 a = ap.parse_args()
@@ -103,6 +104,28 @@ for i in range(len(ow)):
 def window_ok(i, j):
     return all(0 <= i + k < len(m) and m[i + k] == j + k and onl[i + k] == nnl[j + k] for k in range(-4, 12))
 
+# Loose alignment (only to suggest): immediates of data-processing and load/store instructions masked too.
+ml = None
+if a.loose:
+    def loose(w):
+        w = norm(w)
+        dp = ((w & 0x0e000000) == 0x02000000) & ((w >> 28) != 0xf)          # data processing, immediate
+        w[dp] &= 0xfffff000
+        ls = ((w & 0x0e000000) == 0x04000000) & ((w >> 28) != 0xf)          # load/store, immediate offset
+        w[ls] &= 0xfffff000
+        return w
+    lo_, ln_ = loose(ow), loose(nw)
+    lus, lui = uniq(hashes(lo_)); nus2, nui2 = uniq(hashes(ln_))
+    _, a_, b_ = np.intersect1d(lus, nus2, return_indices=True)
+    lol, lnl = lo_.tolist(), ln_.tolist(); ml = list(m)
+    for i, j in sorted(zip(lui[a_].tolist(), nui2[b_].tolist())):
+        if len(set(lol[i:i + N])) <= 2: continue
+        for k in range(N):
+            if ml[i + k] < 0: ml[i + k] = j + k
+        k = 1
+        while i - k >= 0 and j - k >= 0 and ml[i - k] < 0 and lol[i - k] == lnl[j - k]: ml[i - k] = j - k; k += 1
+        k = N
+        while i + k < len(lol) and j + k < len(lnl) and ml[i + k] < 0 and lol[i + k] == lnl[j + k]: ml[i + k] = j + k; k += 1
 overrides = json.load(open(a.overrides)) if a.overrides else {}
 def map_one(addr):
     key = f'{addr:#x}'
@@ -118,6 +141,9 @@ def map_one(addr):
             return dict(new=f'{t:#x}', how='aligned' + (f' + refs {rtxt}' if r else ''), ok=bool(window_ok(i, m[i]) and agree))
         if len(r) == 1 and sum(r.values()) >= 2:
             (t, c), = r.items(); return dict(new=f'{t:#x}', how=f'refs {rtxt}', ok=True)
+        if ml is not None and ml[i] >= 0:
+            t = BASE + ml[i] * 4 + rem
+            return dict(new=f'{t:#x}', how=f'loose (immediates differ: check by hand); refs {rtxt}', ok=False, loose=True)
         return dict(new=None, how=f'not aligned; refs {rtxt}', ok=False)
     if rbase <= addr < 0x56000000:
         if len(r) == 1 and sum(r.values()) >= 2:

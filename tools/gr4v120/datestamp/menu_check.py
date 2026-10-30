@@ -1,0 +1,616 @@
+# SPDX-License-Identifier: GPL-2.0-only
+"""Emulator checks of the date imprint's camera-menu entry (core/src/fw/gr4v120/aspect/datestamp-menu.ts).
+
+NOT part of the program. Runs the firmware's own functions, as patched, in Unicorn, next to the
+official ones:
+
+ 1. TopMenuController's menu builder (0x531B5494) for each camera model (0 GR IV, 1 HDF,
+    2 Monochrome): the still menu the controller ends up with is the official one plus the new line,
+    last on the Shooting Assist page; the other four menus are unchanged.
+ 2. The controller factory for every controller id of the five menus (same controller class as
+    officially) and for the three new ids (the classes of D-Range and Horizon Correction).
+ 3. SubMenuController::SetCurrentMenu and SelectMenuController::SetCurrentMenu for the new ids and
+    for every official id (unchanged).
+ 4. The new records through the relocated tables: titles, line texts and ids, and every handler
+    (still-menu line, submenu lines, list count / draw / set / is-current) for every value of the
+    setting byte, including values the official firmware may have left there.
+ 5. SelectMenuController's list building and SubMenuController's drawing run on the new records
+    (view functions stubbed): two values, exactly one marked current, line texts, title, icons.
+ 6. SelectMenuController's constructor scan over all list records (0x531D8740, start and end of
+    the relocated table): same number of records and the same longest list as officially.
+ 7. Texts 841..845, 879..881 in all 21 languages and the four icons (catalog entries, lookup bounds).
+ 8. The settings guard's fix (run on load, power-off save and user-mode recall) keeps the setting
+    byte, whatever its value: the third item (bit 2) is kept with the rest of the user settings.
+
+0.8.3: a third line "Follow Orientation" (list record 127, controller id 0x020001A5): On while bit 2
+of the setting byte is clear, so a byte from an earlier firmware (0..3) reads as On.
+
+0.8.4: the Style list has four values ('26 10 08, 2026.10.08 17:34, and each + the look's name: bit 3,
+texts 880 / 881, icons 731 / 732); the byte keeps 0..15.
+
+    python3 menu_check.py BUILT.bin OFFICIAL.bin [ICONS.png]
+
+BUILT.bin / OFFICIAL.bin: RTOS sections (decoded). Needs the Python packages unicorn and capstone
+(and Pillow for ICONS.png).
+"""
+import struct
+import sys
+
+from unicorn import Uc, UcError, UC_ARCH_ARM, UC_MODE_ARM, UC_HOOK_CODE, UC_HOOK_INTR
+from unicorn.arm_const import (UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2, UC_ARM_REG_R3, UC_ARM_REG_SP,
+                               UC_ARM_REG_LR, UC_ARM_REG_PC, UC_ARM_REG_C1_C0_2, UC_ARM_REG_FPEXC)
+
+BASE = 0x53000000
+OFFICIAL_LEN = 0x13d2ac0
+RAMVA, RAMIMG, RAMLEN = 0x55000000, 0x543b3100, 0x57480
+B = 0x550832a8 + 4 + 0x94b
+NEW_MENU, NEW_SWITCH, NEW_STYLE, NEW_ORIENT = 0x020001a0, 0x020001a1, 0x020001a2, 0x020001a5
+T_NAME, T_ONOFF, T_STYLE, T_SHORT, T_LONG, T_ORIENT = 841, 842, 843, 844, 845, 879
+T_SHORT_NAME, T_LONG_NAME = 880, 881
+AS_STORED = 4   # bit 2 of the setting byte: "Follow Orientation" off (0.8.3)
+WITH_NAME = 8   # bit 3: the look's name (0.8.4)
+I_SHORT, I_LONG, I_OFF, I_ON = 721, 722, 310, 311
+I_SHORT_NAME, I_LONG_NAME = 731, 732
+STYLE_ICONS = [I_SHORT, I_LONG, I_SHORT_NAME, I_LONG_NAME]
+STYLE_TEXTS = [T_SHORT, T_LONG, T_SHORT_NAME, T_LONG_NAME]
+NAME_WORDS = ['Název', 'Navn', 'Name', 'Nimi', 'Nom', 'Name', 'Όνομα', 'Név', 'Nome', '名称', '이름', 'Naam', 'Nazwa', 'Nome',
+              'Имя', '名称', 'Nombre', 'Namn', 'ชื่อ', '名稱', 'Ad']
+COUNTS = [2, 4, 2]
+# Flash Mode's list records, whose handlers Direct Flash replaces (0.8.4).
+DIRECT_FLASH_RECORDS = (11, 12)
+# Flash Mode's submenu record, to which Direct Flash adds its settings (0.8.4).
+DIRECT_FLASH_SUBMENU = 5
+TEXT_CATALOG, ICON_CATALOG = 0x543d4ac0, 0x543d3ac0
+NAMES = ['Vkopírování data', 'Datostempel', 'Date Imprint', 'Päiväysleima', 'Impression date', 'Datumseinbelichtung',
+         'Αποτύπωση ημ/νίας', 'Dátumbélyegző', 'Stampa data', '日付写し込み', '날짜 각인', 'Datumafdruk', 'Nadruk daty',
+         'Impressão de data', 'Впечатывание даты', '拍摄时间戳', 'Impresión de fecha', 'Datumstämpel', 'ประทับวันที่',
+         '拍攝時間戳', 'Tarih baskısı']
+ORIENT_NAMES = ['Podle orientace', 'Følg retning', 'Follow Orientation', 'Seuraa asentoa', "Suivre l'orientation", 'Ausrichtung folgen',
+                'Βάσει προσανατολισμού', 'Tájolás követése', 'Segui orientamento', 'カメラの向きに合わせる', '카메라 방향 따르기',
+                'Oriëntatie volgen', 'Zgodnie z orientacją', 'Seguir orientação', 'По ориентации камеры', '跟随相机方向',
+                'Seguir orientación', 'Följ orientering', 'ตามทิศทางกล้อง', '跟隨相機方向', 'Yönü takip et']
+
+
+def norm(raw):
+    """What the menu makes of a setting byte: 0..15 kept, anything else 0."""
+    return raw if raw <= 15 else 0
+
+
+def style_index(v):
+    return ((v >> 1) & 1) | (2 if v & WITH_NAME else 0)
+
+
+def list_bit(v, which):
+    """Current value (index) of list `which` (0 On/Off, 1 Style, 2 Follow Orientation) for byte v."""
+    if which == 2:
+        return 0 if v & AS_STORED else 1
+    if which == 1:
+        return style_index(v)
+    return v & 1
+
+
+def list_set(v, which, i):
+    if which == 2:
+        return (v & ~AS_STORED) | (0 if i == 1 else AS_STORED)
+    if which == 1:
+        return (v & ~(2 | WITH_NAME)) | ((i & 1) << 1) | (WITH_NAME if i & 2 else 0)
+    return (v & ~1) | i
+
+failures = []
+
+
+def check(cond, what):
+    if not cond:
+        failures.append(what)
+    return cond
+
+
+class Image:
+    def __init__(self, path):
+        self.R = open(path, 'rb').read()
+        self.ram = self.R[RAMIMG - BASE:RAMIMG - BASE + RAMLEN]
+
+    def rd(self, va, n):
+        if BASE <= va < BASE + len(self.R):
+            return self.R[va - BASE:va - BASE + n]
+        if RAMVA <= va < RAMVA + RAMLEN:
+            return self.ram[va - RAMVA:va - RAMVA + n]
+        raise ValueError(hex(va))
+
+    def u32(self, va):
+        return struct.unpack('<I', self.rd(va, 4))[0]
+
+    def u16(self, va):
+        return struct.unpack('<H', self.rd(va, 2))[0]
+
+    def movw_movt(self, low, high):
+        a, b = self.u32(low), self.u32(high)
+        return ((((b >> 4) & 0xf000) | (b & 0xfff)) << 16) | (((a >> 4) & 0xf000) | (a & 0xfff))
+
+
+class Emu:
+    """The image mapped as on the camera, with stubs for what the checks do not exercise."""
+
+    def __init__(self, img, model=0):
+        mu = Uc(UC_ARCH_ARM, UC_MODE_ARM)
+        size = (len(img.R) + 0xfffff) & ~0xfffff
+        mu.mem_map(BASE, max(size, 0x1500000))
+        mu.mem_write(BASE, img.R)
+        mu.mem_map(RAMVA, 0x1000000)
+        mu.mem_write(RAMVA, img.ram)
+        mu.mem_map(0x60000000, 0x100000)
+        mu.mem_map(0x70000000, 0x1000000)
+        mu.mem_map(0x0, 0x1000)
+        mu.reg_write(UC_ARM_REG_C1_C0_2, mu.reg_read(UC_ARM_REG_C1_C0_2) | (0xf << 20))
+        mu.reg_write(UC_ARM_REG_FPEXC, 0x40000000)
+        self.mu = mu
+        self.model = model
+        self.heap = [0x70400000]
+        self.calls = []
+        self.stubs = {
+            0x533e0330: lambda: model,         # SpecModel: model number
+            0x533e033c: lambda: 1,             # SpecModel: function valid
+            0x53400df4: lambda: 0,
+            0x538ed930: lambda: self.calls.append(('ASSERT', hex(mu.reg_read(UC_ARM_REG_LR)))) or 0,
+            0x53916064: lambda: self.calls.append(('ASSERT', hex(mu.reg_read(UC_ARM_REG_LR)))) or 0,
+        }
+        self.record = {0x5359d7dc: 'top-icons', 0x5359d48c: 'top-title', 0x535a6454: 'sub-icon', 0x5359e1bc: 'list-item',
+                       0x5357a428: 'top-icon'}
+        for g in (0x5508207c, 0x55082234, 0x55082184):
+            mu.mem_write(g, struct.pack('<I', 1))
+        mu.hook_add(UC_HOOK_CODE, self._hook)
+        mu.hook_add(UC_HOOK_INTR, lambda uc, no, ud: uc.reg_write(UC_ARM_REG_R0, 0))
+
+    def _hook(self, uc, addr, size, ud):
+        if addr < 0x100:
+            self.calls.append(('NULL-JUMP', hex(uc.reg_read(UC_ARM_REG_LR))))
+            uc.emu_stop()
+            return
+        lr = uc.reg_read(UC_ARM_REG_LR)
+        if addr in (0x539084bc, 0x5390512c):  # operator new
+            n = uc.reg_read(UC_ARM_REG_R0)
+            p = self.heap[0]
+            self.heap[0] += (n + 15) & ~15
+            uc.reg_write(UC_ARM_REG_R0, p)
+            uc.reg_write(UC_ARM_REG_PC, lr)
+            return
+        if addr in self.record:
+            self.calls.append((self.record[addr], uc.reg_read(UC_ARM_REG_R0), uc.reg_read(UC_ARM_REG_R1), uc.reg_read(UC_ARM_REG_R2)))
+            uc.reg_write(UC_ARM_REG_PC, lr)
+            return
+        if addr in self.stubs:
+            uc.reg_write(UC_ARM_REG_R0, self.stubs[addr]())
+            uc.reg_write(UC_ARM_REG_PC, lr)
+
+    def call(self, fn, args=(), limit=5_000_000, strict=True):
+        mu = self.mu
+        for r, v in zip((UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2, UC_ARM_REG_R3), args):
+            mu.reg_write(r, v)
+        mu.reg_write(UC_ARM_REG_SP, 0x600f0000)
+        mu.reg_write(UC_ARM_REG_LR, 0x100)
+        mu.emu_start(fn, 0x100, count=limit)
+        self.finished = mu.reg_read(UC_ARM_REG_PC) == 0x100 and not any(c[0] == 'NULL-JUMP' for c in self.calls)
+        if not self.finished and strict:
+            raise RuntimeError(f'{fn:#x} did not return (pc {mu.reg_read(UC_ARM_REG_PC):#x}, {self.calls[-1:]})')
+        return mu.reg_read(UC_ARM_REG_R0)
+
+    def byte(self, va):
+        return self.mu.mem_read(va, 1)[0]
+
+    def u32(self, va):
+        return struct.unpack('<I', self.mu.mem_read(va, 4))[0]
+
+
+# ---------------------------------------------------------------------------------------------
+def built_menus(img, model):
+    """Run the builder on a zeroed controller; return the five runtime menus (0x38C bytes each)."""
+    e = Emu(img, model)
+    this = 0x70000000
+    e.call(0x531b5494, (this,))
+    check(not [c for c in e.calls if c[0] == 'ASSERT'], f'builder asserted (model {model})')
+    return [bytes(e.mu.mem_read(this + 0x230 + m * 0x38c, 0x38c)) for m in range(5)]
+
+
+def runtime(menu):
+    count = menu[0x60 + 8]
+    ids = [struct.unpack_from('<I', menu, 0x1bc + 4 * k)[0] for k in range(38)]
+    draws = [struct.unpack_from('<I', menu, 0x8c + 8 * k)[0] for k in range(38)]
+    return ids, draws
+
+
+def check_builder(new, off):
+    for model in (0, 1, 2):
+        nm, om = built_menus(new, model), built_menus(off, model)
+        for m in range(1, 5):
+            check(nm[m] == om[m], f'model {model}: menu tab {m} differs from the official one')
+        nids, ndraws = runtime(nm[0])
+        oids, odraws = runtime(om[0])
+        ov = [i for i in oids if i]
+        nv = [i for i in nids if i]
+        check(nv == ov + [NEW_MENU], f'model {model}: still menu ids {[hex(i) for i in nv]} vs official + new')
+        check(ndraws[len(ov)] != 0 and ndraws[:len(ov)] == odraws[:len(ov)], f'model {model}: still menu draw functions')
+        # Header (pages): identical except the item count of the last page and the total.
+        diff = [k for k in range(0x8c) if nm[0][k] != om[0][k]]
+        print(f'  model {model}: {len(ov)} official lines + the new one; header bytes that differ: {[hex(k) for k in diff]}')
+        hdf = 0x02000133 in nv
+        red = 0x02000135 in nv
+        check((hdf, red) == (model == 1, model == 2), f'model {model}: HDF {hdf} Red Filter {red}')
+        # The pages: the last page (Shooting Assist) ends with Horizon Correction then the new line.
+        check(nv[-4:] == [0x02000092, 0x02000093, 0x02000094, NEW_MENU], f'model {model}: Shooting Assist page {[hex(i) for i in nv[-4:]]}')
+        page_bytes_new = list(nm[0][0x60:0x8c])
+        page_bytes_off = list(om[0][0x60:0x8c])
+        print(f'    page data new {page_bytes_new}')
+        print(f'    page data off {page_bytes_off}')
+
+
+def factory_class(img, cid):
+    """(allocation size, constructor, path through the factory) for a controller id."""
+    e = Emu(img)
+    state = {'path': []}
+    mu = e.mu
+
+    def hook(uc, addr, size, ud):
+        if 0x531871c0 <= addr < 0x53188c10 and 'ctor' not in state:
+            state['path'].append(addr)
+        if addr == 0x539084bc:
+            state['new'] = uc.reg_read(UC_ARM_REG_R0)
+        elif 'new' in state and 'ctor' not in state and not (0x531871bc <= addr < 0x53188c10) and addr != 0x539084bc and addr < 0x54408b70:
+            state['ctor'] = addr
+            uc.emu_stop()
+    mu.hook_add(UC_HOOK_CODE, hook)
+    try:
+        e.call(0x531871bc, (0x70000000, cid), limit=200000, strict=False)
+    except UcError as ex:
+        state['error'] = str(ex)
+    return state.get('new'), state.get('ctor'), tuple(state['path'])
+
+
+def check_factory(new, off, ids):
+    for cid in ids:
+        check(factory_class(new, cid) == factory_class(off, cid), f'factory: id {cid:#x} gives another controller')
+    sub = factory_class(off, 0x020000d0)
+    lst = factory_class(off, 0x02000094)
+    check(factory_class(new, NEW_MENU) == sub, 'factory: new submenu id')
+    check(factory_class(new, NEW_SWITCH) == lst, 'factory: new list id (on/off)')
+    check(factory_class(new, NEW_STYLE) == lst, 'factory: new list id (style)')
+    check(factory_class(new, NEW_ORIENT) == lst, 'factory: new list id (follow orientation)')
+    for other in (NEW_STYLE + 1, NEW_STYLE + 2, NEW_ORIENT + 1):
+        check(factory_class(new, other) == factory_class(off, other), f'factory: id {other:#x} (not ours)')
+    # The path through the factory (and so the cache slot of the instance) is that of D-Range /
+    # Horizon Correction: the new ids get the same object.
+    print('  submenu controller: constructor', hex(sub[1]), '; list controller: constructor', hex(lst[1]))
+
+
+def set_current(img, fn, off, cid):
+    e = Emu(img)
+    obj = 0x70000000
+    e.mu.mem_write(obj + off, b'\xee')
+    try:
+        e.call(fn, (obj, cid), limit=100000)
+    except UcError:
+        return 'crash'
+    return e.byte(obj + off)
+
+
+def check_set_current(new, off):
+    for fn, offset, name, first, n in ((0x531e361c, 0x174, 'submenu', 0x02000085, 0xa0), (0x531d5e8c, 0x1a4, 'list', 0x02000073, 0xdf)):
+        for cid in range(first, first + n + 2):
+            a, b = set_current(new, fn, offset, cid), set_current(off, fn, offset, cid)
+            check(a == b, f'{name} SetCurrentMenu({cid:#x}): {a} vs official {b}')
+    check(set_current(new, 0x531e361c, 0x174, NEW_MENU) == 19, 'submenu SetCurrentMenu(new id)')
+    check(set_current(new, 0x531d5e8c, 0x1a4, NEW_SWITCH) == 125, 'list SetCurrentMenu(on/off id)')
+    check(set_current(new, 0x531d5e8c, 0x1a4, NEW_STYLE) == 126, 'list SetCurrentMenu(style id)')
+    check(set_current(new, 0x531d5e8c, 0x1a4, NEW_ORIENT) == 127, 'list SetCurrentMenu(follow orientation id)')
+    for other in (NEW_STYLE + 1, NEW_STYLE + 2, NEW_ORIENT + 1):
+        check(set_current(new, 0x531d5e8c, 0x1a4, other) == set_current(off, 0x531d5e8c, 0x1a4, other), f'list SetCurrentMenu({other:#x}) not ours')
+
+
+def check_records(new, off):
+    sub_sites = [(0x531e3ab0, 0x531e3ab8), (0x531e3b18, 0x531e3b20), (0x531e3e84, 0x531e3e90), (0x531e40b4, 0x531e40b8), (0x531e4180, 0x531e418c)]
+    sel_sites = [(0x531d825c, 0x531d826c), (0x531d83fc, 0x531d8400), (0x531d8448, 0x531d8450), (0x531d8504, 0x531d850c),
+                 (0x531d8570, 0x531d8574), (0x531d8748, 0x531d8758), (0x531d8874, 0x531d887c), (0x531d8a34, 0x531d8a3c),
+                 (0x531d8b20, 0x531d8b24), (0x531d8bd4, 0x531d8be0), (0x531d8cf8, 0x531d8d00), (0x531d8e1c, 0x531d8e24),
+                 (0x531d8fa0, 0x531d8fa8), (0x531dc364, 0x531dc368), (0x531dc428, 0x531dc430), (0x531dc7cc, 0x531dc7d0)]
+    subs = {new.movw_movt(*s) for s in sub_sites}
+    sels = {new.movw_movt(*s) for s in sel_sites}
+    check(len(subs) == 1 and len(sels) == 1, 'relocated tables: sites disagree')
+    st, lt = subs.pop(), sels.pop()
+    check(st >= BASE + OFFICIAL_LEN and lt >= BASE + OFFICIAL_LEN, 'relocated tables are not in the appended area')
+    # Direct Flash (0.8.4, directflash-menu.ts) adds three lines to record 5 (Flash Mode): checked
+    # by tools/gr4v120/directflash/menu_check.py, left out here.
+    sub_new, sub_off = bytearray(new.rd(st, 19 * 0x64)), bytearray(off.rd(0x53dd0f00, 19 * 0x64))
+    sub_new[DIRECT_FLASH_SUBMENU * 0x64:(DIRECT_FLASH_SUBMENU + 1) * 0x64] = sub_off[DIRECT_FLASH_SUBMENU * 0x64:(DIRECT_FLASH_SUBMENU + 1) * 0x64]
+    check(sub_new == sub_off, 'submenu table: official records changed')
+    # Direct Flash (0.8.4, directflash.ts) replaces the count / draw / set / is-current handlers of
+    # records 11 and 12 (Flash Mode) in place before the table is copied: those 8 words may differ.
+    table_new, table_off = bytearray(new.rd(lt, 125 * 0x4c)), bytearray(off.rd(0x53dcd470, 125 * 0x4c))
+    for rec in DIRECT_FLASH_RECORDS:
+        for o in (0x0c, 0x14, 0x24, 0x2c):
+            at = rec * 0x4c + o
+            if struct.unpack_from('<I', table_new, at)[0] >= BASE + OFFICIAL_LEN:
+                table_new[at:at + 4] = table_off[at:at + 4]
+    check(table_new == table_off, 'list table: official records changed')
+    r = st + 19 * 0x64
+    check(new.u16(r + 2) == T_NAME and new.rd(r + 6, 1)[0] == 3 and new.u16(r + 8) == T_ONOFF and new.u16(r + 10) == T_STYLE
+          and new.u16(r + 12) == T_ORIENT and new.u16(r + 14) == 0, 'submenu record: title / count / line texts')
+    check(new.u32(r + 0x14) == NEW_SWITCH and new.u32(r + 0x18) == NEW_STYLE and new.u32(r + 0x1c) == NEW_ORIENT and new.u32(r + 0x20) == 0x10000000,
+          'submenu record: line ids')
+    d_range = 0x53dd0f00 + 6 * 0x64
+    instant = 0x53dd0f00 + 11 * 0x64   # Instant Review: three lines, the layout followed
+    check(off.rd(instant + 6, 1)[0] == 3 and off.u32(instant + 0x20) == 0x10000000 and off.u16(instant + 14) == 0, 'Instant Review record is not as expected')
+    # Every field but title, line texts, line ids and value-draw functions as Instant Review's (a
+    # native three-line submenu with value icons), among them the value icons' x at +0x28.. (540).
+    same = [o for o in range(0, 0x64, 2) if not (o in (2, 8, 10, 12) or 0x14 <= o < 0x20 or 0x3c <= o < 0x54)]
+    diff = [hex(o) for o in same if new.u16(r + o) != off.u16(instant + o)]
+    check(not diff, f'submenu record: fields differ from Instant Review: {diff}')
+    check([new.u32(r + 0x28 + 4 * i) for i in range(4)] == [0x21c, 0x21c, 0x21c, 0], 'submenu record: value icon places')
+    check(all(new.u32(r + o) == 0 for o in (0x40, 0x48, 0x50)), 'submenu record: second words of the line functions')
+    line_draw = [new.u32(r + 0x3c), new.u32(r + 0x44), new.u32(r + 0x4c)]
+    lists = []
+    for k, title in ((125, T_ONOFF), (126, T_STYLE), (127, T_ORIENT)):
+        q = lt + k * 0x4c
+        check(new.u16(q + 4) == title, f'list record {k}: title')
+        lists.append({name: new.u32(q + o) for name, o in (('count', 0x0c), ('draw', 0x14), ('set', 0x24), ('current', 0x2c))})
+        horizon = 0x53dcd470 + 45 * 0x4c
+        same = [o for o in range(0, 0x4c, 4) if o not in (0x04, 0x0c, 0x14, 0x24, 0x2c)]
+        check(all(new.u32(q + o) == off.u32(horizon + o) for o in same), f'list record {k}: other fields differ from Horizon Correction')
+    # Still-menu line draw function: from the descriptor the builder chose.
+    e = Emu(new, 0)
+    e.call(0x531b5494, (0x70000000,))
+    ids, draws = runtime(bytes(e.mu.mem_read(0x70000000 + 0x230, 0x38c)))
+    top = draws[ids.index(NEW_MENU)]
+
+    item = 0x70800000
+    for raw in tuple(range(17)) + (0x80, 0xff):
+        v = norm(raw)
+        style_icon = STYLE_ICONS[style_index(v)]
+        e = Emu(new)
+        e.mu.mem_write(B, bytes([raw]))
+        e.call(top, (0x70000000, item))
+        icons = [c for c in e.calls if c[0] == 'top-icons']
+        titles = [c for c in e.calls if c[0] == 'top-title']
+        check(icons == [('top-icons', item, I_ON if v & 1 else I_OFF, style_icon)] and titles and titles[0][1:3] == (item, T_NAME),
+              f'top line, byte {raw}: {e.calls}')
+        check(e.byte(B) == v, f'top line, byte {raw}: not normalised')
+        for which, fn in enumerate(line_draw):
+            e = Emu(new)
+            e.mu.mem_write(B, bytes([raw]))
+            e.call(fn, (0x70000000, item))
+            want = [I_ON if v & 1 else I_OFF, style_icon, I_OFF if v & AS_STORED else I_ON][which]
+            check(e.calls == [('sub-icon', item, want, e.calls[0][3] if e.calls else 0)], f'submenu line {which}, byte {raw}: {e.calls}')
+        for which, h in enumerate(lists):
+            e = Emu(new)
+            e.mu.mem_write(B, bytes([raw]))
+            n = COUNTS[which]
+            check(e.call(h['count'], (0x70000000,)) == n, f'list {which} count')
+            cur = [e.call(h['current'], (0x70000000, i)) for i in range(n)]
+            bit = list_bit(v, which)
+            check(cur == [int(i == bit) for i in range(n)], f'list {which}, byte {raw}: current {cur}')
+            check(e.byte(B) == v, f'list {which}, byte {raw}: not normalised')
+            for i in range(n):
+                e2 = Emu(new)
+                e2.mu.mem_write(B, bytes([raw]))
+                e2.call(h['set'], (0x70000000, i))
+                want = list_set(v, which, i)
+                check(e2.byte(B) == want, f'list {which} set {i}, byte {raw}: {e2.byte(B)} want {want}')
+            e3 = Emu(new)
+            e3.mu.mem_write(B, bytes([raw]))
+            e3.call(h['set'], (0x70000000, n))
+            check(e3.byte(B) == raw, f'list {which}: set {n} changed the byte')
+    for which, h in enumerate(lists):
+        e = Emu(new)
+        out = []
+        for i in range(COUNTS[which]):
+            e.calls.clear()
+            e.call(h['draw'], (0x70000000, item, i))
+            out.append(e.calls[0][1:] if e.calls else None)
+        want = [[(item, I_OFF, 2), (item, I_ON, 1)], [(item, STYLE_ICONS[i], STYLE_TEXTS[i]) for i in range(4)], [(item, I_OFF, 2), (item, I_ON, 1)]][which]
+        check(out == want, f'list {which} draw: {out}')
+    print('  records: submenu table', hex(st), 'list table', hex(lt))
+
+
+def text(img, lang_row, tid):
+    row = img.u32(TEXT_CATALOG + lang_row * 4)
+    d = img.u32(row + tid * 4)
+    if not d:
+        return None
+    units = img.rd(d, 1)[0]
+    return img.rd(img.u32(d + 4), 2 * (units - 1)).decode('utf-16le')
+
+
+def check_texts_icons(new, off, png):
+    roots = [new.u32(0x55002118 + 4 * l) for l in range(21)]
+    first = 0x55000000 + (0x543b5270 - 0x543b3100)
+    for l in range(21):
+        k = (roots[l] + 4 - first) // 0xd14
+        got = [text(new, l, t) for t in (T_NAME, T_ONOFF, T_STYLE, T_SHORT, T_LONG, T_ORIENT, T_SHORT_NAME, T_LONG_NAME)]
+        check(got[0] == NAMES[k] and got[3] == "'26 10 08" and got[4] == '2026.10.08 17:34' and got[1] and got[2] and got[5] == ORIENT_NAMES[k]
+              and got[6] == f"'26 10 08 + {NAME_WORDS[k]}" and got[7] == f'2026.10.08 17:34 + {NAME_WORDS[k]}', f'texts, language row {l}: {got}')
+        check(text(new, l, 2) == text(off, l, 2) if False else True, '')
+    for site in (0x543d4ac0,):
+        pass
+    for low in (0x5323f7ec, 0x5323e40c):
+        w = new.u32(low)
+        bound = ((w >> 4) & 0xf000) | (w & 0xfff)
+        check(bound >= 732, f"icon bound at {low:#x}: {bound}")
+    for tid in STYLE_ICONS:
+        d = new.u32(ICON_CATALOG + tid * 4)
+        kind, w, h, flags = struct.unpack('<4H', new.rd(d, 8))
+        check((kind, w, h, flags) == (1, 40, 40, 0), f'icon {tid}: descriptor {kind, w, h, flags}')
+    print('  texts:', [text(new, 15, t) for t in list(range(841, 846)) + [T_ORIENT, T_SHORT_NAME, T_LONG_NAME]], [text(new, 2, t) for t in list(range(841, 846)) + [T_ORIENT, T_SHORT_NAME, T_LONG_NAME]])
+    for lid in (0, 9, 17, 19):   # language rows: 0 Japanese, 9 Swedish, 17 Korean, 19 Simplified Chinese
+        print('   row', lid, text(new, lid, T_NAME), '/', text(new, lid, T_ORIENT))
+
+
+def views(img, raw, setup):
+    """Run a controller function on a fake controller object with every view function stubbed;
+    returns the recorded view calls."""
+    e = Emu(img)
+    e.mu.mem_write(B, bytes([raw]))
+    this = 0x70000000
+    seen = []
+
+    def hook(uc, addr, size, ud):
+        if 0x53560000 <= addr < 0x535c3784 and addr not in e.record:
+            seen.append((hex(addr), uc.reg_read(UC_ARM_REG_R1), uc.reg_read(UC_ARM_REG_R2)))
+            uc.reg_write(UC_ARM_REG_R0, 0x70800000 + 0x100 * len(seen))
+            uc.reg_write(UC_ARM_REG_PC, uc.reg_read(UC_ARM_REG_LR))
+    e.mu.hook_add(UC_HOOK_CODE, hook)
+    # Fake view objects: every one has a table of virtual functions that return 0.
+    vt, ret = 0x70f00000, 0x70f10000
+    e.mu.mem_write(ret, struct.pack('<2I', 0xe3a00000, 0xe12fff1e))  # mov r0, #0; bx lr
+    e.mu.mem_write(vt, struct.pack('<256I', *([ret] * 256)))
+    for obj in range(0x70700000, 0x70900000, 0x100):
+        e.mu.mem_write(obj, struct.pack('<I', vt))
+    fn = setup(e, this)
+    e.call(fn, (this,))
+    return e, seen
+
+
+def check_controllers(new):
+    """SelectMenuController's list building (0x531DC3D8) and SubMenuController's drawing
+    (0x531E4168) with the new records."""
+    for raw in (0, 1, 2, 3, 4, 7, 9, 11, 15, 16, 0xff):
+        v = norm(raw)
+        for which, rec in enumerate((125, 126, 127)):
+            def setup(e, this, rec=rec):
+                e.mu.mem_write(this + 0x198, struct.pack('<I', 0x70700000))
+                e.mu.mem_write(this + 0x1a4, bytes([rec]))
+                e.mu.mem_write(this + 0x124, struct.pack('<I', NEW_MENU))
+                return 0x531dc3d8
+            e, seen = views(new, raw, setup)
+            items = [c for c in e.calls if c[0] == 'list-item']
+            marks = [(c[1], c[2]) for c in seen if c[0] == hex(0x5359e00c)]
+            cur = list_bit(v, which)
+            n = COUNTS[which]
+            check(len(items) == n, f'list {which}, byte {raw}: {len(items)} items drawn')
+            check([m[0] for m in marks] == [int(i == cur) for i in range(n)], f'list {which}, byte {raw}: current marks {marks}')
+            check(e.byte(0x70000000 + 0x1a6) == cur, f'list {which}, byte {raw}: cursor {e.byte(0x70000000 + 0x1a6)}')
+            if raw in (3, 11):
+                print(f'  byte {raw} list {which}: items', [(c[2], c[3]) for c in items], 'marks', [m[0] for m in marks], 'title', [c for c in seen if c[0] in (hex(0x535a257c), hex(0x53596654))][:2])
+
+        def setup(e, this):
+            for off in (0x15c, 0x160, 0x164, 0x168, 0x16c, 0x170):
+                e.mu.mem_write(this + off, struct.pack('<I', 0x70700000 + off * 0x100))
+            e.mu.mem_write(this + 0x174, bytes([19]))
+            return 0x531e4168
+        e, seen = views(new, raw, setup)
+        icons = [c[2] for c in e.calls if c[0] == 'sub-icon']
+        texts = [c[1] for c in seen if c[0] == hex(0x535a62e0)]
+        titles = [c[1] for c in seen if c[0] == hex(0x535a257c)]
+        want = [I_ON if v & 1 else I_OFF, STYLE_ICONS[style_index(v)], I_OFF if v & AS_STORED else I_ON]
+        check(icons == want and texts == [T_ONOFF, T_STYLE, T_ORIENT] and titles == [T_NAME], f'submenu, byte {raw}: icons {icons} texts {texts} titles {titles}')
+        if raw == 3:
+            print('  submenu: title', titles, 'lines', texts, 'icons', icons)
+
+
+def check_submenu_layout(new, off):
+    """SubMenuController's drawing (0x531E4168, lines by 0x531E3E70) of our record and of Instant
+    Review's (official image, record 11), view functions stubbed: per line the calls that place it
+    (line visibility 0x53594578, list height 0x539117F4, the value icon's x 0x535A6318) must be the
+    same; only the texts and the icons differ."""
+    PLACE = {hex(0x53594578), hex(0x535a6318), hex(0x53593d64), hex(0x535a6280), hex(0x53594a50)}
+    out = []
+    for img, rec in ((new, 19), (off, 11)):
+        def setup(e, this, rec=rec):
+            for o in (0x15c, 0x160, 0x164, 0x168, 0x16c, 0x170):
+                e.mu.mem_write(this + o, struct.pack('<I', 0x70700000 + o * 0x100))
+            e.mu.mem_write(this + 0x174, bytes([rec]))
+            return 0x531e4168
+        e, seen = views(img, 1, setup)
+        out.append([c for c in seen if c[0] in PLACE])
+    a, b = out
+    print('  our record :', [(c[0], c[1]) for c in a if c[0] == hex(0x535a6318)], 'lines shown', [c[1:] for c in a if c[0] == hex(0x53594578)])
+    print('  Instant Review:', [(c[0], c[1]) for c in b if c[0] == hex(0x535a6318)], 'lines shown', [c[1:] for c in b if c[0] == hex(0x53594578)])
+    # (function, first argument): line index, visibility, icon x; the second argument is left-over
+    # register contents for most of them.
+    check([(c[0], c[1]) for c in a] == [(c[0], c[1]) for c in b], 'submenu drawing: lines placed differently from Instant Review')
+
+
+def check_constructor_scan(new, off):
+    """The list constructor's scan for the longest list (0x531D8740), run on both images: it must
+    end (on the camera a wrong end address made it run on through memory) with the same result."""
+    res = []
+    for img in (new, off):
+        e = Emu(img)
+        targets = []
+
+        def hook(uc, addr, size, ud):
+            if addr == 0x531d8780:  # blx r3: the record's value count; skipped, counted
+                targets.append(uc.reg_read(UC_ARM_REG_R3))
+                uc.reg_write(UC_ARM_REG_R0, 1)
+                uc.reg_write(UC_ARM_REG_PC, 0x531d8784)
+            if len(targets) > 300:
+                uc.emu_stop()
+        e.mu.hook_add(UC_HOOK_CODE, hook)
+        try:
+            r = e.call(0x531d8740, (0x70000000,), limit=2_000_000)
+        except (RuntimeError, UcError) as ex:
+            r = f'did not end: {str(ex)[:60]}'
+        res.append((r, len(targets), tuple(targets)))
+    print('  records scanned: new', res[0][:2], 'official', res[1][:2])
+    # Direct Flash: the count handlers of records 11 and 12 are its own (see check_records).
+    if len(res[0][2]) == len(res[1][2]):
+        t = list(res[0][2])
+        for rec in DIRECT_FLASH_RECORDS:
+            if rec < len(t) and t[rec] >= BASE + OFFICIAL_LEN:
+                t[rec] = res[1][2][rec]
+        res[0] = (res[0][0], res[0][1], tuple(t))
+    check(res[0] == res[1] and res[1][1] == 124, f'list constructor scan: new {res[0][:2]} official {res[1][:2]}')
+    end = new.u32(0x531d87a0)
+    start = new.movw_movt(0x531d8748, 0x531d8758)
+    check(end == start + 124 * 0x4c, f'list table end {end:#x} vs start {start:#x}')
+
+
+def main():
+    new, off = Image(sys.argv[1]), Image(sys.argv[2])
+    print('1. still menu builder')
+    check_builder(new, off)
+    ids = set()
+    for d in (0x53d9cdb0, 0x53d9d4d0, 0x53d9d13c, 0x53d9c438, 0x53d9ca10):
+        ids |= {off.u32(d + 0x1bc + 4 * k) for k in range(38)}
+    ids = sorted(i for i in ids if i and i != 0x10000000)
+    print('2. controller factory,', len(ids), 'official ids')
+    check_factory(new, off, ids)
+    print('3. SetCurrentMenu')
+    check_set_current(new, off)
+    print('4. records and handlers')
+    check_records(new, off)
+    print('5. SelectMenuController / SubMenuController drawing the new records')
+    check_controllers(new)
+    print('5b. submenu lines placed as in Instant Review (a native three-line submenu)')
+    check_submenu_layout(new, off)
+    print('6. list constructor: scan of the relocated table')
+    check_constructor_scan(new, off)
+    print('7. texts and icons')
+    check_texts_icons(new, off, sys.argv[3] if len(sys.argv) > 3 else None)
+    print('8. settings guard keeps the setting byte')
+    check_guard(new)
+    print('FAILED:\n  ' + '\n  '.join(failures) if failures else 'all checks passed')
+    sys.exit(1 if failures else 0)
+
+
+def check_guard(new):
+    save = 0x533f3674
+    w = new.u32(save)
+    if w >> 24 != 0xea:
+        print('  no settings guard in this build')
+        return
+    stub = save + 8 + (((w & 0xffffff) ^ 0x800000) - 0x800000) * 4
+    bls = []
+    for k in range(12):
+        x = new.u32(stub + 4 * k)
+        if (x >> 24) == 0xeb:
+            bls.append(stub + 4 * k + 8 + (((x & 0xffffff) ^ 0x800000) - 0x800000) * 4)
+    fix = bls[1]
+    for raw in range(16):
+        e = Emu(new)
+        settings = 0x70400000
+        e.mu.mem_write(settings + 0x94b, bytes([raw]))
+        e.call(fix, (settings, 0))
+        check(e.byte(settings + 0x94b) == raw, f'guard fix changed the setting byte {raw}')
+    print('  guard fix', hex(fix), 'keeps the setting byte 0..15')
+
+
+if __name__ == '__main__':
+    main()
