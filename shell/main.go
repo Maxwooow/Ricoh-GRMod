@@ -19,6 +19,8 @@ import (
 	"io"
 	"os"
 	"strings"
+
+	"grmod/shell/internal/ricoh"
 )
 
 // version is set at build time with -ldflags "-X main.version=...".
@@ -108,6 +110,9 @@ func run(args []string) int {
 	if cfg.showVersion {
 		fmt.Println(strings.TrimSpace("grmod " + version))
 		return 0
+	}
+	if newFirmwareLine() {
+		ricoh.UseCurrentReleases()
 	}
 	target := updateTarget()
 	afterUpdate(cfg.afterUpdate, target)

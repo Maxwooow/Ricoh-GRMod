@@ -190,5 +190,37 @@
  "0x558372fc": {
   "new": "0x5583903c",
   "reason": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0x28, as in 1.11)"
+ },
+ "0x532a90d0": {
+  "new": "0x532adee0",
+  "reason": "return address after the recall bl at 0x532adedc (apply_snapshot + 0x20)"
+ },
+ "0x53374d20": {
+  "new": "0x533837f4",
+  "reason": "ratio -> code map function (raw crop): aligned; upstream crop120 hooks 0x533837f4"
+ },
+ "0x53375210": {
+  "new": "0x53383cf0",
+  "reason": "its caller (comment): aligned, two references agree"
+ },
+ "0x53572adc": {
+  "new": "0x53595da4",
+  "reason": "start of the measuring text lookup check (cmp r0,#0x14 before the bound)"
+ },
+ "0x538ed930": {
+  "new": "0x539154f8",
+  "reason": "the assertion function: aligned, 8710 references agree"
+ },
+ "0x53dbb034": {
+  "new": "0x53de5890",
+  "reason": "factory ratio order vector {0,1,3,2}: upstream layout120_userdata native_crop_order 0x53DE5890; seven movw/movt pairs name it"
+ },
+ "0x5364df8c": {
+  "new": "0x5367298c",
+  "reason": "tracking-window branch: aligned, one reference agrees; upstream crop120 beq #0x5367298c"
+ },
+ "0x5364e440": {
+  "new": "0x53672e40",
+  "reason": "tracking-window branch: aligned, six references agree; upstream crop120 bne #0x53672e40"
  }
 }

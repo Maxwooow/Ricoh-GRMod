@@ -24,7 +24,7 @@ from pathlib import Path
 import common
 
 OUT = Path(__file__).resolve().parent / 'out'
-OFFICIAL_RTOS = 0x13D2AC0
+OFFICIAL_RTOS = 0x140B600
 
 
 def screens():

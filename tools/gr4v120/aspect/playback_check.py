@@ -28,8 +28,8 @@ from gr4_editor.firmware import _load_bytes
 from gr4_editor.crops import read_crops
 
 BASE = 0x53000000
-OFFICIAL_LENGTH = 0x13D2AC0
-DATA = (0x543B3100, 0x55000000, 0x57480)   # start-up copy: source, destination, length
+OFFICIAL_LENGTH = 0x140B600
+DATA = (0x543B3100, 0x55000000, 0x58500)   # start-up copy: source, destination, length
 STACK_TOP = 0x7FF00000
 HEAP = 0x60000000
 RETURN = 0x7F000000

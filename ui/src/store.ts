@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { FACTORY_LOOK_IDS, card, GR3X_FILM_IDS, GR3X_MAX_CUSTOM_RATIOS, GR3X_T4_CUSTOM, LANGS, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_MAX_PICTURES, SHUTDOWN_NAME_MAX, validateExtraSlotName, validateGr3xRatioName, validateRatioName, validateShutdownName } from '@grmod/core';
 import type { CameraModel, ClarityChange, ExtraSlotSpec, FirmwareInfo, FirmwareSummary, LangCode, LookLayout, PresetResult, RatioPreview, RatioSpec, ShutdownPictureSpec, SlotId, SlotRequest, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
 import { engine, EngineError } from './engine';
-import { host, HostError, sha256Hex } from './host';
+import { host, HostError, newFirmwareLine, sha256Hex } from './host';
 import type { ParkedEntry, Volume } from './host';
 import { t } from './i18n';
 import type { Key } from './i18n';
@@ -144,6 +144,16 @@ function ask(title: string, lines: string[], ok: string, warn?: string, reset = 
  * parameters) are values the official firmware does not know and may freeze on. The dialog says so
  * in red and its button confirms that the camera was reset to factory defaults.
  */
+/**
+ * The warning line for a firmware made from (or being) one of the cameras' current releases (GR IV
+ * 1.20, GR III 2.20, GR IIIx 1.70, experimental): the camera cannot go back once it has it.
+ */
+function newFirmwareWarning(info: FirmwareInfo | undefined): string | null {
+  if (!info) return null;
+  const old: Record<string, string> = info.family === 'gr4' ? { '1.20': '1.11' } : { '2.20': '2.10', '1.70': '1.60' };
+  return old[info.version] ? t('newFwWriteLine', { v: info.version, old: old[info.version] }) : null;
+}
+
 function askOfficial(lines: string[]): Promise<boolean> {
   return ask(t('resetConfirmTitle'), lines, t('resetConfirmOk'), undefined, true);
 }
@@ -469,7 +479,7 @@ async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Pr
   } catch (e) {
     set({ fwBusy: false, info: undefined, raw: undefined, fwName: undefined });
     scheduleSave();
-    if (e instanceof EngineError && (e.code === 'unsupported-firmware' || e.code.startsWith('bad-') || e.code === 'too-short')) toast(t('badFirmware'), 'error');
+    if (e instanceof EngineError && (e.code === 'unsupported-firmware' || e.code.startsWith('bad-') || e.code === 'too-short')) toast(t(newFirmwareLine() ? 'badFirmwareNew' : 'badFirmware'), 'error');
     else fail(e);
     return false;
   }
@@ -1256,7 +1266,8 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const films = filmCountChoosable() ? state.filmCount : 0;
   const lookLayout = stock ? undefined : lookLayoutSpec();
   if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && !directFlash && extras.length === 0 && pictures.length === 0 && films === 0 && !lookLayout) { toast(t('nothingToDo'), 'info'); return; }
-  if (stock && !(await askOfficial([t('copyOfficial')]))) return;
+  const fresh = newFirmwareWarning(sourceInfo);
+  if (stock && !(await askOfficial([t('copyOfficial'), ...(fresh && dest.kind === 'card' ? [fresh] : [])]))) return;
   if (dest.kind === 'card' && !stock) {
     const lines = changes.map((c) => `${state.info?.family === 'gr3x' ? (state.slots[c.id].names[state.lang] || state.info.slots.find(s => s.id === c.id)?.defaultName || c.id) : t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
     if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
@@ -1269,6 +1280,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (extras.length) lines.push(t('extraLine', { n: extras.length, l: extras.map((x) => (x.halation ? `${x.name} (${t('halation')})` : x.name)).join(' / ') }));
     if (lookLayout) lines.push(t('lookOrderLine', { n: lookLayout.hidden.length }));
     if (pictures.length) lines.push(t('wallMenuLine', { n: pictures.length, l: pictures.map((p) => p.name).join(' / ') }));
+    if (fresh) lines.push(fresh);
     if (!(await ask(t('confirmTitle'), lines, t('confirmOk')))) return;
   }
   const target = await destination(dest);

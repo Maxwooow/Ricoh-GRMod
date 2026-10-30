@@ -328,6 +328,14 @@ async function gr4ProgramOf(raw: Uint8Array): Promise<Gr4Program | null> {
   return null;
 }
 
+export interface OpenOptions {
+  /**
+   * Accept the official files of the cameras' current firmware (GR IV 1.20, GR III 2.20, GR IIIx
+   * 1.70), whose programs are generated ports (experimental). Default true; the app passes its line's choice.
+   */
+  newFirmware?: boolean;
+}
+
 export class Engine {
   readonly info: FirmwareInfo;
   private readonly raw: Uint8Array;
@@ -383,8 +391,12 @@ export class Engine {
    * Accepts the official 1.11 file, or the 1.12 bridge firmware (opened as the official file it
    * was made from, with `info.bridge` set); throws `FirmwareError('unsupported-firmware')` otherwise.
    */
-  static async open(input: Uint8Array): Promise<Engine> {
-    const gr3 = await gr3ProgramOf(input);
+  static async open(input: Uint8Array, options: OpenOptions = {}): Promise<Engine> {
+    // The ports to the cameras' current firmware (GR IV 1.20, GR III 2.20, GR IIIx 1.70) are
+    // experimental: refused unless asked for (the released program asks for none of them).
+    const newFirmware = options.newFirmware ?? true;
+    let gr3 = await gr3ProgramOf(input);
+    if (gr3 && gr3 !== Gr3Program210 && !newFirmware) gr3 = null;
     if (gr3) {
       const { decoded, profile } = await gr3.openGr3xOfficial(input);
       // The camera's own power-off picture (2.10 / 1.60: GoodBye on B:; 2.20 / 1.70: GB_30th on A:, variant 6).
@@ -423,7 +435,8 @@ export class Engine {
     const bridge = await isBridgeFirmware(input);
     const raw = bridge ? await officialFromBridge(input) : input;
     // The official 1.11 or 1.20 file; anything else is refused by 1.11's openOfficial as before.
-    const g4 = (await gr4ProgramOf(raw)) ?? Gr4Program111;
+    const found = await gr4ProgramOf(raw);
+    const g4 = found && (found === Gr4Program111 || newFirmware) ? found : Gr4Program111;
     const { decoded } = await g4.openOfficial(raw);
     const layout = g4.resolveLayout(decoded);
     const mo = g4.foff(layout.standard.matrix);

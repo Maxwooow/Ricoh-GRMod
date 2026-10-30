@@ -4,6 +4,10 @@
 // Measurements of firmware 1.11 (official fwdc248b.bin, SHA-256 a2f664df...5655f), taken by running
 // the firmware's own functions in an emulator the way DoYitNow/gr-custom-tool does. They are only
 // valid for that file; the builder checks its SHA-256 first.
+//
+// GR IV 1.20: every number below is also firmware 1.20's (tools/gr4v120/aspect/check_facts120.py runs
+// 1.20's functions through the reference's 1.20 readers); only the factory ratios' text numbers are
+// 1.20's own (281, 282, 280, 284 for 1.11's 267, 268, 266, 269).
 
 /** Output size for ratio 3:2: [model, quality selector 0..3, crop step 0..2, width, height]. */
 export const BASE_DIMS: readonly (readonly [string, number, number, number, number])[] = [["Kb588",0,0,6000,4000],["Kb588",0,1,4800,3200],["Kb588",0,2,3360,2240],["Kb588",1,0,4800,3200],["Kb588",1,1,4800,3200],["Kb588",1,2,3360,2240],["Kb588",2,0,3360,2240],["Kb588",2,1,3360,2240],["Kb588",2,2,3360,2240],["Kb588",3,0,1920,1280],["Kb588",3,1,1920,1280],["Kb588",3,2,1920,1280],["Kb636",0,0,6192,4128],["Kb636",0,1,4944,3296],["Kb636",0,2,3504,2336],["Kb636",1,0,4944,3296],["Kb636",1,1,4944,3296],["Kb636",1,2,3504,2336],["Kb636",2,0,3504,2336],["Kb636",2,1,3504,2336],["Kb636",2,2,3504,2336],["Kb636",3,0,1920,1280],["Kb636",3,1,1920,1280],["Kb636",3,2,1920,1280]] as const;
@@ -13,7 +17,7 @@ export const MAG_BITS: readonly number[] = [1065353216, 1067470729, 1071788313];
 
 /** Factory ratios by identity 0..3: text id, 720x480 / 160x120 rectangles [left, top, width, height],
  *  every output size they produce, and the full-size GR IV output. */
-export const FACTORY: readonly { id: number; textId: number; screen: readonly number[]; thumb: readonly number[]; sizes: readonly (readonly number[])[]; full: readonly number[] }[] = [{"id":0,"textId":267,"screen":[0,0,720,480],"thumb":[0,8,160,104],"sizes":[[1920,1280],[3360,2240],[3504,2336],[4800,3200],[4944,3296],[6000,4000],[6192,4128]],"full":[6192,4128]},{"id":1,"textId":268,"screen":[40,0,640,480],"thumb":[0,0,160,120],"sizes":[[1920,1440],[2992,2240],[3120,2336],[4272,3200],[4400,3296],[5328,4000],[5504,4128]],"full":[5504,4128]},{"id":2,"textId":266,"screen":[0,38,720,404],"thumb":[0,16,160,88],"sizes":[[1920,1080],[3360,1888],[3504,1968],[4800,2704],[4944,2784],[6000,3376],[6192,3480]],"full":[6192,3480]},{"id":3,"textId":269,"screen":[120,0,480,480],"thumb":[20,0,120,120],"sizes":[[1280,1280],[2240,2240],[2336,2336],[3200,3200],[3296,3296],[4000,4000],[4128,4128]],"full":[4128,4128]}];
+export const FACTORY: readonly { id: number; textId: number; screen: readonly number[]; thumb: readonly number[]; sizes: readonly (readonly number[])[]; full: readonly number[] }[] = [{"id":0,"textId":281,"screen":[0,0,720,480],"thumb":[0,8,160,104],"sizes":[[1920,1280],[3360,2240],[3504,2336],[4800,3200],[4944,3296],[6000,4000],[6192,4128]],"full":[6192,4128]},{"id":1,"textId":282,"screen":[40,0,640,480],"thumb":[0,0,160,120],"sizes":[[1920,1440],[2992,2240],[3120,2336],[4272,3200],[4400,3296],[5328,4000],[5504,4128]],"full":[5504,4128]},{"id":2,"textId":280,"screen":[0,38,720,404],"thumb":[0,16,160,88],"sizes":[[1920,1080],[3360,1888],[3504,1968],[4800,2704],[4944,2784],[6000,3376],[6192,3480]],"full":[6192,3480]},{"id":3,"textId":284,"screen":[120,0,480,480],"thumb":[20,0,120,120],"sizes":[[1280,1280],[2240,2240],[2336,2336],[3200,3200],[3296,3296],[4000,4000],[4128,4128]],"full":[4128,4128]}];
 
 /** Photo-info rectangle [width, height, left, top] (Q16 on the 45x30 plane) per crop step, ratio 3:2. */
 export const RECT_BASES: readonly (readonly number[])[] = [[2949120,1966080,0,0],[2354697,1569789,297212,198141],[1668913,1112609,640104,426736]];

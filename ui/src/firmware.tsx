@@ -1,10 +1,10 @@
 // Where the firmware comes from: a file the user picks, or the current official update fetched
 // from Ricoh's site. The program itself carries no firmware.
 import { useEffect, useRef, useState } from 'react';
-import { FIRMWARE_VERSION, GR3_210, GR3X_160 } from '@grmod/core';
+import { FIRMWARE_VERSION, FIRMWARE_VERSION_120, GR3_210, GR3_220, GR3X_160, GR3X_170 } from '@grmod/core';
 import type { CameraModel } from '@grmod/core';
 import { FileButton, Ico, Segmented, useDismiss } from './components';
-import { host, HostError } from './host';
+import { host, HostError, newFirmwareLine } from './host';
 import type { FirmwareRelease } from './host';
 import { t } from './i18n';
 import type { Key } from './i18n';
@@ -87,7 +87,9 @@ function OnlineDialog() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const latest = look.state === 'ready' ? look.rel : null;
-  const wanted = model === 'GR3_HDF' || model === 'GR3' ? GR3_210.version : model === 'GR3X_HDF' || model === 'GR3X' ? GR3X_160.version : FIRMWARE_VERSION;
+  // The experimental line builds on the cameras' current firmware, the released program on the earlier one.
+  const fresh = newFirmwareLine();
+  const wanted = model === 'GR3_HDF' || model === 'GR3' ? (fresh ? GR3_220 : GR3_210).version : model === 'GR3X_HDF' || model === 'GR3X' ? (fresh ? GR3X_170 : GR3X_160).version : fresh ? FIRMWARE_VERSION_120 : FIRMWARE_VERSION;
   // When Ricoh's page offers a newer release, the one this program builds on is still on the site (GR IV).
   const fallback = latest && latest.version !== wanted && latest.fallback?.version === wanted ? latest.fallback : null;
   const rel = fallback ?? latest;
@@ -120,6 +122,7 @@ function OnlineDialog() {
       <div className="dialog online" role="dialog" aria-modal="true" aria-label={t('fwOnlineTitle')}>
         <h3>{t('fwOnlineTitle')}</h3>
         {reason && <p className="dialog-warn">{t(reason === 'bridge-loaded' ? 'bridgeNeedOfficial' : 'bridgeNeedBase')}</p>}
+        {fresh && <p className="dialog-warn">{t('fwNewLine')}</p>}
         <div className={`online-models ${progress ? 'off' : ''}`}>
           <Segmented<CameraModel> value={model} onChange={(m) => { if (!progress) setModel(m); }} options={MODELS.map((m) => ({ value: m, label: modelLabel(m) }))} />
         </div>

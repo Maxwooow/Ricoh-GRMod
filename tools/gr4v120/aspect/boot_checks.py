@@ -25,8 +25,8 @@ from unicorn import Uc, UcError, UC_ARCH_ARM, UC_MODE_ARM, UC_HOOK_CODE, UC_HOOK
 from unicorn import arm_const as reg
 
 BASE = 0x53000000
-OFFICIAL_LEN = 0x13D2AC0
-RAM, RAM_SRC, RAM_LEN = 0x55000000, 0x543B3100, 0x57480
+OFFICIAL_LEN = 0x140B600
+RAM, RAM_SRC, RAM_LEN = 0x55000000, 0x543B3100, 0x58500
 # Fake data regions. Their addresses are chosen so that no byte, half-word or word of a pointer
 # into them can be mistaken for an added ratio's identity (7..14) or a small enum.
 REGIONS = [0x62010000, 0x62020000, 0x62030000, 0x62050000]
@@ -424,9 +424,10 @@ def check_directories(official, patched, icon_bytes, official_icons):
     checked = 0
     new_names = 0
     # (start, id register, language register, address reached with the record pointer, register holding it, skip addresses)
-    for start, hit, pointer_reg, skips in ((0x535967C0, 0x535967dc, 3, (0x535968B0,)), (0x53572ADC, 0x53595DCC, 7, (0x53595F1C, 0x53595F28))):
+    for start, hit, pointer_reg, skips in ((0x535967C0, 0x535967dc, 3, (0x535968B0,)), (0x53595DA4, 0x53595DCC, 7, (0x53595F1C, 0x53595F28))):
         for language in list(range(21)) + [21, 22, 255]:
-            for text in list(range(0, 840)) + list(range(896, 912)) + [0x344, 0x345, 1000, 0xFFFF]:
+            # 1.20: 881 texts (1.11: 837); GR Mod's own from 838 + 44 on.
+            for text in list(range(0, 884)) + list(range(940, 956)) + [0x370, 0x371, 1000, 0xFFFF]:
                 state = dict(base_state)
                 state['regs'] = list(base_state['regs'])
                 state['regs'][0] = language
@@ -440,7 +441,7 @@ def check_directories(official, patched, icon_bytes, official_icons):
                     pointer = machine.uc.reg_read(REGS[pointer_reg]) if pc == hit else None
                     results.append((pc == hit, pointer))
                 (old_hit, old_pointer), (new_hit, new_pointer) = results
-                if text <= 836 and language <= 20:
+                if text <= 880 and language <= 20:
                     assert old_hit and new_hit and old_pointer == new_pointer, ('text lookup changed', hex(start), language, text)
                 elif old_hit:
                     raise AssertionError('official lookup accepted an out-of-range text')
@@ -452,7 +453,7 @@ def check_directories(official, patched, icon_bytes, official_icons):
                     assert raw[-2:] == b'\0\0' and b'\0\0' not in [raw[i:i + 2] for i in range(0, len(raw) - 2, 2)], 'bad text'
                     new_names += 1
                 checked += 1
-    # Icon directory: the getter returns a table whose first 663 entries are the official ones.
+    # Icon directory: the getter returns a table whose first 709 entries are the official ones (1.11: 663).
     old_table = struct.unpack_from('<I', official, 0)[0]  # placeholder, replaced below
     state = random_state(rng)
     getter = 0x534013F8
@@ -463,15 +464,21 @@ def check_directories(official, patched, icon_bytes, official_icons):
         if address >= RAM:
             address = RAM_SRC + address - RAM
         return image[address - BASE:address - BASE + size]
-    assert read(official, old_table, 663 * 4) == read(patched, new_table, 663 * 4), 'icon directory changed'
+    assert read(official, old_table, 709 * 4) == read(patched, new_table, 709 * 4), 'icon directory changed'
     bounds = []
-    for site in (0x5323F7EC, 0x5323E40C):
+    # 1.20: the two `cmp rN,#708` jump to helpers just below the icon catalog (build.ts ICON_BOUND_HELPERS).
+    for site, helper, compare in ((0x5323F7EC, 0x5440C5C0, 0xE1540003), (0x53240064, 0x5440C5E0, 0xE1570003)):
         word = u32(patched, site)
-        assert word & 0x0FF00000 == 0x03000000, 'icon bound is not a MOVW'
+        assert word >> 24 == 0xEA and (site + 8 + (((word & 0xFFFFFF) ^ 0x800000) - 0x800000) * 4) & 0xFFFFFFFF == helper, 'icon bound is not a jump to its helper'
+        assert u32(patched, helper) == 0xE52D3004 and u32(patched, helper + 8) == compare and u32(patched, helper + 12) == 0xE49D3004, 'icon bound helper'
+        back = u32(patched, helper + 16)
+        assert back >> 24 == 0xEA and (helper + 16 + 8 + (((back & 0xFFFFFF) ^ 0x800000) - 0x800000) * 4) & 0xFFFFFFFF == site + 4, 'icon bound helper return'
+        word = u32(patched, helper + 4)
+        assert word & 0x0FFFF000 == 0x03003000, 'icon bound is not a MOVW r3'
         bounds.append(((word >> 4) & 0xF000) | (word & 0xFFF))
     assert bounds[0] == bounds[1] < 1024, 'icon bounds differ or exceed the table'
     new_icons = 0
-    for index in range(663, 1024):
+    for index in range(709, 1024):
         pointer = struct.unpack('<I', read(patched, new_table + index * 4, 4))[0]
         if pointer:
             assert index <= bounds[0], 'icon above the bound'

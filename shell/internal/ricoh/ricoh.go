@@ -81,6 +81,16 @@ func init() {
 	pinned["GR3X"] = pinned["GR3X_HDF"]
 }
 
+// UseCurrentReleases is for the experimental line built on the cameras' current firmware (GR IV
+// 1.20, GR III 2.20, GR IIIx 1.70): no release is pinned, every model is offered the site's current
+// release (a newer one than the program knows is refused by the engine, which checks the SHA-256 of
+// the file inside). GR IV's fallback stays 1.11, which that line's page does not offer.
+func UseCurrentReleases() {
+	for model := range pinned {
+		delete(pinned, model)
+	}
+}
+
 // ErrNoRelease means the site lists no firmware for the model.
 var ErrNoRelease = errors.New("no firmware is listed for this model")
 

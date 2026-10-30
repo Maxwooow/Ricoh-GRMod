@@ -56,6 +56,15 @@ async function call(method: string, path: string, body?: BodyInit | null, json =
 const q = (s: string): string => encodeURIComponent(s);
 const post = async <T>(path: string, body: unknown): Promise<T> => (await call('POST', path, JSON.stringify(body))).json() as Promise<T>;
 
+/**
+ * True in the experimental line for the cameras' current firmware (GR IV 1.20, GR III 2.20,
+ * GR IIIx 1.70; a version such as 0.8.6-newfwexp.1, as the shell's newFirmwareLine).
+ */
+export function newFirmwareLine(): boolean {
+  const v = info?.version ?? '';
+  return v.includes('newfw') && v.includes('exp');
+}
+
 export const host = {
   available: !!info,
   info,

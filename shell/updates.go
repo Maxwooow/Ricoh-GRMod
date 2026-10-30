@@ -81,6 +81,15 @@ func updateTarget() update.Target {
 // replaced by it.
 func experimental() bool { return strings.Contains(version, "exp") }
 
+// newFirmwareLine reports a build of the experimental line for the cameras' current firmware (GR IV
+// 1.20, GR III 2.20, GR IIIx 1.70; a version such as 0.8.6-newfwexp.1, always experimental): it
+// downloads those releases instead of the ones the released GR Mod builds on, and keeps a data
+// folder of its own.
+func newFirmwareLine() bool { return strings.Contains(version, "newfw") && experimental() }
+
+// newFirmwareDataSuffix is appended to the default data folder of a new-firmware build.
+const newFirmwareDataSuffix = "-NewFirmware-Experimental"
+
 // experimentalDataSuffix is appended to the default data folder of an experimental build (the
 // GR III test builds' folder; a release takes their GR III work over once, migrate.go).
 const experimentalDataSuffix = gr3TestDataSuffix

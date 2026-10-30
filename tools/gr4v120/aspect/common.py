@@ -6,8 +6,8 @@ These scripts are NOT part of the program. They run the reference implementation
 turn what it produces into (a) constants and pre-compiled code for `core/src/fw/gr4v120/aspect/` and
 (b) expected results for the tests. They need:
 
-  GR_CUSTOM_TOOL   path of a gr-custom-tool checkout (commit 0c15c8f)
-  GRMOD_OFFICIAL   path of the official fwdc248b.bin (1.11)
+  GR_CUSTOM_TOOL_120  path of a gr-custom-tool checkout able to read 1.20 (commit 258d745)
+  GRMOD_OFFICIAL_120  path of the official fwdc248b.bin (1.20)
   clang / ld.lld / llvm-objcopy / llvm-nm with ARM support, Python packages unicorn and Pillow
 """
 import os
@@ -16,8 +16,8 @@ from copy import deepcopy
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
-TOOL = Path(os.environ.get('GR_CUSTOM_TOOL', '/home/claude/work/gr-custom-tool'))
-OFFICIAL = Path(os.environ.get('GRMOD_OFFICIAL', REPO / 'core/testdata/private/official.bin'))
+TOOL = Path(os.environ.get('GR_CUSTOM_TOOL_120', '/home/claude/ref/gct-258d745'))
+OFFICIAL = Path(os.environ.get('GRMOD_OFFICIAL_120', REPO / 'core/testdata/private/official120.bin'))
 os.environ.setdefault('GR4_EDITOR_DATA_DIR', str(REPO / 'tools/gr4v120/aspect/.refdata'))
 sys.path.insert(0, str(TOOL))
 

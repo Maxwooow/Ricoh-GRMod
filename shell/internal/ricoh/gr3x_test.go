@@ -41,3 +41,26 @@ func TestGR3FamilyUsesPinnedReleases(t *testing.T) {
 		server.Close()
 	}
 }
+
+// The experimental line for the cameras' current firmware pins nothing: GR III / IIIx are offered
+// the site's current release like GR IV.
+func TestUseCurrentReleases(t *testing.T) {
+	saved := map[string]Release{}
+	for k, v := range pinned {
+		saved[k] = v
+	}
+	defer func() {
+		for k, v := range saved {
+			pinned[k] = v
+		}
+	}()
+	UseCurrentReleases()
+	for _, m := range []string{"GR3", "GR3_HDF", "GR3X", "GR3X_HDF"} {
+		if IsPinned(m) {
+			t.Fatalf("%s is still pinned", m)
+		}
+		if _, ok := PinnedVersion(m); ok {
+			t.Fatalf("%s still has a pinned version", m)
+		}
+	}
+}

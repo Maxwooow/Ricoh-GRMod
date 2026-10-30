@@ -4,7 +4,7 @@ import type { BuildOptions, CameraModel, RatioSpec, SlotRequest, SoftFocusReques
 
 let engine: Engine | null = null;
 type Req =
-  | { id: number; type: 'open'; raw: ArrayBuffer }
+  | { id: number; type: 'open'; raw: ArrayBuffer; newFirmware: boolean }
   | { id: number; type: 'convert'; kind: 'xmp' | 'cube'; text: string; options?: { hue?: boolean } }
   | { id: number; type: 'build'; requests: SlotRequest[]; ratios?: RatioSpec[]; softFocus?: SoftFocusRequest[]; options?: BuildOptions }
   | { id: number; type: 'ratio'; ratio: string; others: string[] }
@@ -27,7 +27,7 @@ ctx.onmessage = async (ev: MessageEvent<Req>) => {
       case 'reset': engine = null; ctx.postMessage({ id: m.id, ok: true, result: true }); break;
       case 'open': {
         engine = null;
-        engine = await Engine.open(new Uint8Array(m.raw));
+        engine = await Engine.open(new Uint8Array(m.raw), { newFirmware: m.newFirmware });
         ctx.postMessage({ id: m.id, ok: true, result: engine.info });
         break;
       }
