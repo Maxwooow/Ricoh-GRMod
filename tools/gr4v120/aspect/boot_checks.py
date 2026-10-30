@@ -317,7 +317,7 @@ def check_transparent(official, patched, hooks, runs=40, seed=1, lead=None):
     lead = lead or {}
     failures, tested, notes = [], 0, {}
     for number, site in enumerate(hooks):
-        if number % 50 == 0: print('  ... %d of %d hooks, %d failures so far' % (number, len(hooks), len(failures)), flush=True)
+        if number % 10 == 0: print('  ... %d of %d hooks, %d failures so far' % (number, len(hooks), len(failures)), flush=True)
         special = SPECIAL.get(site)
         if special == 'entry':
             continue
@@ -913,10 +913,11 @@ def run(official, patched, icon_bytes, official_icons, quiet=False):
         if shard:
             i, n = (int(x) for x in shard.split('/'))
             part = [h for k, h in enumerate(sorted(hooks)) if k % n == i]
-        tested, failures, notes = check_transparent(official, patched, part, lead=LEAD)
+        runs = int(os.environ.get('BOOT_RUNS', '40'))   # random states per hook (fewer for a build with every feature)
+        tested, failures, notes = check_transparent(official, patched, part, runs=runs, lead=LEAD)
         for failure in failures:
             say('  NOT TRANSPARENT', failure)
-        say('transparent with no added ratio involved: %d hooks%s, 40 random states each (%d of them leave flags or a scratch register different where the official code overwrites it before reading)' % (tested, f' (share {shard})' if shard else '', len(notes)))
+        say('transparent with no added ratio involved: %d hooks%s, %d random states each (%d of them leave flags or a scratch register different where the official code overwrites it before reading)' % (tested, f' (share {shard})' if shard else '', runs, len(notes)))
         if shard:
             if failures:
                 raise SystemExit('transparency check failed')

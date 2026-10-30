@@ -1514,7 +1514,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
      failures, tested, notes = [], 0, {}
 -    for site in hooks:
 +    for number, site in enumerate(hooks):
-+        if number % 50 == 0: print('  ... %d of %d hooks, %d failures so far' % (number, len(hooks), len(failures)), flush=True)
++        if number % 10 == 0: print('  ... %d of %d hooks, %d failures so far' % (number, len(hooks), len(failures)), flush=True)
          special = SPECIAL.get(site)
          if special == 'entry':
              continue
@@ -1573,7 +1573,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
          pointer = struct.unpack('<I', read(patched, new_table + index * 4, 4))[0]
          if pointer:
              assert index <= bounds[0], 'icon above the bound'
-@@ -896,10 +904,25 @@
+@@ -896,10 +904,26 @@
          say('build revision 1: no decode buffer change')
      unknown = [hex(a) for a in SPECIAL if a not in hooks]
      assert not unknown, 'SPECIAL lists addresses that are not hooks: %s' % unknown
@@ -1590,10 +1590,11 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
 +        if shard:
 +            i, n = (int(x) for x in shard.split('/'))
 +            part = [h for k, h in enumerate(sorted(hooks)) if k % n == i]
-+        tested, failures, notes = check_transparent(official, patched, part, lead=LEAD)
++        runs = int(os.environ.get('BOOT_RUNS', '40'))   # random states per hook (fewer for a build with every feature)
++        tested, failures, notes = check_transparent(official, patched, part, runs=runs, lead=LEAD)
 +        for failure in failures:
 +            say('  NOT TRANSPARENT', failure)
-+        say('transparent with no added ratio involved: %d hooks%s, 40 random states each (%d of them leave flags or a scratch register different where the official code overwrites it before reading)' % (tested, f' (share {shard})' if shard else '', len(notes)))
++        say('transparent with no added ratio involved: %d hooks%s, %d random states each (%d of them leave flags or a scratch register different where the official code overwrites it before reading)' % (tested, f' (share {shard})' if shard else '', runs, len(notes)))
 +        if shard:
 +            if failures:
 +                raise SystemExit('transparency check failed')
