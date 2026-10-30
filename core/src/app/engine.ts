@@ -61,22 +61,20 @@ import type { SlotParams } from '../color';
 import { JpegError, checkShutdownJpeg, decodeBaselineJpeg, encodeExactJpeg, inspectJpeg } from '../jpeg';
 import type { Sampling } from '../jpeg';
 import { MODEL_INFO, rotationScript } from '../wallpaper';
-import { GR3X_160, gr3ProfileOf, openGr3xOfficial, requireGr3xPort } from '../fw/gr3x/profile';
+import { requireGr3xPort } from '../fw/gr3x/profile';
+import * as Gr3Program210 from '../fw/gr3x/program';
+import * as Gr3Program220 from '../fw/gr3x170/program';
 import { planGr3xRatio } from '../fw/gr3x/geometry';
 import { GR3X_MAX_CUSTOM_RATIOS, GR3X_T4_MENU, gr3xCustoms, planGr3xMenu } from '../fw/gr3x/geometry';
 import type { Gr3xMenuRatio } from '../fw/gr3x/geometry';
 import { readGr3xBuildRecipe } from '../fw/gr3x/ratio-recipe';
 import { isGr3xFactoryLayout, validateGr3xLookLayout } from '../fw/gr3x/look-layout';
 import type { Gr3xLookLayout } from '../fw/gr3x/look-layout';
-import { encodeGr3xPicture, GR3X_MAX_PICTURES, gr3xPicturePath } from '../fw/gr3x/shutdown';
+import { encodeGr3xPicture } from '../fw/gr3x/shutdown';
 import { encodeShutdownPicture } from '../fw/aspect/shutdown';
 import type { Gr3xPictureSpec } from '../fw/gr3x/shutdown';
 import { readRes, resFile } from '../fw/aspect/res';
-import { buildGr3xTestFirmware } from '../fw/gr3x/research-package';
-import { readGr3xFactoryEntry } from '../fw/gr3x/factory';
-import { GR3X_CLARITY_OFFSET } from '../fw/gr3x/clarity';
-import { GR3X_FILM_IDS, GR3X_FILM_NAMES, GR3X_LOOK_CHARS, gr3xAllowedChars, gr3xLookResources, validateGr3xLookName } from '../fw/gr3x/look-resources';
-import { readGr3xLookRecipe } from '../fw/gr3x/look-recipe';
+import { GR3X_FILM_IDS, GR3X_FILM_NAMES, GR3X_LOOK_CHARS, validateGr3xLookName } from '../fw/gr3x/look-resources';
 import type { Gr3xLookOptions } from '../fw/gr3x/image-control';
 import { GR3X_MAX_FILMS } from '../fw/gr3x/image-control';
 import { convertGr3xCube, convertGr3xXmp } from '../color/gr3x-import';
@@ -341,6 +339,20 @@ function boxBlur(rgb: Uint8Array, w: number, h: number, radius: number): Uint8Ar
   return out;
 }
 
+/**
+ * The GR III / IIIx programs: GR IIIx 1.60 / GR III 2.10 (fw/gr3x) and its generated port to GR IIIx
+ * 1.70 / GR III 2.20 (fw/gr3x170, experimental). Every firmware address lives in one of them; an
+ * engine keeps the program of the file it opened and never mixes the two.
+ */
+const GR3_PROGRAMS = [Gr3Program210, Gr3Program220] as const;
+/** Development: the patch manifest of each GR III / IIIx build (tools/port/compare_builds.mts compares the programs' builds). */
+export const gr3BuildManifests = new Map<string, unknown>();
+type Gr3Program = typeof GR3_PROGRAMS[number];
+async function gr3ProgramOf(raw: Uint8Array): Promise<Gr3Program | null> {
+  for (const program of GR3_PROGRAMS) if (await program.gr3ProfileOf(raw)) return program;
+  return null;
+}
+
 export class Engine {
   readonly info: FirmwareInfo;
   private readonly raw: Uint8Array;
@@ -350,6 +362,8 @@ export class Engine {
   private editable: Range[] | null = null;
   private monoWords: { offset: number; bytes: Uint8Array }[] | null = null;
   private gr3xCandidates = new Map<string, Promise<FirmwareBuild>>();
+  /** The GR III / IIIx program of the open file (null for GR IV). */
+  private readonly gr3: Gr3Program | null;
 
   private fixedGr3x(softFocus: readonly SoftFocusRequest[] = [], looks?: Gr3xLookOptions, menu: readonly Gr3xMenuRatio[] = GR3X_T4_MENU, adjSoftFocus = false, dateImprint = false, pictures: readonly Gr3xPictureSpec[] = [], dateMenu: 'list' | 'submenu' = 'submenu', pictureMenu: 'list' | 'submenu' = 'submenu',
     round: { round7?: boolean; round8?: boolean; round9?: boolean; round10?: boolean; lookLayout?: Gr3xLookLayout } = {}): Promise<FirmwareBuild> {
@@ -358,8 +372,8 @@ export class Engine {
     const key = JSON.stringify({ requests, looks, menu, adjSoftFocus, dateImprint, dateMenu, pictureMenu, round7, round8, round9, round10, lookLayout, pictures: pictures.map(p => ({ id: p.id, name: p.name, jpeg: Array.from(p.jpeg) })) });
     let candidate = this.gr3xCandidates.get(key);
     if (candidate) return candidate;
-    candidate = buildGr3xTestFirmware(this.raw, requests, looks, menu, { adjSoftFocus, ...(dateImprint ? { dateImprint, dateMenu } : {}), ...(pictures.length ? { pictures, pictureMenu } : {}), ...(round7 ? { round7 } : {}),
-      ...(round8 ? { round8 } : {}), ...(round9 ? { round9 } : {}), ...(round10 ? { round10 } : {}), ...(lookLayout ? { lookLayout } : {}) }).then(r => ({
+    candidate = this.gr3!.buildGr3xTestFirmware(this.raw, requests, looks, menu, { adjSoftFocus, ...(dateImprint ? { dateImprint, dateMenu } : {}), ...(pictures.length ? { pictures, pictureMenu } : {}), ...(round7 ? { round7 } : {}),
+      ...(round8 ? { round8 } : {}), ...(round9 ? { round9 } : {}), ...(round10 ? { round10 } : {}), ...(lookLayout ? { lookLayout } : {}) }).then(r => { const built: FirmwareBuild = {
       file: r.bytes, sha256: r.report.outputSha256, decodedSha256: r.decodedSha256,
       changedFrames: r.changedFrames, changedBytes: r.changedBytes,
       ranges: r.report.ranges, checks: r.report.checks, features: { ...(looks?.monoReplicas ? { monoUnlock: true } : {}), ...(adjSoftFocus ? { adjSoftFocus: true } : {}), ...(dateImprint ? { dateStamp: true } : {}),
@@ -369,12 +383,17 @@ export class Engine {
         const plan = planGr3xRatio(x.ratio);
         return { id: x.id, name: x.name, ratio: x.ratio, actual: plan.actual, sizes: plan.sizes };
       }),
-    }));
+    };
+    // Kept by the build's SHA-256, the last 8 only.
+    gr3BuildManifests.set(built.sha256, r.manifest);
+    for (const k of [...gr3BuildManifests.keys()].slice(0, -8)) gr3BuildManifests.delete(k);
+    return built; });
     this.gr3xCandidates.set(key, candidate);
     return candidate;
   }
 
-  private constructor(raw: Uint8Array, decoded: Uint8Array, info: FirmwareInfo, mStd: Int16Array, layout: Layout | null) {
+  private constructor(raw: Uint8Array, decoded: Uint8Array, info: FirmwareInfo, mStd: Int16Array, layout: Layout | null, gr3: Gr3Program | null = null) {
+    this.gr3 = gr3;
     this.raw = raw;
     this.decoded = decoded;
     this.info = info;
@@ -387,16 +406,18 @@ export class Engine {
    * was made from, with `info.bridge` set); throws `FirmwareError('unsupported-firmware')` otherwise.
    */
   static async open(input: Uint8Array): Promise<Engine> {
-    if (await gr3ProfileOf(input)) {
-      const { decoded, profile } = await openGr3xOfficial(input);
-      const target = MODEL_INFO.GR3X_HDF.target.toLowerCase();
+    const gr3 = await gr3ProgramOf(input);
+    if (gr3) {
+      const { decoded, profile } = await gr3.openGr3xOfficial(input);
+      // The camera's own power-off picture (2.10 / 1.60: GoodBye on B:; 2.20 / 1.70: GB_30th on A:, variant 6).
+      const target = gr3.GR3X_FACTORY_PICTURES[0].toLowerCase();
       const resource = listResources(decoded).find(r => r.path.toLowerCase() === target);
-      if (!resource || resource.length !== 7264) throw new FirmwareError('unexpected-layout', 'IIIx shutdown resource changed');
+      if (!resource || resource.length !== (gr3 === Gr3Program210 ? 7264 : 42450)) throw new FirmwareError('unexpected-layout', 'IIIx shutdown resource changed');
       const data = decoded.slice(resource.offset, resource.offset + resource.length);
       // The IIIx factory JPEG uses optimized Huffman tables. The generated-file
       // checker deliberately requires Annex K tables and is not an input parser.
       const checked = inspectJpeg(data);
-      const lookResources = gr3xLookResources(decoded);
+      const lookResources = gr3.gr3xLookResources(decoded);
       if (!checked.baseline || checked.width !== SHUTDOWN_W || checked.height !== SHUTDOWN_H ||
           checked.precision !== 8 || checked.scans !== 1 || checked.trailingBytes !== 0 ||
           checked.components.length !== 3 || samplingOf(data) !== '420') {
@@ -416,10 +437,10 @@ export class Engine {
           id, defaultName: GR3X_FILM_NAMES[i], icon: lookResources.film.slice(),
           names: Object.fromEntries(LANGS.map(l => [l, { text: GR3X_FILM_NAMES[i], capacity: 24 }])) as SlotInfoView['names'],
         })), tiles: lookResources.tiles, contentArea: CONTENT_AREA,
-        allowed: Object.fromEntries(LANGS.map(l => [l, gr3xAllowedChars(decoded, l)])) as Record<LangCode, string>,
-        shutdown: Object.fromEntries([profile.model, profile.standardModel].map(m => [m, { size: resource.length, sampling: samplingOf(data), data }])), factoryEntry: readGr3xFactoryEntry(decoded, profile),
+        allowed: Object.fromEntries(LANGS.map(l => [l, gr3.gr3xAllowedChars(decoded, l)])) as Record<LangCode, string>,
+        shutdown: Object.fromEntries([profile.model, profile.standardModel].map(m => [m, { size: resource.length, sampling: samplingOf(data), data }])), factoryEntry: gr3.readGr3xFactoryEntry(decoded, profile),
       };
-      return new Engine(input.slice(), decoded, info, lookResources.matrix, null);
+      return new Engine(input.slice(), decoded, info, lookResources.matrix, null, gr3);
     }
     const bridge = await isBridgeFirmware(input);
     const raw = bridge ? await officialFromBridge(input) : input;
@@ -526,26 +547,28 @@ export class Engine {
         const decoded = new Firmware(raw).decoded;
         const rtos = sectionsOf(decoded).find(s => s.name === 'RTOS');
         let menu: Gr3xMenuRatio[] = [...GR3X_T4_MENU];
-        if (rtos && rtos.offset === GR3X_160.rtosOffset && rtos.size > GR3X_160.rtosLength) {
-          const appended = decoded.subarray(rtos.offset + GR3X_160.rtosLength, rtos.offset + rtos.size);
-          looks = readGr3xLookRecipe(appended);
-          const build = readGr3xBuildRecipe(appended);
+        const L = this.gr3!.GR3_LAYOUT;
+        if (rtos && rtos.offset === L.rtosOffset && rtos.size > L.rtosLength) {
+          const appended = decoded.subarray(rtos.offset + L.rtosLength, rtos.offset + rtos.size);
+          looks = this.gr3!.readGr3xLookRecipe(appended);
+          const build = this.gr3!.readGr3xBuildRecipe(appended);
           if (build) {
             menu = planGr3xMenu(build.ratios); adjSoftFocus = build.adjSoftFocus; dateImprint = build.dateImprint; dateMenu = build.dateMenu; pictureMenu = build.pictureMenu; round7 = build.round7;
             round8 = build.round8; round9 = build.round9; round10 = build.round10; lookLayout = build.lookLayout;
             // Power-off pictures: the names from the recipe, the JPEGs from the file's own RES section.
             if (build.pictures.length) {
-              if (build.pictures.length > GR3X_MAX_PICTURES) throw new FirmwareError('bad-edit', 'IIIx picture recipe');
+              if (build.pictures.length > this.gr3!.GR3X_MAX_PICTURES) throw new FirmwareError('bad-edit', 'IIIx picture recipe');
               const dir = readRes(decoded);
               pictures = build.pictures.map((name, k) => {
-                const jpeg = resFile(decoded, gr3xPicturePath(k), dir);
+                const jpeg = resFile(decoded, this.gr3!.gr3xPicturePath(k), dir);
                 if (!jpeg) throw new FirmwareError('bad-edit', 'IIIx picture missing');
                 return { name, jpeg, ...(build.pictureMenu === 'submenu' ? { id: build.pictureIds[k] } : {}) };
               });
             }
           }
         }
-        const changes = clarityChanges(decoded, GR3X_CLARITY_OFFSET);
+        const changes = clarityChanges(decoded, this.gr3!.GR3X_CLARITY_OFFSET);
+
         if (changes.every(c => SOFT_FOCUS_LEVELS.includes(c.level as SoftFocusLevel) && c.strength !== 'custom')) {
           candidate = await this.fixedGr3x(changes as SoftFocusRequest[], looks ?? undefined, menu, adjSoftFocus, dateImprint, pictures, dateMenu, pictureMenu, { round7, round8, round9, round10, ...(lookLayout ? { lookLayout } : {}) });
           softFocus = changes;

@@ -1,0 +1,238 @@
+{
+ "0x53000000": {
+  "new": "0x53000000",
+  "reason": "RTOS load address"
+ },
+ "0x53000460": {
+  "new": "0x53000460",
+  "reason": "start-up zero fill: the same code, its end literal at the same place (0x55803c34 in 1.70)"
+ },
+ "0x53002030": {
+  "new": "0x53002030",
+  "reason": "identity header in the RTOS image: project word, same place"
+ },
+ "0x53002034": {
+  "new": "0x53002034",
+  "reason": "identity header in the RTOS image: product word, same place"
+ },
+ "0x5313fd80": {
+  "new": "0x5313fe40",
+  "reason": "memcpy: identical body; 1453 references agree"
+ },
+ "0x5319f180": {
+  "new": "0x5319f240",
+  "reason": "GoodByeController::RequestBackgroundJpeg's entry (its body changed: hand edits)"
+ },
+ "0x53246348": {
+  "new": "0x53246420",
+  "reason": "ADJ slot 2 getter: identical, between its unchanged neighbours (6 references)"
+ },
+ "0x53289b14": {
+  "new": "0x53289bec",
+  "reason": "RAW development dial: identical instructions around it"
+ },
+ "0x5328a000": {
+  "new": "0x5328a0d8",
+  "reason": "RAW development: identical instructions around it"
+ },
+ "0x532c50d8": {
+  "new": "0x532c51c8",
+  "reason": "look parameter page function: identical prologue, 2 references"
+ },
+ "0x536bdd80": {
+  "new": "0x536bde70",
+  "reason": "factory keyword parser entry (its body changed: hand edits in factory.ts)"
+ },
+ "0x536c3f9c": {
+  "new": "0x536c3f74",
+  "reason": "display descriptor singleton getter: identical body, 101 references"
+ },
+ "0x5381fe4c": {
+  "new": "0x5381fe24",
+  "reason": "project getter (identity word differs between GR III and IIIx)"
+ },
+ "0x5381fe9c": {
+  "new": "0x5381fe74",
+  "reason": "product getter (identity word differs between GR III and IIIx)"
+ },
+ "0x538f2d84": {
+  "new": "0x538f2d94",
+  "reason": "DEVELOP.MOD key file name (xor 0x29), found by content"
+ },
+ "0x538f2d94": {
+  "new": "0x53d62278",
+  "reason": "factory keyword table: OPEN_FACTORY_DEBUG_MENU at +0x140, found by content (moved to rodata)"
+ },
+ "0x53d628a0": {
+  "new": "0x53d629d8",
+  "reason": "factory key bytes: referenced by the key compare (movw/movt), 1 reference; checked in factory.ts"
+ },
+ "0x5407b540": {
+  "new": "0x5407b640",
+  "reason": "initialised RAM image source (start-up literal at 0x53000450)"
+ },
+ "0x55063f34": {
+  "new": "0x55063f34",
+  "reason": "UserDataModel + 4 (UserDataModel 0x55063f30 unchanged: 3 references)"
+ },
+ "0x5536dbf8": {
+  "new": "0x5536d4b8",
+  "reason": "gamma guard object: its neighbour 0x5536dbfc is 0x5536d4bc (2 references), this one 1 reference"
+ },
+ "0x5536d1b4": {
+  "new": "0x5536d1b4",
+  "reason": "probe stub value (a cache object pointer it returns); 0x5536d1b4 is referenced unchanged"
+ },
+ "0x55804374": {
+  "new": "0x55803c34",
+  "reason": "GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends"
+ },
+ "0x55804378": {
+  "new": "0x55803c38",
+  "reason": "GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends"
+ },
+ "0x5580437c": {
+  "new": "0x55803c3c",
+  "reason": "GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends"
+ },
+ "0x5580437d": {
+  "new": "0x55803c3d",
+  "reason": "GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends"
+ },
+ "0x5580437e": {
+  "new": "0x55803c3e",
+  "reason": "GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends"
+ },
+ "0x55804380": {
+  "new": "0x55803c40",
+  "reason": "GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends"
+ },
+ "0x55804384": {
+  "new": "0x55803c44",
+  "reason": "GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends"
+ },
+ "0x55804388": {
+  "new": "0x55803c48",
+  "reason": "GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends"
+ },
+ "0x558043c0": {
+  "new": "0x55803c80",
+  "reason": "GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends"
+ },
+ "0x54100000": {
+  "new": "0x54100000",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x543f0000": {
+  "new": "0x543f0000",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x543fc1d0": {
+  "new": "0x543fc1d0",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x54400000": {
+  "new": "0x54400000",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x5503b000": {
+  "new": "0x5503b000",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x55060000": {
+  "new": "0x55060000",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x55357000": {
+  "new": "0x55357000",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x5536d000": {
+  "new": "0x5536d000",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x55550000": {
+  "new": "0x55550000",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x55800000": {
+  "new": "0x55800000",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x55880000": {
+  "new": "0x55880000",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x55890000": {
+  "new": "0x55890000",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x558c0000": {
+  "new": "0x558c0000",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x558c0100": {
+  "new": "0x558c0100",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x558c0200": {
+  "new": "0x558c0200",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x558c0f00": {
+  "new": "0x558c0f00",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x55900000": {
+  "new": "0x55900000",
+  "reason": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+ },
+ "0x536be000": {
+  "new": "0x536be0f0",
+  "reason": "end of a code range a probe hooks (the code around it is at +0xf0)"
+ },
+ "0x536be7c0": {
+  "new": "0x536be7c0",
+  "reason": "the 1.60 keyword table set-up; 1.70 has no table copy (its parser uses constant pointers): the probe call is removed by hand"
+ },
+ "0x536bde64": {
+  "new": "0x536bdf50",
+  "reason": "factory keyword handler: the OPEN_FACTORY_DEBUG_MENU compare (now `ldr r1,[pc,..]`; factory.ts checks it by hand)"
+ },
+ "0x536bde74": {
+  "new": "0x536bdf64",
+  "reason": "factory keyword handler: mov r0,#1"
+ },
+ "0x536bde78": {
+  "new": "0x536bdf68",
+  "reason": "factory keyword handler: strb r0,[r4,#4]"
+ },
+ "0x53002000": {
+  "new": "0x53002000",
+  "reason": "identity bytes of GR III vs IIIx (test bounds): the 2.20 / 1.70 differences, RTOS 0x200e..0x207a, 0x6b63dc..0x6b6664, 0x81fe24..0x81fe74, 0xd61cf4"
+ },
+ "0x53002090": {
+  "new": "0x53002090",
+  "reason": "identity bytes of GR III vs IIIx (test bounds): the 2.20 / 1.70 differences, RTOS 0x200e..0x207a, 0x6b63dc..0x6b6664, 0x81fe24..0x81fe74, 0xd61cf4"
+ },
+ "0x536b62ec": {
+  "new": "0x536b63dc",
+  "reason": "identity bytes of GR III vs IIIx (test bounds): the 2.20 / 1.70 differences, RTOS 0x200e..0x207a, 0x6b63dc..0x6b6664, 0x81fe24..0x81fe74, 0xd61cf4"
+ },
+ "0x536b6578": {
+  "new": "0x536b6668",
+  "reason": "identity bytes of GR III vs IIIx (test bounds): the 2.20 / 1.70 differences, RTOS 0x200e..0x207a, 0x6b63dc..0x6b6664, 0x81fe24..0x81fe74, 0xd61cf4"
+ },
+ "0x5381fea0": {
+  "new": "0x5381fe78",
+  "reason": "identity bytes of GR III vs IIIx (test bounds): the 2.20 / 1.70 differences, RTOS 0x200e..0x207a, 0x6b63dc..0x6b6664, 0x81fe24..0x81fe74, 0xd61cf4"
+ },
+ "0x53d62314": {
+  "new": "0x53d61cf4",
+  "reason": "identity bytes of GR III vs IIIx (test bounds): the 2.20 / 1.70 differences, RTOS 0x200e..0x207a, 0x6b63dc..0x6b6664, 0x81fe24..0x81fe74, 0xd61cf4"
+ },
+ "0x53d62320": {
+  "new": "0x53d61d00",
+  "reason": "identity bytes of GR III vs IIIx (test bounds): the 2.20 / 1.70 differences, RTOS 0x200e..0x207a, 0x6b63dc..0x6b6664, 0x81fe24..0x81fe74, 0xd61cf4"
+ }
+}
