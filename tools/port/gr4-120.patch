@@ -1528,7 +1528,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
          special = SPECIAL.get(site)
          if special == 'entry':
              continue
-@@ -428,7 +432,8 @@
+@@ -429,7 +433,8 @@
      # (start, id register, language register, address reached with the record pointer, register holding it, skip addresses)
      for start, hit, pointer_reg, skips in ((0x535967C0, 0x535967dc, 3, (0x535968B0,)), (0x53595DA4, 0x53595DCC, 7, (0x53595F1C, 0x53595F28))):
          for language in list(range(21)) + [21, 22, 255]:
@@ -1538,7 +1538,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
                  state = dict(base_state)
                  state['regs'] = list(base_state['regs'])
                  state['regs'][0] = language
-@@ -442,7 +447,7 @@
+@@ -443,7 +448,7 @@
                      pointer = machine.uc.reg_read(REGS[pointer_reg]) if pc == hit else None
                      results.append((pc == hit, pointer))
                  (old_hit, old_pointer), (new_hit, new_pointer) = results
@@ -1547,7 +1547,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
                      assert old_hit and new_hit and old_pointer == new_pointer, ('text lookup changed', hex(start), language, text)
                  elif old_hit:
                      raise AssertionError('official lookup accepted an out-of-range text')
-@@ -454,7 +459,7 @@
+@@ -455,7 +460,7 @@
                      assert raw[-2:] == b'\0\0' and b'\0\0' not in [raw[i:i + 2] for i in range(0, len(raw) - 2, 2)], 'bad text'
                      new_names += 1
                  checked += 1
@@ -1556,7 +1556,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
      old_table = struct.unpack_from('<I', official, 0)[0]  # placeholder, replaced below
      state = random_state(rng)
      getter = 0x534013F8
-@@ -465,23 +470,32 @@
+@@ -466,23 +471,32 @@
          if address >= RAM:
              address = RAM_SRC + address - RAM
          return image[address - BASE:address - BASE + size]
@@ -1596,7 +1596,16 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
      return checked, new_names, new_icons
  
  
-@@ -898,10 +912,26 @@
+@@ -557,7 +571,7 @@
+ 
+ 
+ # The settings guard (guard.ts, in every build) puts looks, ADJ functions and ratios the firmware
+-# does not know back to factory ones on load, save and user-mode recall; tools/gr4v120/looks/looks_check.py
++# does not know back to factory ones on load, save and user-mode recall; tools/looks/looks_check.py
+ # checks that rule. Here the guarded bytes hold values every build keeps (factory looks 0..30, ADJ
+ # functions 0..0x14 but soft focus's 0x0A), so the guard leaves them alone and the rest is compared.
+ GUARD_LOOKS = (0x153, 0x154, 0x155, 0x156, 0x515, 0x516, 0x517, 0x518)
+@@ -919,10 +933,26 @@
          say('build revision 1: no decode buffer change')
      unknown = [hex(a) for a in SPECIAL if a not in hooks]
      assert not unknown, 'SPECIAL lists addresses that are not hooks: %s' % unknown

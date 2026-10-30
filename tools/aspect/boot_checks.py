@@ -340,6 +340,7 @@ def check_transparent(official, patched, hooks, runs=40, seed=1, lead=None):
                     # r4 points at the user data; its ratio byte (+0x49F) holds a menu ratio.
                     state['regs'][4] = REGIONS[0] + 0x1000
                     poke(state, REGIONS[0] + 0x1000 + 0x49F, bytes([rng.choice([0, 1, 2, 3])]))
+                    guard_valid(state, REGIONS[0] + 0x1000, rng)
             state = random_state(rng, tweak)
             mp.reset(state)
             left = [False]
@@ -555,6 +556,22 @@ def check_menu(official, patched):
     return count, order
 
 
+# The settings guard (guard.ts, in every build) puts looks, ADJ functions and ratios the firmware
+# does not know back to factory ones on load, save and user-mode recall; tools/looks/looks_check.py
+# checks that rule. Here the guarded bytes hold values every build keeps (factory looks 0..30, ADJ
+# functions 0..0x14 but soft focus's 0x0A), so the guard leaves them alone and the rest is compared.
+GUARD_LOOKS = (0x153, 0x154, 0x155, 0x156, 0x515, 0x516, 0x517, 0x518)
+GUARD_ADJ = (0x920, 0x921, 0x922, 0x923, 0x924)
+
+
+def guard_valid(state, settings, rng, adjust=0):
+    """Settings at `settings` (CURRENT() layout minus `adjust`) with guard-proof looks and ADJ functions."""
+    for off in GUARD_LOOKS:
+        poke(state, settings + off - adjust, bytes([rng.choice(range(11, 25))]))
+    for off in GUARD_ADJ:
+        poke(state, settings + off - adjust, bytes([rng.choice([n for n in range(0x15) if n != 0x0A])]))
+
+
 def check_settings(official, patched, order):
     """Settings save / load / user-mode recall: pass through to the native functions untouched,
     and only reset a ratio byte that is not a menu ratio."""
@@ -577,6 +594,10 @@ def check_settings(official, patched, order):
                 poke(state, pointer + 0x49B, bytes([value]))
         poke(state, current + 0x49B, bytes([ids[10]]))
         poke(state, user + 0x49F, bytes([ids[11]]))
+        for pointer in snapshots + [current]:
+            if pointer:
+                guard_valid(state, pointer, rng, adjust=4)
+        guard_valid(state, user, rng)
         state['regs'][0] = mode
         state['regs'][1] = current
         arrived = {}
