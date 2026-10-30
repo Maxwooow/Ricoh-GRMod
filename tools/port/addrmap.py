@@ -102,7 +102,9 @@ for i in range(len(ow)):
             refs[p[0]][q[0]] += 1
 
 def window_ok(i, j):
-    return all(0 <= i + k < len(m) and m[i + k] == j + k and onl[i + k] == nnl[j + k] for k in range(-4, 12))
+    # A window of (normalised) pointers or zeros says nothing about where it is: at least 4 distinct words.
+    return (all(0 <= i + k < len(m) and m[i + k] == j + k and onl[i + k] == nnl[j + k] for k in range(-4, 12))
+            and len(set(onl[max(i - 4, 0):i + 12])) >= 4)
 
 # Loose alignment (only to suggest): immediates of data-processing and load/store instructions masked too.
 ml = None
@@ -152,7 +154,9 @@ def map_one(addr):
             i, rem = divmod(osrc - BASE + addr - rbase, 4)
             if m[i] >= 0:
                 t = rbase + (BASE + m[i] * 4 - nsrc) + rem
-                ok = window_ok(i, m[i]) and all(x == t for x in r)
+                # Data words align poorly (pointer tables normalise to runs of one value): an
+                # aligned RAM address needs at least one reference agreeing with it as well.
+                ok = window_ok(i, m[i]) and bool(r) and all(x == t for x in r)
                 return dict(new=f'{t:#x}', how='RAM image aligned' + (f' + refs {rtxt}' if r else ''), ok=bool(ok))
         return dict(new=None, how=f'RAM; refs {rtxt}' if r else 'RAM, unreferenced', ok=False)
     return dict(new=None, how='outside the image', ok=False)

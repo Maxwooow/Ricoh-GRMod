@@ -234,5 +234,61 @@
  "0x53d62320": {
   "new": "0x53d61d00",
   "reason": "identity bytes of GR III vs IIIx (test bounds): the 2.20 / 1.70 differences, RTOS 0x200e..0x207a, 0x6b63dc..0x6b6664, 0x81fe24..0x81fe74, 0xd61cf4"
+ },
+ "0x55001ec8": {
+  "new": "0x55001ec8",
+  "reason": "MENU_TABLE (0x55001eb8, referenced, unchanged) + 0x10: the Setup entry; the image word at SETUP_ENTRY_IMAGE is asserted by shutdown.ts and the shutdown validation group passes"
+ },
+ "0x531b0514": {
+  "new": "0x531b05ec",
+  "reason": "code: aligned, one reference agrees; the first word is a BL whose target moved"
+ },
+ "0x53b39c78": {
+  "new": "0x53b395a0",
+  "reason": "datacheck: 16/16 words agree (5 relocated pointers)"
+ },
+ "0x53b5c020": {
+  "new": "0x53b5b950",
+  "reason": "datacheck: 16/16 words agree (15 relocated pointers)"
+ },
+ "0x53c0a378": {
+  "new": "0x53c09cb8",
+  "reason": "datacheck: 16/16 words agree (16 relocated pointers); 3 references agree"
+ },
+ "0x53c0ada8": {
+  "new": "0x53c0a6e8",
+  "reason": "datacheck: 16/16 words agree (16 relocated pointers); 2 references agree"
+ },
+ "0x5407d408": {
+  "new": "0x5407d508",
+  "reason": "datacheck: 16/16 words agree (6 relocated pointers): image of the Setup menu entry"
+ },
+ "0x5407e0b8": {
+  "new": "0x5407e1b8",
+  "reason": "image of the JPEG table 0x55002b78 (RAM image + 0x100): studied by hand, 15 entries in 1.70 (13 = GB_20th, 14 = GB_30th); endscreen validation group"
+ },
+ "0x540927e8": {
+  "new": "0x540928f0",
+  "reason": "datacheck: 16/16 words agree (8 relocated pointers)"
+ },
+ "0x54093030": {
+  "new": "0x54093138",
+  "reason": "datacheck: 16/16 words agree (8 relocated pointers)"
+ },
+ "0x55002b78": {
+  "new": "0x55002b78",
+  "reason": "the background JPEG table: studied by hand, unmoved, 15 entries in 1.70; one reference agrees; endscreen validation group"
+ },
+ "0x55018cf0": {
+  "new": "0x55018cf8",
+  "reason": "datacheck: 16/16 words agree (16 relocated pointers); one reference agrees"
+ },
+ "0x55018d94": {
+  "new": "0x55018d9c",
+  "reason": "datacheck: 16/16 words agree (16 relocated pointers); one reference agrees"
+ },
+ "0x55018e4c": {
+  "new": "0x55018e54",
+  "reason": "datacheck: 16/16 words agree (16 relocated pointers); one reference agrees"
  }
 }
