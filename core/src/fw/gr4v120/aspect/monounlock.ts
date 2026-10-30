@@ -1,14 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * The six black-and-white looks of the GR IV Monochrome on the colour GR IV (firmware 1.11).
+ * The six black-and-white looks of the GR IV Monochrome on the colour GR IV (firmware 1.20).
  *
  * The firmware is the same for the three models; looks 25..30 (Monochrome Standard, Soft, High
  * Contrast, Grainy, Solid, HDR) are only hidden on the colour ones. Two things hide them:
- *  - the look-visibility check (0x533CC6E0) branches on the camera model; it now branches on the
+ *  - the look-visibility check (0x533DE144) branches on the camera model; it now branches on the
  *    look number (looks above 24 take the monochrome-look branch);
- *  - the availability table (0x53DE9CC4, read by 0x533E033C): one row of 7 bytes per entry, one
+ *  - the availability table (0x53DE9CC4, read by 0x533F1DC8): one row of 7 bytes per entry, one
  *    byte per camera model (column 1 is the Monochrome). Rows 3..8 are the six looks; only the
  *    Monochrome's column is set.
+ * 1.20 added looks 31 (Pictorialist, row 9: no model) and 32 (Solarized, row 10: the Monochrome);
+ * through the monochrome-look branch they stay as hidden on the colour models as before (rows
+ * unchanged; not unlocked here).
  *
  * Found and tested on a camera by GR4-MonoUnlock (github.com/lemonadesaltbagel/GR4-MonoUnlock):
  * Standard, Soft, High Contrast and Solid worked, Grainy was in builds that ran, HDR was not tried.
@@ -18,7 +21,7 @@
  */
 import { Patch, expectWord } from './build';
 
-const CHECK = 0x533cc6e0;
+const CHECK = 0x533de144;
 const TABLE = 0x53de9cc4;
 const MONOCHROME_COLUMN = 1;
 /** Rows 3..8 (the six looks), every column but the Monochrome's. */

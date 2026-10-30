@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * The camera-menu entry of the date imprint (firmware 1.11): a line "Date Imprint" on the
+ * The camera-menu entry of the date imprint (firmware 1.20; ported from 1.11): a line "Date Imprint" on the
  * Shooting Assist page of the still shooting menu, after Horizon Correction. It opens a small
  * submenu like D-Range Correction's with three lines (0.8.2: the first two):
  *
@@ -17,7 +17,7 @@
  * always have exactly one current value. (A firmware up to 0.8.2 treats 4..15, and 0.8.3 8..15,
  * that way too: the imprint is then off there.)
  *
- * What is changed, all found by reading the official 1.11 code:
+ * What is changed, all found by reading the official 1.11 code (and checked again on 1.20):
  *
  *  - Still shooting menu. The menu tabs are built once by TopMenuController (0x531B5494) from five
  *    static descriptors (0x38C bytes) listed at 0x55001E78. A descriptor holds the page titles and
@@ -42,15 +42,15 @@
  *    the new id to it.
  *  - Lists (SelectMenuController). Records of 0x4C bytes (title, then member-function pointers:
  *    value count +0x0C, draw value i +0x14, set value i +0x24, is value i current +0x2C) in a table
- *    of 124 at 0x53DCD470 addressed from 16 places; copied with three more records (125..127; 124 is
+ *    of 126 at 0x53DCD470 (1.11: 124) addressed from 16 places; copied with three more records (127..129; 126 is
  *    the constructor's start value), the model being Horizon Correction's record. SetCurrentMenu
  *    (0x531D5E8C) maps the new ids to them. The constructor also scans the table up to its end
  *    (pool word 0x531D87A0) for the longest list; that end moves with the table (and still ends
- *    after the 124 official records).
- *  - Texts 841..845, 879, 880 and 881 in all 21 languages (relocated text catalog, see `build.ts`):
+ *    after the 126 official records).
+ *  - Texts 885..889, 923, 924 and 925 (1.11: 841..845, 879..881) in all 21 languages (relocated text catalog, see `build.ts`):
  *    the line name, "On/Off", "Style", the four style names and "Follow Orientation". Off and On
  *    are the camera's texts 2 and 1.
- *  - Icons: the camera's OFF / ON (310, 311) and four new 40x40 icons for the styles, numbers 721
+ *  - Icons: the camera's OFF / ON (329, 330; 1.11: 310, 311) and four new 40x40 icons for the styles, numbers 721
  *    and 722 (the ratio icon numbers of identities 5 and 6, never given out) and 731 and 732 (0.8.4:
  *    those of identities 15 and 16; added ratios use identities 7..14).
  */
@@ -69,11 +69,12 @@ export const DATESTAMP_STYLE_ID = 0x020001a2;
 export const DATESTAMP_ORIENT_ID = 0x020001a5;
 
 /** Texts: line / submenu name, the two line names, the two style names. */
-export const DATESTAMP_TEXT_IDS = { name: 841, onOff: 842, style: 843, short: 844, long: 845, orient: 879, shortName: 880, longName: 881 } as const;
+/** 1.11's numbers + TEXT_SHIFT (44): 1.20 has 44 more texts of its own. */
+export const DATESTAMP_TEXT_IDS = { name: 885, onOff: 886, style: 887, short: 888, long: 889, orient: 923, shortName: 924, longName: 925 } as const;
 /** Icons of the four styles. */
 export const DATESTAMP_ICON_IDS = { short: 721, long: 722, shortName: 731, longName: 732 } as const;
-const ICON_OFF = 310;
-const ICON_ON = 311;
+const ICON_OFF = 329; // 1.11: 310
+const ICON_ON = 330; // 1.11: 311
 const TEXT_OFF = 2;
 const TEXT_ON = 1;
 
@@ -117,7 +118,7 @@ export const datestampNameTexts = (date: string): string[] => DATESTAMP_NAME_WOR
 // --- Official addresses (checked before use).
 const BUILDER = 0x531b5494;
 const MENU_TABLE = 0x55001e78;
-const STILL_MENU = 0x53d9cdb0;
+const STILL_MENU = 0x53dc74b0;
 const DESCRIPTOR = 0x38c;
 const MAX_ITEMS = 38;
 const D_PAGES = 0x68;
@@ -130,7 +131,7 @@ const HDF_ITEM = 22;
 const RED_FILTER_ITEM = 23;
 const FACTORY = 0x531871bc;
 const SUB_SET_CURRENT = 0x531e361c;
-const SELECT_SET_CURRENT = 0x531d5e8c;
+const SELECT_SET_CURRENT = 0x531d7860;
 const SUB_TABLE = 0x53dd0f00;
 const SUB_RECORD = 0x64;
 const SUB_RECORDS = 18;
@@ -139,7 +140,7 @@ const SUB_SITES: readonly (readonly [number, number, number])[] = [
 ];
 const SELECT_TABLE = 0x53dcd470;
 const SELECT_RECORD = 0x4c;
-const SELECT_RECORDS = 124;
+const SELECT_RECORDS = 126; // 1.11: 124
 const SELECT_SITES: readonly (readonly [number, number, number])[] = [
   [0x531d825c, 0x531d826c, 6], [0x531d83fc, 0x531d8400, 3], [0x531d8448, 0x531d8450, 7], [0x531d8504, 0x531d850c, 3],
   [0x531d8570, 0x531d8574, 3], [0x531d8748, 0x531d8758, 4], [0x531d8874, 0x531d887c, 3], [0x531d8a34, 0x531d8a3c, 3],
@@ -166,7 +167,7 @@ export const ORIENT_RECORD_NUMBER = SELECT_RECORDS + 3;
 // Functions the handlers call.
 const APP = 0x532406a4; // application singleton
 const SPEC_MODEL = 0x53241b48; // (app) -> SpecModel
-const MODEL_NUMBER = 0x533e0330; // (SpecModel) -> 0 GR IV, 1 HDF, 2 Monochrome
+const MODEL_NUMBER = 0x533f1dbc; // (SpecModel) -> 0 GR IV, 1 HDF, 2 Monochrome
 const TOP_SET_TWO_ICONS = 0x5359d7dc; // (menu line, icon, icon)
 const TOP_SET_TITLE = 0x5359d48c; // (menu line, text)
 const SUB_SET_ICON = 0x535a6454; // (submenu line, icon)
@@ -181,16 +182,16 @@ const LIST_SET_ITEM = 0x5359e1bc; // (list item, icon, text)
  * right edge of the row's widest own widget (+0x100, 40..680), through the label's own SetRect (vtable +0x18, as the row's
  * icon layout 0x5359E130 does). Nothing else changes; other lists are not touched.
  */
-const ROW_VTABLE = 0x53e98f18;
+const ROW_VTABLE = 0x53ecf140;
 const ROW_VTABLE_LITERAL = 0x5359e008; // in the row constructor 0x5359DDF0
-const LABEL_VTABLE = 0x53e984e0;
+const LABEL_VTABLE = 0x53ece708;
 const LABEL_VTABLE_LITERAL = 0x535960fc; // in the label constructor 0x53596018
 const LABEL_SET_RECT = 0x535aaf0c; // label vtable +0x18
 const ROW_RIGHT_MARGIN = 20;
 /** The right edge of the row's widest own widget (+0x100: x 40, 640 wide): the label never goes beyond it. */
 const ROW_CONTENT_RIGHT = 680;
 
-const TABLE_STRIDE = 0xd14;
+const TABLE_STRIDE = 0xdc4; // 881 texts (1.11: 0xd14, 837)
 const FIRST_TABLE_RAM = 0x55000000 + (0x543b5270 - 0x543b3100);
 
 export const STYLE_ICON_W = 40;
@@ -361,7 +362,7 @@ export function submenuTable(patch: Patch): number {
 export function listTemplate(patch: Patch): Uint8Array {
   const r = patch.read(SELECT_TABLE + HORIZON_RECORD * SELECT_RECORD, SELECT_RECORD);
   const v = new DataView(r.buffer);
-  if (v.getUint32(0, true) !== 0x00010000 || v.getUint16(4, true) !== 388 || v.getUint32(0x0c, true) !== 0x531d0acc || v.getUint32(0x24, true) !== 0x531d4aa8 || v.getUint32(0x2c, true) !== 0x531d6458) {
+  if (v.getUint32(0, true) !== 0x00010000 || v.getUint16(4, true) !== 420 || v.getUint32(0x0c, true) !== 0x531d0acc || v.getUint32(0x24, true) !== 0x531d4aa8 || v.getUint32(0x2c, true) !== 0x531d6458) {
     fail('unexpected-layout', 'Horizon Correction list record is not as expected');
   }
   return r;
@@ -370,7 +371,7 @@ export function listTemplate(patch: Patch): Uint8Array {
 /**
  * Add list records (SelectMenuController, 0x4C bytes each), record i shown for controller id
  * `entries[i].id`: the list table is copied (once more) with the records at its end, the
- * constructor's scan still ends after the 124 official records, and SetCurrentMenu maps each id
+ * constructor's scan still ends after the 126 official records, and SetCurrentMenu maps each id
  * to its record (before what was there: the official code, or an earlier addition's mapping). The
  * controller factory must hand out the list controller for the ids (`hookControllerFactory`).
  * Returns the record numbers.
@@ -406,7 +407,7 @@ export function addListRecords(patch: Patch, entries: readonly { id: number; rec
 export function submenuTemplate(patch: Patch): Uint8Array {
   const r = patch.read(SUB_TABLE + 17 * SUB_RECORD, SUB_RECORD);
   const v = new DataView(r.buffer);
-  if (v.getUint16(0, true) !== 0 || v.getUint16(2, true) !== 703 || r[6] !== 2 || v.getUint32(0x14, true) !== 0x02000112 || v.getUint32(0x18, true) !== 0x02000116) {
+  if (v.getUint16(0, true) !== 0 || v.getUint16(2, true) !== 745 || r[6] !== 2 || v.getUint32(0x14, true) !== 0x02000112 || v.getUint32(0x18, true) !== 0x02000116) {
     fail('unexpected-layout', 'Reset submenu record is not as expected');
   }
   return r;
@@ -494,7 +495,7 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Ar
   expectWord(patch, SUB_SET_CURRENT, 0xe28134fe); // add r3, r1, #0xfe000000
   expectWord(patch, SELECT_SET_CURRENT, 0xe28134fe);
   expectWord(patch, 0x531e445c, 0xe3a02012); // the submenu constructor starts at record 18
-  expectWord(patch, 0x531db2c4, 0xe3a0e07c); // the list constructor starts at record 124
+  expectWord(patch, 0x531dccc8, 0xe3a0e07e); // the list constructor starts at record 126
   for (const f of [APP, SPEC_MODEL, TOP_SET_TWO_ICONS, TOP_SET_TITLE, SUB_SET_ICON, LIST_SET_ITEM, LABEL_SET_RECT]) expectWord(patch, f, 0xe1a0c00d);
   expectWord(patch, ROW_VTABLE_LITERAL, ROW_VTABLE);
   expectWord(patch, LABEL_VTABLE_LITERAL, LABEL_VTABLE);
@@ -516,10 +517,10 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Ar
 
   const subTemplate = patch.read(SUB_TABLE + D_RANGE_RECORD * SUB_RECORD, SUB_RECORD);
   const sv = new DataView(subTemplate.buffer);
-  if (sv.getUint16(2, true) !== 363 || subTemplate[6] !== 2 || sv.getUint32(0x14, true) !== 0x0200008e || sv.getUint32(0x18, true) !== 0x0200008f) fail('unexpected-layout', 'D-Range Correction submenu record is not as expected');
+  if (sv.getUint16(2, true) !== 395 || subTemplate[6] !== 2 || sv.getUint32(0x14, true) !== 0x0200008e || sv.getUint32(0x18, true) !== 0x0200008f) fail('unexpected-layout', 'D-Range Correction submenu record is not as expected');
   const listTemplate = patch.read(SELECT_TABLE + HORIZON_RECORD * SELECT_RECORD, SELECT_RECORD);
   const lv = new DataView(listTemplate.buffer);
-  if (lv.getUint32(0, true) !== 0x00010000 || lv.getUint16(4, true) !== 388 || lv.getUint32(0x0c, true) !== 0x531d0acc || lv.getUint32(0x24, true) !== 0x531d4aa8 || lv.getUint32(0x2c, true) !== 0x531d6458) {
+  if (lv.getUint32(0, true) !== 0x00010000 || lv.getUint16(4, true) !== 420 || lv.getUint32(0x0c, true) !== 0x531d0acc || lv.getUint32(0x24, true) !== 0x531d4aa8 || lv.getUint32(0x2c, true) !== 0x531d6458) {
     fail('unexpected-layout', 'Horizon Correction list record is not as expected');
   }
 

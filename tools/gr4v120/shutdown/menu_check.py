@@ -5,10 +5,12 @@ NOT part of the program. Runs the firmware's own functions, as patched, in Unico
 services the code reaches are fakes; everything GR Mod wrote and the native code between runs as
 built), next to the official image where that is the reference:
 
- 1. The power-off picture request: the factory picture of each model without a record, the chosen
-    picture with one, the factory picture for a record of a picture no longer listed or a foreign one.
+ 1. The power-off picture request: without a record (or with one of a picture no longer listed, or
+    a foreign one) the camera's own picture exactly as officially, for every kind of the 1.20 power-off
+    picture setting (its choice 0..4, a downloaded picture, a missing file, its fallback); the chosen
+    picture with a record, through the JPEG table's request.
  2. TopMenuController's builder: Setup is the official menu but for item 10 (End Screen), which
-    opens the submenu id and is drawn as Setup's other submenu lines (no value, title 701); the
+    opens the submenu id and is drawn as Setup's other submenu lines (no value, title 743); the
     other menus are those of the date imprint's checks (unchanged here).
  3. The controller factory: every official id as officially (End Screen 0x020000C4 included), the
     submenu id as every submenu, the picture id makes one End Screen object (0x16C, its constructor,
@@ -40,13 +42,13 @@ from unicorn.arm_const import (UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2, UC_A
                                UC_ARM_REG_PC)
 
 BASE = 0x53000000
-RAMVA, RAMIMG, RAMLEN = 0x55000000, 0x543b3100, 0x57480
+RAMVA, RAMIMG, RAMLEN = 0x55000000, 0x543b3100, 0x58500
 RET = 0x100
 FAKE = 0x60200000
 MODE = 0x55839030
 MENU_ID, PICTURE_ID, END_SCREEN = 0x020001a3, 0x020001a4, 0x020000c4
-T_TYPE, T_PICTURE, T_FACTORY = 853, 854, 855
-TITLE = 701
+T_TYPE, T_PICTURE, T_FACTORY = 897, 898, 899   # 1.11: 853..855
+TITLE = 743   # 1.11: 701
 TYPE_NAMES = ['タイプ', 'Type', 'Type', 'Typ', 'Tipo', 'Tipo', 'Tipo', 'Type', 'Type', 'Typ', 'Tyyppi',
               'Typ', 'Typ', 'Típus', 'Tip', 'Τύπος', 'Тип', '유형', '類型', '类型', 'แบบ']
 PICTURE_NAMES = ['画像', 'Picture', 'Image', 'Bild', 'Imagen', 'Imagem', 'Immagine', 'Afbeelding', 'Billede', 'Bild', 'Kuva',
@@ -67,12 +69,13 @@ def check(cond, what):
     return cond
 
 
-def make():
+def make(image=None):
+    image = R if image is None else image
     mu = Uc(UC_ARCH_ARM, UC_MODE_ARM)
-    mu.mem_map(BASE, max((len(R) + 0xfffff) & ~0xfffff, 0x1500000))
-    mu.mem_write(BASE, R)
+    mu.mem_map(BASE, max((len(image) + 0xfffff) & ~0xfffff, 0x1500000))
+    mu.mem_write(BASE, image)
     mu.mem_map(RAMVA, 0x1000000)
-    mu.mem_write(RAMVA, R[RAMIMG - BASE:RAMIMG - BASE + RAMLEN])
+    mu.mem_write(RAMVA, image[RAMIMG - BASE:RAMIMG - BASE + RAMLEN])
     mu.mem_map(0x60000000, 0x400000)
     mu.mem_map(0, 0x1000)
     return mu
@@ -84,30 +87,35 @@ def w32(mu, a, v): mu.mem_write(a, struct.pack('<I', v & 0xffffffff))
 
 class World:
     """Fakes for the firmware services; `log` records calls."""
-    def __init__(self, mu, variant=0, edition=2, selected=0, record=None, picture=True):
+    def __init__(self, mu, choice=0, fallback=0, files=(), selected=0, record=None, picture=True):
         self.mu, self.log, self.store = mu, [], {}
         if record is not None: self.store[74] = record
-        self.variant, self.edition, self.selected = variant, edition, selected
+        self.selected, self.files = selected, set(files)
         self.app, self.userdata, self.display, self.storage, self.ap = FAKE, FAKE + 0x100, FAKE + 0x200, FAKE + 0x300, FAKE + 0x400
         self.controller, self.widget, self.graphic, self.variant_root = FAKE + 0x1000, FAKE + 0x2000, FAKE + 0x3000, FAKE + 0x4000
         w32(mu, self.storage + 8, self.ap)
         w32(mu, self.controller + 0x168, self.widget)
         w32(mu, self.controller + 0x164, self.graphic)
         w32(mu, MODE, 1 if picture else 0)
-        a, b, c = FAKE + 0x5000, FAKE + 0x5100, FAKE + 0x5200
-        w32(mu, self.variant_root + 8, a); w32(mu, a + 0xc, b); w32(mu, b + 0x20, c); w32(mu, c + 0x48, variant)
+        # 1.20: the camera's power-off picture setting (0x53750008() + 0x28): byte 0x14 the fallback, 0x15 the choice.
+        setting = FAKE + 0x5000
+        w32(mu, self.variant_root + 0x28, setting)
+        mu.mem_write(setting + 0x14, bytes([fallback, choice]))
         self.fns = {
             0x532406a4: lambda r: self.app,
             0x53240c38: lambda r: self.userdata,
             0x53240998: lambda r: self.display,
             0x53241b48: lambda r: FAKE + 0x600,
             0x53240f98: lambda r: FAKE + 0x6000,
-            0x533e0324: lambda r: self.edition,
-            0x5372b620: lambda r: self.variant_root,
+            0x53750008: lambda r: self.variant_root,
+            0x53907930: lambda r: 1,   # the setting's lock
+            0x53907a84: lambda r: 0,   # unlock
+            0x53863330: lambda r: 1 if cstr(mu, r[1]).startswith('A:') or cstr(mu, r[1]) in self.files else 0,   # file exists
+            0x53240a58: lambda r: FAKE + 0x700,
             0x53aa958c: lambda r: self.storage,
             0x53aa65d4: lambda r: 1 if r[1] in self.store else 0,
             0x53aa6524: lambda r: len(self.store.get(r[1], b'')),
-            0x53a7e434: self.read,
+            0x53aa6680: self.read,
             0x53aa6764: self.write,
             0x53593e34: lambda r: self.selected,
             0x53593d64: lambda r: 0x7000 + r[1],
@@ -121,7 +129,7 @@ class World:
             0x535a257c: lambda r: self.rec('title', r[0], r[1]),
             0x535944ac: lambda r: self.rec('shown', r[0], r[1]),
             0x535a64b4: lambda r: self.rec('line_text', r[0], r[1]),
-            0x5357a428: lambda r: self.rec('top_icon', r[0], r[1]),
+            0x5359d6f4: lambda r: self.rec('top_icon', r[0], r[1]),
             0x5359d48c: lambda r: self.rec('top_title', r[0], r[1]),
             0x539084bc: lambda r: FAKE + 0x8000,
             0x5359414c: lambda r: 0,
@@ -165,7 +173,7 @@ def cstr(mu, a):
 
 
 def text(mu, row, tid):
-    d = u32(mu, u32(mu, 0x5440d600 + 4 * row) + 4 * tid)
+    d = u32(mu, u32(mu, 0x5440da00 + 4 * row) + 4 * tid)
     if not d: return None
     units = mu.mem_read(d, 1)[0]
     return bytes(mu.mem_read(u32(mu, d + 4), 2 * (units - 1))).decode('utf-16-le')
@@ -177,7 +185,7 @@ mv = lambda x: ((x >> 4) & 0xf000) | (x & 0xfff)
 
 def _ids():
     mu = make()
-    w = u32(mu, 0x531b9488); stub = 0x531b9488 + 8 + (((w & 0xffffff) ^ 0x800000) - 0x800000) * 4
+    w = u32(mu, 0x531baa50); stub = 0x531baa50 + 8 + (((w & 0xffffff) ^ 0x800000) - 0x800000) * 4
     ctx = mv(u32(mu, stub)) | (mv(u32(mu, stub + 4)) << 16)
     return [u32(mu, ctx + 24 + 8 + 16 + 4 * k) for k in range(N)]
 
@@ -189,30 +197,37 @@ print('ids', [hex(i) for i in IDS])
 print('1. power-off picture')
 
 
-def picture(variant, edition, record):
-    mu = make(); w = World(mu, variant=variant, edition=edition, record=record)
+OFFICIAL_R = open(OFF_PATH, 'rb').read()
+
+
+def picture(record, choice=0, fallback=0, files=(), image=None):
+    """The power-off picture request (0x531BAA50): the picture drawn (0x53263FF0: path, width,
+    height) and the JPEG table number asked for (0x53264274), if any."""
+    mu = make(image); w = World(mu, record=record, choice=choice, fallback=fallback, files=files)
     seen = {}
 
-    def at_request(uc, address, size, _):
-        d = uc.reg_read(UC_ARM_REG_R3)
-        seen['id'] = uc.reg_read(UC_ARM_REG_SB)
-        seen['wh'] = (uc.reg_read(UC_ARM_REG_R8), uc.reg_read(UC_ARM_REG_R7))
-        seen['path'] = cstr(uc, u32(uc, d + 4))
+    def at_draw(uc, address, size, _):
+        seen['path'] = cstr(uc, uc.reg_read(UC_ARM_REG_R1))
+        seen['wh'] = (uc.reg_read(UC_ARM_REG_R2), uc.reg_read(UC_ARM_REG_R3))
         uc.emu_stop()
-    mu.hook_add(UC_HOOK_CODE, at_request, begin=0x53262598, end=0x53262598)
-    call(mu, 0x531b9488, (w.controller,))
+
+    def at_request(uc, address, size, _):
+        seen['id'] = uc.reg_read(UC_ARM_REG_R1)
+    mu.hook_add(UC_HOOK_CODE, at_draw, begin=0x53263ff0, end=0x53263ff0)
+    mu.hook_add(UC_HOOK_CODE, at_request, begin=0x53264274, end=0x53264274)
+    call(mu, 0x531baa50, (w.controller,))
     return seen
 
 
-for variant, edition, want in ((0, 0, 'GoodBye'), (0, 1, 'GB_Mono'), (0, 2, 'GB_HDF'), (5, 0, 'GB_20th')):
-    s = picture(variant, edition, None)
-    check(want in s.get('path', ''), f'no record, variant {variant} edition {edition}: factory {s.get("path")}')
-s = picture(0, 2, REC(IDS[-1]))
-check(s.get('path', '').endswith(f'GRMOD{N}.jpg') and s['id'] == 11 + N and s['wh'] == (720, 480), f'record = last picture: {s}')
-s = picture(0, 2, REC(0xdead))
-check('GB_HDF' in s.get('path', ''), f'record of a picture no longer listed: factory {s.get("path")}')
-s = picture(0, 2, struct.pack('<II', 0x32424753, 1))
-check('GB_HDF' in s.get('path', ''), f'foreign record: factory {s.get("path")}')
+B30, DL = 'B:\\Resource\\Jpeg\\GB_30th.jpg', 'B:\\GB_DL.jpg'
+SETTINGS = [(0, 0, ()), (1, 0, ()), (2, 1, ()), (3, 0, ()), (4, 1, ()), (4, 1, (B30,)), (60, 2, ()), (60, 2, (DL,)), (10, 3, ()), (0xff, 0, ())]
+for record, what in ((None, 'no record'), (REC(0xdead), 'record of a picture no longer listed'), (struct.pack('<II', 0x32424753, 1), 'foreign record')):
+    for choice, fallback, files in SETTINGS:
+        s, o = picture(record, choice, fallback, files), picture(None, choice, fallback, files, OFFICIAL_R)
+        check(s == o and s.get('path'), f'{what}, setting {choice}/{fallback} {files}: {s.get("path")} as officially ({o.get("path")})')
+for choice, fallback, files in SETTINGS[:3] + SETTINGS[7:8]:
+    s = picture(REC(IDS[-1]), choice, fallback, files)
+    check(s.get('path', '').endswith(f'GRMOD{N}.jpg') and s.get('id') == 12 + N and s['wh'] == (720, 480), f'record = last picture, setting {choice}: {s}')
 
 # --- 2. the menus as built.
 print('2. menus')
@@ -236,7 +251,7 @@ check(w.log == [('top_icon', 0x7777, 0), ('top_title', 0x7777, TITLE)], f'Setup 
 # --- 3. the controller factory.
 print('3. controller factory')
 ids = set()
-for d in (0x53d9cdb0, 0x53d9d4d0, 0x53d9d13c, 0x53d9c438, 0x53d9ca10):
+for d in (0x53dc74b0, 0x53dc7bd0, 0x53dc783c, 0x53dc6b38, 0x53dc7110):
     ids |= {off.u32(d + 0x1bc + 4 * k) for k in range(38)}
 ids = sorted(i for i in ids if i and i != 0x10000000)
 bad = [hex(c) for c in ids if dm.factory_class(new, c) != dm.factory_class(off, c)]
@@ -282,7 +297,7 @@ def key_map(img, fn, cid):
     return r, last[-1] if last else None
 
 
-for fn in (0x53255a0c, 0x532560d0):
+for fn in (0x53257648, 0x532560d0):
     a, b = key_map(new, fn, PICTURE_ID), key_map(off, fn, END_SCREEN)
     check(a == b, f'key map {fn:#x}: the picture list as the End Screen list ({a} vs {b})')
     for cid in (END_SCREEN, MENU_ID, 0x020000c3, 0x020000d0):
@@ -297,7 +312,7 @@ st = tables.pop()
 number = 20 if DATESTAMP else 19
 check(new.rd(st, 19 * 0x64) == off.rd(0x53dd0f00, 19 * 0x64), 'submenu table: official records (and what followed them) as before')
 if DATESTAMP:
-    check(new.u16(st + 19 * 0x64 + 2) == 841, 'submenu table: the date imprint record kept')
+    check(new.u16(st + 19 * 0x64 + 2) == 885, 'submenu table: the date imprint record kept')
 bad = []
 for cid in range(0x02000085, 0x02000085 + 0xa2):
     if dm.set_current(new, 0x531e361c, 0x174, cid) != dm.set_current(off, 0x531e361c, 0x174, cid): bad.append(hex(cid))
@@ -313,7 +328,7 @@ check(new.u32(rec + 0x14) == END_SCREEN and new.u32(rec + 0x18) == PICTURE_ID, '
 same = [o for o in range(0, 0x64) if not (2 <= o < 4 or 8 <= o < 12 or 0x14 <= o < 0x1c or 0x3c <= o < 0x4c)]
 check(all(new.rd(rec + o, 1) == off.rd(reset + o, 1) for o in same), 'record: other fields as Reset\'s')
 line_type, line_picture = new.u32(rec + 0x3c), new.u32(rec + 0x44)
-for byte, want in ((0, 6), (1, 7)):
+for byte, want in ((0, 7), (1, 8)):   # Type1 / Type2 (1.11: texts 6, 7)
     mu = make(); w = World(mu)
     mu.mem_write(w.userdata + 0x988, bytes([byte]))
     call(mu, line_type, (FAKE + 0x900, 0x7777))
@@ -412,11 +427,14 @@ for fn, row, stop, want in ((0x532259c4, 0, 1, []), (0x532259c4, 0, 0, [-1]), (0
     call(mu, fn, (w.controller, stop))
     moves = [x[1] for x in w.log if x[0] == 'move']
     check(moves == want, f'{"up" if fn == 0x532259c4 else "down"} at row {row}, stop {stop}: moves {moves}')
-for row, edition, variant, want in [(0, 2, 0, 993), (0, 1, 0, 994), (0, 0, 0, 992), (0, 0, 5, 995)] + [(1 + k, 2, 0, 996 + k) for k in range(N)]:
-    mu = make(); w = World(mu, selected=row, edition=edition, variant=variant)
+# Row 0, the camera's own picture: the thumbnail of the setting's choice (or its fallback), none for
+# GB_30th on B: and a downloaded picture.
+for row, choice, fallback, want in [(0, 0, 1, 992), (0, 1, 0, 993), (0, 2, 0, 994), (0, 3, 0, 995), (0, 10, 2, 994), (0, 4, 0, None), (0, 60, 0, None)] + [(1 + k, 2, 0, 996 + k) for k in range(N)]:
+    mu = make(); w = World(mu, selected=row, choice=choice, fallback=fallback)
     call(mu, 0x53225c4c, (w.controller,))
     icons = [x[1] for x in w.log if x[0] == 'icon']; vis = [x[1] for x in w.log if x[0] == 'visible']
-    check(icons == [want] and vis == [1], f'footer row {row} (edition {edition} variant {variant}): icon {icons} visible {vis}')
+    ok = (icons == [want] and vis == [1]) if want else (icons == [] and vis == [0])
+    check(ok, f'footer row {row} (setting {choice}/{fallback}): icon {icons} visible {vis}')
 
 # --- 6. store, save, zero fill, catalogs.
 print('6. store, save, start-up, catalogs')

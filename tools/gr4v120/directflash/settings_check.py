@@ -19,7 +19,7 @@ official ones (the harness of tools/gr4v120/datestamp/menu_check.py):
  4. SelectMenuController's list building on the three records (rows, one marked current, cursor)
     and SubMenuController's drawing of record 5 (three lines) and of the new submenu (four lines:
     texts, value icons), placed as the camera's own Wireless (13) and Smartphone Link (14).
- 5. The list constructor's scan still ends after the 124 official records with the same result.
+ 5. The list constructor's scan still ends after the 126 official records (1.11: 124) with the same result.
  6. Texts (line names in 21 languages, value names), every official text kept in the widened
     language rows, icons (catalog, bounds) and a picture of all icons (ICONS.png).
  7. The settings guard keeps bytes 0x99A and 0x99B, and 0x109 (test 062).
@@ -41,15 +41,15 @@ from menu_check import Image, Emu, factory_class, set_current, views, text  # no
 failures = dm.failures
 check = dm.check
 BASE = 0x53000000
-OFFICIAL_LEN = 0x13d2ac0
+OFFICIAL_LEN = 0x140b600
 CURRENT = 0x550832a8
 BYTE = CURRENT + 4 + 0x99b
 GN_BYTE = CURRENT + 4 + 0x99a
 TV_BYTE = CURRENT + 4 + 0x109   # test 062
 IDS = [0x020001b0, 0x020001b1, 0x020001b2, 0x020001b4, 0x020001b5]
 MENU_ID = 0x020001b3
-T0 = 910
-I0 = 663
+T0 = 954   # 1.11: 910
+I0 = 1004   # 1.11: 663
 GNS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 25, 28, 32, 36]
 THIRDS = list(range(1, 16))
 SLOWEST = [('1/125', 7), ('1/60', 6), ('1/30', 0), ('1/15', 1), ('1/8', 2), ('1/4', 3), ('1/2', 4), ('1"', 5)]
@@ -62,7 +62,7 @@ LISTS = [
     (TV_BYTE, 0, 7, [0, 1, 2, 3, 4], ['Sync Limit', '1/2000', '1/1000', '1/500', '1/250']),
 ]
 T_FASTEST = T0 + 4 + 46 + 5
-TITLES = [T0 + 1, T0 + 2, 125, T0 + 3, T_FASTEST]
+TITLES = [T0 + 1, T0 + 2, 130, T0 + 3, T_FASTEST]
 FIRST_TEXT = [T0 + 4, T0 + 4 + 21, T0 + 4 + 36, T0 + 4 + 44, T0 + 4 + 46]
 FIRST_ICON = [I0, I0 + 21, I0 + 36, I0 + 44, I0 + 46]
 N_ICONS = 51
@@ -102,12 +102,12 @@ def check_factory_current(new, off):
     for cid in (0x020001af, 0x020001b6, 0x020001b7):
         check(factory_class(new, cid) == factory_class(off, cid), f'factory: {cid:#x} (not ours) changed')
     dm.check_set_current(new, off)
-    recs = [set_current(new, 0x531d5e8c, 0x1a4, cid) for cid in IDS]
-    check(recs == [128, 129, 130, 131, 132], f'list SetCurrentMenu of the new ids: {recs}')
+    recs = [set_current(new, 0x531d7860, 0x1a4, cid) for cid in IDS]
+    check(recs == [130, 131, 132, 133, 134], f'list SetCurrentMenu of the new ids: {recs}')
     subrec = set_current(new, 0x531e361c, 0x174, MENU_ID)
     check(subrec == 20, f'submenu SetCurrentMenu of the new id: {subrec}')
     for cid in (0x020001af, 0x020001b6):
-        for fn, o in ((0x531d5e8c, 0x1a4), (0x531e361c, 0x174)):
+        for fn, o in ((0x531d7860, 0x1a4), (0x531e361c, 0x174)):
             check(set_current(new, fn, o, cid) == set_current(off, fn, o, cid), f'SetCurrentMenu {fn:#x}({cid:#x}) not ours')
     print('  list controller for', [hex(i) for i in IDS], '; records', recs, '; submenu', hex(MENU_ID), 'record', subrec)
     return recs, subrec
@@ -118,7 +118,7 @@ def check_submenu_record(new, off, subrec):
     r = st + 5 * 0x64
     o = 0x53dd0f00 + 5 * 0x64
     check(new.rd(r + 6, 1)[0] == 3, 'record 5: line count')
-    check([new.u16(r + 8 + 2 * k) for k in range(4)] == [127, 137, T0, 0], 'record 5: line texts')
+    check([new.u16(r + 8 + 2 * k) for k in range(4)] == [132, 142, T0, 0], 'record 5: line texts')
     check([new.u32(r + 0x14 + 4 * k) for k in range(4)] == [0x020000f3, 0x020000f6, MENU_ID, 0x10000000], 'record 5: line ids')
     check([new.u32(r + 0x28 + 4 * k) for k in range(4)] == [540, 540, 540, 0], 'record 5: value icon places')
     check([new.u32(r + 0x3c + 4 * k) for k in range(6)] == [off.u32(o + 0x3c + 4 * k) for k in range(4)] + [0, 0], "record 5: value draws (the camera's two, none for ours)")
@@ -233,9 +233,10 @@ def check_views(new, off, recs, subrec):
     # Flash Mode's submenu: three lines, the camera's two with their value icons, ours without.
     icons, texts, titles, placed = draw_sub(new, 5, 0, 0)
     o_icons, o_texts, _, _ = draw_sub(off, 5, 0, 0)
-    check(texts == [127, 137, T0] and titles == [127] and icons == o_icons, f'Flash submenu: texts {texts} titles {titles} icons {icons} vs {o_icons}')
-    _, _, _, wireless = draw_sub(off, 13)
-    check(placed == wireless, 'Flash submenu: lines placed differently from the three-line Wireless submenu')
+    check(texts == [132, 142, T0] and titles == [132] and icons == o_icons, f'Flash submenu: texts {texts} titles {titles} icons {icons} vs {o_icons}')
+    # 1.20: Wireless (13) has four lines; Instant Review (11) is a native three-line submenu with value icons at 540.
+    _, _, _, wireless = draw_sub(off, 11)
+    check(placed == wireless, 'Flash submenu: lines placed differently from the three-line Instant Review submenu')
     print('  Flash submenu: title', titles, 'lines', texts, 'value icons', icons)
     # Ours: five lines with their values' icons.
     for gnb, dfb, tvb in ((0, 1, 0), (64 | 12, 1 | (6 << 1) | (1 << 5), 1), (36, (9 << 1) | (7 << 5), 4), (128, 1, 0xfe)):
@@ -268,11 +269,11 @@ def check_texts_icons(new, earlier, png):
             check(ok, f'value names {which}, row {l}: {got}')
         # Every text of a build without these lines kept in the widened rows.
         if earlier:
-            lost = [t for t in range(0, 896) if text(new, l, t) != text(earlier, l, t)]
+            lost = [t for t in range(0, 940) if text(new, l, t) != text(earlier, l, t)]
             check(not lost, f'row {l}: texts changed {lost[:5]}')
-    for t in (882, 841, 853):
-        check(text(new, 1, t) is not None or t == 853, f'text {t} lost')
-    for low in (0x5323f7ec, 0x5323e40c):
+    for t in (926, 885, 897):   # 1.11: 882, 841, 853
+        check(text(new, 1, t) is not None or t == 897, f'text {t} lost')
+    for low in (0x5440c5c4, 0x5440c5e4):   # the icon-bound helpers' movw (build.ts)
         w = new.u32(low)
         check((((w >> 4) & 0xf000) | (w & 0xfff)) >= I0 + N_ICONS - 1, f'icon bound at {low:#x}')
     pics = []

@@ -54,7 +54,8 @@ export const APPEND_LIMIT = 0x55000000;
 const RAM = { source: 0x543b3100, destination: 0x55000000, length: 0x58500 };
 
 export const ICON_CATALOG = 0x5440c600;
-export const TEXT_CATALOG = 0x5440d600;
+/** 1.20: 0x1400 after the icon catalog (1.11: 0x1000), for 1280 icons: Direct Flash's settings icons come after 1003 (see directflash-menu.ts). */
+export const TEXT_CATALOG = 0x5440da00;
 /** 1.20: 709 icons and 881 texts (1.11: 663 / 837), both renumbered. GR Mod's own texts are 1.11's + 44. */
 const ICON_COUNT = 709;
 const TEXT_COUNT = 881;

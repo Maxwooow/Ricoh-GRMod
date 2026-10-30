@@ -21,7 +21,7 @@
  * file) this hook takes it from that record by the EXIF writer's rule.
  *
  * Black-and-white looks: Monotone, Soft Monotone, Hard Monotone, Hi-Contrast B&W (13..16; their
- * names through 0x5338EDF8) and the GR IV Monochrome's six (25..30), plus any slot whose preset
+ * names through 0x5338EDF8) and the GR IV Monochrome's (25..30; 31, 32 added in 1.20), plus any slot whose preset
  * gives grey for every colour (equal matrix rows, equal curves, equal rows of the post-curve
  * matrix).
  */
@@ -55,7 +55,7 @@ const ZERO_FILL_END = 0x53000460;
 export const MONO_MODEL = 0x53400df4;
 
 /** The camera's own black-and-white looks. */
-export const MONO_LOOKS = [13, 14, 15, 16, 25, 26, 27, 28, 29, 30];
+export const MONO_LOOKS = [13, 14, 15, 16, 25, 26, 27, 28, 29, 30, 31, 32];
 
 /**
  * Store the look: keeps every register but r2 (which the site's own instruction loads next) and the

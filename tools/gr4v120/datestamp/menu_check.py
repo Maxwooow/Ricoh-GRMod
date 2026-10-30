@@ -18,7 +18,7 @@ official ones:
     (view functions stubbed): two values, exactly one marked current, line texts, title, icons.
  6. SelectMenuController's constructor scan over all list records (0x531D8740, start and end of
     the relocated table): same number of records and the same longest list as officially.
- 7. Texts 841..845, 879..881 in all 21 languages and the four icons (catalog entries, lookup bounds).
+ 7. Texts 885..889, 923..925 (1.11: 841..845, 879..881) in all 21 languages and the four icons (catalog entries, lookup bounds).
  8. The settings guard's fix (run on load, power-off save and user-mode recall) keeps the setting
     byte, whatever its value: the third item (bit 2) is kept with the rest of the user settings.
 
@@ -41,15 +41,15 @@ from unicorn.arm_const import (UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2, UC_A
                                UC_ARM_REG_LR, UC_ARM_REG_PC, UC_ARM_REG_C1_C0_2, UC_ARM_REG_FPEXC)
 
 BASE = 0x53000000
-OFFICIAL_LEN = 0x13d2ac0
-RAMVA, RAMIMG, RAMLEN = 0x55000000, 0x543b3100, 0x57480
+OFFICIAL_LEN = 0x140b600
+RAMVA, RAMIMG, RAMLEN = 0x55000000, 0x543b3100, 0x58500
 B = 0x550832a8 + 4 + 0x94b
 NEW_MENU, NEW_SWITCH, NEW_STYLE, NEW_ORIENT = 0x020001a0, 0x020001a1, 0x020001a2, 0x020001a5
-T_NAME, T_ONOFF, T_STYLE, T_SHORT, T_LONG, T_ORIENT = 841, 842, 843, 844, 845, 879
-T_SHORT_NAME, T_LONG_NAME = 880, 881
+T_NAME, T_ONOFF, T_STYLE, T_SHORT, T_LONG, T_ORIENT = 885, 886, 887, 888, 889, 923   # 1.11 + 44
+T_SHORT_NAME, T_LONG_NAME = 924, 925
 AS_STORED = 4   # bit 2 of the setting byte: "Follow Orientation" off (0.8.3)
 WITH_NAME = 8   # bit 3: the look's name (0.8.4)
-I_SHORT, I_LONG, I_OFF, I_ON = 721, 722, 310, 311
+I_SHORT, I_LONG, I_OFF, I_ON = 721, 722, 329, 330
 I_SHORT_NAME, I_LONG_NAME = 731, 732
 STYLE_ICONS = [I_SHORT, I_LONG, I_SHORT_NAME, I_LONG_NAME]
 STYLE_TEXTS = [T_SHORT, T_LONG, T_SHORT_NAME, T_LONG_NAME]
@@ -60,7 +60,7 @@ COUNTS = [2, 4, 2]
 DIRECT_FLASH_RECORDS = (11, 12)
 # Flash Mode's submenu record, to which Direct Flash adds its settings (0.8.4).
 DIRECT_FLASH_SUBMENU = 5
-TEXT_CATALOG, ICON_CATALOG = 0x5440d600, 0x5440c600
+TEXT_CATALOG, ICON_CATALOG = 0x5440da00, 0x5440c600
 NAMES = ['Vkopírování data', 'Datostempel', 'Date Imprint', 'Päiväysleima', 'Impression date', 'Datumseinbelichtung',
          'Αποτύπωση ημ/νίας', 'Dátumbélyegző', 'Stampa data', '日付写し込み', '날짜 각인', 'Datumafdruk', 'Nadruk daty',
          'Impressão de data', 'Впечатывание даты', '拍摄时间戳', 'Impresión de fecha', 'Datumstämpel', 'ประทับวันที่',
@@ -148,15 +148,15 @@ class Emu:
         self.heap = [0x70400000]
         self.calls = []
         self.stubs = {
-            0x533e0330: lambda: model,         # SpecModel: model number
-            0x533e033c: lambda: 1,             # SpecModel: function valid
+            0x533f1dbc: lambda: model,         # SpecModel: model number
+            0x533f1dc8: lambda: 1,             # SpecModel: function valid
             0x53400df4: lambda: 0,
             0x538ed930: lambda: self.calls.append(('ASSERT', hex(mu.reg_read(UC_ARM_REG_LR)))) or 0,
             0x53916064: lambda: self.calls.append(('ASSERT', hex(mu.reg_read(UC_ARM_REG_LR)))) or 0,
         }
         self.record = {0x5359d7dc: 'top-icons', 0x5359d48c: 'top-title', 0x535a6454: 'sub-icon', 0x5359e1bc: 'list-item',
                        0x5357a428: 'top-icon'}
-        for g in (0x5508207c, 0x55082234, 0x55082184):
+        for g in (0x5508307c, 0x55083244, 0x55083194):
             mu.mem_write(g, struct.pack('<I', 1))
         mu.hook_add(UC_HOOK_CODE, self._hook)
         mu.hook_add(UC_HOOK_INTR, lambda uc, no, ud: uc.reg_write(UC_ARM_REG_R0, 0))
@@ -293,16 +293,16 @@ def set_current(img, fn, off, cid):
 
 
 def check_set_current(new, off):
-    for fn, offset, name, first, n in ((0x531e361c, 0x174, 'submenu', 0x02000085, 0xa0), (0x531d5e8c, 0x1a4, 'list', 0x02000073, 0xdf)):
+    for fn, offset, name, first, n in ((0x531e361c, 0x174, 'submenu', 0x02000085, 0xa0), (0x531d7860, 0x1a4, 'list', 0x02000073, 0xe1)):
         for cid in range(first, first + n + 2):
             a, b = set_current(new, fn, offset, cid), set_current(off, fn, offset, cid)
             check(a == b, f'{name} SetCurrentMenu({cid:#x}): {a} vs official {b}')
     check(set_current(new, 0x531e361c, 0x174, NEW_MENU) == 19, 'submenu SetCurrentMenu(new id)')
-    check(set_current(new, 0x531d5e8c, 0x1a4, NEW_SWITCH) == 125, 'list SetCurrentMenu(on/off id)')
-    check(set_current(new, 0x531d5e8c, 0x1a4, NEW_STYLE) == 126, 'list SetCurrentMenu(style id)')
-    check(set_current(new, 0x531d5e8c, 0x1a4, NEW_ORIENT) == 127, 'list SetCurrentMenu(follow orientation id)')
+    check(set_current(new, 0x531d7860, 0x1a4, NEW_SWITCH) == 127, 'list SetCurrentMenu(on/off id)')
+    check(set_current(new, 0x531d7860, 0x1a4, NEW_STYLE) == 128, 'list SetCurrentMenu(style id)')
+    check(set_current(new, 0x531d7860, 0x1a4, NEW_ORIENT) == 129, 'list SetCurrentMenu(follow orientation id)')
     for other in (NEW_STYLE + 1, NEW_STYLE + 2, NEW_ORIENT + 1):
-        check(set_current(new, 0x531d5e8c, 0x1a4, other) == set_current(off, 0x531d5e8c, 0x1a4, other), f'list SetCurrentMenu({other:#x}) not ours')
+        check(set_current(new, 0x531d7860, 0x1a4, other) == set_current(off, 0x531d7860, 0x1a4, other), f'list SetCurrentMenu({other:#x}) not ours')
 
 
 def check_records(new, off):
@@ -323,7 +323,7 @@ def check_records(new, off):
     check(sub_new == sub_off, 'submenu table: official records changed')
     # Direct Flash (0.8.4, directflash.ts) replaces the count / draw / set / is-current handlers of
     # records 11 and 12 (Flash Mode) in place before the table is copied: those 8 words may differ.
-    table_new, table_off = bytearray(new.rd(lt, 125 * 0x4c)), bytearray(off.rd(0x53dcd470, 125 * 0x4c))
+    table_new, table_off = bytearray(new.rd(lt, 127 * 0x4c)), bytearray(off.rd(0x53dcd470, 127 * 0x4c))
     for rec in DIRECT_FLASH_RECORDS:
         for o in (0x0c, 0x14, 0x24, 0x2c):
             at = rec * 0x4c + o
@@ -347,7 +347,7 @@ def check_records(new, off):
     check(all(new.u32(r + o) == 0 for o in (0x40, 0x48, 0x50)), 'submenu record: second words of the line functions')
     line_draw = [new.u32(r + 0x3c), new.u32(r + 0x44), new.u32(r + 0x4c)]
     lists = []
-    for k, title in ((125, T_ONOFF), (126, T_STYLE), (127, T_ORIENT)):
+    for k, title in ((127, T_ONOFF), (128, T_STYLE), (129, T_ORIENT)):
         q = lt + k * 0x4c
         check(new.u16(q + 4) == title, f'list record {k}: title')
         lists.append({name: new.u32(q + o) for name, o in (('count', 0x0c), ('draw', 0x14), ('set', 0x24), ('current', 0x2c))})
@@ -422,14 +422,14 @@ def check_texts_icons(new, off, png):
     roots = [new.u32(0x55002118 + 4 * l) for l in range(21)]
     first = 0x55000000 + (0x543b5270 - 0x543b3100)
     for l in range(21):
-        k = (roots[l] + 4 - first) // 0xd14
+        k = (roots[l] + 4 - first) // 0xdc4
         got = [text(new, l, t) for t in (T_NAME, T_ONOFF, T_STYLE, T_SHORT, T_LONG, T_ORIENT, T_SHORT_NAME, T_LONG_NAME)]
         check(got[0] == NAMES[k] and got[3] == "'26 10 08" and got[4] == '2026.10.08 17:34' and got[1] and got[2] and got[5] == ORIENT_NAMES[k]
               and got[6] == f"'26 10 08 + {NAME_WORDS[k]}" and got[7] == f'2026.10.08 17:34 + {NAME_WORDS[k]}', f'texts, language row {l}: {got}')
         check(text(new, l, 2) == text(off, l, 2) if False else True, '')
-    for site in (0x5440d600,):
+    for site in (0x5440da00,):
         pass
-    for low in (0x5323f7ec, 0x5323e40c):
+    for low in (0x5440c5c4, 0x5440c5e4):   # the movw of the two icon-bound helpers (build.ts LOOKUP_BOUNDS)
         w = new.u32(low)
         bound = ((w >> 4) & 0xf000) | (w & 0xfff)
         check(bound >= 732, f"icon bound at {low:#x}: {bound}")
@@ -437,7 +437,7 @@ def check_texts_icons(new, off, png):
         d = new.u32(ICON_CATALOG + tid * 4)
         kind, w, h, flags = struct.unpack('<4H', new.rd(d, 8))
         check((kind, w, h, flags) == (1, 40, 40, 0), f'icon {tid}: descriptor {kind, w, h, flags}')
-    print('  texts:', [text(new, 15, t) for t in list(range(841, 846)) + [T_ORIENT, T_SHORT_NAME, T_LONG_NAME]], [text(new, 2, t) for t in list(range(841, 846)) + [T_ORIENT, T_SHORT_NAME, T_LONG_NAME]])
+    print('  texts:', [text(new, 15, t) for t in list(range(885, 890)) + [T_ORIENT, T_SHORT_NAME, T_LONG_NAME]], [text(new, 2, t) for t in list(range(885, 890)) + [T_ORIENT, T_SHORT_NAME, T_LONG_NAME]])
     for lid in (0, 9, 17, 19):   # language rows: 0 Japanese, 9 Swedish, 17 Korean, 19 Simplified Chinese
         print('   row', lid, text(new, lid, T_NAME), '/', text(new, lid, T_ORIENT))
 
@@ -451,7 +451,7 @@ def views(img, raw, setup):
     seen = []
 
     def hook(uc, addr, size, ud):
-        if 0x53560000 <= addr < 0x535c3784 and addr not in e.record:
+        if 0x53574000 <= addr < 0x535c3784 and addr not in e.record:   # the view classes (1.11: 0x53560000..0x535a0000)
             seen.append((hex(addr), uc.reg_read(UC_ARM_REG_R1), uc.reg_read(UC_ARM_REG_R2)))
             uc.reg_write(UC_ARM_REG_R0, 0x70800000 + 0x100 * len(seen))
             uc.reg_write(UC_ARM_REG_PC, uc.reg_read(UC_ARM_REG_LR))
@@ -472,7 +472,7 @@ def check_controllers(new):
     (0x531E4168) with the new records."""
     for raw in (0, 1, 2, 3, 4, 7, 9, 11, 15, 16, 0xff):
         v = norm(raw)
-        for which, rec in enumerate((125, 126, 127)):
+        for which, rec in enumerate((127, 128, 129)):
             def setup(e, this, rec=rec):
                 e.mu.mem_write(this + 0x198, struct.pack('<I', 0x70700000))
                 e.mu.mem_write(this + 0x1a4, bytes([rec]))
@@ -556,10 +556,10 @@ def check_constructor_scan(new, off):
             if rec < len(t) and t[rec] >= BASE + OFFICIAL_LEN:
                 t[rec] = res[1][2][rec]
         res[0] = (res[0][0], res[0][1], tuple(t))
-    check(res[0] == res[1] and res[1][1] == 124, f'list constructor scan: new {res[0][:2]} official {res[1][:2]}')
+    check(res[0] == res[1] and res[1][1] == 126, f'list constructor scan: new {res[0][:2]} official {res[1][:2]}')
     end = new.u32(0x531d87a0)
     start = new.movw_movt(0x531d8748, 0x531d8758)
-    check(end == start + 124 * 0x4c, f'list table end {end:#x} vs start {start:#x}')
+    check(end == start + 126 * 0x4c, f'list table end {end:#x} vs start {start:#x}')
 
 
 def main():
@@ -567,7 +567,7 @@ def main():
     print('1. still menu builder')
     check_builder(new, off)
     ids = set()
-    for d in (0x53d9cdb0, 0x53d9d4d0, 0x53d9d13c, 0x53d9c438, 0x53d9ca10):
+    for d in (0x53dc74b0, 0x53dc7bd0, 0x53dc783c, 0x53dc6b38, 0x53dc7110):
         ids |= {off.u32(d + 0x1bc + 4 * k) for k in range(38)}
     ids = sorted(i for i in ids if i and i != 0x10000000)
     print('2. controller factory,', len(ids), 'official ids')

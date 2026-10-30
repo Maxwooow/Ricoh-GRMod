@@ -16,8 +16,8 @@ import sys, struct
 import re as _re
 from capstone import *
 BASE=0x53000000
-R=open(sys.argv[1],'rb').read()[:0x13d2ac0]
-RAMVA=0x55000000; RAMIMG=0x543b3100; RAMLEN=0x57480
+R=open(sys.argv[1],'rb').read()[:0x140b600]
+RAMVA=0x55000000; RAMIMG=0x543b3100; RAMLEN=0x58500
 RAM=R[RAMIMG-BASE:RAMIMG-BASE+RAMLEN]
 md=Cs(CS_ARCH_ARM, CS_MODE_ARM); md.detail=False
 mt=Cs(CS_ARCH_ARM, CS_MODE_THUMB)
@@ -105,9 +105,9 @@ def dis2(va,n=40,thumb=False):
         out.append(s)
         if len(out)>=n: break
     return '\n'.join(out)
-LANGT=BASE+0x137D7B0
+LANGT=BASE+0x13b5270
 def lang_str(t,i):
-    p=u32(LANGT+t*0xD14+i*4)
+    p=u32(LANGT+t*0xdc4+i*4)
     if p is None or rd(p,8) is None: return None
     ln=u32(p); sp=u32(p+4)
     n=(ln&0xff)-1
@@ -141,12 +141,12 @@ def call(mu, fn, args=(), limit=20_000_000, sp=0x600f0000):
 
 # ---- checks
 RT=open(sys.argv[1] if len(sys.argv)>1 else 'sf_rtos.bin','rb').read()
-OFF=RT[:0x13d2ac0]
+OFF=RT[:0x140b600]
 OFFICIAL=open(sys.argv[2] if len(sys.argv)>2 else 'rtos.bin','rb').read()
 def mk():
     mu=make(RT)
-    # guards of the singletons: app (0x5508207c) and UserDataModel (0x55082234) constructed
-    for g in (0x5508207c,0x55082234): mu.mem_write(g, struct.pack('<I',1))
+    # guards of the singletons: app (0x5508307c) and UserDataModel (0x55083244) constructed
+    for g in (0x5508307c,0x55083244): mu.mem_write(g, struct.pack('<I',1))
     return mu
 stubs={}
 def stub(mu, addr, fn):
@@ -169,38 +169,38 @@ def check(name, got, want):
 _mo=make(OFFICIAL)
 OFFNAME={f:call(_mo,0x5338f484,(0,f)) for f in range(0x16)}
 mu=mk()
-for f,v,w in [(0x0a,0,840),(0x0b,0,None),(0x12,0,282),(0x13,0,270),(0x14,0,553),(0x15,0,0),(0x16,0,0),(0,0,2)]:
+for f,v,w in [(0x0a,0,884),(0x0b,0,None),(0x12,0,299),(0x13,0,285),(0x14,0,591),(0x15,0,0),(0x16,0,0),(0,0,2)]:   # 1.11: 840, 282, 270, 553
     got=call(mu,0x5338f484,(0,f))
     if w is None: check(f'name of function {f:#x} as official', got, call(mk(),0x5338f484,(0,f)) if False else OFFNAME[f]); continue
     check(f'name of function {f:#x}', got, w)
-for f,v,w in [(0x0a,0,720),(0x0a,1,0),(0x0b,0,0x38),(0x0b,1,0),(0x12,0,0x191),(0x14,0,0x34),(0x15,0,0),(0x16,0,0),(0x13,0,None),(0,0,0x102)]:
-    got=call(mu,0x533817f0,(0,f,v))
+for f,v,w in [(0x0a,0,720),(0x0a,1,0),(0x0b,0,66),(0x0b,1,0),(0x12,0,426),(0x14,0,60),(0x15,0,0),(0x16,0,0),(0x13,0,None),(0,0,277)]:   # 1.11: 0x38, 0x191, 0x34, 0x102
+    got=call(mu,0x53390e40,(0,f,v))
     if w is None: print('     icon of crop', got); continue
     check(f'icon of function {f:#x} variant {v}', got, w)
 # every other function keeps its official name and icons
 _mn=mk()
 check('names of the other functions as official', [f for f in range(0x18) if f!=0x0a and call(_mn,0x5338f484,(0,f))!=call(_mo,0x5338f484,(0,f))], [])
-check('icons of the other functions as official', [(f,v) for f in range(0x18) for v in (0,1) if f!=0x0a and call(_mn,0x533817f0,(0,f,v))!=call(_mo,0x533817f0,(0,f,v))], [])
+check('icons of the other functions as official', [(f,v) for f in range(0x18) for v in (0,1) if f!=0x0a and call(_mn,0x53390e40,(0,f,v))!=call(_mo,0x53390e40,(0,f,v))], [])
 # icon catalog entry
 
 def rdw(img,va): o=va-BASE; return struct.unpack('<I',img[o:o+4])[0]
 d=rdw(RT,0x5440c600+720*4); k,wid,hei,fl,off=struct.unpack('<HHHHI',RT[d-BASE:d-BASE+12])
-check('icon 720 descriptor 40x40', (k,wid,hei,fl), (1,40,40,0)); print('     icon pixel offset (words)', off, 'bytes', off*4, 'official ICONBIN', 0xdcf460)
-# 2. text 840 in every language row, and bound helpers
+check('icon 720 descriptor 40x40', (k,wid,hei,fl), (1,40,40,0)); print('     icon pixel offset (words)', off, 'bytes', off*4, 'official ICONBIN', 0xf0f0e0)
+# 2. text 884 (1.11: 840) in every language row, and bound helpers
 L=['cs','da','en','fi','fr','de','el','hu','it','ja','ko','nl','pl','pt','ru','zh-CN','es','sv','th','zh-TW','tr']
-roots=[rdw(RT,0x5440d600+4*l) for l in range(21)]
+roots=[rdw(RT,0x5440da00+4*l) for l in range(21)]
 names=[]
 for l,row in enumerate(roots):
-    dsc=rdw(RT,row+840*4); cnt=rdw(RT,dsc); sp=rdw(RT,dsc+4); n=(cnt&0xff)-1
+    dsc=rdw(RT,row+884*4); cnt=rdw(RT,dsc); sp=rdw(RT,dsc+4); n=(cnt&0xff)-1
     s=RT[sp-BASE:sp-BASE+2*n].decode('utf-16le')
     # compare to an existing string id 270 (Crop) to map language
-    c=rdw(RT,row+270*4); cc=rdw(RT,c); cs=rdw(RT,c+4); crop=RT[cs-BASE:cs-BASE+2*((cc&0xff)-1)].decode('utf-16le')
+    c=rdw(RT,row+285*4); cc=rdw(RT,c); cs=rdw(RT,c+4); crop=RT[cs-BASE:cs-BASE+2*((cc&0xff)-1)].decode('utf-16le')
     names.append((crop,s))
-print('     row  Crop-text -> text 840:', names)
+print('     row  Crop-text -> text 884:', names)
 # 3. ADJ handlers through the controller's own lookup: count (0x531bf5a8) for slot holding 0x0a
 MODEL=0x550832a8; SF=MODEL+4+0x90f
 mu=mk(); install_stubs(mu)
-stub(mu,0x5329bf70,lambda uc:0)  # not in the fixed movie layout
+stub(mu,0x532a02b4,lambda uc:0)  # not in the fixed movie layout
 this=0x70000000
 mu.mem_write(this+0x1fc,b'\x00')       # slot 0
 mu.mem_write(MODEL+0x920,b'\x0a')      # slot 0 -> soft focus (GetAdjCustom slot 0 reads +0x920)
@@ -221,7 +221,7 @@ check('record copies Crop except handlers', [rdw(RT,rec+o)==rdw(RT,0x53dc9dfc+0x
 _rt=bytearray(RT[tbl-BASE:tbl+21*0x5c-BASE])
 for o in (0x10,0x18,0x20,0x28,0x30):
     at=0x09*0x5c+o
-    if struct.unpack_from('<I',_rt,at)[0]>=0x53000000+0x13d2ac0: _rt[at:at+4]=OFFICIAL[tbl-BASE+at:tbl-BASE+at+4]
+    if struct.unpack_from('<I',_rt,at)[0]>=0x53000000+0x140b600: _rt[at:at+4]=OFFICIAL[tbl-BASE+at:tbl-BASE+at+4]
 _rt=bytes(_rt); _off=(0x0a*0x5c,0x0b*0x5c)
 check('the other 20 records unchanged', _rt[:_off[0]]+_rt[_off[1]:]==OFFICIAL[tbl-BASE:rec-BASE]+OFFICIAL[rec+0x5c-BASE:tbl+21*0x5c-BASE], True)
 for v in range(4):
@@ -239,7 +239,7 @@ stub(mu,0x53593d64,lambda uc:0x70001000+uc.reg_read(R1))
 stub(mu,0x535a1138,lambda uc:got.append((uc.reg_read(R0)-0x70001000,uc.reg_read(R1))))
 mu.mem_write(this+0x1f8,struct.pack('<I',0x70002000))
 for i in range(5): call(mu,h(0x18),(this,i))
-check('draw labels (item, text)', got, [(0,2),(1,9),(2,10),(3,11),(4,0)])
+check('draw labels (item, text)', got, [(0,2),(1,10),(2,11),(3,12),(4,0)])
 # 3b. the check over the five slots (0x531be5e4, official table): soft focus behaves as Crop
 def slots_check(slots, avail):
     mu=mk(); install_stubs(mu)
@@ -257,7 +257,7 @@ mu=mk(); install_stubs(mu)
 heap=[0x70100000]
 def new(uc):
     n=uc.reg_read(R0); p=heap[0]; heap[0]+= (n+15)&~15; return p
-stub(mu,0x539084bc,new); stub(mu,0x539084f8,lambda uc:0); stub(mu,0x538ed930,lambda uc:0)
+stub(mu,0x539084bc,new); stub(mu,0x539084f8,lambda uc:0); stub(mu,0x539154f8,lambda uc:0)
 stub(mu,0x53400df4,lambda uc:0)
 obj=0x70200000
 call(mu,0x531dc820,(obj,))
@@ -265,13 +265,13 @@ b,e=struct.unpack('<II',mu.mem_read(obj+0x1a8,8))
 check('ADJ mode setting list', list(mu.mem_read(b,e-b)), [0,1,2,3,4,5,19,6,7,8,9,11,12,13,14,15,0x0a,16,20,17])
 # 5. clarity parameter (SetEffectParameter 0x53726598)
 def effect(sfv, clar):
-    mu=mk(); install_stubs(mu); stub(mu,0x538ed930,lambda uc:0)
+    mu=mk(); install_stubs(mu); stub(mu,0x539154f8,lambda uc:0)
     obj=0x70000000; prm=0x70000100; shot=0x70010000
     mu.mem_write(obj+0x10,struct.pack('<I',prm))
     mu.mem_write(shot+0x79c,b'\x00'); mu.mem_write(shot+0x7b3,b'\x04'); mu.mem_write(shot+0x7da,b'\x00')
     mu.mem_write(shot+0x7b4,bytes([clar])); mu.mem_write(shot+0x7b8,b'\x00'); mu.mem_write(shot+0x7b5,b'\x00')
     mu.mem_write(SF,bytes([sfv]))
-    call(mu,0x53701c40,(obj,shot,1))
+    call(mu,0x53726594,(obj,shot,1))
     return struct.unpack('<h',mu.mem_read(prm+2,2))[0]
 for sfv in range(4):
     check(f'clarity param, soft focus {sfv}', [effect(sfv,c) for c in range(9)], [c-4 for c in range(9)] if sfv==0 else [sfv+4]*9)
@@ -285,7 +285,7 @@ def gate(img, kind, c7b3, clar, sfv, c7b5=0):
     call(mu,0x53739a5c,(fl,shot))
     return mu.mem_read(fl+0x25,1)[0]
 diffs=[]
-for kind in range(0x0a,0x20):
+for kind in range(0x0a,0x22):   # 1.20: also 31 and 32
     for c3 in (4,5):
         for clar in (4,6):
             for sfv in (0,1,2,3,4,0x7a):

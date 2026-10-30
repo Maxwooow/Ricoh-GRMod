@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * Soft focus as a function of the ADJ lever (firmware 1.11).
+ * Soft focus as a function of the ADJ lever (firmware 1.20; ported from 1.11, see the notes marked 1.20).
  *
  * The camera's ADJ lever offers one of the functions 0..0x14 per slot ("ADJ mode setting"). Function
  * 0x0A (a flash setting; the GR IV has no flash and never offers it: it is in no function list and in
@@ -21,11 +21,11 @@
  *    camera pressing ADJ then froze, even with soft focus on no slot.
  *  - The list of functions the ADJ mode setting menu offers (19 bytes at 0x53DE50F0) is copied with
  *    0x0A inserted after Image Control; the loop bound goes from 19 to 20.
- *  - The function's name: function number to text number (0x5338F484) gives text 840 for 0x0A,
+ *  - The function's name: function number to text number (0x5338F484) gives text 884 (1.11: 840) for 0x0A,
  *    a new entry in all 21 language rows of the relocated text catalog (see `build.ts`).
- *  - The function's icon: function number to icon number (0x533817F0) gives icon 720 for 0x0A
+ *  - The function's icon: function number to icon number (0x53390E40) gives icon 720 for 0x0A
  *    (0x0A and 0x0B shared a case; 0x0B keeps its icon), a new 40x40 icon appended to ICONBIN and entered in the relocated icon catalog.
- *  - The value labels are the camera's own texts: Off (2), Low (9), Medium (10), High (11).
+ *  - The value labels are the camera's own texts: Off (2), Low (10), Medium (11), High (12) (1.11: 2, 9, 10, 11).
  *  - Where the value is kept: byte 0x90F of the user-settings structure (0xAE9 bytes). The
  *    factory-defaults initialiser (UserDataInitValue, 0x535278D8) writes every field of all 30
  *    default records and never this byte: it is alignment padding between a byte field (0x90E) and
@@ -34,9 +34,11 @@
  *    and is 0 (off) after a settings reset. The live structure is the one at 0x550832A8 + 4.
  *  - Image processing, step 1: whether a picture goes through the digital-filter step at all is
  *    decided per picture (0x53739A5C): for most image controls only when Clarity or the setting
- *    before it (0x7B3) is not neutral. The two places that read Clarity there (0x53739B04,
- *    0x53739B60) now read it as "not neutral" while soft focus is on, so the step also runs at
- *    Clarity 0 (without this, soft focus did nothing unless Clarity was set).
+ *    before it (0x7B3) is not neutral. The places that read Clarity there now read it as "not
+ *    neutral" while soft focus is on, so the step also runs at Clarity 0 (without this, soft focus
+ *    did nothing unless Clarity was set). 1.20 compiled this function anew (two more looks, 31 and
+ *    32): Clarity is loaded into ip (`ldrb ip, [r1, #0x7b4]`) at 0x53739B0C and 0x53739B64 (the
+ *    two paths 1.11 had) and at 0x53739B30 (the new Solarized Effect, 32, which also reads it).
  *  - Image processing, step 2: DigitalFilterProcess::SetEffectParameter stores the clarity setting as a
  *    halfword at param+2 (0x53726744). That store now goes through a helper that, when the byte is
  *    1..3, stores 5..7 instead. The clarity function (0x538C98B8) checks `clarity + 4 <= 8`
@@ -61,7 +63,7 @@ import {
 /** ADJ function number of soft focus (a function the GR IV never offers, see above). */
 export const ADJ_SOFT_FOCUS = 0x0a;
 /** Text number of its name. */
-export const SOFT_FOCUS_TEXT_ID = 840;
+export const SOFT_FOCUS_TEXT_ID = 884; // 1.11: 840 (+ TEXT_SHIFT)
 /**
  * Icon number of its icon: 720, the number the ratio icons keep for identity 4, which is never
  * given out (added ratios start at identity 7, icon 723). So the icon lookup bound never goes
@@ -87,8 +89,8 @@ const H_SET = 0x28;
 const H_COUNT = 0x30;
 
 const MENU_LIST = 0x53de50f0;
-/** The two reads of Clarity that decide whether the digital-filter step runs (0x53739A5C). */
-const CLARITY_GATE = [0x53739b04, 0x53739b60];
+/** The reads of Clarity (`ldrb ip, [r1, #0x7b4]`) that decide whether the digital-filter step runs (0x53739A5C). */
+const CLARITY_GATE = [0x53739b0c, 0x53739b64, 0x53739b30];
 /** Getters of ADJ slots 1..5 (bytes 0x920..0x924 of the user settings). */
 const SLOT_GETTERS = [0x532a0584, 0x532a058c, 0x532a0594, 0x532a059c, 0x532a05a4];
 const MENU_LIST_OFFICIAL = [0, 1, 2, 3, 4, 5, 19, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 20, 17];
@@ -101,7 +103,7 @@ const LIST_ITEM = 0x53593d64; // (list, index) -> item
 const ITEM_SET_TEXT = 0x535a1138; // (item, text number)
 
 /** Texts of the four values: Off, Low, Medium, High. */
-const VALUE_TEXTS = [2, 9, 10, 11];
+const VALUE_TEXTS = [2, 10, 11, 12]; // 1.11: 2, 9, 10, 11
 
 /** The name of the function in each language, in the order of `LANGS` in `../names.ts`. */
 export const SOFT_FOCUS_NAMES: readonly string[] = [
@@ -109,9 +111,9 @@ export const SOFT_FOCUS_NAMES: readonly string[] = [
   'Lágy fókusz', 'Effetto flou', 'ソフトフォーカス', '소프트 포커스', 'Soft focus', 'Miękka ostrość', 'Foco suave',
   'Мягкий фокус', '柔焦', 'Enfoque suave', 'Mjukt fokus', 'ซอฟต์โฟกัส', '柔焦', 'Yumuşak odak',
 ];
-/** First language table (in `LANGS` order) as the program sees it in RAM; tables are 0xD14 apart. */
+/** First language table (in `LANGS` order) as the program sees it in RAM; tables are 0xDC4 apart (1.11: 0xD14). */
 const FIRST_TABLE_RAM = 0x55000000 + (0x543b5270 - 0x543b3100);
-const TABLE_STRIDE = 0xd14;
+const TABLE_STRIDE = 0xdc4;
 
 export const SOFT_FOCUS_ICON_W = 40;
 export const SOFT_FOCUS_ICON_H = 40;
@@ -200,18 +202,18 @@ export function installAdjSoftFocus(patch: Patch, iconbin: Uint8Array): Uint8Arr
   expectWord(patch, 0x531dc844, movWord(4, hi(MENU_LIST), true));
   expectWord(patch, 0x531dc860, 0xe2846013); // add r6, r4, #19
   expectWord(patch, 0x5338f4dc, 0xe351000a); // cmp r1, #0x0a
-  expectWord(patch, 0x5338f4e0, 0x0a000027); // beq 0x5337ff98 (no other case goes there)
-  expectWord(patch, 0x5337ff98, 0xe3a00087); // mov r0, #135
-  expectWord(patch, 0x5337ff9c, 0xe12fff1e); // bx lr
+  expectWord(patch, 0x5338f4e0, 0x0a000027); // beq 0x5338f584 (no other case goes there)
+  expectWord(patch, 0x5338f584, 0xe3a0008c); // mov r0, #140 (1.11: #135)
+  expectWord(patch, 0x5338f588, 0xe12fff1e); // bx lr
   expectWord(patch, 0x53390ea0, 0xe241300a); // sub r3, r1, #0x0a
   expectWord(patch, 0x53390ea4, 0xe3530001); // cmp r3, #1
-  expectWord(patch, 0x53390ea8, 0x9a000035); // bls 0x53381934 (0x0A and 0x0B)
-  expectWord(patch, 0x53381934, 0xe3520000); // cmp r2, #0
+  expectWord(patch, 0x53390ea8, 0x9a000035); // bls 0x53390f84 (0x0A and 0x0B)
+  expectWord(patch, 0x53390f84, 0xe3520000); // cmp r2, #0
   expectWord(patch, 0x53726744, 0xe1c530b2); // strh r3, [r5, #2]
-  for (const site of CLARITY_GATE) {
-    expectWord(patch, site, 0xe5d137b4); // ldrb r3, [r1, #0x7b4]
-    expectWord(patch, site + 4, 0xe5d127b3); // ldrb r2, [r1, #0x7b3]  (r2 is free at the site)
-  }
+  for (const site of CLARITY_GATE) expectWord(patch, site, 0xe5d1c7b4); // ldrb ip, [r1, #0x7b4]
+  expectWord(patch, 0x53739b10, 0xe2533004); // subs r3, r3, #4 (flags set anew after each site)
+  expectWord(patch, 0x53739b68, 0xe5d127b5); // ldrb r2, [r1, #0x7b5]
+  expectWord(patch, 0x53739b34, 0xe3a03000); // mov r3, #0
   SLOT_GETTERS.forEach((at, i) => {
     expectWord(patch, at, 0xe5d00920 + i); // ldrb r0, [r0, #0x920 + i]
     expectWord(patch, at + 4, 0xe12fff1e); // bx lr
@@ -268,8 +270,8 @@ export function installAdjSoftFocus(patch: Patch, iconbin: Uint8Array): Uint8Arr
   patch.setWord(0x531dc844, movWord(4, hi(list), true), 'ADJ soft focus: function list, high half');
   patch.setWord(0x531dc860, 0xe2846000 | MENU_LIST_NEW.length, 'ADJ soft focus: function list length');
 
-  // --- Name: function 0x0A -> text 840.
-  patch.setWord(0x5337ff98, movWord(0, SOFT_FOCUS_TEXT_ID), 'ADJ soft focus: function name');
+  // --- Name: function 0x0A -> text 884.
+  patch.setWord(0x5338f584, movWord(0, SOFT_FOCUS_TEXT_ID), 'ADJ soft focus: function name');
   const descriptors: number[] = [];
   SOFT_FOCUS_NAMES.forEach((text) => {
     const encoded = utf16z(text);
@@ -301,17 +303,20 @@ export function installAdjSoftFocus(patch: Patch, iconbin: Uint8Array): Uint8Arr
     patch.setWord(site, movWord(register, Math.max(SOFT_FOCUS_ICON_ID, movImmediate(patch.word(site)))), 'icon upper bound');
   }
   const iconAt = patch.append((at) => assembleWords(
-    `cmp r3, #0; bne #0x53381934
+    `cmp r3, #0; bne #0x53390f84
      cmp r2, #0; movne r0, #0; bxne lr
      movw r0, #${SOFT_FOCUS_ICON_ID}; bx lr`, at), 16);
   patch.setWord(0x53390ea8, branchTo(0x53390ea8, iconAt, 9), 'ADJ soft focus: function icon');
 
   // --- Image processing: run the digital-filter step while soft focus is on.
   for (const site of CLARITY_GATE) {
+    // r0..r3 and lr are live at each site, the flags are not: r2 is saved around its use.
     const gate = patch.append((at) => assembleWords(
-      `ldrb r3, [r1, #0x7b4]
+      `ldrb ip, [r1, #0x7b4]
+       push {r2}
        movw r2, #${lo(B)}; movt r2, #${hi(B)}; ldrb r2, [r2]
-       sub r2, r2, #1; cmp r2, #2; movls r3, #${4 + FIRST_SOFT_CLARITY}
+       sub r2, r2, #1; cmp r2, #2; movls ip, #${4 + FIRST_SOFT_CLARITY}
+       pop {r2}
        b #${site + 4}`, at), 16);
     patch.setWord(site, branchTo(site, gate, 14), 'ADJ soft focus: digital filter step');
   }

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * Direct Flash ("直闪模式", 0.8.4): a fifth choice of the camera's Flash Mode (firmware 1.11).
+ * Direct Flash ("直闪模式", 0.8.4): a fifth choice of the camera's Flash Mode (firmware 1.20; ported from 1.11).
  *
  * The flash fires at a fixed power and the camera plans the exposure from the subject distance and
  * the flash's guide number, the way the GR III's GF-2 Flash Mode works as Ricoh describes it
@@ -28,7 +28,7 @@
  * taken over are this program's own design.
  *
  *  - Where the choice is kept. Not as a new Flash Mode value: the camera stores Flash Mode at byte
- *    0x10C of the user settings (CURRENT() = 0x550832A8; the live value at +0xBF8) and many places
+ *    0x10C of the user settings (CURRENT() = 0x550832A8; the live value at +0xC50, 1.11 +0xBF8: the mirror moved with the longer 1.20 settings) and many places
  *    look it up (menus, ADJ, Fn, flash control, exposure). Direct Flash is Flash Mode 0 (Flash On)
  *    plus bit 0 of byte 0x99B of the live user settings structure (CURRENT() + 4): alignment padding
  *    (bytes 0x997..0x999, then a word at 0x99C) that the factory-defaults initialiser
@@ -49,8 +49,8 @@
  *    (SetFlashMode, 0x532B6EE0) and bit 0; picking any other value clears bit 0 (the other bits
  *    are the camera-menu choices and stay).
  *  - The current value's icon: three places draw the icon of the current Flash Mode
- *    (0x53390328(resources, value, variant)): the still menu's Flash Mode line (0x531B0800), the
- *    submenu line (0x531E2770) and the shooting screen (0x5339787C). For value 0 with bit 0 set
+ *    (0x53390328(resources, value, variant)): the still menu's Flash Mode line (0x531B1D70), the
+ *    submenu line (0x531E2770) and the shooting screen (0x533A6F30). For value 0 with bit 0 set
  *    they show the Direct Flash icon.
  *  - Exposure. The still exposure (0x5369F3D8 -> 0x5369F164) runs the flash program (0x5369EF30,
  *    called once, at 0x5369F224), which leaves Tv, Av and Sv for the picture at +0xD0, +0xD4, +0xD8
@@ -60,8 +60,8 @@
  *    replaces the result when Direct Flash applies (see the module for the fields it reads).
  *  - Guide number: byte 0x99A (CURRENT() + 4), the same kind of padding as 0x99B
  *    (UserDataInitValue never writes it).
- *  - Name: text 882, "Direct Flash" in the 21 languages; icon 733 (the ratio icon number of
- *    identity 17, never given out: added ratios use 7..14, the date imprint 5, 6, 15, 16).
+ *  - Name: text 926 (1.11: 882), "Direct Flash" in the 21 languages; icon 733 (the ratio icon number of
+ *    identity 17, never given out: added ratios use 7..14, the date imprint 5, 6, 15, 16; 1.20's own icons end at 708).
  *
  * Nothing changes unless the user picks Direct Flash.
  */
@@ -70,7 +70,7 @@ import { assembleWords, branchWord, movImmediate, movWord } from './arm';
 import { ICON_CATALOG, LANGUAGES, LOOKUP_BOUNDS, NATIVE_TEXT_ROOTS, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z } from './build';
 import { DIRECTFLASH_CODE, DIRECTFLASH_DIAG_CODE, DIRECTFLASH_DIAG_ENTRY, DIRECTFLASH_ENTRY } from './directflash-code';
 
-export const DIRECT_FLASH_TEXT_ID = 882;
+export const DIRECT_FLASH_TEXT_ID = 926; // 1.11: 882 (+ TEXT_SHIFT)
 export const DIRECT_FLASH_ICON_ID = 733;
 /**
  * The setting byte (0 on every camera): bit 0 Direct Flash (with Flash Mode 0); bits 1..4 and 5..7
@@ -105,7 +105,7 @@ export const DIRECT_FLASH_NAMES: readonly string[] = [
 ];
 
 const CURRENT = 0x550832a8;
-const LIVE_FLASH_MODE = CURRENT + 0xbf8;
+const LIVE_FLASH_MODE = CURRENT + 0xc50; // 1.11: + 0xbf8
 const FLASH_OUTPUT = CURRENT + 0x114;
 
 // Camera functions (checked below by their first instructions or their callers).
@@ -133,7 +133,7 @@ interface Handlers {
 }
 
 const ADJ_RECORD = 0x53dc9dfc + 0x09 * 0x5c;
-const FN_RECORD = 0x53da09b4;
+const FN_RECORD = 0x53dcb09c;
 const LIST_RECORDS = [0x53dcd470 + 11 * 0x4c, 0x53dcd470 + 12 * 0x4c] as const;
 
 const ADJ: Handlers = {
@@ -153,11 +153,11 @@ const LISTS: readonly Handlers[] = [
 /** Text / icon list objects of the ADJ and Fn controllers. */
 const VIEW = { adj: { text: 0x164, icons: 0x1f8 }, fn: { text: 0x160, icons: 0x178 } } as const;
 /** Calls of the Flash Mode icon function for the current value: [site, bl (true) or b]. */
-const CURRENT_ICON_SITES: readonly (readonly [number, boolean])[] = [[0x531b0800, true], [0x531e2770, true], [0x5339787c, false]];
+const CURRENT_ICON_SITES: readonly (readonly [number, boolean])[] = [[0x531b1d70, true], [0x531e2770, true], [0x533a6f30, false]];
 
-/** First language table (in `LANGS` order) as the program sees it in RAM; tables are 0xD14 apart (see softfocus.ts). */
+/** First language table (in `LANGS` order) as the program sees it in RAM; tables are 0xDC4 apart (see softfocus.ts). */
 const FIRST_TABLE_RAM = 0x55000000 + (0x543b5270 - 0x543b3100);
-const TABLE_STRIDE = 0xd14;
+const TABLE_STRIDE = 0xdc4;
 
 export const DIRECT_FLASH_ICON_W = 40;
 export const DIRECT_FLASH_ICON_H = 40;
@@ -346,13 +346,13 @@ export function installDirectFlash(patch: Patch, iconbin: Uint8Array, diag = fal
   expectWord(patch, FN_RECORD, 0x16);
   LISTS.forEach((h, k) => {
     checkSlots(patch, LIST_RECORDS[k], h);
-    expectWord(patch, LIST_RECORDS[k] + 4, 0x7f); // title: Flash Mode
+    expectWord(patch, LIST_RECORDS[k] + 4, 0x84); // title: Flash Mode (text 132; 1.11: 127)
   });
   expectWord(patch, 0x531bb6a4, 0xe5d03282); // ldrb r3, [r0, #0x282]  (ADJ count)
   expectWord(patch, 0x531c1d7c, 0xe5d03197); // ldrb r3, [r0, #0x197]  (Fn count)
   expectWord(patch, 0x531d09bc, 0xe3a00004); // mov r0, #4
   expectWord(patch, 0x531d09c4, 0xe3a00002); // mov r0, #2
-  expectWord(patch, GET_FLASH_MODE, 0xe5d00bf8); // ldrb r0, [r0, #0xbf8]
+  expectWord(patch, GET_FLASH_MODE, 0xe5d00c50); // ldrb r0, [r0, #0xc50] (1.11: #0xbf8)
   expectWord(patch, 0x532a032c, 0xe5d00114); // ldrb r0, [r0, #0x114]  (Flash Output)
   expectWord(patch, 0x531bc548, branchWord(0x531bc548, SET_FLASH_MODE)); // the ADJ setter's tail call
   expectWord(patch, 0x531bb9e4, branchWord(0x531bb9e4, LABEL_SET_TEXT));
@@ -422,7 +422,7 @@ export function installDirectFlash(patch: Patch, iconbin: Uint8Array, diag = fal
      movw r0, #${DIRECT_FLASH_ICON_ID}; bx lr`, at), 16);
   for (const [site, link] of CURRENT_ICON_SITES) patch.setWord(site, branchTo(site, currentIcon, link), 'Direct Flash: icon of the current Flash Mode');
 
-  // --- Name: text 882 in all 21 languages.
+  // --- Name: text 926 in all 21 languages.
   const descriptors: number[] = [];
   DIRECT_FLASH_NAMES.forEach((text) => {
     const encoded = utf16z(text);

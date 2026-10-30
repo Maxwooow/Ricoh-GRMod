@@ -12,9 +12,9 @@
  * The user settings (CURRENT(), 0x550832A8, and its snapshots, which have the same layout four
  * bytes on, see crop_state.c) hold:
  *  - the look of each photo set (standard, custom 1..3) at 0x153..0x156 and of each movie set at
- *    0x515..0x518. Looks 0..30 are the camera's own (31..33 the firmware itself treats as invalid);
- *    an added slot is 34 + k. Anything from 31 that is not an installed added slot becomes
- *    Standard (11).
+ *    0x515..0x518. Looks 0..32 are the camera's own in 1.20 (31 Pictorialist and 32 Solarized,
+ *    the GR IV Monochrome's; 33..37 the firmware treats as invalid); an added slot is 38 + k (1.11:
+ *    34 + k). Anything from 33 that is not an installed added slot becomes Standard (11).
  *  - the aspect ratio at 0x49F: 0..3 are the factory ones. With added ratios the ratio module
  *    (crop_state.c) already resets one that is no longer in the menu; without, anything above 3
  *    becomes 3:2 (0).
@@ -23,9 +23,9 @@
  *    getters of a build with soft focus already make of a value above 0x14.
  *  - 0.8.4, looks hidden from the lists (`looks.ts`): the look of the standard photo set (0x153)
  *    and of the standard movie set (0x515), the ones picked from the Image Control / ADJ lists,
- *    becomes Standard (11; the GR IV Monochrome's Standard, 25, for one of its looks 25..30) when
- *    it is hidden. Both lists are built without hidden looks (0x533CC784 and 0x533755BC, through
- *    the visibility check 0x533CC6E0), so a hidden look could only be selected by settings an
+ *    becomes Standard (11; the GR IV Monochrome's Standard, 25, for one of its looks 25..32) when
+ *    it is hidden. Both lists are built without hidden looks (0x533DE1E8 and 0x5338409C, through
+ *    the visibility check 0x533DE144), so a hidden look could only be selected by settings an
  *    earlier firmware left; this way the lists always hold the selected look. The custom sets'
  *    looks (0x154..0x156, 0x516..0x518) are kept: those sets are entries of their own in the
  *    lists (C1..C3), whatever their look, and the look stays installed. RAW development's look
@@ -51,10 +51,12 @@ const LOOKS = [0x153, 0x154, 0x155, 0x156, 0x515, 0x516, 0x517, 0x518];
 const RATIO = 0x49f;
 const ADJ_SLOTS = [0x920, 0x921, 0x922, 0x923, 0x924];
 export const STANDARD = 11;
-export const FIRST_ADDED_LOOK = 34;
+export const FIRST_ADDED_LOOK = 38;
+/** The first look number the firmware does not know (1.11: 31). */
+const FIRST_UNKNOWN_LOOK = 33;
 
 export interface GuardOptions {
-  /** Number of added slots (looks 34..34 + n - 1). */
+  /** Number of added slots (looks 38..38 + n - 1). */
   slots: number;
   /** Added ratios are installed (their module resets the ratio). */
   ratios: boolean;
@@ -72,14 +74,14 @@ export const MONO_STANDARD = 25;
 function fixSource(o: GuardOptions): string {
   const lines: string[] = ['cmp r0,#0', 'bxeq lr', 'sub r0,r0,r1'];
   LOOKS.forEach((off, i) => {
-    lines.push(`ldrb r2,[r0,#${off}]`, 'cmp r2,#31', `blo look${i}`);
+    lines.push(`ldrb r2,[r0,#${off}]`, `cmp r2,#${FIRST_UNKNOWN_LOOK}`, `blo look${i}`);
     if (o.slots > 0) lines.push(`sub r3,r2,#${FIRST_ADDED_LOOK}`, `cmp r3,#${o.slots}`, `blo look${i}`);
     lines.push(`mov r2,#${STANDARD}`, `strb r2,[r0,#${off}]`, `look${i}:`);
     if (CURRENT_LOOKS.includes(off) && o.hiddenLooks && o.hiddenLooks.length > 0) {
       lines.push(`ldrb r2,[r0,#${off}]`);
       for (const h of o.hiddenLooks) {
         if (h === STANDARD || h === MONO_STANDARD || !(Number.isInteger(h) && h > 0 && h < 256)) fail('internal', 'guard: a Standard look cannot be hidden');
-        lines.push(`cmp r2,#${h}`, `moveq r3,#${h >= 25 && h <= 30 ? MONO_STANDARD : STANDARD}`, `strbeq r3,[r0,#${off}]`);
+        lines.push(`cmp r2,#${h}`, `moveq r3,#${h >= 25 && h <= 32 ? MONO_STANDARD : STANDARD}`, `strbeq r3,[r0,#${off}]`);
       }
     }
   });
@@ -105,7 +107,7 @@ export function installSettingsGuard(p: Patch, o: GuardOptions): { fix: number; 
   const recallWord = p.word(RECALL);
   if (recallWord >>> 24 !== 0xeb) fail('unexpected-layout', 'user-mode recall is not a call');
   const priorRecall = branchTarget(RECALL, recallWord);
-  if (priorRecall === RECALL_NATIVE) expectWord(p, RECALL, 0xebfe566c);
+  if (priorRecall === RECALL_NATIVE) expectWord(p, RECALL, 0xebfe49f0); // bl 0x532406A4
 
   const fix = p.append((a) => assembleWords(fixSource(o), a), 16);
   // fix_mode(mode): the ten snapshots at mode + 4.

@@ -21,7 +21,7 @@ exposure is checked with the defaults and with other choices.
     every value index, setting byte (bit 0 off / on, other bits kept) and Flash Mode (0..3): count, text, icon, row draw,
     is-current and set; the other values reach the camera's own handlers with the same arguments.
  3. The current value's icon at its three places.
- 4. Text 882 in all 21 languages and icon 733 (catalog entry, lookup bounds).
+ 4. Text 926 (1.11: 882) in all 21 languages and icon 733 (catalog entry, lookup bounds).
 """
 import math
 import struct
@@ -32,23 +32,23 @@ from unicorn.arm_const import (UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2, UC_A
                                UC_ARM_REG_LR, UC_ARM_REG_PC, UC_ARM_REG_C1_C0_2, UC_ARM_REG_FPEXC, UC_ARM_REG_S0)
 
 BASE = 0x53000000
-RAMVA, RAMIMG, RAMLEN = 0x55000000, 0x543b3100, 0x57480
+RAMVA, RAMIMG, RAMLEN = 0x55000000, 0x543b3100, 0x58500
 CURRENT = 0x550832a8
 BYTE = CURRENT + 4 + 0x99b
 GN_BYTE = CURRENT + 4 + 0x99a
 TV_BYTE = CURRENT + 4 + 0x109   # test 062: the fastest shutter speed, bits 0..2
 TV_CAPS = {1: 11.0, 2: 10.0, 3: 9.0, 4: 8.0}   # anything else (0 included): the camera's sync limit
 BG_STRETCH = 2.0
-LIVE_FM = CURRENT + 0xbf8
+LIVE_FM = CURRENT + 0xc50   # 1.11: + 0xbf8
 OUTPUT = CURRENT + 0x114
 CALL_SITE = 0x5369f224
 FLASH_PROGRAM = 0x5369ef30
 SYNC = 0x5369da5c
-TEXT_ID, ICON_ID = 882, 733
+TEXT_ID, ICON_ID = 926, 733
 APP, SETTINGS, GET_FM, SET_FM = 0x532406a4, 0x53240c38, 0x5329b514, 0x532b6ee0
 FLASH_ICON, LIST_ITEM, ITEM_SET_ICON, LABEL_SET_TEXT, ROW_SET = 0x53390328, 0x53593d64, 0x535a1064, 0x53596654, 0x5359e1bc
 ADJ_RECORD = 0x53dc9dfc + 9 * 0x5c
-FN_RECORD = 0x53da09b4
+FN_RECORD = 0x53dcb09c
 ADJ = dict(flag=0x282, text=0x164, icons=0x1f8, slots=dict(text=0x10, icon=0x18, current=0x20, set=0x28, count=0x30),
            official=dict(text=0x531bb990, icon=0x531bf8f0, current=0x531bc948, set=0x531bc50c, count=0x531bb6a4))
 FN = dict(flag=0x197, text=0x160, icons=0x178, slots=dict(text=0x04, icon=0x0c, current=0x14, set=0x1c, count=0x24),
@@ -57,7 +57,7 @@ LISTS = [dict(fixed=4, slots=dict(count=0x0c, draw=0x14, set=0x24, current=0x2c)
               official=dict(count=0x531d09bc, draw=0x531d1ba0, set=0x531d43ec, current=0x531d5cf4)),
          dict(fixed=2, slots=dict(count=0x0c, draw=0x14, set=0x24, current=0x2c),
               official=dict(count=0x531d09c4, draw=0x531d1c04, set=0x531d441c, current=0x531d5d28))]
-ICON_SITES = [0x531b0800, 0x531e2770, 0x5339787c]
+ICON_SITES = [0x531b1d70, 0x531e2770, 0x533a6f30]
 STOP = 0x100
 NAMES = {0: 'ダイレクト発光', 1: 'Direct Flash', 19: '直闪模式', 18: '直閃模式'}
 
@@ -111,7 +111,7 @@ class Emu:
         mu.mem_map(0, 0x1000)
         mu.reg_write(UC_ARM_REG_C1_C0_2, mu.reg_read(UC_ARM_REG_C1_C0_2) | (0xf << 20))
         mu.reg_write(UC_ARM_REG_FPEXC, 0x40000000)
-        for g in (0x5508207c, 0x55082234, 0x55082184):  # singletons constructed
+        for g in (0x5508307c, 0x55083244, 0x55083194):  # singletons constructed
             mu.mem_write(g, struct.pack('<I', 1))
         self.mu = mu
         self.calls = []
@@ -354,7 +354,7 @@ def situations():
 def check_exposure(img, gnb=0, high=0, keep=None, comp=None, tvb=0):
     """gnb: byte 0x99A; high: bits 1..7 of byte 0x99B, ORed into every situation's byte; tvb: byte 0x109 (test 062)."""
     wrapper = img.branch(CALL_SITE)
-    check(wrapper != FLASH_PROGRAM and wrapper >= BASE + 0x13d2ac0, 'the flash program call does not go to the wrapper')
+    check(wrapper != FLASH_PROGRAM and wrapper >= BASE + 0x140b600, 'the flash program call does not go to the wrapper')
     # The wrapper: push; mov r4,r0; bl flash program; mov r0,r4; movw/movt r1,ctx; pop; b module.
     check(img.branch(wrapper + 8) == FLASH_PROGRAM, 'the wrapper does not call the flash program first')
     ctx = img.movw_movt(wrapper + 16)
@@ -527,12 +527,12 @@ def find_list_records(img):
     for k, L in enumerate(LISTS):
         found = None
         for at in range(0, len(img.R) - 0x30, 4):
-            if struct.unpack_from('<4I', img.R, at) == (0x10000, 0x7f, 0, struct.unpack_from('<I', img.R, at + 12)[0]):
+            if struct.unpack_from('<4I', img.R, at) == (0x10000, 0x84, 0, struct.unpack_from('<I', img.R, at + 12)[0]):
                 draw = struct.unpack_from('<I', img.R, at + 0x14)[0]
                 count = struct.unpack_from('<I', img.R, at + 0x0c)[0]
-                if count >= BASE + 0x13d2ac0 and img.u32(count) == 0xe3a00000 | L['fixed'] and img.u32(count + 4) == 0xe2800001:
+                if count >= BASE + 0x140b600 and img.u32(count) == 0xe3a00000 | L['fixed'] and img.u32(count + 4) == 0xe2800001:
                     found = BASE + at
-                    if at >= 0x13d2ac0:
+                    if at >= 0x140b600:
                         break
         out.append(found)
     return out
@@ -551,7 +551,7 @@ def check_menus(img):
     for name, rec, h in sets:
         for slot, off in h['slots'].items():
             got = img.u32(rec + off)
-            check(got != h['official'][slot] and got >= BASE + 0x13d2ac0, f'{name}: {slot} handler not replaced')
+            check(got != h['official'][slot] and got >= BASE + 0x140b600, f'{name}: {slot} handler not replaced')
             e.stubs[h['official'][slot]] = (f'official {slot}', 0x55)
         handler = {slot: img.u32(rec + off) for slot, off in h['slots'].items()}
         this = 0x70004000
@@ -635,7 +635,7 @@ def check_menus(img):
 
 # --- 4. Text and icon -------------------------------------------------------------------------
 def check_resources(img):
-    TEXT_CATALOG, ICON_CATALOG = 0x5440d600, 0x5440c600
+    TEXT_CATALOG, ICON_CATALOG = 0x5440da00, 0x5440c600
     for lang, want in NAMES.items():
         row = img.u32(TEXT_CATALOG + lang * 4)
         d = img.u32(row + TEXT_ID * 4)
@@ -646,7 +646,7 @@ def check_resources(img):
     check(filled == 21, f'text {TEXT_ID} in {filled} languages')
     d = img.u32(ICON_CATALOG + ICON_ID * 4)
     check(d != 0 and struct.unpack_from('<4H', img.R, img.off(d)) == (1, 40, 40, 0), f'icon {ICON_ID} descriptor')
-    for site in (0x5323f7ec, 0x5323e40c):
+    for site in (0x5440c5c4, 0x5440c5e4):   # the icon-bound helpers' movw (build.ts)
         w = img.u32(site)
         check(((w >> 4) & 0xf000 | (w & 0xfff)) >= ICON_ID, f'icon lookup bound at {site:#x}')
     print(f'  text {TEXT_ID} in 21 languages, icon {ICON_ID} 40x40')

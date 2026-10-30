@@ -16,9 +16,9 @@ import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parent.parent
+ROOT = HERE.parent.parent.parent
 SRC = HERE / 'datestamp.c'
-OUT = ROOT / 'core' / 'src' / 'fw' / 'aspect' / 'datestamp-code.ts'
+OUT = ROOT / 'core' / 'src' / 'fw' / 'gr4v120' / 'aspect' / 'datestamp-code.ts'
 USE_ZIG = bool(os.environ.get('GRMOD_ZIG')) or not (shutil.which('clang') and shutil.which('ld.lld') and shutil.which('llvm-objcopy'))
 FLAGS = ['-mcpu=cortex_a9' if USE_ZIG else '-mcpu=cortex-a9', '-marm', '-mfloat-abi=soft', '-Os',
          '-ffreestanding', '-fno-builtin', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-nostdlib',

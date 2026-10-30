@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Own adjustment parameters for the added Image Control slots (styles 34, ...).
+/* Own adjustment parameters for the added Image Control slots (styles 38, ...; firmware 1.20, 1.11: 34, ...).
  *
  * The firmware keeps the parameters (saturation, hue, contrast, ...) per factory style in the
  * user settings record, and the added styles use Cinema Yellow's (18) fields: everything that
@@ -24,7 +24,7 @@
 #error SLOT_COUNT (1..20) is set by gen_slotparams.py
 #endif
 #define CY 18u
-#define FIRST 34u
+#define FIRST 38u
 #define OWNERS 21u                /* Cinema Yellow and up to twenty added slots */
 #define COMBOS 8u                 /* photo sets 0..3, movie sets 0..3 */
 #define NP 13u
@@ -48,7 +48,7 @@ extern void *heap_alloc(uint32_t size);
 extern uint32_t prior_native_save(uint8_t *mode);
 extern uint32_t prior_native_load(uint8_t *mode, uint8_t *current, void *a2, void *a3);
 extern volatile uint32_t sp_gap[];       /* zeroed at every start; [0] = state */
-extern uint8_t settings_object[];        /* 0x550832A8: the record the setters write is at +4 */
+extern uint8_t settings_object[];        /* 0x550832A8 (1.20): the record the setters write is at +4 */
 /* The fingerprint of each added slot's preset in this build (matrix, curves, post-curve matrix):
  * a slot whose preset is not the one its saved values were made with starts again from neutral.
  * After them (0.8.4): one word, bit k set when added slot k is hidden from the Image Control lists. */
@@ -88,22 +88,24 @@ static const uint32_t native_setters[NP] = {
 
 /* Entry of each parameter's getter. */
 static const uint32_t native_getters[NP] = {
-    0x533c77c0, 0x533c7ea8, 0x533b7f00, 0x533b8928, 0x533b9350, 0x533b9d78, 0x533ba7a0,
-    0x533cc2a8, 0x533cd808, 0x533ce280, 0x533bdcf0, 0x533be188, 0x533be620,
+    0x533c77c0, 0x533c7ea8, 0x533c8590, 0x533c90a8, 0x533c9b20, 0x533ca598, 0x533cb010,
+    0x533cc2a8, 0x533cd808, 0x533ce280, 0x533ce7f0, 0x533ced18, 0x533cf240,
 };
 
 /* In-camera RAW development (RawDevelopmentModel): per custom base (0..3, the photo sets) and
- * look it keeps 18 bytes of parameters and two of grain; the added looks are patched to use
+ * look (0..22 in 1.20, 1.11: 0..20) it keeps 19 bytes of parameters (1.11: 18; 1.20 inserted
+ * Solarized's parameter at byte 17) and two of grain; the added looks are patched to use
  * Cinema Yellow's (look 9). Like the settings fields, those bytes belong to one owner per base,
  * the others' values wait here (see sp_raw_*). */
 #define RAW_BASES 4u
 #define RAW_CY 9u
-#define RAW_FIRST 21u
+#define RAW_FIRST 23u
 #define RAW_LOOK 0x9du            /* + base: the base's look */
-#define RAW_ROWS 0xa1u            /* + base * 0x17a + look * 0x12: 18 bytes */
-#define RAW_BASE_STRIDE 0x17au
-#define RAW_ROW 0x12u
-#define RAW_GRAIN 0x71au          /* + (base * 21 + look) * 2: strength, size */
+#define RAW_LOOKS 23u            /* looks per base, 0 = as shot (1.11: 21) */
+#define RAW_ROWS 0xa1u            /* + base * 0x1b5 + look * 0x13: 19 bytes (1.11: 0x17a, 0x12) */
+#define RAW_BASE_STRIDE 0x1b5u
+#define RAW_ROW 0x13u
+#define RAW_GRAIN 0x806u          /* + (base * 23 + look) * 2: strength, size (1.11: 0x71a, 21) */
 #define RAW_VALUES (RAW_ROW + 2u)
 
 typedef struct {
@@ -251,7 +253,7 @@ static void move_owner(State *s, int c, int from, int to) {
     s->dirty = 1;
 }
 
-/* Hook of the firmware's "style of set c" setter (photo 0x532BBE84..., movie 0x53305A6C...). */
+/* Hook of the firmware's "style of set c" setter (photo 0x532BBE84..., movie 0x53305A6C...; firmware 1.20). */
 uint32_t sp_style_set(void *obj, uint32_t style, uint32_t c, uint32_t entry) {
     uint32_t before = style_of((int)c);
     uint32_t r = native_wrapper(obj, style, entry);
@@ -265,7 +267,7 @@ uint32_t sp_style_set(void *obj, uint32_t style, uint32_t c, uint32_t entry) {
 }
 
 /* ---- RAW development ------------------------------------------------------------------- */
-/* Where parameter j sits in a look's 18 bytes (11..12: the two grain bytes, after them). */
+/* Where parameter j sits in a look's 19 bytes (11..12: the two grain bytes, after them). */
 static const uint8_t RAW_POS[NP] = {0, 1, 2, 3, 4, 5, 6, 8, 14, 15, 16, RAW_ROW, RAW_ROW + 1};
 
 static int raw_owner(uint32_t look) {
@@ -276,7 +278,7 @@ static int raw_owner(uint32_t look) {
 
 /* Cinema Yellow's bytes of a base: its row and its grain pair. */
 static volatile uint8_t *raw_row(uint8_t *m, uint32_t b) { return m + RAW_ROWS + b * RAW_BASE_STRIDE + RAW_CY * RAW_ROW; }
-static volatile uint8_t *raw_grain(uint8_t *m, uint32_t b) { return m + RAW_GRAIN + (b * 21u + RAW_CY) * 2u; }
+static volatile uint8_t *raw_grain(uint8_t *m, uint32_t b) { return m + RAW_GRAIN + (b * RAW_LOOKS + RAW_CY) * 2u; }
 
 static void raw_save(State *s, uint32_t b, int o) {
     volatile uint8_t *row = raw_row(s->raw.model, b), *g = raw_grain(s->raw.model, b);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * Date imprint (firmware 1.11): the shooting date drawn into the JPEG, bottom right, as a
+ * Date imprint (firmware 1.20; ported from 1.11): the shooting date drawn into the JPEG, bottom right, as a
  * seven-segment "'YY MM DD" like the date back of a film compact.
  *
  * Where: JpegEncodeMacroProcess::Execute (0x53727E10), the step of the still pipeline that hands
@@ -12,7 +12,7 @@
  * The first instruction of Execute (`mov ip, sp`) becomes a branch to a stub that calls the C
  * module of `tools/gr4v120/datestamp/datestamp.c` (position independent, compiled by
  * `tools/gr4v120/datestamp/gen.py`) and then carries on. The module reads the camera's clock through the
- * platform's time service (0x538F21A0 -> +4 -> 0x53912578, the call behind the clock the menus
+ * platform's time service (0x53919D68 -> +4 -> 0x53912578, the call behind the clock the menus
  * show), flushes the rows it is about to change from the CPU cache (0x539180A0, as the pipeline
  * does before the CPU reads a picture), draws, and cleans them back to memory (0x5391808C) for
  * the encoder. Pictures of another format or of odd sizes are left alone.
@@ -54,7 +54,7 @@ export const JPEG_EXECUTE = 0x53727e10;
 const CACHE = 0x53918010;
 const CACHE_FLUSH_FOR_READ = 0x539180a0;
 const CACHE_CLEAN = 0x5391808c;
-const PLATFORM = 0x538f21a0;
+const PLATFORM = 0x53919d68;
 const GET_TIME = 0x53912578;
 
 /**
@@ -81,6 +81,8 @@ export const FACTORY_LOOK_NAMES: Readonly<Record<number, string>> = {
   11: 'Standard', 12: 'Vivid', 13: 'Monotone', 14: 'Soft Monotone', 15: 'Hard Monotone', 16: 'Hi-Contrast B&W',
   17: 'Positive Film', 18: 'Cinema (Yellow)', 19: 'Cinema (Green)', 20: 'Bleach Bypass', 21: 'Retro', 22: 'HDR Tone',
   23: 'Cross Processing', 24: 'Negative Film', 25: 'Standard', 26: 'Soft', 27: 'High Contrast', 28: 'Grainy', 29: 'Solid', 30: 'HDR Tone',
+  // New in 1.20 (0x5338EDF8 names them; 33..37 have no name).
+  31: 'Pictorialist Effect', 32: 'Solarized Effect',
 };
 
 /** Fourteen segments of a capital (bits: a b c d e f, g1 g2, upper-left slant, upper bar, upper-right slant, lower-left slant, lower bar, lower-right slant). */
@@ -136,13 +138,13 @@ function cameraText(patch: Patch, lang: number, index: number): string {
  * The names for the imprint, per look: the factory looks' English names; Cinema Yellow / Green as
  * renamed for English, else as renamed in a language whose own name is not in Latin letters
  * (Chinese, Japanese, Korean, Russian, Greek, Thai) when that name is all printable ASCII, else
- * their English name; added slots by their names (`extraNames`, styles from 34).
+ * their English name; added slots by their names (`extraNames`, styles from 38; 1.11: 34).
  */
 export function lookNames(patch: Patch, extraNames: readonly string[]): Record<number, string> {
   const out: Record<number, string> = { ...FACTORY_LOOK_NAMES };
   const EN = 2;
   const OTHER = [15, 19, 9, 10, 14, 6, 18]; // zh-CN zh-TW ja ko ru el th
-  for (const [style, index] of [[18, 301], [19, 302]] as const) {
+  for (const [style, index] of [[18, 318], [19, 319]] as const) { // 1.11: 301, 302
     const en = cameraText(patch, EN, index);
     let name = en;
     if (en === FACTORY_LOOK_NAMES[style]) {
@@ -153,7 +155,7 @@ export function lookNames(patch: Patch, extraNames: readonly string[]): Record<n
     }
     out[style] = name;
   }
-  extraNames.forEach((n, k) => { out[34 + k] = n; });
+  extraNames.forEach((n, k) => { out[38 + k] = n; }); // EXTRA_FIRST_STYLE (slots.ts): 38 in 1.20
   return out;
 }
 
@@ -198,7 +200,7 @@ export function installDateStamp(patch: Patch, setting: number, diag: boolean | 
   expectWord(patch, JPEG_EXECUTE, 0xe1a0c00d); // mov ip, sp
   expectWord(patch, JPEG_EXECUTE + 4, 0xe92ddff0); // push {r4-r12, lr, pc}
   expectWord(patch, JPEG_EXECUTE + 0x18, 0xe5914008); // ldr r4, [r1, #8]  (the configuration)
-  expectWord(patch, CACHE, 0xe30009c4); // movw r0, #0x9c4 (the cache object)
+  expectWord(patch, CACHE, 0xe30206c4); // movw r0, #0x26c4 (the cache object; 1.11 0x553a09c4)
   expectWord(patch, CACHE_CLEAN, 0xe1a00001);
   expectWord(patch, CACHE_FLUSH_FOR_READ, 0xe1a0c00d);
   expectWord(patch, GET_TIME, 0xe5d03014); // ldrb r3, [r0, #0x14]
@@ -226,7 +228,7 @@ export function installDateStamp(patch: Patch, setting: number, diag: boolean | 
  * SetShootingInfoResultBeforeExpose (0x5364D640): called at the start of each still exposure with
  * the frame's shooting record, into which it writes the date and time the EXIF writer records
  * (+0x96C..+0x973). Its hook leaves the camera's direction at that moment in ORIENT_WORD:
- * byte 0xD8 of the live shooting record that the display rotation reads (singleton 0x5537960C,
+ * byte 0xD8 of the live shooting record that the display rotation reads (singleton 0x5537B29C,
  * its +4 -> +0x518 -> record; 0x5323C328 -> 0x5377B1B0 -> 0x537818A8), 1..3 kept, anything else
  * (up, lens up / down) 0, as the EXIF writer maps it. Every pointer is checked. (0.8.4) It also
  * copies LOOK_STASH (the look live view is being developed with) into FRAME_LOOK, for the
@@ -234,7 +236,7 @@ export function installDateStamp(patch: Patch, setting: number, diag: boolean | 
  * runs `mov ip, sp` itself, after them).
  */
 export const BEFORE_EXPOSE = 0x5364d640;
-const DIRECTION_SINGLETON = 0x5537960c;
+const DIRECTION_SINGLETON = 0x5537b29c;
 
 export function installExposureOrientation(patch: Patch): void {
   if (patch.word(BEFORE_EXPOSE) >>> 24 === 0xea) return;
@@ -243,7 +245,7 @@ export function installExposureOrientation(patch: Patch): void {
   expectWord(patch, 0x537818a8, 0xe5903000); // ldr r3, [r0]
   expectWord(patch, 0x537818ac, 0xe5d300d8); // ldrb r0, [r3, #0xd8]
   expectWord(patch, 0x5377b1d8, 0xe5950518); // ldr r0, [r5, #0x518]
-  expectWord(patch, 0x5372b640, 0xe309060c); // movw r0, #0x960c (the singleton the direction is read through)
+  expectWord(patch, 0x53750028, 0xe30b029c); // movw r0, #0xb29c (the singleton the direction is read through)
   const stub = patch.append((at) => assembleWords(
     `push {r0, r1}
      movw r0, #${lo(LOOK_STASH)}; movt r0, #${hi(LOOK_STASH)}; ldr r0, [r0]

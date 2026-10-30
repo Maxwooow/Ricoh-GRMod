@@ -38,7 +38,7 @@ struct ctx {
   void *(*cache)(void);                              /* 0x53918010 */
   void (*invalidate)(void *cache, u32 addr, u32 n);  /* 0x539180a0 */
   void (*clean)(void *cache, u32 addr, u32 n);       /* 0x5391808c */
-  void *(*platform)(void);                           /* 0x538f21a0 */
+  void *(*platform)(void);                           /* 0x53919d68 */
   void (*get_time)(void *clock, u8 *time);           /* 0x53912578 */
 #ifdef SETTING_RECORD
   /* GR III: the setting byte is at `offset` in the user-settings record, whose address is kept

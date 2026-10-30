@@ -18,9 +18,9 @@ import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parent.parent
+ROOT = HERE.parent.parent.parent
 SRC = HERE / 'directflash.c'
-OUT = ROOT / 'core' / 'src' / 'fw' / 'aspect' / 'directflash-code.ts'
+OUT = ROOT / 'core' / 'src' / 'fw' / 'gr4v120' / 'aspect' / 'directflash-code.ts'
 ENTRY = 'df_plan'
 USE_ZIG = bool(os.environ.get('GRMOD_ZIG')) or not (shutil.which('clang') and shutil.which('ld.lld') and shutil.which('llvm-objcopy'))
 FLAGS = ['-mcpu=cortex_a9' if USE_ZIG else '-mcpu=cortex-a9', '-marm', '-mfloat-abi=hard', '-mfpu=vfpv3', '-Os',

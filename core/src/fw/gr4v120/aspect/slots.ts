@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * Added Image Control slots (styles 34, 35, ...): up to twenty more looks in the camera's list, each
+ * Added Image Control slots (styles 38, 39, ...; 1.20 port: 1.11 had them from 34): up to twenty more looks in the camera's list, each
  * with its own matrix, tone curves, post-curve ("second") matrix and adjustment parameters. Tested
  * on a GR IV HDF as GR Mod test firmwares 023..034 (four slots).
  *
- * What a style is made of in 1.11, per variant of the camera (three variants, 34 styles each):
+ * What a style is made of in 1.20, per variant of the camera (three variants, 38 table columns each:
+ * styles 0..24 are columns 0..24, 25..32 columns 28..35 through the table 0x5407A53C):
  *  - a tone record (21 words, table 0x55054800): word 1 the colour matrix, word 2 the array of
  *    nine post-curve matrices (one per saturation setting);
  *  - a multi-axis record (6 words, table 0x55054554): word 2 an array of 8 block pointers;
@@ -20,7 +21,7 @@
  * "pointer" from the slot name that followed).
  *
  * Everything else that knows the style numbers is extended for the new ones: menu order and
- * counts, names (texts 846..851, then 864..877), icons (768..779, then 782..789), the ADJ list's own icon lookup, the shooting
+ * counts, names (texts 890..895, then 908..921), icons (768..779, then 782..789), the ADJ list's own icon lookup, the shooting
  * overlay, RAW development and the look-visibility check (hidden on the GR IV Monochrome).
  * The adjustable parameters (saturation, contrast, grain, ...): the firmware keeps them per
  * factory style only, and whatever reads them for the selected look (live-view generator,
@@ -45,15 +46,19 @@ import type { LookLayout } from './looks';
 
 /** Up to 0.8.1: 6. */
 export const MAX_EXTRA_SLOTS = 20;
-/** Style number of the first added slot (the firmware has 34: 0..33). */
-export const EXTRA_FIRST_STYLE = 34;
 /**
- * Text number of the first added slot's name. Slots 0..5 have 846..851 (as up to 0.8.1); 852 is
- * "Halation" and 853..863 the power-off menu, so slots 6.. have 864...
+ * Style number of the first added slot. 1.20: the style tables have 38 columns (0..37; styles 31
+ * Pictorialist and 32 Solarized use columns 34, 35), so the added slots are styles = columns 38, ...
+ * (1.11: 34, ...). Styles 33..37 stay unused.
  */
-export const EXTRA_TEXT_ID = 846;
+export const EXTRA_FIRST_STYLE = 38;
+/**
+ * Text number of the first added slot's name. Slots 0..5 have 890..895 (1.11's 846..851 + 44, the
+ * texts 1.20 added); 896 is "Halation" and 897..907 the power-off menu, so slots 6.. have 908...
+ */
+export const EXTRA_TEXT_ID = 890;
 const EXTRA_TEXT_SPLIT = 6;
-const EXTRA_TEXT_ID_2 = 864;
+const EXTRA_TEXT_ID_2 = 908;
 /** Icon number of the first added slot's icon: slots 0..11 768..779 (780, 781 are halation's), slots 12.. 782..789 (790, 791 halation's). */
 export const EXTRA_ICON_ID = 768;
 const EXTRA_ICON_SPLIT = 12;
@@ -97,22 +102,22 @@ export interface ExtraSlotSpec {
  * row's name, the colour slider's scale and the red and white row icons. (Icon 781 was the Off /
  * Weak / Strong scale up to test 042.)
  */
-export const HALATION_TEXT_ID = 852;
-export const HALATION_COLOUR_TEXT_ID = 878;
+export const HALATION_TEXT_ID = 896;
+export const HALATION_COLOUR_TEXT_ID = 922;
 export const HALATION_ICON_ID = 780;
 export const HALATION_COLOUR_SCALE_ICON_ID = 781;
 export const HALATION_RED_ICON_ID = 790;
 export const HALATION_WHITE_ICON_ID = 791;
-/** Text of Cinema's Toning (and of the black-and-white toning, which no added look has). */
-const TONING_TEXT = 339;
-/** Toning's list icon. */
-const TONING_ICON = 0x16f;
-/** The native two-position (Off / On) scale whose panel and track the colour scale reuses. */
-const NATIVE_SCALE_ICON = 0x3a;
+/** Text of Cinema's Toning (and of the black-and-white toning, which no added look has); 1.11: 339. */
+const TONING_TEXT = 357;
+/** Toning's list icon (1.11: 0x16F). */
+const TONING_ICON = 0x184;
+/** The native two-position (Off / On) scale whose panel and track the colour scale reuses (1.11: 0x3A). */
+const NATIVE_SCALE_ICON = 0x44;
 /** The word the development step leaves for the halation module: style | level << 8 | valid. */
 const HALATION_STASH = LOOK_STASH;
 
-const TONES = 34;
+const TONES = 38;
 const VARIANTS = 3;
 const CY = 18;
 const STANDARD = 11;
@@ -120,12 +125,12 @@ const TONE_TABLE = 0x55054800;
 const MA_TABLE = 0x55054554;
 const YCC_TABLE = 0x55053ce4;
 const GAMMA_TABLE = 0x55054158;
-/** [table, `mov r2,#34` of its accessor, movw, movt] */
+/** [table, `mov r2,#38` of its accessor, movw, movt] */
 const TABLES = [
-  [TONE_TABLE, 0x53925f98, 0x53925f9c, 0x53925fa4],
-  [MA_TABLE, 0x53925fc4, 0x53925fc8, 0x53925fd0],
-  [YCC_TABLE, 0x53925ff0, 0x53925ff4, 0x53925ffc],
-  [GAMMA_TABLE, 0x5392601c, 0x53926020, 0x53926028],
+  [TONE_TABLE, 0x5394dfb0, 0x5394dfb4, 0x5394dfbc],
+  [MA_TABLE, 0x5394dfdc, 0x5394dfe0, 0x5394dfe8],
+  [YCC_TABLE, 0x5394e008, 0x5394e00c, 0x5394e014],
+  [GAMMA_TABLE, 0x5394e034, 0x5394e038, 0x5394e040],
 ] as const;
 const TONE_RECORD = 0x54;
 const MA_RECORD = 0x18;
@@ -135,8 +140,9 @@ const POST_ENTRIES = 9;
 const POST_NEUTRAL = 4;
 const POST_STRIDE = 20;
 const MA_POINTERS = 8;
-const ORDER_TABLE = 0x53dbe388;
-const ORDER_COUNT = 20;
+const ORDER_TABLE = 0x53de8cd0;
+/** 1.20: 22 (31 Pictorialist and 32 Solarized joined the order; the colour models hide them). */
+const ORDER_COUNT = 22;
 const TILE_BG = [53, 53, 54];
 
 function fail(code: string, message: string): never {
@@ -255,7 +261,7 @@ function postArray(p: Patch, k: number, shared: number, P: ArrayLike<number>, at
   return out;
 }
 
-// Each overwritten instruction is checked against 1.11; a hook branches to appended code that
+// Each overwritten instruction is checked against 1.20; a hook branches to appended code that
 // handles the new styles and otherwise runs the overwritten instruction and branches back.
 function hook(p: Patch, at: number, expected: number, body: string, reason: string): void {
   expectWord(p, at, expected);
@@ -369,7 +375,7 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
   for (const site of p.textBoundSites) p.setWord(site, movWord(3, Math.max(lastText, movImmediate(p.word(site)))), 'text upper bound');
   for (const [site, r] of LOOKUP_BOUNDS) p.setWord(site, movWord(r, Math.max(lastIcon, movImmediate(p.word(site)))), 'icon upper bound');
 
-  // Every variant's row keeps its 34 factory entries; the new styles are appended to each row.
+  // Every variant's row keeps its 38 factory entries; the new styles are appended to each row.
   TABLES.forEach(([old, stride, low, high], t) => {
     const out: number[] = [];
     for (let v = 0; v < VARIANTS; v++) {
@@ -382,9 +388,9 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
     pointer(p, low, high, 3, old, table, 'added slots: style table');
   });
 
-  // The style -> LUT index check: only the new styles are let through, the native fallback for
-  // invalid values (31..33 among them) stays as it is.
-  hook(p, 0x53912cf4, 0xe352001e, `sub r1,r2,#${EXTRA_FIRST_STYLE};cmp r1,#${count - 1};bhi native;mov r3,r2;b #0x53912d08;native:cmp r2,#30;b #0x53912cf8`, 'added slots: style to table index');
+  // The style -> table column check (1.20: styles 0..32 through the byte table 0x5407A53C, anything
+  // else Standard's column 11): the new styles are their own column, the native fallback stays.
+  hook(p, 0x5393aa94, 0xe3520020, `sub r1,r2,#${EXTRA_FIRST_STYLE};cmp r1,#${count - 1};bhi native;mov r3,r2;b #0x5393aaa8;native:cmp r2,#32;b #0x5393aa98`, 'added slots: style to table index');
   // The common input fields (grain among them) are read as for Cinema Yellow; only the local
   // dispatch register changes, the frame's style and the table index stay the new ones. With
   // halation or the date imprint by look, the frame's style and Toning (halation) level are also
@@ -399,38 +405,39 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
   const orderIds = layout ? [...layout.order] : [...p.read(ORDER_TABLE, ORDER_COUNT), ...slots.map((_, i) => EXTRA_FIRST_STYLE + i)];
   const total = orderIds.length;
   const order = p.append(Uint8Array.from(orderIds), 4);
-  pointer(p, 0x5337561c, 0x53375620, 4, ORDER_TABLE, order, 'added slots: menu order');
-  pointer(p, 0x533cc78c, 0x533cc794, 4, ORDER_TABLE, order, 'added slots: menu order');
+  pointer(p, 0x533840fc, 0x53384100, 4, ORDER_TABLE, order, 'added slots: menu order');
+  pointer(p, 0x533de1f0, 0x533de1f8, 4, ORDER_TABLE, order, 'added slots: menu order');
   if (total !== ORDER_COUNT + count) fail('internal', 'look order length does not match the added slots');
-  swap(p, 0x53375628, `add r7,r4,#${ORDER_COUNT}`, `add r7,r4,#${total}`, 'added slots: menu count');
-  swap(p, 0x533cc7a4, `add r7,r4,#${ORDER_COUNT}`, `add r7,r4,#${total}`, 'added slots: menu count');
-  swap(p, 0x533cc8c8, `mov r0,#${ORDER_COUNT}`, `mov r0,#${total}`, 'added slots: list capacity');
-  swap(p, 0x533cc90c, `add r3,r5,#${ORDER_COUNT}`, `add r3,r5,#${total}`, 'added slots: list capacity');
+  swap(p, 0x53384108, `add r7,r4,#${ORDER_COUNT}`, `add r7,r4,#${total}`, 'added slots: menu count');
+  swap(p, 0x533de208, `add r7,r4,#${ORDER_COUNT}`, `add r7,r4,#${total}`, 'added slots: menu count');
+  swap(p, 0x533de330, `mov r0,#${ORDER_COUNT}`, `mov r0,#${total}`, 'added slots: list capacity');
+  swap(p, 0x533de374, `add r3,r5,#${ORDER_COUNT}`, `add r3,r5,#${total}`, 'added slots: list capacity');
   // The controller reserves this many entries plus the three custom sets.
-  swap(p, 0x533bebf0, `mov r0,#${ORDER_COUNT}`, `mov r0,#${total}`, 'added slots: controller capacity');
+  swap(p, 0x533cfa00, `mov r0,#${ORDER_COUNT}`, `mov r0,#${total}`, 'added slots: controller capacity');
 
   // Look visibility: the new styles are colour looks, hidden on the GR IV Monochrome. Composes
   // with the monochrome looks (`monounlock.ts`) when those are installed.
-  const unlocked = p.word(0x533cc6e0) === 0xe3510018;
-  expectWord(p, 0x533cc6e4, unlocked ? 0x8a000019 : 0x1a000019);
+  const unlocked = p.word(0x533de144) === 0xe3510018;
+  expectWord(p, 0x533de148, unlocked ? 0x8a000019 : 0x1a000019);
   const hiddenExtras = (layout?.hidden ?? []).filter((id) => id >= EXTRA_FIRST_STYLE && id < EXTRA_FIRST_STYLE + count);
   const hideChecks = hiddenExtras.map((id) => `cmp r1,#${id};beq hidden;`).join('');
-  hook(p, 0x533cc6e0, unlocked ? 0xe3510018 : 0xe3520000,
-    `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;${hideChecks}cmp r2,#0;moveq r0,#1;movne r0,#0;bx lr;hidden:mov r0,#0;bx lr;native:${unlocked ? 'cmp r1,#24;bhi' : 'cmp r2,#0;bne'} #0x533de1b4;b #0x533cc6e8`, 'added slots: visibility');
+  hook(p, 0x533de144, unlocked ? 0xe3510018 : 0xe3520000,
+    `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;${hideChecks}cmp r2,#0;moveq r0,#1;movne r0,#0;bx lr;hidden:mov r0,#0;bx lr;native:${unlocked ? 'cmp r1,#24;bhi' : 'cmp r2,#0;bne'} #0x533de1b4;b #0x533de14c`, 'added slots: visibility');
   if (layout) installFactoryHidden(p, layout.hidden);
   // Names and icons.
-  hook(p, 0x5338edf8, 0xe351000a, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;${textAsm('r0', 'ip')};bx lr;native:cmp r1,#10;b #0x5337f828`, 'added slots: name');
+  hook(p, 0x5338edf8, 0xe351000a, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;${textAsm('r0', 'ip')};bx lr;native:cmp r1,#10;b #0x5338edfc`, 'added slots: name');
   // The ADJ list has an icon lookup of its own (blank entries in test 022 without this).
   hook(p, 0x533905d8, 0xe351000a, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;cmp r2,#0;movne r0,#0;bxne lr;${iconAsm('r0', 'ip')};bx lr;native:cmp r1,#10;b #0x533905dc`, 'added slots: ADJ icon');
-  early(p, 0x53397044, textAsm('r0', 'ip'), count, 'added slots: name');
+  early(p, 0x533a66c8, textAsm('r0', 'ip'), count, 'added slots: name');
   early(p, 0x533a6868, iconAsm('r0', 'ip'), count, 'added slots: icon');
-  // The shooting overlay's icon (through CommonProperty); r3 is the style minus 8 there.
-  hook(p, 0x533a6880, 0xe3530016, `sub ip,r3,#${EXTRA_FIRST_STYLE - 8};cmp ip,#${count - 1};bhi native;${iconAsm('r0', 'ip')};b #0x533a6898;native:cmp r3,#22;b #0x533a6884`, 'added slots: shooting overlay icon');
-  // RAW development has its own numbering (0 = as shot, factory looks up to 20): new ones 21, ...
-  for (const at of [0x53373f84, 0x53374118]) {
-    hook(p, at, 0xe1a0c00d, `sub ip,r1,#21;cmp ip,#${count - 1};bhi native;add r0,ip,#${EXTRA_FIRST_STYLE};bx lr;native:mov ip,sp;b #${at + 4}`, 'added slots: RAW development look');
+  // The shooting overlay's icon (through CommonProperty); r3 is the style minus 8 there (1.20: a
+  // jump table over 0..24, joining at 0x533B61C8 with the icon in r0).
+  hook(p, 0x533b6138, 0xe3530018, `sub ip,r3,#${EXTRA_FIRST_STYLE - 8};cmp ip,#${count - 1};bhi native;${iconAsm('r0', 'ip')};b #0x533b61c8;native:cmp r3,#24;b #0x533b613c`, 'added slots: shooting overlay icon');
+  // RAW development has its own numbering (0 = as shot, factory looks 1..22 in 1.20): new ones 23, ...
+  for (const at of [0x53382a14, 0x53382bc0]) {
+    hook(p, at, 0xe1a0c00d, `sub ip,r1,#${RAW_FIRST_EXTRA};cmp ip,#${count - 1};bhi native;add r0,ip,#${EXTRA_FIRST_STYLE};bx lr;native:mov ip,sp;b #${at + 4}`, 'added slots: RAW development look');
   }
-  hook(p, 0x53373bc0, 0xe241100b, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;add r0,ip,#21;bx lr;native:sub r1,r1,#11;b #0x53373bc4`, 'added slots: RAW development look');
+  hook(p, 0x5338262c, 0xe241100b, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;add r0,ip,#${RAW_FIRST_EXTRA};bx lr;native:sub r1,r1,#11;b #0x53382630`, 'added slots: RAW development look');
 
   const hiddenMask = hiddenExtras.reduce((m, id) => (m | (1 << (id - EXTRA_FIRST_STYLE))) >>> 0, 0);
   const module = installOwnParameters(p, count, prints, hiddenMask);
@@ -444,11 +451,11 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
 
 // -------------------------------------------------------------- own parameters
 
-const SETTERS = [0x533bd260, 0x533bda60, 0x533be260, 0x533befa0, 0x533bfc20, 0x533c08a0, 0x533c1520, 0x533c2260, 0x533c2ae0, 0x533c2d5c, 0x533c2f18, 0x533c30d4, 0x533c3244, 0x533b3200, 0x533c36dc, 0x533c3a7c, 0x533c3e1c, 0x533c41bc, 0x533c4e3c, 0x533c5490, 0x533c5a84, 0x533c6078, 0x533b618c];
-const GETTERS = [0x533c77c0, 0x533c7ea8, 0x533b7f00, 0x533b8928, 0x533b9350, 0x533b9d78, 0x533ba7a0, 0x533cbb28, 0x533cc2a8, 0x533cc508, 0x533cc6c8, 0x533cc880, 0x533cc9f8, 0x533ccb98, 0x533cce88, 0x533cd1a8, 0x533cd4c8, 0x533cd808, 0x533ce280, 0x533bdcf0, 0x533be188, 0x533be620, 0x533cf768];
-const DEFAULTS = [0x533d053c, 0x533d0fe8, 0x533d1a94, 0x533d2b90, 0x533d3bac, 0x533d4bc8, 0x533d5be4, 0x533d6ce0, 0x533d7800, 0x533d7c40, 0x533d7fa0, 0x533d82fc, 0x533d8548, 0x533d88a8, 0x533d8d58, 0x533d9604, 0x533d9eb0, 0x533da75c, 0x533db778, 0x533dbfd4, 0x533dc770, 0x533dcf0c, 0x533cbfdc];
+const SETTERS = [0x533bd260, 0x533bda60, 0x533be260, 0x533befa0, 0x533bfc20, 0x533c08a0, 0x533c1520, 0x533c2260, 0x533c2ae0, 0x533c2d5c, 0x533c2f18, 0x533c30d4, 0x533c3244, 0x533c3400, 0x533c36dc, 0x533c3a7c, 0x533c3e1c, 0x533c41bc, 0x533c4e3c, 0x533c5490, 0x533c5a84, 0x533c6078, 0x533c666c];
+const GETTERS = [0x533c77c0, 0x533c7ea8, 0x533c8590, 0x533c90a8, 0x533c9b20, 0x533ca598, 0x533cb010, 0x533cbb28, 0x533cc2a8, 0x533cc508, 0x533cc6c8, 0x533cc880, 0x533cc9f8, 0x533ccb98, 0x533cce88, 0x533cd1a8, 0x533cd4c8, 0x533cd808, 0x533ce280, 0x533ce7f0, 0x533ced18, 0x533cf240, 0x533cf768];
+const DEFAULTS = [0x533d053c, 0x533d0fe8, 0x533d1a94, 0x533d2b90, 0x533d3bac, 0x533d4bc8, 0x533d5be4, 0x533d6ce0, 0x533d7800, 0x533d7c40, 0x533d7fa0, 0x533d82fc, 0x533d8548, 0x533d88a8, 0x533d8d58, 0x533d9604, 0x533d9eb0, 0x533da75c, 0x533db778, 0x533dbfd4, 0x533dc770, 0x533dcf0c, 0x533dd6a8];
 /** "Style of set" setters: photo standard, custom 1..3, then movie. */
-const STYLE_SETTERS = [0x532bbe84, 0x532bc014, 0x532bc1a4, 0x532bc334, 0x53305a6c, 0x53300c34, 0x53305d94, 0x53305f28];
+const STYLE_SETTERS = [0x532bbe84, 0x532bc014, 0x532bc1a4, 0x532bc334, 0x53305a6c, 0x53305c00, 0x53305d94, 0x53305f28];
 /**
  * The values an added slot starts from and shows as its default on the parameter screen ("0"):
  * the middle of the -4..+4 scales, parameter 8 off (what Standard, which lacks it, gets), grain
@@ -498,7 +505,7 @@ function installOwnParameters(p: Patch, count: number, prints: readonly number[]
   SLOT_PARAMETERS.forEach((i, j) => {
     early(p, DEFAULTS[i], `mov r0,#${NEUTRAL[j]}`, count, 'added slots: neutral parameter default');
   });
-  normalize(0x533cc5b4, 'r2', 0xe242200d, 'sub r2,r2,#13');
+  normalize(0x533ddfe0, 'r2', 0xe242200d, 'sub r2,r2,#13');
   // The controller's direct custom-set getter: its freshly returned style, locally.
   normalize(0x533c73fc, 'r0', 0xe1a06000, 'mov r6,r0');
 
@@ -512,7 +519,7 @@ function installOwnParameters(p: Patch, count: number, prints: readonly number[]
   const origin = p.next(16);
   const mod = linkModule(SLOT_PARAMS_MODULE, 'slot parameters', count, origin, {
     prior_native_save: priorSave, prior_native_load: priorLoad, storage_singleton: 0x53aa958c, store_write: 0x53aa6764,
-    store_read: 0x53a7e434, store_size: 0x53aa6524, heap_alloc: 0x539084bc, sp_gap: SLOT_STATE, settings_object: 0x550832a8, slot_prints: printTable,
+    store_read: 0x53aa6680, store_size: 0x53aa6524, heap_alloc: 0x539084bc, sp_gap: SLOT_STATE, settings_object: 0x550832a8, slot_prints: printTable,
   });
   if (p.append(mod.code, 16) !== origin) fail('internal', 'module address changed');
   SLOT_PARAMETERS.forEach((i, j) => {
@@ -529,7 +536,7 @@ function installOwnParameters(p: Patch, count: number, prints: readonly number[]
 }
 
 /**
- * The change functors of Cinema Yellow's fields (one per parameter and set, 0x532776EC..): a setter
+ * The change functors of Cinema Yellow's fields (one per parameter and set, 0x532795E4..): a setter
  * registers one; it copies the field to the record the getters read and, when Cinema Yellow is the
  * set's look, gives the value to the camera model the parameter screen and the shooting read.
  * They test the look by loading the style in one of five forms, each followed by the comparison
@@ -544,13 +551,14 @@ const FUNCTOR_FIELDS = [
   [0x1d8, 0x284, 0x330, 0x3dc, 0x58f, 0x60b, 0x687, 0x703], [0x1e4, 0x290, 0x33c, 0x3e8], [0x1fb, 0x2a7, 0x353, 0x3ff],
   [0x1fc, 0x2a8, 0x354, 0x400], [0x1fd, 0x2a9, 0x355, 0x401],
 ];
-const FUNCTOR_AREA = [0x53271e60, 0x532a0000] as const;
+const FUNCTOR_AREA = [0x53270000, 0x532a0000] as const;
 const FUNCTOR_LOADS: Readonly<Record<number, 'half' | 'byte' | 'word'>> = {
-  0xe19030b3: 'half', // ldrh r3,[r0,r3] after movw r3,#0xc3e (photo standard set)
-  0xe5d03c40: 'byte', 0xe5d03c41: 'byte', 0xe5d03c42: 'byte', // ldrb r3,[r0,#0xc40..2] (photo custom sets)
-  0xe1d430b0: 'half', // ldrh r3,[r4] (movie)
-  0xe5943000: 'word', // ldr r3,[r4] (movie custom sets 1, 2)
-  0xe5d43004: 'byte', // ldrb r3,[r4,#4] (movie custom set 3)
+  // 1.20: the mirrored settings are 0x58 bytes further (1.11: movw #0xc3e, +0xc40..2, [r4], [r4,#4])
+  0xe19030b3: 'half', // ldrh r3,[r0,r3] after movw r3,#0xc96 (photo standard set)
+  0xe5d03c98: 'byte', 0xe5d03c99: 'byte', 0xe5d03c9a: 'byte', // ldrb r3,[r0,#0xc98..a] (photo custom sets)
+  0xe1d435b8: 'half', // ldrh r3,[r4,#0x58] (movie)
+  0xe5943058: 'word', // ldr r3,[r4,#0x58] (movie custom sets 1, 2)
+  0xe5d4305c: 'byte', // ldrb r3,[r4,#0x5c] (movie custom set 3)
 };
 const FUNCTOR_NEXT: Readonly<Record<string, readonly number[]>> = { half: [0xe3530c12], byte: [0xe3530012], word: [0xe3a02001, 0xe3a02002] };
 
@@ -569,7 +577,7 @@ function installChangeFunctors(p: Patch, count: number): void {
     const found: number[] = [];
     for (let a = starts[0], k = 0; k < 30; k++, a += 4) {
       const w = p.word(a);
-      if (FUNCTOR_LOADS[w] && !(w === 0xe19030b3 && p.word(a - 4) !== MOVW_C3E)) found.push(a);
+      if (FUNCTOR_LOADS[w] && !(w === 0xe19030b3 && p.word(a - 4) !== MOVW_C96)) found.push(a);
       if (w >>> 24 === 0xea) break;
     }
     if (found.length !== 1) fail('unexpected-layout', `change functor of field 0x${field.toString(16)}: ${found.length} style loads`);
@@ -587,10 +595,10 @@ function installChangeFunctors(p: Patch, count: number): void {
 /**
  * Looks shown as their own, not as Standard or with Standard's parameter list:
  *  - the parameter screens pick their list of parameters from the look (0x531C80B0 shooting,
- *    0x531A57FC RAW development: 11..30 -> a list, anything else -> list 0 without grain); the
+ *    0x531A6B10 RAW development: 11..32 -> a list, anything else -> list 0 without grain); the
  *    added looks get Cinema Yellow's (test 032);
- *  - the main menu's Image Control row asks 0x5329CF30 (photo) / 0x532A14BC (movie) for the
- *    look, which answers 0..30 and Standard for anything else; the added looks are answered as
+ *  - the main menu's Image Control row asks 0x532A1280 (photo) / 0x532A14BC (movie) for the
+ *    look, which answers 0..32 and Standard for anything else; the added looks are answered as
  *    themselves, the icon lookup knows them (test 033);
  *  - whether a picture goes through the digital-filter step (grain, Clarity, the setting before
  *    it) is decided from the look by 0x53739A5C with a chain of compares that includes Cinema
@@ -600,48 +608,58 @@ function installChangeFunctors(p: Patch, count: number): void {
 function installLookChecks(p: Patch, count: number): void {
   const n = count - 1;
   hook(p, 0x531c80b0, 0xe1a0c00d, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${n};movls r1,#${CY};mov ip,sp;b #0x531c80b4`, 'added slots: parameter list of Cinema Yellow');
-  hook(p, 0x531a57fc, 0xe241100b, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${n};movls r1,#${CY};sub r1,r1,#11;b #0x531a5800`, 'added slots: RAW development parameter list of Cinema Yellow');
-  for (const [at, field, done, rest] of [[0x5329cf6c, 0x153, 0x532a12b4, 0x5329cf70], [0x5329d190, 0x515, 0x532a14f0, 0x5329d194]] as const) {
+  hook(p, 0x531a6b10, 0xe241100b, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${n};movls r1,#${CY};sub r1,r1,#11;b #0x531a6b14`, 'added slots: RAW development parameter list of Cinema Yellow');
+  for (const [at, field, done, rest] of [[0x532a12bc, 0x153, 0x532a12b4, 0x532a12c0], [0x532a14f8, 0x515, 0x532a14f0, 0x532a14fc]] as const) {
     hook(p, at, (0xe5d03000 | field) >>> 0, `ldrb r3,[r0,#${field}];sub ip,r3,#${EXTRA_FIRST_STYLE};cmp ip,#${n};movls r0,r3;bls #${done};b #${rest}`, 'added slots: menu Image Control row');
   }
   hook(p, 0x53739a5c, 0xe5d1379c, `ldrb r3,[r1,#0x79c];sub r2,r3,#${EXTRA_FIRST_STYLE};cmp r2,#${n};movls r3,#${CY};b #0x53739a60`, 'added slots: digital-filter step (grain) as Cinema Yellow');
 }
 
 /**
- * The live-view / ADJ parameter generator 0x532A24A8 (one function of 38 KB) picks each
+ * The live-view / ADJ parameter generator 0x532A24A8 (one function of 41 KB in 1.20) picks each
  * adjustment by comparing the selected style with 18, 19, ...; new styles matched nothing and got
  * the unknown-style defaults. The style is read in six forms, each load followed (at most one
- * unrelated instruction later) by `cmp r3,#imm`, r3 then only compared until it is loaded again:
- *   photo: halfword (style << 8 | custom set) at +0xC3E; custom sets 1..3: bytes +0xC40..+0xC42
- *   movie (r5 = settings + 0x1000): halfword at +0x1000; byte at +0x1004; word at +0x1000
+ * two unrelated instructions later) by `cmp r3,#imm`, r3 then only compared until it is loaded again:
+ *   photo: halfword (style << 8 | custom set) at +0xC96; custom sets 1..3: bytes +0xC98..+0xC9A
+ *   movie (r5 = settings + 0x1000): halfword at +0x1058; byte at +0x105C; word at +0x1058
+ * (1.20: the mirrored settings are 0x58 bytes further than in 1.11: +0xC3E, +0xC40.., +0x1000..).
+ * The one `ldrh r3,[r4,r3]` without `movw r3,#0xc96` before it (0x532A2910, offset 0xBBE) is not a
+ * style and is left alone.
  * Each load is diverted so that the new styles read as 18; only r3 (and r2, saved, for the
  * word) and the flags change. The record's own style byte is written elsewhere: the look itself
  * stays the new one.
  */
-const GENERATOR = [0x532a24a8, 0x532a7820] as const;
+const GENERATOR = [0x532a24a8, 0x532ac56c] as const;
 const GENERATOR_LOADS: readonly { word: number; kind: 'half' | 'byte'; sites: number }[] = [
-  { word: 0xe19430b3, kind: 'half', sites: 178 }, // ldrh r3,[r4,r3] after movw r3,#0xc3e
-  { word: 0xe5d43c40, kind: 'byte', sites: 102 }, // ldrb r3,[r4,#0xc40]
-  { word: 0xe5d43c41, kind: 'byte', sites: 103 }, // ldrb r3,[r4,#0xc41]
-  { word: 0xe5d43c42, kind: 'byte', sites: 102 }, // ldrb r3,[r4,#0xc42]
-  { word: 0xe1d530b0, kind: 'half', sites: 70 }, // ldrh r3,[r5]
-  { word: 0xe5d53004, kind: 'byte', sites: 119 }, // ldrb r3,[r5,#4]
+  { word: 0xe19430b3, kind: 'half', sites: 221 }, // ldrh r3,[r4,r3] after movw r3,#0xc96
+  { word: 0xe5d43c98, kind: 'byte', sites: 112 }, // ldrb r3,[r4,#0xc98]
+  { word: 0xe5d43c99, kind: 'byte', sites: 113 }, // ldrb r3,[r4,#0xc99]
+  { word: 0xe5d43c9a, kind: 'byte', sites: 112 }, // ldrb r3,[r4,#0xc9a]
+  { word: 0xe1d535b8, kind: 'half', sites: 75 }, // ldrh r3,[r5,#0x58]
+  { word: 0xe5d5305c, kind: 'byte', sites: 123 }, // ldrb r3,[r5,#0x5c]
 ];
-const GENERATOR_WORD = { word: 0xe5953000, sites: 153 }; // ldr r3,[r5]
-/** The instructions found between a load and its cmp; neither touches r3 or the flags. */
-const GENERATOR_BETWEEN = [0xe54b2033 /* strb r2,[fp,#-0x33] */, 0xe5d524a1 /* ldrb r2,[r5,#0x4a1] */];
+const GENERATOR_WORD = { word: 0xe5953058, sites: 161 }; // ldr r3,[r5,#0x58]
+/** The instructions found between a load and its cmp (at most two); none touches r3 or the flags. */
+const GENERATOR_BETWEEN = [0xe54b2033 /* strb r2,[fp,#-0x33] */, 0xe54b2032 /* strb r2,[fp,#-0x32] */, 0xe5d524f9 /* ldrb r2,[r5,#0x4f9] */,
+  0xe595c018 /* ldr ip,[r5,#0x18] */, 0xe5d5000a /* ldrb r0,[r5,#0xa] */];
 const CMP_R3 = 0xe3530000;
-const MOVW_C3E = 0xe3003c3e;
+/** `movw r3,#0xc96`: the photo style's offset (1.11: 0xc3e). */
+const MOVW_C96 = 0xe3003c96;
 
 function installPreviewMapping(p: Patch, count: number): void {
+  const movwBefore = (at: number): boolean => {
+    let back = at - 4;
+    if (((p.word(back) & 0xfffff000) >>> 0) === 0xe54b2000) back -= 4; // strb r2,[fp,#-x]
+    return p.word(back) === MOVW_C96;
+  };
   const sitesOf = (word: number): number[] => {
     const out: number[] = [];
-    for (let at = GENERATOR[0]; at < GENERATOR[1]; at += 4) if (p.word(at) === word) out.push(at);
+    for (let at = GENERATOR[0]; at < GENERATOR[1]; at += 4) if (p.word(at) === word && (word !== 0xe19430b3 || movwBefore(at))) out.push(at);
     return out;
   };
   const cmpFollows = (at: number): boolean => {
     let next = at + 4;
-    if (GENERATOR_BETWEEN.includes(p.word(next))) next += 4;
+    for (let k = 0; k < 2 && GENERATOR_BETWEEN.includes(p.word(next)); k++) next += 4;
     return ((p.word(next) & 0xfffff000) >>> 0) === CMP_R3;
   };
   for (const load of GENERATOR_LOADS) {
@@ -649,11 +667,6 @@ function installPreviewMapping(p: Patch, count: number): void {
     if (sites.length !== load.sites) fail('unexpected-layout', `live-view parameters: ${sites.length} loads of ${load.word.toString(16)}, expected ${load.sites}`);
     for (const at of sites) {
       if (!cmpFollows(at)) fail('unexpected-layout', `live-view parameters: load at 0x${at.toString(16)} is not followed by a compare`);
-      if (load.word === 0xe19430b3) {
-        let back = at - 4;
-        if (((p.word(back) & 0xfffff000) >>> 0) === 0xe54b2000) back -= 4; // strb r2,[fp,#-x]
-        if (p.word(back) !== MOVW_C3E) fail('unexpected-layout', `live-view parameters: unexpected load at 0x${at.toString(16)}`);
-      }
     }
     const map = load.kind === 'half'
       ? `sub r3,r3,#${EXTRA_FIRST_STYLE << 8};cmp r3,#${count << 8};andlo r3,r3,#0xff;orrlo r3,r3,#${CY << 8};addhs r3,r3,#${EXTRA_FIRST_STYLE << 8}`
@@ -676,20 +689,22 @@ function installPreviewMapping(p: Patch, count: number): void {
 
 // -------------------------------------------------------------- RAW development
 
-/** RAW development's number of Cinema Yellow (its numbering: 0 = as shot, 1..20 the factory looks). */
+/** RAW development's number of Cinema Yellow (its numbering: 0 = as shot, 1..22 the factory looks in 1.20; 1.11: 1..20). */
 const RAW_CY = 9;
-const RAW_FIRST_EXTRA = 21;
+const RAW_FIRST_EXTRA = 23;
 /** The functions of RawDevelopmentModel.cpp that read or write a look's parameters. */
-const RAW_MODEL = [0x5337a3d0, 0x53373400] as const;
+const RAW_MODEL = [0x5337a3d0, 0x53381e6c] as const;
 /** `ldrb r2,[r3,#0x9d]` (the look of the selected custom base), always followed by `cmp r2,#0`. */
 const RAW_LOOK_LOAD = 0xe5d3209d;
-const RAW_LOOK_SITES = 72;
+const RAW_LOOK_SITES = 75;
+/** `cmp r3,#23`: the bound of the row loop (1.20: looks 1..22; 1.11: #21). */
+const RAW_LOOP_BOUND = 0xe3530017;
 
 /**
  * In-camera RAW development keeps its own copy of the parameters: per custom base (4, the photo
- * sets) and look (0..20) 18 bytes, two bytes of grain, and a table (0x53DBB8F0) of which
+ * sets) and look (0..22 in 1.20) 18 bytes, two bytes of grain, and a table (0x53DE61C0) of which
  * parameters each look has. Every function that reads or writes them first turns the look into a
- * row with a loop over 1..20, so an added look (21, ...) got row 0, whose parameters are all
+ * row with a loop over 1..22 (1.11: 1..20), so an added look (23, ...) got row 0, whose parameters are all
  * "absent": the parameter screen showed -4 everywhere and developing stopped the camera (reported
  * on 0.7.0). The added looks now use Cinema Yellow's row, as the shooting side does with Cinema
  * Yellow's fields; the look itself (name, icon, the style given to development) stays the added
@@ -703,11 +718,12 @@ function installRawDevelopment(p: Patch, count: number, module: Record<string, n
   const sites: number[] = [];
   for (let at = RAW_MODEL[0]; at < RAW_MODEL[1]; at += 4) {
     if (p.word(at) !== RAW_LOOK_LOAD) continue;
-    // Only the loads that pick a row: the loaded look is compared with r3 by the 1..20 loop.
+    // Only the loads that pick a row: the loaded look is compared with r3 by the 1..22 loop (in
+    // 1.20 the loop's bound check may also come just before its `cmp r2,r3`).
     let row = false;
     for (let k = 1; k < 30 && !row; k++) {
       if (p.word(at + 4 * k) !== 0xe1520003) continue; // cmp r2,r3
-      for (let j = 1; j < 6; j++) if (p.word(at + 4 * (k + j)) === 0xe3530015) row = true; // cmp r3,#21
+      for (let j = -5; j < 6; j++) if (p.word(at + 4 * (k + j)) === RAW_LOOP_BOUND) row = true;
     }
     if (!row) continue;
     if (p.word(at + 4) !== 0xe3520000) fail('unexpected-layout', `RAW development: load at 0x${at.toString(16)} is not followed by cmp r2,#0`);
@@ -718,52 +734,53 @@ function installRawDevelopment(p: Patch, count: number, module: Record<string, n
     const code = p.append((a) => [RAW_LOOK_LOAD, ...assembleWords(`${map('r2')};b #${at + 4}`, a + 4)], 4);
     p.setWord(at, branchWord(at, code), 'added slots: RAW development parameters of Cinema Yellow');
   }
-  // Opening a RAW file: the model has filled every look from the settings (0x53373D04, r4 the model).
+  // Opening a RAW file: the model has filled every look from the settings (0x53382788, r4 the model).
   hook(p, 0x533838f8, 0xe5d42064, `push {r0-r3,ip,lr};mov r0,r4;bl #${module.sp_raw_init};pop {r0-r3,ip,lr};ldrb r2,[r4,#0x64];b #0x533838fc`, 'added slots: own RAW development parameters');
   // Then it copies the parameters the file was shot with into the row of its look (base 0).
-  hook(p, 0x53374e98, 0xe3500000, `push {r0-r3,ip,lr};mov r2,r0;mov r1,#0;mov r0,r4;bl #${module.sp_raw_own};pop {r0-r3,ip,lr};${map('r0')};cmp r0,#0;b #0x53374e9c`, 'added slots: RAW development parameters as shot');
+  hook(p, 0x5338396c, 0xe3500000, `push {r0-r3,ip,lr};mov r2,r0;mov r1,#0;mov r0,r4;bl #${module.sp_raw_own};pop {r0-r3,ip,lr};${map('r0')};cmp r0,#0;b #0x53383970`, 'added slots: RAW development parameters as shot');
   // Applying a look: the row goes to the looks now selected.
   hook(p, 0x53382e20, 0xe1a0c00d, `push {r0-r4,lr};bl #${module.sp_raw_sync};pop {r0-r4,lr};mov ip,sp;b #0x53382e24`, 'added slots: own RAW development parameters');
   // The RAW development screen makes its list as long as the longest of its lists (0x531A2680):
-  // Image Control at most 24 entries (the factory looks, the three custom sets, "as shot"). With
+  // Image Control at most 26 entries in 1.20 (the 22 factory looks, the three custom sets, "as shot"). With
   // the added looks the list is longer; the list widget then refuses the count (assertion) and the
   // camera stops on entering Image Control (0.7.1 with 4 added slots).
-  swap(p, 0x5336b89c, 'mov r0,#24', `mov r0,#${24 + count}`, 'added slots: RAW development list capacity');
+  swap(p, 0x53379c6c, 'mov r0,#26', `mov r0,#${26 + count}`, 'added slots: RAW development list capacity');
 }
 
 // -------------------------------------------------------------- picture information
 
 /**
- * The picture's look as written in the maker note (Pentax "ImageTone"): 0x100.. and 0x8100..
- * for the factory looks; the added ones get 0x8110, 0x8111, ... (before, anything unknown was
+ * The picture's look as written in the maker note (Pentax "ImageTone"): 0x100.. and 0x8100..0x8107
+ * (1.20: 0x8106 Solarized, 0x8107 Pictorialist) for the factory looks; the added ones get 0x8110, 0x8111, ... (before, anything unknown was
  * written as 0x100, Standard).
  */
 export const EXTRA_TONE_CODE = 0x8110;
-/** Playback's own numbering of the looks (0x53DBDA18: 1..20); the added ones are 21, ... */
-const PLAY_FIRST_EXTRA = 21;
+/** Playback's own numbering of the looks (0x53DE8374: 1..22 in 1.20, 0x8106 / 0x8107 = 21 / 22); the added ones are 23, ... */
+const PLAY_FIRST_EXTRA = 23;
 /** Static init of the "looks that have parameter X" lists the maker note writers consult. */
-const PARAM_LISTS = [0x537e0e94, 0x53807d7c] as const;
+const PARAM_LISTS = [0x53807a1c, 0x53807d7c] as const;
 const LIST_ASSIGN = 0x53800ccc;
-const PARAM_LISTS_CALLS = 18;
-const PARAM_LISTS_WITH_CY = 7;
+/** 1.20: 21 lists (1.11: 18), 8 of them with Cinema Yellow (1.11: 7). */
+const PARAM_LISTS_CALLS = 21;
+const PARAM_LISTS_WITH_CY = 8;
 
 /**
  * Pictures shot with an added look:
- *  - the maker note names the look (0x53804F34 looked it up in a list of the factory looks and
+ *  - the maker note names the look (0x53804F34 looks it up in a list of the factory looks and
  *    wrote Standard otherwise), and has the parameters of Cinema Yellow (each parameter's writer
  *    looks the style up in a list of the looks that have it; the added looks join every list
  *    Cinema Yellow is in);
- *  - reading it back: the record of a RAW file for development (0x537D5748) and playback's
- *    information (0x537D899C, then 0x533A3804 to a style) know the new codes, so the playback
+ *  - reading it back: the record of a RAW file for development (0x537FBAD0) and playback's
+ *    information (0x537FEED8, then 0x533B3040 to a style) know the new codes, so the playback
  *    information shows the slot's icon (through the overlay hook) and Cinema Yellow's
- *    parameters (0x533A75AC picks them by style), and RAW development starts from the look the
+ *    parameters (0x533B6F74 picks them by style), and RAW development starts from the look the
  *    picture was shot with. A code of a slot that is no longer installed reads as Standard, as
  *    before.
  */
 function installPictureInfo(p: Patch, count: number): void {
   const n = count - 1;
   // Writer: r1 the maker note, r2 the frame record; tail-calls 0x5380DD48(note, 0, code).
-  hook(p, 0x53804f34, 0xe30f3198, `ldrb ip,[r2,#0x79c];sub ip,ip,#${EXTRA_FIRST_STYLE};cmp ip,#${n};bhi native;mov r0,r1;mov r1,#0;movw r2,#${EXTRA_TONE_CODE};add r2,r2,ip;b #0x5380dd48;native:movw r3,#0xf198;b #0x53804f38`, 'added slots: maker note look');
+  hook(p, 0x53804f34, 0xe3003e64, `ldrb ip,[r2,#0x79c];sub ip,ip,#${EXTRA_FIRST_STYLE};cmp ip,#${n};bhi native;mov r0,r1;mov r1,#0;movw r2,#${EXTRA_TONE_CODE};add r2,r2,ip;b #0x5380dd48;native:movw r3,#0xe64;b #0x53804f38`, 'added slots: maker note look');
   // Parameter lists: the ones with Cinema Yellow get the added styles appended (new copies).
   const calls: number[] = [];
   for (let at = PARAM_LISTS[0]; at < PARAM_LISTS[1]; at += 4) if (p.word(at) === branchWord(at, LIST_ASSIGN, 14, true) || p.word(at) === branchWord(at, LIST_ASSIGN)) calls.push(at);
@@ -794,12 +811,12 @@ function installPictureInfo(p: Patch, count: number): void {
   }
   if (extended !== PARAM_LISTS_WITH_CY) fail('unexpected-layout', `maker note parameter lists: ${extended} with Cinema Yellow, expected ${PARAM_LISTS_WITH_CY}`);
   // Readers: RAW development's record, then playback's numbering and its style.
-  hook(p, 0x537d575c, 0xe300310a, `sub r3,r0,#${EXTRA_TONE_CODE & 0xff00};sub r3,r3,#${EXTRA_TONE_CODE & 0xff};cmp r3,#${n};bhi native;add r3,r3,#${EXTRA_FIRST_STYLE};b #0x537fbb38;native:movw r3,#0x10a;b #0x537d5760`, 'added slots: look of a RAW file');
-  hook(p, 0x537d89b0, 0xe3003109, `sub r3,r0,#${EXTRA_TONE_CODE & 0xff00};sub r3,r3,#${EXTRA_TONE_CODE & 0xff};cmp r3,#${n};bhi native;add r2,r3,#${PLAY_FIRST_EXTRA};b #0x537d8a00;native:movw r3,#0x109;b #0x537d89b4`, 'added slots: playback look');
-  // 0x533A3804: r0 = number - 1, r4 = where the style goes (may be null).
-  hook(p, 0x533a3824, 0xe3500013, `sub r3,r0,#${PLAY_FIRST_EXTRA - 1};cmp r3,#${n};bhi native;cmp r4,#0;beq #0x533b3090;add r3,r3,#${EXTRA_FIRST_STYLE};strb r3,[r4];b #0x533b3080;native:cmp r0,#0x13;b #0x533a3828`, 'added slots: playback look');
+  hook(p, 0x537fbae4, 0xe300310b, `sub r3,r0,#${EXTRA_TONE_CODE & 0xff00};sub r3,r3,#${EXTRA_TONE_CODE & 0xff};cmp r3,#${n};bhi native;add r3,r3,#${EXTRA_FIRST_STYLE};b #0x537fbb38;native:movw r3,#0x10b;b #0x537fbae8`, 'added slots: look of a RAW file');
+  hook(p, 0x537feeec, 0xe300310a, `sub r3,r0,#${EXTRA_TONE_CODE & 0xff00};sub r3,r3,#${EXTRA_TONE_CODE & 0xff};cmp r3,#${n};bhi native;add r2,r3,#${PLAY_FIRST_EXTRA};b #0x537fef3c;native:movw r3,#0x10a;b #0x537feef0`, 'added slots: playback look');
+  // 0x533B3040: r0 = number - 1, r4 = where the style goes (may be null).
+  hook(p, 0x533b3060, 0xe3500015, `sub r3,r0,#${PLAY_FIRST_EXTRA - 1};cmp r3,#${n};bhi native;cmp r4,#0;beq #0x533b3090;add r3,r3,#${EXTRA_FIRST_STYLE};strb r3,[r4];b #0x533b3080;native:cmp r0,#0x15;b #0x533b3064`, 'added slots: playback look');
   // Playback information's parameters: r3 = style - 8, the added looks as Cinema Yellow (10).
-  hook(p, 0x533a7628, 0xe3530016, `cmp r3,#${EXTRA_FIRST_STYLE - 8};blo native;cmp r3,#${EXTRA_FIRST_STYLE - 8 + count};movlo r3,#${CY - 8};native:cmp r3,#0x16;b #0x533a762c`, 'added slots: playback parameters of Cinema Yellow');
+  hook(p, 0x533b6ff0, 0xe3530018, `cmp r3,#${EXTRA_FIRST_STYLE - 8};blo native;cmp r3,#${EXTRA_FIRST_STYLE - 8 + count};movlo r3,#${CY - 8};native:cmp r3,#0x18;b #0x533b6ff4`, 'added slots: playback parameters of Cinema Yellow');
 }
 
 // -------------------------------------------------------------- halation
@@ -832,7 +849,7 @@ function lookupAsm(dst: string, reg: string, tmp: string, table: number): string
  * For such a look, Cinema's Toning on the parameter screens (shooting: ImageControlDetail-
  * Controller, the style at +0x19C; RAW development: RawDevelopmentImageControlDetailSetController,
  * the look asked from the model) shows as Halation: its name (the subtitle, from a table of texts
- * per parameter kind: Toning is text 339) and its icon in the list (0x16F). From 0.8.2 it is an
+ * per parameter kind: Toning is text 357, 1.11's 339) and its icon in the list (0x184, 1.11's 0x16F). From 0.8.2 it is an
  * Off / On row like Grain Effect's, and Fn opens Grain Effect's submenu as Halation's (Strength,
  * Colour); the setting is kept in the Toning byte (`halation-ui.ts`). Which looks: two tables of 64
  * bytes (by style, by RAW development's number).
@@ -876,16 +893,16 @@ export function installHalation(p: Patch, iconbin: Uint8Array, looks: readonly H
   for (const [site, r] of LOOKUP_BOUNDS) p.setWord(site, movWord(r, Math.max(HALATION_WHITE_ICON_ID, movImmediate(p.word(site)))), 'icon upper bound');
 
   // Shooting: subtitle (r6 the table entry, r5 the controller).
-  hook(p, 0x531ca7cc, 0xe1d610b2, `ldrh r1,[r6,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;ldrb ip,[r5,#0x19c];push {r0};${lookupAsm('ip', 'ip', 'r0', styles)};pop {r0};cmp ip,#0;movwne r1,#${HALATION_TEXT_ID};done:b #0x531ca7d0`, 'halation: name of the parameter');
+  hook(p, 0x531cbf68, 0xe1d610b2, `ldrh r1,[r6,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;ldrb ip,[r5,#0x19c];push {r0};${lookupAsm('ip', 'ip', 'r0', styles)};pop {r0};cmp ip,#0;movwne r1,#${HALATION_TEXT_ID};done:b #0x531cbf6c`, 'halation: name of the parameter');
   // Shooting: list icon (controller r7, r6).
-  for (const [at, ctl] of [[0x531c973c, 'r7'], [0x531c982c, 'r6']] as const) {
-    hook(p, at, 0xe300116f, `ldrb r1,[${ctl},#0x19c];push {r0};${lookupAsm('r1', 'r1', 'r0', styles)};pop {r0};cmp r1,#0;movw r1,#${TONING_ICON};movwne r1,#${HALATION_ICON_ID};b #${at + 4}`, 'halation: list icon');
+  for (const [at, ctl] of [[0x531cae48, 'r7'], [0x531caf38, 'r6']] as const) {
+    hook(p, at, 0xe3a01f61, `ldrb r1,[${ctl},#0x19c];push {r0};${lookupAsm('r1', 'r1', 'r0', styles)};pop {r0};cmp r1,#0;movw r1,#${TONING_ICON};movwne r1,#${HALATION_ICON_ID};b #${at + 4}`, 'halation: list icon');
   }
   // RAW development: subtitle (r7 the table entry).
-  hook(p, 0x531a833c, 0xe1d710b2, `ldrh r1,[r7,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_TEXT};movwne r1,#${HALATION_TEXT_ID};pop {r0,r2,r3,lr};done:b #0x531a8340`, 'halation: name of the parameter (RAW development)');
+  hook(p, 0x531a97dc, 0xe1d710b2, `ldrh r1,[r7,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_TEXT};movwne r1,#${HALATION_TEXT_ID};pop {r0,r2,r3,lr};done:b #0x531a97e0`, 'halation: name of the parameter (RAW development)');
   // RAW development: list icon.
-  for (const at of [0x531a88d0, 0x531a89e8]) {
-    hook(p, at, 0xe300116f, `push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_ICON};movwne r1,#${HALATION_ICON_ID};pop {r0,r2,r3,lr};b #${at + 4}`, 'halation: list icon (RAW development)');
+  for (const at of [0x531a9d70, 0x531a9e88]) {
+    hook(p, at, 0xe3a01f61, `push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_ICON};movwne r1,#${HALATION_ICON_ID};pop {r0,r2,r3,lr};b #${at + 4}`, 'halation: list icon (RAW development)');
   }
 
   // Off / On, Fn to the submenu (Strength, Colour); native Toning readers kept to 0..2.
@@ -921,12 +938,12 @@ export function readExtraSlots(rtos: Uint8Array, iconbin: Uint8Array, count: num
     if (!(count >= 1 && count <= MAX_EXTRA_SLOTS)) return null;
     const p = new Patch(rtos);
     const rows = TONES + count;
-    if (p.word(0x53925f98) !== movRow(rows)) return null;
+    if (p.word(0x5394dfb0) !== movRow(rows)) return null;
     const table = (lo: number, hi: number): number => (movImmediate(p.word(lo)) | (movImmediate(p.word(hi)) << 16)) >>> 0;
-    const tone = table(0x53925f9c, 0x53925fa4);
-    const gamma = table(0x53926020, 0x53926028);
+    const tone = table(0x5394dfb4, 0x5394dfbc);
+    const gamma = table(0x5394e038, 0x5394e040);
     const stdShared = wordOf(p.readMapped(wordOf(p.readMapped(tone + 4 * STANDARD, 4)) + POST_WORD, 4));
-    const maTable = table(0x53925fc8, 0x53925fd0);
+    const maTable = table(0x5394dfe0, 0x5394dfe8);
     const maBlockOf = (style: number): [number, number] => {
       const arr = wordOf(p.readMapped(wordOf(p.readMapped(maTable + 4 * style, 4)) + 8, 4));
       return [arr, wordOf(p.readMapped(arr, 4))];
@@ -978,5 +995,5 @@ export function readExtraSlots(rtos: Uint8Array, iconbin: Uint8Array, count: num
 }
 
 function movRow(rows: number): number {
-  return assembleWords(`mov r2,#${rows}`, 0x53925f98)[0];
+  return assembleWords(`mov r2,#${rows}`, 0x5394dfb0)[0];
 }

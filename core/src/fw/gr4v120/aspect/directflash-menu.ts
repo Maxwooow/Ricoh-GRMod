@@ -28,7 +28,7 @@
  * A value the lists do not have (a byte an earlier build left) shows as the default; the planner
  * reads it the same way (an unlisted guide number 1..63 is used as it is).
  *
- * What is changed, all found by reading the official 1.11 code:
+ * What is changed, all found by reading the official 1.11 code (and checked again on 1.20):
  *  - submenu record 5 (in the table wherever it is now, see `datestamp-menu.ts`): a third line,
  *    controller id DF_MENU_ID, value icon place 540 and no value icon, as the Wireless submenu's
  *    (record 13) line that opens Pairing (record 12);
@@ -60,13 +60,18 @@ export const DF_PRIORITY_ID = 0x020001b4;
 /** Test 062: the fastest shutter speed (the last list). */
 export const DF_FASTEST_ID = 0x020001b5;
 /** Texts: the submenu's name, the line names (GN, background, priority), then the values' names. */
-export const DF_TEXT_ID = 910;
-/** Test 062: the name of the fastest-shutter line, after every value's text (914 + 21 + 15 + 8 + 2 + 5). */
+export const DF_TEXT_ID = 954; // 1.11: 910 (+ TEXT_SHIFT)
+/** Test 062: the name of the fastest-shutter line, after every value's text (958 + 21 + 15 + 8 + 2 + 5). */
 export const DF_FASTEST_TEXT_ID = DF_TEXT_ID + 4 + 21 + 15 + 8 + 2 + 5;
 /** The camera's own "Minimum Shutter Speed" (ISO submenu), the name of the shutter line. */
-export const TEXT_MIN_SHUTTER = 125;
-/** Icons: one per value, guide numbers, backgrounds, shutter speeds, priorities. */
-export const DF_ICON_ID = 663;
+export const TEXT_MIN_SHUTTER = 130; // 1.11: 125
+/**
+ * Icons: one per value, guide numbers, backgrounds, shutter speeds, priorities (51). 1.11 had them
+ * at 663.., right after its 663 icons; 1.20 has 709 icons of its own and GR Mod's other icons start
+ * at 720, so they come after the power-off pictures' (992..1003): 1004..1054, the icon catalog
+ * holding 1280 entries in 1.20 (see build.ts).
+ */
+export const DF_ICON_ID = 1004;
 
 /** Guide numbers of the list (ISO 100, metres); stored as the number, the default (3) as 0. */
 export const DF_GUIDE_NUMBERS: readonly number[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 25, 28, 32, 36];
@@ -134,7 +139,7 @@ export const DF_STANDARD_NAMES: readonly string[] = [
 export const DF_FASTEST: readonly { name: string; code: number }[] = [
   { name: 'sync', code: 0 }, { name: '1/2000', code: 1 }, { name: '1/1000', code: 2 }, { name: '1/500', code: 3 }, { name: '1/250', code: 4 },
 ];
-/** The line name, in `LANGS` order (the camera's own Minimum Shutter Speed, text 125, turned round). */
+/** The line name, in `LANGS` order (the camera's own Minimum Shutter Speed, text 130, turned round). */
 export const DF_FASTEST_NAMES: readonly string[] = [
   'Nejkratší čas závěrky', 'Maks. lukkerhastighed', 'Maximum Shutter Speed', 'Lyhin suljinaika', 'Vitesse obturation max.',
   'Kürzeste Verschlusszeit', 'Μέγ.Ταχύτ.Κλείστρου', 'Maximális zársebesség', 'Tempo posa più breve', '高速限界値', '고속한계치',
@@ -296,8 +301,8 @@ const hi = (v: number): number => v >>> 16;
 const FLASH_SUBMENU = 5;
 const FLASH_MODE_LINE_ID = 0x020000f3;
 const FLASH_OUTPUT_LINE_ID = 0x020000f6;
-const TEXT_FLASH_MODE = 127;
-const TEXT_FLASH_OUTPUT = 137;
+const TEXT_FLASH_MODE = 132; // 1.11: 127
+const TEXT_FLASH_OUTPUT = 142; // 1.11: 137
 const VALUE_X = 540;
 
 /** ip = the list position of the stored field (or the fallback); r0, r2, r3 change. */
@@ -336,7 +341,7 @@ function installTexts(patch: Patch, entries: readonly { id: number; names: reado
 
 /** The `LANGS` index of language row l (as the program indexes languages). */
 const FIRST_TABLE_RAM = 0x55000000 + (0x543b5270 - 0x543b3100);
-const TABLE_STRIDE = 0xd14;
+const TABLE_STRIDE = 0xdc4; // 1.11: 0xd14
 const NATIVE_TEXT_ROOTS = 0x55002118;
 function langIndex(patch: Patch, l: number): number {
   const root = new DataView(patch.readMapped(NATIVE_TEXT_ROOTS + l * 4, 4).buffer).getUint32(0, true);
