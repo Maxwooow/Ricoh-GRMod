@@ -154,8 +154,8 @@ function newFirmwareWarning(info: FirmwareInfo | undefined): string | null {
   return old[info.version] ? t('newFwWriteLine', { v: info.version, old: old[info.version] }) : null;
 }
 
-function askOfficial(lines: string[]): Promise<boolean> {
-  return ask(t('resetConfirmTitle'), lines, t('resetConfirmOk'), undefined, true);
+function askOfficial(lines: string[], warn?: string): Promise<boolean> {
+  return ask(t('resetConfirmTitle'), lines, t('resetConfirmOk'), warn, true);
 }
 export function answerConfirm(v: boolean): void { const c = state.confirm; set({ confirm: undefined }); c?.resolve(v); }
 function fail(e: unknown): void {
@@ -1271,7 +1271,8 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const lookLayout = stock ? undefined : lookLayoutSpec();
   if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && !directFlash && extras.length === 0 && pictures.length === 0 && films === 0 && !lookLayout) { toast(t('nothingToDo'), 'info'); return; }
   const fresh = newFirmwareWarning(sourceInfo);
-  if (stock && !(await askOfficial([t('copyOfficial'), ...(fresh && dest.kind === 'card' ? [fresh] : [])]))) return;
+  // The new-firmware line's warning is a paragraph (the dialog's lines are cut to one line each).
+  if (stock && !(await askOfficial([t('copyOfficial')], fresh && dest.kind === 'card' ? fresh : undefined))) return;
   if (dest.kind === 'card' && !stock) {
     const lines = changes.map((c) => `${state.info?.family === 'gr3x' ? (state.slots[c.id].names[state.lang] || state.info.slots.find(s => s.id === c.id)?.defaultName || c.id) : t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
     if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
@@ -1284,9 +1285,8 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (extras.length) lines.push(t('extraLine', { n: extras.length, l: extras.map((x) => (x.halation ? `${x.name} (${t('halation')})` : x.name)).join(' / ') }));
     if (lookLayout) lines.push(t('lookOrderLine', { n: lookLayout.hidden.length }));
     if (pictures.length) lines.push(t('wallMenuLine', { n: pictures.length, l: pictures.map((p) => p.name).join(' / ') }));
-    if (fresh) lines.push(fresh);
-    if (fresh && extras.length && sourceInfo.family === 'gr4') lines.push(t('newFwSlotsLine'));
-    if (!(await ask(t('confirmTitle'), lines, t('confirmOk')))) return;
+    const warn = fresh ? [fresh, ...(extras.length && sourceInfo.family === 'gr4' ? [t('newFwSlotsLine')] : [])].join(' ') : undefined;
+    if (!(await ask(t('confirmTitle'), lines, t('confirmOk'), warn))) return;
   }
   const target = await destination(dest);
   if (!target || state.info !== sourceInfo || state.raw !== sourceRaw || state.model !== sourceModel || state.fwBusy) return;
@@ -1507,7 +1507,8 @@ export async function writeCopy(): Promise<void> {
   if (!pick) return;
   if (!v) { toast(t('noCard'), 'error'); return; }
   const official = pick.summary.kind === 'official';
-  if (!(await (official ? askOfficial(describeCopy(pick.summary)) : ask(t('confirmTitle'), describeCopy(pick.summary), t('confirmOk'))))) return;
+  const fresh = newFirmwareWarning(sourceInfo) ?? undefined;
+  if (!(await (official ? askOfficial(describeCopy(pick.summary), fresh) : ask(t('confirmTitle'), describeCopy(pick.summary), t('confirmOk'), fresh)))) return;
   if (state.info !== sourceInfo || state.model !== sourceModel || state.fwBusy) return;
   try {
     set({ busy: t('opening') });
