@@ -1,5 +1,5 @@
 /**
- * Everything that is specific to GR IV firmware 1.11 (fwdc248b.bin): hashes, section offsets,
+ * Everything that is specific to GR IV firmware 1.20 (fwdc248b.bin; GR IV Monochrome 1.10 is the same file): hashes, section offsets,
  * table addresses and the expected resolved addresses of the two editable Image Control slots.
  *
  * Addresses ("VA") are the run-time addresses used by the RTOS image; `foff()` maps them to
@@ -7,30 +7,30 @@
  */
 import { Firmware, FirmwareError, sha256Hex } from '../container';
 
-export const FIRMWARE_VERSION = '1.11';
-export const OFFICIAL_SHA256 = 'a2f664dfca034059eb0fd6e18ab08684c326b4a034d85c164dad7e1ec9b5655f';
-export const DECODED_SHA256 = 'c4e597c7c9ca1bc181b30e35139ed90a4fd876ddcca14f12be0e00b6702233ae';
-export const OFFICIAL_SIZE = 38648776;
-export const DECODED_SIZE = 67948280;
+export const FIRMWARE_VERSION = '1.20';
+export const OFFICIAL_SHA256 = '7563d7e462f0c53b6ab2fbab7cdfbbb57151a41192ee82f4f3a2108f9d77650d';
+export const DECODED_SHA256 = 'f5cf55a48f65d55f4ebbd40bcd1d64d1ceca3c88432a2a4ceaa93fe1cad5fc3a';
+export const OFFICIAL_SIZE = 38919904;
+export const DECODED_SIZE = 69632740;
 
 /** RTOS section: data offset in the decoded payload, length, load address. */
-export const RTOS_OFFSET = 0x17d10;
-export const RTOS_LENGTH = 0x13d2ac0;
+export const RTOS_OFFSET = 0x17d28;
+export const RTOS_LENGTH = 0x140b600;
 export const RTOS_VA = 0x53000000;
 /** Initialised RAM: lives at RAM_VA at run time, stored in the RTOS image at RAM_IMAGE_VA. */
 export const RAM_VA = 0x55000000;
 export const RAM_IMAGE_VA = 0x543b3100;
-export const RAM_LENGTH = 0x57480;
+export const RAM_LENGTH = 0x58500;
 
 /** ICONBIN section: data offset in the decoded payload and length. */
-export const ICONBIN_OFFSET = 0x2e93af0;
-export const ICONBIN_LENGTH = 0xdcf460;
+export const ICONBIN_OFFSET = 0x2eec088;
+export const ICONBIN_LENGTH = 0xf0f0e0;
 
-/** Per-style pointer tables (34 entries x 3 identical variants), all in the RAM image. */
-export const T_REC = 0x55054770; // tone record table
-export const T_MA = 0x550544f4; // multi-axis table
-export const T_GAM = 0x55053138; // gamma descriptor table
-export const TABLE_ENTRIES = 34;
+/** Per-style pointer tables (38 entries x 3 variants; styles 34..37 are new in 1.20), all in the RAM image. */
+export const T_REC = 0x55054800; // tone record table
+export const T_MA = 0x55054554; // multi-axis table
+export const T_GAM = 0x55054158; // gamma descriptor table
+export const TABLE_ENTRIES = 38;
 export const TABLE_VARIANTS = 3;
 
 export const TONE_STANDARD = 0x0b;
@@ -63,11 +63,11 @@ export const POST = {
 
 /** Checksum compensation word: 4 bytes inside the assert-only text "MakeParameter". */
 export const COMP_VA = 0x5408004c;
-export const COMP_OFFSET = 0x10610a4;
+export const COMP_OFFSET = 0x1097d74;
 const COMP_GUARD = 'MakeParameter\0';
 
 /** 40x40 RGBA icon used only as a drawing template ("Nega": film frame with sprocket holes). */
-export const NEGA_ICON_OFFSET = 0x2fc2cf0;
+export const NEGA_ICON_OFFSET = 0x301b288;
 export const ICON_BYTES = 40 * 40 * 4;
 
 export type SlotId = 'CY' | 'CG';
@@ -83,8 +83,8 @@ export interface SlotDef {
 }
 
 export const SLOTS: readonly SlotDef[] = [
-  { id: 'CY', toneId: 0x12, nameIndex: 301, iconOffset: 0x30221f0, defaultName: 'Cinema (Yellow)' },
-  { id: 'CG', toneId: 0x13, nameIndex: 302, iconOffset: 0x3023af0, defaultName: 'Cinema (Green)' },
+  { id: 'CY', toneId: 0x12, nameIndex: 318, iconOffset: 0x30efa88, defaultName: 'Cinema (Yellow)' },
+  { id: 'CG', toneId: 0x13, nameIndex: 319, iconOffset: 0x30f1388, defaultName: 'Cinema (Green)' },
 ];
 
 export function slotDef(id: SlotId): SlotDef {
@@ -154,14 +154,14 @@ export function slotInfo(decoded: Uint8Array, tone: number): SlotInfo {
   };
 }
 
-/** Resolved addresses that must come out of `slotInfo` for firmware 1.11. */
+/** Resolved addresses that must come out of `slotInfo` for firmware 1.20. */
 export const EXPECTED_SLOT_INFO: Readonly<Record<SlotId, Readonly<Pick<SlotInfo, 'matrix' | 'desc' | 'R' | 'G' | 'B' | 'maBlock'>>>> = {
-  CY: { matrix: 0x54049ce0, desc: 0x5407b1e0, R: 0x540b7bac, G: 0x5407f0b4, B: 0x5407feb4, maBlock: 0x54080ab8 },
-  CG: { matrix: 0x540801e4, desc: 0x5407decc, R: 0x5407f6b4, G: 0x540b6384, B: 0x540b4578, maBlock: 0x5408138c },
+  CY: { matrix: 0x54080998, desc: 0x540b1e98, R: 0x540b7bac, G: 0x540b77ac, B: 0x540b71ac, maBlock: 0x54080ab8 },
+  CG: { matrix: 0x540801e4, desc: 0x540b7198, R: 0x540b6798, G: 0x540b6384, B: 0x540b4578, maBlock: 0x5408138c },
 };
 export const EXPECTED_STANDARD_MA_BLOCK = 0x54081c28;
-/** The post-curve matrix array every colour style shares in 1.11 (identity at saturation 0). */
-export const EXPECTED_POST_ARRAY = 0x5501ad98;
+/** The post-curve matrix array every colour style shares in 1.20 (identity at saturation 0). */
+export const EXPECTED_POST_ARRAY = 0x5501bd34;
 
 export interface Layout {
   CY: SlotInfo;
@@ -200,16 +200,16 @@ export function resolveLayout(decoded: Uint8Array): Layout {
 }
 
 /**
- * Accept only the official 1.11 file. Throws `FirmwareError('unsupported-firmware')` unless the
+ * Accept only the official 1.20 file. Throws `FirmwareError('unsupported-firmware')` unless the
  * file's SHA-256 is `OFFICIAL_SHA256`; then parses it and also asserts the decoded SHA-256.
  */
 export async function openOfficial(raw: Uint8Array): Promise<{ fw: Firmware; decoded: Uint8Array }> {
   if (raw.length !== OFFICIAL_SIZE || (await sha256Hex(raw)) !== OFFICIAL_SHA256) {
-    throw new FirmwareError('unsupported-firmware', 'this is not the official GR IV firmware 1.11 file (fwdc248b.bin)');
+    throw new FirmwareError('unsupported-firmware', 'this is not the official GR IV firmware 1.20 file (fwdc248b.bin)');
   }
   const fw = new Firmware(raw);
   if (fw.decoded.length !== DECODED_SIZE || (await sha256Hex(fw.decoded)) !== DECODED_SHA256) {
-    throw new FirmwareError('unsupported-firmware', 'decoded payload does not match firmware 1.11');
+    throw new FirmwareError('unsupported-firmware', 'decoded payload does not match firmware 1.20');
   }
   return { fw, decoded: fw.decoded };
 }

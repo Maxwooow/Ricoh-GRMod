@@ -134,7 +134,7 @@ const ZERO_FILL_END = 0x53000460;
 const KEY_MAP_ID_READS = [0x53255a20, 0x532560ec] as const;
 const CURRENT_ID = 0x5325e674;
 /** Nonzero while the End Screen list is the picture list (set by the controller factory). */
-const PICTURE_MODE = 0x558372f0;
+const PICTURE_MODE = 0x55839030;
 const APDATA_BOUND_AT = 0x53aa8be8;
 const APDATA_BOUND_NEXT = 0x53aa8bec;
 const CTX_MAGIC = 0x31445347; // 'GSD1'
@@ -303,7 +303,7 @@ export function installShutdownMenu(p: Patch, iconbin: Uint8Array, pictures: rea
   for (const f of [LIST_SHOWN, TITLE_SET, APP, 0x53240f98, 0x53240c38, SUBMENU_LINE_TEXT, LINE_VALUE_ICON, LINE_TITLE]) expectWord(p, f, 0xe1a0c00d);
   expectWord(p, 0x532a061c, 0xe5d00988); // ldrb r0, [r0, #0x988]
   expectWord(p, 0x53380874, 0xe3510000); // cmp r1, #0
-  expectWord(p, ZERO_FILL_END, p.word(ZERO_FILL_END) === 0x55839040 ? 0x55839040 : 0x558372d4);
+  expectWord(p, ZERO_FILL_END, p.word(ZERO_FILL_END) === 0x55839040 ? 0x55839040 : 0x55839014);
   const priorSave = branchTarget(SETTINGS_SAVE, p.word(SETTINGS_SAVE));
   if (priorSave < BASE + OFFICIAL_RTOS_LENGTH) fail('internal', 'the settings save/load scaffold is not installed');
   // Setup > Display > End Screen, as officially.

@@ -1,0 +1,276 @@
+diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/build.ts
+--- a/core/src/fw/gr4v120/aspect/build.ts
++++ b/core/src/fw/gr4v120/aspect/build.ts
+@@ -45,19 +45,21 @@
+ import type { ShutdownPictureSpec } from './shutdown';
+ 
+ export const BASE = 0x53000000;
+-export const OFFICIAL_RTOS_LENGTH = 0x13d2ac0;
+-export const OFFICIAL_ICONBIN_LENGTH = 0xdcf460;
++export const OFFICIAL_RTOS_LENGTH = 0x140b600;
++export const OFFICIAL_ICONBIN_LENGTH = 0xf0f0e0;
+ /** The appended area must stay below the address where the firmware's RAM starts. */
+ export const APPEND_LIMIT = 0x55000000;
+ 
+ /** Start-up copy of initialised data: `length` bytes from `source` (in the image) to `destination`. */
+-const RAM = { source: 0x543b3100, destination: 0x55000000, length: 0x57480 };
++const RAM = { source: 0x543b3100, destination: 0x55000000, length: 0x58500 };
+ 
+ export const ICON_CATALOG = 0x5440c600;
+ export const TEXT_CATALOG = 0x5440d600;
+-const ICON_COUNT = 663;
+-const TEXT_COUNT = 837;
+-const TEXT_CAPACITY = 896;
++/** 1.20: 709 icons and 881 texts (1.11: 663 / 837), both renumbered. GR Mod's own texts are 1.11's + 44. */
++const ICON_COUNT = 709;
++const TEXT_COUNT = 881;
++export const TEXT_SHIFT = 44;
++const TEXT_CAPACITY = 896 + TEXT_SHIFT;
+ export const LANGUAGES = 21;
+ const ROW_STRIDE = TEXT_CAPACITY * 4;
+ const NATIVE_ICON_CATALOG = 0x55014280;
+@@ -80,10 +82,10 @@
+   return id;
+ }
+ 
+-/** Text numbers: the factory names, then 901, 902, ... for identities 7, 8, ... */
++/** Text numbers: the factory names (1.20 numbers of 1.11's 267, 268, 266, 269), then 945, 946, ... for identities 7, 8, ... */
+ export function textId(publicId: number): number {
+-  const fixed: Record<number, number> = { 0: 267, 1: 268, 2: 266, 3: 269, 4: 838, 5: 839 };
+-  return fixed[publicId] ?? 900 + publicId - 6;
++  const fixed: Record<number, number> = { 0: 281, 1: 282, 2: 280, 3: 284, 4: 838 + TEXT_SHIFT, 5: 839 + TEXT_SHIFT };
++  return fixed[publicId] ?? 900 + TEXT_SHIFT + publicId - 6;
+ }
+ 
+ export interface RatioSpec {
+@@ -310,7 +312,7 @@
+   for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
+   const rowsStart = TEXT_CATALOG + 0x100;
+   const end = rowsStart + LANGUAGES * ROW_STRIDE;
+-  if (BASE + patch.length > ICON_CATALOG) fail('unexpected-layout', 'the image already reaches the catalog area');
++  if (BASE + patch.length > ICON_CATALOG - 0x40) fail('unexpected-layout', 'the image already reaches the catalog area');
+   patch.extendTo(end - BASE);
+   patch.write(ICON_CATALOG, icons);
+   const relocated: number[] = [];
+@@ -322,8 +324,15 @@
+   // language directory themselves.
+   patch.setWord(0x534013f8, movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
+   patch.setWord(0x534013fc, movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
+-  for (const [site, register] of [[0x5323f7ec, 3], [0x5323e40c, 2]] as const) {
+-    patch.setWord(site, movWord(register, ICON_COUNT - 1), 'icon upper bound');
++  // 1.20 compares the icon number with an immediate (cmp r4,#708 / cmp r7,#708; 1.11 loaded the
++  // bound with a movw): each goes through a helper that keeps r3, at a fixed place just below the
++  // catalogs so that LOOKUP_BOUNDS can name its movw.
++  for (const [site, helper, compare] of ICON_BOUND_HELPERS) {
++    expectWord(patch, site, compare);
++    const cmp = 0xe1500003 | (((compare >>> 16) & 15) << 16);
++    const words = [0xe52d3004, movWord(3, ICON_COUNT - 1), cmp, 0xe49d3004, branchWord(helper + 16, site + 4)];
++    patch.write(helper, u32le(words));
++    patch.setWord(site, branchWord(site, helper), 'icon bound through a helper that keeps r3');
+   }
+   for (const [low, high] of [[0x535967cc, 0x535967d0], [0x53595db4, 0x53595dbc]] as const) {
+     patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
+@@ -354,7 +363,10 @@
+ // --------------------------------------------------------------------------------------------
+ // crop_icons.py
+ 
+-export const LOOKUP_BOUNDS = [[0x5323f7ec, 3], [0x5323e40c, 2]] as const;
++/** [site, helper, the official `cmp rN,#708`]: the two icon lookups (1.11: movw r3 / movw r2 at 0x5323dbb4 / 0x5323e40c). */
++const ICON_BOUND_HELPERS = [[0x5323f7ec, ICON_CATALOG - 0x40, 0xe3540fb1], [0x53240064, ICON_CATALOG - 0x20, 0xe3570fb1]] as const;
++/** The movw of each icon-bound helper (register r3). */
++export const LOOKUP_BOUNDS = [[ICON_CATALOG - 0x40 + 4, 3], [ICON_CATALOG - 0x20 + 4, 3]] as const;
+ 
+ function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
+   const parts: Uint8Array[] = [iconbin];
+@@ -446,7 +458,7 @@
+   // Complete language rows again, now wide enough for the new names; every original entry is kept.
+   let priorColumns = TEXT_CAPACITY;
+   for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
+-  let upper = 839;
++  let upper = 839 + TEXT_SHIFT;
+   for (const id of allIds) upper = Math.max(upper, textId(id));
+   const columns = Math.max(priorColumns, upper + 1);
+   const catalogs: Uint8Array[] = [];
+@@ -659,8 +671,8 @@
+     out = '';
+     for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
+     out += `bic ip,ip,#4;b #${resume};custom:`;
+-    if (entry === 0x536726b0) out += 'add ip,r0,#0x340;';
+-    else out += 'ldr lr,[sp,#0xC];cmp lr,#0x2000;addeq ip,r0,#0x320;addne ip,r0,#0x340;';
++    if (entry === 0x536726b0) out += 'add ip,r0,#0x354;'; // 1.11: 0x340 / 0x320 (upstream crop120)
++    else out += 'ldr lr,[sp,#0xC];cmp lr,#0x2000;addeq ip,r0,#0x334;addne ip,r0,#0x354;';
+     out += 'ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;';
+     p.hook(entry, out);
+   }
+@@ -880,7 +892,7 @@
+ function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
+   const priorSave = branchTarget(0x533f3674, patch.word(0x533f3674));
+   const priorLoad = branchTarget(0x533f3254, patch.word(0x533f3254));
+-  expectWord(patch, 0x532adedc, 0xebfe566c);
++  expectWord(patch, 0x532adedc, 0xebfe49f0); // bl 0x532406a4
+   expectWord(patch, 0x5381d6bc, 0xe1a0c00d);
+   // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
+   const rects: Uint8Array[] = [];
+diff --git a/tools/gr4v120/aspect/gen_native.py b/tools/gr4v120/aspect/gen_native.py
+--- a/tools/gr4v120/aspect/gen_native.py
++++ b/tools/gr4v120/aspect/gen_native.py
+@@ -21,7 +21,8 @@
+ 
+ import common
+ 
+-NATIVE = common.TOOL / 'gr4_editor' / 'native'
++# 1.20: the reference's sources with the firmware addresses moved (generated from third_party/gr-custom-tool/native).
++NATIVE = Path(__file__).resolve().parent / 'native'
+ FLAGS = ['-target', 'armv7-none-eabi', '-mcpu=cortex-a9', '-marm', '-mfloat-abi=soft', '-Os', '-ffreestanding',
+          '-fno-builtin', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-nostdlib']
+ MAX_CUSTOM = 8
+diff --git a/core/src/fw/gr4v120/profile.ts b/core/src/fw/gr4v120/profile.ts
+--- a/core/src/fw/gr4v120/profile.ts
++++ b/core/src/fw/gr4v120/profile.ts
+@@ -1,5 +1,5 @@
+ /**
+- * Everything that is specific to GR IV firmware 1.11 (fwdc248b.bin): hashes, section offsets,
++ * Everything that is specific to GR IV firmware 1.20 (fwdc248b.bin; GR IV Monochrome 1.10 is the same file): hashes, section offsets,
+  * table addresses and the expected resolved addresses of the two editable Image Control slots.
+  *
+  * Addresses ("VA") are the run-time addresses used by the RTOS image; `foff()` maps them to
+@@ -7,30 +7,30 @@
+  */
+ import { Firmware, FirmwareError, sha256Hex } from '../container';
+ 
+-export const FIRMWARE_VERSION = '1.11';
+-export const OFFICIAL_SHA256 = 'a2f664dfca034059eb0fd6e18ab08684c326b4a034d85c164dad7e1ec9b5655f';
+-export const DECODED_SHA256 = 'c4e597c7c9ca1bc181b30e35139ed90a4fd876ddcca14f12be0e00b6702233ae';
+-export const OFFICIAL_SIZE = 38648776;
+-export const DECODED_SIZE = 67948280;
++export const FIRMWARE_VERSION = '1.20';
++export const OFFICIAL_SHA256 = '7563d7e462f0c53b6ab2fbab7cdfbbb57151a41192ee82f4f3a2108f9d77650d';
++export const DECODED_SHA256 = 'f5cf55a48f65d55f4ebbd40bcd1d64d1ceca3c88432a2a4ceaa93fe1cad5fc3a';
++export const OFFICIAL_SIZE = 38919904;
++export const DECODED_SIZE = 69632740;
+ 
+ /** RTOS section: data offset in the decoded payload, length, load address. */
+-export const RTOS_OFFSET = 0x17d10;
+-export const RTOS_LENGTH = 0x13d2ac0;
++export const RTOS_OFFSET = 0x17d28;
++export const RTOS_LENGTH = 0x140b600;
+ export const RTOS_VA = 0x53000000;
+ /** Initialised RAM: lives at RAM_VA at run time, stored in the RTOS image at RAM_IMAGE_VA. */
+ export const RAM_VA = 0x55000000;
+ export const RAM_IMAGE_VA = 0x543b3100;
+-export const RAM_LENGTH = 0x57480;
++export const RAM_LENGTH = 0x58500;
+ 
+ /** ICONBIN section: data offset in the decoded payload and length. */
+-export const ICONBIN_OFFSET = 0x2e93af0;
+-export const ICONBIN_LENGTH = 0xdcf460;
+-
+-/** Per-style pointer tables (34 entries x 3 identical variants), all in the RAM image. */
++export const ICONBIN_OFFSET = 0x2eec088;
++export const ICONBIN_LENGTH = 0xf0f0e0;
++
++/** Per-style pointer tables (38 entries x 3 variants; styles 34..37 are new in 1.20), all in the RAM image. */
+ export const T_REC = 0x55054800; // tone record table
+ export const T_MA = 0x55054554; // multi-axis table
+ export const T_GAM = 0x55054158; // gamma descriptor table
+-export const TABLE_ENTRIES = 34;
++export const TABLE_ENTRIES = 38;
+ export const TABLE_VARIANTS = 3;
+ 
+ export const TONE_STANDARD = 0x0b;
+@@ -63,11 +63,11 @@
+ 
+ /** Checksum compensation word: 4 bytes inside the assert-only text "MakeParameter". */
+ export const COMP_VA = 0x5408004c;
+-export const COMP_OFFSET = 0x10610a4;
++export const COMP_OFFSET = 0x1097d74;
+ const COMP_GUARD = 'MakeParameter\0';
+ 
+ /** 40x40 RGBA icon used only as a drawing template ("Nega": film frame with sprocket holes). */
+-export const NEGA_ICON_OFFSET = 0x2fc2cf0;
++export const NEGA_ICON_OFFSET = 0x301b288;
+ export const ICON_BYTES = 40 * 40 * 4;
+ 
+ export type SlotId = 'CY' | 'CG';
+@@ -83,8 +83,8 @@
+ }
+ 
+ export const SLOTS: readonly SlotDef[] = [
+-  { id: 'CY', toneId: 0x12, nameIndex: 301, iconOffset: 0x30221f0, defaultName: 'Cinema (Yellow)' },
+-  { id: 'CG', toneId: 0x13, nameIndex: 302, iconOffset: 0x3023af0, defaultName: 'Cinema (Green)' },
++  { id: 'CY', toneId: 0x12, nameIndex: 318, iconOffset: 0x30efa88, defaultName: 'Cinema (Yellow)' },
++  { id: 'CG', toneId: 0x13, nameIndex: 319, iconOffset: 0x30f1388, defaultName: 'Cinema (Green)' },
+ ];
+ 
+ export function slotDef(id: SlotId): SlotDef {
+@@ -154,13 +154,13 @@
+   };
+ }
+ 
+-/** Resolved addresses that must come out of `slotInfo` for firmware 1.11. */
++/** Resolved addresses that must come out of `slotInfo` for firmware 1.20. */
+ export const EXPECTED_SLOT_INFO: Readonly<Record<SlotId, Readonly<Pick<SlotInfo, 'matrix' | 'desc' | 'R' | 'G' | 'B' | 'maBlock'>>>> = {
+   CY: { matrix: 0x54080998, desc: 0x540b1e98, R: 0x540b7bac, G: 0x540b77ac, B: 0x540b71ac, maBlock: 0x54080ab8 },
+   CG: { matrix: 0x540801e4, desc: 0x540b7198, R: 0x540b6798, G: 0x540b6384, B: 0x540b4578, maBlock: 0x5408138c },
+ };
+ export const EXPECTED_STANDARD_MA_BLOCK = 0x54081c28;
+-/** The post-curve matrix array every colour style shares in 1.11 (identity at saturation 0). */
++/** The post-curve matrix array every colour style shares in 1.20 (identity at saturation 0). */
+ export const EXPECTED_POST_ARRAY = 0x5501bd34;
+ 
+ export interface Layout {
+@@ -200,16 +200,16 @@
+ }
+ 
+ /**
+- * Accept only the official 1.11 file. Throws `FirmwareError('unsupported-firmware')` unless the
++ * Accept only the official 1.20 file. Throws `FirmwareError('unsupported-firmware')` unless the
+  * file's SHA-256 is `OFFICIAL_SHA256`; then parses it and also asserts the decoded SHA-256.
+  */
+ export async function openOfficial(raw: Uint8Array): Promise<{ fw: Firmware; decoded: Uint8Array }> {
+   if (raw.length !== OFFICIAL_SIZE || (await sha256Hex(raw)) !== OFFICIAL_SHA256) {
+-    throw new FirmwareError('unsupported-firmware', 'this is not the official GR IV firmware 1.11 file (fwdc248b.bin)');
++    throw new FirmwareError('unsupported-firmware', 'this is not the official GR IV firmware 1.20 file (fwdc248b.bin)');
+   }
+   const fw = new Firmware(raw);
+   if (fw.decoded.length !== DECODED_SIZE || (await sha256Hex(fw.decoded)) !== DECODED_SHA256) {
+-    throw new FirmwareError('unsupported-firmware', 'decoded payload does not match firmware 1.11');
++    throw new FirmwareError('unsupported-firmware', 'decoded payload does not match firmware 1.20');
+   }
+   return { fw, decoded: fw.decoded };
+ }
+diff --git a/core/src/fw/gr4v120/names.ts b/core/src/fw/gr4v120/names.ts
+--- a/core/src/fw/gr4v120/names.ts
++++ b/core/src/fw/gr4v120/names.ts
+@@ -1,11 +1,11 @@
+ /**
+- * UI strings of firmware 1.11.
+- *
+- * There are 21 language tables in the RAM image, each 836 u32 pointers. Each pointer is the VA of
++ * UI strings of firmware 1.20 (texts renumbered from 1.11: 44 more).
++ *
++ * There are 21 language tables in the RAM image, each 880 u32 pointers (1.11: 836). Each pointer is the VA of
+  * an 8-byte descriptor `{u32 count, u32 strVA}`; the string is UTF-16LE at strVA followed by a
+  * 0x0000 terminator.
+  *
+- * `count` packs two things (verified on all 21 x 836 = 17556 entries of the official file):
++ * `count` packs two things (verified on all 21 x 836 = 17556 entries of the official 1.11 file):
+  *   low byte  = number of UTF-16 code units + 1 (i.e. including the terminator)
+  *   next byte = number of lines (1 + number of '\n' in the string)
+  * so for a single-line string, such as every style name, `count = 0x101 + nChars`. Multi-line
+@@ -28,11 +28,11 @@
+ 
+ /** Start of each language's pointer table as an offset inside the RTOS section, in `LANGS` order. */
+ export const NAME_TABLE_RTOS_OFFSETS: readonly number[] = [
+-  0x137d7b0, 0x137e4c4, 0x137f1d8, 0x137feec, 0x1380c00, 0x1381914, 0x1382628,
+-  0x138333c, 0x1384050, 0x1384d64, 0x1385a78, 0x138678c, 0x13874a0, 0x13881b4,
+-  0x1388ec8, 0x1389bdc, 0x138a8f0, 0x138b604, 0x138c318, 0x138d02c, 0x138dd40,
++  0x13b5270, 0x13b6034, 0x13b6df8, 0x13b7bbc, 0x13b8980, 0x13b9744, 0x13ba508,
++  0x13bb2cc, 0x13bc090, 0x13bce54, 0x13bdc18, 0x13be9dc, 0x13bf7a0, 0x13c0564,
++  0x13c1328, 0x13c20ec, 0x13c2eb0, 0x13c3c74, 0x13c4a38, 0x13c57fc, 0x13c65c0,
+ ];
+-export const NAME_TABLE_ENTRIES = 836;
++export const NAME_TABLE_ENTRIES = 880;
+ 
+ export interface NameInfo {
+   text: string;

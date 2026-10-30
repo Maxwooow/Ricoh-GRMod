@@ -68,7 +68,7 @@ def main():
     with tempfile.TemporaryDirectory() as t:
         tmp = Path(t)
         a, sa = build(cc, ld, objcopy, tmp, 0x10000)
-        b, sb = build(cc, ld, objcopy, tmp, 0x543f0000)
+        b, sb = build(cc, ld, objcopy, tmp, 0x54430000)
     if a != b or sa != sb:
         sys.exit('module is not position independent')
     if any(v % 4 for v in sa.values()):

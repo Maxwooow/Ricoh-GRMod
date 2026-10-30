@@ -207,10 +207,10 @@ SPECIAL = {
                  'why': 'the displaced "mov r0,#46" is directly followed by a call, which may clobber ip and '
                         'the flags anyway; for the first record of a map (r4 - sl == 4) the size is enlarged on purpose'},
     0x5389F5AC: 'entry', 0x533F3674: 'entry', 0x533F3254: 'entry', 0x5381D6BC: 'entry',
-    0x5338F198: 'entry', 0x53390A88: 'entry', 0x5374ACFC: 'entry',
+    0x5338F198: 'entry', 0x53390A88: 'entry', 0x5376FB10: 'entry',
     0x53379B38: 'entry', 0x53379C94: 'entry', 0x5337BC70: 'entry', 0x53374D20: 'entry', 0x53383b68: 'entry',
     0x5325CA94: 'entry',
-    0x532A90CC: {'ignore': (), 'tweak': 'valid_current_ratio',
+    0x532ADEDC: {'ignore': (), 'tweak': 'valid_current_ratio',
                  'why': 'resets the current ratio when it is not in the menu; transparent when it is a menu ratio'},
     0x536F1C14: 'entry',
 }
@@ -424,7 +424,7 @@ def check_directories(official, patched, icon_bytes, official_icons):
     checked = 0
     new_names = 0
     # (start, id register, language register, address reached with the record pointer, register holding it, skip addresses)
-    for start, hit, pointer_reg, skips in ((0x535734F4, 0x535967dc, 3, (0x535968B0,)), (0x53572ADC, 0x53595DCC, 7, (0x53595F1C, 0x53595F28))):
+    for start, hit, pointer_reg, skips in ((0x535967C0, 0x535967dc, 3, (0x535968B0,)), (0x53572ADC, 0x53595DCC, 7, (0x53595F1C, 0x53595F28))):
         for language in list(range(21)) + [21, 22, 255]:
             for text in list(range(0, 840)) + list(range(896, 912)) + [0x344, 0x345, 1000, 0xFFFF]:
                 state = dict(base_state)
@@ -512,7 +512,7 @@ def check_menu(official, patched):
             st['regs'] = list(state['regs'])
             st['regs'][1] = public
             st['regs'][2] = r2
-            new_valid = call(mp, st, 0x5374ACFC)['regs'][0]
+            new_valid = call(mp, st, 0x5376FB10)['regs'][0]
             new_text = call(mp, st, 0x5338F198)['regs'][0]
             new_icon = call(mp, st, 0x53390A88)['regs'][0]
             assert new_valid == (1 if public in order else 0), 'validator'
@@ -638,7 +638,7 @@ def check_settings(official, patched, order):
         mp.reset(st)
         mp.stubs = {0x532406A4: original_callee}
         try:
-            mp.uc.emu_start(0x532A90CC, 0xFFFFFFF0, count=4000)
+            mp.uc.emu_start(0x532ADEDC, 0xFFFFFFF0, count=4000)
         finally:
             mp.stubs = {}
         assert seen, 'recall: native callee not reached'

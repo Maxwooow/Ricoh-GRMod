@@ -1,11 +1,11 @@
 /**
- * UI strings of firmware 1.11.
+ * UI strings of firmware 1.20 (texts renumbered from 1.11: 44 more).
  *
- * There are 21 language tables in the RAM image, each 836 u32 pointers. Each pointer is the VA of
+ * There are 21 language tables in the RAM image, each 880 u32 pointers (1.11: 836). Each pointer is the VA of
  * an 8-byte descriptor `{u32 count, u32 strVA}`; the string is UTF-16LE at strVA followed by a
  * 0x0000 terminator.
  *
- * `count` packs two things (verified on all 21 x 836 = 17556 entries of the official file):
+ * `count` packs two things (verified on all 21 x 836 = 17556 entries of the official 1.11 file):
  *   low byte  = number of UTF-16 code units + 1 (i.e. including the terminator)
  *   next byte = number of lines (1 + number of '\n' in the string)
  * so for a single-line string, such as every style name, `count = 0x101 + nChars`. Multi-line
@@ -28,11 +28,11 @@ export type LangCode = (typeof LANGS)[number];
 
 /** Start of each language's pointer table as an offset inside the RTOS section, in `LANGS` order. */
 export const NAME_TABLE_RTOS_OFFSETS: readonly number[] = [
-  0x137d7b0, 0x137e4c4, 0x137f1d8, 0x137feec, 0x1380c00, 0x1381914, 0x1382628,
-  0x138333c, 0x1384050, 0x1384d64, 0x1385a78, 0x138678c, 0x13874a0, 0x13881b4,
-  0x1388ec8, 0x1389bdc, 0x138a8f0, 0x138b604, 0x138c318, 0x138d02c, 0x138dd40,
+  0x13b5270, 0x13b6034, 0x13b6df8, 0x13b7bbc, 0x13b8980, 0x13b9744, 0x13ba508,
+  0x13bb2cc, 0x13bc090, 0x13bce54, 0x13bdc18, 0x13be9dc, 0x13bf7a0, 0x13c0564,
+  0x13c1328, 0x13c20ec, 0x13c2eb0, 0x13c3c74, 0x13c4a38, 0x13c57fc, 0x13c65c0,
 ];
-export const NAME_TABLE_ENTRIES = 836;
+export const NAME_TABLE_ENTRIES = 880;
 
 export interface NameInfo {
   text: string;

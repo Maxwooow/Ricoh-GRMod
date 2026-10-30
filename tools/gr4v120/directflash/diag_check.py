@@ -5,7 +5,7 @@
 
  1. Runs the exposure hook (the wrapper of the flash program at 0x5369F224) of a build made with the
     test option `directFlashDiag` twice, on a bright and on a dim scene: the planner allocates its
-    buffer on the first call (operator new stubbed), keeps it in RAM word 0x558372FC, and leaves
+    buffer on the first call (operator new stubbed), keeps it in RAM word 0x5583903C, and leaves
     two records; each record holds the inputs and results the check put in / expects.
  2. Runs the date imprint's DFDIAG module (DATESTAMP_DFDIAG_CODE) on a 720x480 picture with that
     buffer and writes the picture to OUT.png (default /tmp/df_diag.png) for a look.
@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import check  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
-SLOT = 0x558372fc
+SLOT = 0x5583903c
 ALLOC = 0x539084bc
 HEAP = 0x60080000
 failures = []

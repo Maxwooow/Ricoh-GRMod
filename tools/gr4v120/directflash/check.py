@@ -48,7 +48,7 @@ TEXT_ID, ICON_ID = 882, 733
 APP, SETTINGS, GET_FM, SET_FM = 0x532406a4, 0x53240c38, 0x5329b514, 0x532b6ee0
 FLASH_ICON, LIST_ITEM, ITEM_SET_ICON, LABEL_SET_TEXT, ROW_SET = 0x53390328, 0x53593d64, 0x535a1064, 0x53596654, 0x5359e1bc
 ADJ_RECORD = 0x53dc9dfc + 9 * 0x5c
-FN_RECORD = 0x53dcb09c
+FN_RECORD = 0x53da09b4
 ADJ = dict(flag=0x282, text=0x164, icons=0x1f8, slots=dict(text=0x10, icon=0x18, current=0x20, set=0x28, count=0x30),
            official=dict(text=0x531bb990, icon=0x531bf8f0, current=0x531bc948, set=0x531bc50c, count=0x531bb6a4))
 FN = dict(flag=0x197, text=0x160, icons=0x178, slots=dict(text=0x04, icon=0x0c, current=0x14, set=0x1c, count=0x24),
@@ -635,7 +635,7 @@ def check_menus(img):
 
 # --- 4. Text and icon -------------------------------------------------------------------------
 def check_resources(img):
-    TEXT_CATALOG, ICON_CATALOG = 0x543d4ac0, 0x543d3ac0
+    TEXT_CATALOG, ICON_CATALOG = 0x5440d600, 0x5440c600
     for lang, want in NAMES.items():
         row = img.u32(TEXT_CATALOG + lang * 4)
         d = img.u32(row + TEXT_ID * 4)

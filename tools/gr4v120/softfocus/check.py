@@ -157,7 +157,7 @@ def install_stubs(mu):
             r=stubs[addr](uc)
             uc.reg_write(UC_ARM_REG_R0, r if r is not None else 0)
             uc.reg_write(UC_ARM_REG_PC, uc.reg_read(UC_ARM_REG_LR))
-    mu.hook_add(UC_HOOK_CODE, hk, begin=0x53000000, end=0x54500000)
+    mu.hook_add(UC_HOOK_CODE, hk, begin=0x53000000, end=0x54540000)
 R0,R1,R2=UC_ARM_REG_R0,UC_ARM_REG_R1,UC_ARM_REG_R2
 ok=True
 def check(name, got, want):
@@ -184,11 +184,11 @@ check('icons of the other functions as official', [(f,v) for f in range(0x18) fo
 # icon catalog entry
 
 def rdw(img,va): o=va-BASE; return struct.unpack('<I',img[o:o+4])[0]
-d=rdw(RT,0x543d3ac0+720*4); k,wid,hei,fl,off=struct.unpack('<HHHHI',RT[d-BASE:d-BASE+12])
+d=rdw(RT,0x5440c600+720*4); k,wid,hei,fl,off=struct.unpack('<HHHHI',RT[d-BASE:d-BASE+12])
 check('icon 720 descriptor 40x40', (k,wid,hei,fl), (1,40,40,0)); print('     icon pixel offset (words)', off, 'bytes', off*4, 'official ICONBIN', 0xdcf460)
 # 2. text 840 in every language row, and bound helpers
 L=['cs','da','en','fi','fr','de','el','hu','it','ja','ko','nl','pl','pt','ru','zh-CN','es','sv','th','zh-TW','tr']
-roots=[rdw(RT,0x543d4ac0+4*l) for l in range(21)]
+roots=[rdw(RT,0x5440d600+4*l) for l in range(21)]
 names=[]
 for l,row in enumerate(roots):
     dsc=rdw(RT,row+840*4); cnt=rdw(RT,dsc); sp=rdw(RT,dsc+4); n=(cnt&0xff)-1

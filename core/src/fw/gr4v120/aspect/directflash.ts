@@ -43,7 +43,7 @@
  *       copies the table);
  *     * the ADJ lever (record 0x09 of AdjModeController's table at 0x53DC9DFC: text, icon, is
  *       current, set, count; slow sync when the controller's byte +0x282 is set);
- *     * the Fn list (record id 0x16 at 0x53DCB09C of the table at 0x53DCAE14: text, icon, is
+ *     * the Fn list (record id 0x16 at 0x53DA09B4 of the table at 0x53DCAE14: text, icon, is
  *       current, set, count; slow sync when byte +0x197 is set).
  *    The other values go to the camera's own handlers. Picking Direct Flash sets Flash Mode 0
  *    (SetFlashMode, 0x532B6EE0) and bit 0; picking any other value clears bit 0 (the other bits
@@ -91,7 +91,7 @@ export const DIRECT_FLASH_TV_BYTE = 0x550832a8 + 4 + 0x109;
  * on its first call), the last of the 44 bytes before the heap that the start-up zero fill clears
  * once it is extended (see slots.ts / lookstash.ts). The date imprint's diagnostic build prints it.
  */
-export const DIRECT_FLASH_DIAG_SLOT = 0x558372fc;
+export const DIRECT_FLASH_DIAG_SLOT = 0x5583903c;
 const HEAP_ALLOC = 0x539084bc;
 const ZERO_FILL_END = 0x53000460;
 /** The guide number (ISO 100, metres) while none is chosen: the GF-2's (9.8 ft / 3 m). */
@@ -133,7 +133,7 @@ interface Handlers {
 }
 
 const ADJ_RECORD = 0x53dc9dfc + 0x09 * 0x5c;
-const FN_RECORD = 0x53dcb09c;
+const FN_RECORD = 0x53da09b4;
 const LIST_RECORDS = [0x53dcd470 + 11 * 0x4c, 0x53dcd470 + 12 * 0x4c] as const;
 
 const ADJ: Handlers = {
@@ -336,7 +336,7 @@ function branchTo(at: number, target: number, link: boolean): number {
 /** Install Direct Flash. Returns the new ICONBIN data. `diag`: test builds only (see DIRECT_FLASH_DIAG_SLOT). */
 export function installDirectFlash(patch: Patch, iconbin: Uint8Array, diag = false): Uint8Array {
   if (diag && patch.word(ZERO_FILL_END) !== 0x55839040) {
-    expectWord(patch, ZERO_FILL_END, 0x558372d4);
+    expectWord(patch, ZERO_FILL_END, 0x55839014);
     patch.setWord(ZERO_FILL_END, 0x55839040, 'start-up zero fill also clears the 44 unused bytes before the heap');
   }
 

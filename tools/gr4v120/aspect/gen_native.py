@@ -21,7 +21,8 @@ from pathlib import Path
 
 import common
 
-NATIVE = common.TOOL / 'gr4_editor' / 'native'
+# 1.20: the reference's sources with the firmware addresses moved (generated from third_party/gr-custom-tool/native).
+NATIVE = Path(__file__).resolve().parent / 'native'
 FLAGS = ['-target', 'armv7-none-eabi', '-mcpu=cortex-a9', '-marm', '-mfloat-abi=soft', '-Os', '-ffreestanding',
          '-fno-builtin', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-nostdlib']
 MAX_CUSTOM = 8
@@ -100,7 +101,7 @@ def half(word):
 
 
 def make_template(name, spec, count):
-    origin = 0x54400000
+    origin = 0x54440000
     bindings = {symbol: 0x53411dc0 + 0x1234 * (index + 1) * 4 for index, symbol in enumerate(spec['bindings'])}
     plain, _, _ = compile_module(spec, count, origin, bindings, False)
     blob, symbols, table = compile_module(spec, count, origin, bindings, True)
@@ -174,7 +175,7 @@ def main():
         for count in spec['counts']:
             template = make_template(name, spec, count)
             # Check against a real second link: other origin, other symbol values (both halves differ).
-            origin = 0x543FC1D0 + 0x10 * count
+            origin = 0x5443C1D0 + 0x10 * count
             bindings = {symbol: 0x5372EF3C + 0x00FEDCB8 * (index + 1) % 0x00F00000 // 4 * 4
                         for index, symbol in enumerate(spec['bindings'])}
             expected, symbols, _ = compile_module(spec, count, origin, bindings, False)

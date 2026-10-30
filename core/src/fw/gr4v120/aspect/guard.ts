@@ -44,7 +44,7 @@ const CURRENT = 0x53240c38;
 const SETTINGS_SAVE = 0x533f3674;
 const SETTINGS_LOAD = 0x533f3254;
 /** User-mode recall: `bl 0x532406A4` with the settings in r4 (see build.ts, installState). */
-const RECALL = 0x532a90cc;
+const RECALL = 0x532adedc;
 const RECALL_NATIVE = 0x532406a4;
 
 const LOOKS = [0x153, 0x154, 0x155, 0x156, 0x515, 0x516, 0x517, 0x518];

@@ -60,7 +60,7 @@ COUNTS = [2, 4, 2]
 DIRECT_FLASH_RECORDS = (11, 12)
 # Flash Mode's submenu record, to which Direct Flash adds its settings (0.8.4).
 DIRECT_FLASH_SUBMENU = 5
-TEXT_CATALOG, ICON_CATALOG = 0x543d4ac0, 0x543d3ac0
+TEXT_CATALOG, ICON_CATALOG = 0x5440d600, 0x5440c600
 NAMES = ['Vkopírování data', 'Datostempel', 'Date Imprint', 'Päiväysleima', 'Impression date', 'Datumseinbelichtung',
          'Αποτύπωση ημ/νίας', 'Dátumbélyegző', 'Stampa data', '日付写し込み', '날짜 각인', 'Datumafdruk', 'Nadruk daty',
          'Impressão de data', 'Впечатывание даты', '拍摄时间戳', 'Impresión de fecha', 'Datumstämpel', 'ประทับวันที่',
@@ -427,7 +427,7 @@ def check_texts_icons(new, off, png):
         check(got[0] == NAMES[k] and got[3] == "'26 10 08" and got[4] == '2026.10.08 17:34' and got[1] and got[2] and got[5] == ORIENT_NAMES[k]
               and got[6] == f"'26 10 08 + {NAME_WORDS[k]}" and got[7] == f'2026.10.08 17:34 + {NAME_WORDS[k]}', f'texts, language row {l}: {got}')
         check(text(new, l, 2) == text(off, l, 2) if False else True, '')
-    for site in (0x543d4ac0,):
+    for site in (0x5440d600,):
         pass
     for low in (0x5323f7ec, 0x5323e40c):
         w = new.u32(low)

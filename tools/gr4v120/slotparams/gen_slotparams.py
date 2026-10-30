@@ -106,7 +106,7 @@ def half(word):
 
 
 def make_template(count):
-    origin = 0x54400000
+    origin = 0x54440000
     bindings = {symbol: 0x53411dc0 + 0x1234 * (index + 1) * 4 for index, symbol in enumerate(BINDINGS)}
     plain, _, _ = compile_module(count, origin, bindings, False)
     blob, symbols, table = compile_module(count, origin, bindings, True)
@@ -173,7 +173,7 @@ def main():
     out = {'bindings': BINDINGS, 'variants': {}}
     for count in COUNTS:
         template = make_template(count)
-        origin = 0x543FC1D0 + 0x10 * count
+        origin = 0x5443C1D0 + 0x10 * count
         bindings = {symbol: 0x5372EF3C + 0x00FEDCB8 * (index + 1) % 0x00F00000 // 4 * 4 for index, symbol in enumerate(BINDINGS)}
         expected, symbols, _ = compile_module(count, origin, bindings, False)
         if relocate(template, origin, bindings) != expected:

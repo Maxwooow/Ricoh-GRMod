@@ -4,57 +4,20 @@
  */
 import {
   CONTENT_AREA,
-  DECODED_SIZE,
-  FIRMWARE_VERSION,
   FRAME_SIZE,
   Firmware,
   FirmwareError,
-  ICONBIN_LENGTH,
-  ICONBIN_OFFSET,
   LANGS,
-  LEN,
-  MAX_CUSTOM_RATIOS,
-  RTOS_LENGTH,
-  RTOS_OFFSET,
-  SLOTS,
-  allowedChars,
-  aspect,
-  buildFirmware,
   countChangedBytes,
-  editableRanges,
-  monoUnlockWords,
   equalRange,
-  foff,
-  gr4Sizes,
   listResources,
-  openOfficial,
-  planRatio,
-  planRatios,
-  ratioText,
-  readIcon,
-  readFactoryEntry,
-  readName,
-  readBuildRevision,
-  readExtensionFeatures,
-  readExtraSlotCount,
-  readShutdownCount,
-  readRatioRecord,
-  resolveLayout,
   sectionsOf,
-  selfCheck,
-  selfCheckGrown,
   buildGrown,
   sha256Hex,
-  tileTemplate,
-  validateName,
-  validateRatioName,
-  SOFT_FOCUS_GAINS,
-  SOFT_FOCUS_LEVELS,
-  SOFT_FOCUS_STRENGTHS,
-  clarityChanges,
 } from '../fw';
+import * as Gr4Program111 from '../fw';
+import * as Gr4Program120 from '../fw/gr4v120';
 import type { BuildResult, BuiltRatio, ClarityChange, ClarityEdit, ExtensionFeatures, ExtraSlotSpec, LookLayout, ShutdownPictureSpec, SoftFocusLevel, SoftFocusStrength, FactoryEntry, LangCode, Layout, NameValidation, Range, RatioSpec, SlotEdit, SlotId as NativeSlotId } from '../fw';
-import { grownRanges, growPayload } from '../fw/aspect/package';
 import { BRIDGE_SHA256, BRIDGE_SIZE, isBridgeFirmware, makeBridgeFirmware, officialFromBridge } from '../fw/bridge';
 import { convertCube, convertXmp, hueCopy0, hueFromQ10, HUE_BLOCK_BYTES, quantizeSlot } from '../color';
 import type { SlotParams } from '../color';
@@ -71,9 +34,7 @@ import { readGr3xBuildRecipe } from '../fw/gr3x/ratio-recipe';
 import { isGr3xFactoryLayout, validateGr3xLookLayout } from '../fw/gr3x/look-layout';
 import type { Gr3xLookLayout } from '../fw/gr3x/look-layout';
 import { encodeGr3xPicture } from '../fw/gr3x/shutdown';
-import { encodeShutdownPicture } from '../fw/aspect/shutdown';
 import type { Gr3xPictureSpec } from '../fw/gr3x/shutdown';
-import { readRes, resFile } from '../fw/aspect/res';
 import { GR3X_FILM_IDS, GR3X_FILM_NAMES, GR3X_LOOK_CHARS, validateGr3xLookName } from '../fw/gr3x/look-resources';
 import type { Gr3xLookOptions } from '../fw/gr3x/image-control';
 import { GR3X_MAX_FILMS } from '../fw/gr3x/image-control';
@@ -353,6 +314,20 @@ async function gr3ProgramOf(raw: Uint8Array): Promise<Gr3Program | null> {
   return null;
 }
 
+/**
+ * The GR IV programs: firmware 1.11 (fw/) and its generated port to 1.20 (fw/gr4v120, experimental;
+ * GR IV Monochrome 1.10 is the same file). Every firmware address lives in one of them; an engine
+ * keeps the program of the file it opened (GR III / IIIx engines keep 1.11's, which their own
+ * program does not use for anything firmware-specific).
+ */
+type Gr4Program = typeof Gr4Program111;
+// The port has the same API (generated from the same sources); only constant values differ.
+const GR4_PROGRAMS: readonly Gr4Program[] = [Gr4Program111, Gr4Program120 as unknown as Gr4Program];
+async function gr4ProgramOf(raw: Uint8Array): Promise<Gr4Program | null> {
+  for (const program of GR4_PROGRAMS) if (raw.length === program.OFFICIAL_SIZE && (await sha256Hex(raw)) === program.OFFICIAL_SHA256) return program;
+  return null;
+}
+
 export class Engine {
   readonly info: FirmwareInfo;
   private readonly raw: Uint8Array;
@@ -364,6 +339,8 @@ export class Engine {
   private gr3xCandidates = new Map<string, Promise<FirmwareBuild>>();
   /** The GR III / IIIx program of the open file (null for GR IV). */
   private readonly gr3: Gr3Program | null;
+  /** The GR IV program of the open file (1.11's for GR III / IIIx). */
+  private readonly g4: Gr4Program;
 
   private fixedGr3x(softFocus: readonly SoftFocusRequest[] = [], looks?: Gr3xLookOptions, menu: readonly Gr3xMenuRatio[] = GR3X_T4_MENU, adjSoftFocus = false, dateImprint = false, pictures: readonly Gr3xPictureSpec[] = [], dateMenu: 'list' | 'submenu' = 'submenu', pictureMenu: 'list' | 'submenu' = 'submenu',
     round: { round7?: boolean; round8?: boolean; round9?: boolean; round10?: boolean; lookLayout?: Gr3xLookLayout } = {}): Promise<FirmwareBuild> {
@@ -392,8 +369,9 @@ export class Engine {
     return candidate;
   }
 
-  private constructor(raw: Uint8Array, decoded: Uint8Array, info: FirmwareInfo, mStd: Int16Array, layout: Layout | null, gr3: Gr3Program | null = null) {
+  private constructor(raw: Uint8Array, decoded: Uint8Array, info: FirmwareInfo, mStd: Int16Array, layout: Layout | null, gr3: Gr3Program | null = null, g4: Gr4Program = Gr4Program111) {
     this.gr3 = gr3;
+    this.g4 = g4;
     this.raw = raw;
     this.decoded = decoded;
     this.info = info;
@@ -444,28 +422,30 @@ export class Engine {
     }
     const bridge = await isBridgeFirmware(input);
     const raw = bridge ? await officialFromBridge(input) : input;
-    const { decoded } = await openOfficial(raw);
-    const layout = resolveLayout(decoded);
-    const mo = foff(layout.standard.matrix);
+    // The official 1.11 or 1.20 file; anything else is refused by 1.11's openOfficial as before.
+    const g4 = (await gr4ProgramOf(raw)) ?? Gr4Program111;
+    const { decoded } = await g4.openOfficial(raw);
+    const layout = g4.resolveLayout(decoded);
+    const mo = g4.foff(layout.standard.matrix);
     const mStd = new Int16Array(9);
     const dv = new DataView(decoded.buffer, decoded.byteOffset, decoded.byteLength);
     for (let i = 0; i < 9; i++) mStd[i] = dv.getInt16(mo + 2 * i, true);
 
     const allowed = {} as Record<LangCode, string>;
     for (const lang of LANGS) {
-      const set = allowedChars(decoded, lang);
+      const set = g4.allowedChars(decoded, lang);
       const chars: number[] = [];
       for (const u of set) if (u >= 0x20 && !(u >= 0x7f && u <= 0x9f) && !(u >= 0xd800 && u <= 0xdfff)) chars.push(u);
       chars.sort((a, b) => a - b);
       allowed[lang] = String.fromCharCode(...chars);
     }
-    const slots: SlotInfoView[] = SLOTS.map((s) => {
+    const slots: SlotInfoView[] = g4.SLOTS.map((s) => {
       const names = {} as Record<LangCode, { text: string; capacity: number }>;
       for (const lang of LANGS) {
-        const n = readName(decoded, lang, s.nameIndex);
+        const n = g4.readName(decoded, lang, s.nameIndex);
         names[lang] = { text: n.text, capacity: n.capacity };
       }
-      return { id: s.id, defaultName: s.defaultName, icon: readIcon(decoded, s.iconOffset), names };
+      return { id: s.id, defaultName: s.defaultName, icon: g4.readIcon(decoded, s.iconOffset), names };
     });
     const shutdown: Partial<Record<CameraModel, ShutdownResource>> = {};
     const res = listResources(decoded);
@@ -479,24 +459,25 @@ export class Engine {
     const info: FirmwareInfo = {
       family: 'gr4', filename: 'fwdc248b.bin', models: ['STANDARD', 'HDF', 'MONO'],
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
-      capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, bridge: !bridge, menuPictures: true, lookLayout: true },
+      // The 1.12 bridge firmware goes back to 1.11 only: no bridge for 1.20.
+      capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, bridge: !bridge && g4 === Gr4Program111, menuPictures: true, lookLayout: true },
       features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, directFlash: true },
-      version: FIRMWARE_VERSION,
+      version: g4.FIRMWARE_VERSION,
       sha256: await sha256Hex(raw),
       slots,
-      tiles: { film: tileTemplate(decoded, 'film'), plain: tileTemplate(decoded, 'plain') },
+      tiles: { film: g4.tileTemplate(decoded, 'film'), plain: g4.tileTemplate(decoded, 'plain') },
       contentArea: CONTENT_AREA,
       allowed,
       shutdown,
-      factoryEntry: readFactoryEntry(decoded),
+      factoryEntry: g4.readFactoryEntry(decoded),
       bridge,
     };
-    return new Engine(raw, decoded, info, mStd, layout);
+    return new Engine(raw, decoded, info, mStd, layout, null, g4);
   }
 
   /** Set by `extendVerified` while it inspects a file: the additions to build on top of it. */
   private extendWith: Partial<ExtensionFeatures> | null = null;
-  private extendTest: aspect.TestOptions = {};
+  private extendTest: Gr4Program111.aspect.TestOptions = {};
   private extended: Uint8Array | null = null;
 
   /**
@@ -504,7 +485,7 @@ export class Engine {
    * program rebuilt with more additions (e.g. Direct Flash on top of a test firmware), everything
    * else the same, through the same self-check as any build. Throws when the file is not verified.
    */
-  async extendVerified(raw: Uint8Array, add: Partial<ExtensionFeatures>, test: aspect.TestOptions = {}): Promise<Uint8Array> {
+  async extendVerified(raw: Uint8Array, add: Partial<ExtensionFeatures>, test: Gr4Program111.aspect.TestOptions = {}): Promise<Uint8Array> {
     this.extendWith = add;
     this.extendTest = test;
     this.extended = null;
@@ -520,6 +501,7 @@ export class Engine {
   /** The 1.12 bridge firmware, made from the official file this engine holds (see `fw/bridge.ts`). */
   async bridgeFirmware(): Promise<Uint8Array> {
     if (this.layout === null) requireGr3xPort('bridge firmware');
+    if (this.g4 !== Gr4Program111) throw new FirmwareError('unsupported-firmware', 'the bridge firmware is made from the official 1.11 file only');
     return makeBridgeFirmware(this.raw);
   }
 
@@ -558,18 +540,18 @@ export class Engine {
             // Power-off pictures: the names from the recipe, the JPEGs from the file's own RES section.
             if (build.pictures.length) {
               if (build.pictures.length > this.gr3!.GR3X_MAX_PICTURES) throw new FirmwareError('bad-edit', 'IIIx picture recipe');
-              const dir = readRes(decoded);
+              const dir = this.g4.readRes(decoded);
               pictures = build.pictures.map((name, k) => {
-                const jpeg = resFile(decoded, this.gr3!.gr3xPicturePath(k), dir);
+                const jpeg = this.g4.resFile(decoded, this.gr3!.gr3xPicturePath(k), dir);
                 if (!jpeg) throw new FirmwareError('bad-edit', 'IIIx picture missing');
                 return { name, jpeg, ...(build.pictureMenu === 'submenu' ? { id: build.pictureIds[k] } : {}) };
               });
             }
           }
         }
-        const changes = clarityChanges(decoded, this.gr3!.GR3X_CLARITY_OFFSET);
+        const changes = this.g4.clarityChanges(decoded, this.gr3!.GR3X_CLARITY_OFFSET);
 
-        if (changes.every(c => SOFT_FOCUS_LEVELS.includes(c.level as SoftFocusLevel) && c.strength !== 'custom')) {
+        if (changes.every(c => this.g4.SOFT_FOCUS_LEVELS.includes(c.level as SoftFocusLevel) && c.strength !== 'custom')) {
           candidate = await this.fixedGr3x(changes as SoftFocusRequest[], looks ?? undefined, menu, adjSoftFocus, dateImprint, pictures, dateMenu, pictureMenu, { round7, round8, round9, round10, ...(lookLayout ? { lookLayout } : {}) });
           softFocus = changes;
         }
@@ -589,17 +571,17 @@ export class Engine {
     }
     if (raw.length === BRIDGE_SIZE && sha256 === BRIDGE_SHA256) return { sha256, kind: 'bridge', changedBytes: 0, verified: true, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false, extraSlots: [] };
     const describe = (d: Uint8Array): FirmwareSummary['slots'] =>
-      SLOTS.map((s) => {
+      this.g4.SLOTS.map((s) => {
         const names = {} as Record<LangCode, string>;
         let nameChanged = false;
         for (const lang of LANGS) {
-          names[lang] = readName(d, lang, s.nameIndex).text;
-          if (names[lang] !== readName(this.decoded, lang, s.nameIndex).text) nameChanged = true;
+          names[lang] = this.g4.readName(d, lang, s.nameIndex).text;
+          if (names[lang] !== this.g4.readName(this.decoded, lang, s.nameIndex).text) nameChanged = true;
         }
         const li = this.layout![s.id];
-        const same = (va: number, len: number): boolean => equalRange(d, foff(va), this.decoded, foff(va), len);
-        const colorChanged = !(same(li.matrix, LEN.matrix) && same(li.desc, LEN.desc) && same(li.R, LEN.R) && same(li.G, LEN.G) && same(li.B, LEN.B) && same(li.maBlock, LEN.ma_block));
-        const icon = readIcon(d, s.iconOffset);
+        const same = (va: number, len: number): boolean => equalRange(d, this.g4.foff(va), this.decoded, this.g4.foff(va), len);
+        const colorChanged = !(same(li.matrix, this.g4.LEN.matrix) && same(li.desc, this.g4.LEN.desc) && same(li.R, this.g4.LEN.R) && same(li.G, this.g4.LEN.G) && same(li.B, this.g4.LEN.B) && same(li.maBlock, this.g4.LEN.ma_block));
+        const icon = this.g4.readIcon(d, s.iconOffset);
         const iconChanged = !equalRange(d, s.iconOffset, this.decoded, s.iconOffset, icon.length);
         return { id: s.id, names, icon, colorChanged, nameChanged, iconChanged };
       });
@@ -607,15 +589,15 @@ export class Engine {
     try {
       const fw = new Firmware(raw);
       if (!equalRange(fw.header, 0, this.raw, 0, fw.header.length)) throw new Error('not 1.11');
-      if (!this.editable) this.editable = editableRanges(this.decoded);
-      if (fw.decoded.length !== DECODED_SIZE) return this.inspectGrown(sha256, raw, fw.decoded, describe);
+      if (!this.editable) this.editable = this.g4.editableRanges(this.decoded);
+      if (fw.decoded.length !== this.g4.DECODED_SIZE) return this.inspectGrown(sha256, raw, fw.decoded, describe);
       // The monochrome looks on their own are written in place: all of their words, or none.
-      if (!this.monoWords) this.monoWords = monoUnlockWords(this.decoded);
+      if (!this.monoWords) this.monoWords = this.g4.monoUnlockWords(this.decoded);
       const monoUnlock = this.monoWords.every((w) => equalRange(fw.decoded, w.offset, w.bytes, 0, 4));
       const allowed = monoUnlock ? [...this.editable, ...this.monoWords.map((w) => ({ what: 'monochrome looks', offset: w.offset, length: 4 }))] : this.editable;
-      const checks = selfCheck(this.raw, raw, allowed);
+      const checks = this.g4.selfCheck(this.raw, raw, allowed);
       const verified = Object.values(checks).every((v) => v === true);
-      return { sha256, kind: 'modified', changedBytes: countChangedBytes(fw.decoded, this.decoded), verified, slots: describe(fw.decoded), ratios: [], softFocus: clarityChanges(fw.decoded), adjSoftFocus: false, dateStamp: false, monoUnlock, extraSlots: [] };
+      return { sha256, kind: 'modified', changedBytes: countChangedBytes(fw.decoded, this.decoded), verified, slots: describe(fw.decoded), ratios: [], softFocus: this.g4.clarityChanges(fw.decoded), adjSoftFocus: false, dateStamp: false, monoUnlock, extraSlots: [] };
     } catch {
       return { sha256, kind: 'unknown', changedBytes: 0, verified: false, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false, extraSlots: [] };
     }
@@ -644,54 +626,54 @@ export class Engine {
     }
     // ICONBIN grows only when icons were added (a build that only appends code leaves it as it is).
     // RES grows only by power-off pictures: one run of files inserted between official ones.
-    const resGrowth = dec.length - DECODED_SIZE - rtosGrowth - iconGrowth;
+    const resGrowth = dec.length - this.g4.DECODED_SIZE - rtosGrowth - iconGrowth;
     if (!(rtosGrowth > 0 && iconGrowth >= 0 && resGrowth >= 0 && rtosGrowth % FRAME_SIZE === 0 && iconGrowth % FRAME_SIZE === 0 && resGrowth % FRAME_SIZE === 0)) return unknown;
-    const resInsert = resGrowth > 0 ? aspect.findResInsertion(this.decoded, dec, FRAME_SIZE) : null;
+    const resInsert = resGrowth > 0 ? this.g4.aspect.findResInsertion(this.decoded, dec, FRAME_SIZE) : null;
     if (resGrowth > 0 && !(resInsert && resInsert.length === resGrowth)) return unknown;
     // The payload with the added blocks taken out again: official layout.
-    const aligned = new Uint8Array(DECODED_SIZE);
-    const rtosEnd = RTOS_OFFSET + RTOS_LENGTH;
-    const iconEnd = ICONBIN_OFFSET + ICONBIN_LENGTH;
+    const aligned = new Uint8Array(this.g4.DECODED_SIZE);
+    const rtosEnd = this.g4.RTOS_OFFSET + this.g4.RTOS_LENGTH;
+    const iconEnd = this.g4.ICONBIN_OFFSET + this.g4.ICONBIN_LENGTH;
     aligned.set(dec.subarray(0, rtosEnd), 0);
     aligned.set(dec.subarray(rtosEnd + rtosGrowth, iconEnd + rtosGrowth), rtosEnd);
     if (resInsert) {
       const after = rtosGrowth + iconGrowth;
       aligned.set(dec.subarray(iconEnd + after, resInsert.at + after), iconEnd);
       aligned.set(dec.subarray(resInsert.at + after + resGrowth), resInsert.at);
-      const count = aspect.readRes(this.decoded).countOffset;
+      const count = this.g4.aspect.readRes(this.decoded).countOffset;
       aligned.set(this.decoded.subarray(count, count + 4), count);
     } else {
       aligned.set(dec.subarray(iconEnd + rtosGrowth + iconGrowth), iconEnd);
     }
-    aligned.set(this.decoded.subarray(RTOS_OFFSET - 4, RTOS_OFFSET), RTOS_OFFSET - 4);
-    aligned.set(this.decoded.subarray(ICONBIN_OFFSET - 4, ICONBIN_OFFSET), ICONBIN_OFFSET - 4);
-    const specs = readRatioRecord(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth));
-    const features = readExtensionFeatures(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? {};
+    aligned.set(this.decoded.subarray(this.g4.RTOS_OFFSET - 4, this.g4.RTOS_OFFSET), this.g4.RTOS_OFFSET - 4);
+    aligned.set(this.decoded.subarray(this.g4.ICONBIN_OFFSET - 4, this.g4.ICONBIN_OFFSET), this.g4.ICONBIN_OFFSET - 4);
+    const specs = this.g4.readRatioRecord(dec.subarray(this.g4.RTOS_OFFSET, rtosEnd + rtosGrowth));
+    const features = this.g4.readExtensionFeatures(dec.subarray(this.g4.RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? {};
     // Added slots: their data is read back from the file and built again like everything else.
-    const extraCount = readExtraSlotCount(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? 0;
+    const extraCount = this.g4.readExtraSlotCount(dec.subarray(this.g4.RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? 0;
     if (extraCount > 0) {
-      const iconStart = ICONBIN_OFFSET + rtosGrowth;
-      const slots = aspect.readExtraSlots(dec.slice(RTOS_OFFSET, rtosEnd + rtosGrowth), dec.subarray(iconStart, iconStart + ICONBIN_LENGTH + iconGrowth), extraCount);
+      const iconStart = this.g4.ICONBIN_OFFSET + rtosGrowth;
+      const slots = this.g4.aspect.readExtraSlots(dec.slice(this.g4.RTOS_OFFSET, rtosEnd + rtosGrowth), dec.subarray(iconStart, iconStart + this.g4.ICONBIN_LENGTH + iconGrowth), extraCount);
       if (!slots) return { ...unknown, kind: 'modified' };
       features.extraSlots = slots;
     }
     // Halation of Cinema Yellow / Green (0.8.2): from the image as well.
-    const halation = aspect.readHalation(new aspect.Patch(dec.slice(RTOS_OFFSET, rtosEnd + rtosGrowth)), aspect.EXTRA_FIRST_STYLE, extraCount);
+    const halation = this.g4.aspect.readHalation(new this.g4.aspect.Patch(dec.slice(this.g4.RTOS_OFFSET, rtosEnd + rtosGrowth)), this.g4.aspect.EXTRA_FIRST_STYLE, extraCount);
     const cinemaHalation: Partial<Record<'CY' | 'CG', true>> = {};
     for (const [id, style] of [['CY', 18], ['CG', 19]] as const) if (halation?.has(style)) cinemaHalation[id] = true;
     if (Object.keys(cinemaHalation).length > 0) features.cinemaHalation = cinemaHalation;
     // Power-off pictures: names and identities from the image, JPEGs from RES.
-    const pictureCount = readShutdownCount(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? 0;
+    const pictureCount = this.g4.readShutdownCount(dec.subarray(this.g4.RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? 0;
     if (pictureCount > 0 || resInsert) {
-      const menu = aspect.readShutdownMenu(new aspect.Patch(dec.slice(RTOS_OFFSET, rtosEnd + rtosGrowth)));
-      const jpegs = aspect.readShutdownJpegs(dec, pictureCount);
+      const menu = this.g4.aspect.readShutdownMenu(new this.g4.aspect.Patch(dec.slice(this.g4.RTOS_OFFSET, rtosEnd + rtosGrowth)));
+      const jpegs = this.g4.aspect.readShutdownJpegs(dec, pictureCount);
       if (!menu || !jpegs || menu.length !== pictureCount || !resInsert) return { ...unknown, kind: 'modified' };
-      features.shutdown = { pictures: menu.map((m, k) => ({ ...m, jpeg: jpegs[k] })), factory: aspect.factoryShutdownJpegs(this.decoded) };
+      features.shutdown = { pictures: menu.map((m, k) => ({ ...m, jpeg: jpegs[k] })), factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) };
     }
     // Files of GR Mod 0.2.x are revision 1; they are checked against what that revision builds.
-    const revision = readBuildRevision(dec.subarray(RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? 1;
+    const revision = this.g4.readBuildRevision(dec.subarray(this.g4.RTOS_OFFSET, rtosEnd + rtosGrowth)) ?? 1;
     const modified = (verified: boolean, ratios: BuiltRatio[], slotsFrom: Uint8Array): FirmwareSummary => ({
-      sha256, kind: 'modified', changedBytes: countChangedBytes(aligned, this.decoded) + rtosGrowth + iconGrowth + resGrowth, verified, slots: describe(slotsFrom), ratios, softFocus: clarityChanges(slotsFrom),
+      sha256, kind: 'modified', changedBytes: countChangedBytes(aligned, this.decoded) + rtosGrowth + iconGrowth + resGrowth, verified, slots: describe(slotsFrom), ratios, softFocus: this.g4.clarityChanges(slotsFrom),
       adjSoftFocus: !!features.adjSoftFocus,
       dateStamp: !!features.dateStamp,
       monoUnlock: !!features.monoUnlock,
@@ -704,13 +686,13 @@ export class Engine {
     let ratios: BuiltRatio[] = [];
     try {
       // Files of earlier versions may hold ratios narrower than 1:1, which are no longer built.
-      const plan = planRatios(specs, { portrait: true });
-      ratios = plan.map((r) => ({ id: r.id, name: r.name, ratio: r.ratio, actual: ratioText(r.geometry.actual.n, r.geometry.actual.d), sizes: gr4Sizes(r.geometry) }));
+      const plan = this.g4.planRatios(specs, { portrait: true });
+      ratios = plan.map((r) => ({ id: r.id, name: r.name, ratio: r.ratio, actual: this.g4.ratioText(r.geometry.actual.n, r.geometry.actual.d), sizes: this.g4.gr4Sizes(r.geometry) }));
       // Undo the hook words (their places are the same for every list of ratios of this length
       // or any other: they are found by building once on the official image).
-      const probe = aspect.installExtensions(this.decoded.slice(RTOS_OFFSET, rtosEnd), this.decoded.slice(ICONBIN_OFFSET, iconEnd), plan, features, revision);
+      const probe = this.g4.aspect.installExtensions(this.decoded.slice(this.g4.RTOS_OFFSET, rtosEnd), this.decoded.slice(this.g4.ICONBIN_OFFSET, iconEnd), plan, features, revision);
       for (const w of probe.words) {
-        const o = RTOS_OFFSET + (w.address - 0x53000000);
+        const o = this.g4.RTOS_OFFSET + (w.address - 0x53000000);
         aligned.set(this.decoded.subarray(o, o + 4), o);
       }
       // What is left must be this program's same-length edits only...
@@ -718,7 +700,7 @@ export class Engine {
       const sorted = [...editable].sort((a, b) => a.offset - b.offset);
       let ri = 0;
       let cover = -1;
-      for (let i = 0; i < DECODED_SIZE; i++) {
+      for (let i = 0; i < this.g4.DECODED_SIZE; i++) {
         if (aligned[i] === this.decoded[i]) continue;
         while (ri < sorted.length && sorted[ri].offset <= i) {
           cover = Math.max(cover, sorted[ri].offset + sorted[ri].length);
@@ -727,22 +709,22 @@ export class Engine {
         if (i >= cover) return modified(false, ratios, aligned);
       }
       // ... and building the ratios on top of them must give this very payload.
-      const built = aspect.installExtensions(aligned.slice(RTOS_OFFSET, rtosEnd), aligned.slice(ICONBIN_OFFSET, iconEnd), plan, features, revision);
-      const grown = growPayload(aligned, built, specs);
+      const built = this.g4.aspect.installExtensions(aligned.slice(this.g4.RTOS_OFFSET, rtosEnd), aligned.slice(this.g4.ICONBIN_OFFSET, iconEnd), plan, features, revision);
+      const grown = this.g4.growPayload(aligned, built, specs);
       const same = grown.decoded.length === dec.length && equalRange(grown.decoded, 0, dec, 0, dec.length);
       if (!same) return modified(false, ratios, aligned);
-      const ranges: Range[] = editable.map((r) => (r.offset >= ICONBIN_OFFSET ? { ...r, offset: r.offset + grown.rtosGrowth + (r.offset >= ICONBIN_OFFSET + ICONBIN_LENGTH ? grown.iconGrowth : 0) } : r));
-      ranges.push(...grownRanges(grown, built));
-      const checks = selfCheckGrown(this.raw, raw, ranges, grown.decoded);
+      const ranges: Range[] = editable.map((r) => (r.offset >= this.g4.ICONBIN_OFFSET ? { ...r, offset: r.offset + grown.rtosGrowth + (r.offset >= this.g4.ICONBIN_OFFSET + this.g4.ICONBIN_LENGTH ? grown.iconGrowth : 0) } : r));
+      ranges.push(...this.g4.grownRanges(grown, built));
+      const checks = this.g4.selfCheckGrown(this.raw, raw, ranges, grown.decoded);
       const ok = Object.values(checks).every((v) => v === true);
       if (ok && this.extendWith) {
         const more = { ...features, ...this.extendWith };
-        const built2 = aspect.installExtensions(aligned.slice(RTOS_OFFSET, rtosEnd), aligned.slice(ICONBIN_OFFSET, iconEnd), plan, more, 3, this.extendTest);
-        const grown2 = growPayload(aligned, built2, specs);
-        const ranges2: Range[] = editable.map((r) => (r.offset >= ICONBIN_OFFSET ? { ...r, offset: r.offset + grown2.rtosGrowth + (r.offset >= ICONBIN_OFFSET + ICONBIN_LENGTH ? grown2.iconGrowth : 0) } : r));
-        ranges2.push(...grownRanges(grown2, built2));
+        const built2 = this.g4.aspect.installExtensions(aligned.slice(this.g4.RTOS_OFFSET, rtosEnd), aligned.slice(this.g4.ICONBIN_OFFSET, iconEnd), plan, more, 3, this.extendTest);
+        const grown2 = this.g4.growPayload(aligned, built2, specs);
+        const ranges2: Range[] = editable.map((r) => (r.offset >= this.g4.ICONBIN_OFFSET ? { ...r, offset: r.offset + grown2.rtosGrowth + (r.offset >= this.g4.ICONBIN_OFFSET + this.g4.ICONBIN_LENGTH ? grown2.iconGrowth : 0) } : r));
+        ranges2.push(...this.g4.grownRanges(grown2, built2));
         const out = buildGrown(new Firmware(this.raw), grown2.decoded, grown2.insertions).out;
-        const checks2 = selfCheckGrown(this.raw, out, ranges2, grown2.decoded);
+        const checks2 = this.g4.selfCheckGrown(this.raw, out, ranges2, grown2.decoded);
         if (Object.values(checks2).every((v) => v === true)) this.extended = out;
       }
       return modified(ok, ratios, aligned);
@@ -776,18 +758,18 @@ export class Engine {
         } catch (e) {
           if (e instanceof FirmwareError && e.code === 'ratio-conflict') return { problem: 'ratio-conflict' };
         }
-        return { ...g, icon: aspect.drawRatioIcon(ratio), label: aspect.ratioLabel(ratio) };
+        return { ...g, icon: this.g4.aspect.drawRatioIcon(ratio), label: this.g4.aspect.ratioLabel(ratio) };
       } catch (e) {
         return { problem: e instanceof FirmwareError && e.code === 'ratio-factory' ? 'ratio-factory'
           : e instanceof FirmwareError && e.code === 'ratio-too-extreme' ? 'ratio-too-extreme' : 'bad-ratio' };
       }
     }
     try {
-      const g = planRatio(ratio);
+      const g = this.g4.planRatio(ratio);
       for (const o of others) {
         let og;
         try {
-          og = planRatio(o);
+          og = this.g4.planRatio(o);
         } catch {
           continue;
         }
@@ -795,18 +777,18 @@ export class Engine {
       }
       const all: RatioSpec[] = [...others, ratio].map((r, i) => ({ name: `r${i}`, ratio: r }));
       try {
-        if (all.length <= MAX_CUSTOM_RATIOS) planRatios(all);
+        if (all.length <= this.g4.MAX_CUSTOM_RATIOS) this.g4.planRatios(all);
       } catch (e) {
         if (e instanceof FirmwareError && e.code === 'ratio-conflict') return { problem: 'ratio-conflict' };
       }
       const requested = g.requested.toNumber();
       return {
-        actual: ratioText(g.actual.n, g.actual.d),
+        actual: this.g4.ratioText(g.actual.n, g.actual.d),
         errorPercent: (g.actual.toNumber() / requested - 1) * 100,
         screen: { ...g.screen },
-        sizes: gr4Sizes(g),
-        icon: aspect.drawRatioIcon(ratio),
-        label: aspect.ratioLabel(ratio),
+        sizes: this.g4.gr4Sizes(g),
+        icon: this.g4.aspect.drawRatioIcon(ratio),
+        label: this.g4.aspect.ratioLabel(ratio),
       };
     } catch (e) {
       if (e instanceof FirmwareError) {
@@ -816,16 +798,16 @@ export class Engine {
         // Step the screen rectangle 4 pixels at a time in both directions until a ratio works.
         const nearest: string[] = [];
         try {
-          const want = aspect.parseRatio(ratio);
-          const screen = aspect.alignedCrop(aspect.SCREEN_W, aspect.SCREEN_H, want);
+          const want = this.g4.aspect.parseRatio(ratio);
+          const screen = this.g4.aspect.alignedCrop(this.g4.aspect.SCREEN_W, this.g4.aspect.SCREEN_H, want);
           if (screen) {
-            const wideFrame = screen.width === aspect.SCREEN_W;
+            const wideFrame = screen.width === this.g4.aspect.SCREEN_W;
             for (const direction of [-1, 1]) {
               for (let k = 1; k <= 12; k++) {
-                const w = wideFrame ? aspect.SCREEN_W : screen.width - direction * 4 * k;
-                const h = wideFrame ? screen.height + direction * 4 * k : aspect.SCREEN_H;
-                if (!(w >= 4 && w <= aspect.SCREEN_W && h >= 4 && h <= aspect.SCREEN_H)) break;
-                const candidate = ratioText(w, h);
+                const w = wideFrame ? this.g4.aspect.SCREEN_W : screen.width - direction * 4 * k;
+                const h = wideFrame ? screen.height + direction * 4 * k : this.g4.aspect.SCREEN_H;
+                if (!(w >= 4 && w <= this.g4.aspect.SCREEN_W && h >= 4 && h <= this.g4.aspect.SCREEN_H)) break;
+                const candidate = this.g4.ratioText(w, h);
                 if (this.ratioPreview(candidate, others, false).problem === undefined) {
                   nearest.push(candidate);
                   break;
@@ -844,7 +826,7 @@ export class Engine {
 
   /** Null when `name` can be a ratio's menu name. */
   validateRatioName(name: string): 'empty' | 'too-long' | 'bad-char' | null {
-    return validateRatioName(name);
+    return this.g4.validateRatioName(name);
   }
 
   /** The official file, for "write factory firmware". */
@@ -882,7 +864,7 @@ export class Engine {
   /** Standard's hue-sector block (copy 0) as 12 matrices. */
   private standardHue(): number[][] {
     if (!this.layout) requireGr3xPort('hue sectors');
-    const o = foff(this.layout.standard.maBlock);
+    const o = this.g4.foff(this.layout.standard.maBlock);
     return hueFromQ10(hueCopy0(this.decoded.subarray(o, o + HUE_BLOCK_BYTES)));
   }
 
@@ -897,9 +879,9 @@ export class Engine {
       return badChars.length ? { ok: false, reason: 'bad-char', badChars, capacity: 24 } : { ok: true, capacity: 24 };
     }
     if (this.layout === null || !this.info.capabilities.presets) requireGr3xPort('Image Control names');
-    const def = SLOTS.find((s) => s.id === slot);
+    const def = this.g4.SLOTS.find((s) => s.id === slot);
     if (!def) throw new FirmwareError('bad-edit', `unknown slot ${String(slot)}`);
-    return validateName(this.decoded, lang, def.nameIndex, text);
+    return this.g4.validateName(this.decoded, lang, def.nameIndex, text);
   }
 
   /** Build a firmware file. The result has passed the built-in self-check (otherwise this throws). */
@@ -981,9 +963,9 @@ export class Engine {
       if (e.color || e.icon || e.names) edits.push(e);
     }
     const clarity: ClarityEdit[] = softFocus.map((f) => {
-      if (!f || !SOFT_FOCUS_LEVELS.includes(f.level)) throw new FirmwareError('bad-clarity', `soft focus cannot go on clarity ${String(f && f.level)}`);
-      if (!SOFT_FOCUS_STRENGTHS.includes(f.strength)) throw new FirmwareError('bad-clarity', `unknown soft focus strength ${String(f.strength)}`);
-      return { level: f.level, gains: SOFT_FOCUS_GAINS[f.strength] };
+      if (!f || !this.g4.SOFT_FOCUS_LEVELS.includes(f.level)) throw new FirmwareError('bad-clarity', `soft focus cannot go on clarity ${String(f && f.level)}`);
+      if (!this.g4.SOFT_FOCUS_STRENGTHS.includes(f.strength)) throw new FirmwareError('bad-clarity', `unknown soft focus strength ${String(f.strength)}`);
+      return { level: f.level, gains: this.g4.SOFT_FOCUS_GAINS[f.strength] };
     });
     const adjSoftFocus = !!(options && options.adjSoftFocus);
     const dateStamp = !!(options && options.dateStamp);
@@ -999,11 +981,11 @@ export class Engine {
     if (extraSlots.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'added slots cannot be combined with the clarity-table soft focus of 0.4.x');
     if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash) throw new FirmwareError('bad-edit', 'nothing to change');
     if (Object.keys(cinemaHalation).length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'halation cannot be combined with the clarity-table soft focus of 0.4.x');
-    const features = { adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}) };
+    const features = { adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}) };
     const test = {
       ...(options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {}),
     };
-    const { decoded: _decoded, ...rest } = await buildFirmware(this.raw, edits, ratios, clarity, features, test);
+    const { decoded: _decoded, ...rest } = await this.g4.buildFirmware(this.raw, edits, ratios, clarity, features, test);
     return rest;
   }
 
@@ -1016,7 +998,7 @@ export class Engine {
   /** A 720 x 480 RGB picture as a power-off picture of the camera menu, in this firmware's format
    * (GR IV: 4:2:2; GR III: 4:2:0 like its own end-screen pictures). */
   encodeMenuPicture(rgb: Uint8Array, onProgress?: (f: number) => void): Uint8Array {
-    return this.info.family === 'gr3x' ? encodeGr3xPicture(rgb, onProgress) : encodeShutdownPicture(rgb, onProgress);
+    return this.info.family === 'gr3x' ? encodeGr3xPicture(rgb, onProgress) : this.g4.encodeShutdownPicture(rgb, onProgress);
   }
 
   encodeShutdownImage(rgb: Uint8Array, model: CameraModel, onProgress?: (f: number) => void): ShutdownImage {

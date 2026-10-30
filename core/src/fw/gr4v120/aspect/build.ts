@@ -45,22 +45,24 @@ import { LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from '
 import type { ShutdownPictureSpec } from './shutdown';
 
 export const BASE = 0x53000000;
-export const OFFICIAL_RTOS_LENGTH = 0x13d2ac0;
-export const OFFICIAL_ICONBIN_LENGTH = 0xdcf460;
+export const OFFICIAL_RTOS_LENGTH = 0x140b600;
+export const OFFICIAL_ICONBIN_LENGTH = 0xf0f0e0;
 /** The appended area must stay below the address where the firmware's RAM starts. */
 export const APPEND_LIMIT = 0x55000000;
 
 /** Start-up copy of initialised data: `length` bytes from `source` (in the image) to `destination`. */
-const RAM = { source: 0x543b3100, destination: 0x55000000, length: 0x57480 };
+const RAM = { source: 0x543b3100, destination: 0x55000000, length: 0x58500 };
 
-export const ICON_CATALOG = 0x543d3ac0;
-export const TEXT_CATALOG = 0x543d4ac0;
-const ICON_COUNT = 663;
-const TEXT_COUNT = 837;
-const TEXT_CAPACITY = 896;
+export const ICON_CATALOG = 0x5440c600;
+export const TEXT_CATALOG = 0x5440d600;
+/** 1.20: 709 icons and 881 texts (1.11: 663 / 837), both renumbered. GR Mod's own texts are 1.11's + 44. */
+const ICON_COUNT = 709;
+const TEXT_COUNT = 881;
+export const TEXT_SHIFT = 44;
+const TEXT_CAPACITY = 896 + TEXT_SHIFT;
 export const LANGUAGES = 21;
 const ROW_STRIDE = TEXT_CAPACITY * 4;
-const NATIVE_ICON_CATALOG = 0x55013410;
+const NATIVE_ICON_CATALOG = 0x55014280;
 export const NATIVE_TEXT_ROOTS = 0x55002118;
 
 export const ORDER_SITES = [0x531bc4c0, 0x531bc7a4, 0x531bf854, 0x531d254c, 0x531d4894, 0x531d620c, 0x5325ca8c] as const;
@@ -80,10 +82,10 @@ function iconId(publicId: number): number {
   return id;
 }
 
-/** Text numbers: the factory names, then 901, 902, ... for identities 7, 8, ... */
+/** Text numbers: the factory names (1.20 numbers of 1.11's 267, 268, 266, 269), then 945, 946, ... for identities 7, 8, ... */
 export function textId(publicId: number): number {
-  const fixed: Record<number, number> = { 0: 267, 1: 268, 2: 266, 3: 269, 4: 838, 5: 839 };
-  return fixed[publicId] ?? 900 + publicId - 6;
+  const fixed: Record<number, number> = { 0: 281, 1: 282, 2: 280, 3: 284, 4: 838 + TEXT_SHIFT, 5: 839 + TEXT_SHIFT };
+  return fixed[publicId] ?? 900 + TEXT_SHIFT + publicId - 6;
 }
 
 export interface RatioSpec {
@@ -310,7 +312,7 @@ function initializeCatalogs(patch: Patch): void {
   for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
   const rowsStart = TEXT_CATALOG + 0x100;
   const end = rowsStart + LANGUAGES * ROW_STRIDE;
-  if (BASE + patch.length > ICON_CATALOG) fail('unexpected-layout', 'the image already reaches the catalog area');
+  if (BASE + patch.length > ICON_CATALOG - 0x40) fail('unexpected-layout', 'the image already reaches the catalog area');
   patch.extendTo(end - BASE);
   patch.write(ICON_CATALOG, icons);
   const relocated: number[] = [];
@@ -322,15 +324,22 @@ function initializeCatalogs(patch: Patch): void {
   // language directory themselves.
   patch.setWord(0x534013f8, movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
   patch.setWord(0x534013fc, movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
-  for (const [site, register] of [[0x5323f7ec, 3], [0x5323e40c, 2]] as const) {
-    patch.setWord(site, movWord(register, ICON_COUNT - 1), 'icon upper bound');
+  // 1.20 compares the icon number with an immediate (cmp r4,#708 / cmp r7,#708; 1.11 loaded the
+  // bound with a movw): each goes through a helper that keeps r3, at a fixed place just below the
+  // catalogs so that LOOKUP_BOUNDS can name its movw.
+  for (const [site, helper, compare] of ICON_BOUND_HELPERS) {
+    expectWord(patch, site, compare);
+    const cmp = 0xe1500003 | (((compare >>> 16) & 15) << 16);
+    const words = [0xe52d3004, movWord(3, ICON_COUNT - 1), cmp, 0xe49d3004, branchWord(helper + 16, site + 4)];
+    patch.write(helper, u32le(words));
+    patch.setWord(site, branchWord(site, helper), 'icon bound through a helper that keeps r3');
   }
-  for (const [low, high] of [[0x53573500, 0x53573504], [0x53572aec, 0x53595dbc]] as const) {
+  for (const [low, high] of [[0x535967cc, 0x535967d0], [0x53595db4, 0x53595dbc]] as const) {
     patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
     patch.setWord(high, movWord(3, TEXT_CATALOG >>> 16, true), 'extended language catalog, high half');
   }
   const boundSites: number[] = [];
-  for (const [site, conditional] of [[0x535734f4, false], [0x53572ae0, true]] as const) {
+  for (const [site, conditional] of [[0x535967c0, false], [0x53595da8, true]] as const) {
     // Keeps r3. The measuring CMP runs under LS so that the flags of the preceding language check
     // survive when the language is out of range.
     const compare = conditional ? 0x91570003 : 0xe1570003;
@@ -354,7 +363,10 @@ function initializeScaffold(patch: Patch): void {
 // --------------------------------------------------------------------------------------------
 // crop_icons.py
 
-export const LOOKUP_BOUNDS = [[0x5323f7ec, 3], [0x5323e40c, 2]] as const;
+/** [site, helper, the official `cmp rN,#708`]: the two icon lookups (1.11: movw r3 / movw r2 at 0x5323dbb4 / 0x5323e40c). */
+const ICON_BOUND_HELPERS = [[0x5323f7ec, ICON_CATALOG - 0x40, 0xe3540fb1], [0x53240064, ICON_CATALOG - 0x20, 0xe3570fb1]] as const;
+/** The movw of each icon-bound helper (register r3). */
+export const LOOKUP_BOUNDS = [[ICON_CATALOG - 0x40 + 4, 3], [ICON_CATALOG - 0x20 + 4, 3]] as const;
 
 function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
   const parts: Uint8Array[] = [iconbin];
@@ -446,7 +458,7 @@ function installMenu(patch: Patch, ratios: readonly RatioEntry[], iconIds: Reado
   // Complete language rows again, now wide enough for the new names; every original entry is kept.
   let priorColumns = TEXT_CAPACITY;
   for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
-  let upper = 839;
+  let upper = 839 + TEXT_SHIFT;
   for (const id of allIds) upper = Math.max(upper, textId(id));
   const columns = Math.max(priorColumns, upper + 1);
   const catalogs: Uint8Array[] = [];
@@ -477,13 +489,13 @@ function installMenu(patch: Patch, ratios: readonly RatioEntry[], iconIds: Reado
   // Factory identities rejoin the untouched native body (with its first CMP replayed).
   const iconAt = patch.append((at) => [
     0xe3510004, branchWord(at + 4, at + 48, 3), 0xe35100ff, 0x83a00000, 0x812fff1e, 0xe3520000, 0x13a00000, 0x112fff1e,
-    movWord(3, iconTable & 65535), movWord(3, iconTable >>> 16, true), 0xe7930101, 0xe12fff1e, 0xe3510000, branchWord(at + 52, 0x53381440),
+    movWord(3, iconTable & 65535), movWord(3, iconTable >>> 16, true), 0xe7930101, 0xe12fff1e, 0xe3510000, branchWord(at + 52, 0x53390a8c),
   ], 16);
   patch.setWord(0x53390a88, branchWord(0x53390a88, iconAt), 'ratio identity to icon');
 
   const bitmap = patch.append(Uint8Array.from(table256((n) => (order.includes(n) ? 1 : 0))), 16);
   const validAt = patch.append([movWord(3, bitmap & 65535), movWord(3, bitmap >>> 16, true), 0xe35100ff, 0x83a00000, 0x812fff1e, 0xe7d30001, 0xe12fff1e], 16);
-  patch.setWord(0x5374acfc, branchWord(0x5374acfc, validAt), 'accept only identities that are in the menu');
+  patch.setWord(0x5376fb10, branchWord(0x5376fb10, validAt), 'accept only identities that are in the menu');
   return { activeBitmap: bitmap };
 }
 
@@ -655,13 +667,13 @@ function buildGeometry(patch: Patch, ratios: readonly RatioEntry[]): { p: Progra
   out += 'b #0x536731C8;';
   for (const row of rows) out += `ratio${row.id}:cmp r2,#0;moveq r0,#0;movne r0,#${row.g.modeAlias};b #0x536731C0;`;
   p.hook(0x53673144, out);
-  for (const [entry, resume] of [[0x5364dcb0, 0x5364dcb4], [0x5364dcd8, 0x5364dcdc]]) {
+  for (const [entry, resume] of [[0x536726b0, 0x536726b4], [0x536726d8, 0x536726dc]]) {
     out = '';
     for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
     out += `bic ip,ip,#4;b #${resume};custom:`;
-    if (entry === 0x5364dcb0) out += 'add ip,r0,#0x340;';
-    else out += 'ldr lr,[sp,#0xC];cmp lr,#0x2000;addeq ip,r0,#0x320;addne ip,r0,#0x340;';
-    out += 'ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x5364DC68;';
+    if (entry === 0x536726b0) out += 'add ip,r0,#0x354;'; // 1.11: 0x340 / 0x320 (upstream crop120)
+    else out += 'ldr lr,[sp,#0xC];cmp lr,#0x2000;addeq ip,r0,#0x334;addne ip,r0,#0x354;';
+    out += 'ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;';
     p.hook(entry, out);
   }
   // Low-level live-view width / height. The ratio is the SECOND stack argument. Probe the native
@@ -880,7 +892,7 @@ function installRaw(patch: Patch, ratios: readonly RatioEntry[]): void {
 function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
   const priorSave = branchTarget(0x533f3674, patch.word(0x533f3674));
   const priorLoad = branchTarget(0x533f3254, patch.word(0x533f3254));
-  expectWord(patch, 0x532a90cc, 0xebfe566c);
+  expectWord(patch, 0x532adedc, 0xebfe49f0); // bl 0x532406a4
   expectWord(patch, 0x5381d6bc, 0xe1a0c00d);
   // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
   const rects: Uint8Array[] = [];
@@ -896,7 +908,7 @@ function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap:
   if (patch.append(mod.code, 16) !== origin) fail('internal', 'module address changed');
   patch.setWord(0x533f3674, branchWord(0x533f3674, mod.symbols.crop_state_save), 'settings save: reset a ratio that is no longer in the menu');
   patch.setWord(0x533f3254, branchWord(0x533f3254, mod.symbols.crop_state_load), 'settings load: reset a ratio that is no longer in the menu');
-  const site = 0x532a90cc;
+  const site = 0x532adedc;
   const stub = patch.append((at) => [0xe92d500f, 0xe1a00004, branchWord(at + 8, mod.symbols.crop_normalize_userdata, 14, true), 0xe8bd500f, branchWord(at + 16, 0x532406a4)], 16);
   patch.setWord(site, branchWord(site, stub, 14, true), 'user-mode recall: reset a ratio that is no longer in the menu');
   patch.setWord(0x5381d6bc, branchWord(0x5381d6bc, mod.symbols.crop_metadata_rectangle), 'photo-info rectangle of an added ratio');

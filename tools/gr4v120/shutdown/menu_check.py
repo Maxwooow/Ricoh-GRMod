@@ -43,7 +43,7 @@ BASE = 0x53000000
 RAMVA, RAMIMG, RAMLEN = 0x55000000, 0x543b3100, 0x57480
 RET = 0x100
 FAKE = 0x60200000
-MODE = 0x558372f0
+MODE = 0x55839030
 MENU_ID, PICTURE_ID, END_SCREEN = 0x020001a3, 0x020001a4, 0x020000c4
 T_TYPE, T_PICTURE, T_FACTORY = 853, 854, 855
 TITLE = 701
@@ -165,7 +165,7 @@ def cstr(mu, a):
 
 
 def text(mu, row, tid):
-    d = u32(mu, u32(mu, 0x543d4ac0 + 4 * row) + 4 * tid)
+    d = u32(mu, u32(mu, 0x5440d600 + 4 * row) + 4 * tid)
     if not d: return None
     units = mu.mem_read(d, 1)[0]
     return bytes(mu.mem_read(u32(mu, d + 4), 2 * (units - 1))).decode('utf-16-le')
@@ -437,7 +437,7 @@ mu.hook_add(UC_HOOK_CODE, stop_native, begin=0x533f3678, end=0x533f3678)
 r = call(mu, 0x533f3674, (FAKE + 0x9000,))
 writes = [x for x in w.log if x[0] == 'write']
 check(calls and r == 7 and writes == [('write', 74, REC(IDS[0]))], f'settings save: native reached {bool(calls)}, result {r}, writes {writes}')
-check(new.u32(0x53000460) == 0x55839040 and off.u32(0x53000460) == 0x558372d4, 'start-up zero fill reaches the heap (clears the picture list pointer)')
+check(new.u32(0x53000460) == 0x55839040 and off.u32(0x53000460) == 0x55839014, 'start-up zero fill reaches the heap (clears the picture list pointer)')
 mu = make()
 for row in range(21):
     got = [text(mu, row, t) for t in range(T_TYPE, T_FACTORY + 1 + N)]
@@ -447,7 +447,7 @@ for row in range(21):
     check(text(mu, row, T_FACTORY + 1 + N) is None, f'texts, row {row}: nothing after the names')
 print('  texts zh-CN', [text(mu, 19, t) for t in range(T_TYPE, T_FACTORY + 1 + N)])
 for i in range(4 + N):
-    d = u32(mu, 0x543d3ac0 + 4 * (992 + i))
+    d = u32(mu, 0x5440c600 + 4 * (992 + i))
     fmt, wd, ht, z, o = struct.unpack('<HHHHI', bytes(mu.mem_read(d, 12)))
     px = ICON[o * 4: o * 4 + wd * ht * 4]
     check((fmt, wd, ht, z) == (1, 520, 200, 0) and len(px) == 520 * 200 * 4 and px[3] == 255, f'icon {992 + i}: {(fmt, wd, ht)} at {o * 4}')

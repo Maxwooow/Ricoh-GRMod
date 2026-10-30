@@ -173,17 +173,17 @@ const SUB_SET_ICON = 0x535a6454; // (submenu line, icon)
 const LIST_SET_ITEM = 0x5359e1bc; // (list item, icon, text)
 /**
  * 0.8.4 (test 052): the list rows of SelectMenuController are widgets of class 0x5359DDF0 (vtable
- * 0x53ECF140; constructor (x, y, width, height)): selection mark at x 10, icon 40..100, the value's
- * text label (+0xFC, a label widget, vtable 0x53ECE708) at x 100, 400 wide, y 10, 40 high, whatever
+ * 0x53E98F18; constructor (x, y, width, height)): selection mark at x 10, icon 40..100, the value's
+ * text label (+0xFC, a label widget, vtable 0x53E984E0) at x 100, 400 wide, y 10, 40 high, whatever
  * the row's width. The longest Style values ("2026.10.08 17:34 + ...") did not fit in 400 (test 051:
  * the last character cut in half). For the Style list only, after a value is drawn, its label is
  * made as wide as the row allows: to 20 px before the row's right edge, and never beyond x 680, the
  * right edge of the row's widest own widget (+0x100, 40..680), through the label's own SetRect (vtable +0x18, as the row's
  * icon layout 0x5359E130 does). Nothing else changes; other lists are not touched.
  */
-const ROW_VTABLE = 0x53ecf140;
+const ROW_VTABLE = 0x53e98f18;
 const ROW_VTABLE_LITERAL = 0x5359e008; // in the row constructor 0x5359DDF0
-const LABEL_VTABLE = 0x53ece708;
+const LABEL_VTABLE = 0x53e984e0;
 const LABEL_VTABLE_LITERAL = 0x535960fc; // in the label constructor 0x53596018
 const LABEL_SET_RECT = 0x535aaf0c; // label vtable +0x18
 const ROW_RIGHT_MARGIN = 20;

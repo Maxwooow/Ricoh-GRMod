@@ -1,0 +1,194 @@
+{
+ "0x53000000": {
+  "new": "0x53000000",
+  "reason": "RTOS load address"
+ },
+ "0x55053780": {
+  "new": "0x55054800",
+  "reason": "tone record table: movw/movt of its accessor 0x5394dfb4/0x5394dfbc (1.11 0x53925f9c), rows of 38 (mov r2,#0x26)"
+ },
+ "0x55053504": {
+  "new": "0x55054554",
+  "reason": "multi-axis table: accessor 0x5394dfe0/0x5394dfe8, rows of 38"
+ },
+ "0x55052cf4": {
+  "new": "0x55053ce4",
+  "reason": "YCbCr table: accessor 0x5394e00c/0x5394e014, rows of 38"
+ },
+ "0x55053138": {
+  "new": "0x55054158",
+  "reason": "gamma descriptor table: accessor 0x5394e038/0x5394e040, rows of 38"
+ },
+ "0x5437b640": {
+  "new": "0x543b3100",
+  "reason": "RAM image source: start-up literal at 0x53000450 (src, dst 0x55000000, len 0x58500)"
+ },
+ "0x5437d7b0": {
+  "new": "0x543b5270",
+  "reason": "first language string table: language root 0x55002118 entry (index 12 = cs) + 4, as in 1.11"
+ },
+ "0x54049ce0": {
+  "new": "0x54080998",
+  "reason": "resolved by slotInfo() on the official 1.20 file (style data identical to 1.11: matrix, curves, multi-axis block)"
+ },
+ "0x5407b1e0": {
+  "new": "0x540b1e98",
+  "reason": "resolved by slotInfo() on the official 1.20 file (style data identical to 1.11: matrix, curves, multi-axis block)"
+ },
+ "0x5407f0b4": {
+  "new": "0x540b77ac",
+  "reason": "resolved by slotInfo() on the official 1.20 file (style data identical to 1.11: matrix, curves, multi-axis block)"
+ },
+ "0x5407feb4": {
+  "new": "0x540b71ac",
+  "reason": "resolved by slotInfo() on the official 1.20 file (style data identical to 1.11: matrix, curves, multi-axis block)"
+ },
+ "0x5407decc": {
+  "new": "0x540b7198",
+  "reason": "resolved by slotInfo() on the official 1.20 file (style data identical to 1.11: matrix, curves, multi-axis block)"
+ },
+ "0x5407f6b4": {
+  "new": "0x540b6798",
+  "reason": "resolved by slotInfo() on the official 1.20 file (style data identical to 1.11: matrix, curves, multi-axis block)"
+ },
+ "0x5501ad98": {
+  "new": "0x5501bd34",
+  "reason": "resolved by slotInfo() on the official 1.20 file (style data identical to 1.11: matrix, curves, multi-axis block)"
+ },
+ "0x53fe50d0": {
+  "new": "0x5401bdd4",
+  "reason": "model record: datacheck 39/40 words agree (word 10, the firmware version, differs); project/product at +0x10/+0x14 the same"
+ },
+ "0x53fe5180": {
+  "new": "0x5401be84",
+  "reason": "model record: datacheck 39/40 words agree (word 10, the firmware version, differs); project/product at +0x10/+0x14 the same"
+ },
+ "0x53fe5220": {
+  "new": "0x5401bf24",
+  "reason": "model record: datacheck 39/40 words agree (word 10, the firmware version, differs); project/product at +0x10/+0x14 the same"
+ },
+ "0x538f3544": {
+  "new": "0x5391b10c",
+  "reason": "comment only (the mode-set scanner): aligned there; of two references one names it"
+ },
+ "0x543d3ac0": {
+  "new": "0x5440c600",
+  "reason": "ICON_CATALOG: official RTOS end + 0x1000, as in 1.11 (0x543d2ac0 + 0x1000)"
+ },
+ "0x543d4ac0": {
+  "new": "0x5440d600",
+  "reason": "TEXT_CATALOG: official RTOS end + 0x2000, as in 1.11"
+ },
+ "0x543f0000": {
+  "new": "0x54430000",
+  "reason": "test link address / emulator range in the appended area: moved past the longer 1.20 image (end 0x5440b600)"
+ },
+ "0x54400000": {
+  "new": "0x54440000",
+  "reason": "test link address / emulator range in the appended area: moved past the longer 1.20 image (end 0x5440b600)"
+ },
+ "0x543fc1d0": {
+  "new": "0x5443c1d0",
+  "reason": "test link address / emulator range in the appended area: moved past the longer 1.20 image (end 0x5440b600)"
+ },
+ "0x54500000": {
+  "new": "0x54540000",
+  "reason": "test link address / emulator range in the appended area: moved past the longer 1.20 image (end 0x5440b600)"
+ },
+ "0x535734f4": {
+  "new": "0x535967c0",
+  "reason": "text bound: cmp r7,#0x344 -> cmp r7,#0x370 (881 texts), same block, catalog movw/movt follow"
+ },
+ "0x53573500": {
+  "new": "0x535967cc",
+  "reason": "text catalog movw r3,#0x2118 (same block as the bound)"
+ },
+ "0x53573504": {
+  "new": "0x535967d0",
+  "reason": "text catalog movt r3,#0x5500"
+ },
+ "0x53572ae0": {
+  "new": "0x53595da8",
+  "reason": "text bound (measuring): cmpls r7,#0x344 -> #0x370"
+ },
+ "0x53572aec": {
+  "new": "0x53595db4",
+  "reason": "text catalog movw r3,#0x2118 (measuring)"
+ },
+ "0x53381440": {
+  "new": "0x53390a8c",
+  "reason": "icon mapper (0x53390a88) + 4: the bne after the first cmp; upstream crop120_menu ICON_MAPPER 0x53390A88"
+ },
+ "0x5374acfc": {
+  "new": "0x5376fb10",
+  "reason": "identity validator: same function (movw/movt of its BSS vector differ); upstream crop120_menu VALIDATOR 0x5376FB10"
+ },
+ "0x532a90cc": {
+  "new": "0x532adedc",
+  "reason": "apply_snapshot (0x532adec0) + 0x1c: bl RECALL (0x532406a4), memcpy length 0xb44"
+ },
+ "0x55013410": {
+  "new": "0x55014280",
+  "reason": "native icon catalog: the getter 0x534013f8 movw/movt r0 (1.11 0x533ef604); upstream resources120 0x55014280"
+ },
+ "0x5364dc68": {
+  "new": "0x53672668",
+  "reason": "tracking-window join: upstream crop120 b #0x53672668"
+ },
+ "0x5364dcb0": {
+  "new": "0x536726b0",
+  "reason": "tracking-window hook (upstream crop120): its struct offsets are 0x354/0x334 in 1.20 (hand edit)"
+ },
+ "0x5364dcb4": {
+  "new": "0x536726b4",
+  "reason": "resume of 0x536726b0"
+ },
+ "0x5364dcd8": {
+  "new": "0x536726d8",
+  "reason": "tracking-window hook (upstream crop120)"
+ },
+ "0x5364dcdc": {
+  "new": "0x536726dc",
+  "reason": "resume of 0x536726d8"
+ },
+ "0x558372d4": {
+  "new": "0x55839014",
+  "reason": "end of the start-up zero fill: literal at 0x53000460 (1.11 0x558372d4)"
+ },
+ "0x55837300": {
+  "new": "0x55839040",
+  "reason": "heap start: movw/movt at 0x530668f8 and 0x5315f0f0 (1.11 0x530656b4, 0x5315deb0); 44 bytes after the zero fill end, as in 1.11"
+ },
+ "0x558372e0": {
+  "new": "0x55839020",
+  "reason": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0xc, as in 1.11)"
+ },
+ "0x558372e4": {
+  "new": "0x55839024",
+  "reason": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0x10, as in 1.11)"
+ },
+ "0x558372e8": {
+  "new": "0x55839028",
+  "reason": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0x14, as in 1.11)"
+ },
+ "0x558372ec": {
+  "new": "0x5583902c",
+  "reason": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0x18, as in 1.11)"
+ },
+ "0x558372f0": {
+  "new": "0x55839030",
+  "reason": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0x1c, as in 1.11)"
+ },
+ "0x558372f4": {
+  "new": "0x55839034",
+  "reason": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0x20, as in 1.11)"
+ },
+ "0x558372f8": {
+  "new": "0x55839038",
+  "reason": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0x24, as in 1.11)"
+ },
+ "0x558372fc": {
+  "new": "0x5583903c",
+  "reason": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0x28, as in 1.11)"
+ }
+}

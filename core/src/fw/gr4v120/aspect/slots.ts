@@ -5,10 +5,10 @@
  * on a GR IV HDF as GR Mod test firmwares 023..034 (four slots).
  *
  * What a style is made of in 1.11, per variant of the camera (three variants, 34 styles each):
- *  - a tone record (21 words, table 0x55054770): word 1 the colour matrix, word 2 the array of
+ *  - a tone record (21 words, table 0x55054800): word 1 the colour matrix, word 2 the array of
  *    nine post-curve matrices (one per saturation setting);
- *  - a multi-axis record (6 words, table 0x550544f4): word 2 an array of 8 block pointers;
- *  - a YCbCr record (table 0x55053CE4) and a gamma descriptor (20 bytes, table 0x55053138) that
+ *  - a multi-axis record (6 words, table 0x55054554): word 2 an array of 8 block pointers;
+ *  - a YCbCr record (table 0x55053CE4) and a gamma descriptor (20 bytes, table 0x55054158) that
  *    points to the three tone curves.
  * The four tables are copied with the new styles appended to every variant's row, and their
  * accessors read the copies with the longer row. A new style's records are copies of Cinema
@@ -116,10 +116,10 @@ const TONES = 34;
 const VARIANTS = 3;
 const CY = 18;
 const STANDARD = 11;
-const TONE_TABLE = 0x55054770;
-const MA_TABLE = 0x550544f4;
+const TONE_TABLE = 0x55054800;
+const MA_TABLE = 0x55054554;
 const YCC_TABLE = 0x55053ce4;
-const GAMMA_TABLE = 0x55053138;
+const GAMMA_TABLE = 0x55054158;
 /** [table, `mov r2,#34` of its accessor, movw, movt] */
 const TABLES = [
   [TONE_TABLE, 0x53925f98, 0x53925f9c, 0x53925fa4],
@@ -461,7 +461,7 @@ const SETTINGS_SAVE = 0x533f3674;
 const SETTINGS_LOAD = 0x533f3254;
 /** Literal: end of the start-up zero fill. 44 unused bytes up to the heap (0x55839040) follow it. */
 const ZERO_FILL_END = 0x53000460;
-const SLOT_STATE = 0x558372e0;
+const SLOT_STATE = 0x55839020;
 
 /**
  * Own adjustment parameters for every added slot (tools/gr4v120/slotparams/slot_params.c): the firmware
@@ -502,7 +502,7 @@ function installOwnParameters(p: Patch, count: number, prints: readonly number[]
   // The controller's direct custom-set getter: its freshly returned style, locally.
   normalize(0x533c73fc, 'r0', 0xe1a06000, 'mov r6,r0');
 
-  if (p.word(ZERO_FILL_END) !== 0x55839040) expectWord(p, ZERO_FILL_END, 0x558372d4); // (or already extended, e.g. for the live-view repaint)
+  if (p.word(ZERO_FILL_END) !== 0x55839040) expectWord(p, ZERO_FILL_END, 0x55839014); // (or already extended, e.g. for the live-view repaint)
   const priorSave = branchTarget(SETTINGS_SAVE, p.word(SETTINGS_SAVE));
   const priorLoad = branchTarget(SETTINGS_LOAD, p.word(SETTINGS_LOAD));
   if (priorSave < BASE + OFFICIAL_RTOS_LENGTH || priorLoad < BASE + OFFICIAL_RTOS_LENGTH) fail('internal', 'the settings save/load scaffold is not installed');

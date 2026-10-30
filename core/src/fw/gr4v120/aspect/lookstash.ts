@@ -29,14 +29,14 @@ import { assembleWords } from './arm';
 import { Patch, expectWord } from './build';
 import { T_GAM, T_REC } from '../profile';
 
-export const LOOK_STASH = 0x558372e4;
+export const LOOK_STASH = 0x55839024;
 /**
  * The orientation of the picture being made (0.8.3, for the date imprint): `value | ORIENT_VALID`,
  * value 0 as stored, 1 / 2 / 3 = EXIF Orientation 8 / 3 / 6. Written at the start of each still
  * exposure from the camera's direction (see datestamp.ts) and, in RAW development, by the
  * development step from the record being developed. In the 44 zero-filled bytes before the heap.
  */
-export const ORIENT_WORD = 0x558372f4;
+export const ORIENT_WORD = 0x55839034;
 export const ORIENT_VALID = 0x100;
 /**
  * The look of the picture being made (0.8.4, for the date imprint's look name), LOOK_STASH's word
@@ -45,7 +45,7 @@ export const ORIENT_VALID = 0x100;
  * developed. Unlike LOOK_STASH it does not follow a look chosen while the picture is being
  * processed. In the 44 zero-filled bytes before the heap.
  */
-export const FRAME_LOOK = 0x558372f8;
+export const FRAME_LOOK = 0x55839038;
 /** The development step's read of the look (the hook site). */
 export const LOOK_SITE = 0x53939148;
 const LOOK_SITE_WORD = 0xe5d3279c; // ldrb r2, [r3, #0x79c]
@@ -84,7 +84,7 @@ export const STASH_WHITE = 0x20000;
 export function extendZeroFill(p: Patch): void {
   const w = p.word(ZERO_FILL_END);
   if (w === 0x55839040) return;
-  expectWord(p, ZERO_FILL_END, 0x558372d4);
+  expectWord(p, ZERO_FILL_END, 0x55839014);
   p.setWord(ZERO_FILL_END, 0x55839040, 'start-up zero fill also clears the 44 unused bytes before the heap');
 }
 

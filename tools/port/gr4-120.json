@@ -5,40 +5,132 @@
   "lenient": true,
   "relink": true,
   "files": [
-    ["core/src/fw/profile.ts", "core/src/fw/gr4v120/profile.ts"],
-    ["core/src/fw/clarity.ts", "core/src/fw/gr4v120/clarity.ts"],
-    ["core/src/fw/factory.ts", "core/src/fw/gr4v120/factory.ts"],
-    ["core/src/fw/patch.ts", "core/src/fw/gr4v120/patch.ts"],
-    ["core/src/fw/icons.ts", "core/src/fw/gr4v120/icons.ts"],
-    ["core/src/fw/names.ts", "core/src/fw/gr4v120/names.ts"],
-    ["core/src/fw/selfcheck.ts", "core/src/fw/gr4v120/selfcheck.ts"],
-    ["core/src/fw/index.ts", "core/src/fw/gr4v120/index.ts"]
+    [
+      "core/src/fw/profile.ts",
+      "core/src/fw/gr4v120/profile.ts"
+    ],
+    [
+      "core/src/fw/clarity.ts",
+      "core/src/fw/gr4v120/clarity.ts"
+    ],
+    [
+      "core/src/fw/factory.ts",
+      "core/src/fw/gr4v120/factory.ts"
+    ],
+    [
+      "core/src/fw/patch.ts",
+      "core/src/fw/gr4v120/patch.ts"
+    ],
+    [
+      "core/src/fw/icons.ts",
+      "core/src/fw/gr4v120/icons.ts"
+    ],
+    [
+      "core/src/fw/names.ts",
+      "core/src/fw/gr4v120/names.ts"
+    ],
+    [
+      "core/src/fw/selfcheck.ts",
+      "core/src/fw/gr4v120/selfcheck.ts"
+    ],
+    [
+      "core/src/fw/index.ts",
+      "core/src/fw/gr4v120/index.ts"
+    ]
   ],
   "copies": [
-    ["core/src/fw/aspect", "core/src/fw/gr4v120/aspect"],
-    ["third_party/gr-custom-tool/native", "tools/gr4v120/aspect/native"],
-    ["tools/aspect", "tools/gr4v120/aspect"],
-    ["tools/datestamp", "tools/gr4v120/datestamp"],
-    ["tools/directflash", "tools/gr4v120/directflash"],
-    ["tools/halation", "tools/gr4v120/halation"],
-    ["tools/looks", "tools/gr4v120/looks"],
-    ["tools/shutdown", "tools/gr4v120/shutdown"],
-    ["tools/slotparams", "tools/gr4v120/slotparams"],
-    ["tools/softfocus", "tools/gr4v120/softfocus"]
+    [
+      "core/src/fw/aspect",
+      "core/src/fw/gr4v120/aspect"
+    ],
+    [
+      "tools/aspect",
+      "tools/gr4v120/aspect"
+    ],
+    [
+      "third_party/gr-custom-tool/native",
+      "tools/gr4v120/aspect/native"
+    ],
+    [
+      "tools/datestamp",
+      "tools/gr4v120/datestamp"
+    ],
+    [
+      "tools/directflash",
+      "tools/gr4v120/directflash"
+    ],
+    [
+      "tools/halation",
+      "tools/gr4v120/halation"
+    ],
+    [
+      "tools/looks",
+      "tools/gr4v120/looks"
+    ],
+    [
+      "tools/shutdown",
+      "tools/gr4v120/shutdown"
+    ],
+    [
+      "tools/slotparams",
+      "tools/gr4v120/slotparams"
+    ],
+    [
+      "tools/softfocus",
+      "tools/gr4v120/softfocus"
+    ]
   ],
-  "exclude": ["__pycache__", ".refdata", "out"],
+  "exclude": [
+    "__pycache__",
+    ".refdata",
+    "out"
+  ],
   "rename": [
-    ["fw/aspect/", "fw/gr4v120/aspect/"],
-    ["tools/aspect/", "tools/gr4v120/aspect/"],
-    ["tools/datestamp/", "tools/gr4v120/datestamp/"],
-    ["tools/directflash/", "tools/gr4v120/directflash/"],
-    ["tools/halation/", "tools/gr4v120/halation/"],
-    ["tools/looks/", "tools/gr4v120/looks/"],
-    ["tools/shutdown/", "tools/gr4v120/shutdown/"],
-    ["tools/slotparams/", "tools/gr4v120/slotparams/"],
-    ["tools/softfocus/", "tools/gr4v120/softfocus/"],
-    ["parents[2]", "parents[3]"]
+    [
+      "fw/aspect/",
+      "fw/gr4v120/aspect/"
+    ],
+    [
+      "tools/aspect/",
+      "tools/gr4v120/aspect/"
+    ],
+    [
+      "tools/datestamp/",
+      "tools/gr4v120/datestamp/"
+    ],
+    [
+      "tools/directflash/",
+      "tools/gr4v120/directflash/"
+    ],
+    [
+      "tools/halation/",
+      "tools/gr4v120/halation/"
+    ],
+    [
+      "tools/looks/",
+      "tools/gr4v120/looks/"
+    ],
+    [
+      "tools/shutdown/",
+      "tools/gr4v120/shutdown/"
+    ],
+    [
+      "tools/slotparams/",
+      "tools/gr4v120/slotparams/"
+    ],
+    [
+      "tools/softfocus/",
+      "tools/gr4v120/softfocus/"
+    ],
+    [
+      "parents[2]",
+      "parents[3]"
+    ]
   ],
-  "generated": ["-code\\.ts$", "-native\\.ts$", "/native\\.ts$"],
+  "generated": [
+    "-code\\.ts$",
+    "-native\\.ts$",
+    "/native\\.ts$"
+  ],
   "post": []
 }

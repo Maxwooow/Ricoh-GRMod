@@ -69,9 +69,9 @@ def main():
     with tempfile.TemporaryDirectory() as t:
         tmp = Path(t)
         a, ea = build(cc, ld, objcopy, tmp, 0x10000)
-        b, eb = build(cc, ld, objcopy, tmp, 0x543f0000)
+        b, eb = build(cc, ld, objcopy, tmp, 0x54430000)
         da, dea = build(cc, ld, objcopy, tmp, 0x10000, ['-DDIAG'])
-        db, deb = build(cc, ld, objcopy, tmp, 0x543f0000, ['-DDIAG'])
+        db, deb = build(cc, ld, objcopy, tmp, 0x54430000, ['-DDIAG'])
     if a != b or ea != eb or da != db or dea != deb:
         sys.exit('module is not position independent')
     while len(a) % 4:

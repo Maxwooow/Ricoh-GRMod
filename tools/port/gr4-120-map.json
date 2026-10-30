@@ -5,8 +5,9 @@
  "addresses": {
   "0x53000000": {
    "new": "0x53000000",
-   "how": "aligned + refs 0x53000000x5",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "RTOS load address",
    "files": [
     "core/src/fw/aspect/build.ts",
     "core/src/fw/aspect/package.ts",
@@ -3141,8 +3142,9 @@
   },
   "0x532a90cc": {
    "new": "0x532adedc",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "apply_snapshot (0x532adec0) + 0x1c: bl RECALL (0x532406a4), memcpy length 0xb44",
    "files": [
     "core/src/fw/aspect/build.ts",
     "core/src/fw/aspect/guard.ts",
@@ -3598,9 +3600,10 @@
    ]
   },
   "0x53381440": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x53390a8c",
+   "how": "override",
+   "ok": true,
+   "why": "icon mapper (0x53390a88) + 4: the bne after the first cmp; upstream crop120_menu ICON_MAPPER 0x53390A88",
    "files": [
     "core/src/fw/aspect/build.ts"
    ]
@@ -4894,17 +4897,18 @@
   },
   "0x53572ae0": {
    "new": "0x53595da8",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "text bound (measuring): cmpls r7,#0x344 -> #0x370",
    "files": [
     "core/src/fw/aspect/build.ts"
    ]
   },
   "0x53572aec": {
    "new": "0x53595db4",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "text catalog movw r3,#0x2118 (measuring)",
    "files": [
     "core/src/fw/aspect/build.ts"
    ]
@@ -4969,9 +4973,9 @@
   },
   "0x535734f4": {
    "new": "0x535967c0",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "text bound: cmp r7,#0x344 -> cmp r7,#0x370 (881 texts), same block, catalog movw/movt follow",
    "files": [
     "core/src/fw/aspect/build.ts",
     "tools/aspect/boot_checks.py"
@@ -4979,16 +4983,18 @@
   },
   "0x53573500": {
    "new": "0x535967cc",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "text catalog movw r3,#0x2118 (same block as the bound)",
    "files": [
     "core/src/fw/aspect/build.ts"
    ]
   },
   "0x53573504": {
    "new": "0x535967d0",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "text catalog movt r3,#0x5500",
    "files": [
     "core/src/fw/aspect/build.ts"
    ]
@@ -5368,43 +5374,45 @@
   },
   "0x5364dc68": {
    "new": "0x53672668",
-   "how": "loose (immediates differ: check by hand); refs 0x53672668x1",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "tracking-window join: upstream crop120 b #0x53672668",
    "files": [
     "core/src/fw/aspect/build.ts"
    ]
   },
   "0x5364dcb0": {
    "new": "0x536726b0",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "tracking-window hook (upstream crop120): its struct offsets are 0x354/0x334 in 1.20 (hand edit)",
    "files": [
     "core/src/fw/aspect/build.ts"
    ]
   },
   "0x5364dcb4": {
    "new": "0x536726b4",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "resume of 0x536726b0",
    "files": [
     "core/src/fw/aspect/build.ts"
    ]
   },
   "0x5364dcd8": {
    "new": "0x536726d8",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "tracking-window hook (upstream crop120)",
    "files": [
     "core/src/fw/aspect/build.ts"
    ]
   },
   "0x5364dcdc": {
    "new": "0x536726dc",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "resume of 0x536726d8",
    "files": [
     "core/src/fw/aspect/build.ts"
    ]
@@ -6125,9 +6133,10 @@
    ]
   },
   "0x5374acfc": {
-   "new": null,
-   "how": "not aligned; refs 0x5376fb10x1",
-   "ok": false,
+   "new": "0x5376fb10",
+   "how": "override",
+   "ok": true,
+   "why": "identity validator: same function (movw/movt of its BSS vector differ); upstream crop120_menu VALIDATOR 0x5376FB10",
    "files": [
     "core/src/fw/aspect/build.ts",
     "tools/aspect/boot_checks.py"
@@ -6906,8 +6915,9 @@
   },
   "0x538f3544": {
    "new": "0x5391b10c",
-   "how": "aligned + refs 0x5391b10cx1, 0x5391c1a4x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "comment only (the mode-set scanner): aligned there; of two references one names it",
    "files": [
     "core/src/fw/factory.ts"
    ]
@@ -7288,7 +7298,7 @@
   "0x53da09b4": {
    "new": "0x53dcb09c",
    "how": "aligned",
-   "ok": true,
+   "ok": false,
    "files": [
     "core/src/fw/aspect/directflash.ts",
     "tools/directflash/check.py"
@@ -7376,7 +7386,7 @@
   "0x53e984e0": {
    "new": "0x53ece708",
    "how": "aligned + refs 0x53ece708x3",
-   "ok": true,
+   "ok": false,
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts"
    ]
@@ -7384,7 +7394,7 @@
   "0x53e98f18": {
    "new": "0x53ecf140",
    "how": "aligned + refs 0x53ecf140x2",
-   "ok": true,
+   "ok": false,
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts"
    ]
@@ -7407,24 +7417,27 @@
   },
   "0x53fe50d0": {
    "new": "0x5401bdd4",
-   "how": "aligned + refs 0x5401bdd4x2",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "model record: datacheck 39/40 words agree (word 10, the firmware version, differs); project/product at +0x10/+0x14 the same",
    "files": [
     "core/src/fw/factory.ts"
    ]
   },
   "0x53fe5180": {
    "new": "0x5401be84",
-   "how": "aligned + refs 0x5401be84x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "model record: datacheck 39/40 words agree (word 10, the firmware version, differs); project/product at +0x10/+0x14 the same",
    "files": [
     "core/src/fw/factory.ts"
    ]
   },
   "0x53fe5220": {
    "new": "0x5401bf24",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "model record: datacheck 39/40 words agree (word 10, the firmware version, differs); project/product at +0x10/+0x14 the same",
    "files": [
     "core/src/fw/factory.ts"
    ]
@@ -7455,8 +7468,9 @@
   },
   "0x54049ce0": {
    "new": "0x54080998",
-   "how": "aligned + refs 0x54080998x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "resolved by slotInfo() on the official 1.20 file (style data identical to 1.11: matrix, curves, multi-axis block)",
    "files": [
     "core/src/fw/profile.ts"
    ]
@@ -7487,8 +7501,9 @@
   },
   "0x5407b1e0": {
    "new": "0x540b1e98",
-   "how": "aligned + refs 0x540b4978x2, 0x540b6784x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "resolved by slotInfo() on the official 1.20 file (style data identical to 1.11: matrix, curves, multi-axis block)",
    "files": [
     "core/src/fw/profile.ts"
    ]
@@ -7502,9 +7517,10 @@
    ]
   },
   "0x5407decc": {
-   "new": "0x540b4d8c",
-   "how": "aligned + refs 0x540b4978x2, 0x540b59d0x1",
-   "ok": false,
+   "new": "0x540b7198",
+   "how": "override",
+   "ok": true,
+   "why": "resolved by slotInfo() on the official 1.20 file (style data identical to 1.11: matrix, curves, multi-axis block)",
    "files": [
     "core/src/fw/profile.ts"
    ]
@@ -7519,24 +7535,27 @@
   },
   "0x5407f0b4": {
    "new": "0x540b77ac",
-   "how": "aligned + refs 0x540b77acx2",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "resolved by slotInfo() on the official 1.20 file (style data identical to 1.11: matrix, curves, multi-axis block)",
    "files": [
     "core/src/fw/profile.ts"
    ]
   },
   "0x5407f6b4": {
    "new": "0x540b6798",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "resolved by slotInfo() on the official 1.20 file (style data identical to 1.11: matrix, curves, multi-axis block)",
    "files": [
     "core/src/fw/profile.ts"
    ]
   },
   "0x5407feb4": {
    "new": "0x540b71ac",
-   "how": "aligned + refs 0x540b71acx2",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "resolved by slotInfo() on the official 1.20 file (style data identical to 1.11: matrix, curves, multi-axis block)",
    "files": [
     "core/src/fw/profile.ts"
    ]
@@ -7551,8 +7570,9 @@
   },
   "0x5437b640": {
    "new": "0x543b3100",
-   "how": "aligned + refs 0x543b3100x1",
+   "how": "override",
    "ok": true,
+   "why": "RAM image source: start-up literal at 0x53000450 (src, dst 0x55000000, len 0x58500)",
    "files": [
     "core/src/fw/aspect/build.ts",
     "core/src/fw/aspect/datestamp-menu.ts",
@@ -7570,8 +7590,9 @@
   },
   "0x5437d7b0": {
    "new": "0x543b5270",
-   "how": "aligned",
+   "how": "override",
    "ok": true,
+   "why": "first language string table: language root 0x55002118 entry (index 12 = cs) + 4, as in 1.11",
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts",
     "core/src/fw/aspect/directflash-menu.ts",
@@ -7589,9 +7610,10 @@
    ]
   },
   "0x543d3ac0": {
-   "new": null,
-   "how": "outside the image",
-   "ok": false,
+   "new": "0x5440c600",
+   "how": "override",
+   "ok": true,
+   "why": "ICON_CATALOG: official RTOS end + 0x1000, as in 1.11 (0x543d2ac0 + 0x1000)",
    "files": [
     "core/src/fw/aspect/build.ts",
     "tools/datestamp/menu_check.py",
@@ -7601,9 +7623,10 @@
    ]
   },
   "0x543d4ac0": {
-   "new": null,
-   "how": "outside the image",
-   "ok": false,
+   "new": "0x5440d600",
+   "how": "override",
+   "ok": true,
+   "why": "TEXT_CATALOG: official RTOS end + 0x2000, as in 1.11",
    "files": [
     "core/src/fw/aspect/build.ts",
     "tools/datestamp/menu_check.py",
@@ -7613,9 +7636,10 @@
    ]
   },
   "0x543f0000": {
-   "new": null,
-   "how": "outside the image",
-   "ok": false,
+   "new": "0x54430000",
+   "how": "override",
+   "ok": true,
+   "why": "test link address / emulator range in the appended area: moved past the longer 1.20 image (end 0x5440b600)",
    "files": [
     "tools/datestamp/gen.py",
     "tools/directflash/gen.py",
@@ -7624,27 +7648,30 @@
    ]
   },
   "0x543fc1d0": {
-   "new": null,
-   "how": "outside the image",
-   "ok": false,
+   "new": "0x5443c1d0",
+   "how": "override",
+   "ok": true,
+   "why": "test link address / emulator range in the appended area: moved past the longer 1.20 image (end 0x5440b600)",
    "files": [
     "tools/aspect/gen_native.py",
     "tools/slotparams/gen_slotparams.py"
    ]
   },
   "0x54400000": {
-   "new": null,
-   "how": "outside the image",
-   "ok": false,
+   "new": "0x54440000",
+   "how": "override",
+   "ok": true,
+   "why": "test link address / emulator range in the appended area: moved past the longer 1.20 image (end 0x5440b600)",
    "files": [
     "tools/aspect/gen_native.py",
     "tools/slotparams/gen_slotparams.py"
    ]
   },
   "0x54500000": {
-   "new": null,
-   "how": "outside the image",
-   "ok": false,
+   "new": "0x54540000",
+   "how": "override",
+   "ok": true,
+   "why": "test link address / emulator range in the appended area: moved past the longer 1.20 image (end 0x5440b600)",
    "files": [
     "tools/softfocus/check.py"
    ]
@@ -7679,7 +7706,7 @@
   "0x55001e88": {
    "new": "0x55001e88",
    "how": "RAM image aligned",
-   "ok": true,
+   "ok": false,
    "files": [
     "core/src/fw/aspect/shutdown.ts"
    ]
@@ -7695,9 +7722,10 @@
    ]
   },
   "0x55013410": {
-   "new": "0x5501433c",
-   "how": "RAM image aligned + refs 0x55014280x1",
-   "ok": false,
+   "new": "0x55014280",
+   "how": "override",
+   "ok": true,
+   "why": "native icon catalog: the getter 0x534013f8 movw/movt r0 (1.11 0x533ef604); upstream resources120 0x55014280",
    "files": [
     "core/src/fw/aspect/build.ts"
    ]
@@ -7719,43 +7747,48 @@
    ]
   },
   "0x5501ad98": {
-   "new": "0x5501bce0",
-   "how": "RAM image aligned + refs 0x5501bd34x8, 0x5501c0a0x3, 0x5408023cx1",
-   "ok": false,
+   "new": "0x5501bd34",
+   "how": "override",
+   "ok": true,
+   "why": "resolved by slotInfo() on the official 1.20 file (style data identical to 1.11: matrix, curves, multi-axis block)",
    "files": [
     "core/src/fw/profile.ts"
    ]
   },
   "0x55052cf4": {
    "new": "0x55053ce4",
-   "how": "RAM image aligned",
+   "how": "override",
    "ok": true,
+   "why": "YCbCr table: accessor 0x5394e00c/0x5394e014, rows of 38",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x55053138": {
-   "new": "0x55054128",
-   "how": "RAM image aligned + refs 0x55054158x1",
-   "ok": false,
+   "new": "0x55054158",
+   "how": "override",
+   "ok": true,
+   "why": "gamma descriptor table: accessor 0x5394e038/0x5394e040, rows of 38",
    "files": [
     "core/src/fw/aspect/slots.ts",
     "core/src/fw/profile.ts"
    ]
   },
   "0x55053504": {
-   "new": "0x550544f4",
-   "how": "RAM image aligned",
+   "new": "0x55054554",
+   "how": "override",
    "ok": true,
+   "why": "multi-axis table: accessor 0x5394dfe0/0x5394dfe8, rows of 38",
    "files": [
     "core/src/fw/aspect/slots.ts",
     "core/src/fw/profile.ts"
    ]
   },
   "0x55053780": {
-   "new": "0x55054770",
-   "how": "RAM image aligned",
+   "new": "0x55054800",
+   "how": "override",
    "ok": true,
+   "why": "tone record table: movw/movt of its accessor 0x5394dfb4/0x5394dfbc (1.11 0x53925f9c), rows of 38 (mov r2,#0x26)",
    "files": [
     "core/src/fw/aspect/slots.ts",
     "core/src/fw/profile.ts"
@@ -7826,9 +7859,10 @@
    ]
   },
   "0x558372d4": {
-   "new": null,
-   "how": "RAM; refs 0x55839014x1",
-   "ok": false,
+   "new": "0x55839014",
+   "how": "override",
+   "ok": true,
+   "why": "end of the start-up zero fill: literal at 0x53000460 (1.11 0x558372d4)",
    "files": [
     "core/src/fw/aspect/directflash.ts",
     "core/src/fw/aspect/lookstash.ts",
@@ -7838,66 +7872,74 @@
    ]
   },
   "0x558372e0": {
-   "new": null,
-   "how": "RAM, unreferenced",
-   "ok": false,
+   "new": "0x55839020",
+   "how": "override",
+   "ok": true,
+   "why": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0xc, as in 1.11)",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x558372e4": {
-   "new": null,
-   "how": "RAM, unreferenced",
-   "ok": false,
+   "new": "0x55839024",
+   "how": "override",
+   "ok": true,
+   "why": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0x10, as in 1.11)",
    "files": [
     "core/src/fw/aspect/lookstash.ts"
    ]
   },
   "0x558372e8": {
-   "new": null,
-   "how": "RAM, unreferenced",
-   "ok": false,
+   "new": "0x55839028",
+   "how": "override",
+   "ok": true,
+   "why": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0x14, as in 1.11)",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x558372ec": {
-   "new": null,
-   "how": "RAM, unreferenced",
-   "ok": false,
+   "new": "0x5583902c",
+   "how": "override",
+   "ok": true,
+   "why": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0x18, as in 1.11)",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x558372f0": {
-   "new": null,
-   "how": "RAM, unreferenced",
-   "ok": false,
+   "new": "0x55839030",
+   "how": "override",
+   "ok": true,
+   "why": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0x1c, as in 1.11)",
    "files": [
     "core/src/fw/aspect/shutdown.ts",
     "tools/shutdown/menu_check.py"
    ]
   },
   "0x558372f4": {
-   "new": null,
-   "how": "RAM, unreferenced",
-   "ok": false,
+   "new": "0x55839034",
+   "how": "override",
+   "ok": true,
+   "why": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0x20, as in 1.11)",
    "files": [
     "core/src/fw/aspect/lookstash.ts"
    ]
   },
   "0x558372f8": {
-   "new": null,
-   "how": "RAM, unreferenced",
-   "ok": false,
+   "new": "0x55839038",
+   "how": "override",
+   "ok": true,
+   "why": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0x24, as in 1.11)",
    "files": [
     "core/src/fw/aspect/lookstash.ts"
    ]
   },
   "0x558372fc": {
-   "new": null,
-   "how": "RAM, unreferenced",
-   "ok": false,
+   "new": "0x5583903c",
+   "how": "override",
+   "ok": true,
+   "why": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0x28, as in 1.11)",
    "files": [
     "core/src/fw/aspect/directflash.ts",
     "tools/directflash/diag_check.py"
@@ -7905,8 +7947,9 @@
   },
   "0x55837300": {
    "new": "0x55839040",
-   "how": "refs 0x55839040x2",
+   "how": "override",
    "ok": true,
+   "why": "heap start: movw/movt at 0x530668f8 and 0x5315f0f0 (1.11 0x530656b4, 0x5315deb0); 44 bytes after the zero fill end, as in 1.11",
    "files": [
     "core/src/fw/aspect/directflash.ts",
     "core/src/fw/aspect/lookstash.ts",

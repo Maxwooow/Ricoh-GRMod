@@ -8,7 +8,7 @@
  *    numbers (the "mode set" file) and requires that file to exist;
  *  - the same function decodes a second file name with XOR 0x29 ("C:\DEVELOP.MOD"), reads it,
  *    and 0x5391bd78 compares its 10 bytes with a key stored in the firmware;
- *  - 0x538f3544 scans the mode-set file line by line (lines end in CR LF, "!" and ";" start a
+ *  - 0x5391b10c scans the mode-set file line by line (lines end in CR LF, "!" and ";" start a
  *    comment) for keywords in square brackets and looks them up in a table of 33-byte records
  *    (32 bytes of text, 1 flag byte; a set flag asks for an extra authorisation).
  */
@@ -25,7 +25,7 @@ const KEY_NAME_XOR = 0x29;
 const MODESET_FORMAT_VA = 0x5401aef8;
 const MODESET_FORMAT = 'C:\\%08ld.%03ld';
 /** Per-model configuration records: original project number at +0x10, original product number at +0x14. */
-const MODEL_RECORD_VAS = [0x53fe50d0, 0x53fe5180, 0x53fe5220] as const;
+const MODEL_RECORD_VAS = [0x5401bdd4, 0x5401be84, 0x5401bf24] as const;
 /** Keyword table of the mode-set file (in initialised RAM). */
 const KEYWORD_TABLE_VA = 0x5501b3bc;
 const KEYWORD_RECORD = 0x21;

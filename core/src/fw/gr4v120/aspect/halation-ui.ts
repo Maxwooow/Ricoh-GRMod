@@ -87,8 +87,8 @@ export function halationTables(): { dec: Uint8Array; enc: Uint8Array } {
 }
 
 /** RAM words in the 44 bytes before the heap (cleared at every start, see slots.ts / lookstash.ts). */
-export const HAL_FLAG = 0x558372e8;
-export const HAL_SAVE = 0x558372ec;
+export const HAL_FLAG = 0x55839028;
+export const HAL_SAVE = 0x5583902c;
 
 /** Text of Grain Effect's Strength ("Intensity"), its Size, and the icon of Grain Effect's Strength row. */
 const TEXT_STRENGTH = 347;
