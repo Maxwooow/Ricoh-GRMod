@@ -286,7 +286,7 @@ for cid, before, want in ((PICTURE_ID, 0, 1), (PICTURE_ID, 1, 1), (END_SCREEN, 1
 
 
 def key_map(img, fn, cid):
-    """Run a key-mapper function (0x53255A0C has-own-map, 0x532560D0 pick-map) with `cid` as the
+    """Run a key-mapper function (0x53257648 has-own-map, 0x532560D0 pick-map) with `cid` as the
     current controller id; returns its result and the last instruction it ran (the map chosen)."""
     e = dm.Emu(img)
     e.stubs[0x5325e674] = lambda: cid

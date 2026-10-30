@@ -128,7 +128,7 @@ const SETUP_MENU = 0x53dc7110;
 const SETUP_MENU_ENTRY = 0x55001e88;
 const SETUP_ITEM = 10;
 const SETUP_ITEM_DRAW = 0x531b32a0;
-/** Line of a Setup submenu: no value (0x5357A428 with 0), then its title (0x5359D48C). */
+/** Line of a Setup submenu: no value (0x5359D6F4 with 0; 1.11: 0x5357A428), then its title (0x5359D48C). */
 const LINE_VALUE_ICON = 0x5359d6f4;
 const LINE_TITLE = 0x5359d48c;
 /** The native End Screen line's value text: 0x5338FE60(0x53240F98(app) + 4, 0x532A061C(user data)). */
