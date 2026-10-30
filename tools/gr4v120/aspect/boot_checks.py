@@ -484,10 +484,13 @@ def check_directories(official, patched, icon_bytes, official_icons):
         if pointer:
             assert index <= bounds[0], 'icon above the bound'
             kind, width, height, flags, words = struct.unpack('<HHHHI', read(patched, pointer, 12))
-            assert (kind, width, height, flags) == (1, 60, 40, 0), 'bad icon descriptor'
+            # Ratio icons are 60x40; the other additions' icons (40x40 list icons, 400x60 scales, 520x200 thumbnails) other sizes.
+            assert kind == 1 and flags == 0 and 0 < width <= 720 and 0 < height <= 480, 'bad icon descriptor'
             assert len(official_icons) <= words * 4 and words * 4 + width * height * 4 <= len(icon_bytes), 'icon pixels outside ICONBIN'
             new_icons += 1
-    assert icon_bytes[:len(official_icons)] == official_icons, 'official icon pixels changed'
+    # Only the two editable slots' own 40x40 icons (Cinema Yellow / Green, ICONBIN 0x203A00 and 0x205300) may change.
+    slots = (0x203A00, 0x203A00 + 2 * 40 * 40 * 4)
+    assert icon_bytes[:slots[0]] == official_icons[:slots[0]] and icon_bytes[slots[1]:len(official_icons)] == official_icons[slots[1]:], 'official icon pixels changed'
     return checked, new_names, new_icons
 
 
