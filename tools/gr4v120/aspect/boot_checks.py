@@ -213,6 +213,9 @@ SPECIAL = {
     0x532ADEDC: {'ignore': (), 'tweak': 'valid_current_ratio',
                  'why': 'resets the current ratio when it is not in the menu; transparent when it is a menu ratio'},
     0x536F1C14: 'entry',
+    # 1.20: the two icon-bound `cmp rN,#708` jump to helpers that compare with the grown bound, so
+    # the flags differ for icon numbers 709.. by design; check_directories checks the helpers.
+    0x5323F7EC: 'entry', 0x53240064: 'entry',
 }
 
 
@@ -228,7 +231,9 @@ def hooks_of(official, patched):
             continue
         address = BASE + offset
         word = struct.unpack_from('<I', patched, offset)[0]
-        if word & 0x0E000000 == 0x0A000000 and branch_target(address, word) >= BASE + OFFICIAL_LEN:
+        # The target must lie in the appended area of this image: changed data (an edited preset's
+        # tone curve, say) can look like a branch, but to an address past the end of the image.
+        if word & 0x0E000000 == 0x0A000000 and BASE + OFFICIAL_LEN <= branch_target(address, word) < BASE + len(patched):
             hooks.append(address)
         else:
             data.append(address)
@@ -926,7 +931,7 @@ def run(official, patched, icon_bytes, official_icons, quiet=False):
                 raise SystemExit('transparency check failed')
             return {'hooks': len(part), 'transparent': tested}
     else:
-        failures = []
+        failures, tested = [], 0
     checked, names, icons = check_directories(official, patched, icon_bytes, official_icons)
     say('text / icon directories: %d lookups identical, %d new name hits, %d new icons' % (checked, names, icons))
     count, order = check_menu(official, patched)

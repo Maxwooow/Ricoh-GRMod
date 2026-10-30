@@ -1508,7 +1508,17 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
  # Fake data regions. Their addresses are chosen so that no byte, half-word or word of a pointer
  # into them can be mistaken for an added ratio's identity (7..14) or a small enum.
  REGIONS = [0x62010000, 0x62020000, 0x62030000, 0x62050000]
-@@ -316,7 +316,8 @@
+@@ -213,6 +213,9 @@
+     0x532ADEDC: {'ignore': (), 'tweak': 'valid_current_ratio',
+                  'why': 'resets the current ratio when it is not in the menu; transparent when it is a menu ratio'},
+     0x536F1C14: 'entry',
++    # 1.20: the two icon-bound `cmp rN,#708` jump to helpers that compare with the grown bound, so
++    # the flags differ for icon numbers 709.. by design; check_directories checks the helpers.
++    0x5323F7EC: 'entry', 0x53240064: 'entry',
+ }
+ 
+ 
+@@ -318,7 +321,8 @@
      mo, mp = Machine(official), Machine(patched)
      lead = lead or {}
      failures, tested, notes = [], 0, {}
@@ -1518,7 +1528,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
          special = SPECIAL.get(site)
          if special == 'entry':
              continue
-@@ -426,7 +427,8 @@
+@@ -428,7 +432,8 @@
      # (start, id register, language register, address reached with the record pointer, register holding it, skip addresses)
      for start, hit, pointer_reg, skips in ((0x535967C0, 0x535967dc, 3, (0x535968B0,)), (0x53595DA4, 0x53595DCC, 7, (0x53595F1C, 0x53595F28))):
          for language in list(range(21)) + [21, 22, 255]:
@@ -1528,7 +1538,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
                  state = dict(base_state)
                  state['regs'] = list(base_state['regs'])
                  state['regs'][0] = language
-@@ -440,7 +442,7 @@
+@@ -442,7 +447,7 @@
                      pointer = machine.uc.reg_read(REGS[pointer_reg]) if pc == hit else None
                      results.append((pc == hit, pointer))
                  (old_hit, old_pointer), (new_hit, new_pointer) = results
@@ -1537,7 +1547,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
                      assert old_hit and new_hit and old_pointer == new_pointer, ('text lookup changed', hex(start), language, text)
                  elif old_hit:
                      raise AssertionError('official lookup accepted an out-of-range text')
-@@ -452,7 +454,7 @@
+@@ -454,7 +459,7 @@
                      assert raw[-2:] == b'\0\0' and b'\0\0' not in [raw[i:i + 2] for i in range(0, len(raw) - 2, 2)], 'bad text'
                      new_names += 1
                  checked += 1
@@ -1546,7 +1556,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
      old_table = struct.unpack_from('<I', official, 0)[0]  # placeholder, replaced below
      state = random_state(rng)
      getter = 0x534013F8
-@@ -463,23 +465,32 @@
+@@ -465,23 +470,32 @@
          if address >= RAM:
              address = RAM_SRC + address - RAM
          return image[address - BASE:address - BASE + size]
@@ -1586,7 +1596,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
      return checked, new_names, new_icons
  
  
-@@ -896,10 +907,26 @@
+@@ -898,10 +912,26 @@
          say('build revision 1: no decode buffer change')
      unknown = [hex(a) for a in SPECIAL if a not in hooks]
      assert not unknown, 'SPECIAL lists addresses that are not hooks: %s' % unknown
@@ -1613,7 +1623,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
 +                raise SystemExit('transparency check failed')
 +            return {'hooks': len(part), 'transparent': tested}
 +    else:
-+        failures = []
++        failures, tested = [], 0
      checked, names, icons = check_directories(official, patched, icon_bytes, official_icons)
      say('text / icon directories: %d lookups identical, %d new name hits, %d new icons' % (checked, names, icons))
      count, order = check_menu(official, patched)

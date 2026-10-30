@@ -228,7 +228,9 @@ def hooks_of(official, patched):
             continue
         address = BASE + offset
         word = struct.unpack_from('<I', patched, offset)[0]
-        if word & 0x0E000000 == 0x0A000000 and branch_target(address, word) >= BASE + OFFICIAL_LEN:
+        # The target must lie in the appended area of this image: changed data (an edited preset's
+        # tone curve, say) can look like a branch, but to an address past the end of the image.
+        if word & 0x0E000000 == 0x0A000000 and BASE + OFFICIAL_LEN <= branch_target(address, word) < BASE + len(patched):
             hooks.append(address)
         else:
             data.append(address)
