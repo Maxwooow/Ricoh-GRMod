@@ -24,8 +24,9 @@
   },
   "0x53000460": {
    "new": "0x53000460",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: zero-fill end literal: the start-up literal is at the same address in both images (heap gap words 0x55839020..0x55839038 follow it)",
    "files": [
     "core/src/fw/aspect/directflash.ts",
     "core/src/fw/aspect/lookstash.ts",
@@ -63,32 +64,36 @@
   },
   "0x53187784": {
    "new": "0x5318876c",
-   "how": "aligned + refs 0x5318876cx1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: menu factory switch case (word 0xe5940180 checked)",
    "files": [
     "core/src/fw/aspect/shutdown.ts"
    ]
   },
   "0x53187790": {
    "new": "0x53188778",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: menu factory switch case (word 0xe3a00f5b checked)",
    "files": [
     "core/src/fw/aspect/shutdown.ts"
    ]
   },
   "0x53187794": {
    "new": "0x5318877c",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: menu factory switch case (word 0xeb1dff4e checked)",
    "files": [
     "core/src/fw/aspect/shutdown.ts"
    ]
   },
   "0x5318779c": {
    "new": "0x53188784",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: menu factory switch case (word 0xeb027476 checked)",
    "files": [
     "core/src/fw/aspect/shutdown.ts"
    ]
@@ -135,24 +140,27 @@
   },
   "0x531a57fc": {
    "new": "0x531a6b10",
-   "how": "aligned + refs 0x531a6b10x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x531a5800": {
    "new": "0x531a6b14",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x531a6a8c": {
    "new": "0x531a7db8",
-   "how": "aligned + refs 0x531a7f40x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: Toning slider builder (RAW development): case 8 of the dispatcher 0x531a9330 (b 0x531a7db8)",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
@@ -166,73 +174,82 @@
    ]
   },
   "0x531a7a94": {
-   "new": null,
-   "how": "not aligned; refs 0x531a74f8x1",
-   "ok": false,
+   "new": "0x531a8dc0",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: Grain Effect's Off / On slider (RAW development): case 16 of the dispatcher 0x531a9330 (b 0x531a8dc0)",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531a7ea4": {
    "new": "0x531a9330",
-   "how": "aligned + refs 0x531a9330x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531a833c": {
    "new": "0x531a97dc",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x531a8340": {
    "new": "0x531a97e0",
-   "how": "aligned + refs 0x531a97e0x2",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x531a88bc": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x531a9d5c",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: Toning row text (RAW development): RAW row dispatcher 0x531aa73c case 8 calls 0x531a9d08 (1.11 0x531a8868); bl 0x533aa568 at +0x54",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531a88c0": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x531a9d60",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: next instruction after 0x531a9d5c",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531a88d0": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x531a9d70",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x531a89e8": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x531a9e88",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x531a8fdc": {
    "new": "0x531aa508",
-   "how": "aligned + refs 0x531aa508x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
@@ -263,32 +280,36 @@
   },
   "0x531a9210": {
    "new": "0x531aa73c",
-   "how": "aligned + refs 0x531aa73cx1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531a9744": {
    "new": "0x531aac84",
-   "how": "aligned + refs 0x531aac84x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531a9894": {
-   "new": null,
-   "how": "not aligned; refs 0x531aae08x1",
-   "ok": false,
+   "new": "0x531aae18",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: case 8 (Toning) of the RAW value dispatcher 0x531aac84: bl 0x5337a9d4 (RAW Toning getter)",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531a989c": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x531aae20",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: mov r5,r0 after case 8 of the RAW value dispatcher",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
@@ -303,8 +324,9 @@
   },
   "0x531a9d64": {
    "new": "0x531ab2d4",
-   "how": "aligned + refs 0x531ab2bcx1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: case 8 of the RAW setter dispatcher 0x531ab044: movw r3,#0x5524",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
@@ -327,8 +349,9 @@
   },
   "0x531aa1ac": {
    "new": "0x531ab71c",
-   "how": "aligned + refs 0x531ab71cx1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: native return of the RAW Fn handler 0x531ab6fc (mov r0,r4; mov r1,#1), context identical",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
@@ -407,48 +430,54 @@
   },
   "0x531aade4": {
    "new": "0x531ac354",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531aae00": {
    "new": "0x531ac370",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531aaef0": {
-   "new": null,
-   "how": "not aligned; refs 0x531ac460x1",
-   "ok": false,
+   "new": "0x531ac460",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: Grain submenu Strength slider builder (RAW development), second of the pair 0x531ac318 / 0x531ac460",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531aaf2c": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x531ac49c",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531aaf48": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x531ac4b8",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531aaf6c": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x531ac4dc",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
@@ -639,18 +668,19 @@
   },
   "0x531b0800": {
    "new": "0x531b1d70",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: Direct Flash current-icon site 1 (CURRENT_ICON_SITES)",
    "files": [
     "core/src/fw/aspect/directflash.ts",
     "tools/directflash/check.py"
    ]
   },
   "0x531b1cd8": {
-   "new": null,
-   "how": "not aligned; refs 0x531b32a0x1",
-   "ok": false,
+   "new": "0x531b32a0",
+   "how": "override",
+   "ok": true,
+   "why": "fork B: Setup item draw (SETUP_ITEM_DRAW)",
    "files": [
     "core/src/fw/aspect/shutdown.ts"
    ]
@@ -666,8 +696,9 @@
   },
   "0x531b9488": {
    "new": "0x531baa50",
-   "how": "aligned + refs 0x531baa50x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: power-off picture request (APP, DISPLAY 0x53240998, then 0x53264390); shutdown menu_check compares 10 scenarios with official",
    "files": [
     "core/src/fw/aspect/shutdown.ts",
     "tools/shutdown/menu_check.py",
@@ -675,9 +706,10 @@
    ]
   },
   "0x531b948c": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x531baa54",
+   "how": "override",
+   "ok": true,
+   "why": "fork B: power-off picture request + 4 (continuation)",
    "files": [
     "core/src/fw/aspect/shutdown.ts"
    ]
@@ -1362,8 +1394,9 @@
   },
   "0x531c7aa0": {
    "new": "0x531c904c",
-   "how": "aligned + refs 0x531c9314x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: Toning slider builder: case 8 of the slider dispatcher 0x531cc334 (b 0x531c904c)",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
@@ -1377,57 +1410,64 @@
    ]
   },
   "0x531c8a84": {
-   "new": null,
-   "how": "not aligned; refs 0x531c88ccx1",
-   "ok": false,
+   "new": "0x531ca030",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: Grain Effect's Off / On slider: case 16 of the slider dispatcher 0x531cc334 (b 0x531ca030); 0x531c88cc is another parameter's 9-step builder in 1.20",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531c9728": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x531cae34",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: Toning row text: row dispatcher 0x531cbb58 case 8 calls 0x531cadf4 (1.11 0x531c96e8); bl 0x533aa614 at +0x40, context identical",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531c972c": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x531cae38",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: next instruction after 0x531cae34",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531c973c": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x531cae48",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x531c982c": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x531caf38",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x531ca3d0": {
    "new": "0x531cbb58",
-   "how": "aligned + refs 0x531cbb58x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531ca630": {
    "new": "0x531cbdcc",
-   "how": "aligned + refs 0x531cbdccx10",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
@@ -1466,16 +1506,18 @@
   },
   "0x531ca7cc": {
    "new": "0x531cbf68",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x531ca7d0": {
    "new": "0x531cbf6c",
-   "how": "aligned + refs 0x531cbf6cx2",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -1506,32 +1548,36 @@
   },
   "0x531ca968": {
    "new": "0x531cc104",
-   "how": "aligned + refs 0x531cc104x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531ca9fc": {
    "new": "0x531cc19c",
-   "how": "aligned + refs 0x531cc19cx2",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: join of the value dispatcher 0x531cc104 (every case branches to it)",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531caa94": {
-   "new": null,
-   "how": "not aligned; refs 0x531cc264x1",
-   "ok": false,
+   "new": "0x531cc274",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: case 8 (Toning) of the value dispatcher 0x531cc104: bl 0x533cc288 (Toning getter); cases 0..17 unchanged, 1.20 adds kind 18, old 18 is 19",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531cab84": {
    "new": "0x531cc334",
-   "how": "aligned + refs 0x531cc334x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
@@ -1570,16 +1616,18 @@
   },
   "0x531cb230": {
    "new": "0x531cc9f4",
-   "how": "aligned + refs 0x531cc9f4x5",
+   "how": "override",
    "ok": true,
+   "why": "fork A: setter dispatcher (comment in halation-ui.ts): context identical",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531cb448": {
    "new": "0x531ccc24",
-   "how": "aligned + refs 0x531ccc10x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: case 8 of the setter dispatcher 0x531cc9f4: movw r3,#0x5524 (Toning values 0x53de5524, same bytes as 1.11 0x53dbaccc)",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
@@ -1642,48 +1690,54 @@
   },
   "0x531cc114": {
    "new": "0x531cd8f0",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531cc130": {
    "new": "0x531cd90c",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531cc220": {
-   "new": null,
-   "how": "not aligned; refs 0x531cd9fcx1",
-   "ok": false,
+   "new": "0x531cd9fc",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: Grain submenu Strength slider builder (second of the pair 0x531cd8b0 / 0x531cd9fc); body identical apart from the scale id (0x23b -> 0x261) and geometry",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531cc260": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x531cda3c",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531cc27c": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x531cda58",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x531cc2a0": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x531cda7c",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
@@ -1990,8 +2044,9 @@
   },
   "0x531d5e8c": {
    "new": "0x531d7860",
-   "how": "aligned + refs 0x531d7860x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: SelectMenuController SetCurrent (list record lookup): aligned + 1 ref; datestamp menu_check passes",
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts",
     "tools/datestamp/menu_check.py",
@@ -2000,8 +2055,9 @@
   },
   "0x531d6868": {
    "new": "0x531d825c",
-   "how": "aligned",
+   "how": "override",
    "ok": true,
+   "why": "fork B: list table movw (SELECT_RECORDS reader)",
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts",
     "tools/datestamp/list_width_check.py",
@@ -2010,8 +2066,9 @@
   },
   "0x531d6878": {
    "new": "0x531d826c",
-   "how": "aligned",
+   "how": "override",
    "ok": true,
+   "why": "fork B: list table movt",
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts",
     "tools/datestamp/list_width_check.py",
@@ -2298,8 +2355,9 @@
   },
   "0x531da9d4": {
    "new": "0x531dc3d8",
-   "how": "aligned + refs 0x531dc3d8x1",
+   "how": "override",
    "ok": true,
+   "why": "fork B: SelectMenuController list fill: aligned; list_width_check runs it",
    "files": [
     "tools/datestamp/list_width_check.py",
     "tools/datestamp/menu_check.py",
@@ -2384,9 +2442,9 @@
   },
   "0x531db2c4": {
    "new": "0x531dccc8",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: SelectMenu list fill site (expectWord 0xe3a0e07e)",
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts"
    ]
@@ -2857,8 +2915,9 @@
   },
   "0x53255a0c": {
    "new": "0x53257648",
-   "how": "aligned + refs 0x53257648x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: key map has-own-map function: shutdown menu_check runs it, as officially",
    "files": [
     "core/src/fw/aspect/shutdown.ts",
     "tools/shutdown/menu_check.py"
@@ -2866,8 +2925,9 @@
   },
   "0x53255a20": {
    "new": "0x5325765c",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: key map id read 1 (KEY_MAP_ID_READS)",
    "files": [
     "core/src/fw/aspect/shutdown.ts"
    ]
@@ -2926,8 +2986,9 @@
   },
   "0x53262558": {
    "new": "0x53264274",
-   "how": "aligned + refs 0x53264274x3",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: JPEG picture request (only reader of the JPEG table in 1.20)",
    "files": [
     "core/src/fw/aspect/shutdown.ts",
     "tools/shutdown/shutdown.c"
@@ -2935,16 +2996,18 @@
   },
   "0x5326255c": {
    "new": "0x53264278",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: JPEG table movw in the picture request",
    "files": [
     "core/src/fw/aspect/shutdown.ts"
    ]
   },
   "0x5326256c": {
    "new": "0x53264288",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: JPEG table movt in the picture request",
    "files": [
     "core/src/fw/aspect/shutdown.ts"
    ]
@@ -2958,17 +3021,19 @@
    ]
   },
   "0x53270000": {
-   "new": "0x53271e60",
-   "how": "aligned",
+   "new": "0x53270000",
+   "how": "override",
    "ok": true,
+   "why": "fork A: lower bound of the change-functor area searched by slots.ts (not a code address); the 88 functor loads lie in [0x53270000, 0x532a0000) in 1.20 too",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x532776ec": {
-   "new": null,
-   "how": "not aligned; refs 0x532795e4x1",
-   "ok": false,
+   "new": "0x532795e4",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -2984,8 +3049,9 @@
   },
   "0x5329bf70": {
    "new": "0x532a02b4",
-   "how": "aligned + refs 0x532a02b4x3",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: aligned + refs (datestamp)",
    "files": [
     "tools/softfocus/check.py"
    ]
@@ -3053,8 +3119,9 @@
   },
   "0x5329cf30": {
    "new": "0x532a1280",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -3068,17 +3135,19 @@
    ]
   },
   "0x5329cf6c": {
-   "new": null,
-   "how": "not aligned; refs 0x532a12bcx1",
-   "ok": false,
+   "new": "0x532a12bc",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x5329cf70": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x532a12c0",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -3100,17 +3169,19 @@
    ]
   },
   "0x5329d190": {
-   "new": null,
-   "how": "not aligned; refs 0x532a14f8x1",
-   "ok": false,
+   "new": "0x532a14f8",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x5329d194": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x532a14fc",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -3124,18 +3195,19 @@
    ]
   },
   "0x532a0000": {
-   "new": "0x532a595c",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "new": "0x532a0000",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: upper bound of the change-functor area (not a code address); see 0x53270000",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x532a7820": {
    "new": "0x532ac56c",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: end of the live-view generator range: 1.20 generator [0x532a24a8, 0x532ac56c], site counts re-checked (221/112/113/112/75/123/161)",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -3153,8 +3225,9 @@
   },
   "0x532a90d0": {
    "new": "0x532adee0",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "return address after the recall bl at 0x532adedc (apply_snapshot + 0x20)",
    "files": [
     "tools/aspect/boot_checks.py"
    ]
@@ -3216,9 +3289,10 @@
    ]
   },
   "0x53300c34": {
-   "new": "0x532fff14",
-   "how": "aligned + refs 0x53305c00x14",
-   "ok": false,
+   "new": "0x53305c00",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: STYLE_SETTERS[5]: map candidate 0x532fff14 is another setter; 0x53305c00 is identical function-by-function (fcmp) and in sequence with [4]=0x53305a6c, [6]=0x53305d94",
    "files": [
     "core/src/fw/aspect/slots.ts",
     "tools/slotparams/gen_slotparams.py"
@@ -3252,9 +3326,10 @@
    ]
   },
   "0x5336b89c": {
-   "new": null,
-   "how": "not aligned; refs 0x53379c6cx1",
-   "ok": false,
+   "new": "0x53379c6c",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: RAW list capacity mov r0,#24 -> 1.20 mov r0,#26 (two more RAW numbers), same allocation sequence side by side",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -3287,16 +3362,18 @@
   },
   "0x5336c604": {
    "new": "0x5337a9d4",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: RAW Toning getter: the bl of case 8 of the RAW value dispatcher 0x531aac84",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x5336d074": {
    "new": "0x5337b490",
-   "how": "aligned + refs 0x5337b490x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
@@ -3320,25 +3397,27 @@
   },
   "0x53373160": {
    "new": "0x53381aa8",
-   "how": "loose (immediates differ: check by hand); refs 0x53381aa8x1",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: RAW Grain restore on cancel: the bl at 0x531abdd0 (1.11 0x531aa860), context identical",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x53373400": {
    "new": "0x53381e6c",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53373bc0": {
    "new": "0x5338262c",
-   "how": "aligned + refs 0x5338262cx4",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts",
     "tools/looks/looks_check.py"
@@ -3346,32 +3425,36 @@
   },
   "0x53373bc4": {
    "new": "0x53382630",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53373d04": {
    "new": "0x53382788",
-   "how": "aligned + refs 0x53382788x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53373f84": {
    "new": "0x53382a14",
-   "how": "aligned + refs 0x53382a14x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53374118": {
    "new": "0x53382bc0",
-   "how": "aligned + refs 0x53382bc0x4",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -3394,8 +3477,9 @@
   },
   "0x53374d20": {
    "new": "0x533837f4",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "ratio -> code map function (raw crop): aligned; upstream crop120 hooks 0x533837f4",
    "files": [
     "core/src/fw/aspect/build.ts",
     "tools/aspect/boot_checks.py"
@@ -3419,16 +3503,18 @@
   },
   "0x53374e98": {
    "new": "0x5338396c",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53374e9c": {
    "new": "0x53383970",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -3444,16 +3530,18 @@
   },
   "0x53375210": {
    "new": "0x53383cf0",
-   "how": "aligned + refs 0x53383cf0x2",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "its caller (comment): aligned, two references agree",
    "files": [
     "tools/aspect/boot_checks.py"
    ]
   },
   "0x533755bc": {
    "new": "0x5338409c",
-   "how": "aligned + refs 0x5338409cx1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/guard.ts",
     "tools/looks/looks_check.py"
@@ -3461,9 +3549,9 @@
   },
   "0x5337561c": {
    "new": "0x533840fc",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: look-order consumer / count site: same instructions with the count 20 -> 22 (two more looks) and the order table 0x53de8cd0",
    "files": [
     "core/src/fw/aspect/looks.ts",
     "core/src/fw/aspect/slots.ts"
@@ -3471,18 +3559,18 @@
   },
   "0x53375620": {
    "new": "0x53384100",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: look-order consumer / count site: same instructions with the count 20 -> 22 (two more looks) and the order table 0x53de8cd0",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53375628": {
    "new": "0x53384108",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: look-order consumer / count site: same instructions with the count 20 -> 22 (two more looks) and the order table 0x53de8cd0",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -3499,9 +3587,9 @@
   },
   "0x5337f828": {
    "new": "0x5338edfc",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -3541,25 +3629,28 @@
    ]
   },
   "0x5337ff98": {
-   "new": null,
-   "how": "not aligned; refs 0x5338f584x1",
-   "ok": false,
+   "new": "0x5338f584",
+   "how": "override",
+   "ok": true,
+   "why": "fork B: soft focus name site (mov r0,#140, word 0xe3a0008c checked)",
    "files": [
     "core/src/fw/aspect/softfocus.ts"
    ]
   },
   "0x5337ff9c": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x5338f588",
+   "how": "override",
+   "ok": true,
+   "why": "fork B: soft focus name site + 4",
    "files": [
     "core/src/fw/aspect/softfocus.ts"
    ]
   },
   "0x53380874": {
-   "new": null,
-   "how": "not aligned; refs 0x5338fe60x1",
-   "ok": false,
+   "new": "0x5338fe60",
+   "how": "override",
+   "ok": true,
+   "why": "fork B: menu helper used by shutdown.ts (expectWord + bl target)",
    "files": [
     "core/src/fw/aspect/shutdown.ts"
    ]
@@ -3610,8 +3701,9 @@
   },
   "0x533817f0": {
    "new": "0x53390e40",
-   "how": "aligned + refs 0x53390e40x11",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: soft focus icon function: softfocus check ALL PASS",
    "files": [
     "core/src/fw/aspect/softfocus.ts",
     "tools/softfocus/check.py"
@@ -3642,17 +3734,19 @@
    ]
   },
   "0x53381934": {
-   "new": null,
-   "how": "not aligned; refs 0x53390f84x1",
-   "ok": false,
+   "new": "0x53390f84",
+   "how": "override",
+   "ok": true,
+   "why": "fork B: soft focus icon body: iconAt branch target; softfocus check ALL PASS",
    "files": [
     "core/src/fw/aspect/softfocus.ts"
    ]
   },
   "0x53397044": {
    "new": "0x533a66c8",
-   "how": "aligned + refs 0x533a66c8x7",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -3667,8 +3761,9 @@
   },
   "0x5339787c": {
    "new": "0x533a6f30",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: Direct Flash current-icon site 3 (CURRENT_ICON_SITES)",
    "files": [
     "core/src/fw/aspect/directflash.ts",
     "tools/directflash/check.py"
@@ -3707,9 +3802,10 @@
    ]
   },
   "0x5339b6a4": {
-   "new": "0x533aad5c",
-   "how": "aligned + refs 0x533aae14x1, 0x533aad5cx1",
-   "ok": false,
+   "new": "0x533aae14",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: number text 1..3 (cmp r2,#1 entry before a mov ip,sp function): two identical bodies 0x533aad5c/0x533aae14; 0x533aae14 has the same caller (RAW submenu row 0x531ac7a4 = 1.11 0x531ab234) and the same preceding tail",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
@@ -3756,24 +3852,27 @@
   },
   "0x533a3804": {
    "new": "0x533b3040",
-   "how": "aligned + refs 0x533b3040x2",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x533a3824": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x533b3060",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x533a3828": {
    "new": "0x533b3064",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -3795,51 +3894,55 @@
    ]
   },
   "0x533a6880": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x533b6138",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x533a6884": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x533b613c",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x533a6898": {
-   "new": null,
-   "how": "not aligned; refs 0x533b61c4x1",
-   "ok": false,
+   "new": "0x533b61c8",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x533a75ac": {
    "new": "0x533b6f74",
-   "how": "aligned + refs 0x533b6f74x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x533a7628": {
    "new": "0x533b6ff0",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: playback parameters: cmp r3,#0x16 -> #0x18, otherwise identical",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x533a762c": {
    "new": "0x533b6ff4",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: playback parameters: cmp r3,#0x16 -> #0x18, otherwise identical",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -3971,8 +4074,9 @@
   },
   "0x533b3200": {
    "new": "0x533c3400",
-   "how": "aligned + refs 0x533c3400x2",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: parameter getter/setter: identical function-by-function (fcmp) and in the sequence of its neighbours",
    "files": [
     "core/src/fw/aspect/slots.ts",
     "tools/slotparams/gen_slotparams.py"
@@ -4057,8 +4161,9 @@
   },
   "0x533b618c": {
    "new": "0x533c666c",
-   "how": "aligned + refs 0x533c67b0x1, 0x533c666cx1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: parameter getter/setter: identical function-by-function (fcmp) and in the sequence of its neighbours",
    "files": [
     "core/src/fw/aspect/slots.ts",
     "tools/slotparams/gen_slotparams.py"
@@ -4101,9 +4206,10 @@
    ]
   },
   "0x533b7f00": {
-   "new": null,
-   "how": "not aligned; refs 0x533c8590x1",
-   "ok": false,
+   "new": "0x533c8590",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: parameter getter/setter: identical function-by-function (fcmp) and in the sequence of its neighbours",
    "files": [
     "core/src/fw/aspect/slots.ts",
     "tools/slotparams/gen_slotparams.py",
@@ -4111,9 +4217,10 @@
    ]
   },
   "0x533b8928": {
-   "new": null,
-   "how": "not aligned; refs 0x533c90a8x1",
-   "ok": false,
+   "new": "0x533c90a8",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: parameter getter/setter: identical function-by-function (fcmp) and in the sequence of its neighbours",
    "files": [
     "core/src/fw/aspect/slots.ts",
     "tools/slotparams/gen_slotparams.py",
@@ -4121,9 +4228,10 @@
    ]
   },
   "0x533b9350": {
-   "new": null,
-   "how": "not aligned; refs 0x533c9b20x1",
-   "ok": false,
+   "new": "0x533c9b20",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: parameter getter/setter: identical function-by-function (fcmp) and in the sequence of its neighbours",
    "files": [
     "core/src/fw/aspect/slots.ts",
     "tools/slotparams/gen_slotparams.py",
@@ -4131,9 +4239,10 @@
    ]
   },
   "0x533b9d78": {
-   "new": null,
-   "how": "not aligned; refs 0x533ca598x1",
-   "ok": false,
+   "new": "0x533ca598",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: parameter getter/setter: identical function-by-function (fcmp) and in the sequence of its neighbours",
    "files": [
     "core/src/fw/aspect/slots.ts",
     "tools/slotparams/gen_slotparams.py",
@@ -4141,9 +4250,10 @@
    ]
   },
   "0x533ba7a0": {
-   "new": null,
-   "how": "not aligned; refs 0x533cb010x1",
-   "ok": false,
+   "new": "0x533cb010",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: parameter getter/setter: identical function-by-function (fcmp) and in the sequence of its neighbours",
    "files": [
     "core/src/fw/aspect/slots.ts",
     "tools/slotparams/gen_slotparams.py",
@@ -4270,9 +4380,10 @@
    ]
   },
   "0x533bdcf0": {
-   "new": null,
-   "how": "not aligned; refs 0x533ce7f0x1",
-   "ok": false,
+   "new": "0x533ce7f0",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: parameter getter/setter: identical function-by-function (fcmp) and in the sequence of its neighbours",
    "files": [
     "core/src/fw/aspect/slots.ts",
     "tools/slotparams/gen_slotparams.py",
@@ -4280,9 +4391,10 @@
    ]
   },
   "0x533be188": {
-   "new": null,
-   "how": "not aligned; refs 0x533ced18x1",
-   "ok": false,
+   "new": "0x533ced18",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: parameter getter/setter: identical function-by-function (fcmp) and in the sequence of its neighbours",
    "files": [
     "core/src/fw/aspect/slots.ts",
     "tools/slotparams/gen_slotparams.py",
@@ -4290,9 +4402,10 @@
    ]
   },
   "0x533be620": {
-   "new": null,
-   "how": "not aligned; refs 0x533cf240x1",
-   "ok": false,
+   "new": "0x533cf240",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: parameter getter/setter: identical function-by-function (fcmp) and in the sequence of its neighbours",
    "files": [
     "core/src/fw/aspect/slots.ts",
     "tools/slotparams/gen_slotparams.py",
@@ -4310,9 +4423,9 @@
   },
   "0x533bebf0": {
    "new": "0x533cfa00",
-   "how": "loose (immediates differ: check by hand); refs 0x533cfa00x1",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: look-order consumer / count site: same instructions with the count 20 -> 22 (two more looks) and the order table 0x53de8cd0",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -4511,25 +4624,27 @@
   },
   "0x533cbfdc": {
    "new": "0x533dd6a8",
-   "how": "aligned + refs 0x533dd8f4x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: DEFAULTS[22]: the ref 0x533dd8f4 is the new 24th parameter (Solarized only); 0x533dd6a8 matches the 1.11 body (fcmp)",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x533cc5b4": {
    "new": "0x533ddfe0",
-   "how": "aligned + refs 0x533ddfe0x2",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x533cc648": {
    "new": "0x533de080",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: monochrome visibility jump table (looks 25..30 -> 25..32: 8 entries), entries point at the 1.20 stubs (hidden 0x533de0b0)",
    "files": [
     "core/src/fw/aspect/looks.ts"
    ]
@@ -4544,8 +4659,9 @@
   },
   "0x533cc6e0": {
    "new": "0x533de144",
-   "how": "aligned + refs 0x533de144x2",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/guard.ts",
     "core/src/fw/aspect/looks.ts",
@@ -4555,16 +4671,18 @@
   },
   "0x533cc6e4": {
    "new": "0x533de148",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x533cc6e8": {
    "new": "0x533de14c",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -4612,8 +4730,9 @@
   },
   "0x533cc784": {
    "new": "0x533de1e8",
-   "how": "aligned + refs 0x533de1e8x2",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/guard.ts",
     "tools/looks/looks_check.py"
@@ -4621,8 +4740,9 @@
   },
   "0x533cc78c": {
    "new": "0x533de1f0",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: look-order consumer / count site: same instructions with the count 20 -> 22 (two more looks) and the order table 0x53de8cd0",
    "files": [
     "core/src/fw/aspect/looks.ts",
     "core/src/fw/aspect/slots.ts"
@@ -4630,43 +4750,45 @@
   },
   "0x533cc794": {
    "new": "0x533de1f8",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: look-order consumer / count site: same instructions with the count 20 -> 22 (two more looks) and the order table 0x53de8cd0",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x533cc7a4": {
    "new": "0x533de208",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: look-order consumer / count site: same instructions with the count 20 -> 22 (two more looks) and the order table 0x53de8cd0",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x533cc890": {
    "new": "0x533de2f8",
-   "how": "aligned + refs 0x533de2f8x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "tools/looks/looks_check.py"
    ]
   },
   "0x533cc8c8": {
    "new": "0x533de330",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: look-order consumer / count site: same instructions with the count 20 -> 22 (two more looks) and the order table 0x53de8cd0",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x533cc90c": {
    "new": "0x533de374",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: look-order consumer / count site: same instructions with the count 20 -> 22 (two more looks) and the order table 0x53de8cd0",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -4690,8 +4812,9 @@
   },
   "0x533e0330": {
    "new": "0x533f1dbc",
-   "how": "aligned + refs 0x533f1dbcx10",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: SpecModel model number: aligned; datestamp menu_check stub reached for models 0..2",
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts",
     "tools/datestamp/menu_check.py"
@@ -4699,9 +4822,9 @@
   },
   "0x533e033c": {
    "new": "0x533f1dc8",
-   "how": "loose (immediates differ: check by hand); refs 0x533f1dc8x7, 0x533de0e8x1",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: availability reader (table 0x53de9cc4): cmp r1,#0xa -> #0xc (two more rows, looks 31 and 32)",
    "files": [
     "core/src/fw/aspect/monounlock.ts",
     "tools/datestamp/menu_check.py",
@@ -4746,8 +4869,9 @@
   },
   "0x533ef000": {
    "new": "0x53400df4",
-   "how": "aligned + refs 0x53400df4x23",
+   "how": "override",
    "ok": true,
+   "why": "fork B: SpecModel query stub (datestamp menu_check): aligned, normalised body equal",
    "files": [
     "core/src/fw/aspect/lookstash.ts",
     "tools/datestamp/datestamp.c",
@@ -4758,8 +4882,9 @@
   },
   "0x533ef18c": {
    "new": "0x53400f80",
-   "how": "aligned + refs 0x53400f80x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: SpecModel query stub (list_width_check): aligned + 1 ref, normalised body equal (only mov r1 index / literal differ)",
    "files": [
     "tools/datestamp/list_width_check.py"
    ]
@@ -4792,8 +4917,9 @@
   },
   "0x535278d8": {
    "new": "0x53546c24",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "UserDataInitValue (comment): aligned function start; like 1.11 it has no store at any padding byte (0x109, 0x90F, 0x94B, 0x99A, 0x99B, either base)",
    "files": [
     "core/src/fw/aspect/directflash.ts",
     "core/src/fw/aspect/softfocus.ts"
@@ -4889,8 +5015,9 @@
   },
   "0x53572adc": {
    "new": "0x53595da4",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "start of the measuring text lookup check (cmp r0,#0x14 before the bound)",
    "files": [
     "tools/aspect/boot_checks.py"
    ]
@@ -5026,8 +5153,9 @@
   },
   "0x53579f28": {
    "new": "0x5359d1f4",
-   "how": "aligned + refs 0x5359d1f4x1",
+   "how": "override",
    "ok": true,
+   "why": "fork B: other row class constructor: aligned; list_width_check runs it",
    "files": [
     "tools/datestamp/list_width_check.py"
    ]
@@ -5045,8 +5173,9 @@
   },
   "0x5357a428": {
    "new": "0x5359d6f4",
-   "how": "aligned + refs 0x5359d6f4x21, 0x5359d740x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: Setup submenu line value icon (LINE_VALUE_ICON): aligned + 21 refs",
    "files": [
     "core/src/fw/aspect/shutdown.ts",
     "tools/datestamp/menu_check.py",
@@ -5064,8 +5193,9 @@
   },
   "0x5357ab24": {
    "new": "0x5359ddf0",
-   "how": "aligned + refs 0x5359ddf0x1",
+   "how": "override",
    "ok": true,
+   "why": "fork B: SelectMenu row constructor: aligned; list_width_check runs it",
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts",
     "tools/datestamp/list_width_check.py"
@@ -5436,8 +5566,9 @@
   },
   "0x5364df8c": {
    "new": "0x5367298c",
-   "how": "aligned + refs 0x5367298cx1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "tracking-window branch: aligned, one reference agrees; upstream crop120 beq #0x5367298c",
    "files": [
     "core/src/fw/aspect/build.ts"
    ]
@@ -5460,8 +5591,9 @@
   },
   "0x5364e440": {
    "new": "0x53672e40",
-   "how": "aligned + refs 0x53672e40x6",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "tracking-window branch: aligned, six references agree; upstream crop120 bne #0x53672e40",
    "files": [
     "core/src/fw/aspect/build.ts"
    ]
@@ -5928,8 +6060,9 @@
   },
   "0x53701c40": {
    "new": "0x53726594",
-   "how": "aligned + refs 0x53726594x2, 0x53738948x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: aligned + refs (directflash)",
    "files": [
     "tools/softfocus/check.py"
    ]
@@ -6117,8 +6250,9 @@
   },
   "0x5372b620": {
    "new": "0x53750008",
-   "how": "aligned + refs 0x53750008x1626, 0x535f8cfcx1, 0x537bec40x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: setting root getter (+0x28: power-off picture setting, APData record 7)",
    "files": [
     "tools/shutdown/menu_check.py",
     "tools/shutdown/shutdown.c"
@@ -6126,8 +6260,9 @@
   },
   "0x5372b640": {
    "new": "0x53750028",
-   "how": "aligned + refs 0x53750028x2",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: direction singleton getter: aligned, its movw word checked by expectWord",
    "files": [
     "core/src/fw/aspect/datestamp.ts"
    ]
@@ -6177,24 +6312,27 @@
   },
   "0x537d5748": {
    "new": "0x537fbad0",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x537d575c": {
    "new": "0x537fbae4",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x537d5760": {
    "new": "0x537fbae8",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -6225,32 +6363,36 @@
   },
   "0x537d899c": {
    "new": "0x537feed8",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x537d89b0": {
    "new": "0x537feeec",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x537d89b4": {
    "new": "0x537feef0",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x537d8a00": {
    "new": "0x537fef3c",
-   "how": "aligned + refs 0x537fef3cx5",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -6297,8 +6439,9 @@
   },
   "0x537e0e94": {
    "new": "0x53807a1c",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -6845,8 +6988,9 @@
   },
   "0x538ed930": {
    "new": "0x539154f8",
-   "how": "aligned + refs 0x539154f8x8710, 0x53367840x1, 0x53354228x1, 0x532e9a3cx1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "the assertion function: aligned, 8710 references agree",
    "files": [
     "tools/aspect/boot_checks.py",
     "tools/aspect/playback_check.py",
@@ -6856,8 +7000,9 @@
   },
   "0x538ee49c": {
    "new": "0x53916064",
-   "how": "aligned + refs 0x53916064x461",
+   "how": "override",
    "ok": true,
+   "why": "fork B: second assert-like function, 0xb6c after 0x539154f8 as in 1.11",
    "files": [
     "tools/aspect/playback_check.py",
     "tools/datestamp/menu_check.py"
@@ -6898,8 +7043,9 @@
   },
   "0x538f21a0": {
    "new": "0x53919d68",
-   "how": "aligned + refs 0x53919d68x117, 0x53864af8x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: date imprint platform function (datestamp.ts PLATFORM): aligned, normalised body equal",
    "files": [
     "core/src/fw/aspect/datestamp.ts",
     "tools/datestamp/datestamp.c"
@@ -6959,43 +7105,45 @@
   },
   "0x53911afc": {
    "new": "0x539397a8",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: Toning load of the development record writer 0x53938ef8 (the only [r3,#0x7a6] load in it, as in 1.11)",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x53911b00": {
-   "new": null,
-   "how": "not aligned; refs ",
-   "ok": false,
+   "new": "0x539397ac",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: next instruction after 0x539397a8 (1.20 dropped the mov r8,#0 there; no flag use follows)",
    "files": [
     "core/src/fw/aspect/halation-ui.ts"
    ]
   },
   "0x53912cf4": {
    "new": "0x5393aa94",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: style-index function: cmp r2,#30 -> #32 (two more looks), otherwise identical",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53912cf8": {
    "new": "0x5393aa98",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: style-index function: cmp r2,#30 -> #32 (two more looks), otherwise identical",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53912d08": {
    "new": "0x5393aaa8",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: style-index function: cmp r2,#30 -> #32 (two more looks), otherwise identical",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -7010,106 +7158,108 @@
   },
   "0x53925f98": {
    "new": "0x5394dfb0",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: style-table accessor: mov r2,#0x22 -> #0x26 (rows of 38), movw/movt of the 1.20 table",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53925f9c": {
    "new": "0x5394dfb4",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: style-table accessor: mov r2,#0x22 -> #0x26 (rows of 38), movw/movt of the 1.20 table",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53925fa4": {
    "new": "0x5394dfbc",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: style-table accessor: mov r2,#0x22 -> #0x26 (rows of 38), movw/movt of the 1.20 table",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53925fc4": {
    "new": "0x5394dfdc",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: style-table accessor: mov r2,#0x22 -> #0x26 (rows of 38), movw/movt of the 1.20 table",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53925fc8": {
    "new": "0x5394dfe0",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: style-table accessor: mov r2,#0x22 -> #0x26 (rows of 38), movw/movt of the 1.20 table",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53925fd0": {
    "new": "0x5394dfe8",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: style-table accessor: mov r2,#0x22 -> #0x26 (rows of 38), movw/movt of the 1.20 table",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53925ff0": {
    "new": "0x5394e008",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: style-table accessor: mov r2,#0x22 -> #0x26 (rows of 38), movw/movt of the 1.20 table",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53925ff4": {
    "new": "0x5394e00c",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: style-table accessor: mov r2,#0x22 -> #0x26 (rows of 38), movw/movt of the 1.20 table",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53925ffc": {
    "new": "0x5394e014",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: style-table accessor: mov r2,#0x22 -> #0x26 (rows of 38), movw/movt of the 1.20 table",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x5392601c": {
    "new": "0x5394e034",
-   "how": "loose (immediates differ: check by hand); refs ",
-   "ok": false,
-   "loose": true,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: style-table accessor: mov r2,#0x22 -> #0x26 (rows of 38), movw/movt of the 1.20 table",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53926020": {
    "new": "0x5394e038",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: style-table accessor: mov r2,#0x22 -> #0x26 (rows of 38), movw/movt of the 1.20 table",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53926028": {
    "new": "0x5394e040",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: style-table accessor: mov r2,#0x22 -> #0x26 (rows of 38), movw/movt of the 1.20 table",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
@@ -7143,8 +7293,9 @@
   },
   "0x53a7e434": {
    "new": "0x53aa6680",
-   "how": "aligned + refs 0x53aa6680x21",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts",
     "tools/shutdown/menu_check.py",
@@ -7231,8 +7382,9 @@
   },
   "0x53d9c438": {
    "new": "0x53dc6b38",
-   "how": "aligned + refs 0x53dc6b38x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: menu descriptor (check scripts)",
    "files": [
     "tools/datestamp/menu_check.py",
     "tools/shutdown/menu_check.py"
@@ -7240,8 +7392,9 @@
   },
   "0x53d9ca10": {
    "new": "0x53dc7110",
-   "how": "aligned + refs 0x53dc7110x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: Setup menu descriptor: RAM image 0x55001e88 holds it (checked in both images)",
    "files": [
     "core/src/fw/aspect/shutdown.ts",
     "tools/datestamp/menu_check.py",
@@ -7250,8 +7403,9 @@
   },
   "0x53d9cdb0": {
    "new": "0x53dc74b0",
-   "how": "aligned + refs 0x53dc74b0x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: still (shooting) menu descriptor: menu table entry; guarded in datestamp-menu.ts",
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts",
     "tools/datestamp/menu_check.py",
@@ -7260,8 +7414,9 @@
   },
   "0x53d9d13c": {
    "new": "0x53dc783c",
-   "how": "aligned + refs 0x53dc783cx1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: menu descriptor (check scripts)",
    "files": [
     "tools/datestamp/menu_check.py",
     "tools/shutdown/menu_check.py"
@@ -7269,8 +7424,9 @@
   },
   "0x53d9d4d0": {
    "new": "0x53dc7bd0",
-   "how": "aligned + refs 0x53dc7bd0x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: menu descriptor (check scripts)",
    "files": [
     "tools/datestamp/menu_check.py",
     "tools/shutdown/menu_check.py"
@@ -7297,8 +7453,9 @@
   },
   "0x53da09b4": {
    "new": "0x53dcb09c",
-   "how": "aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: Fn menu Flash record (FN_RECORD)",
    "files": [
     "core/src/fw/aspect/directflash.ts",
     "tools/directflash/check.py"
@@ -7344,32 +7501,36 @@
   },
   "0x53dbb034": {
    "new": "0x53de5890",
-   "how": "aligned + refs 0x53de5890x7",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "factory ratio order vector {0,1,3,2}: upstream layout120_userdata native_crop_order 0x53DE5890; seven movw/movt pairs name it",
    "files": [
     "tools/aspect/boot_checks.py"
    ]
   },
   "0x53dbb8f0": {
    "new": "0x53de61c0",
-   "how": "aligned + refs 0x53de61c0x10",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53dbda18": {
-   "new": null,
-   "how": "not aligned; refs 0x53de8374x1",
-   "ok": false,
+   "new": "0x53de8374",
+   "how": "override",
+   "ok": true,
+   "why": "fork A: data table, aligned by its reference in the relocated code (slots.ts)",
    "files": [
     "core/src/fw/aspect/slots.ts"
    ]
   },
   "0x53dbe388": {
    "new": "0x53de8cd0",
-   "how": "aligned + refs 0x53de8cd0x1",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
     "core/src/fw/aspect/looks.ts",
     "core/src/fw/aspect/slots.ts"
@@ -7385,16 +7546,18 @@
   },
   "0x53e984e0": {
    "new": "0x53ece708",
-   "how": "aligned + refs 0x53ece708x3",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: label widget vtable: aligned + 3 refs; list_width_check ALL OK",
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts"
    ]
   },
   "0x53e98f18": {
    "new": "0x53ecf140",
-   "how": "aligned + refs 0x53ecf140x2",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: SelectMenu row vtable: aligned + 2 refs; list_width_check ALL OK",
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts"
    ]
@@ -7623,10 +7786,10 @@
    ]
   },
   "0x543d4ac0": {
-   "new": "0x5440d600",
+   "new": "0x5440da00",
    "how": "override",
    "ok": true,
-   "why": "TEXT_CATALOG: official RTOS end + 0x2000, as in 1.11",
+   "why": "TEXT_CATALOG: ICON_CATALOG + 0x1400 (1.11: + 0x1000), room for 1280 icons (Direct Flash icons 1004..1054 in 1.20)",
    "files": [
     "core/src/fw/aspect/build.ts",
     "tools/datestamp/menu_check.py",
@@ -7705,8 +7868,9 @@
   },
   "0x55001e88": {
    "new": "0x55001e88",
-   "how": "RAM image aligned",
-   "ok": false,
+   "how": "override",
+   "ok": true,
+   "why": "fork B: Setup menu table entry in the RAM image: holds the Setup menu descriptor in both images",
    "files": [
     "core/src/fw/aspect/shutdown.ts"
    ]
@@ -7731,9 +7895,10 @@
    ]
   },
   "0x55013e70": {
-   "new": "0x55014d9c",
-   "how": "RAM image aligned + refs 0x55014d98x1",
-   "ok": false,
+   "new": "0x55014d98",
+   "how": "override",
+   "ok": true,
+   "why": "fork B: full-screen JPEG table: movw/movt in 0x53264274 point at 0x55014D98 (13 entries, 12 = GB_30th); the map candidate 0x55014D9C is 4 bytes off",
    "files": [
     "core/src/fw/aspect/shutdown.ts"
    ]
@@ -7795,9 +7960,10 @@
    ]
   },
   "0x5508207c": {
-   "new": null,
-   "how": "RAM; refs 0x5508307cx1",
-   "ok": false,
+   "new": "0x5508307c",
+   "how": "override",
+   "ok": true,
+   "why": "fork B: APP singleton (RAM)",
    "files": [
     "tools/datestamp/menu_check.py",
     "tools/directflash/check.py",
@@ -7805,18 +7971,20 @@
    ]
   },
   "0x55082184": {
-   "new": null,
-   "how": "RAM; refs 0x55083194x1",
-   "ok": false,
+   "new": "0x55083194",
+   "how": "override",
+   "ok": true,
+   "why": "fork B: SpecModel singleton (RAM)",
    "files": [
     "tools/datestamp/menu_check.py",
     "tools/directflash/check.py"
    ]
   },
   "0x55082234": {
-   "new": null,
-   "how": "RAM; refs 0x55083244x1",
-   "ok": false,
+   "new": "0x55083244",
+   "how": "override",
+   "ok": true,
+   "why": "fork B: CURRENT settings singleton (RAM)",
    "files": [
     "tools/datestamp/menu_check.py",
     "tools/directflash/check.py",
@@ -7841,17 +8009,19 @@
    ]
   },
   "0x5537960c": {
-   "new": null,
-   "how": "RAM; refs 0x5537b29cx1",
-   "ok": false,
+   "new": "0x5537b29c",
+   "how": "override",
+   "ok": true,
+   "why": "fork B: direction singleton: movw/movt in 0x53750028 (expectWord 0xe30b029c)",
    "files": [
     "core/src/fw/aspect/datestamp.ts"
    ]
   },
   "0x553a09c4": {
-   "new": null,
-   "how": "RAM; refs 0x553a26c4x1",
-   "ok": false,
+   "new": "0x553a26c4",
+   "how": "override",
+   "ok": true,
+   "why": "fork B: cache object (RAM): 1 ref 0x553a26c4 (datestamp CACHE word 0xe30206c4)",
    "files": [
     "tools/datestamp/orient_check.py",
     "tools/datestamp/render_check.py",

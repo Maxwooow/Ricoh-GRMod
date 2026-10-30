@@ -208,7 +208,7 @@ SPECIAL = {
                         'the flags anyway; for the first record of a map (r4 - sl == 4) the size is enlarged on purpose'},
     0x5389F5AC: 'entry', 0x533F3674: 'entry', 0x533F3254: 'entry', 0x5381D6BC: 'entry',
     0x5338F198: 'entry', 0x53390A88: 'entry', 0x5376FB10: 'entry',
-    0x53379B38: 'entry', 0x53379C94: 'entry', 0x5337BC70: 'entry', 0x53374D20: 'entry', 0x53383b68: 'entry',
+    0x53379B38: 'entry', 0x53379C94: 'entry', 0x5337BC70: 'entry', 0x533837F4: 'entry', 0x53383b68: 'entry',
     0x5325CA94: 'entry',
     0x532ADEDC: {'ignore': (), 'tweak': 'valid_current_ratio',
                  'why': 'resets the current ratio when it is not in the menu; transparent when it is a menu ratio'},
@@ -476,9 +476,9 @@ def check_directories(official, patched, icon_bytes, official_icons):
         word = u32(patched, helper + 4)
         assert word & 0x0FFFF000 == 0x03003000, 'icon bound is not a MOVW r3'
         bounds.append(((word >> 4) & 0xF000) | (word & 0xFFF))
-    assert bounds[0] == bounds[1] < 1024, 'icon bounds differ or exceed the table'
+    assert bounds[0] == bounds[1] < 1280, 'icon bounds differ or exceed the table (1280 entries in 1.20)'
     new_icons = 0
-    for index in range(709, 1024):
+    for index in range(709, 1280):
         pointer = struct.unpack('<I', read(patched, new_table + index * 4, 4))[0]
         if pointer:
             assert index <= bounds[0], 'icon above the bound'
@@ -547,7 +547,7 @@ def check_menu(official, patched):
         expected = order[(order.index(current) + 1) % count] if current in order else order[0]
         assert chosen == expected, ('cycle', current, chosen, expected)
     # The official code does the same for its four ratios.
-    old_table = 0x53DBB034
+    old_table = 0x53DE5890
     for current in (0, 1, 3, 2):
         st = dict(state)
         st['regs'] = list(state['regs'])
@@ -649,7 +649,7 @@ def check_settings(official, patched, order):
         finally:
             mp.stubs = {}
         assert seen, 'recall: native callee not reached'
-        assert seen['regs'][:13] == st['regs'][:13] and seen['regs'][13] == st['regs'][13] and seen['regs'][14] == 0x532A90D0, 'recall: registers'
+        assert seen['regs'][:13] == st['regs'][:13] and seen['regs'][13] == st['regs'][13] and seen['regs'][14] == 0x532ADEE0, 'recall: registers'
         assert bytes(mp.uc.mem_read(user + 0x49F, 1))[0] == (ids[11] if ids[11] in active else 0), 'recall: ratio byte'
         cases += 1
     return cases
@@ -670,7 +670,7 @@ def check_first_record(patched, custom_count):
         assert size == (48 + custom_count * 976 if first else 46), ('record size', first, size)
 
 
-ASSERT = 0x538ED930  # the firmware's assertion / diagnostic function
+ASSERT = 0x539154F8  # the firmware's assertion / diagnostic function
 
 
 def check_raw_development(official, patched, order):
@@ -713,7 +713,7 @@ def check_raw_development(official, patched, order):
                 # Code 0 ("as shot"). The official validity function reads one byte past its list
                 # when the "as shot" entry is offered, so its answer for code 0 depends on padding
                 # (0 for a 3:2 source, 1 for the others); the replacement always answers 0. The one
-                # caller (0x53375210) then uses the source's own ratio, which is also what code 0
+                # caller (0x53383cf0) then uses the source's own ratio, which is also what code 0
                 # maps to in both versions, so the outcome is the same either way:
                 old_back, old_failed = run_call(mo, 0x53383b68, 0, src, current)
                 assert not old_failed and old_back == src and run_call(mp, 0x53383b68, 0, src, current)[0] == src, 'code 0 (as shot) must map to the source ratio'
@@ -731,13 +731,13 @@ def check_raw_development(official, patched, order):
             assert run_call(mp, 0x5337BC70, 5 + len(custom), src, current)[0] == 0, 'unknown target accepted'
             cases += 1
     for public in range(4):
-        old, failed = run_call(mo, 0x53374D20, public, 0, 0)
-        assert not failed and run_call(mp, 0x53374D20, public, 0, 0)[0] == old, 'ratio -> code changed'
+        old, failed = run_call(mo, 0x533837F4, public, 0, 0)
+        assert not failed and run_call(mp, 0x533837F4, public, 0, 0)[0] == old, 'ratio -> code changed'
         code = old
         old_public, failed = run_call(mo, 0x53383b68, code, 0, 0)
         assert not failed and old_public == public and run_call(mp, 0x53383b68, code, 0, 0)[0] == public, 'code -> ratio changed'
     for index, public in enumerate(custom):
-        assert run_call(mp, 0x53374D20, public, 0, 0)[0] == 5 + index and run_call(mp, 0x53383b68, 5 + index, 0, 0)[0] == public, 'added ratio code'
+        assert run_call(mp, 0x533837F4, public, 0, 0)[0] == 5 + index and run_call(mp, 0x53383b68, 5 + index, 0, 0)[0] == public, 'added ratio code'
     return cases
 
 

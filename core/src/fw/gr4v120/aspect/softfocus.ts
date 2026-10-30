@@ -27,7 +27,7 @@
  *    (0x0A and 0x0B shared a case; 0x0B keeps its icon), a new 40x40 icon appended to ICONBIN and entered in the relocated icon catalog.
  *  - The value labels are the camera's own texts: Off (2), Low (10), Medium (11), High (12) (1.11: 2, 9, 10, 11).
  *  - Where the value is kept: byte 0x90F of the user-settings structure (0xAE9 bytes). The
- *    factory-defaults initialiser (UserDataInitValue, 0x535278D8) writes every field of all 30
+ *    factory-defaults initialiser (UserDataInitValue, 0x53546C24) writes every field of all 30
  *    default records and never this byte: it is alignment padding between a byte field (0x90E) and
  *    a halfword field (0x910). The structure is saved and loaded, and copied to and from U1-U3, as a
  *    whole (memcpy of 0xAE9 bytes), so the byte is kept across power-off, follows the user modes,

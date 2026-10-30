@@ -650,7 +650,7 @@ function buildGeometry(patch: Patch, ratios: readonly RatioEntry[]): { p: Progra
   // Tracking windows.
   out = '';
   for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
-  out += 'cmp r2,#5;beq #0x5364DF8C;b #0x536728E8;';
+  out += 'cmp r2,#5;beq #0x5367298C;b #0x536728E8;';
   for (const row of rows) out += `ratio${row.id}:movw r4,#${row.g.tracking[0]};movw r7,#${row.g.tracking[1]};b #0x53672994;`;
   p.hook(0x536728e4, out);
   out = '';
@@ -659,7 +659,7 @@ function buildGeometry(patch: Patch, ratios: readonly RatioEntry[]): { p: Progra
   for (const row of rows) {
     const [tx, ty] = row.g.tracking;
     const [lockx, locky] = row.g.modeAlias === 5 ? [778, 1000] : [1000, 750];
-    out += `ratio${row.id}:cmp r7,#0;movw r5,#${lockx};movw r4,#${locky};bne #0x5364E440;movw r5,#${tx};movw r4,#${ty};b #0x53672DE0;`;
+    out += `ratio${row.id}:cmp r7,#0;movw r5,#${lockx};movw r4,#${locky};bne #0x53672E40;movw r5,#${tx};movw r4,#${ty};b #0x53672DE0;`;
   }
   p.hook(0x53672e80, out);
   // Hardware mode alias: wider than 3:2 borrows the native wide branch, otherwise the square one.
@@ -882,7 +882,7 @@ function installRaw(patch: Patch, ratios: readonly RatioEntry[]): void {
   p.hook(0x53379b38, 'ldr r3,[r0,#0x24];ldrb r3,[r3,#0x7da];' + addr('r2', table) + 'ldr r2,[r2,r3,lsl #2];ldrb r1,[r0,#5];ldrb r0,[r2];cmp r1,#0;addne r0,r0,#1;uxtb r0,r0;bx lr;');
   p.hook(0x53379c94, 'ldrb r3,[r0,#5];cmp r3,#0;beq source;cmp r1,#0;moveq r0,#0;bxeq lr;sub r1,r1,#1;uxtb r1,r1;source:ldr r3,[r0,#0x24];ldrb r3,[r3,#0x7da];' + addr('r2', table) + 'ldr r2,[r2,r3,lsl #2];ldrb r3,[r2];cmp r1,r3;movhs r0,#0;bxhs lr;add r2,r2,#1;ldrb r0,[r2,r1];bx lr;');
   p.hook(0x5337bc70, 'ldr r3,[r0,#0x24];ldrb r3,[r3,#0x7da];' + addr('r2', table) + 'ldr r2,[r2,r3,lsl #2];ldrb r3,[r2],#1;loop:cmp r3,#0;moveq r0,#0;bxeq lr;ldrb r0,[r2],#1;cmp r0,r1;moveq r0,#1;bxeq lr;sub r3,r3,#1;b loop;');
-  p.hook(0x53374d20, 'uxtb r1,r1;' + addr('r2', maps) + 'ldrb r0,[r2,r1];bx lr;');
+  p.hook(0x533837f4, 'uxtb r1,r1;' + addr('r2', maps) + 'ldrb r0,[r2,r1];bx lr;');
   p.hook(0x53383b68, 'cmp r1,#0;ldreq r3,[r0,#0x24];ldrbeq r0,[r3,#0x7da];bxeq lr;uxtb r1,r1;' + addr('r2', maps + 256) + 'ldrb r0,[r2,r1];bx lr;');
   installImageMap(patch, ratios);
 }

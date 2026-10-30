@@ -138,9 +138,13 @@ def main():
     for _, dst in cfg['copies'] + cfg.get('files', []):
         for f in sorted((REPO / dst).rglob('*')) if (REPO / dst).is_dir() else [REPO / dst]:
             if f.is_file() and f.suffix in TEXT:
-                for x in re.findall(r'0x5[345][0-9a-fA-F]{6}', f.read_text(encoding='utf-8')):
-                    if '0x' + x[2:].lower() in moved and '0x' + x[2:].lower() not in valid:
-                        leftovers.append(f'{f.relative_to(REPO)}: {x}')
+                for line in f.read_text(encoding='utf-8').split('\n'):
+                    for mm in re.finditer(r'0x5[345][0-9a-fA-F]{6}', line):
+                        x = mm.group(0)
+                        # A hand edit may name the old program's address on purpose ("1.11: 0x...").
+                        if cfg.get('old_marker') and cfg['old_marker'] in line[max(0, mm.start() - 40):mm.start()]: continue
+                        if '0x' + x[2:].lower() in moved and '0x' + x[2:].lower() not in valid:
+                            leftovers.append(f'{f.relative_to(REPO)}: {x}')
     if leftovers: sys.exit('old addresses left in the port:\n' + '\n'.join(leftovers[:40]))
     for step in cfg.get('post', []):
         r = subprocess.run(step, cwd=REPO, capture_output=True, text=True)

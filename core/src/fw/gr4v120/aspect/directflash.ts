@@ -32,7 +32,7 @@
  *    look it up (menus, ADJ, Fn, flash control, exposure). Direct Flash is Flash Mode 0 (Flash On)
  *    plus bit 0 of byte 0x99B of the live user settings structure (CURRENT() + 4): alignment padding
  *    (bytes 0x997..0x999, then a word at 0x99C) that the factory-defaults initialiser
- *    (UserDataInitValue, 0x535278D8, run in an emulator on all 30 default records) never writes,
+ *    (UserDataInitValue, 0x53546C24, run in an emulator on all 30 default records) never writes,
  *    like 0x90F (soft focus) and 0x94B (date imprint). It is saved, loaded and copied to U1..U3 with
  *    the structure, and a settings reset makes it 0. The firmware itself only ever sees Flash Mode
  *    0..3; written back to the official firmware the camera simply has Flash On. (Up to test 055
@@ -43,7 +43,7 @@
  *       copies the table);
  *     * the ADJ lever (record 0x09 of AdjModeController's table at 0x53DC9DFC: text, icon, is
  *       current, set, count; slow sync when the controller's byte +0x282 is set);
- *     * the Fn list (record id 0x16 at 0x53DA09B4 of the table at 0x53DCAE14: text, icon, is
+ *     * the Fn list (record id 0x16 at 0x53DCB09C of the table at 0x53DCAE14: text, icon, is
  *       current, set, count; slow sync when byte +0x197 is set).
  *    The other values go to the camera's own handlers. Picking Direct Flash sets Flash Mode 0
  *    (SetFlashMode, 0x532B6EE0) and bit 0; picking any other value clears bit 0 (the other bits

@@ -132,5 +132,42 @@
     "-native\\.ts$",
     "/native\\.ts$"
   ],
-  "post": []
+  "post": [
+    [
+      "python3",
+      "tools/gr4v120/aspect/gen_native.py"
+    ],
+    [
+      "python3",
+      "tools/gr4v120/datestamp/gen.py"
+    ],
+    [
+      "python3",
+      "tools/gr4v120/directflash/gen.py"
+    ],
+    [
+      "python3",
+      "tools/gr4v120/halation/gen.py"
+    ],
+    [
+      "python3",
+      "tools/gr4v120/shutdown/gen.py"
+    ],
+    [
+      "python3",
+      "tools/gr4v120/slotparams/gen_slotparams.py"
+    ],
+    [
+      "python3",
+      "tools/port/native_scan.py",
+      "tools/port/gr4-120-map.json",
+      "core/src/fw/gr4v120/aspect/native.ts",
+      "core/src/fw/gr4v120/aspect/datestamp-code.ts",
+      "core/src/fw/gr4v120/aspect/directflash-code.ts",
+      "core/src/fw/gr4v120/aspect/halation-code.ts",
+      "core/src/fw/gr4v120/aspect/shutdown-code.ts",
+      "core/src/fw/gr4v120/aspect/slotparams-native.ts"
+    ]
+  ],
+  "old_marker": "1.11"
 }

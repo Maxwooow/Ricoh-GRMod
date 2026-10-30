@@ -38,7 +38,7 @@ CREATE_MAIN_IMAGE = 0x536C64C0
 ALLOC_SIZE_CALL = 0x536C3460
 CALC_IMAGE_BUFFER_SIZE = 0x536BB214
 REPORT = 0x53916064       # (condition, expression, file, line, function, format, ...)
-ASSERT = 0x538ED930
+ASSERT = 0x539154F8
 
 
 class Emu:

@@ -44,7 +44,7 @@
  *    value count +0x0C, draw value i +0x14, set value i +0x24, is value i current +0x2C) in a table
  *    of 126 at 0x53DCD470 (1.11: 124) addressed from 16 places; copied with three more records (127..129; 126 is
  *    the constructor's start value), the model being Horizon Correction's record. SetCurrentMenu
- *    (0x531D5E8C) maps the new ids to them. The constructor also scans the table up to its end
+ *    (0x531D7860) maps the new ids to them. The constructor also scans the table up to its end
  *    (pool word 0x531D87A0) for the longest list; that end moves with the table (and still ends
  *    after the 126 official records).
  *  - Texts 885..889, 923, 924 and 925 (1.11: 841..845, 879..881) in all 21 languages (relocated text catalog, see `build.ts`):
@@ -174,8 +174,8 @@ const SUB_SET_ICON = 0x535a6454; // (submenu line, icon)
 const LIST_SET_ITEM = 0x5359e1bc; // (list item, icon, text)
 /**
  * 0.8.4 (test 052): the list rows of SelectMenuController are widgets of class 0x5359DDF0 (vtable
- * 0x53E98F18; constructor (x, y, width, height)): selection mark at x 10, icon 40..100, the value's
- * text label (+0xFC, a label widget, vtable 0x53E984E0) at x 100, 400 wide, y 10, 40 high, whatever
+ * 0x53ECF140; constructor (x, y, width, height)): selection mark at x 10, icon 40..100, the value's
+ * text label (+0xFC, a label widget, vtable 0x53ECE708) at x 100, 400 wide, y 10, 40 high, whatever
  * the row's width. The longest Style values ("2026.10.08 17:34 + ...") did not fit in 400 (test 051:
  * the last character cut in half). For the Style list only, after a value is drawn, its label is
  * made as wide as the row allows: to 20 px before the row's right edge, and never beyond x 680, the

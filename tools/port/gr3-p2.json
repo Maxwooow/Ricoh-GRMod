@@ -75,6 +75,19 @@
     [
       "python3",
       "tools/gr3x170/gen_films.py"
+    ],
+    [
+      "python3",
+      "tools/port/native_scan.py",
+      "tools/port/gr3-p2-map.json",
+      "core/src/fw/gr3x170/endscreen-native.ts",
+      "core/src/fw/gr3x170/endscreen2-native.ts",
+      "core/src/fw/gr3x170/films-native.ts",
+      "core/src/fw/gr3x170/map-native.ts",
+      "core/src/fw/gr3x170/slots-native.ts",
+      "core/src/fw/gr3x170/slots2-native.ts",
+      "core/src/fw/gr3x170/slots3-native.ts",
+      "core/src/fw/gr3x170/slots4-native.ts"
     ]
   ],
   "files": [
