@@ -151,11 +151,11 @@ class Emu:
             0x533f1dbc: lambda: model,         # SpecModel: model number
             0x533f1dc8: lambda: 1,             # SpecModel: function valid
             0x53400df4: lambda: 0,
-            0x538ed930: lambda: self.calls.append(('ASSERT', hex(mu.reg_read(UC_ARM_REG_LR)))) or 0,
+            0x539154f8: lambda: self.calls.append(('ASSERT', hex(mu.reg_read(UC_ARM_REG_LR)))) or 0,
             0x53916064: lambda: self.calls.append(('ASSERT', hex(mu.reg_read(UC_ARM_REG_LR)))) or 0,
         }
         self.record = {0x5359d7dc: 'top-icons', 0x5359d48c: 'top-title', 0x535a6454: 'sub-icon', 0x5359e1bc: 'list-item',
-                       0x5357a428: 'top-icon'}
+                       0x5359d6f4: 'top-icon'}
         for g in (0x5508307c, 0x55083244, 0x55083194):
             mu.mem_write(g, struct.pack('<I', 1))
         mu.hook_add(UC_HOOK_CODE, self._hook)

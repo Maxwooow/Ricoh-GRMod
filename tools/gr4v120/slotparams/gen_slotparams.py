@@ -22,7 +22,7 @@ import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-REPO = HERE.parent.parent
+REPO = HERE.parent.parent.parent
 SOURCE = HERE / 'slot_params.c'
 TARGET = REPO / 'core/src/fw/gr4v120/aspect/slotparams-native.ts'
 FLAGS = ['-target', 'armv7-none-eabi', '-mcpu=cortex-a9', '-marm', '-mfloat-abi=soft', '-Os', '-ffreestanding',

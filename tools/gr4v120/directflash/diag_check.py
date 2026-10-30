@@ -106,7 +106,7 @@ def render(raw, out):
     STUB = 0x70000000
     for i in range(6):
         mu.mem_write(STUB + i * 16, struct.pack('<I', 0xe12fff1e))
-    mu.hook_add(UC_HOOK_CODE, lambda uc, a, s, d: uc.reg_write(UC_ARM_REG_R0, 0x553a09c4) if a == STUB else None, begin=STUB, end=STUB + 0x60)
+    mu.hook_add(UC_HOOK_CODE, lambda uc, a, s, d: uc.reg_write(UC_ARM_REG_R0, 0x553a26c4) if a == STUB else None, begin=STUB, end=STUB + 0x60)
     SET, CTX, SLOTW, BUF = 0x70003000, 0x70004000, 0x70008000, 0x7000a000
     mu.mem_write(SET, bytes([0]))  # the imprint itself off: the diagnostics are printed anyway
     mu.mem_write(BUF, raw)

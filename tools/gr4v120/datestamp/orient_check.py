@@ -127,7 +127,7 @@ def run(code, setting, main_wh, src_wh, sn_wh=(720, 480), th_wh=(160, 120), look
     def hook(uc, addr, size, ud):
         i = (addr - STUB) // 16
         if i == 0:
-            uc.reg_write(UC_ARM_REG_R0, 0x553a09c4)
+            uc.reg_write(UC_ARM_REG_R0, 0x553a26c4)
         if i == 3:
             uc.reg_write(UC_ARM_REG_R0, 0x70001000)
         if i == 4:

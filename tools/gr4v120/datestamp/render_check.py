@@ -84,7 +84,7 @@ def run(setting, main_w, main_h, src_w, src_h, mono=False, clock=(2026, 10, 8, 1
     def hook(uc, addr, size, ud):
         i = (addr - STUB) // 16
         if i == 0:
-            uc.reg_write(UC_ARM_REG_R0, 0x553a09c4)
+            uc.reg_write(UC_ARM_REG_R0, 0x553a26c4)
         if i == 3:
             uc.reg_write(UC_ARM_REG_R0, 0x70001000)
         if i == 4:

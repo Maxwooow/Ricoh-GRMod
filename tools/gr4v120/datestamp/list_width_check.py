@@ -29,7 +29,7 @@ fails = []
 def check(c, w):
     if not c: fails.append(w)
 def rect(e, w, o=0x20): return struct.unpack('<4i', e.mu.mem_read(w + o, 16))
-STUBS = {0x533ef18c: 0, 0x53908530: 0, 0x535944ac: 0, 0x53594a50: 0}
+STUBS = {0x53400f80: 0, 0x53908530: 0, 0x535944ac: 0, 0x53594a50: 0}
 def build(path, rec, raw, n, row_w):
     img = mc.Image(path)
     e = mc.Emu(img); e.record = {}
@@ -65,8 +65,8 @@ def dump(e, rows):
     return b''.join(bytes(e.mu.mem_read(r, 0x300)) + b''.join(bytes(e.mu.mem_read(e.u32(r + o), 0x120)) for o in range(0xec, 0x10c, 4) if 0x70400000 <= e.u32(r + o) < 0x70800000) for r in rows)
 for row_w in (720, 700, 680, 640, 600):
     for raw in (1, 3, 9, 11, 0xff):
-        a, ra = build(NEW, 126, raw, 4, row_w)
-        b, rb = build(OLD, 126, raw, 4, row_w)
+        a, ra = build(NEW, 128, raw, 4, row_w)
+        b, rb = build(OLD, 128, raw, 4, row_w)
         texts = []
         for k, (x, y) in enumerate(zip(ra, rb)):
             la, lb = a.u32(x + 0xfc), b.u32(y + 0xfc)
@@ -88,8 +88,8 @@ for row_w in (720, 700, 680, 640, 600):
             check(bytes(a.mu.mem_read(x, 0x300)) == bytes(b.mu.mem_read(y, 0x300)), f'row {k}: row object differs')
         if raw == 11:
             print(f'  row width {row_w}: labels', [rect(a, a.u32(x + 0xfc)) for x in ra], 'texts', texts, 'drawn rects', [rect(a, a.u32(x + 0xfc), 0x30) for x in ra])
-# a native list (Horizon Correction's record 45, and the On/Off and Follow Orientation lists, 125 / 127): the same in 051 and 052
-for rec in (45, 125, 127, 3, 60):
+# a native list (Horizon Correction's record 45, and the On/Off and Follow Orientation lists, 127 / 129; 1.11: 125 / 127): the same in 051 and 052
+for rec in (45, 127, 129, 3, 60):
     a, ra = build(NEW, rec, 1, 4, 680)
     b, rb = build(OLD, rec, 1, 4, 680)
     check(dump(a, ra) == dump(b, rb), f'list record {rec}: rows differ between 051 and 052')
@@ -97,9 +97,9 @@ print('  native lists and our other two lists: rows identical in 051 and 052')
 # registers: the Style list's draw function with random callee-saved registers, and with a row of another class
 img = mc.Image(NEW)
 lt = img.movw_movt(0x531d825c, 0x531d826c)
-draw = img.u32(lt + 126 * 0x4c + 0x14)
+draw = img.u32(lt + 128 * 0x4c + 0x14)   # the Style list (1.11: record 126)
 for case in ('row', 'other'):
-    e, rows = build(NEW, 126, 11, 1, 700)
+    e, rows = build(NEW, 128, 11, 1, 700)
     row = rows[0]
     lab = rows[0]
     if case == 'other':
