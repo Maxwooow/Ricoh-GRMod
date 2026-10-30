@@ -15,7 +15,11 @@ import { testPresetRequests, testRatios } from '../../core/test/fw-helpers/test-
 const [official, out, options = '{}', full] = process.argv.slice(2);
 const eng = await Engine.open(new Uint8Array(readFileSync(official)));
 const withContents = full === 'full';
-const b = await eng.buildFirmware(withContents ? testPresetRequests(eng) : [], withContents ? testRatios(eng) : [], [], JSON.parse(options));
+// The third argument may also be @FILE (JSON in a file); icons of added slots / pictures come as number arrays.
+const opts = JSON.parse(options.startsWith('@') ? readFileSync(options.slice(1), 'utf8') : options);
+for (const s of opts.extraSlots ?? []) s.icon = Uint8Array.from(s.icon);
+for (const p of opts.shutdownPictures ?? []) if (Array.isArray(p.jpeg)) p.jpeg = Uint8Array.from(p.jpeg);
+const b = await eng.buildFirmware(withContents ? testPresetRequests(eng) : [], withContents ? testRatios(eng) : [], [], opts);
 writeFileSync(out, b.file);
 const d = new fw.Firmware(b.file).decoded;
 const r = fw.sectionsOf(d).find((x) => x.name === 'RTOS')!;

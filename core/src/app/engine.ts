@@ -78,6 +78,12 @@ export interface FirmwareInfo {
     maxFilms?: number };
   version: string;
   sha256: string;
+  /**
+   * GR IV: the Image Control looks of this firmware (11..30 on 1.11; 1.20 adds 31 Pictorialist,
+   * offered on no model, and 32 Solarized, the Monochrome's), the style number of the first added
+   * slot (34 on 1.11, 38 on 1.20) and the looks only the GR IV Monochrome shows.
+   */
+  looks?: { factory: number[]; extraFirst: number; monoOnly: number[] };
   slots: SlotInfoView[];
   tiles: { film: Uint8Array; plain: Uint8Array };
   contentArea: typeof CONTENT_AREA;
@@ -476,6 +482,7 @@ export class Engine {
       capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, bridge: !bridge && g4 === Gr4Program111, menuPictures: true, lookLayout: true },
       features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, directFlash: true },
       version: g4.FIRMWARE_VERSION,
+      looks: { factory: [...g4.aspect.FACTORY_LOOK_IDS], extraFirst: g4.aspect.EXTRA_FIRST_STYLE, monoOnly: g4.aspect.FACTORY_LOOK_IDS.filter((n) => n >= 25) },
       sha256: await sha256Hex(raw),
       slots,
       tiles: { film: g4.tileTemplate(decoded, 'film'), plain: g4.tileTemplate(decoded, 'plain') },

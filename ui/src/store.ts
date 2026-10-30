@@ -578,6 +578,8 @@ const FACTORY_LOOK_NAMES: Record<number, { zh: string; en: string }> = {
   23: { zh: '正负逆冲', en: 'Cross Processing' }, 24: { zh: '负片', en: 'Negative Film' }, 25: { zh: '标准（单色）', en: 'Standard (mono)' },
   26: { zh: '柔和（单色）', en: 'Soft (mono)' }, 27: { zh: '高对比度（单色）', en: 'High Contrast (mono)' }, 28: { zh: '颗粒感（单色）', en: 'Grainy (mono)' },
   29: { zh: '无颗粒感（单色）', en: 'Solid (mono)' }, 30: { zh: 'HDR色调（单色）', en: 'HDR Tone (mono)' },
+  // Firmware 1.20 (the camera's texts): Pictorialist is offered on no model, Solarized on the Monochrome.
+  31: { zh: '画意摄影效果', en: 'Pictorialist Effect' }, 32: { zh: '中途曝光效果', en: 'Solarized Effect' },
 };
 /** GR III / IIIx (round 8): its twelve looks in the camera's menu order, their numbers and names (the camera's texts). */
 const GR3_LOOK_IDS: readonly number[] = [11, 12, 13, 14, 15, 16, 22, 17, 18, 19, 20, 21];
@@ -605,19 +607,21 @@ export function lookOrderAvailable(s: State = state): boolean {
 /** Every key the order can contain, in the camera's order: GR IV's 20 looks and the added slots; GR III's twelve and its films. */
 export function lookKeys(s: State = state): string[] {
   if (gr3Order(s)) return [...GR3_LOOK_IDS.map(gr3LookKey), ...Array.from({ length: gr3Films(s) }, (_, k) => gr3LookKey(64 + k))];
-  return [...FACTORY_LOOK_IDS.map(factoryLookKey), ...lookExtras(s).map((x) => x.key)];
+  return [...factoryLooks(s).map(factoryLookKey), ...lookExtras(s).map((x) => x.key)];
 }
+/** GR IV's looks: the open firmware's (1.20 adds 31 and 32), 1.11's while none is open. */
+function factoryLooks(s: State = state): readonly number[] { return s.info?.looks?.factory ?? FACTORY_LOOK_IDS; }
 /** The style number the firmware uses for a key (GR IV 11..30, or 34.. for added slots; GR III 11..22, films 64..). */
 export function lookStyleOf(key: string, s: State = state): number | null {
   if (key.startsWith('g')) { const n = Number(key.slice(1)); return gr3Order(s) && lookKeys(s).includes(key) ? n : null; }
-  if (key.startsWith('f')) { const n = Number(key.slice(1)); return FACTORY_LOOK_IDS.includes(n) ? n : null; }
+  if (key.startsWith('f')) { const n = Number(key.slice(1)); return factoryLooks(s).includes(n) ? n : null; }
   const i = lookExtras(s).findIndex((x) => x.key === key);
-  return i < 0 ? null : 34 + i;
+  return i < 0 ? null : (s.info?.looks?.extraFirst ?? 34) + i;
 }
 /** Only on the GR IV Monochrome (its six black-and-white looks). */
 export function lookMonoOnly(key: string, s: State = state): boolean {
   const n = lookStyleOf(key, s);
-  return !gr3Order(s) && n !== null && n >= 25 && n <= 30;
+  return !gr3Order(s) && n !== null && (s.info?.looks?.monoOnly ?? [25, 26, 27, 28, 29, 30]).includes(n);
 }
 /** A display name for the UI: the camera's Chinese/English name, or an added slot's / a film's name. */
 export function lookName(key: string, s: State = state): string {
@@ -655,10 +659,10 @@ function normalizeHidden(hidden: readonly string[], keys: readonly string[]): st
 }
 /** GR IV's order for the current extras (projects keep it as saved; see `lookOrderNow`). */
 export function normalizeLookOrder(order: readonly string[], extras: readonly ExtraSlot[]): string[] {
-  return normalizeOrder(order, [...FACTORY_LOOK_IDS.map(factoryLookKey), ...extras.map((x) => x.key)]);
+  return normalizeOrder(order, [...factoryLooks().map(factoryLookKey), ...extras.map((x) => x.key)]);
 }
 export function normalizeLookHidden(hidden: readonly string[], extras: readonly ExtraSlot[]): string[] {
-  return normalizeHidden(hidden, [...FACTORY_LOOK_IDS.map(factoryLookKey), ...extras.map((x) => x.key)]);
+  return normalizeHidden(hidden, [...factoryLooks().map(factoryLookKey), ...extras.map((x) => x.key)]);
 }
 /** GR III's saved order and hidden keys (kept apart from GR IV's), checked like GR IV's when a project opens. */
 function gr3SavedKeys(list: unknown): string[] {
