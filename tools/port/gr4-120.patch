@@ -1508,7 +1508,17 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
  # Fake data regions. Their addresses are chosen so that no byte, half-word or word of a pointer
  # into them can be mistaken for an added ratio's identity (7..14) or a small enum.
  REGIONS = [0x62010000, 0x62020000, 0x62030000, 0x62050000]
-@@ -426,7 +426,8 @@
+@@ -316,7 +316,8 @@
+     mo, mp = Machine(official), Machine(patched)
+     lead = lead or {}
+     failures, tested, notes = [], 0, {}
+-    for site in hooks:
++    for number, site in enumerate(hooks):
++        if number % 50 == 0: print('  ... %d of %d hooks, %d failures so far' % (number, len(hooks), len(failures)), flush=True)
+         special = SPECIAL.get(site)
+         if special == 'entry':
+             continue
+@@ -426,7 +427,8 @@
      # (start, id register, language register, address reached with the record pointer, register holding it, skip addresses)
      for start, hit, pointer_reg, skips in ((0x535967C0, 0x535967dc, 3, (0x535968B0,)), (0x53595DA4, 0x53595DCC, 7, (0x53595F1C, 0x53595F28))):
          for language in list(range(21)) + [21, 22, 255]:
@@ -1518,7 +1528,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
                  state = dict(base_state)
                  state['regs'] = list(base_state['regs'])
                  state['regs'][0] = language
-@@ -440,7 +441,7 @@
+@@ -440,7 +442,7 @@
                      pointer = machine.uc.reg_read(REGS[pointer_reg]) if pc == hit else None
                      results.append((pc == hit, pointer))
                  (old_hit, old_pointer), (new_hit, new_pointer) = results
@@ -1527,7 +1537,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
                      assert old_hit and new_hit and old_pointer == new_pointer, ('text lookup changed', hex(start), language, text)
                  elif old_hit:
                      raise AssertionError('official lookup accepted an out-of-range text')
-@@ -452,7 +453,7 @@
+@@ -452,7 +454,7 @@
                      assert raw[-2:] == b'\0\0' and b'\0\0' not in [raw[i:i + 2] for i in range(0, len(raw) - 2, 2)], 'bad text'
                      new_names += 1
                  checked += 1
@@ -1536,7 +1546,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
      old_table = struct.unpack_from('<I', official, 0)[0]  # placeholder, replaced below
      state = random_state(rng)
      getter = 0x534013F8
-@@ -463,15 +464,21 @@
+@@ -463,15 +465,21 @@
          if address >= RAM:
              address = RAM_SRC + address - RAM
          return image[address - BASE:address - BASE + size]
@@ -1563,6 +1573,36 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
          pointer = struct.unpack('<I', read(patched, new_table + index * 4, 4))[0]
          if pointer:
              assert index <= bounds[0], 'icon above the bound'
+@@ -896,10 +904,25 @@
+         say('build revision 1: no decode buffer change')
+     unknown = [hex(a) for a in SPECIAL if a not in hooks]
+     assert not unknown, 'SPECIAL lists addresses that are not hooks: %s' % unknown
+-    tested, failures, notes = check_transparent(official, patched, hooks, lead=LEAD)
+-    for failure in failures:
+-        say('  NOT TRANSPARENT', failure)
+-    say('transparent with no added ratio involved: %d hooks, 40 random states each (%d of them leave flags or a scratch register different where the official code overwrites it before reading)' % (tested, len(notes)))
++    # BOOT_SHARD=i/n: only the transparency check, of every n-th hook from the i-th (to spread a build
++    # with every feature, some 1400 hooks, over several processes); BOOT_SKIP_TRANSPARENT=1: all but it.
++    import os
++    shard = os.environ.get('BOOT_SHARD')
++    if not os.environ.get('BOOT_SKIP_TRANSPARENT'):
++        part = hooks
++        if shard:
++            i, n = (int(x) for x in shard.split('/'))
++            part = [h for k, h in enumerate(sorted(hooks)) if k % n == i]
++        tested, failures, notes = check_transparent(official, patched, part, lead=LEAD)
++        for failure in failures:
++            say('  NOT TRANSPARENT', failure)
++        say('transparent with no added ratio involved: %d hooks%s, 40 random states each (%d of them leave flags or a scratch register different where the official code overwrites it before reading)' % (tested, f' (share {shard})' if shard else '', len(notes)))
++        if shard:
++            if failures:
++                raise SystemExit('transparency check failed')
++            return {'hooks': len(part), 'transparent': tested}
++    else:
++        failures = []
+     checked, names, icons = check_directories(official, patched, icon_bytes, official_icons)
+     say('text / icon directories: %d lookups identical, %d new name hits, %d new icons' % (checked, names, icons))
+     count, order = check_menu(official, patched)
 diff --git a/tools/gr4v120/aspect/check_facts120.py b/tools/gr4v120/aspect/check_facts120.py
 new file mode 100644
 --- /dev/null

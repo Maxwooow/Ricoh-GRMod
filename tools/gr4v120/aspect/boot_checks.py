@@ -316,7 +316,8 @@ def check_transparent(official, patched, hooks, runs=40, seed=1, lead=None):
     mo, mp = Machine(official), Machine(patched)
     lead = lead or {}
     failures, tested, notes = [], 0, {}
-    for site in hooks:
+    for number, site in enumerate(hooks):
+        if number % 50 == 0: print('  ... %d of %d hooks, %d failures so far' % (number, len(hooks), len(failures)), flush=True)
         special = SPECIAL.get(site)
         if special == 'entry':
             continue
@@ -903,10 +904,25 @@ def run(official, patched, icon_bytes, official_icons, quiet=False):
         say('build revision 1: no decode buffer change')
     unknown = [hex(a) for a in SPECIAL if a not in hooks]
     assert not unknown, 'SPECIAL lists addresses that are not hooks: %s' % unknown
-    tested, failures, notes = check_transparent(official, patched, hooks, lead=LEAD)
-    for failure in failures:
-        say('  NOT TRANSPARENT', failure)
-    say('transparent with no added ratio involved: %d hooks, 40 random states each (%d of them leave flags or a scratch register different where the official code overwrites it before reading)' % (tested, len(notes)))
+    # BOOT_SHARD=i/n: only the transparency check, of every n-th hook from the i-th (to spread a build
+    # with every feature, some 1400 hooks, over several processes); BOOT_SKIP_TRANSPARENT=1: all but it.
+    import os
+    shard = os.environ.get('BOOT_SHARD')
+    if not os.environ.get('BOOT_SKIP_TRANSPARENT'):
+        part = hooks
+        if shard:
+            i, n = (int(x) for x in shard.split('/'))
+            part = [h for k, h in enumerate(sorted(hooks)) if k % n == i]
+        tested, failures, notes = check_transparent(official, patched, part, lead=LEAD)
+        for failure in failures:
+            say('  NOT TRANSPARENT', failure)
+        say('transparent with no added ratio involved: %d hooks%s, 40 random states each (%d of them leave flags or a scratch register different where the official code overwrites it before reading)' % (tested, f' (share {shard})' if shard else '', len(notes)))
+        if shard:
+            if failures:
+                raise SystemExit('transparency check failed')
+            return {'hooks': len(part), 'transparent': tested}
+    else:
+        failures = []
     checked, names, icons = check_directories(official, patched, icon_bytes, official_icons)
     say('text / icon directories: %d lookups identical, %d new name hits, %d new icons' % (checked, names, icons))
     count, order = check_menu(official, patched)
