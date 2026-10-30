@@ -30,7 +30,7 @@
 #define NP 13u
 #define REC_ID 12u
 #define REC_MAGIC 0x32505247u     /* 'GRP2' (test 027's 'GRP1' tables were built from an empty record) */
-#define REC_VERSION 3u            /* 3: GR Mod 0.8.2 (20 slots, fingerprints); 2: 0.7.1..0.8.1 (6 slots); 1: tests 028..033 */
+#define REC_VERSION 4u            /* 4: firmware 1.20 (added slots are styles 38..; a 1.11 table, version 3, numbers them from 34: not taken, the added slots start neutral); 3: GR Mod 0.8.2 (20 slots, fingerprints); 2: 0.7.1..0.8.1 (6 slots); 1: tests 028..033 */
 #define STATE_MAGIC 0x50534c54u
 #define TBYTES (OWNERS * COMBOS * NP)
 /* magic, version, TBYTES, the fingerprint of each owner's preset, the table, checksum */

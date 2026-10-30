@@ -26,8 +26,8 @@
  *    container frames and the RES section grows by whole frames; see `package.ts`). The firmware
  *    update writes them to the camera's A: drive with the factory files. Named by position, so a
  *    later build overwrites the same files instead of leaving old ones behind;
- *  - a copy of the table of full-screen JPEGs (0x55014D98, 13 entries {u16 w, u16 h, path}; 1.11:
- *    0x55014D98, 12) with one entry per picture (numbers 13, 14, ...), used by its one reader in
+ *  - a copy of the table of full-screen JPEGs (0x55014D98, 13 entries {u16 w, u16 h, path};
+ *    1.11: 0x55013E70, 12) with one entry per picture (numbers 13, 14, ...), used by its one reader in
  *    1.20, the picture request 0x53264274 (1.11 had two, 0x5326232C and 0x53262558);
  *  - 520x200 thumbnails (as the native ones of the menu, icons 17 and 18) of the four factory
  *    pictures and of the added ones, icons SHUTDOWN_ICON_ID..;

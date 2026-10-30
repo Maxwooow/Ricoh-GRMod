@@ -9,7 +9,7 @@
  *  - the availability table (0x53DE9CC4, read by 0x533F1DC8): one row of 7 bytes per entry, one
  *    byte per camera model (column 1 is the Monochrome). Rows 3..8 are the six looks; only the
  *    Monochrome's column is set.
- * 1.20 added looks 31 (Pictorialist, row 9: no model) and 32 (Solarized, row 10: the Monochrome);
+ * 1.20 added looks 31 (Pictorialist, row 9: listed on the Monochrome by the official firmware's own lists) and 32 (Solarized, row 10: the Monochrome);
  * through the monochrome-look branch they stay as hidden on the colour models as before (rows
  * unchanged; not unlocked here).
  *

@@ -1285,6 +1285,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (lookLayout) lines.push(t('lookOrderLine', { n: lookLayout.hidden.length }));
     if (pictures.length) lines.push(t('wallMenuLine', { n: pictures.length, l: pictures.map((p) => p.name).join(' / ') }));
     if (fresh) lines.push(fresh);
+    if (fresh && extras.length && sourceInfo.family === 'gr4') lines.push(t('newFwSlotsLine'));
     if (!(await ask(t('confirmTitle'), lines, t('confirmOk')))) return;
   }
   const target = await destination(dest);

@@ -4,8 +4,8 @@
  * the per-look visibility jump-table entries to the firmware's existing "return 0" stubs).
  *
  * Firmware 1.20: the order table is VA 0x53DE8CD0, one byte per Image Control style: 11..30 as in
- * 1.11 and, before 30, the two looks 1.20 added for the GR IV Monochrome, 31 (Pictorialist, offered
- * on no model in 1.20) and 32 (Solarized, the Monochrome only). Two consumers read it: 0x533840FC
+ * 1.11 and, before 30, the two looks 1.20 added for the GR IV Monochrome, 31 (Pictorialist, listed
+ * on the Monochrome by 1.20's own lists) and 32 (Solarized, the Monochrome only). Two consumers read it: 0x533840FC
  * (ADJ / RAW development lists) and 0x533DE1F0 (the Image Control menu). The menu builder walks the
  * table in order, calls the visibility function 0x533DE144 for each style and skips the hidden
  * ones, so the 22-entry capacity and every count constant stay unchanged.
@@ -144,7 +144,8 @@ export function lookLayoutWords(official: Uint8Array, layout: LookLayout): { off
  * A layout already in 1.20's numbering is returned as it is.
  */
 export function layoutFrom111(layout: LookLayout): LookLayout {
-  const has120 = layout.order.includes(31) || layout.order.includes(32) || layout.order.some((id) => id >= EXTRA_LOOK_FIRST);
+  // A 1.20 layout names 31 and 32 (every layout names every factory look); a 1.11 one cannot.
+  const has120 = layout.order.includes(31) || layout.order.includes(32);
   if (has120) return layout;
   const map = (id: number): number => (id >= 34 ? id - 34 + EXTRA_LOOK_FIRST : id);
   const order = layout.order.map(map);

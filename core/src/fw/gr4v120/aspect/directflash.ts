@@ -83,7 +83,7 @@ export const DIRECT_FLASH_GN_BYTE = 0x550832a8 + 4 + 0x99a;
  * Test 062: the fastest shutter speed chosen in the camera menu (`directflash-menu.ts`), bits 0..2;
  * 0 on every camera: the camera's own flash-sync limit. Byte 0x109 of the user settings: alignment padding between a byte
  * field (0x108) and a word (0x10C) that UserDataInitValue (run in the emulator, all 30 records)
- * never writes; inside the 0xAE9 bytes the settings save keeps (0x533F3674).
+ * never writes; inside the 0xB44 bytes the settings save keeps (0x533F3674; 1.11: 0xAE9).
  */
 export const DIRECT_FLASH_TV_BYTE = 0x550832a8 + 4 + 0x109;
 /**

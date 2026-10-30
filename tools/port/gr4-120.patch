@@ -403,6 +403,15 @@ diff --git a/core/src/fw/gr4v120/aspect/directflash.ts b/core/src/fw/gr4v120/asp
  export const DIRECT_FLASH_ICON_ID = 733;
  /**
   * The setting byte (0 on every camera): bit 0 Direct Flash (with Flash Mode 0); bits 1..4 and 5..7
+@@ -83,7 +83,7 @@
+  * Test 062: the fastest shutter speed chosen in the camera menu (`directflash-menu.ts`), bits 0..2;
+  * 0 on every camera: the camera's own flash-sync limit. Byte 0x109 of the user settings: alignment padding between a byte
+  * field (0x108) and a word (0x10C) that UserDataInitValue (run in the emulator, all 30 records)
+- * never writes; inside the 0xAE9 bytes the settings save keeps (0x533F3674).
++ * never writes; inside the 0xB44 bytes the settings save keeps (0x533F3674; 1.11: 0xAE9).
+  */
+ export const DIRECT_FLASH_TV_BYTE = 0x550832a8 + 4 + 0x109;
+ /**
 @@ -105,7 +105,7 @@
  ];
  
@@ -702,8 +711,8 @@ diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/lo
 - * builder walks the table in order, calls the visibility function 0x533DE144 for each style and
 - * skips the hidden ones, so the 20-entry capacity and every count constant stay unchanged.
 + * Firmware 1.20: the order table is VA 0x53DE8CD0, one byte per Image Control style: 11..30 as in
-+ * 1.11 and, before 30, the two looks 1.20 added for the GR IV Monochrome, 31 (Pictorialist, offered
-+ * on no model in 1.20) and 32 (Solarized, the Monochrome only). Two consumers read it: 0x533840FC
++ * 1.11 and, before 30, the two looks 1.20 added for the GR IV Monochrome, 31 (Pictorialist, listed
++ * on the Monochrome by 1.20's own lists) and 32 (Solarized, the Monochrome only). Two consumers read it: 0x533840FC
 + * (ADJ / RAW development lists) and 0x533DE1F0 (the Image Control menu). The menu builder walks the
 + * table in order, calls the visibility function 0x533DE144 for each style and skips the hidden
 + * ones, so the 22-entry capacity and every count constant stay unchanged.
@@ -784,7 +793,7 @@ diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/lo
      } else {
        fail('bad-look-layout', `style ${style} is not a factory look`);
      }
-@@ -131,3 +136,19 @@
+@@ -131,3 +136,20 @@
    }
    return out;
  }
@@ -796,7 +805,8 @@ diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/lo
 + * A layout already in 1.20's numbering is returned as it is.
 + */
 +export function layoutFrom111(layout: LookLayout): LookLayout {
-+  const has120 = layout.order.includes(31) || layout.order.includes(32) || layout.order.some((id) => id >= EXTRA_LOOK_FIRST);
++  // A 1.20 layout names 31 and 32 (every layout names every factory look); a 1.11 one cannot.
++  const has120 = layout.order.includes(31) || layout.order.includes(32);
 +  if (has120) return layout;
 +  const map = (id: number): number => (id >= 34 ? id - 34 + EXTRA_LOOK_FIRST : id);
 +  const order = layout.order.map(map);
@@ -840,7 +850,7 @@ diff --git a/core/src/fw/gr4v120/aspect/monounlock.ts b/core/src/fw/gr4v120/aspe
   *  - the availability table (0x53DE9CC4, read by 0x533F1DC8): one row of 7 bytes per entry, one
   *    byte per camera model (column 1 is the Monochrome). Rows 3..8 are the six looks; only the
   *    Monochrome's column is set.
-+ * 1.20 added looks 31 (Pictorialist, row 9: no model) and 32 (Solarized, row 10: the Monochrome);
++ * 1.20 added looks 31 (Pictorialist, row 9: listed on the Monochrome by the official firmware's own lists) and 32 (Solarized, row 10: the Monochrome);
 + * through the monochrome-look branch they stay as hidden on the colour models as before (rows
 + * unchanged; not unlocked here).
   *
@@ -873,8 +883,8 @@ diff --git a/core/src/fw/gr4v120/aspect/shutdown.ts b/core/src/fw/gr4v120/aspect
   *    later build overwrites the same files instead of leaving old ones behind;
 - *  - a copy of the table of full-screen JPEGs (0x55014D98, 12 entries {u16 w, u16 h, path}) with one
 - *    entry per picture (numbers 12, 13, ...), used by both of its readers (0x5326232C, 0x53264274);
-+ *  - a copy of the table of full-screen JPEGs (0x55014D98, 13 entries {u16 w, u16 h, path}; 1.11:
-+ *    0x55014D98, 12) with one entry per picture (numbers 13, 14, ...), used by its one reader in
++ *  - a copy of the table of full-screen JPEGs (0x55014D98, 13 entries {u16 w, u16 h, path};
++ *    1.11: 0x55013E70, 12) with one entry per picture (numbers 13, 14, ...), used by its one reader in
 + *    1.20, the picture request 0x53264274 (1.11 had two, 0x5326232C and 0x53262558);
   *  - 520x200 thumbnails (as the native ones of the menu, icons 17 and 18) of the four factory
   *    pictures and of the added ones, icons SHUTDOWN_ICON_ID..;
@@ -1363,7 +1373,7 @@ diff --git a/core/src/fw/gr4v120/aspect/softfocus.ts b/core/src/fw/gr4v120/aspec
   *
   * The camera's ADJ lever offers one of the functions 0..0x14 per slot ("ADJ mode setting"). Function
   * 0x0A (a flash setting; the GR IV has no flash and never offers it: it is in no function list and in
-@@ -21,11 +21,11 @@
+@@ -21,22 +21,24 @@
   *    camera pressing ADJ then froze, even with soft focus on no slot.
   *  - The list of functions the ADJ mode setting menu offers (19 bytes at 0x53DE50F0) is copied with
   *    0x0A inserted after Image Control; the loop bound goes from 19 to 20.
@@ -1373,11 +1383,14 @@ diff --git a/core/src/fw/gr4v120/aspect/softfocus.ts b/core/src/fw/gr4v120/aspec
   *  - The function's icon: function number to icon number (0x53390E40) gives icon 720 for 0x0A
   *    (0x0A and 0x0B shared a case; 0x0B keeps its icon), a new 40x40 icon appended to ICONBIN and entered in the relocated icon catalog.
 - *  - The value labels are the camera's own texts: Off (2), Low (9), Medium (10), High (11).
+- *  - Where the value is kept: byte 0x90F of the user-settings structure (0xAE9 bytes). The
 + *  - The value labels are the camera's own texts: Off (2), Low (10), Medium (11), High (12) (1.11: 2, 9, 10, 11).
-  *  - Where the value is kept: byte 0x90F of the user-settings structure (0xAE9 bytes). The
++ *  - Where the value is kept: byte 0x90F of the user-settings structure (0xB44 bytes; 1.11: 0xAE9). The
   *    factory-defaults initialiser (UserDataInitValue, 0x53546C24) writes every field of all 30
   *    default records and never this byte: it is alignment padding between a byte field (0x90E) and
-@@ -34,9 +34,11 @@
+  *    a halfword field (0x910). The structure is saved and loaded, and copied to and from U1-U3, as a
+- *    whole (memcpy of 0xAE9 bytes), so the byte is kept across power-off, follows the user modes,
++ *    whole (memcpy of 0xB44 bytes), so the byte is kept across power-off, follows the user modes,
   *    and is 0 (off) after a settings reset. The live structure is the one at 0x550832A8 + 4.
   *  - Image processing, step 1: whether a picture goes through the digital-filter step at all is
   *    decided per picture (0x53739A5C): for most image controls only when Clarity or the setting
@@ -2478,7 +2491,7 @@ diff --git a/tools/gr4v120/slotparams/slot_params.c b/tools/gr4v120/slotparams/s
   *
   * The firmware keeps the parameters (saturation, hue, contrast, ...) per factory style in the
   * user settings record, and the added styles use Cinema Yellow's (18) fields: everything that
-@@ -24,7 +24,7 @@
+@@ -24,13 +24,13 @@
  #error SLOT_COUNT (1..20) is set by gen_slotparams.py
  #endif
  #define CY 18u
@@ -2487,6 +2500,13 @@ diff --git a/tools/gr4v120/slotparams/slot_params.c b/tools/gr4v120/slotparams/s
  #define OWNERS 21u                /* Cinema Yellow and up to twenty added slots */
  #define COMBOS 8u                 /* photo sets 0..3, movie sets 0..3 */
  #define NP 13u
+ #define REC_ID 12u
+ #define REC_MAGIC 0x32505247u     /* 'GRP2' (test 027's 'GRP1' tables were built from an empty record) */
+-#define REC_VERSION 3u            /* 3: GR Mod 0.8.2 (20 slots, fingerprints); 2: 0.7.1..0.8.1 (6 slots); 1: tests 028..033 */
++#define REC_VERSION 4u            /* 4: firmware 1.20 (added slots are styles 38..; a 1.11 table, version 3, numbers them from 34: not taken, the added slots start neutral); 3: GR Mod 0.8.2 (20 slots, fingerprints); 2: 0.7.1..0.8.1 (6 slots); 1: tests 028..033 */
+ #define STATE_MAGIC 0x50534c54u
+ #define TBYTES (OWNERS * COMBOS * NP)
+ /* magic, version, TBYTES, the fingerprint of each owner's preset, the table, checksum */
 @@ -48,7 +48,7 @@
  extern uint32_t prior_native_save(uint8_t *mode);
  extern uint32_t prior_native_load(uint8_t *mode, uint8_t *current, void *a2, void *a3);
