@@ -324,8 +324,8 @@ func TestFirmwareUnlisted(t *testing.T) {
 	wantStatus(t, e.do("GET", "/api/firmware/latest?model=MONO", nil), 404, codeNotFound)
 }
 
-// GR III / IIIx are built on pinned releases: a newer release the site lists is shown with the
-// pinned one as the fallback (as GR IV's 1.20 with 1.11); without one, the pinned release alone.
+// GR III / IIIx: a newer release the site lists is offered with the pinned earlier one as the
+// fallback (as GR IV's 1.20 with 1.11); without one, the pinned release alone.
 func TestFirmwareLatestPinnedNewer(t *testing.T) {
 	for _, listed := range []bool{true, false} {
 		mux := http.NewServeMux()
@@ -352,19 +352,31 @@ func TestFirmwareLatestPinnedNewer(t *testing.T) {
 		})
 		srv := httptest.NewServer(mux)
 		e := newEnv(t, func(o *Options) { o.FirmwareSite = srv.URL })
-		// Only the release this program builds on is downloaded, whatever the page asks for.
-		wantStatus(t, e.do("POST", "/api/firmware/download", map[string]string{"model": "GR3", "version": "2.20"}), 404, codeNotFound)
-		e.do("POST", "/api/firmware/download", map[string]string{"model": "GR3"})
-		mu.Lock()
-		for _, p := range got {
-			if strings.Contains(p, "v220") {
-				t.Errorf("listed=%v: the unsupported release was downloaded: %v", listed, got)
+		// Both releases can be downloaded, each by its version; without one, the site's.
+		last := func() string {
+			mu.Lock()
+			defer mu.Unlock()
+			if len(got) == 0 {
+				return ""
 			}
+			return got[len(got)-1]
 		}
-		if len(got) == 0 || !strings.HasSuffix(got[len(got)-1], "gr3_v210.zip") {
-			t.Errorf("listed=%v: the pinned release was not downloaded: %v", listed, got)
+		e.do("POST", "/api/firmware/download", map[string]string{"model": "GR3", "version": "2.10"})
+		if !strings.HasSuffix(last(), "gr3_v210.zip") {
+			t.Errorf("listed=%v: 2.10 was not downloaded: %v", listed, got)
 		}
-		mu.Unlock()
+		e.do("POST", "/api/firmware/download", map[string]string{"model": "GR3"})
+		if want := map[bool]string{true: "gr3_v220.zip", false: "gr3_v210.zip"}[listed]; !strings.HasSuffix(last(), want) {
+			t.Errorf("listed=%v: the site's release was not downloaded: %v", listed, got)
+		}
+		if listed {
+			e.do("POST", "/api/firmware/download", map[string]string{"model": "GR3", "version": "2.20"})
+			if !strings.HasSuffix(last(), "gr3_v220.zip") {
+				t.Errorf("2.20 was not downloaded: %v", got)
+			}
+		} else {
+			wantStatus(t, e.do("POST", "/api/firmware/download", map[string]string{"model": "GR3", "version": "2.20"}), 404, codeNotFound)
+		}
 		for _, model := range []string{"GR3", "GR3_HDF"} {
 			rec := e.do("GET", "/api/firmware/latest?model="+model, nil)
 			if rec.Code != 200 {

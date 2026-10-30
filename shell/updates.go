@@ -18,19 +18,17 @@ import (
 // with the matching private key, which is not part of the source).
 const updatePublicKey = "SmDyXQIIsZYfZ06bPIdeuzDMvpT4FbELxGu9BuCVx+I="
 
-// updateSources are where releases are looked for, in order: this line's own
-// channel first (a release tagged fw1.11 whose files are replaced by every
-// 0.8.x release), then the newest release (which a GR Mod for camera firmware
-// 1.20 will be one day; its manifest is then only reported, see updateBelow).
+// updateSources are where releases are looked for: the newest release. (The 0.8.x copies look in a
+// channel of their own first, a release tagged fw1.11, and end their line at 0.9: they report
+// 0.9.0 and later but do not install them.)
 var updateSources = []string{
-	"https://github.com/Maxwooow/Ricoh-GRMod/releases/download/fw1.11/",
 	"https://github.com/Maxwooow/Ricoh-GRMod/releases/latest/download/",
 }
 
-// updateBelow ends this line: GR Mod 0.8.x is for GR IV camera firmware 1.11 (and, from 0.8.5,
-// GR III 2.10 / GR IIIx 1.60); 0.9 and later are for GR IV 1.20 (a camera updated to 1.20 cannot go
-// back), so they are never installed over this copy, only reported.
-const updateBelow = "0.9"
+// updateBelow ends this line: GR Mod 0.9.x builds on both the earlier and the current official
+// firmware of each camera (GR IV 1.11 / 1.20, GR III 2.10 / 2.20, GR IIIx 1.60 / 1.70). A release
+// of 1.0 or later is only reported, never installed over this copy.
+const updateBelow = "1.0"
 
 // releaseNotesAPI lists the published releases with their text (what's new).
 const releaseNotesAPI = "https://api.github.com/repos/Maxwooow/Ricoh-GRMod/releases?per_page=30"
@@ -80,15 +78,6 @@ func updateTarget() update.Target {
 // of its own and never updates itself, so it can neither replace the released GR Mod nor be
 // replaced by it.
 func experimental() bool { return strings.Contains(version, "exp") }
-
-// newFirmwareLine reports a build of the experimental line for the cameras' current firmware (GR IV
-// 1.20, GR III 2.20, GR IIIx 1.70; a version such as 0.8.6-newfwexp.1, always experimental): it
-// downloads those releases instead of the ones the released GR Mod builds on, and keeps a data
-// folder of its own.
-func newFirmwareLine() bool { return strings.Contains(version, "newfw") && experimental() }
-
-// newFirmwareDataSuffix is appended to the default data folder of a new-firmware build.
-const newFirmwareDataSuffix = "-NewFirmware-Experimental"
 
 // experimentalDataSuffix is appended to the default data folder of an experimental build (the
 // GR III test builds' folder; a release takes their GR III work over once, migrate.go).

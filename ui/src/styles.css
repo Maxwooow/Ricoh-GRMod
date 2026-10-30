@@ -343,7 +343,8 @@ svg { width: 18px; height: 18px; flex: none; }
 button.fw-rel:hover:not(:disabled) { background: var(--hover); border-color: var(--faint); }
 button.fw-rel:disabled { cursor: default; }
 .fw-rel.idle { border-style: dashed; color: var(--muted); font-size: 13.5px; }
-.fw-rel.newer { margin-bottom: 8px; color: var(--muted); }
+.fw-rels { display: grid; gap: 8px; }
+.fw-text b .chip.tiny { margin-left: 8px; vertical-align: 1px; font-weight: 500; }
 .fw-ico { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; background: var(--chip); color: var(--muted); flex: none; }
 .fw-ico svg { width: 20px; height: 20px; }
 .fw-text { flex: 1; min-width: 0; display: grid; gap: 1px; }

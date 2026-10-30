@@ -8,8 +8,7 @@ import (
 	"testing"
 )
 
-// GR III / IIIx support is built on exact older releases; the site's current release (a
-// different program) must never be offered for them, and no GR IV page may be consulted.
+// GR III / IIIx: the earlier releases (2.10, 1.60) are fetched by name, and no GR IV page is consulted.
 func TestGR3FamilyUsesPinnedReleases(t *testing.T) {
 	cases := []struct{ model, name, version, file, inner string }{
 		{"GR3X_HDF", "GR IIIx", "1.60", "gr3x_v160.zip", "fwdc243b.bin"},
@@ -39,28 +38,5 @@ func TestGR3FamilyUsesPinnedReleases(t *testing.T) {
 			t.Fatalf("wrong download: %s %q %v", name, data, err)
 		}
 		server.Close()
-	}
-}
-
-// The experimental line for the cameras' current firmware pins nothing: GR III / IIIx are offered
-// the site's current release like GR IV.
-func TestUseCurrentReleases(t *testing.T) {
-	saved := map[string]Release{}
-	for k, v := range pinned {
-		saved[k] = v
-	}
-	defer func() {
-		for k, v := range saved {
-			pinned[k] = v
-		}
-	}()
-	UseCurrentReleases()
-	for _, m := range []string{"GR3", "GR3_HDF", "GR3X", "GR3X_HDF"} {
-		if IsPinned(m) {
-			t.Fatalf("%s is still pinned", m)
-		}
-		if _, ok := PinnedVersion(m); ok {
-			t.Fatalf("%s still has a pinned version", m)
-		}
 	}
 }

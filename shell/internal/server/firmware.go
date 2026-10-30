@@ -112,9 +112,9 @@ func (f *firmwareSource) release(ctx context.Context, model string, now time.Tim
 	if fallback, err = f.client.Fallback(model, rel); err != nil {
 		return nil, nil, err
 	}
-	// GR III / IIIx: the release this program builds on is fetched by name; when the site
-	// lists a newer one, that is shown (not supported) with the pinned one as the fallback,
-	// as for GR IV. A failed look at the pages leaves the pinned release alone.
+	// GR III / IIIx: the earlier release this program builds on is fetched by name; when the
+	// site lists a newer one, that is the release with the pinned one as the fallback, as for
+	// GR IV. A failed look at the pages leaves the pinned release alone.
 	if rel != nil && ricoh.IsPinned(model) {
 		if cur, cerr := f.client.Current(ctx, model); cerr == nil && cur != nil && cur.Version != rel.Version {
 			rel, fallback = cur, rel
@@ -241,19 +241,10 @@ func (s *Server) handleFirmwareDownload(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		return firmwareError(r, err)
 	}
+	// Either release: the site's current one or the earlier one this program also builds on (GR IV
+	// 1.11, GR III 2.10, GR IIIx 1.60). Which of them the engine accepts it decides itself, by the
+	// SHA-256 of the file inside.
 	rel := chosen(latest, fallback, req.Version)
-	// GR III / IIIx: only the release this program builds on is downloaded; the site's newer one
-	// is only shown, whichever version the page asks for.
-	if v, ok := ricoh.PinnedVersion(req.Model); ok {
-		switch {
-		case latest != nil && latest.Version == v:
-			rel = latest
-		case fallback != nil && fallback.Version == v:
-			rel = fallback
-		default:
-			return errNotFound("version %s is not offered for this model", v)
-		}
-	}
 	if req.Version != "" && rel.Version != req.Version {
 		return errNotFound("version %s is not offered for this model", req.Version)
 	}

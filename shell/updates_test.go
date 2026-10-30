@@ -45,17 +45,3 @@ func TestExperimentalBuildIsSeparate(t *testing.T) {
 		t.Fatal("a release is not experimental")
 	}
 }
-
-func TestNewFirmwareLine(t *testing.T) {
-	old := version
-	defer func() { version = old }()
-	for v, want := range map[string]bool{"0.8.6-newfwexp.1": true, "0.8.6-gr3exp.1": false, "0.8.6": false, "0.8.6-newfw": false} {
-		version = v
-		if newFirmwareLine() != want {
-			t.Fatalf("%s: new firmware line %v", v, !want)
-		}
-		if newFirmwareLine() && (!experimental() || updateOptions(nil) != nil) {
-			t.Fatalf("%s: the new-firmware line must be experimental and never update itself", v)
-		}
-	}
-}

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { FIRMWARE_VERSION, FIRMWARE_VERSION_120, GR3_210, GR3_220, GR3X_160, GR3X_170 } from '@grmod/core';
 import type { CameraModel } from '@grmod/core';
 import { FileButton, Ico, Segmented, useDismiss } from './components';
-import { host, HostError, newFirmwareLine } from './host';
+import { host, HostError } from './host';
 import type { FirmwareRelease } from './host';
 import { t } from './i18n';
 import type { Key } from './i18n';
@@ -18,6 +18,8 @@ export function FirmwareRow() {
   const info = useStore((s) => s.info);
   const model = useStore((s) => s.model);
   const noBridge = model === 'MONO' || isGr3(model);
+  // The bridge firmware is made from the official 1.11 file; with another release open it cannot be made.
+  const bridgeNeeds111 = !noBridge && !!info && !info.bridge && !info.capabilities.bridge;
   const [open, setOpen] = useState(false);
   const wrap = useRef<HTMLDivElement>(null);
   const file = useRef<HTMLInputElement>(null);
@@ -31,7 +33,7 @@ export function FirmwareRow() {
       </button>
       {open && (
         <div className="pop up" role="menu">
-          <button type="button" role="menuitem" className="pop-item" disabled={noBridge} title={noBridge ? t(isGr3(model) ? 'gr3xPending' : 'bridgeMono') : undefined} onClick={() => { close(); setBridgeOpen(true); }}><span className="pop-ico">{Ico.bridge}</span><span>{t('fwBridge')}</span></button>
+          <button type="button" role="menuitem" className="pop-item" disabled={noBridge || bridgeNeeds111} title={noBridge ? t(isGr3(model) ? 'gr3xPending' : 'bridgeMono') : bridgeNeeds111 ? t('bridgeNeeds111') : undefined} onClick={() => { close(); setBridgeOpen(true); }}><span className="pop-ico">{Ico.bridge}</span><span>{t('fwBridge')}</span></button>
           <div className="pop-sep" />
           <button type="button" role="menuitem" className="pop-item" onClick={() => { close(); file.current?.click(); }}><span className="pop-ico">{Ico.folder}</span><span>{t('fwPick')}</span></button>
           <button type="button" role="menuitem" className="pop-item" onClick={() => { close(); setOnlineOpen(true); }}><span className="pop-ico">{Ico.download}</span><span>{t('fwOnline')}</span></button>
@@ -57,6 +59,16 @@ export function FirmwareHero() {
 
 type Look = { state: 'loading' | 'none' | 'error' } | { state: 'ready'; rel: FirmwareRelease };
 
+/**
+ * The official releases this program builds on, per model, newest first: each camera's current
+ * one and the earlier one. The GR IV Monochrome's 1.10 is the GR IV 1.20 file (the same SHA-256).
+ */
+const SUPPORTED: Record<CameraModel, readonly string[]> = {
+  STANDARD: [FIRMWARE_VERSION_120, FIRMWARE_VERSION], HDF: [FIRMWARE_VERSION_120, FIRMWARE_VERSION], MONO: ['1.10'],
+  GR3: [GR3_220.version, GR3_210.version], GR3_HDF: [GR3_220.version, GR3_210.version],
+  GR3X: [GR3X_170.version, GR3X_160.version], GR3X_HDF: [GR3X_170.version, GR3X_160.version],
+};
+
 /** The current official firmware of the chosen model on Ricoh's site; a press downloads and opens it. */
 export function FirmwareOnline() {
   const open = useStore((s) => s.onlineOpen);
@@ -68,7 +80,7 @@ function OnlineDialog() {
   const reason = useStore((s) => s.onlineReason);
   const [look, setLook] = useState<Look>({ state: 'loading' });
   const [attempt, setAttempt] = useState(0);
-  const [progress, setProgress] = useState<{ received: number; total: number } | null>(null);
+  const [progress, setProgress] = useState<{ version: string; received: number; total: number } | null>(null);
   const abort = useRef<AbortController | null>(null);
   const close = (): void => { abort.current?.abort(); setOnlineOpen(false); };
 
@@ -87,26 +99,27 @@ function OnlineDialog() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const latest = look.state === 'ready' ? look.rel : null;
-  // The experimental line builds on the cameras' current firmware, the released program on the earlier one.
-  const fresh = newFirmwareLine();
-  const wanted = model === 'GR3_HDF' || model === 'GR3' ? (fresh ? GR3_220 : GR3_210).version : model === 'GR3X_HDF' || model === 'GR3X' ? (fresh ? GR3X_170 : GR3X_160).version : fresh ? FIRMWARE_VERSION_120 : FIRMWARE_VERSION;
-  // When Ricoh's page offers a newer release, the one this program builds on is still on the site (GR IV).
-  const fallback = latest && latest.version !== wanted && latest.fallback?.version === wanted ? latest.fallback : null;
-  const rel = fallback ?? latest;
-  const supported = !!rel && rel.version === wanted;
-  const start = async (): Promise<void> => {
-    if (!rel || !supported || progress) return;
+  // Both releases are offered: the site's current one and, while Ricoh still serves it, the earlier
+  // one this program also builds on. A release the program does not know (a newer one) is shown
+  // without a download.
+  const known = SUPPORTED[model];
+  const releases = latest ? [latest, ...(latest.fallback && latest.fallback.version !== latest.version ? [latest.fallback] : [])] : [];
+  const newerUnknown = !!latest && !known.includes(latest.version) && releases.some((r) => known.includes(r.version));
+  // The newer of the two known releases is the "new" one.
+  const newest = releases.filter((r) => known.includes(r.version)).map((r) => r.version).sort((x, y) => known.indexOf(x) - known.indexOf(y))[0];
+  const start = async (rel: FirmwareRelease): Promise<void> => {
+    if (!known.includes(rel.version) || progress) return;
     const ac = new AbortController();
     abort.current = ac;
-    setProgress({ received: 0, total: rel.size });
+    setProgress({ version: rel.version, received: 0, total: rel.size });
     const timer = setInterval(() => {
-      host.firmwareProgress().then((p) => { if (p.active && !ac.signal.aborted) setProgress({ received: p.received, total: p.total || rel.size }); }).catch(() => undefined);
+      host.firmwareProgress().then((p) => { if (p.active && !ac.signal.aborted) setProgress({ version: rel.version, received: p.received, total: p.total || rel.size }); }).catch(() => undefined);
     }, 250);
     try {
-      const f = await host.firmwareDownload(model, fallback ? fallback.version : undefined, ac.signal);
+      const f = await host.firmwareDownload(model, rel.version, ac.signal);
       clearInterval(timer);
       if (ac.signal.aborted) return;
-      setProgress({ received: rel.size || 1, total: rel.size || 1 });
+      setProgress({ version: rel.version, received: rel.size || 1, total: rel.size || 1 });
       if (await adoptFirmware(f.name, f.version, f.data)) setOnlineOpen(false);
     } catch (e) {
       if (!(e instanceof HostError && e.code === 'cancelled') && !ac.signal.aborted) toast(`${t(e instanceof HostError && e.code === 'checksum' ? 'fwChecksum' : 'fwNetError')}${e instanceof HostError && e.code !== 'network' && e.code !== 'offline' && e.code !== 'checksum' ? ` · ${e.code}` : ''}`, 'error');
@@ -122,41 +135,36 @@ function OnlineDialog() {
       <div className="dialog online" role="dialog" aria-modal="true" aria-label={t('fwOnlineTitle')}>
         <h3>{t('fwOnlineTitle')}</h3>
         {reason && <p className="dialog-warn">{t(reason === 'bridge-loaded' ? 'bridgeNeedOfficial' : 'bridgeNeedBase')}</p>}
-        {fresh && <p className="dialog-warn">{t('fwNewLine')}</p>}
         <div className={`online-models ${progress ? 'off' : ''}`}>
           <Segmented<CameraModel> value={model} onChange={(m) => { if (!progress) setModel(m); }} options={MODELS.map((m) => ({ value: m, label: modelLabel(m) }))} />
         </div>
         {look.state === 'loading' && <div className="fw-rel idle"><span className="spinner small" /><span className="muted">{t('fwLooking')}</span></div>}
         {look.state === 'none' && <div className="fw-rel idle"><span className="muted">{t('fwNone')}</span></div>}
         {look.state === 'error' && <div className="fw-rel idle"><span className="muted">{t('fwNetError')}</span><span className="grow" /><button type="button" className="btn small" onClick={() => setAttempt((n) => n + 1)}>{t('retry')}</button></div>}
-        {fallback && latest && (
-          <>
-            <p className="dialog-warn">{t('fwNewer', { v: latest.version })}</p>
-            <div className="fw-rel newer" aria-disabled="true">
-              <span className="fw-ico">{Ico.chip}</span>
-              <span className="fw-text">
-                <b>{modelLabel(model)}<span className="fw-ver">{latest.version}</span></b>
-                <small>{[latest.date, latest.size > 0 ? fmtSize(latest.size) : ''].filter(Boolean).join('  ·  ')}</small>
-              </span>
-              <span className="chip warn">{t('fwUnsupported')}</span>
-            </div>
-          </>
-        )}
-        {rel && (
-          <button type="button" className={`fw-rel ${progress ? 'busy' : ''}`} disabled={!supported || !!progress} onClick={() => { void start(); }} title={supported ? t('download') : undefined}>
-            <span className="fw-ico">{Ico.chip}</span>
-            <span className="fw-text">
-              <b>{modelLabel(model)}<span className="fw-ver">{rel.version}</span></b>
-              <small>{progress
-                ? `${t('fwDownloading')}${progress.received > 0 ? `  ${fmtSize(progress.received)}${progress.total > 0 ? ` / ${fmtSize(progress.total)}` : ''}` : ''}`
-                : [rel.date, rel.size > 0 ? fmtSize(rel.size) : ''].filter(Boolean).join('  ·  ')}</small>
-            </span>
-            {!supported ? <span className="chip warn">{t('fwUnsupported')}</span> : progress ? <span className="spinner small" /> : <span className="fw-go">{Ico.download}</span>}
-            {progress && <i className="fw-bar" style={{ width: `${percent}%` }} />}
-          </button>
+        {newerUnknown && latest && <p className="dialog-warn">{t('fwNewer', { v: latest.version })}</p>}
+        {releases.length > 0 && (
+          <div className="fw-rels">
+            {releases.map((rel) => {
+              const ok = known.includes(rel.version);
+              const busy = progress?.version === rel.version;
+              return (
+                <button key={rel.version} type="button" className={`fw-rel ${busy ? 'busy' : ''}`} disabled={!ok || !!progress} onClick={() => { void start(rel); }} title={ok ? t('download') : undefined}>
+                  <span className="fw-ico">{Ico.chip}</span>
+                  <span className="fw-text">
+                    <b>{modelLabel(model)}<span className="fw-ver">{rel.version}</span>{ok && known.length > 1 && <span className={`chip tiny ${rel.version === newest ? 'ok' : 'muted'}`}>{t(rel.version === newest ? 'fwNewVersion' : 'fwOldVersion')}</span>}</b>
+                    <small>{busy && progress
+                      ? `${t('fwDownloading')}${progress.received > 0 ? `  ${fmtSize(progress.received)}${progress.total > 0 ? ` / ${fmtSize(progress.total)}` : ''}` : ''}`
+                      : [rel.date, rel.size > 0 ? fmtSize(rel.size) : ''].filter(Boolean).join('  ·  ')}</small>
+                  </span>
+                  {!ok ? <span className="chip warn">{t('fwUnsupported')}</span> : busy ? <span className="spinner small" /> : <span className="fw-go">{Ico.download}</span>}
+                  {busy && <i className="fw-bar" style={{ width: `${percent}%` }} />}
+                </button>
+              );
+            })}
+          </div>
         )}
         <div className="dialog-actions spread">
-          {rel && <button type="button" className="fw-license" onClick={() => { void host.firmwarePage(model, fallback ? fallback.version : undefined); }}>{t('fwLicense')}{Ico.external}</button>}
+          {latest && <button type="button" className="fw-license" onClick={() => { void host.firmwarePage(model); }}>{t('fwLicense')}{Ico.external}</button>}
           <span className="grow" />
           <button type="button" className="btn" onClick={close}>{t('cancel')}</button>
         </div>

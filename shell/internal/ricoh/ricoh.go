@@ -62,10 +62,11 @@ func baseModelFor(model string) string {
 	return "GR IV"
 }
 
-// pinned are the exact releases GR Mod's GR III / IIIx support is built on. Ricoh's current
-// release for these cameras (GR III 2.20, GR IIIx 1.70, October 2026) is a different program
-// with every address moved, so the latest file must not be offered for them: these older
-// archives are fetched by name instead (the engine checks the SHA-256 of the file inside).
+// pinned are the earlier releases GR Mod's GR III / IIIx support is built on (GR III 2.10,
+// GR IIIx 1.60). The site's pages list only the current one (GR III 2.20, GR IIIx 1.70, October
+// 2026, which GR Mod supports as well), so these older archives are fetched by name; the server
+// offers them as the fallback next to the current release (the engine checks the SHA-256 of the
+// file inside).
 var pinned = map[string]Release{
 	"GR3_HDF": {Name: "GR III", Applies: "RICOH GR III / GR III Street Edition / GR III Diary Edition / GR III HDF",
 		Version: "2.10", Date: "2025/10/23", File: "gr3_v210.zip",
@@ -79,16 +80,6 @@ func init() {
 	// The standard cameras take the same archive as the HDF ones (Ricoh's archive applies to every edition).
 	pinned["GR3"] = pinned["GR3_HDF"]
 	pinned["GR3X"] = pinned["GR3X_HDF"]
-}
-
-// UseCurrentReleases is for the experimental line built on the cameras' current firmware (GR IV
-// 1.20, GR III 2.20, GR IIIx 1.70): no release is pinned, every model is offered the site's current
-// release (a newer one than the program knows is refused by the engine, which checks the SHA-256 of
-// the file inside). GR IV's fallback stays 1.11, which that line's page does not offer.
-func UseCurrentReleases() {
-	for model := range pinned {
-		delete(pinned, model)
-	}
 }
 
 // ErrNoRelease means the site lists no firmware for the model.
@@ -380,12 +371,6 @@ func (c *Client) Latest(ctx context.Context, model string) (*Release, error) {
 func IsPinned(model string) bool {
 	_, ok := pinned[model]
 	return ok
-}
-
-// PinnedVersion is the version of a pinned model's release (the only one downloaded for it).
-func PinnedVersion(model string) (string, bool) {
-	p, ok := pinned[model]
-	return p.Version, ok
 }
 
 // Current reads the release the site's pages list for a model now, also for a pinned model

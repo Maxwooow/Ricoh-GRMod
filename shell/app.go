@@ -57,9 +57,7 @@ func newApp(cfg config) (*app, error) {
 		if dir, err = platform.DataDirFor(runtime.GOOS, os.Getenv, home); err != nil {
 			return nil, fmt.Errorf("no data directory: %w", err)
 		}
-		if newFirmwareLine() {
-			dir += newFirmwareDataSuffix
-		} else if experimental() {
+		if experimental() {
 			dir += experimentalDataSuffix
 		}
 	}

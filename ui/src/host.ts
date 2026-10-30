@@ -56,15 +56,6 @@ async function call(method: string, path: string, body?: BodyInit | null, json =
 const q = (s: string): string => encodeURIComponent(s);
 const post = async <T>(path: string, body: unknown): Promise<T> => (await call('POST', path, JSON.stringify(body))).json() as Promise<T>;
 
-/**
- * True in the experimental line for the cameras' current firmware (GR IV 1.20, GR III 2.20,
- * GR IIIx 1.70; a version such as 0.8.6-newfwexp.1, as the shell's newFirmwareLine).
- */
-export function newFirmwareLine(): boolean {
-  const v = info?.version ?? '';
-  return v.includes('newfw') && v.includes('exp');
-}
-
 export const host = {
   available: !!info,
   info,
@@ -110,7 +101,7 @@ export const host = {
     try { return (await call('GET', '/api/firmware/latest?model=' + q(model))).json(); }
     catch (e) { if (e instanceof HostError && e.code === 'not-found') return null; throw e; }
   },
-  /** `version`: the supported release (a `fallback`); omitted for the site's current one. */
+  /** `version`: which release (the site's current one or its `fallback`); omitted for the current one. */
   async firmwareDownload(model: string, version?: string, signal?: AbortSignal): Promise<{ name: string; version: string; data: Uint8Array }> {
     const res = await call('POST', '/api/firmware/download', JSON.stringify(version ? { model, version } : { model }), true, signal);
     let data: Uint8Array;
