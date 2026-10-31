@@ -34,7 +34,8 @@
 import { assembleWords, branchTarget, branchWord, movImmediate, movWord } from './arm';
 import { BASE, ICON_CATALOG, LOOKUP_BOUNDS, OFFICIAL_RTOS_LENGTH, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z } from './build';
 import { linkModule } from './native-link';
-import { LOOK_STASH, STASH_ASM, installLookStash } from './lookstash';
+import { FRAME_LOOK, STASH_ASM, installLookStash } from './lookstash';
+import { installExposureOrientation } from './datestamp';
 import { SLOT_PARAMETERS, SLOT_PARAMS_MODULE } from './slotparams-native';
 import { HALATION_COLOUR_NAMES, HALATION_LOOKS, HALATION_NAMES, halationColourIcon, halationColourScale, halationIcon, installHalationModule, readHalation } from './halation';
 import { installHalationClamps, installHalationUi } from './halation-ui';
@@ -114,8 +115,14 @@ const TONING_TEXT = 357;
 const TONING_ICON = 0x184;
 /** The native two-position (Off / On) scale whose panel and track the colour scale reuses (1.11: 0x3A). */
 const NATIVE_SCALE_ICON = 0x44;
-/** The word the development step leaves for the halation module: style | level << 8 | valid. */
-const HALATION_STASH = LOOK_STASH;
+/**
+ * The word the halation module reads: style | level << 8 | valid. 0.9.0: the picture's own look
+ * word (FRAME_LOOK: LOOK_STASH as it was at the start of the exposure, and in RAW development the
+ * record being developed), as the date imprint's look name. LOOK_STASH itself follows every pass of
+ * the development step until the JPEG step; with soft focus on (the digital-filter step runs) the
+ * camera showed no halation at all (GR IV HDF, 1.20).
+ */
+const HALATION_STASH = FRAME_LOOK;
 
 const TONES = 38;
 const VARIANTS = 3;
@@ -915,6 +922,8 @@ export function installHalation(p: Patch, iconbin: Uint8Array, looks: readonly H
   // The look of the picture for the JPEG step: without added slots their hook is not there.
   if (p.word(0x53939148) === 0xe5d3279c) installLookStash(p);
   else if (!isLookStashed(p)) fail('internal', 'halation: the development step does not leave the look');
+  // FRAME_LOOK is filled at the start of each exposure (also without the date imprint).
+  installExposureOrientation(p);
   installHalationModule(p, looks, HALATION_STASH);
   return concat(parts);
 }

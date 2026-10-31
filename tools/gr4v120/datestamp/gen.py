@@ -67,7 +67,9 @@ def main():
         db = build(cc, ld, objcopy, tmp, 0x54430000, ['-DDIAG'])
         fa = build(cc, ld, objcopy, tmp, 0x10000, ['-DDFDIAG'])
         fb = build(cc, ld, objcopy, tmp, 0x54430000, ['-DDFDIAG'])
-    if a != b or da != db or fa != fb:
+        ha = build(cc, ld, objcopy, tmp, 0x10000, ['-DDIAG', '-DGR3_WORDS'])
+        hb = build(cc, ld, objcopy, tmp, 0x54430000, ['-DDIAG', '-DGR3_WORDS'])
+    if a != b or da != db or fa != fb or ha != hb:
         sys.exit('module is not position independent')
     while len(a) % 4:
         a += b'\0'
@@ -75,6 +77,8 @@ def main():
         da += b'\0'
     while len(fa) % 4:
         fa += b'\0'
+    while len(ha) % 4:
+        ha += b'\0'
     version = run(cc + ['--version']).splitlines()[0]
     src_hash = hashlib.sha256(SRC.read_bytes()).hexdigest()
     OUT.write_text(
@@ -89,6 +93,8 @@ def main():
         f"export const DATESTAMP_DIAG_CODE = '{base64.b64encode(da).decode()}';\n"
         '/** Test builds only (-DDFDIAG): also prints the Direct Flash planner\'s diagnostic buffer on the 720x480 picture. */\n'
         f"export const DATESTAMP_DFDIAG_CODE = '{base64.b64encode(fa).decode()}';\n"
+        '/** Test builds only (-DDIAG -DGR3_WORDS): the configuration, and two RAM words (the context\'s `words`) on every wide picture. */\n'
+        f"export const DATESTAMP_HALDIAG_CODE = '{base64.b64encode(ha).decode()}';\n"
         f"export const DATESTAMP_SOURCE_SHA256 = '{src_hash}';\n")
     print(f'{OUT}: {len(a)} bytes')
 

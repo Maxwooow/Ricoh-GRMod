@@ -34,14 +34,14 @@ import { DATESTAMP_BYTE, installDateStamp, lookNames } from './datestamp';
 import { installDateStampMenu } from './datestamp-menu';
 import { installMonoUnlock } from './monounlock';
 import { CINEMA_STYLES, installExtraSlots, installHalation } from './slots';
-import { halationLight } from './halation';
+import { HALATION_TEST, halationLight } from './halation';
 import type { HalationLook } from './halation';
 import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
 import type { LookLayout } from './looks';
 import type { ExtraSlotSpec } from './slots';
 import { installShutdownMenu } from './shutdown';
 import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
-import { LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
+import { FRAME_LOOK, LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
 import type { ShutdownPictureSpec } from './shutdown';
 
 export const BASE = 0x53000000;
@@ -150,7 +150,16 @@ export interface TestOptions {
   dateStampDiag?: boolean;
   /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
   directFlashDiag?: boolean;
+  /**
+   * Halation diagnostics (with the date imprint): the halation module leaves how far each call got
+   * in HALATION_STATUS_WORD, and the date imprint prints the configuration, the picture's look word
+   * (FRAME_LOOK) and that status on every wide picture.
+   */
+  halationDiag?: boolean;
 }
+
+/** Test builds only: the halation module's status (the 44 bytes before the heap; Direct Flash diagnostics' word otherwise). */
+export const HALATION_STATUS_WORD = 0x5583903c;
 
 export interface AspectResult {
   revision: BuildRevision;
@@ -1031,6 +1040,16 @@ export function installRatios(rtos: Uint8Array, iconbin: Uint8Array, ratios: rea
  * features this is `installRatios`, byte for byte. With features the revision is 3.
  */
 export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
+  if (test.halationDiag && (!features.dateStamp || test.directFlashDiag)) fail('internal', 'halation diagnostics need the date imprint (and no Direct Flash diagnostics)');
+  HALATION_TEST.statusWord = test.halationDiag ? HALATION_STATUS_WORD : 0;
+  try {
+    return installExtensionsInner(rtos, iconbin, ratios, features, revision, test);
+  } finally {
+    HALATION_TEST.statusWord = 0;
+  }
+}
+
+function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision, test: TestOptions): AspectResult {
   const slots = features.extraSlots ?? [];
   const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
   const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
@@ -1069,7 +1088,9 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
     const fixed = test.dateStampFixed;
     // From 0.8.2 (builds with the guard) the imprint goes by the picture's look.
     const look = features.guard ? { stash: LOOK_STASH, monoLooks: monoTable(patch, slots.map((x) => monoLook(x.matrixQ13, x.curves, x.postQ9)), FIRST_ADDED_LOOK), names: lookNames(patch, slots.map((x) => x.name)) } : undefined;
-    installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : DATESTAMP_BYTE, test.directFlashDiag && features.directFlash ? 'df' : !!test.dateStampDiag, look);
+    // Halation diagnostics: words[0] the picture's look word (FRAME_LOOK), words[1] the module's status (HALATION_STATUS_WORD).
+    if (test.halationDiag && FRAME_LOOK + 4 !== HALATION_STATUS_WORD) fail('internal', 'halation diagnostics: the two words are not next to each other');
+    installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : DATESTAMP_BYTE, test.halationDiag ? { words: FRAME_LOOK } : test.directFlashDiag && features.directFlash ? 'df' : !!test.dateStampDiag, look);
     if (!fixed) icons = installDateStampMenu(patch, icons);
     if (look && slots.length === 0) installLookStash(patch);
   }

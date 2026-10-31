@@ -29,7 +29,7 @@
 import { FirmwareError } from '../../types';
 import { assembleWords, branchTarget, movImmediate } from './arm';
 import { Patch, concat, u16le, u32le } from './build';
-import { HALATION_CODE, HALATION_CODE_LENGTH } from './halation-code';
+import { HALATION_CODE, HALATION_CODE_LENGTH, HALATION_STATUS_CODE } from './halation-code';
 
 /**
  * The look of the glow, the same for every look that has it: fitted to CineStill 800T pictures
@@ -185,6 +185,13 @@ export function halationModule(): Uint8Array {
 export interface HalationLook { style: number; light: HalationLight }
 
 /**
+ * Test builds only (`TestOptions.halationDiag`): when `statusWord` is set, the module built with
+ * -DSTATUS is installed and leaves how far each call got in that RAM word (see `REPORT` in
+ * halation.c). Set and cleared by `installExtensions`; 0 in every released build.
+ */
+export const HALATION_TEST: { statusWord: number } = { statusWord: 0 };
+
+/**
  * Install the module at the JPEG encode step for `looks`; `stash` is the word the development
  * step writes. Chains to the date imprint when that is installed (it runs after the halation).
  */
@@ -211,8 +218,9 @@ export function installHalationModule(p: Patch, looks: readonly HalationLook[], 
     ...paramBytes(),
     ...u32le([CTX_MAGIC]),
     ...map,
+    ...(HALATION_TEST.statusWord ? u32le([HALATION_TEST.statusWord]) : []),
   ]), 16);
-  const code = p.append(halationModule(), 16);
+  const code = p.append(HALATION_TEST.statusWord ? Uint8Array.from(atob(HALATION_STATUS_CODE), (c) => c.charCodeAt(0)) : halationModule(), 16);
   const stub = p.append((at) => assembleWords(
     `push {r0-r3,ip,lr}
      ldr r1,[r1,#8]

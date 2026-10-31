@@ -1,7 +1,20 @@
 diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/build.ts
 --- a/core/src/fw/gr4v120/aspect/build.ts
 +++ b/core/src/fw/gr4v120/aspect/build.ts
-@@ -45,19 +45,22 @@
+@@ -34,30 +34,33 @@
+ import { installDateStampMenu } from './datestamp-menu';
+ import { installMonoUnlock } from './monounlock';
+ import { CINEMA_STYLES, installExtraSlots, installHalation } from './slots';
+-import { halationLight } from './halation';
++import { HALATION_TEST, halationLight } from './halation';
+ import type { HalationLook } from './halation';
+ import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
+ import type { LookLayout } from './looks';
+ import type { ExtraSlotSpec } from './slots';
+ import { installShutdownMenu } from './shutdown';
+ import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
+-import { LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
++import { FRAME_LOOK, LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
  import type { ShutdownPictureSpec } from './shutdown';
  
  export const BASE = 0x53000000;
@@ -44,7 +57,25 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  }
  
  export interface RatioSpec {
-@@ -310,7 +313,7 @@
+@@ -147,7 +150,16 @@
+   dateStampDiag?: boolean;
+   /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
+   directFlashDiag?: boolean;
+-}
++  /**
++   * Halation diagnostics (with the date imprint): the halation module leaves how far each call got
++   * in HALATION_STATUS_WORD, and the date imprint prints the configuration, the picture's look word
++   * (FRAME_LOOK) and that status on every wide picture.
++   */
++  halationDiag?: boolean;
++}
++
++/** Test builds only: the halation module's status (the 44 bytes before the heap; Direct Flash diagnostics' word otherwise). */
++export const HALATION_STATUS_WORD = 0x5583903c;
+ 
+ export interface AspectResult {
+   revision: BuildRevision;
+@@ -310,7 +322,7 @@
    for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
    const rowsStart = TEXT_CATALOG + 0x100;
    const end = rowsStart + LANGUAGES * ROW_STRIDE;
@@ -53,7 +84,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    patch.extendTo(end - BASE);
    patch.write(ICON_CATALOG, icons);
    const relocated: number[] = [];
-@@ -322,8 +325,15 @@
+@@ -322,8 +334,15 @@
    // language directory themselves.
    patch.setWord(0x534013f8, movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
    patch.setWord(0x534013fc, movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
@@ -71,7 +102,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    }
    for (const [low, high] of [[0x535967cc, 0x535967d0], [0x53595db4, 0x53595dbc]] as const) {
      patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
-@@ -354,7 +364,10 @@
+@@ -354,7 +373,10 @@
  // --------------------------------------------------------------------------------------------
  // crop_icons.py
  
@@ -83,7 +114,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
    const parts: Uint8Array[] = [iconbin];
-@@ -446,7 +459,7 @@
+@@ -446,7 +468,7 @@
    // Complete language rows again, now wide enough for the new names; every original entry is kept.
    let priorColumns = TEXT_CAPACITY;
    for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
@@ -92,7 +123,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    for (const id of allIds) upper = Math.max(upper, textId(id));
    const columns = Math.max(priorColumns, upper + 1);
    const catalogs: Uint8Array[] = [];
-@@ -659,8 +672,8 @@
+@@ -659,8 +681,8 @@
      out = '';
      for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
      out += `bic ip,ip,#4;b #${resume};custom:`;
@@ -103,7 +134,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      out += 'ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;';
      p.hook(entry, out);
    }
-@@ -880,7 +893,7 @@
+@@ -880,7 +902,7 @@
  function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
    const priorSave = branchTarget(0x533f3674, patch.word(0x533f3674));
    const priorLoad = branchTarget(0x533f3254, patch.word(0x533f3254));
@@ -112,6 +143,34 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    expectWord(patch, 0x5381d6bc, 0xe1a0c00d);
    // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
    const rects: Uint8Array[] = [];
+@@ -1018,6 +1040,16 @@
+  * features this is `installRatios`, byte for byte. With features the revision is 3.
+  */
+ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
++  if (test.halationDiag && (!features.dateStamp || test.directFlashDiag)) fail('internal', 'halation diagnostics need the date imprint (and no Direct Flash diagnostics)');
++  HALATION_TEST.statusWord = test.halationDiag ? HALATION_STATUS_WORD : 0;
++  try {
++    return installExtensionsInner(rtos, iconbin, ratios, features, revision, test);
++  } finally {
++    HALATION_TEST.statusWord = 0;
++  }
++}
++
++function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision, test: TestOptions): AspectResult {
+   const slots = features.extraSlots ?? [];
+   const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
+   const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
+@@ -1056,7 +1088,9 @@
+     const fixed = test.dateStampFixed;
+     // From 0.8.2 (builds with the guard) the imprint goes by the picture's look.
+     const look = features.guard ? { stash: LOOK_STASH, monoLooks: monoTable(patch, slots.map((x) => monoLook(x.matrixQ13, x.curves, x.postQ9)), FIRST_ADDED_LOOK), names: lookNames(patch, slots.map((x) => x.name)) } : undefined;
+-    installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : DATESTAMP_BYTE, test.directFlashDiag && features.directFlash ? 'df' : !!test.dateStampDiag, look);
++    // Halation diagnostics: words[0] the picture's look word (FRAME_LOOK), words[1] the module's status (HALATION_STATUS_WORD).
++    if (test.halationDiag && FRAME_LOOK + 4 !== HALATION_STATUS_WORD) fail('internal', 'halation diagnostics: the two words are not next to each other');
++    installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : DATESTAMP_BYTE, test.halationDiag ? { words: FRAME_LOOK } : test.directFlashDiag && features.directFlash ? 'df' : !!test.dateStampDiag, look);
+     if (!fixed) icons = installDateStampMenu(patch, icons);
+     if (look && slots.length === 0) installLookStash(patch);
+   }
 diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/aspect/datestamp-menu.ts
 --- a/core/src/fw/gr4v120/aspect/datestamp-menu.ts
 +++ b/core/src/fw/gr4v120/aspect/datestamp-menu.ts
@@ -246,6 +305,15 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp.ts b/core/src/fw/gr4v120/aspec
   * seven-segment "'YY MM DD" like the date back of a film compact.
   *
   * Where: JpegEncodeMacroProcess::Execute (0x53727E10), the step of the still pipeline that hands
+@@ -43,7 +43,7 @@
+ import { FirmwareError } from '../../types';
+ import { assembleWords } from './arm';
+ import { BASE, Patch, expectWord, u16le, u32le } from './build';
+-import { DATESTAMP_CODE, DATESTAMP_CODE_LENGTH, DATESTAMP_DFDIAG_CODE, DATESTAMP_DIAG_CODE } from './datestamp-code';
++import { DATESTAMP_CODE, DATESTAMP_CODE_LENGTH, DATESTAMP_DFDIAG_CODE, DATESTAMP_DIAG_CODE, DATESTAMP_HALDIAG_CODE } from './datestamp-code';
+ import { DIRECT_FLASH_DIAG_SLOT } from './directflash';
+ import { FRAME_LOOK, LOOK_STASH, MONO_MODEL, ORIENT_VALID, ORIENT_WORD } from './lookstash';
+ import { NAME_TABLE_RTOS_OFFSETS } from '../names';
 @@ -81,6 +81,8 @@
    11: 'Standard', 12: 'Vivid', 13: 'Monotone', 14: 'Soft Monotone', 15: 'Hard Monotone', 16: 'Hi-Contrast B&W',
    17: 'Positive Film', 18: 'Cinema (Yellow)', 19: 'Cinema (Green)', 20: 'Bleach Bypass', 21: 'Retro', 22: 'HDR Tone',
@@ -280,7 +348,29 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp.ts b/core/src/fw/gr4v120/aspec
    return out;
  }
  
-@@ -198,7 +200,7 @@
+@@ -181,9 +183,13 @@
+   return v >>> 16;
+ }
+ 
+-/** `diag`: test builds only; true prints the encoder configuration, 'df' the Direct Flash planner's diagnostics. */
+-export function datestampModule(diag: boolean | 'df' = false): Uint8Array {
+-  const raw = Uint8Array.from(atob(diag === 'df' ? DATESTAMP_DFDIAG_CODE : diag ? DATESTAMP_DIAG_CODE : DATESTAMP_CODE), (c) => c.charCodeAt(0));
++/**
++ * `diag`: test builds only; true prints the encoder configuration, 'df' the Direct Flash planner's
++ * diagnostics, `{ words }` the configuration and the two RAM words from `words` on (halation).
++ */
++export type DateStampDiag = boolean | 'df' | { words: number };
++export function datestampModule(diag: DateStampDiag = false): Uint8Array {
++  const raw = Uint8Array.from(atob(diag === 'df' ? DATESTAMP_DFDIAG_CODE : typeof diag === 'object' ? DATESTAMP_HALDIAG_CODE : diag ? DATESTAMP_DIAG_CODE : DATESTAMP_CODE), (c) => c.charCodeAt(0));
+   if ((!diag && raw.length !== DATESTAMP_CODE_LENGTH) || raw.length % 4 !== 0) fail('internal', 'date imprint module length');
+   return raw;
+ }
+@@ -194,18 +200,19 @@
+  * imprint is then light only exactly for those looks (and on the GR IV Monochrome) instead of
+  * for pictures whose colours look neutral. Returns the module address.
+  */
+-export function installDateStamp(patch: Patch, setting: number, diag: boolean | 'df' = false, look?: { stash: number; monoLooks: Uint8Array; names?: Readonly<Record<number, string>> }): number {
++export function installDateStamp(patch: Patch, setting: number, diag: DateStampDiag = false, look?: { stash: number; monoLooks: Uint8Array; names?: Readonly<Record<number, string>> }): number {
    expectWord(patch, JPEG_EXECUTE, 0xe1a0c00d); // mov ip, sp
    expectWord(patch, JPEG_EXECUTE + 4, 0xe92ddff0); // push {r4-r12, lr, pc}
    expectWord(patch, JPEG_EXECUTE + 0x18, 0xe5914008); // ldr r4, [r1, #8]  (the configuration)
@@ -289,7 +379,16 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp.ts b/core/src/fw/gr4v120/aspec
    expectWord(patch, CACHE_CLEAN, 0xe1a00001);
    expectWord(patch, CACHE_FLUSH_FOR_READ, 0xe1a0c00d);
    expectWord(patch, GET_TIME, 0xe5d03014); // ldrb r3, [r0, #0x14]
-@@ -243,7 +245,7 @@
+   if (look && look.monoLooks.length !== 64) fail('internal', 'date imprint: table of black-and-white looks');
+   const table = look ? patch.append(look.monoLooks, 4) : 0;
+   const names = look && look.names ? lookNameTable(patch, look.names) : 0;
+-  const ctx = patch.append(u32le([CACHE, CACHE_FLUSH_FOR_READ, CACHE_CLEAN, PLATFORM, GET_TIME, setting, look ? look.stash : 0, table, look ? MONO_MODEL : 0, look ? ORIENT_WORD : 0,
++  // -DGR3_WORDS puts the pointer to the two words right after the setting.
++  const ctx = patch.append(u32le([CACHE, CACHE_FLUSH_FOR_READ, CACHE_CLEAN, PLATFORM, GET_TIME, setting, ...(typeof diag === 'object' ? [diag.words] : []), look ? look.stash : 0, table, look ? MONO_MODEL : 0, look ? ORIENT_WORD : 0,
+     look ? FRAME_LOOK : 0, names, ...(diag === 'df' ? [DIRECT_FLASH_DIAG_SLOT] : [])]), 16);
+   if (look) installExposureOrientation(patch);
+   const code = patch.append(datestampModule(diag), 16);
+@@ -243,7 +250,7 @@
    expectWord(patch, 0x537818a8, 0xe5903000); // ldr r3, [r0]
    expectWord(patch, 0x537818ac, 0xe5d300d8); // ldrb r0, [r3, #0xd8]
    expectWord(patch, 0x5377b1d8, 0xe5950518); // ldr r0, [r5, #0x518]
@@ -696,6 +795,43 @@ diff --git a/core/src/fw/gr4v120/aspect/halation-ui.ts b/core/src/fw/gr4v120/asp
 +  hook(p, 0x53804008, 0xe3003e10, 'ldrb r0,[r1,#0x7a6];cmp r0,#3;blo native;cmp r0,#11;addls r0,r0,#1;popls {r4,pc};native:movw r3,#0xe10;b #0x5380400c', 'halation: maker note Toning 3..11 as codes 4..12');
    hook(p, 0x537fdb3c, 0xe3a03000, 'sub r3,r1,#1;cmp r3,#3;blo zero;cmp r3,#11;bls keep;zero:mov r3,#0;keep:b #0x537fdb40', 'halation: maker note codes 4..12 as Toning 3..11');
  }
+diff --git a/core/src/fw/gr4v120/aspect/halation.ts b/core/src/fw/gr4v120/aspect/halation.ts
+--- a/core/src/fw/gr4v120/aspect/halation.ts
++++ b/core/src/fw/gr4v120/aspect/halation.ts
+@@ -29,7 +29,7 @@
+ import { FirmwareError } from '../../types';
+ import { assembleWords, branchTarget, movImmediate } from './arm';
+ import { Patch, concat, u16le, u32le } from './build';
+-import { HALATION_CODE, HALATION_CODE_LENGTH } from './halation-code';
++import { HALATION_CODE, HALATION_CODE_LENGTH, HALATION_STATUS_CODE } from './halation-code';
+ 
+ /**
+  * The look of the glow, the same for every look that has it: fitted to CineStill 800T pictures
+@@ -185,6 +185,13 @@
+ export interface HalationLook { style: number; light: HalationLight }
+ 
+ /**
++ * Test builds only (`TestOptions.halationDiag`): when `statusWord` is set, the module built with
++ * -DSTATUS is installed and leaves how far each call got in that RAM word (see `REPORT` in
++ * halation.c). Set and cleared by `installExtensions`; 0 in every released build.
++ */
++export const HALATION_TEST: { statusWord: number } = { statusWord: 0 };
++
++/**
+  * Install the module at the JPEG encode step for `looks`; `stash` is the word the development
+  * step writes. Chains to the date imprint when that is installed (it runs after the halation).
+  */
+@@ -211,8 +218,9 @@
+     ...paramBytes(),
+     ...u32le([CTX_MAGIC]),
+     ...map,
++    ...(HALATION_TEST.statusWord ? u32le([HALATION_TEST.statusWord]) : []),
+   ]), 16);
+-  const code = p.append(halationModule(), 16);
++  const code = p.append(HALATION_TEST.statusWord ? Uint8Array.from(atob(HALATION_STATUS_CODE), (c) => c.charCodeAt(0)) : halationModule(), 16);
+   const stub = p.append((at) => assembleWords(
+     `push {r0-r3,ip,lr}
+      ldr r1,[r1,#8]
 diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/looks.ts
 --- a/core/src/fw/gr4v120/aspect/looks.ts
 +++ b/core/src/fw/gr4v120/aspect/looks.ts
@@ -976,7 +1112,17 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   * overlay, RAW development and the look-visibility check (hidden on the GR IV Monochrome).
   * The adjustable parameters (saturation, contrast, grain, ...): the firmware keeps them per
   * factory style only, and whatever reads them for the selected look (live-view generator,
-@@ -45,15 +46,19 @@
+@@ -33,7 +34,8 @@
+ import { assembleWords, branchTarget, branchWord, movImmediate, movWord } from './arm';
+ import { BASE, ICON_CATALOG, LOOKUP_BOUNDS, OFFICIAL_RTOS_LENGTH, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z } from './build';
+ import { linkModule } from './native-link';
+-import { LOOK_STASH, STASH_ASM, installLookStash } from './lookstash';
++import { FRAME_LOOK, STASH_ASM, installLookStash } from './lookstash';
++import { installExposureOrientation } from './datestamp';
+ import { SLOT_PARAMETERS, SLOT_PARAMS_MODULE } from './slotparams-native';
+ import { HALATION_COLOUR_NAMES, HALATION_LOOKS, HALATION_NAMES, halationColourIcon, halationColourScale, halationIcon, installHalationModule, readHalation } from './halation';
+ import { installHalationClamps, installHalationUi } from './halation-ui';
+@@ -45,15 +47,19 @@
  
  /** Up to 0.8.1: 6. */
  export const MAX_EXTRA_SLOTS = 20;
@@ -1004,7 +1150,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  /** Icon number of the first added slot's icon: slots 0..11 768..779 (780, 781 are halation's), slots 12.. 782..789 (790, 791 halation's). */
  export const EXTRA_ICON_ID = 768;
  const EXTRA_ICON_SPLIT = 12;
-@@ -97,22 +102,22 @@
+@@ -97,22 +103,28 @@
   * row's name, the colour slider's scale and the red and white row icons. (Icon 781 was the Off /
   * Weak / Strong scale up to test 042.)
   */
@@ -1022,21 +1168,30 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
 -const TONING_ICON = 0x16f;
 -/** The native two-position (Off / On) scale whose panel and track the colour scale reuses. */
 -const NATIVE_SCALE_ICON = 0x3a;
+-/** The word the development step leaves for the halation module: style | level << 8 | valid. */
+-const HALATION_STASH = LOOK_STASH;
+-
+-const TONES = 34;
 +/** Text of Cinema's Toning (and of the black-and-white toning, which no added look has); 1.11: 339. */
 +const TONING_TEXT = 357;
 +/** Toning's list icon (1.11: 0x16F). */
 +const TONING_ICON = 0x184;
 +/** The native two-position (Off / On) scale whose panel and track the colour scale reuses (1.11: 0x3A). */
 +const NATIVE_SCALE_ICON = 0x44;
- /** The word the development step leaves for the halation module: style | level << 8 | valid. */
- const HALATION_STASH = LOOK_STASH;
- 
--const TONES = 34;
++/**
++ * The word the halation module reads: style | level << 8 | valid. 0.9.0: the picture's own look
++ * word (FRAME_LOOK: LOOK_STASH as it was at the start of the exposure, and in RAW development the
++ * record being developed), as the date imprint's look name. LOOK_STASH itself follows every pass of
++ * the development step until the JPEG step; with soft focus on (the digital-filter step runs) the
++ * camera showed no halation at all (GR IV HDF, 1.20).
++ */
++const HALATION_STASH = FRAME_LOOK;
++
 +const TONES = 38;
  const VARIANTS = 3;
  const CY = 18;
  const STANDARD = 11;
-@@ -120,7 +125,7 @@
+@@ -120,7 +132,7 @@
  const MA_TABLE = 0x55054554;
  const YCC_TABLE = 0x55053ce4;
  const GAMMA_TABLE = 0x55054158;
@@ -1045,7 +1200,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  const TABLES = [
    [TONE_TABLE, 0x5394dfb0, 0x5394dfb4, 0x5394dfbc],
    [MA_TABLE, 0x5394dfdc, 0x5394dfe0, 0x5394dfe8],
-@@ -136,7 +141,8 @@
+@@ -136,7 +148,8 @@
  const POST_STRIDE = 20;
  const MA_POINTERS = 8;
  const ORDER_TABLE = 0x53de8cd0;
@@ -1055,7 +1210,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  const TILE_BG = [53, 53, 54];
  
  function fail(code: string, message: string): never {
-@@ -255,7 +261,7 @@
+@@ -255,7 +268,7 @@
    return out;
  }
  
@@ -1064,7 +1219,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  // handles the new styles and otherwise runs the overwritten instruction and branches back.
  function hook(p: Patch, at: number, expected: number, body: string, reason: string): void {
    expectWord(p, at, expected);
-@@ -369,7 +375,7 @@
+@@ -369,7 +382,7 @@
    for (const site of p.textBoundSites) p.setWord(site, movWord(3, Math.max(lastText, movImmediate(p.word(site)))), 'text upper bound');
    for (const [site, r] of LOOKUP_BOUNDS) p.setWord(site, movWord(r, Math.max(lastIcon, movImmediate(p.word(site)))), 'icon upper bound');
  
@@ -1073,7 +1228,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
    TABLES.forEach(([old, stride, low, high], t) => {
      const out: number[] = [];
      for (let v = 0; v < VARIANTS; v++) {
-@@ -382,9 +388,9 @@
+@@ -382,9 +395,9 @@
      pointer(p, low, high, 3, old, table, 'added slots: style table');
    });
  
@@ -1086,7 +1241,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
    // The common input fields (grain among them) are read as for Cinema Yellow; only the local
    // dispatch register changes, the frame's style and the table index stay the new ones. With
    // halation or the date imprint by look, the frame's style and Toning (halation) level are also
-@@ -424,13 +430,14 @@
+@@ -424,13 +437,14 @@
    hook(p, 0x533905d8, 0xe351000a, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;cmp r2,#0;movne r0,#0;bxne lr;${iconAsm('r0', 'ip')};bx lr;native:cmp r1,#10;b #0x533905dc`, 'added slots: ADJ icon');
    early(p, 0x533a66c8, textAsm('r0', 'ip'), count, 'added slots: name');
    early(p, 0x533a6868, iconAsm('r0', 'ip'), count, 'added slots: icon');
@@ -1107,7 +1262,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  
    const hiddenMask = hiddenExtras.reduce((m, id) => (m | (1 << (id - EXTRA_FIRST_STYLE))) >>> 0, 0);
    const module = installOwnParameters(p, count, prints, hiddenMask);
-@@ -546,11 +553,12 @@
+@@ -546,11 +560,12 @@
  ];
  const FUNCTOR_AREA = [0x53270000, 0x532a0000] as const;
  const FUNCTOR_LOADS: Readonly<Record<number, 'half' | 'byte' | 'word'>> = {
@@ -1125,7 +1280,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  };
  const FUNCTOR_NEXT: Readonly<Record<string, readonly number[]>> = { half: [0xe3530c12], byte: [0xe3530012], word: [0xe3a02001, 0xe3a02002] };
  
-@@ -569,7 +577,7 @@
+@@ -569,7 +584,7 @@
      const found: number[] = [];
      for (let a = starts[0], k = 0; k < 30; k++, a += 4) {
        const w = p.word(a);
@@ -1134,7 +1289,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
        if (w >>> 24 === 0xea) break;
      }
      if (found.length !== 1) fail('unexpected-layout', `change functor of field 0x${field.toString(16)}: ${found.length} style loads`);
-@@ -587,10 +595,10 @@
+@@ -587,10 +602,10 @@
  /**
   * Looks shown as their own, not as Standard or with Standard's parameter list:
   *  - the parameter screens pick their list of parameters from the look (0x531C80B0 shooting,
@@ -1147,7 +1302,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   *    themselves, the icon lookup knows them (test 033);
   *  - whether a picture goes through the digital-filter step (grain, Clarity, the setting before
   *    it) is decided from the look by 0x53739A5C with a chain of compares that includes Cinema
-@@ -608,40 +616,50 @@
+@@ -608,40 +623,50 @@
  }
  
  /**
@@ -1214,7 +1369,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
      return ((p.word(next) & 0xfffff000) >>> 0) === CMP_R3;
    };
    for (const load of GENERATOR_LOADS) {
-@@ -649,11 +667,6 @@
+@@ -649,11 +674,6 @@
      if (sites.length !== load.sites) fail('unexpected-layout', `live-view parameters: ${sites.length} loads of ${load.word.toString(16)}, expected ${load.sites}`);
      for (const at of sites) {
        if (!cmpFollows(at)) fail('unexpected-layout', `live-view parameters: load at 0x${at.toString(16)} is not followed by a compare`);
@@ -1226,7 +1381,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
      }
      const map = load.kind === 'half'
        ? `sub r3,r3,#${EXTRA_FIRST_STYLE << 8};cmp r3,#${count << 8};andlo r3,r3,#0xff;orrlo r3,r3,#${CY << 8};addhs r3,r3,#${EXTRA_FIRST_STYLE << 8}`
-@@ -676,20 +689,22 @@
+@@ -676,20 +696,22 @@
  
  // -------------------------------------------------------------- RAW development
  
@@ -1254,7 +1409,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   * "absent": the parameter screen showed -4 everywhere and developing stopped the camera (reported
   * on 0.7.0). The added looks now use Cinema Yellow's row, as the shooting side does with Cinema
   * Yellow's fields; the look itself (name, icon, the style given to development) stays the added
-@@ -703,11 +718,12 @@
+@@ -703,11 +725,12 @@
    const sites: number[] = [];
    for (let at = RAW_MODEL[0]; at < RAW_MODEL[1]; at += 4) {
      if (p.word(at) !== RAW_LOOK_LOAD) continue;
@@ -1269,7 +1424,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
      }
      if (!row) continue;
      if (p.word(at + 4) !== 0xe3520000) fail('unexpected-layout', `RAW development: load at 0x${at.toString(16)} is not followed by cmp r2,#0`);
-@@ -725,31 +741,32 @@
+@@ -725,31 +748,32 @@
    // Applying a look: the row goes to the looks now selected.
    hook(p, 0x53382e20, 0xe1a0c00d, `push {r0-r4,lr};bl #${module.sp_raw_sync};pop {r0-r4,lr};mov ip,sp;b #0x53382e24`, 'added slots: own RAW development parameters');
    // The RAW development screen makes its list as long as the longest of its lists (0x531A2680):
@@ -1311,7 +1466,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   *    wrote Standard otherwise), and has the parameters of Cinema Yellow (each parameter's writer
   *    looks the style up in a list of the looks that have it; the added looks join every list
   *    Cinema Yellow is in);
-@@ -763,7 +780,7 @@
+@@ -763,7 +787,7 @@
  function installPictureInfo(p: Patch, count: number): void {
    const n = count - 1;
    // Writer: r1 the maker note, r2 the frame record; tail-calls 0x5380DD48(note, 0, code).
@@ -1320,7 +1475,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
    // Parameter lists: the ones with Cinema Yellow get the added styles appended (new copies).
    const calls: number[] = [];
    for (let at = PARAM_LISTS[0]; at < PARAM_LISTS[1]; at += 4) if (p.word(at) === branchWord(at, LIST_ASSIGN, 14, true) || p.word(at) === branchWord(at, LIST_ASSIGN)) calls.push(at);
-@@ -794,12 +811,12 @@
+@@ -794,12 +818,12 @@
    }
    if (extended !== PARAM_LISTS_WITH_CY) fail('unexpected-layout', `maker note parameter lists: ${extended} with Cinema Yellow, expected ${PARAM_LISTS_WITH_CY}`);
    // Readers: RAW development's record, then playback's numbering and its style.
@@ -1337,7 +1492,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  }
  
  // -------------------------------------------------------------- halation
-@@ -832,7 +849,7 @@
+@@ -832,7 +856,7 @@
   * For such a look, Cinema's Toning on the parameter screens (shooting: ImageControlDetail-
   * Controller, the style at +0x19C; RAW development: RawDevelopmentImageControlDetailSetController,
   * the look asked from the model) shows as Halation: its name (the subtitle, from a table of texts
@@ -1346,7 +1501,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   * Off / On row like Grain Effect's, and Fn opens Grain Effect's submenu as Halation's (Strength,
   * Colour); the setting is kept in the Toning byte (`halation-ui.ts`). Which looks: two tables of 64
   * bytes (by style, by RAW development's number).
-@@ -879,13 +896,13 @@
+@@ -879,13 +903,13 @@
    hook(p, 0x531cbf68, 0xe1d610b2, `ldrh r1,[r6,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;ldrb ip,[r5,#0x19c];push {r0};${lookupAsm('ip', 'ip', 'r0', styles)};pop {r0};cmp ip,#0;movwne r1,#${HALATION_TEXT_ID};done:b #0x531cbf6c`, 'halation: name of the parameter');
    // Shooting: list icon (controller r7, r6).
    for (const [at, ctl] of [[0x531cae48, 'r7'], [0x531caf38, 'r6']] as const) {
@@ -1362,6 +1517,15 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
    }
  
    // Off / On, Fn to the submenu (Strength, Colour); native Toning readers kept to 0..2.
+@@ -898,6 +922,8 @@
+   // The look of the picture for the JPEG step: without added slots their hook is not there.
+   if (p.word(0x53939148) === 0xe5d3279c) installLookStash(p);
+   else if (!isLookStashed(p)) fail('internal', 'halation: the development step does not leave the look');
++  // FRAME_LOOK is filled at the start of each exposure (also without the date imprint).
++  installExposureOrientation(p);
+   installHalationModule(p, looks, HALATION_STASH);
+   return concat(parts);
+ }
 diff --git a/core/src/fw/gr4v120/aspect/softfocus.ts b/core/src/fw/gr4v120/aspect/softfocus.ts
 --- a/core/src/fw/gr4v120/aspect/softfocus.ts
 +++ b/core/src/fw/gr4v120/aspect/softfocus.ts
@@ -1847,6 +2011,35 @@ diff --git a/tools/gr4v120/datestamp/gen.py b/tools/gr4v120/datestamp/gen.py
  USE_ZIG = bool(os.environ.get('GRMOD_ZIG')) or not (shutil.which('clang') and shutil.which('ld.lld') and shutil.which('llvm-objcopy'))
  FLAGS = ['-mcpu=cortex_a9' if USE_ZIG else '-mcpu=cortex-a9', '-marm', '-mfloat-abi=soft', '-Os',
           '-ffreestanding', '-fno-builtin', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-nostdlib',
+@@ -67,7 +67,9 @@
+         db = build(cc, ld, objcopy, tmp, 0x54430000, ['-DDIAG'])
+         fa = build(cc, ld, objcopy, tmp, 0x10000, ['-DDFDIAG'])
+         fb = build(cc, ld, objcopy, tmp, 0x54430000, ['-DDFDIAG'])
+-    if a != b or da != db or fa != fb:
++        ha = build(cc, ld, objcopy, tmp, 0x10000, ['-DDIAG', '-DGR3_WORDS'])
++        hb = build(cc, ld, objcopy, tmp, 0x54430000, ['-DDIAG', '-DGR3_WORDS'])
++    if a != b or da != db or fa != fb or ha != hb:
+         sys.exit('module is not position independent')
+     while len(a) % 4:
+         a += b'\0'
+@@ -75,6 +77,8 @@
+         da += b'\0'
+     while len(fa) % 4:
+         fa += b'\0'
++    while len(ha) % 4:
++        ha += b'\0'
+     version = run(cc + ['--version']).splitlines()[0]
+     src_hash = hashlib.sha256(SRC.read_bytes()).hexdigest()
+     OUT.write_text(
+@@ -89,6 +93,8 @@
+         f"export const DATESTAMP_DIAG_CODE = '{base64.b64encode(da).decode()}';\n"
+         '/** Test builds only (-DDFDIAG): also prints the Direct Flash planner\'s diagnostic buffer on the 720x480 picture. */\n'
+         f"export const DATESTAMP_DFDIAG_CODE = '{base64.b64encode(fa).decode()}';\n"
++        '/** Test builds only (-DDIAG -DGR3_WORDS): the configuration, and two RAM words (the context\'s `words`) on every wide picture. */\n'
++        f"export const DATESTAMP_HALDIAG_CODE = '{base64.b64encode(ha).decode()}';\n"
+         f"export const DATESTAMP_SOURCE_SHA256 = '{src_hash}';\n")
+     print(f'{OUT}: {len(a)} bytes')
+ 
 diff --git a/tools/gr4v120/datestamp/list_width_check.py b/tools/gr4v120/datestamp/list_width_check.py
 --- a/tools/gr4v120/datestamp/list_width_check.py
 +++ b/tools/gr4v120/datestamp/list_width_check.py
@@ -2207,6 +2400,31 @@ diff --git a/tools/gr4v120/halation/gen.py b/tools/gr4v120/halation/gen.py
  USE_ZIG = bool(os.environ.get('GRMOD_ZIG')) or not (shutil.which('clang') and shutil.which('ld.lld') and shutil.which('llvm-objcopy'))
  FLAGS = ['-mcpu=cortex_a9' if USE_ZIG else '-mcpu=cortex-a9', '-marm', '-mfloat-abi=soft', '-Os',
           '-ffreestanding', '-fno-builtin', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-nostdlib',
+@@ -63,10 +63,14 @@
+         tmp = Path(t)
+         a = build(cc, ld, objcopy, tmp, 0x10000)
+         b = build(cc, ld, objcopy, tmp, 0x54430000)
+-    if a != b:
++        sa = build(cc, ld, objcopy, tmp, 0x10000, ['-DSTATUS'])
++        sb = build(cc, ld, objcopy, tmp, 0x54430000, ['-DSTATUS'])
++    if a != b or sa != sb:
+         sys.exit('module is not position independent')
+     while len(a) % 4:
+         a += b'\0'
++    while len(sa) % 4:
++        sa += b'\0'
+     version = run(cc + ['--version']).splitlines()[0]
+     src_hash = hashlib.sha256(SRC.read_bytes()).hexdigest()
+     OUT.write_text(
+@@ -77,6 +81,8 @@
+         '// Position independent: entry `halation(ctx, config)` at offset 0.\n\n'
+         f"export const HALATION_CODE = '{base64.b64encode(a).decode()}';\n"
+         f'export const HALATION_CODE_LENGTH = {len(a)};\n'
++        '/** Test builds only (-DSTATUS): also leaves how far each call got in the word `status` of the context. */\n'
++        f"export const HALATION_STATUS_CODE = '{base64.b64encode(sa).decode()}';\n"
+         f"export const HALATION_SOURCE_SHA256 = '{src_hash}';\n")
+     print(f'{OUT}: {len(a)} bytes')
+ 
 diff --git a/tools/gr4v120/looks/looks_check.py b/tools/gr4v120/looks/looks_check.py
 --- a/tools/gr4v120/looks/looks_check.py
 +++ b/tools/gr4v120/looks/looks_check.py

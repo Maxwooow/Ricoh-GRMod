@@ -63,10 +63,14 @@ def main():
         tmp = Path(t)
         a = build(cc, ld, objcopy, tmp, 0x10000)
         b = build(cc, ld, objcopy, tmp, 0x54430000)
-    if a != b:
+        sa = build(cc, ld, objcopy, tmp, 0x10000, ['-DSTATUS'])
+        sb = build(cc, ld, objcopy, tmp, 0x54430000, ['-DSTATUS'])
+    if a != b or sa != sb:
         sys.exit('module is not position independent')
     while len(a) % 4:
         a += b'\0'
+    while len(sa) % 4:
+        sa += b'\0'
     version = run(cc + ['--version']).splitlines()[0]
     src_hash = hashlib.sha256(SRC.read_bytes()).hexdigest()
     OUT.write_text(
@@ -77,6 +81,8 @@ def main():
         '// Position independent: entry `halation(ctx, config)` at offset 0.\n\n'
         f"export const HALATION_CODE = '{base64.b64encode(a).decode()}';\n"
         f'export const HALATION_CODE_LENGTH = {len(a)};\n'
+        '/** Test builds only (-DSTATUS): also leaves how far each call got in the word `status` of the context. */\n'
+        f"export const HALATION_STATUS_CODE = '{base64.b64encode(sa).decode()}';\n"
         f"export const HALATION_SOURCE_SHA256 = '{src_hash}';\n")
     print(f'{OUT}: {len(a)} bytes')
 
