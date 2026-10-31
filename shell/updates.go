@@ -18,17 +18,18 @@ import (
 // with the matching private key, which is not part of the source).
 const updatePublicKey = "SmDyXQIIsZYfZ06bPIdeuzDMvpT4FbELxGu9BuCVx+I="
 
-// updateSources are where releases are looked for: the newest release. (The 0.8.x copies look in a
-// channel of their own first, a release tagged fw1.11, and end their line at 0.9: they report
-// 0.9.0 and later but do not install them.)
+// updateSources are where releases are looked for, in order: this line's own channel first (a
+// release tagged fw1.11 whose files are replaced by every 0.8.x release), then the newest release.
 var updateSources = []string{
+	"https://github.com/Maxwooow/Ricoh-GRMod/releases/download/fw1.11/",
 	"https://github.com/Maxwooow/Ricoh-GRMod/releases/latest/download/",
 }
 
-// updateBelow ends this line: GR Mod 0.9.x builds on both the earlier and the current official
-// firmware of each camera (GR IV 1.11 / 1.20, GR III 2.10 / 2.20, GR IIIx 1.60 / 1.70). A release
-// of 1.0 or later is only reported, never installed over this copy.
-const updateBelow = "1.0"
+// updateBelow ends this line: a release of 0.9 or later is only reported, never installed over this
+// copy. 0.8.7 builds on both the earlier and the current official firmware of each camera (GR IV
+// 1.11 / 1.20, GR III 2.10 / 2.20, GR IIIx 1.60 / 1.70) and stays an 0.8.x release, so that every
+// 0.8.x copy (whose line ends at 0.9) installs it online.
+const updateBelow = "0.9"
 
 // releaseNotesAPI lists the published releases with their text (what's new).
 const releaseNotesAPI = "https://api.github.com/repos/Maxwooow/Ricoh-GRMod/releases?per_page=30"

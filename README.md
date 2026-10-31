@@ -4,7 +4,7 @@ A small desktop tool for the Ricoh GR IV / GR IV HDF (firmware 1.20 or 1.11), th
 (firmware 1.10, the same file as GR IV 1.20), the GR III / GR III HDF (firmware 2.20 or 2.10) and the
 GR IIIx / GR IIIx HDF (firmware 1.70 or 1.60). Not a Ricoh product.
 
-0.9.0: every feature on the cameras' current official firmware as well (GR IV 1.20, GR III 2.20,
+0.8.7: every feature on the cameras' current official firmware as well (GR IV 1.20, GR III 2.20,
 GR IIIx 1.70) besides the earlier one. The newer firmware is a different build with its addresses
 moved; it was ported with `tools/port` (an address map from the earlier firmware, every entry it
 could not vouch for reviewed by hand, see `tools/port/README.md`) into `core/src/fw/gr4v120`,
@@ -20,8 +20,8 @@ keep the settings guard's bytes valid. On GR IV 1.20 added Image Control slots a
 selected gets Standard (the settings guard) or another added slot, and the look is chosen again. GR IV 1.20's halation reads the picture's own look word (FRAME_LOOK, as the date imprint) instead of
 LOOK_STASH: with soft focus on, LOOK_STASH no longer held the picture's look by the JPEG step and the
 camera showed no halation (test firmware 065, GR IV HDF). GR III 2.20 / IIIx 1.70 were checked on
-cameras as well. This line ends at 1.0 (`updateBelow`); 0.8.x copies report 0.9.0
-but do not install it over themselves.
+cameras as well. Numbered 0.8.7 (not 0.9.0) so that every 0.8.x copy, whose line ends at 0.9 (`updateBelow`),
+installs it online.
 
 0.8.6: on the GR IV, MENU works again in the Flash submenu after coming back from Direct Flash Settings (the firmware keeps a nested submenu's back target only for its own nested submenus; `installNestedBack` in `core/src/fw/aspect/directflash-menu.ts` adds Direct Flash Settings to both checks); the What's New dialog names the code contributors; GR III / IIIx films get a remove button each, as GR IV's added slots (`removeFilm` in `ui/src/store.ts`). GR IV's added slots also get hue sectors of their own: Standard's multi-axis stage (12 hue sectors, YCbCr hue, `core/src/color/hue.ts`) is fitted per slot as well (`hue-fit.ts`, from the LUTSmith parametrisation that PR #8 / #15 brought in) and written as the slot's own block; each .cube or .xmp is fitted both with and without it and the sectors are kept only when the whole look gets at least 2% closer while greys, near-neutrals and skin get at most a little worse (`huePasses` in `convert.ts`; an .xmp is checked on the third of the calibration colours its fit leaves out). Checked on a GR IV as test firmware 064 (camera vs model 0.5–0.8 dE00).
 
@@ -229,7 +229,7 @@ Checked in an emulator on built files (1, 2 and 8 pictures, alone and with every
 
 ## Updates
 
-The program can update itself (`shell/internal/update`, UI in `ui/src/updates.tsx`). At start (switchable off in the dialog) and from "Check for updates" in the ? menu it reads `update.json` and `update.json.sig` from the release tagged `fw1.11` (the line for camera firmware 1.11, whose files every 0.8.x release replaces), then from `https://github.com/Maxwooow/Ricoh-GRMod/releases/latest/download/`; a version 0.9 or later there (for camera firmware 1.20, which a camera cannot go back from) is only reported, never installed (`GRMOD_UPDATE_SOURCE` replaces these addresses for tests). The manifest is accepted only if its Ed25519 signature verifies with the public key in `shell/updates.go`; the package (Windows: `GRMod-x.y.z.exe`, macOS: `GRMod-x.y.z-mac.zip`) only if its size and SHA-256 match the manifest. Windows renames the running `GRMod.exe` to `GRMod.exe.old` and puts the new one in its place; macOS moves the running `GR Mod.app` to `.GR Mod.app.old` and the unpacked new bundle into its place. The shell then closes its window, starts the new program with `--after-update=PID`, which waits for the old one to end and removes the `.old` copy. An app that macOS runs translocated (never moved out of the download folder) or a folder that cannot be written is not replaced; the dialog offers the download page instead.
+The program can update itself (`shell/internal/update`, UI in `ui/src/updates.tsx`). At start (switchable off in the dialog) and from "Check for updates" in the ? menu it reads `update.json` and `update.json.sig` from the release tagged `fw1.11` (the line for camera firmware 1.11, whose files every 0.8.x release replaces), then from `https://github.com/Maxwooow/Ricoh-GRMod/releases/latest/download/`; a version 0.9 or later there (a later line) is only reported, never installed (`GRMOD_UPDATE_SOURCE` replaces these addresses for tests). The manifest is accepted only if its Ed25519 signature verifies with the public key in `shell/updates.go`; the package (Windows: `GRMod-x.y.z.exe`, macOS: `GRMod-x.y.z-mac.zip`) only if its size and SHA-256 match the manifest. Windows renames the running `GRMod.exe` to `GRMod.exe.old` and puts the new one in its place; macOS moves the running `GR Mod.app` to `.GR Mod.app.old` and the unpacked new bundle into its place. The shell then closes its window, starts the new program with `--after-update=PID`, which waits for the old one to end and removes the `.old` copy. An app that macOS runs translocated (never moved out of the download folder) or a folder that cannot be written is not replaced; the dialog offers the download page instead.
 
 Publishing a release: build, then
 
