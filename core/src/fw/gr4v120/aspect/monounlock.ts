@@ -9,9 +9,14 @@
  *  - the availability table (0x53DE9CC4, read by 0x533F1DC8): one row of 7 bytes per entry, one
  *    byte per camera model (column 1 is the Monochrome). Rows 3..8 are the six looks; only the
  *    Monochrome's column is set.
- * 1.20 added looks 31 (Pictorialist, row 9: listed on the Monochrome by the official firmware's own lists) and 32 (Solarized, row 10: the Monochrome);
- * through the monochrome-look branch they stay as hidden on the colour models as before (rows
- * unchanged; not unlocked here).
+ * 1.20 added two looks to the monochrome branch:
+ *  - 32, Solarized (row 10, set for the Monochrome only; GR IV Monochrome 1.10 offers it with its
+ *    three types). Row 10 is read only by this visibility check, so it is unlocked like the six
+ *    looks: every column but the Monochrome's is set (0.8.8; before, the look stayed hidden on the
+ *    colour models while GR Mod listed it with the monochrome looks).
+ *  - 31, Pictorialist (row 9): no column is set in the official firmware, not even the
+ *    Monochrome's, and row 9 is read in four other places as well; Ricoh has not released it, so it
+ *    is left alone (hidden on every model).
  *
  * Found and tested on a camera by GR4-MonoUnlock (github.com/lemonadesaltbagel/GR4-MonoUnlock):
  * Standard, Soft, High Contrast and Solid worked, Grainy was in builds that ran, HDR was not tried.
@@ -24,16 +29,20 @@ import { Patch, expectWord } from './build';
 const CHECK = 0x533de144;
 const TABLE = 0x53de9cc4;
 const MONOCHROME_COLUMN = 1;
-/** Rows 3..8 (the six looks), every column but the Monochrome's. */
+/** Rows 3..8 (the six looks) and 10 (Solarized), every column but the Monochrome's. */
+const ROWS = [3, 4, 5, 6, 7, 8, 10];
 const LOOK_FLAGS: number[] = [];
-for (let row = 3; row <= 8; row++) for (let col = 0; col < 7; col++) if (col !== MONOCHROME_COLUMN) LOOK_FLAGS.push(TABLE + row * 7 + col);
+for (const row of ROWS) for (let col = 0; col < 7; col++) if (col !== MONOCHROME_COLUMN) LOOK_FLAGS.push(TABLE + row * 7 + col);
 
 export function installMonoUnlock(patch: Patch): void {
   expectWord(patch, CHECK, 0xe3520000); // cmp r2, #0      (r2: camera is the Monochrome model)
   expectWord(patch, CHECK + 4, 0x1a000019); // bne 0x533de1b4 (the monochrome-look branch)
-  for (let row = 3; row <= 8; row++) {
+  for (const row of ROWS) {
     if (patch.read(TABLE + row * 7, 7).join(',') !== '0,1,0,0,0,0,0') throw new Error(`availability row ${row} is not the official one`);
   }
+  // 32 (Solarized) goes through the table: `mov r1, #10 ; ... ; b 0x533F1DC8`.
+  expectWord(patch, 0x533de080 + (32 - 25) * 4, 0x533de0b8);
+  expectWord(patch, 0x533de0b8, 0xe3a0100a);
   for (const at of LOOK_FLAGS) {
     const word = patch.word(at & ~3);
     const shift = (at & 3) * 8;

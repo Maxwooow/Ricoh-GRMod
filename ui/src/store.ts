@@ -568,7 +568,8 @@ const FACTORY_LOOK_NAMES: Record<number, { zh: string; en: string }> = {
   23: { zh: '正负逆冲', en: 'Cross Processing' }, 24: { zh: '负片', en: 'Negative Film' }, 25: { zh: '标准（单色）', en: 'Standard (mono)' },
   26: { zh: '柔和（单色）', en: 'Soft (mono)' }, 27: { zh: '高对比度（单色）', en: 'High Contrast (mono)' }, 28: { zh: '颗粒感（单色）', en: 'Grainy (mono)' },
   29: { zh: '无颗粒感（单色）', en: 'Solid (mono)' }, 30: { zh: 'HDR色调（单色）', en: 'HDR Tone (mono)' },
-  // Firmware 1.20 (the camera's texts): Pictorialist is offered on no model, Solarized on the Monochrome.
+  // Firmware 1.20 (the camera's texts): Pictorialist is offered on no model (not listed, see
+  // UNRELEASED_LOOKS), Solarized on the Monochrome (and with the B&W looks unlocked).
   31: { zh: '画意摄影效果', en: 'Pictorialist Effect' }, 32: { zh: '中途曝光效果', en: 'Solarized Effect' },
 };
 /** GR III / IIIx (round 8): its twelve looks in the camera's menu order, their numbers and names (the camera's texts). */
@@ -597,7 +598,27 @@ export function lookOrderAvailable(s: State = state): boolean {
 /** Every key the order can contain, in the camera's order: GR IV's 20 looks and the added slots; GR III's twelve and its films. */
 export function lookKeys(s: State = state): string[] {
   if (gr3Order(s)) return [...GR3_LOOK_IDS.map(gr3LookKey), ...Array.from({ length: gr3Films(s) }, (_, k) => gr3LookKey(64 + k))];
-  return [...factoryLooks(s).map(factoryLookKey), ...lookExtras(s).map((x) => x.key)];
+  return [...listedFactoryLooks(s).map(factoryLookKey), ...lookExtras(s).map((x) => x.key)];
+}
+/**
+ * Looks in the firmware's order table that no camera shows: 1.20's 31 (Pictorialist) is not
+ * offered on any model, not even the Monochrome, and the B&W unlock leaves it so. It is not listed
+ * (it could only be moved or hidden without anything changing on the camera); builds keep it in
+ * the order table just before 32, where the official firmware has it.
+ */
+const UNRELEASED_LOOKS: readonly number[] = [31];
+function listedFactoryLooks(s: State = state): number[] { return factoryLooks(s).filter((n) => !UNRELEASED_LOOKS.includes(n)); }
+/** The style order to build from the listed keys: the unlisted looks go back where the firmware has them. */
+function withUnlisted(styles: number[], s: State): number[] {
+  const out = [...styles];
+  const official = factoryLooks(s);
+  for (const n of UNRELEASED_LOOKS) {
+    const i = official.indexOf(n);
+    if (i < 0 || out.includes(n)) continue;
+    const next = official.slice(i + 1).find((m) => out.includes(m));
+    out.splice(next === undefined ? out.length : out.indexOf(next), 0, n);
+  }
+  return out;
 }
 /** GR IV's looks: the open firmware's (1.20 adds 31 and 32), 1.11's while none is open. */
 function factoryLooks(s: State = state): readonly number[] { return s.info?.looks?.factory ?? FACTORY_LOOK_IDS; }
@@ -649,10 +670,10 @@ function normalizeHidden(hidden: readonly string[], keys: readonly string[]): st
 }
 /** GR IV's order for the current extras (projects keep it as saved; see `lookOrderNow`). */
 export function normalizeLookOrder(order: readonly string[], extras: readonly ExtraSlot[]): string[] {
-  return normalizeOrder(order, [...factoryLooks().map(factoryLookKey), ...extras.map((x) => x.key)]);
+  return normalizeOrder(order, [...listedFactoryLooks().map(factoryLookKey), ...extras.map((x) => x.key)]);
 }
 export function normalizeLookHidden(hidden: readonly string[], extras: readonly ExtraSlot[]): string[] {
-  return normalizeHidden(hidden, [...factoryLooks().map(factoryLookKey), ...extras.map((x) => x.key)]);
+  return normalizeHidden(hidden, [...listedFactoryLooks().map(factoryLookKey), ...extras.map((x) => x.key)]);
 }
 /** GR III's saved order and hidden keys (kept apart from GR IV's), checked like GR IV's when a project opens. */
 function gr3SavedKeys(list: unknown): string[] {
@@ -667,7 +688,8 @@ export function lookLayoutSpec(s: State = state): LookLayout | undefined {
   const hidden = lookHiddenNow(s);
   const factory = lookKeys(s);
   if (hidden.length === 0 && order.every((k, i) => k === factory[i])) return undefined;
-  return { order: order.map((k) => lookStyleOf(k, s)!), hidden: hidden.map((k) => lookStyleOf(k, s)!) };
+  const styles = order.map((k) => lookStyleOf(k, s)!);
+  return { order: gr3Order(s) ? styles : withUnlisted(styles, s), hidden: hidden.map((k) => lookStyleOf(k, s)!) };
 }
 export function hasLookLayout(s: State = state): boolean { return !!lookLayoutSpec(s); }
 /** Put the family's order / hidden keys. */

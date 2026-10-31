@@ -140,7 +140,7 @@ const zh = {
   lookOrderGr3Note: 'GR III：视频的影像控制列表本来就没有软单色和 HDR色调。正在用的风格被隐藏时，相机会改用标准；自定义 1 / 2 里存的风格不变。', lookOrderHiddenTag: '已隐藏', lookOrderMono: '单色', lookOrderCount: '{n} 个隐藏',
   icViews: '影像控制页面', icViewSlots: '影像控制', icViewOrder: '菜单顺序', lookOrderShown: '{n} 个显示', lookOrderMoved: '{name} 移到第 {n} 位', lookOrderDrag: '拖动调整顺序',
   tIcViewsT: '槽位与菜单顺序', tIcViewsB: '“影像控制”设置各个槽位；“菜单顺序”调整相机影像控制菜单里 look 的顺序，也可以隐藏不用的 look。',
-  tIcSoftT: '附加功能', tIcSoftB: '柔焦：打开后，可将“柔焦”效果增添到 ADJ 快捷菜单，有关、弱、中、强四档，效果无法实时预览，可与 HDF 滤镜同时启用。\n时间戳：在照片右下角打印日期（竖拍时也是看照片时的右下角；菜单里的“跟随相机方向”关掉后，按横向位置打印）。刷入后默认关闭，在“拍摄辅助 › 拍摄时间戳”里打开，可选两种样式。\n黑白风格：解锁 GR IV Monochrome 机型的 6 个黑白风格。\n直闪模式：当闪光灯以固定功率闪光时，启用直闪模式以让相机按照对焦距离与输入的闪光灯 GN 值进行曝光。',
+  tIcSoftT: '附加功能', tIcSoftB: '柔焦：打开后，可将“柔焦”效果增添到 ADJ 快捷菜单，有关、弱、中、强四档，效果无法实时预览，可与 HDF 滤镜同时启用。\n时间戳：在照片右下角打印日期（竖拍时也是看照片时的右下角；菜单里的“跟随相机方向”关掉后，按横向位置打印）。刷入后默认关闭，在“拍摄辅助 › 拍摄时间戳”里打开，可选两种样式。\n黑白风格：解锁 GR IV Monochrome 机型的 6 个黑白风格；相机固件 1.20 上还有“中途曝光效果”。\n直闪模式：当闪光灯以固定功率闪光时，启用直闪模式以让相机按照对焦距离与输入的闪光灯 GN 值进行曝光。',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -284,7 +284,7 @@ const en: typeof zh = {
   lookOrderGr3Note: 'GR III: the movie Image Control list has no Soft Monotone and HDR Tone of its own. A hidden look in use becomes Standard; Custom 1 / 2 keep theirs.', lookOrderHiddenTag: 'hidden', lookOrderMono: 'mono', lookOrderCount: '{n} hidden',
   icViews: 'Image Control views', icViewSlots: 'Image Control', icViewOrder: 'Menu order', lookOrderShown: '{n} shown', lookOrderMoved: '{name} moved to position {n}', lookOrderDrag: 'Drag to reorder',
   tIcViewsT: 'Slots and menu order', tIcViewsB: '"Image Control" sets up the slots; "Menu order" arranges the looks of the camera\'s Image Control menu and hides the ones you do not use.',
-  tIcSoftT: 'Additions', tIcSoftB: 'Soft focus: adds "Soft Focus" to the ADJ lever, with off, low, medium and high. The effect cannot be seen in live view; it can be used together with the HDF filter.\nDate imprint: prints the date in the bottom right corner of the photo (as it is viewed, also when shot upright; with "Follow Orientation" off in its menu, as stored). Off after flashing; turn it on under Shooting Assist › Date Imprint, two styles.\nB&W looks: unlocks the 6 black-and-white looks of the GR IV Monochrome.\nDirect Flash: when the flash fires at a fixed power, Direct Flash sets the exposure from the focus distance and the flash\'s guide number you enter.',
+  tIcSoftT: 'Additions', tIcSoftB: 'Soft focus: adds "Soft Focus" to the ADJ lever, with off, low, medium and high. The effect cannot be seen in live view; it can be used together with the HDF filter.\nDate imprint: prints the date in the bottom right corner of the photo (as it is viewed, also when shot upright; with "Follow Orientation" off in its menu, as stored). Off after flashing; turn it on under Shooting Assist › Date Imprint, two styles.\nB&W looks: unlocks the 6 black-and-white looks of the GR IV Monochrome, and on camera firmware 1.20 its Solarized Effect as well.\nDirect Flash: when the flash fires at a fixed power, Direct Flash sets the exposure from the focus distance and the flash\'s guide number you enter.',
 };
 export type Key = keyof typeof zh;
 const dict = (navigator.language || 'zh').toLowerCase().startsWith('zh') ? zh : en;
