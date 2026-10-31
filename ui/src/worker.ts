@@ -12,7 +12,6 @@ type Req =
   | { id: number; type: 'menuPicture'; rgb: ArrayBuffer }
   | { id: number; type: 'script'; model: CameraModel; count: number }
   | { id: number; type: 'inspect'; raw: ArrayBuffer }
-  | { id: number; type: 'bridge' }
   | { id: number; type: 'reset' }
   | { id: number; type: 'heartbeat'; token: string };
 
@@ -50,11 +49,6 @@ ctx.onmessage = async (ev: MessageEvent<Req>) => {
       case 'ratio': ctx.postMessage({ id: m.id, ok: true, result: need().previewRatio(m.ratio, m.others) }); break;
       case 'script': ctx.postMessage({ id: m.id, ok: true, result: need().rotationScript(m.model, m.count) }); break;
       case 'inspect': ctx.postMessage({ id: m.id, ok: true, result: await need().inspect(new Uint8Array(m.raw)) }); break;
-      case 'bridge': {
-        const b = await need().bridgeFirmware();
-        ctx.postMessage({ id: m.id, ok: true, result: b }, [b.buffer as ArrayBuffer]);
-        break;
-      }
       case 'heartbeat': {
         // keeps the shell alive while the window is hidden (page timers are throttled, worker timers less so)
         const beat = (): void => { fetch('/api/ping', { headers: { 'X-GRMod-Token': m.token }, cache: 'no-store' }).catch(() => undefined); };

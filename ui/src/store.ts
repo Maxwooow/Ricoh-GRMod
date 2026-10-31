@@ -80,10 +80,8 @@ export interface State {
   volumes: Volume[]; showAll: boolean; volumeId?: string; role?: card.CardRole;
   copySource: CopySource; parked: ParkedEntry[]; backups: ParkedEntry[]; copySel: string[]; copyInfo: Record<string, CopyInfo>; builds: BuildRecord[];
   busy?: string; toasts: Toast[]; confirm?: Confirm; cropId?: string; onlineOpen: boolean;
-  /** Why the download dialog is open, when it says so: the bridge firmware is open, or one is to be made and no firmware is open. */
-  onlineReason?: 'bridge-loaded' | 'bridge-base';
-  /** The bridge firmware dialog; `bridgeAfter` is where the bridge goes once a downloaded official file is open. */
-  bridgeOpen: boolean; bridgeAfter?: Dest;
+  /** Why the download dialog is open, when it says so: a 1.12 bridge firmware file is open. */
+  onlineReason?: 'bridge-loaded';
   tour?: TourState; toursSeen: TourId[];
 }
 
@@ -99,7 +97,7 @@ const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '',
 const emptySlots = (): Record<SlotId, SlotState> => Object.fromEntries(SLOT_IDS.map(id => [id, emptySlot()])) as Record<SlotId, SlotState>;
 let state: State = {
   ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: 'zh-CN',
-  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, directFlash: false, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], bridgeOpen: false,
+  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, directFlash: false, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [],
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
@@ -420,10 +418,10 @@ export function setModel(model: CameraModel): void {
   const otherFile = !!state.info && !state.info.models.includes(model);
   if (otherFile) {
     void engine.reset();
-    set({ info: undefined, raw: undefined, fwName: undefined, bridgeOpen: false, bridgeAfter: undefined,
+    set({ info: undefined, raw: undefined, fwName: undefined,
       copyInfo: {}, copySel: [], ratios: state.ratios.map(({ preview, ...r }) => r) });
   }
-  set({ model, ...(isGr3(model) ? { bridgeOpen: false, bridgeAfter: undefined } : {}) });
+  set({ model });
   // The other camera's work comes back (its pictures are encoded again once read).
   if (differentFamily) enterFamily(familyOf(model));
   else for (const w of state.wall) void encodeWall(w.id);
@@ -458,8 +456,7 @@ async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Pr
     const model = info.models.includes(state.model) ? state.model : info.models[0];
     const sameFamily = familyOf(state.model) === familyOf(model);
     if (!sameFamily) leaveFamily();
-    set({ info, raw, model, fwName: info.filename, fwBusy: false, copyInfo: {}, copySel: [],
-      ...(info.family === 'gr3x' ? { bridgeOpen: false, bridgeAfter: undefined } : {}) });
+    set({ info, raw, model, fwName: info.filename, fwBusy: false, copyInfo: {}, copySel: [], });
     // Opening the other camera's firmware brings back that camera's work.
     if (!sameFamily) enterFamily(familyOf(model));
     if (info.family === 'gr3x') set((s) => ({ dateStamp: s.dateStamp && info.features.dateStamp, monoUnlock: s.monoUnlock && info.features.monoUnlock }));
@@ -489,24 +486,18 @@ export async function loadFirmwareFile(file: File): Promise<void> {
 }
 /** The dialog that fetches the official firmware from Ricoh's site. */
 export function setOnlineOpen(onlineOpen: boolean, reason?: State['onlineReason']): void {
-  set({ onlineOpen, onlineReason: onlineOpen ? reason : undefined, ...(onlineOpen ? {} : { bridgeAfter: undefined }) });
+  set({ onlineOpen, onlineReason: onlineOpen ? reason : undefined });
 }
 /** Take over a firmware file the shell downloaded; true when it is now the open firmware. */
 export async function adoptFirmware(name: string, version: string, data: Uint8Array): Promise<boolean> {
-  const after = state.bridgeAfter;
   const ok = await openFirmware(data, name, true);
   if (ok) toast(t('fwDownloaded', { v: version || state.info?.version || '' }), 'ok');
-  if (ok && after) { set({ bridgeAfter: undefined }); setTimeout(() => { void outputBridge(after); }, 0); }
   return ok;
 }
 /** True while the open firmware is the 1.12 bridge firmware: nothing is written until the official one is open. */
 export const bridgeLoaded = (s: State = state): boolean => !!s.info?.bridge;
 /** What a write or export does while the bridge firmware is open: offer the official download instead. */
 export function askForOfficial(): void { setOnlineOpen(true, 'bridge-loaded'); }
-export function setBridgeOpen(bridgeOpen: boolean): void {
-  if (bridgeOpen && (isGr3(state.model) || (state.info && !state.info.capabilities.bridge))) return;
-  set({ bridgeOpen });
-}
 
 // ------------------------------------------------------------------ presets
 const PRESET_ERRORS: Record<string, Key> = {
@@ -1311,29 +1302,6 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   void refreshVolumes();
 }
 
-/**
- * Write the 1.12 bridge firmware (made from the official file, see core `fw/bridge.ts`). With no
- * firmware open, the official one is downloaded first and the write continues after it.
- */
-export async function outputBridge(dest: Dest): Promise<void> {
-  if (isGr3(state.model) || (state.info && !state.info.capabilities.bridge)) return;
-  if (state.busy || state.fwBusy) return;
-  if (!state.info) { set({ bridgeAfter: dest }); setOnlineOpen(true, 'bridge-base'); return; }
-  const sourceInfo = state.info, sourceModel = state.model;
-  const target = await destination(dest);
-  if (!target || state.info !== sourceInfo || state.model !== sourceModel || state.fwBusy) return;
-  try {
-    set({ busy: t('building') });
-    const file = await engine.bridge();
-    set({ busy: t('writing') });
-    let moved = 0;
-    if (target.volume) moved = await firmwareToCard(target.volume, file);
-    else await runPlan(target.root, [{ op: 'write', path: [firmwareFilename()], data: file }]);
-    set({ busy: undefined });
-    doneToast(target.root, target.volume, moved, firmwareFilename());
-  } catch (e) { set({ busy: undefined }); fail(e); }
-  void refreshVolumes();
-}
 
 export function wallReady(s: State = state): boolean { return menuReady(s); }
 

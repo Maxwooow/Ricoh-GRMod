@@ -11,7 +11,9 @@ could not vouch for reviewed by hand, see `tools/port/README.md`) into `core/src
 `core/src/fw/gr3x170` and their tools, and each program is chosen by the SHA-256 of the opened file.
 The download dialog lists both releases of the model (the site's current one and the earlier one,
 which Ricoh still serves at a fixed address); writing a firmware made from the newer release warns
-that the camera cannot go back to the earlier one. The camera-side start-up checks
+that the camera cannot go back to the earlier one. The 1.12 bridge firmware is no longer made (a
+camera whose update failed can take the current release instead); a bridge file that is opened
+still only offers the official download. The camera-side start-up checks
 (`tools/gr4v120/aspect/boot_checks.py`) now count only branches into the appended area as hooks and
 keep the settings guard's bytes valid. On GR IV 1.20 added Image Control slots are styles 38.. (1.11:
 34..), because 1.20 adds looks 31 and 32; a camera coming from a 1.11 build with an added slot
