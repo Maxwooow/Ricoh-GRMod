@@ -17,7 +17,10 @@ still only offers the official download. The camera-side start-up checks
 (`tools/gr4v120/aspect/boot_checks.py`) now count only branches into the appended area as hooks and
 keep the settings guard's bytes valid. On GR IV 1.20 added Image Control slots are styles 38.. (1.11:
 34..), because 1.20 adds looks 31 and 32; a camera coming from a 1.11 build with an added slot
-selected gets Standard (the settings guard) or another added slot, and the look is chosen again. This line ends at 1.0 (`updateBelow`); 0.8.x copies report 0.9.0
+selected gets Standard (the settings guard) or another added slot, and the look is chosen again. GR IV 1.20's halation reads the picture's own look word (FRAME_LOOK, as the date imprint) instead of
+LOOK_STASH: with soft focus on, LOOK_STASH no longer held the picture's look by the JPEG step and the
+camera showed no halation (test firmware 065, GR IV HDF). GR III 2.20 / IIIx 1.70 were checked on
+cameras as well. This line ends at 1.0 (`updateBelow`); 0.8.x copies report 0.9.0
 but do not install it over themselves.
 
 0.8.6: on the GR IV, MENU works again in the Flash submenu after coming back from Direct Flash Settings (the firmware keeps a nested submenu's back target only for its own nested submenus; `installNestedBack` in `core/src/fw/aspect/directflash-menu.ts` adds Direct Flash Settings to both checks); the What's New dialog names the code contributors; GR III / IIIx films get a remove button each, as GR IV's added slots (`removeFilm` in `ui/src/store.ts`). GR IV's added slots also get hue sectors of their own: Standard's multi-axis stage (12 hue sectors, YCbCr hue, `core/src/color/hue.ts`) is fitted per slot as well (`hue-fit.ts`, from the LUTSmith parametrisation that PR #8 / #15 brought in) and written as the slot's own block; each .cube or .xmp is fitted both with and without it and the sectors are kept only when the whole look gets at least 2% closer while greys, near-neutrals and skin get at most a little worse (`huePasses` in `convert.ts`; an .xmp is checked on the third of the calibration colours its fit leaves out). Checked on a GR IV as test firmware 064 (camera vs model 0.5–0.8 dE00).
