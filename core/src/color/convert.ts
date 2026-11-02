@@ -303,13 +303,23 @@ export function extraFitSamples(): Float64Array {
   return Float64Array.from(out);
 }
 
-/** Fitting colours for the initial RGB fit: the old set plus neutral ramp, corners and skin. */
+/**
+ * Copies of white at the end of `cubeFitSamplesExpanded`. Standard clips every highlight to white,
+ * so the slot's white is the colour of every blown sky, window and specular highlight. With only the
+ * few whites of the neutral ramp and the grid, the fit traded it for the colours near white: on
+ * twenty .cube looks RED Tech's white came out pink (dE00 6.7 from the LUT's), Reala Ace's cream
+ * (5.2) and UltraMax 400's grey (4.1). GR IV only: GR III / IIIx imports use `extraFitSamples` alone.
+ */
+export const FIT_WHITE_COPIES = 200;
+
+/** Fitting colours for the initial RGB fit: the old set plus neutral ramp, corners and skin, then white again (`FIT_WHITE_COPIES`). */
 export function cubeFitSamplesExpanded(): Float64Array {
   const base = cubeFitSamples();
   const extra = extraFitSamples();
-  const out = new Float64Array(base.length + extra.length);
+  const out = new Float64Array(base.length + extra.length + 3 * FIT_WHITE_COPIES);
   out.set(base, 0);
   out.set(extra, base.length);
+  out.fill(1, base.length + extra.length);
   return out;
 }
 
@@ -406,11 +416,16 @@ function nearNeutralSamples(offset: number, sats: readonly number[], vals: reado
   return { P: Float64Array.from(p), weights: Float64Array.from(w) };
 }
 const HUE_NEAR_NEUTRAL_WEIGHT = 12;
+/**
+ * Weight of white in the hue-sector fit, about a tenth of the total: that fit refines the curves
+ * too, and without it Reala Ace's white went back to cream (see `FIT_WHITE_COPIES`).
+ */
+const HUE_WHITE_WEIGHT = 1500;
 
 export function guardedHue(cube: ReturnType<typeof parseCube>, start: SlotParams, std: number[][], onProgress?: (f: number) => void): { params: SlotParams; hueQ10: number[] } | null {
   const refBase = cubeRefineSamples();
   const near = nearNeutralSamples(0, [0.04, 0.08, 0.13, 0.2], [0.3, 0.5, 0.7, 0.85, 0.97], HUE_NEAR_NEUTRAL_WEIGHT);
-  const ref: WeightedSamples = { P: Float64Array.from([...refBase.P, ...near.P]), weights: Float64Array.from([...refBase.weights, ...near.weights]) };
+  const ref: WeightedSamples = { P: Float64Array.from([...refBase.P, ...near.P, 1, 1, 1]), weights: Float64Array.from([...refBase.weights, ...near.weights, HUE_WHITE_WEIGHT]) };
   const refTarget = applyCube(cube, ref.P);
   const base: SlotParams = { ...start, hue: std, hueStd: std };
   const tr = lab(refTarget);
