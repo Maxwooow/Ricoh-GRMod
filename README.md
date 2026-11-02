@@ -4,6 +4,15 @@ A small desktop tool for the Ricoh GR IV / GR IV HDF (firmware 1.20 or 1.11), th
 (firmware 1.10, the same file as GR IV 1.20), the GR III / GR III HDF (firmware 2.20 or 2.10) and the
 GR IIIx / GR IIIx HDF (firmware 1.70 or 1.60). Not a Ricoh product.
 
+0.8.8: on GR IV 1.20 the B&W looks unlock includes Solarized (look 32, the GR IV Monochrome 1.10
+look with its three types): 1.20's availability table gives it a row of its own (10), set for the
+Monochrome only, so the colour models did not show it while the app listed it with the monochrome
+looks; row 10 now gets every column but the Monochrome's, as rows 3..8. Pictorialist (31, row 9) is
+offered on no model by the official firmware, not even the Monochrome; it stays hidden and is no
+longer listed in the Image Control order (builds keep it in the order table before 32). Same build
+as 0.8.7 apart from row 10's six bytes and the compensation word; checked on a GR IV HDF (test
+firmware 068: B&W looks with Solarized, soft focus, date imprint, an added slot with halation).
+
 0.8.7: every feature on the cameras' current official firmware as well (GR IV 1.20, GR III 2.20,
 GR IIIx 1.70) besides the earlier one. The newer firmware is a different build with its addresses
 moved; it was ported with `tools/port` (an address map from the earlier firmware, every entry it
@@ -160,7 +169,7 @@ Orientation (0.8.3): with Follow Orientation on, the imprint sits in the bottom-
 
 ## Monochrome looks
 
-`core/src/fw/aspect/monounlock.ts` makes the six looks of the GR IV Monochrome selectable on the colour models, after [lemonadesaltbagel/GR4-MonoUnlock](https://github.com/lemonadesaltbagel/GR4-MonoUnlock) (no code copied): the check at 0x533cc6e0 becomes `cmp r1, #0x18` / `bhi`, and rows 3..8 of the look availability table at 0x53dbf36c (7 bytes per row, one column per camera model, column 1 = Monochrome) get every column except 1. The reference sets column 0 only (the standard GR IV); with every colour column the GR IV HDF has them too. 13 words in all.
+`core/src/fw/aspect/monounlock.ts` makes the six looks of the GR IV Monochrome selectable on the colour models, after [lemonadesaltbagel/GR4-MonoUnlock](https://github.com/lemonadesaltbagel/GR4-MonoUnlock) (no code copied): the check at 0x533cc6e0 becomes `cmp r1, #0x18` / `bhi`, and rows 3..8 of the look availability table at 0x53dbf36c (7 bytes per row, one column per camera model, column 1 = Monochrome) get every column except 1. The reference sets column 0 only (the standard GR IV); with every colour column the GR IV HDF has them too. 13 words in all. On 1.20 (`core/src/fw/gr4v120/aspect/monounlock.ts`, table 0x53de9cc4) row 10, Solarized (look 32), is set the same way (0.8.8); row 9, Pictorialist (31), has no column set in the official firmware and is left alone.
 
 ## Direct Flash
 
