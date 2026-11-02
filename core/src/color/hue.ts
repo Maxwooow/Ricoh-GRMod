@@ -13,7 +13,7 @@
  *
  * GR Mod fits a preset to the picture as Standard renders it, and Standard's own sector stage is
  * in that picture. An added slot with a block of its own does not run Standard's stage, so the
- * block is fitted as Standard's matrices times a correction (`composeWithStandard`), in the
+ * block is fitted as Standard's matrices plus a correction (`composeWithStandard`), in the
  * camera's own order (`slotApply` with `hue`, see camera.ts): with no correction the slot renders
  * as one that uses Standard's block.
  */
@@ -64,15 +64,16 @@ export function hueMatricesFromD(d: ArrayLike<number>, at = 0): number[][] {
   return out;
 }
 
-function mul3(a: readonly number[], b: readonly number[]): number[] {
-  const o = new Array<number>(9).fill(0);
-  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) for (let k = 0; k < 3; k++) o[i * 3 + j] += a[i * 3 + k] * b[k * 3 + j];
-  return o;
-}
-
-/** A slot's block: Standard's matrix of each sector times the correction of that sector. */
+/**
+ * A slot's block: Standard's matrix of each sector plus the correction of that sector (less the
+ * identity). The sector follows the colour before the stage, and the correction gives a colour on
+ * a boundary the same shift from either side of it, so the sum is as continuous across the
+ * boundaries as Standard's block itself. A product (Standard's matrix times the correction) is
+ * not: the correction moves a boundary colour off the boundary, where Standard's two matrices
+ * differ, and the camera would show a step there in a smooth gradient (a sky, a face).
+ */
 export function composeWithStandard(standard: readonly (readonly number[])[], correction: readonly (readonly number[])[]): number[][] {
-  return standard.map((m, g) => mul3(m, correction[g]));
+  return standard.map((m, g) => m.map((v, k) => v + correction[g][k] - (k % 4 === 0 ? 1 : 0)));
 }
 
 /** Standard's (or any) block as floats from the firmware's Q10 copy 0 (12 x 9 values). */
