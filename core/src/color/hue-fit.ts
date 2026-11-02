@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
  * Fit an added slot's own hue sectors (hue.ts) after the plain fit. The block is Standard's
- * matrices times a correction built from 36 boundary shifts (`hueMatricesFromD`); the correction,
+ * matrices plus a correction built from 36 boundary shifts (`hueMatricesFromD`); the correction,
  * M1, the curves and the post matrix are refined together by Levenberg-Marquardt on weighted Lab
  * differences, with the slot applied in the camera's order (camera.ts, `slotApply` with `hue`).
  * The start (no correction) is the slot as it renders with Standard's block.
