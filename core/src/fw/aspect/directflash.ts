@@ -76,6 +76,8 @@ export const DIRECT_FLASH_ICON_ID = 733;
  * The setting byte (0 on every camera): bit 0 Direct Flash (with Flash Mode 0); bits 1..4 and 5..7
  * the background and the slowest shutter speed chosen in the camera menu (`directflash-menu.ts`).
  */
+/** CURRENT(): the live user settings object (the settings are at +4). */
+const CURRENT_SETTINGS = 0x55084dd8;
 export const DIRECT_FLASH_BYTE = 0x55084dd8 + 4 + 0x99b;
 /** The guide number chosen in the camera menu (`directflash-menu.ts`); 0 on every camera: DIRECT_FLASH_GN_DEFAULT. */
 export const DIRECT_FLASH_GN_BYTE = 0x55084dd8 + 4 + 0x99a;
@@ -333,6 +335,43 @@ function branchTo(at: number, target: number, link: boolean): number {
   return branchWord(at, target, 14, link);
 }
 
+/**
+ * 0.8.9: Direct Flash's settings are kept when the camera changes modes. The camera keeps a
+ * snapshot of the user settings per mode (U1..U3 and the others) and, on a mode change, copies the
+ * mode's snapshot into the live settings (0x532A90B0: `memcpy(live, snapshot, 0xAE9)`, the
+ * only copy in that direction; firmware 1.11). Direct Flash's settings live in those settings
+ * (bytes 0x99A, 0x99B bits 1..7 and 0x109 bits 0..2), so a mode registered before they were set
+ * brought back the defaults (GN 3 etc.) every time. The copy's call goes through a wrapper that
+ * keeps them from the live settings: the guide number and exposure priority (0x99A), the
+ * background and slowest shutter speed (0x99B bits 1..7) and the fastest shutter speed (0x109 bits
+ * 0..2). Whether Direct Flash is chosen (0x99B bit 0) stays the mode's own, with its Flash Mode.
+ */
+const SNAPSHOT_COPY = 0x532a90c8;
+const SNAPSHOT_COPY_FUNCTION = 0x532a90b0;
+const MEMCPY = 0x53156140;
+
+export function installDirectFlashMemory(patch: Patch): void {
+  expectWord(patch, SNAPSHOT_COPY_FUNCTION + 4, 0xe3002ae9); // movw r2, #0xae9
+  expectWord(patch, SNAPSHOT_COPY - 4, 0xe2800004); // add r0, r0, #4 (the live settings)
+  expectWord(patch, SNAPSHOT_COPY, branchWord(SNAPSHOT_COPY, MEMCPY, 14, true)); // bl memcpy
+  const off = (a: number) => a - (CURRENT_SETTINGS + 4);
+  const gn = off(DIRECT_FLASH_GN_BYTE), flags = off(DIRECT_FLASH_BYTE), tv = off(DIRECT_FLASH_TV_BYTE);
+  if (gn !== 0x99a || flags !== 0x99b || tv !== 0x109) fail('internal', 'Direct Flash bytes moved');
+  const wrapper = patch.append((at) => assembleWords(
+    `push {r4, r5, r6, r7, r8, lr}
+     mov r4, r0
+     ldrb r5, [r4, #${gn}]
+     ldrb r6, [r4, #${flags}]
+     ldrb r7, [r4, #${tv}]
+     bl #${MEMCPY}
+     strb r5, [r4, #${gn}]
+     ldrb r0, [r4, #${flags}]; and r0, r0, #1; bic r6, r6, #1; orr r0, r0, r6; strb r0, [r4, #${flags}]
+     ldrb r0, [r4, #${tv}]; bic r0, r0, #7; and r7, r7, #7; orr r0, r0, r7; strb r0, [r4, #${tv}]
+     mov r0, r4
+     pop {r4, r5, r6, r7, r8, pc}`, at), 16);
+  patch.setWord(SNAPSHOT_COPY, branchTo(SNAPSHOT_COPY, wrapper, true), 'Direct Flash: settings kept when the mode changes');
+}
+
 /** Install Direct Flash. Returns the new ICONBIN data. `diag`: test builds only (see DIRECT_FLASH_DIAG_SLOT). */
 export function installDirectFlash(patch: Patch, iconbin: Uint8Array, diag = false): Uint8Array {
   if (diag && patch.word(ZERO_FILL_END) !== 0x55837300) {
@@ -452,6 +491,8 @@ export function installDirectFlash(patch: Patch, iconbin: Uint8Array, diag = fal
   for (const [site, register] of LOOKUP_BOUNDS) {
     patch.setWord(site, movWord(register, Math.max(DIRECT_FLASH_ICON_ID, movImmediate(patch.word(site)))), 'icon upper bound');
   }
+  installDirectFlashMemory(patch);
+
   const out = new Uint8Array(iconOffset + icon.length);
   out.set(iconbin);
   out.set(icon, iconOffset);
