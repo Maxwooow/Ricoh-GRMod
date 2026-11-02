@@ -114,6 +114,13 @@ describe('convertCube', () => {
     const worst = (p: typeof plain.params): number => Math.max(...deltaE2000Lab(lab(slotApply(p, ramp)), t));
     expect(worst(ref.params)).toBeLessThanOrEqual(worst(plain.params) + 0.05 + 1e-9);
   });
+  it('keeps the LUT\'s white when the LUT changes the colours next to it (the fit used to trade white for them)', () => {
+    // the colours near white lose some blue and white itself stays white, as in Reala Ace or RED Tech
+    const t = cubeOf(17, (r, g, b) => [r, g, b - 0.12 * b * b * (1 - Math.min(r, g, b))]);
+    const W = Float64Array.from([1, 1, 1]);
+    const d = deltaE2000Lab(lab(slotApply(convertCube(t).params, W)), lab(applyCube(parseCube(t), W)))[0];
+    expect(d).toBeLessThan(1.5);
+  });
   it('fits a toned monochrome look (the old fitting colours gave a grid mean of about 4 dE00)', () => {
     const t = cubeOf(17, sepia);
     const res = convertCube(t);
