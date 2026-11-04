@@ -226,7 +226,14 @@ export function installHalationModule(p: Patch, looks: readonly HalationLook[], 
 function contextOf(p: Patch): number | null {
   const first = p.word(JPEG_EXECUTE);
   if (first >>> 24 !== 0xea) return null;
-  const stub = branchTarget(JPEG_EXECUTE, first);
+  let stub = branchTarget(JPEG_EXECUTE, first);
+  // The HDR gain map (hdrgain.ts) wraps the JPEG step after halation: its wrapper (push {r0, r1, r4,
+  // lr}; bl trampoline; str r0, [sp]) calls a trampoline that branches to what the entry held before.
+  if (p.word(stub) === 0xe92d4013 && p.word(stub + 4) >>> 24 === 0xeb && p.word(stub + 8) === 0xe58d0000) {
+    const tramp = branchTarget(stub + 4, p.word(stub + 4));
+    if (p.word(tramp) >>> 24 !== 0xea) return null;
+    stub = branchTarget(tramp, p.word(tramp));
+  }
   if (p.word(stub + 4) !== 0xe5911008) return null; // ldr r1,[r1,#8]: the halation stub, not the date imprint's
   // push; ldr r1,[r1,#8]; movw r0; movt r0
   return (movImmediate(p.word(stub + 8)) | (movImmediate(p.word(stub + 12)) << 16)) >>> 0;

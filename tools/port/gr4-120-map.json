@@ -19,7 +19,9 @@
     "tools/directflash/check.py",
     "tools/directflash/settings_check.py",
     "tools/shutdown/menu_check.py",
-    "tools/softfocus/check.py"
+    "tools/softfocus/check.py",
+    "core/test/hdrgain.test.ts",
+    "tools/hdrgain/check.py"
    ]
   },
   "0x53000460": {
@@ -32,7 +34,18 @@
     "core/src/fw/aspect/lookstash.ts",
     "core/src/fw/aspect/shutdown.ts",
     "core/src/fw/aspect/slots.ts",
-    "tools/shutdown/menu_check.py"
+    "tools/shutdown/menu_check.py",
+    "core/src/fw/aspect/hdrgain.ts"
+   ]
+  },
+  "0x53000930": {
+   "new": "0x53000930",
+   "how": "aligned + refs 0x53000930x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hdrgain.ts",
+    "tools/hdrgain/check.py",
+    "tools/hdrgain/hdrgain.c"
    ]
   },
   "0x53153eec": {
@@ -6145,7 +6158,9 @@
    "ok": true,
    "files": [
     "core/src/fw/aspect/datestamp.ts",
-    "core/src/fw/aspect/halation.ts"
+    "core/src/fw/aspect/halation.ts",
+    "core/src/fw/aspect/hdrgain.ts",
+    "tools/hdrgain/check.py"
    ]
   },
   "0x537064a0": {
@@ -6545,6 +6560,40 @@
     "tools/datestamp/datestamp.c"
    ]
   },
+  "0x53804c04": {
+   "new": "0x5382b814",
+   "how": "aligned + refs 0x5382b814x1",
+   "ok": true,
+   "files": [
+    "tools/hdrgain/check.py"
+   ]
+  },
+  "0x53804da0": {
+   "new": "0x5382b9b0",
+   "how": "aligned + refs 0x5382b9b0x1",
+   "ok": true,
+   "files": [
+    "tools/hdrgain/check.py"
+   ]
+  },
+  "0x5380bc6c": {
+   "new": "0x5383287c",
+   "how": "aligned + refs 0x5383287cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hdrgain.ts",
+    "core/test/hdrgain.test.ts"
+   ]
+  },
+  "0x5380bc74": {
+   "new": "0x53832884",
+   "how": "aligned + refs 0x53832884x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hdrgain.ts",
+    "core/test/hdrgain.test.ts"
+   ]
+  },
   "0x5380d1ec": {
    "new": "0x53833dfc",
    "how": "aligned",
@@ -6914,7 +6963,10 @@
     "tools/directflash/diag_check.py",
     "tools/halation/halation.c",
     "tools/shutdown/menu_check.py",
-    "tools/softfocus/check.py"
+    "tools/softfocus/check.py",
+    "core/src/fw/aspect/hdrgain.ts",
+    "tools/hdrgain/check.py",
+    "tools/hdrgain/hdrgain.c"
    ]
   },
   "0x538e09ec": {
@@ -6925,7 +6977,10 @@
     "core/src/fw/aspect/halation.ts",
     "tools/aspect/playback_check.py",
     "tools/halation/halation.c",
-    "tools/softfocus/check.py"
+    "tools/softfocus/check.py",
+    "core/src/fw/aspect/hdrgain.ts",
+    "tools/hdrgain/check.py",
+    "tools/hdrgain/hdrgain.c"
    ]
   },
   "0x538e0a24": {
@@ -6943,6 +6998,14 @@
    "ok": true,
    "files": [
     "tools/aspect/playback_check.py"
+   ]
+  },
+  "0x538e217c": {
+   "new": "0x53909c88",
+   "how": "aligned + refs 0x53909c88x459",
+   "ok": true,
+   "files": [
+    "tools/hdrgain/check.py"
    ]
   },
   "0x538e9c2c": {
@@ -6995,7 +7058,8 @@
     "tools/aspect/boot_checks.py",
     "tools/aspect/playback_check.py",
     "tools/datestamp/menu_check.py",
-    "tools/softfocus/check.py"
+    "tools/softfocus/check.py",
+    "tools/hdrgain/check.py"
    ]
   },
   "0x538ee49c": {
@@ -7570,6 +7634,15 @@
     "core/src/fw/aspect/lookstash.ts"
    ]
   },
+  "0x53fa7548": {
+   "new": "0x53fdde18",
+   "how": "aligned + refs 0x53fdde18x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hdrgain.ts",
+    "tools/hdrgain/check.py"
+   ]
+  },
   "0x53fe4328": {
    "new": "0x5401aef8",
    "how": "aligned + refs 0x5401aef8x2",
@@ -7807,7 +7880,8 @@
     "tools/datestamp/gen.py",
     "tools/directflash/gen.py",
     "tools/halation/gen.py",
-    "tools/shutdown/gen.py"
+    "tools/shutdown/gen.py",
+    "tools/hdrgain/gen.py"
    ]
   },
   "0x543fc1d0": {
@@ -7837,6 +7911,15 @@
    "why": "test link address / emulator range in the appended area: moved past the longer 1.20 image (end 0x5440b600)",
    "files": [
     "tools/softfocus/check.py"
+   ]
+  },
+  "0x5450584c": {
+   "new": "0x5450584c",
+   "how": "override",
+   "ok": true,
+   "why": "not an address: hdrgain.c packs the four output descriptor offsets 0x4c, 0x58, 0x50, 0x54 into one word; JpegEncodeMacroProcess::Execute is the same in 1.20 (0x53727e10, every instruction equal but address movw/movt), so the offsets are unchanged",
+   "files": [
+    "tools/hdrgain/hdrgain.c"
    ]
   },
   "0x55000000": {
@@ -8005,7 +8088,8 @@
     "tools/directflash/check.py",
     "tools/directflash/settings_check.py",
     "tools/slotparams/slot_params.c",
-    "tools/softfocus/check.py"
+    "tools/softfocus/check.py",
+    "tools/hdrgain/check.py"
    ]
   },
   "0x5537960c": {
@@ -8015,6 +8099,14 @@
    "why": "fork B: direction singleton: movw/movt in 0x53750028 (expectWord 0xe30b029c)",
    "files": [
     "core/src/fw/aspect/datestamp.ts"
+   ]
+  },
+  "0x5538c3cc": {
+   "new": "0x5538e0cc",
+   "how": "refs 0x5538e0ccx4",
+   "ok": true,
+   "files": [
+    "tools/hdrgain/check.py"
    ]
   },
   "0x553a09c4": {
@@ -8038,7 +8130,17 @@
     "core/src/fw/aspect/lookstash.ts",
     "core/src/fw/aspect/shutdown.ts",
     "core/src/fw/aspect/slots.ts",
-    "tools/shutdown/menu_check.py"
+    "tools/shutdown/menu_check.py",
+    "core/src/fw/aspect/hdrgain.ts"
+   ]
+  },
+  "0x558372dc": {
+   "new": "0x5583901c",
+   "how": "override",
+   "ok": true,
+   "why": "HDR gain map state word: one of the 44 bytes between the zero fill end and the heap (zero fill end 0x55839014 + 8, as 0x558372d4 + 8 in 1.11); no other GR Mod word there in 1.20 (0x55839020..0x5583903c are taken by the others), the firmware never addresses the gap",
+   "files": [
+    "core/src/fw/aspect/hdrgain.ts"
    ]
   },
   "0x558372e0": {
@@ -8125,7 +8227,8 @@
     "core/src/fw/aspect/lookstash.ts",
     "core/src/fw/aspect/shutdown.ts",
     "core/src/fw/aspect/slots.ts",
-    "tools/shutdown/menu_check.py"
+    "tools/shutdown/menu_check.py",
+    "core/src/fw/aspect/hdrgain.ts"
    ]
   }
  }

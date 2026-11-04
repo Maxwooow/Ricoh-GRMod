@@ -78,6 +78,10 @@
     [
       "tools/softfocus",
       "tools/gr4v120/softfocus"
+    ],
+    [
+      "tools/hdrgain",
+      "tools/gr4v120/hdrgain"
     ]
   ],
   "exclude": [
@@ -123,6 +127,10 @@
       "tools/gr4v120/softfocus/"
     ],
     [
+      "tools/hdrgain/",
+      "tools/gr4v120/hdrgain/"
+    ],
+    [
       "parents[2]",
       "parents[3]"
     ]
@@ -159,6 +167,10 @@
     ],
     [
       "python3",
+      "tools/gr4v120/hdrgain/gen.py"
+    ],
+    [
+      "python3",
       "tools/port/native_scan.py",
       "tools/port/gr4-120-map.json",
       "core/src/fw/gr4v120/aspect/native.ts",
@@ -166,7 +178,8 @@
       "core/src/fw/gr4v120/aspect/directflash-code.ts",
       "core/src/fw/gr4v120/aspect/halation-code.ts",
       "core/src/fw/gr4v120/aspect/shutdown-code.ts",
-      "core/src/fw/gr4v120/aspect/slotparams-native.ts"
+      "core/src/fw/gr4v120/aspect/slotparams-native.ts",
+      "core/src/fw/gr4v120/aspect/hdrgain-code.ts"
     ]
   ],
   "old_marker": "1.11"

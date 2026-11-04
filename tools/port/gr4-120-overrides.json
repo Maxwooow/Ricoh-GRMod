@@ -986,5 +986,13 @@
  "0x535278d8": {
   "new": "0x53546c24",
   "reason": "UserDataInitValue (comment): aligned function start; like 1.11 it has no store at any padding byte (0x109, 0x90F, 0x94B, 0x99A, 0x99B, either base)"
+ },
+ "0x558372dc": {
+  "new": "0x5583901c",
+  "reason": "HDR gain map state word: one of the 44 bytes between the zero fill end and the heap (zero fill end 0x55839014 + 8, as 0x558372d4 + 8 in 1.11); no other GR Mod word there in 1.20 (0x55839020..0x5583903c are taken by the others), the firmware never addresses the gap"
+ },
+ "0x5450584c": {
+  "new": "0x5450584c",
+  "reason": "not an address: hdrgain.c packs the four output descriptor offsets 0x4c, 0x58, 0x50, 0x54 into one word; JpegEncodeMacroProcess::Execute is the same in 1.20 (0x53727e10, every instruction equal but address movw/movt), so the offsets are unchanged"
  }
 }

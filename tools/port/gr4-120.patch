@@ -1,7 +1,7 @@
 diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/build.ts
 --- a/core/src/fw/gr4v120/aspect/build.ts
 +++ b/core/src/fw/gr4v120/aspect/build.ts
-@@ -34,30 +34,33 @@
+@@ -35,30 +35,33 @@
  import { installDateStampMenu } from './datestamp-menu';
  import { installMonoUnlock } from './monounlock';
  import { CINEMA_STYLES, installExtraSlots, installHalation } from './slots';
@@ -43,7 +43,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  export const LANGUAGES = 21;
  const ROW_STRIDE = TEXT_CAPACITY * 4;
  const NATIVE_ICON_CATALOG = 0x55014280;
-@@ -80,10 +83,10 @@
+@@ -81,10 +84,10 @@
    return id;
  }
  
@@ -57,25 +57,26 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  }
  
  export interface RatioSpec {
-@@ -147,7 +150,16 @@
+@@ -150,9 +153,18 @@
    dateStampDiag?: boolean;
    /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
    directFlashDiag?: boolean;
--}
 +  /**
 +   * Halation diagnostics (with the date imprint): the halation module leaves how far each call got
 +   * in HALATION_STATUS_WORD, and the date imprint prints the configuration, the picture's look word
 +   * (FRAME_LOOK) and that status on every wide picture.
 +   */
 +  halationDiag?: boolean;
-+}
+   /** HDR gain map: an APP15 segment with the module's counters in every JPEG. */
+   hdrDiag?: boolean;
+ }
 +
 +/** Test builds only: the halation module's status (the 44 bytes before the heap; Direct Flash diagnostics' word otherwise). */
 +export const HALATION_STATUS_WORD = 0x5583903c;
  
  export interface AspectResult {
    revision: BuildRevision;
-@@ -310,7 +322,7 @@
+@@ -315,7 +327,7 @@
    for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
    const rowsStart = TEXT_CATALOG + 0x100;
    const end = rowsStart + LANGUAGES * ROW_STRIDE;
@@ -84,7 +85,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    patch.extendTo(end - BASE);
    patch.write(ICON_CATALOG, icons);
    const relocated: number[] = [];
-@@ -322,8 +334,15 @@
+@@ -327,8 +339,15 @@
    // language directory themselves.
    patch.setWord(0x534013f8, movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
    patch.setWord(0x534013fc, movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
@@ -102,7 +103,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    }
    for (const [low, high] of [[0x535967cc, 0x535967d0], [0x53595db4, 0x53595dbc]] as const) {
      patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
-@@ -354,7 +373,10 @@
+@@ -359,7 +378,10 @@
  // --------------------------------------------------------------------------------------------
  // crop_icons.py
  
@@ -114,7 +115,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
    const parts: Uint8Array[] = [iconbin];
-@@ -446,7 +468,7 @@
+@@ -451,7 +473,7 @@
    // Complete language rows again, now wide enough for the new names; every original entry is kept.
    let priorColumns = TEXT_CAPACITY;
    for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
@@ -123,7 +124,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    for (const id of allIds) upper = Math.max(upper, textId(id));
    const columns = Math.max(priorColumns, upper + 1);
    const catalogs: Uint8Array[] = [];
-@@ -659,8 +681,8 @@
+@@ -664,8 +686,8 @@
      out = '';
      for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
      out += `bic ip,ip,#4;b #${resume};custom:`;
@@ -134,7 +135,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      out += 'ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;';
      p.hook(entry, out);
    }
-@@ -880,7 +902,7 @@
+@@ -885,7 +907,7 @@
  function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
    const priorSave = branchTarget(0x533f3674, patch.word(0x533f3674));
    const priorLoad = branchTarget(0x533f3254, patch.word(0x533f3254));
@@ -143,7 +144,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    expectWord(patch, 0x5381d6bc, 0xe1a0c00d);
    // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
    const rects: Uint8Array[] = [];
-@@ -1018,6 +1040,16 @@
+@@ -1023,6 +1045,16 @@
   * features this is `installRatios`, byte for byte. With features the revision is 3.
   */
  export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
@@ -160,7 +161,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    const slots = features.extraSlots ?? [];
    const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
    const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
-@@ -1056,7 +1088,9 @@
+@@ -1061,7 +1093,9 @@
      const fixed = test.dateStampFixed;
      // From 0.8.2 (builds with the guard) the imprint goes by the picture's look.
      const look = features.guard ? { stash: LOOK_STASH, monoLooks: monoTable(patch, slots.map((x) => monoLook(x.matrixQ13, x.curves, x.postQ9)), FIRST_ADDED_LOOK), names: lookNames(patch, slots.map((x) => x.name)) } : undefined;
@@ -832,6 +833,17 @@ diff --git a/core/src/fw/gr4v120/aspect/halation.ts b/core/src/fw/gr4v120/aspect
    const stub = p.append((at) => assembleWords(
      `push {r0-r3,ip,lr}
       ldr r1,[r1,#8]
+diff --git a/core/src/fw/gr4v120/aspect/hdrgain.ts b/core/src/fw/gr4v120/aspect/hdrgain.ts
+--- a/core/src/fw/gr4v120/aspect/hdrgain.ts
++++ b/core/src/fw/gr4v120/aspect/hdrgain.ts
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ /**
+- * HDR gain map in the camera's JPEGs (firmware 1.11, test builds from 0.8.6 on).
++ * HDR gain map in the camera's JPEGs (firmware 1.20: the port of the 1.11 code; test builds).
+  *
+  * The file the camera writes stays as it is: the camera's header (SOI, APP1 Exif with the
+  * thumbnail, APP7 "RICOH" with the screennail and maker note) and its main stream come first,
 diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/looks.ts
 --- a/core/src/fw/gr4v120/aspect/looks.ts
 +++ b/core/src/fw/gr4v120/aspect/looks.ts
@@ -982,16 +994,45 @@ diff --git a/core/src/fw/gr4v120/aspect/monounlock.ts b/core/src/fw/gr4v120/aspe
   *
   * The firmware is the same for the three models; looks 25..30 (Monochrome Standard, Soft, High
   * Contrast, Grainy, Solid, HDR) are only hidden on the colour ones. Two things hide them:
-@@ -9,6 +9,9 @@
+@@ -9,6 +9,14 @@
   *  - the availability table (0x53DE9CC4, read by 0x533F1DC8): one row of 7 bytes per entry, one
   *    byte per camera model (column 1 is the Monochrome). Rows 3..8 are the six looks; only the
   *    Monochrome's column is set.
-+ * 1.20 added looks 31 (Pictorialist, row 9: listed on the Monochrome by the official firmware's own lists) and 32 (Solarized, row 10: the Monochrome);
-+ * through the monochrome-look branch they stay as hidden on the colour models as before (rows
-+ * unchanged; not unlocked here).
++ * 1.20 added two looks to the monochrome branch:
++ *  - 32, Solarized (row 10, set for the Monochrome only; GR IV Monochrome 1.10 offers it with its
++ *    three types). Row 10 is read only by this visibility check, so it is unlocked like the six
++ *    looks: every column but the Monochrome's is set (0.8.8; before, the look stayed hidden on the
++ *    colour models while GR Mod listed it with the monochrome looks).
++ *  - 31, Pictorialist (row 9): no column is set in the official firmware, not even the
++ *    Monochrome's, and row 9 is read in four other places as well; Ricoh has not released it, so it
++ *    is left alone (hidden on every model).
   *
   * Found and tested on a camera by GR4-MonoUnlock (github.com/lemonadesaltbagel/GR4-MonoUnlock):
   * Standard, Soft, High Contrast and Solid worked, Grainy was in builds that ran, HDR was not tried.
+@@ -21,16 +29,20 @@
+ const CHECK = 0x533de144;
+ const TABLE = 0x53de9cc4;
+ const MONOCHROME_COLUMN = 1;
+-/** Rows 3..8 (the six looks), every column but the Monochrome's. */
++/** Rows 3..8 (the six looks) and 10 (Solarized), every column but the Monochrome's. */
++const ROWS = [3, 4, 5, 6, 7, 8, 10];
+ const LOOK_FLAGS: number[] = [];
+-for (let row = 3; row <= 8; row++) for (let col = 0; col < 7; col++) if (col !== MONOCHROME_COLUMN) LOOK_FLAGS.push(TABLE + row * 7 + col);
++for (const row of ROWS) for (let col = 0; col < 7; col++) if (col !== MONOCHROME_COLUMN) LOOK_FLAGS.push(TABLE + row * 7 + col);
+ 
+ export function installMonoUnlock(patch: Patch): void {
+   expectWord(patch, CHECK, 0xe3520000); // cmp r2, #0      (r2: camera is the Monochrome model)
+   expectWord(patch, CHECK + 4, 0x1a000019); // bne 0x533de1b4 (the monochrome-look branch)
+-  for (let row = 3; row <= 8; row++) {
++  for (const row of ROWS) {
+     if (patch.read(TABLE + row * 7, 7).join(',') !== '0,1,0,0,0,0,0') throw new Error(`availability row ${row} is not the official one`);
+   }
++  // 32 (Solarized) goes through the table: `mov r1, #10 ; ... ; b 0x533F1DC8`.
++  expectWord(patch, 0x533de080 + (32 - 25) * 4, 0x533de0b8);
++  expectWord(patch, 0x533de0b8, 0xe3a0100a);
+   for (const at of LOOK_FLAGS) {
+     const word = patch.word(at & ~3);
+     const shift = (at & 3) * 8;
 diff --git a/core/src/fw/gr4v120/aspect/shutdown.ts b/core/src/fw/gr4v120/aspect/shutdown.ts
 --- a/core/src/fw/gr4v120/aspect/shutdown.ts
 +++ b/core/src/fw/gr4v120/aspect/shutdown.ts
@@ -2960,6 +3001,32 @@ diff --git a/tools/gr4v120/softfocus/check.py b/tools/gr4v120/softfocus/check.py
      for c3 in (4,5):
          for clar in (4,6):
              for sfv in (0,1,2,3,4,0x7a):
+diff --git a/tools/gr4v120/hdrgain/gen.py b/tools/gr4v120/hdrgain/gen.py
+--- a/tools/gr4v120/hdrgain/gen.py
++++ b/tools/gr4v120/hdrgain/gen.py
+@@ -16,9 +16,9 @@
+ from pathlib import Path
+ 
+ HERE = Path(__file__).resolve().parent
+-ROOT = HERE.parent.parent
++ROOT = HERE.parent.parent.parent
+ SRC = HERE / 'hdrgain.c'
+-OUT = ROOT / 'core' / 'src' / 'fw' / 'aspect' / 'hdrgain-code.ts'
++OUT = ROOT / 'core' / 'src' / 'fw' / 'gr4v120' / 'aspect' / 'hdrgain-code.ts'
+ USE_ZIG = bool(os.environ.get('GRMOD_ZIG')) or not (shutil.which('clang') and shutil.which('ld.lld') and shutil.which('llvm-objcopy'))
+ FLAGS = ['-mcpu=cortex_a9' if USE_ZIG else '-mcpu=cortex-a9', '-marm', '-mfloat-abi=soft', '-O2',
+          '-ffreestanding', '-fno-builtin', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-nostdlib',
+diff --git a/tools/gr4v120/hdrgain/hdrgain.c b/tools/gr4v120/hdrgain/hdrgain.c
+--- a/tools/gr4v120/hdrgain/hdrgain.c
++++ b/tools/gr4v120/hdrgain/hdrgain.c
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ /*
+- * HDR gain map for the GR IV's JPEGs (GR Mod, firmware 1.11). See core/src/fw/gr4v120/aspect/hdrgain.ts.
++ * HDR gain map for the GR IV's JPEGs (GR Mod, firmware 1.20, ported from 1.11; the module is the same code). See core/src/fw/gr4v120/aspect/hdrgain.ts.
+  *
+  * Three entries, one function (hdrgain), chosen by `op`:
+  *
 diff --git a/core/src/fw/gr4v120/profile.ts b/core/src/fw/gr4v120/profile.ts
 --- a/core/src/fw/gr4v120/profile.ts
 +++ b/core/src/fw/gr4v120/profile.ts

@@ -8,13 +8,28 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+
+const sha = async (b: Uint8Array): Promise<string> => createHash('sha256').update(b).digest('hex');
 import { Engine, fw } from '../src';
 import { HDRGAIN_SOURCE_SHA256 } from '../src/fw/aspect/hdrgain-code';
 import { HDR_GAIN, WRITER_VTABLE, ZIGZAG, gainCodes, hdrTables, huffCodes, isoMetadata, quantTable } from '../src/fw/aspect/hdrgain';
 import { JPEG_EXECUTE } from '../src/fw/aspect/datestamp';
+import { WRITER_VTABLE as WRITER_VTABLE_120 } from '../src/fw/gr4v120/aspect/hdrgain';
+import { HDRGAIN_SOURCE_SHA256 as HDRGAIN_SOURCE_SHA256_120 } from '../src/fw/gr4v120/aspect/hdrgain-code';
+import type { ExtraSlotSpec } from '../src';
 
 const P = new URL('../testdata/private/', import.meta.url).pathname;
 const have = existsSync(P + 'official.bin');
+/** GR IV 1.20 (= GR IV Monochrome 1.10), for the port (fw/gr4v120). */
+const file120 = process.env.GRMOD_GR4_120_FIRMWARE;
+const have120 = !!file120 && existsSync(file120);
+
+/** An added slot with halation (its look data as the slot tests make it). */
+function haloSlot(eng: Engine): ExtraSlotSpec {
+  const icon = fw.composeIcon(eng.info.tiles.film, new Float32Array(40 * 40).fill(0.7));
+  const curve = Array.from({ length: 256 }, (_, i) => Math.min(16383, i * 64));
+  return { name: 'GR Mod 1', matrixQ13: [8192, 0, 0, 0, 8192, 0, 0, 0, 8192], curves: [curve, curve, curve], postQ9: [512, 0, 0, 0, 512, 0, 0, 0, 512], icon, halation: true };
+}
 
 describe('HDR gain map: tables', () => {
   it('quantisers as libjpeg makes them for quality 85, zigzag order a permutation', () => {
@@ -55,6 +70,8 @@ describe('HDR gain map: tables', () => {
   it('the compiled module is the one of the committed source', () => {
     const src = readFileSync(new URL('../../tools/hdrgain/hdrgain.c', import.meta.url));
     expect(createHash('sha256').update(src).digest('hex')).toBe(HDRGAIN_SOURCE_SHA256);
+    const src120 = readFileSync(new URL('../../tools/gr4v120/hdrgain/hdrgain.c', import.meta.url));
+    expect(createHash('sha256').update(src120).digest('hex')).toBe(HDRGAIN_SOURCE_SHA256_120);
   });
 });
 
@@ -103,6 +120,16 @@ describe.skipIf(!have)('HDR gain map: builds', () => {
       expect(s.hdrGainMap).toBe(true);
     }
   });
+  it('with halation (it hooks the JPEG step first): the halation is read back through the wrapper', async () => {
+    const b = await eng.buildFirmware([], [], [], { dateStamp: true, extraSlots: [haloSlot(eng)], hdrGainMap: true });
+    const s = await eng.inspect(b.file);
+    expect(s.verified).toBe(true);
+    expect(s.hdrGainMap).toBe(true);
+    expect(s.extraSlots.length).toBe(1);
+    const plain = await eng.buildFirmware([], [], [], { dateStamp: true, extraSlots: [haloSlot(eng)] });
+    // the same file with the gain map added later (extendVerified) is the one built at once
+    expect(await sha(await eng.extendVerified(plain.file, { hdrGainMap: true }))).toBe(b.sha256);
+  });
   it('a test build with the diagnostics segment differs from the plain one only in that flag', async () => {
     const a = rtosOf((await eng.buildFirmware([], [], [], { hdrGainMap: true })).file);
     const b = rtosOf((await eng.buildFirmware([], [], [], { hdrGainMap: true, hdrDiag: true })).file);
@@ -113,4 +140,32 @@ describe.skipIf(!have)('HDR gain map: builds', () => {
     expect(diff.length).toBeLessThanOrEqual(8);
     expect(diff.every((i) => i >= a.length - 8 || (a[i] === 0 && b[i] === 1) || Math.abs(i - diff[0]) < 4)).toBe(true);
   });
+});
+
+describe.skipIf(!have120)('HDR gain map: GR IV 1.20 (port)', () => {
+  const rtosOf = (file: Uint8Array): Uint8Array => {
+    const d = new fw.Firmware(file).decoded;
+    const r = fw.sectionsOf(d).find((x) => x.name === 'RTOS')!;
+    return d.subarray(r.offset, r.offset + r.size);
+  };
+  const word = (rtos: Uint8Array, a: number): number => new DataView(rtos.buffer, rtos.byteOffset).getUint32(a - 0x53000000, true);
+  it('builds with the common additions and halation, verifies, reads back; plain builds keep the writer', async () => {
+    const eng = await Engine.open(new Uint8Array(readFileSync(file120!)), { newFirmware: true });
+    expect(eng.info.version).toBe('1.20');
+    expect(WRITER_VTABLE_120).toBe(0x53fdde18);
+    const opts = { adjSoftFocus: true, dateStamp: true, monoUnlock: true, extraSlots: [haloSlot(eng)] };
+    const b = await eng.buildFirmware([], [], [], { ...opts, hdrGainMap: true });
+    expect(Object.values(b.checks).every((v) => v === true)).toBe(true);
+    const s = await eng.inspect(b.file);
+    expect(s.verified).toBe(true);
+    expect(s.hdrGainMap).toBe(true);
+    const rtos = rtosOf(b.file);
+    expect(word(rtos, WRITER_VTABLE_120 + 36)).not.toBe(0x53832884);
+    expect(word(rtos, WRITER_VTABLE_120 + 40)).not.toBe(0x5383287c);
+    const plain = await eng.buildFirmware([], [], [], opts);
+    const r0 = rtosOf(plain.file);
+    expect(word(r0, WRITER_VTABLE_120 + 36)).toBe(0x53832884);
+    expect(word(r0, WRITER_VTABLE_120 + 40)).toBe(0x5383287c);
+    expect((await eng.inspect(plain.file)).hdrGainMap).toBeUndefined();
+  }, 240_000);
 });
