@@ -38,6 +38,7 @@ from unicorn.arm_const import (UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2, UC_A
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ref  # noqa: E402
+import readdiag  # noqa: E402
 
 BASE = 0x53000000
 JPEG_EXECUTE = 0x53727E10
@@ -111,6 +112,7 @@ class Machine:
         self.insns = 0
         self.watch = False
         self.bad_writes = []
+        self.counters = 0
         uc.hook_add(UC_HOOK_CODE, self._alloc, begin=ALLOC, end=ALLOC)
         uc.hook_add(UC_HOOK_CODE, self._free, begin=FREE, end=FREE)
         uc.hook_add(UC_HOOK_CODE, self._flush, begin=FLUSH, end=FLUSH)
@@ -194,6 +196,8 @@ class Machine:
         if STACK <= addr < STACK_TOP:
             return
         if addr == self.t['stateWord'] and size == 4:
+            return
+        if self.counters and self.counters <= addr and addr + size <= self.counters + 8:
             return
         for p, n in self.live.items():
             if p <= addr and addr + size <= p + n:
@@ -373,6 +377,100 @@ def decode_check(data, sdr_y):
     return ratio_b, ratio_d
 
 
+def tail_of(data, camera):
+    """The diagnostics block after the camera's file (version 2), or None."""
+    rest = data[len(camera):]
+    if data[:len(camera)] != camera or not rest.startswith(b'GRMODHDT'):
+        return None
+    ver, n = struct.unpack_from('<II', rest, 8)
+    if ver != 2 or len(rest) != 16 + 4 * n:
+        return None
+    return readdiag.named(list(struct.unpack_from(f'<{n}I', rest, 16)))
+
+
+def app15_of(data, header, stream):
+    """The diagnostics segment (version 2) of a file written as header, segment, stream; or None."""
+    if data[:len(header)] != header or not data.endswith(stream):
+        return None
+    rest = data[len(header):len(data) - len(stream)]
+    if rest[:2] != b'\xff\xef' or rest[4:12] != b'GRMODHDR' or rest[13] != 2:
+        return None
+    n = struct.unpack('>H', rest[2:4])[0]
+    if 2 + n != len(rest):
+        return None
+    return readdiag.named(list(struct.unpack_from(f'<{(n - 12) // 4}I', rest, 14)))
+
+
+def plain_or_tail(data, camera, diag, reason):
+    """Without diagnostics the camera's file; with them the camera's file and the block after it."""
+    if not diag:
+        return data == camera
+    d = tail_of(data, camera)
+    return d is not None and d['w_reason'] == reason and d['tails'] >= 1
+
+
+def diag_checks(rtos, t, stub_range, photo):
+    """Diagnostic builds: the counters, the state made by the block count, the block after the
+    camera's EOI, the state word taken over; on fresh machines."""
+    header, stream = split_camera_jpeg(photo)
+    camera = header + stream
+    y = np.asarray(Image.open(io.BytesIO(photo)).convert('YCbCr'), np.uint8)[..., 0].copy()
+
+    def fresh():
+        m = Machine(rtos, t)
+        m.counters = t['counters']
+        m.stubs = stub_range
+        m.watch = True
+        return m
+
+    # the encode step never runs: the block count makes the state; the camera's blocks with the
+    # diagnostics segment between them
+    m = fresh()
+    data = write_file(m, header, stream)
+    d = app15_of(data, header, stream)
+    check(d is not None, 'no encode step: the camera\'s blocks and the diagnostics segment')
+    check(d['state_by'] == 2 and d['exec'] == 0 and (d['cnt'] & 0xFFFF) >= 1 and d['w_calls'] >= 1 and d['w_reason'] == 5, f'no encode step: counters {d}')
+    seg = write_file(m, header, stream, segmented=True)
+    d2 = app15_of(seg, header, stream)
+    check(d2 is not None and (d2['cnt'] & 0xFFFF) > (d['cnt'] & 0xFFFF) and (d2['cnt'] >> 16) >= 3, f'segmented write: the diagnostics segment {d2}')
+    check(not m.bad_writes, f'writes outside the module\'s memory: {m.bad_writes[:5]}')
+    # Execute counted: entries and returns
+    m = fresh()
+    run_execute(m, y, stream)
+    check(m.r32(t['counters']) == 0x00010001, f'Execute counter {m.r32(t["counters"]):#x}')
+    data = write_file(m, header, stream)
+    check(len(data) > len(camera) + 1000 and data[:len(header)] == header, 'after the encode step: the gain map')
+    check(not m.bad_writes, f'writes outside the module\'s memory: {m.bad_writes[:5]}')
+    # the state word holds something else: taken over, the gain map written, the old value reported
+    m = fresh()
+    m.w32(t['stateWord'], 0x12345678)
+    run_execute(m, y, stream)
+    data = write_file(m, header, stream)
+    check(len(data) > len(camera) + 1000, 'state word taken over: the gain map')
+    for mk, i, payload in segments(data):
+        if mk == 0xEF and payload.startswith(b'GRMODHDR'):
+            dd = readdiag.named(list(struct.unpack_from(f'<{(len(payload) - 10) // 4}I', payload, 10)))
+            check(payload[9] == 2 and dd['state_raw'] == 0x12345678 and dd['state_by'] == 1 and dd['exec'] == 0x00010001, f'taken over: {dd}')
+            break
+    else:
+        check(False, 'taken over: no diagnostics segment')
+    # the lock is held: the camera's file and the diagnostics block
+    st = m.state()
+    m.w32(st + 4, 1)
+    data = write_file(m, header, stream)
+    d = tail_of(data, camera)
+    check(d is not None and d['w_reason'] == 6 and d['lock_fail'] >= 1, f'lock held: {d}')
+    m.w32(st + 4, 0)
+    # no memory at all: the camera's file as it is
+    m = fresh()
+    m.alloc_limit = 0
+    run_execute(m, y, stream)
+    data = write_file(m, header, stream)
+    check(data == camera, 'no memory: the camera\'s file')
+    check(not m.bad_writes, f'writes outside the module\'s memory: {m.bad_writes[:5]}')
+    print('diagnostics ok')
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     full = '--full' in sys.argv
@@ -389,13 +487,20 @@ def main():
     check(magic > 0, 'no gain map context in the image')
     ctx = magic - 20 * 4
     t['diag'] = bool(struct.unpack('<I', rtos[ctx + 19 * 4:ctx + 20 * 4])[0] & 1)
+    t['counters'] = struct.unpack('<I', rtos[ctx + 21 * 4:ctx + 22 * 4])[0]
+    check(bool(t['counters']) == t['diag'], 'counters word only in diagnostic builds')
     m = Machine(rtos, t)
+    m.counters = t['counters']
+    stub_range = None
     # stubs: the words the vtable slots point at and the JPEG entry's branch target, give or take
     vt = t['vtable']
     stubs = [m.r32(vt + 36), m.r32(vt + 40)]
     w = m.r32(JPEG_EXECUTE)
     stubs.append(JPEG_EXECUTE + 8 + (((w & 0xFFFFFF) ^ 0x800000) - 0x800000) * 4)
     m.stubs = (min(stubs) - 0x100, max(stubs) + 0x100)
+    stub_range = m.stubs
+    if t['diag']:
+        diag_checks(rtos, t, stub_range, open(photos[0], 'rb').read())
     results = []
     seen_gm = {}
     for path in photos:
@@ -454,9 +559,9 @@ def main():
     bad = bytearray(header)
     bad[3] = 0xDB
     data = write_file(m, bytes(bad), stream)
-    check(data == bytes(bad) + stream, 'odd header: the camera\'s file')
+    check(plain_or_tail(data, bytes(bad) + stream, t['diag'], 2), 'odd header: the camera\'s file')
     data = write_file(m, header, stream[:8000] + b'\xff\xd9')
-    check(data == header + stream[:8000] + b'\xff\xd9', 'short stream: the camera\'s file')
+    check(plain_or_tail(data, header + stream[:8000] + b'\xff\xd9', t['diag'], 3), 'short stream: the camera\'s file')
     print('fallbacks ok')
 
     # ---- small pictures: burst, pin, memory, writes watched

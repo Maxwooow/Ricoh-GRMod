@@ -12,7 +12,7 @@ import { createHash } from 'node:crypto';
 const sha = async (b: Uint8Array): Promise<string> => createHash('sha256').update(b).digest('hex');
 import { Engine, fw } from '../src';
 import { HDRGAIN_SOURCE_SHA256 } from '../src/fw/aspect/hdrgain-code';
-import { HDR_GAIN, WRITER_VTABLE, ZIGZAG, gainCodes, hdrTables, huffCodes, isoMetadata, quantTable } from '../src/fw/aspect/hdrgain';
+import { HDR_COUNTERS, HDR_CTX_MAGIC, HDR_GAIN, WRITER_VTABLE, ZIGZAG, gainCodes, hdrTables, huffCodes, isoMetadata, quantTable } from '../src/fw/aspect/hdrgain';
 import { JPEG_EXECUTE } from '../src/fw/aspect/datestamp';
 import { WRITER_VTABLE as WRITER_VTABLE_120 } from '../src/fw/gr4v120/aspect/hdrgain';
 import { HDRGAIN_SOURCE_SHA256 as HDRGAIN_SOURCE_SHA256_120 } from '../src/fw/gr4v120/aspect/hdrgain-code';
@@ -130,16 +130,31 @@ describe.skipIf(!have)('HDR gain map: builds', () => {
     // the same file with the gain map added later (extendVerified) is the one built at once
     expect(await sha(await eng.extendVerified(plain.file, { hdrGainMap: true }))).toBe(b.sha256);
   });
-  it('a test build with the diagnostics segment differs from the plain one only in that flag', async () => {
+  it('a test build differs from the plain one in its context (flag, counters word) and stubs (the counters), not in the module', async () => {
     const a = rtosOf((await eng.buildFirmware([], [], [], { hdrGainMap: true })).file);
     const b = rtosOf((await eng.buildFirmware([], [], [], { hdrGainMap: true, hdrDiag: true })).file);
-    expect(a.length).toBe(b.length);
-    const diff: number[] = [];
-    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) diff.push(i);
-    // the flag word of the context, and the sum word at the end
-    expect(diff.length).toBeLessThanOrEqual(8);
-    expect(diff.every((i) => i >= a.length - 8 || (a[i] === 0 && b[i] === 1) || Math.abs(i - diff[0]) < 4)).toBe(true);
-  });
+    const ctxOf = (r: Uint8Array): number => {
+      const dv = new DataView(r.buffer, r.byteOffset);
+      for (let i = 0x01000000; i + 4 <= r.length; i += 4) if (dv.getUint32(i, true) === HDR_CTX_MAGIC) return i - 20 * 4;
+      return -1;
+    };
+    const ca = ctxOf(a), cb = ctxOf(b);
+    expect(ca).toBeGreaterThan(0);
+    expect(cb).toBe(ca);
+    const w = (r: Uint8Array, i: number): number => new DataView(r.buffer, r.byteOffset).getUint32(i, true);
+    expect([w(a, ca + 19 * 4), w(a, ca + 21 * 4)]).toEqual([0, 0]);
+    expect([w(b, cb + 19 * 4), w(b, cb + 21 * 4)]).toEqual([1, HDR_COUNTERS]);
+    // the module is the same bytes in both, right after the context
+    const mod = (r: Uint8Array, c: number): Uint8Array => r.subarray(c + 32 * 4, c + 32 * 4 + 4096);
+    expect(Buffer.from(mod(a, ca)).equals(Buffer.from(mod(b, cb)))).toBe(true);
+    // the test build's stubs load the counters' address (movw / movt)
+    const lo = HDR_COUNTERS & 0xffff, hi = HDR_COUNTERS >>> 16;
+    const movw = (0xe3004000 | ((lo & 0xf000) << 4) | (lo & 0xfff)) >>> 0;
+    const movt = (0xe3404000 | ((hi & 0xf000) << 4) | (hi & 0xfff)) >>> 0;
+    const count = (r: Uint8Array): number => { let n = 0; for (let i = 0; i + 8 <= r.length; i += 4) if (w(r, i) === movw && w(r, i + 4) === movt) n++; return n; };
+    expect(count(a)).toBe(0);
+    expect(count(b)).toBe(4);
+  }, 120000);
 });
 
 describe.skipIf(!have120)('HDR gain map: GR IV 1.20 (port)', () => {

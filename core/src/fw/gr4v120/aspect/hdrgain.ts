@@ -34,7 +34,11 @@
  * The state (kept gain maps, the writers last seen, diagnostics) is allocated on the heap when the
  * first picture is encoded; its address is kept in HDR_STATE_WORD, one of the zero-filled words
  * before the heap. Test builds (`diag`) add an APP15 "GRMODHDR" segment with the module's counters
- * to every JPEG whose blocks look as expected.
+ * to every JPEG whose blocks look as expected; and (diagnostics version 2) the stubs count their
+ * calls in the two zero-filled words HDR_COUNTERS (Execute entries | returns << 16, block counts |
+ * block infos << 16), the block count makes the state when the encode step did not, and a file
+ * written as the camera's two blocks gets a third after the camera's EOI ("GRMODHDT" and the
+ * counters; tools/gr4v120/hdrgain/readdiag.py reads both).
  */
 import { FirmwareError } from '../../types';
 import { assembleWords, branchTarget } from './arm';
@@ -65,6 +69,8 @@ const HEAP_FREE = 0x539084f8;
 /** The module's state pointer: the last of the zero-filled words before the heap (see lookstash.ts). */
 export const HDR_STATE_WORD = 0x5583901c;
 const ZERO_FILL_END = 0x53000460;
+/** Test builds: two zero-filled words before the heap the stubs count their calls in (the zero fill's old end). */
+export const HDR_COUNTERS = 0x55839014;
 
 const OP_POST = 1;
 const OP_COUNT = 2;
@@ -265,16 +271,23 @@ export function installHdrGainMap(patch: Patch, diag = false): number {
   const ctx = patch.append(u32le([
     CACHE_CLEAN_INVALIDATE, HEAP_ALLOC, HEAP_FREE, HDR_STATE_WORD, code, zig, recip, half, dc, ac,
     head, t.head.length, t.sof, pre, t.xmpPre.length, post, t.xmpPost.length, iso, t.iso.length, diag ? 1 : 0,
-    HDR_CTX_MAGIC,
+    HDR_CTX_MAGIC, diag ? HDR_COUNTERS : 0,
   ]), 16);
   const mod = patch.append(hdrModule(), 16);
   const lo = (v: number): number => v & 0xffff;
   const hi = (v: number): number => v >>> 16;
   // After the encoder: Execute runs (with the stubs before it) and returns here.
   const tramp = patch.append((a) => assembleWords(tail, a), 16);
+  // Test builds count in HDR_COUNTERS: Execute entries and returns, block counts and infos.
+  const cnt = (reg: string, offset: number, add: number): string => diag
+    ? `movw r4, #${lo(HDR_COUNTERS)}; movt r4, #${hi(HDR_COUNTERS)}
+       ldr ${reg}, [r4, #${offset}]; add ${reg}, ${reg}, #${add}; str ${reg}, [r4, #${offset}]`
+    : '';
   const wrap = patch.append((a) => assembleWords(
     `push {r0, r1, r4, lr}
+     ${cnt('ip', 0, 1)}
      bl #${tramp}
+     ${cnt('r2', 0, 0x10000)}
      str r0, [sp]
      ldr r2, [sp, #4]
      ldr r2, [r2, #8]
@@ -284,6 +297,7 @@ export function installHdrGainMap(patch: Patch, diag = false): number {
      pop {r0, r1, r4, pc}`, a), 16);
   const countStub = patch.append((a) => assembleWords(
     `push {r4, lr}
+     ${cnt('r1', 4, 1)}
      mov r2, r0
      movw r0, #${lo(ctx)}; movt r0, #${hi(ctx)}
      mov r1, #${OP_COUNT}
@@ -291,6 +305,7 @@ export function installHdrGainMap(patch: Patch, diag = false): number {
      pop {r4, pc}`, a), 16);
   const infoStub = patch.append((a) => assembleWords(
     `push {r0, r1, r4, lr}
+     ${cnt('ip', 4, 0x10000)}
      mov r3, r1
      mov r2, r0
      movw r0, #${lo(ctx)}; movt r0, #${hi(ctx)}

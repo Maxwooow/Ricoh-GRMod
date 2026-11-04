@@ -20,6 +20,13 @@
  *  OP_INFO (ExifJpegWriter::GetWriteBlockInfo; a = the writer, b = block): a block of ours, or 0
  *    (the stub then calls the camera's own function).
  *
+ *  Diagnostic builds (flags bit 0) also: the stubs count their calls in two words before the heap
+ *  (`counters`: [0] low half Execute entries, high half Execute returns; [1] low half block counts,
+ *  high half block infos); GetWriteBlockCount makes the state itself when the encode step never
+ *  did (or the state word holds something else); and every file that would be written as the
+ *  camera's two blocks gets a third, after the camera's EOI: "GRMODHDT" and the counters (the
+ *  camera's blocks are not changed).
+ *
  * Position independent, no global data: everything comes through the context. The state (kept
  * gain maps, writers, diagnostics) is allocated on the heap the first time a picture is encoded
  * and its address kept in one word before the heap. Pictures, streams and the writer's blocks
@@ -69,6 +76,8 @@ struct ctx {
   const u8 *iso;                    /* primary ISO 21496-1 version segment, from FF E2 */
   u32 iso_len;
   u32 flags;                        /* bit 0: diagnostics segment */
+  u32 magic;                        /* 'HDR1' */
+  volatile u32 *counters;           /* diagnostic builds: two words the stubs count in (0: none) */
 };
 
 #define FLAG_DIAG 1u
@@ -83,7 +92,8 @@ struct ctx {
 #define STREAM_MIN (FP_OFF + FP_LEN + 2u)
 #define STREAM_MAX 0x08000000u
 #define STATE_MAGIC 0x31524448u   /* 'HDR1' */
-#define NDIAG 40
+#define NDIAG 96
+#define DIAG_VERSION 2
 
 struct entry {
   u32 used, seq, fp, dims;          /* dims = width | height << 16 */
@@ -100,6 +110,7 @@ struct wslot {
   u32 blocks[12];
   u32 seg_len;
   u8 seg[SEG_MAX];
+  u8 tail[16 + 4 * NDIAG];          /* diagnostic builds: the block after the camera's EOI */
 };
 
 /* Diagnostics (words; written into the diagnostics segment of each file in diagnostic builds). */
@@ -107,7 +118,17 @@ enum {
   D_POST_CALLS, D_POST_OK, D_POST_REASON, D_POST_DIMS, D_POST_STREAM, D_POST_SLEN, D_POST_GMLEN, D_POST_FP,
   D_CFG,                         /* 10 words: config 0x38..0x5c */
   D_CAND = D_CFG + 10,           /* 4 x 3 words: descriptor, its [0], its [3] */
-  D_W_CALLS = D_CAND + 12, D_W_MATCH, D_W_REASON, D_W_FP, D_W_DIMS, D_W_M, D_SEQ, D_KEPT, D_END
+  D_W_CALLS = D_CAND + 12, D_W_MATCH, D_W_REASON, D_W_FP, D_W_DIMS, D_W_M, D_SEQ, D_KEPT,
+  /* version 2 */
+  D_EXEC, D_CNT,                 /* the stubs' counters (see `counters`) */
+  D_STATE_RAW,                   /* what the state word held when the state was made */
+  D_STATE_BY,                    /* 1: the encode step made the state, 2: the block count */
+  D_STATE_AT,                    /* the state's address */
+  D_LOCK_FAIL,                   /* times the lock was not got */
+  D_TAILS,                       /* files given the block after the camera's EOI */
+  D_W_SELF, D_W_VT,              /* the writer, its vtable */
+  D_W_RAW,                       /* 21 words: the writer at +0x40..+0x90 (blocks at +0x54) */
+  D_END = D_W_RAW + 21
 };
 
 struct state {
@@ -171,6 +192,7 @@ static int lock(struct state *s) {
       __builtin_arm_clrex();
     }
   }
+  s->d[D_LOCK_FAIL]++;
   return 0;
 }
 
@@ -222,17 +244,23 @@ static int picture_ok(const struct picture *p) {
   return 1;
 }
 
+/* The state; `create`: 1 the encode step, 2 the block count (diagnostic builds). Diagnostic builds
+ * also take the word over when it holds something that is not a state (it is ours alone). */
 static struct state *get_state(const struct ctx *k, int create) {
   struct state *s = (struct state *)*k->state;
+  u32 raw = (u32)s;
   if (s) {
-    if (!ram(s) || s->magic != STATE_MAGIC) return 0;
-    return s;
+    if (ram(s) && !((u32)s & 3u) && s->magic == STATE_MAGIC) return s;
+    if (!(k->flags & FLAG_DIAG)) return 0;
   }
   if (!create) return 0;
   s = (struct state *)k->alloc(sizeof(struct state));
-  if (!s || !ram(s)) return 0;
+  if (!s || !ram(s) || ((u32)s & 3u)) return 0;
   zero((u32 *)s, sizeof(struct state) / 4);
   s->magic = STATE_MAGIC;
+  s->d[D_STATE_RAW] = raw;
+  s->d[D_STATE_BY] = (u32)create;
+  s->d[D_STATE_AT] = (u32)s;
   *k->state = s;
   return s;
 }
@@ -605,7 +633,7 @@ static u32 segments(const struct ctx *k, struct state *s, struct wslot *w, const
     if (n + 4 + 10 + 4 * D_END > SEG_MAX) return 0;
     o[n] = 0xff; o[n + 1] = 0xef; put16(o + n + 2, 2 + 10 + 4 * D_END);
     o[n + 4] = 'G'; o[n + 5] = 'R'; o[n + 6] = 'M'; o[n + 7] = 'O'; o[n + 8] = 'D';
-    o[n + 9] = 'H'; o[n + 10] = 'D'; o[n + 11] = 'R'; o[n + 12] = 0; o[n + 13] = 1;
+    o[n + 9] = 'H'; o[n + 10] = 'D'; o[n + 11] = 'R'; o[n + 12] = 0; o[n + 13] = DIAG_VERSION;
     for (i = 0; i < D_END; i++) put32le(o + n + 14 + 4 * i, s->d[i]);
     n += 4 + 10 + 4 * D_END;
   }
@@ -627,20 +655,65 @@ static u32 header_ok(const u8 *hdr, u32 H) {
   return i == H;
 }
 
+/* Diagnostic builds, a file written as the camera's two blocks: a third block after the camera's
+ * EOI with the counters. The camera's two blocks are copied as they are (GetWriteBlockInfo gives
+ * this + 0x54 + 12 i). Without the lock (counters only; a writer slot is taken over at worst).
+ * Returns the block count. */
+static u32 tail(const struct ctx *k, struct state *s, const u8 *self, const u32 *b) {
+  struct wslot *w = 0;
+  u32 i, end, n;
+  u8 *o;
+  if (!(k->flags & FLAG_DIAG)) return 2;
+  if (b[0] != 0 || b[3] != b[2] || b[2] > 0x01000000u || b[5] > 0x40000000u) return 2;
+  end = b[3] + b[5];
+  if (end < b[3]) return 2;
+  for (i = 0; i < NW; i++) if (s->w[i].self == self) { w = &s->w[i]; break; }
+  if (!w) {
+    for (i = 0; i < NW; i++) if (!w || s->w[i].use < w->use) w = &s->w[i];
+    if (w->e) { if (w->e->pins) w->e->pins--; w->e->done = 1; w->e = 0; }
+    w->self = self;
+  }
+  w->use = ++s->use;
+  s->d[D_TAILS]++;
+  if (k->counters) { s->d[D_EXEC] = k->counters[0]; s->d[D_CNT] = k->counters[1]; }
+  s->d[D_SEQ] = s->seq;
+  o = w->tail;
+  o[0] = 'G'; o[1] = 'R'; o[2] = 'M'; o[3] = 'O'; o[4] = 'D'; o[5] = 'H'; o[6] = 'D'; o[7] = 'T';
+  put32le(o + 8, DIAG_VERSION);
+  put32le(o + 12, D_END);
+  for (i = 0; i < D_END; i++) put32le(o + 16 + 4 * i, s->d[i]);
+  n = 16 + 4 * D_END;
+  for (i = 0; i < 6; i++) w->blocks[i] = b[i];
+  w->blocks[6] = end; w->blocks[7] = (u32)o; w->blocks[8] = n;
+  w->seg_len = 0;
+  w->n = 3;
+  return 3;
+}
+
 static u32 count(const struct ctx *k, const u8 *self) {
-  struct state *s = get_state(k, 0);
+  struct state *s = get_state(k, (k->flags & FLAG_DIAG) ? 2 : 0);
   const u32 *b;
   const u8 *hdr, *A;
-  u32 H, M, dims, fp, i, reason = 0;
+  u32 H, M, dims = 0, fp, i, reason = 0;
   struct wslot *w = 0;
   struct entry *e = 0;
   if (!s || !ram(self) || ((u32)self & 3u)) return 2;
   s->d[D_W_CALLS]++;
   b = (const u32 *)(self + 0x54);
+  if (k->flags & FLAG_DIAG) {
+    if (k->counters) { s->d[D_EXEC] = k->counters[0]; s->d[D_CNT] = k->counters[1]; }
+    s->d[D_W_SELF] = (u32)self;
+    s->d[D_W_VT] = *(const u32 *)self;
+    for (i = 0; i < 21; i++) s->d[D_W_RAW + i] = ((const u32 *)(self + 0x40))[i];
+  }
   hdr = (const u8 *)b[1]; H = b[2]; A = (const u8 *)b[4]; M = b[5];
   if (b[0] != 0 || b[3] != H || !ram(hdr) || !ram(A) || !ram(A + M) || H < 64 || H > 0x20000u) reason = 1;
   else if (!header_ok(hdr, H)) reason = 2;
-  else if (M < STREAM_MIN || M > STREAM_MAX || !(dims = stream_dims(A, 1024))) reason = 3;
+  else if (M < STREAM_MIN || M > STREAM_MAX) reason = 3;
+  else {
+    flush(k, A, 1024);
+    if (!(dims = stream_dims(A, 1024))) reason = 3;
+  }
   if (reason) {
     /* This writer's blocks are the camera's: forget what it was given before. */
     s->d[D_W_REASON] = reason;
@@ -656,7 +729,7 @@ static u32 count(const struct ctx *k, const u8 *self) {
     } else {
       for (i = 0; i < NW; i++) if (s->w[i].self == self) s->w[i].n = 2;
     }
-    return 2;
+    return tail(k, s, self, b);
   }
   fp = fingerprint(A, dims);
   flush(k, A + FP_OFF, FP_LEN);
@@ -664,7 +737,7 @@ static u32 count(const struct ctx *k, const u8 *self) {
   if (!lock(s)) {
     s->d[D_W_REASON] = 6;
     for (i = 0; i < NW; i++) if (s->w[i].self == self) s->w[i].n = 2;
-    return 2;
+    return tail(k, s, self, b);
   }
   for (i = 0; i < NW; i++) if (s->w[i].self == self) { w = &s->w[i]; break; }
   if (!w) {
@@ -688,6 +761,7 @@ static u32 count(const struct ctx *k, const u8 *self) {
       if (w->e && w->e->pins) w->e->pins--;
       w->e = 0;  /* (not done: it was not written) */
       w->n = 2;
+      if (k->flags & FLAG_DIAG) { unlock(s); return tail(k, s, self, b); }
     } else {
       w->blocks[0] = 0; w->blocks[1] = (u32)hdr; w->blocks[2] = H;
       w->blocks[3] = H; w->blocks[4] = (u32)w->seg; w->blocks[5] = n;

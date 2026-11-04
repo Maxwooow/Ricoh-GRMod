@@ -236,11 +236,16 @@ function contextOf(p: Patch): number | null {
   if (first >>> 24 !== 0xea) return null;
   let stub = branchTarget(JPEG_EXECUTE, first);
   // The HDR gain map (hdrgain.ts) wraps the JPEG step after halation: its wrapper (push {r0, r1, r4,
-  // lr}; bl trampoline; str r0, [sp]) calls a trampoline that branches to what the entry held before.
-  if (p.word(stub) === 0xe92d4013 && p.word(stub + 4) >>> 24 === 0xeb && p.word(stub + 8) === 0xe58d0000) {
-    const tramp = branchTarget(stub + 4, p.word(stub + 4));
-    if (p.word(tramp) >>> 24 !== 0xea) return null;
-    stub = branchTarget(tramp, p.word(tramp));
+  // lr}; [test builds: a counter, 6 words]; bl trampoline; ...) calls a trampoline that branches to
+  // what the entry held before.
+  if (p.word(stub) === 0xe92d4013) {
+    for (let at = stub + 4; at <= stub + 28; at += 4) {
+      if (p.word(at) >>> 24 !== 0xeb) continue;
+      const tramp = branchTarget(at, p.word(at));
+      if (p.word(tramp) >>> 24 !== 0xea) return null;
+      stub = branchTarget(tramp, p.word(tramp));
+      break;
+    }
   }
   if (p.word(stub + 4) !== 0xe5911008) return null; // ldr r1,[r1,#8]: the halation stub, not the date imprint's
   // push; ldr r1,[r1,#8]; movw r0; movt r0
