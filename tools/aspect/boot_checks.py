@@ -568,6 +568,10 @@ def check_menu(official, patched):
 # functions 0..0x14 but soft focus's 0x0A), so the guard leaves them alone and the rest is compared.
 GUARD_LOOKS = (0x153, 0x154, 0x155, 0x156, 0x515, 0x516, 0x517, 0x518)
 GUARD_ADJ = (0x920, 0x921, 0x922, 0x923, 0x924)
+# More ADJ lever slots (adjslots.ts): slots 6..8 (0x48D..0x48F; 0 is valid whatever their number) and
+# the camera's remembered slot 0x91E (0..4), which the guard of such a build also puts back.
+GUARD_ADJ_EXTRA = (0x48D, 0x48E, 0x48F)
+GUARD_ADJ_POSITION = 0x91E
 
 
 def guard_valid(state, settings, rng, adjust=0):
@@ -576,6 +580,9 @@ def guard_valid(state, settings, rng, adjust=0):
         poke(state, settings + off - adjust, bytes([rng.choice(range(11, 25))]))
     for off in GUARD_ADJ:
         poke(state, settings + off - adjust, bytes([rng.choice([n for n in range(0x15) if n != 0x0A])]))
+    for off in GUARD_ADJ_EXTRA:
+        poke(state, settings + off - adjust, bytes([0]))
+    poke(state, settings + GUARD_ADJ_POSITION - adjust, bytes([rng.randrange(5)]))
 
 
 def check_settings(official, patched, order):
