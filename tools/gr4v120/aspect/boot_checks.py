@@ -222,6 +222,12 @@ SPECIAL = {
 # Hooks whose displaced instruction is conditional: include the instruction(s) before it, which set the flags.
 LEAD = {0x536728E4: 1, 0x53672E80: 1, 0x538B3720: 1}
 
+# More ADJ lever slots (core/src/fw/gr4v120/aspect/adjslots.ts), when the build has them: the views' binding,
+# SlotFunction past slot 5, the strip, the touchable icons, the taps and the slot last used go to
+# functions of N slots on purpose. Their behaviour is checked function by function, with five slots
+# against the official image and with 6..8 against the rules, by tools/gr4v120/adjslots/check.py.
+ADJ_SLOTS_ENTRY = (0x531C1A60, 0x531BEAE4, 0x531C0F74, 0x531BEBF4, 0x531BD078, 0x531C03BC, 0x531C0404, 0x531C0498)
+
 
 def hooks_of(official, patched):
     """Addresses in the official part whose word changed into a B/BL to the appended area."""
@@ -931,6 +937,9 @@ def run(official, patched, icon_bytes, official_icons, quiet=False):
             'identical for heights that are multiples of 8; callee-saved registers, stack and memory as after the official call' % cases)
     else:
         say('build revision 1: no decode buffer change')
+    for a in ADJ_SLOTS_ENTRY:
+        if a in hooks:
+            SPECIAL[a] = 'entry'
     unknown = [hex(a) for a in SPECIAL if a not in hooks]
     assert not unknown, 'SPECIAL lists addresses that are not hooks: %s' % unknown
     # BOOT_SHARD=i/n: only the transparency check, of every n-th hook from the i-th (to spread a build
