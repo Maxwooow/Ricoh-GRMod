@@ -18,15 +18,19 @@ function records' handlers replaced by stubs that record what they are given:
     the same arguments, the same results, the same state (the official +0x200 area at the new place).
  4. No function reads or writes the official state area (+0x200..+0x277) any more, nor anything past
     the object.
- 5. The menu: Customize Settings has the new item after ADJ Mode Setting (official menu plus one line),
-    the controller factory and SetCurrentMenu for the new ids, the submenu record (lines, texts,
-    value icons) and the lists (count, rows, set, is current for every value; other bits kept),
-    texts in all 21 languages.
+ 5. The menu: every menu as the official (or the reference build without the slots), ADJ Mode
+    Setting's record with N lines and the record of lines 6..N (texts, ids, value icons), the
+    controller factory for the lists, the lists (count, rows, set, is current for every value; other
+    bits kept), texts in all 21 languages. SubMenuController's own code with every widget function
+    real: every other submenu shows and moves as before (rows, texts, value icons, hidden rows, the
+    list's place, focus and scroll for many keys); ADJ Mode Setting shows N lines (six in the list's
+    area, scrolling with the cursor), OK on each line opens its list, the line is shown again on return.
  6. The settings guard: slots 6..N, the remembered slot, 0x91E.
  7. Every call the module and the stubs make goes to the start of a firmware function.
 
     python3 check.py IMAGES-DIR      (from tools/adjslots/images.ts)
-    python3 check.py IMAGES-DIR NAME N   (one image, e.g. a test firmware's decoded RTOS, with N slots)
+    python3 check.py IMAGES-DIR NAME N [REF]   (one image, e.g. a test firmware's decoded RTOS, with N slots;
+                                               REF: the same build without the slots, for the menus)
 """
 import base64
 import re
@@ -43,6 +47,7 @@ import menu_check as dm  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 failures = []
+REFERENCE = None
 CURRENT = 0x55084dd8
 EXT = CURRENT + 4 + 0x489
 POS_STILL = CURRENT + 0x91e
@@ -517,54 +522,155 @@ ADJ_MENU_ID = 0x020001c0
 T0 = 970
 
 
-def check_menu(d, name, n, other_menu_ids=()):
+ADJ_LIST_ID = ADJ_MENU_ID + 1
+T_ADJ_MODE, T_SETTING1 = 460, 462
+SUB_CTOR, SUB_SET_CURRENT, SUB_SHOW = 0x531e29c8, 0x531e1bd0, 0x531e271c
+SUB_DOWN, SUB_UP, SUB_OK = 0x531e2040, 0x531e1ff8, 0x531e20a8
+SUB_DRAW_CALL = 0x531e2544   # blx r2: a line's value draw (skipped and recorded)
+OPEN_MENU, CURRENT_MENU = 0x53182e4c, 0x53183e14
+VEC_ALLOCATOR = 0x538eb380   # ldr r3, [r0]: the vector's allocator (one that hands out emulator memory)
+MALLOC, FREE, DELETE = 0x538e0a24, 0x538e0a60, 0x538e09ec
+UI_STATE = 0x533ef18c
+ADJ_RECORD = 10
+FAKE_ALLOC = 0x70f00000
+
+
+def sub_emu(img):
+    """SubMenuController's own code with every widget function real; memory from the emulator."""
+    e = dm.Emu(img)
+    mu = e.mu
+    e.record = dict(e.record)
+    e.record.update({0x53583014: 'text', 0x5358304c: 'value-x', OPEN_MENU: 'open'})
+    for a in (UI_STATE, DELETE, FREE):
+        e.stubs[a] = (lambda: 0)
+
+    def malloc():
+        size = mu.reg_read(UC_ARM_REG_R0)
+        p = e.heap[0]
+        e.heap[0] += (size + 15) & ~15
+        return p
+    e.stubs[MALLOC] = malloc
+    e.stubs[CURRENT_MENU] = (lambda: 0x020000d3)
+    e.stubs[0x533817f0] = (lambda: ICON_BASE + mu.reg_read(UC_ARM_REG_R1))
+    vt = FAKE_ALLOC + 0x100
+    mu.mem_write(FAKE_ALLOC, struct.pack('<I', vt))
+    mu.mem_write(vt, struct.pack('<4I', FAKE_ALLOC + 0x200, FAKE_ALLOC + 0x200, FAKE_ALLOC + 0x210, FAKE_ALLOC + 0x200))
+
+    def hook(uc, addr, size, ud):
+        if addr == VEC_ALLOCATOR:
+            uc.reg_write(UC_ARM_REG_R0, FAKE_ALLOC)
+        elif addr == FAKE_ALLOC + 0x210:
+            n = uc.reg_read(UC_ARM_REG_R1)
+            p = e.heap[0]
+            e.heap[0] += (n * 16 + 15) & ~15
+            uc.reg_write(UC_ARM_REG_R0, p)
+            uc.reg_write(UC_ARM_REG_PC, uc.reg_read(UC_ARM_REG_LR))
+        elif addr == FAKE_ALLOC + 0x200:
+            uc.reg_write(UC_ARM_REG_PC, uc.reg_read(UC_ARM_REG_LR))
+        elif addr == SUB_DRAW_CALL:
+            e.calls.append(('draw', uc.reg_read(UC_ARM_REG_R1), uc.reg_read(UC_ARM_REG_R2), uc.reg_read(UC_ARM_REG_R0) - e.this))
+            uc.reg_write(UC_ARM_REG_PC, SUB_DRAW_CALL + 4)
+    for a in (VEC_ALLOCATOR, SUB_DRAW_CALL):
+        mu.hook_add(UC_HOOK_CODE, hook, begin=a, end=a)
+    mu.hook_add(UC_HOOK_CODE, hook, begin=FAKE_ALLOC, end=FAKE_ALLOC + 0x300)
+    e.this = 0x70000000
+    mu.mem_write(e.this, bytes(0x200))
+    e.call(SUB_CTOR, (e.this,))
+    e.list = e.u32(e.this + 0x170)
+    return e
+
+
+def sub_open(img, cid):
+    """The submenu of controller id `cid` as shown: (record, rows, list state) or None."""
+    e = sub_emu(img)
+    e.mu.mem_write(e.this + 0x174, b'\xff')
+    e.call(SUB_SET_CURRENT, (e.this, cid))
+    rec = e.byte(e.this + 0x174)
+    if rec == 0xff:
+        return None
+    e.calls.clear()
+    e.call(SUB_SHOW, (e.this,))
+    per = {}
+    for c in e.calls:
+        if c[0] in ('text', 'value-x', 'sub-icon', 'draw'):
+            per.setdefault(c[1], []).append(c[:1] + c[2:3] + (c[3:4] if c[0] == 'draw' else ()))
+    vec, end = e.u32(e.list + 0xf4), e.u32(e.list + 0xf8)
+    rows = [(e.byte(e.u32(vec + 4 * i) + 4), per.get(e.u32(e.u32(vec + 4 * i)))) for i in range((end - vec) // 4)]
+    asserts = [c for c in e.calls if c[0] == 'ASSERT']
+    return e, rec, rows, asserts
+
+
+def sub_state(e):
+    L = e.list
+    return (e.byte(L + 0x108), struct.unpack('<H', e.mu.mem_read(L + 0x110, 2))[0], struct.unpack('<i', e.mu.mem_read(L + 0x114, 4))[0],
+            struct.unpack('<4i', e.mu.mem_read(L + 0x20, 16)))
+
+
+KEYS = {'d': (SUB_DOWN, 0), 'D': (SUB_DOWN, 1), 'u': (SUB_UP, 0), 'U': (SUB_UP, 1)}
+KEY_RUN = 'dddddddddduuuuuuuuuuDDDDDDDDDUUUUUUUUUdUdUuuDD'
+
+
+def sub_keys(e, keys):
+    seq = [sub_state(e)]
+    for k in keys:
+        e.call(*(KEYS[k][:1] + ((e.this, KEYS[k][1]),)))
+        seq.append(sub_state(e))
+    return seq
+
+
+def adj_model(n, keys):
+    """ADJ Mode Setting with n lines: focus and the list's scroll (six rows of 60 shown)."""
+    f, top = 0, 0
+    out = [(n, 0, 0)]
+    for k in keys:
+        if k in 'dD':
+            if not (k == 'D' and f == n - 1):
+                f = (f + 1) % n
+        else:
+            if not (k == 'U' and f == 0):
+                f = (f - 1) % n
+        if f < top:
+            top = f
+        if f > top + 5:
+            top = f - 5
+        out.append((n, f, 60 * top))
+    return out
+
+
+def check_menu(d, name, n, other_menu_ids=(), reference=None):
     new = dm.Image(d / name)
     off = dm.Image(d / 'official.rtos')
+    ref = dm.Image(d / reference) if reference else off
     lines = n - 5
-    # Customize Settings: official plus one item after ADJ Mode Setting.
+    v = struct.unpack_from
+    # Every menu (Customize Settings included) as the reference's: no item added.
     for model in (0, 1, 2):
         a = dm.built_menus(new, model)
-        b = dm.built_menus(off, model)
-        ma, mb = a[3], b[3]
-        ids = lambda m: [struct.unpack_from('<I', m, 0x1bc + 4 * i)[0] for i in range(m[0x8b])]
-        draws = lambda m: [struct.unpack_from('<2I', m, 0x8c + 8 * i) for i in range(m[0x8b])]
-        ia, ib = ids(ma), ids(mb)
-        check(ia == ib[:7] + [ADJ_MENU_ID] + ib[7:], f'{name}: Customize Settings ids (model {model})')
-        check(list(ma[0x80:0x83]) == [0, 5, 15], f'{name}: Customize Settings pages {list(ma[0x80:0x83])}')
-        da, db = draws(ma), draws(mb)
-        check(da[:7] + da[8:] == db, f'{name}: Customize Settings items moved')
-        for m in (0, 1, 2, 4):
-            if m == 0 and other_menu_ids:
-                continue
+        b = dm.built_menus(ref, model)
+        for m in range(5):
             check(a[m] == b[m], f'{name}: menu {m} changed (model {model})')
-    # The item draws the new title, no value icon.
-    e = dm.Emu(new)
-    item = struct.unpack_from('<I', dm.built_menus(new, 0)[3], 0x8c + 8 * 7)[0]
-    e.call(item, (0x70000000, 0x70700000))
-    calls = [c for c in e.calls if c[0] in ('top-icon', 'top-title')]
-    check(calls == [('top-icon', 0x70700000, 0, calls[0][3] if calls else 0), ('top-title', 0x70700000, T0, calls[1][3] if len(calls) > 1 else 0)][:len(calls)] and len(calls) == 2,
-          f'{name}: item draw {calls}')
-    # Factory and SetCurrentMenu.
-    check(dm.factory_class(new, ADJ_MENU_ID) == dm.factory_class(off, 0x020000d3), f'{name}: submenu controller')
+    # Factory and SetCurrentMenu: lists for the line ids, nothing else new.
     for j in range(lines):
-        check(dm.factory_class(new, ADJ_MENU_ID + 1 + j) == dm.factory_class(off, 0x020000a8), f'{name}: list controller {j}')
-    check(dm.factory_class(new, ADJ_MENU_ID + 1 + lines) == dm.factory_class(off, ADJ_MENU_ID + 1 + lines), f'{name}: id after the lists')
-    sub_rec = dm.set_current(new, 0x531e1bd0, 0x174, ADJ_MENU_ID)
-    list_recs = [dm.set_current(new, 0x531d5e8c, 0x1a4, ADJ_MENU_ID + 1 + j) for j in range(lines)]
+        check(dm.factory_class(new, ADJ_LIST_ID + j) == dm.factory_class(off, 0x020000a8), f'{name}: list controller {j}')
+    for cid in (ADJ_MENU_ID, ADJ_LIST_ID + lines):
+        check(dm.factory_class(new, cid) == dm.factory_class(ref, cid), f'{name}: controller id {cid:#x} is handed out')
+    list_recs = [dm.set_current(new, 0x531d5e8c, 0x1a4, ADJ_LIST_ID + j) for j in range(lines)]
     for cid in (0x020000d3, 0x020000a8, 0x020000ac, 0x020000d0):
         fn = 0x531e1bd0 if cid in (0x020000d3, 0x020000d0) else 0x531d5e8c
         o = 0x174 if fn == 0x531e1bd0 else 0x1a4
         check(dm.set_current(new, fn, o, cid) == dm.set_current(off, fn, o, cid), f'{name}: SetCurrentMenu {cid:#x}')
-    # The submenu record.
+    # The record of lines 6..N.
+    sub_rec = dm.set_current(new, 0x531e1bd0, 0x174, ADJ_MENU_ID)
     subtab = new.movw_movt(0x531e2064, 0x531e206c)
     rec = new.rd(subtab + sub_rec * 0x64, 0x64)
-    off_rec = off.rd(0x53da6718 + 10 * 0x64, 0x64)
-    v = struct.unpack_from
-    check(v('<H', rec, 2)[0] == T0 and rec[6] == lines, f'{name}: submenu title / lines')
-    check([v('<H', rec, 8 + 2 * k)[0] for k in range(lines)] == [T0 + 1 + k for k in range(lines)], f'{name}: submenu line texts')
-    check([v('<I', rec, 0x14 + 4 * k)[0] for k in range(lines)] == [ADJ_MENU_ID + 1 + k for k in range(lines)], f'{name}: submenu line ids')
-    check([v('<I', rec, 0x28 + 4 * k)[0] for k in range(lines)] == [0x21c] * lines, f'{name}: submenu value x')
-    check(rec[0] == off_rec[0] and rec[1] == off_rec[1], f'{name}: submenu record head')
+    adj = new.rd(subtab + ADJ_RECORD * 0x64, 0x64)
+    off_adj = off.rd(0x53da6718 + ADJ_RECORD * 0x64, 0x64)
+    check(adj == off_adj[:6] + bytes([n]) + off_adj[7:], f'{name}: ADJ Mode Setting record: only its line count ({adj[6]})')
+    check(v('<H', rec, 2)[0] == T_ADJ_MODE and rec[6] == lines, f'{name}: lines record title / lines')
+    check([v('<H', rec, 8 + 2 * k)[0] for k in range(lines)] == [T0 + 1 + k for k in range(lines)], f'{name}: lines record texts')
+    check([v('<I', rec, 0x14 + 4 * k)[0] for k in range(lines)] == [ADJ_LIST_ID + k for k in range(lines)], f'{name}: lines record ids')
+    check([v('<I', rec, 0x28 + 4 * k)[0] for k in range(lines)] == [0x21c] * lines, f'{name}: lines record value x')
+    check(rec[0] == off_adj[0] and rec[1] == off_adj[1], f'{name}: lines record head')
     # Lists: count / row draw are ADJ Mode Setting 1's; set and is current per value.
     seltab = new.movw_movt(0x531d6868, 0x531d6878)
     vec = list(range(20))
@@ -593,7 +699,7 @@ def check_menu(d, name, n, other_menu_ids=()):
                     check(after == (raw & 0xe0) | vec[i], f'{name}: list {j} byte {raw:#x} set {i}: {after:#x}')
                 else:
                     check(after == raw, f'{name}: list {j} byte {raw:#x} set {i} (none): {after:#x}')
-        # submenu line value icon
+        # the line's value icon
         for raw in (0, 3, 0x14, 0x15, 0x27):
             e = dm.Emu(new)
             e.stubs[0x533817f0] = (lambda mu=e.mu: ICON_BASE + mu.reg_read(UC_ARM_REG_R1))
@@ -604,18 +710,67 @@ def check_menu(d, name, n, other_menu_ids=()):
             fval = raw & 0x1f
             fval = 0 if fval > 0x14 else fval
             check(icons == [('sub-icon', 0x70700000, ICON_BASE + fval, icons[0][3] if icons else 0)], f'{name}: line {j} icon for {raw:#x}: {icons}')
+
+    # SubMenuController itself, every widget function real: every other submenu as in the reference
+    # (rows, texts, value icon places and draws, rows hidden, the list's place, focus and scroll for
+    # every key), ADJ Mode Setting with N lines.
+    compared = 0
+    for cid in range(0x02000085, 0x02000200):
+        b = sub_open(ref, cid)
+        a = sub_open(new, cid)
+        if b is None and a is None:
+            continue
+        if b is None or a is None:
+            if cid != ADJ_MENU_ID:
+                check(False, f'{name}: submenu {cid:#x} opens in only one of the images')
+            continue
+        if a[1] == ADJ_RECORD or cid == ADJ_MENU_ID:
+            continue
+        ea, ra, rowa, asa = a
+        eb, rb, rowb, asb = b
+        check(ra == rb and rowa[:len(rowb)] == rowb and all(x == (0, None) for x in rowa[len(rowb):]) and len(rowa) == max(n, len(rowb))
+              and asa == asb == [], f'{name}: submenu {cid:#x} rows {rowa} / {rowb}')
+        check(sub_keys(ea, KEY_RUN) == sub_keys(eb, KEY_RUN), f'{name}: submenu {cid:#x} keys')
+        compared += 1
+    check(compared >= 17, f'{name}: only {compared} other submenus')
+    # ADJ Mode Setting.
+    ea, ra, rowa, asa = sub_open(new, 0x020000d3)
+    eb, rb, rowb, asb = sub_open(off, 0x020000d3)
+    check(ra == rb == ADJ_RECORD and asa == asb == [], f'{name}: ADJ Mode Setting record {ra} {asa}')
+    want = rowb + [(1, [('text', T0 + 1 + j), ('value-x', 0x21c), ('draw', v('<I', rec, 0x3c + 8 * j)[0], v('<I', rec, 0x40 + 8 * j)[0] >> 1)]) for j in range(lines)]
+    check(rowa == want, f'{name}: ADJ Mode Setting rows {rowa} / {want}')
+    check(sub_state(ea)[3] == (0, 60, 720, 60 * min(n, 6)), f'{name}: ADJ Mode Setting list place {sub_state(ea)[3]}')
+    for keys in (KEY_RUN, 'u' * 12, 'd' * 9 + 'u' * 4 + 'D' * 3, 'U' + 'u' + 'd' * 3):
+        got = [s[:3] for s in sub_keys(sub_open(new, 0x020000d3)[0], keys)]
+        check(got == adj_model(n, keys), f'{name}: ADJ Mode Setting keys {keys}: {got} / {adj_model(n, keys)}')
+    # OK on every line: the line's list opens; the line is remembered and shown again on return.
+    for i in range(n):
+        e = sub_open(new, 0x020000d3)[0]
+        for _ in range(i):
+            e.call(SUB_DOWN, (e.this, 0))
+        e.calls.clear()
+        e.call(SUB_OK, (e.this,))
+        opened = [c[2] for c in e.calls if c[0] == 'open']
+        check(opened == [0x020000a8 + i if i < 5 else ADJ_LIST_ID + i - 5], f'{name}: OK on line {i} opens {[hex(x) for x in opened]}')
+        depth = e.byte(e.this + 0x175)
+        check(struct.unpack('<H', e.mu.mem_read(e.this + 0x176 + 2 * depth, 2))[0] == i, f'{name}: line {i} remembered')
+        e.call(SUB_SHOW, (e.this,))
+        st = sub_state(e)
+        check(st[1] == i and st[2] <= 60 * i <= st[2] + 300, f'{name}: back on line {i}: {st}')
+    print(f'  {name}: every menu as the reference (no new item), {compared} other submenus the same (rows, keys), '
+          f'ADJ Mode Setting {n} lines (texts, value icons, list {60 * min(n, 6)} px, focus / scroll for every key, OK on every line '
+          f'and back), {lines} lists (set / is current for every value)')
     # Texts.
-    for row, want in ((1, ['ADJ Mode Setting 6' + ('' if n == 6 else f'-{n}')] + [f'Setting{6 + k}' for k in range(lines)]),
-                      (0, ['ADJモード設定 6' + ('' if n == 6 else f'-{n}')] + [f'設定{6 + k}' for k in range(lines)]),
-                      (19, ['ADJ模式设定 6' + ('' if n == 6 else f'-{n}')] + [f'设定{6 + k}' for k in range(lines)])):
-        got = [dm.text(new, row, T0 + k) for k in range(lines + 1)]
+    for row, want in ((1, [f'Setting{6 + k}' for k in range(lines)]), (0, [f'設定{6 + k}' for k in range(lines)]), (19, [f'设定{6 + k}' for k in range(lines)])):
+        got = [dm.text(new, row, T0 + 1 + k) for k in range(lines)]
         check(got == want, f'{name}: texts row {row}: {got}')
-    allrows = [[dm.text(new, row, T0 + k) for k in range(lines + 1)] for row in range(21)]
-    check(all(r[0].endswith(' 6' + ('' if n == 6 else f'-{n}')) and all(str(6 + k) in r[1 + k] and str(1) not in r[1 + k] for k in range(lines)) for r in allrows),
-          f'{name}: a text without its number {allrows}')
-    print(f'  {name}: Customize Settings (+1 item, every model), factory, SetCurrentMenu, submenu record, {lines} lists (set / is current for every value), texts:')
-    for row in (1, 0, 19, 18, 7):
-        print('     ', allrows[row])
+    allrows = [[dm.text(new, row, T0 + 1 + k) for k in range(lines)] for row in range(21)]
+    check(all(all(str(6 + k) in r[k] and '1' not in r[k] for k in range(lines)) for r in allrows), f'{name}: a text without its number {allrows}')
+    def text_slot(img, row, tid):
+        r = img.u32(dm.TEXT_CATALOG + row * 4)
+        return img.u32(r + tid * 4)
+    check(all(text_slot(new, row, T0) == 0 for row in range(21)), f'{name}: text {T0} is used')
+    print('      texts:', allrows[1], allrows[0], allrows[19])
 
 
 # ------------------------------------------------------------------------------------------------
@@ -711,7 +866,9 @@ def check_calls(d, name):
 
 
 def main():
+    global REFERENCE
     d = Path(sys.argv[1])
+    REFERENCE = sys.argv[4] if len(sys.argv) > 4 else None
     # python3 check.py DIR [NAME N]: only the image DIR/NAME with N slots, built with soft focus and the
     # other menu additions (a test firmware's decoded RTOS); DIR also holds official.rtos.
     if len(sys.argv) > 3:
@@ -723,7 +880,8 @@ def main():
     for name, n, sf in images:
         print(f'{name}:')
         check_slots(d, name, n, sf)
-        check_menu(d, name, n, other_menu_ids=(1,) if 'all' in name or len(sys.argv) > 3 else ())
+        check_menu(d, name, n, other_menu_ids=(1,) if 'all' in name or len(sys.argv) > 3 else (),
+                   reference=('n5all.rtos' if 'all' in name else REFERENCE))
         check_guard(d, name, n, sf)
         check_calls(d, name)
     if failures:

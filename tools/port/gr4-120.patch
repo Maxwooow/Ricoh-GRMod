@@ -28,23 +28,23 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
   *
 @@ -47,7 +48,7 @@
   *    N - 1; the slot last used goes through the module;
-  *  - the settings: Customize Settings gets an item after ADJ Mode Setting, "ADJ Mode Setting 6-N",
-  *    that opens a submenu record of N - 5 lines "Setting6".. (texts made from the camera's own in
-- *    each language), each a list that is ADJ Mode Setting 1's (record 67) with its own set and
-+ *    each language), each a list that is ADJ Mode Setting 1's (record 68) with its own set and
-  *    "is current".
-  * In the fixed layout (movies) the extra slots are empty and their frames hidden: the five fixed
-  * functions are as before.
-@@ -67,7 +68,7 @@
+  *  - the settings: ADJ Mode Setting itself has N lines "Setting1".."SettingN" (texts of lines 6..N
+  *    made from the camera's own in each language), lines 6..N each a list that is ADJ Mode Setting
+- *    1's (record 67) with its own set and "is current". A submenu record holds five lines, so lines
++ *    1's (record 68) with its own set and "is current". A submenu record holds five lines, so lines
+  *    6..N are kept in a record of their own (appended, never opened) and SubMenuController reads
+  *    them there for ADJ Mode Setting (record 10): the line's text, value icon x and value draw in
+  *    its list builder (0x531E3E70), the line's controller id on OK (0x531E3AF4). Its list (made once
+@@ -73,7 +74,7 @@
  export const ADJ_MENU_ID = 0x020001c0;
  export const ADJ_LIST_ID = 0x020001c1;
- /** Texts: the submenu (and its Customize Settings item), the lines of slots 6..8. */
+ /** Texts: the lines of slots 6..8 are ADJ_TEXT_ID + 1.. (ADJ_TEXT_ID itself is not used). */
 -export const ADJ_TEXT_ID = 970;
 +export const ADJ_TEXT_ID = 1014; // 1.11: 970 (+ TEXT_SHIFT)
  /** The controller's new members and size. */
  export const ADJ_FRAMES = 0x294;
  export const ADJ_ICONS = 0x2b4;
-@@ -139,19 +140,19 @@
+@@ -145,19 +146,19 @@
  
  /** Official words of every place changed, checked first. */
  const OFFICIAL: readonly (readonly [number, number])[] = [
@@ -68,9 +68,9 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
    [0x531be238, MOV_IP_SP], [0x531beab8, MOV_IP_SP], [0x535ab874, MOV_IP_SP], [0x539084bc, MOV_IP_SP],
  ];
  
-@@ -248,8 +249,8 @@
+@@ -253,8 +254,8 @@
+   return text.slice(0, ascii) + String(digit) + text.slice(ascii + 1);
  }
- export const adjMenuName = (text: string, n: number): string => `${text} 6${n > 6 ? `-${n}` : ''}`;
  
 -const TEXT_ADJ_MODE = 460;
 -const TEXT_SETTING1 = 462;
@@ -79,43 +79,15 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
  
  /** Texts of row l (every row of the catalog, as the program indexes languages). */
  function installTexts(patch: Patch, entries: readonly { id: number; make: (row: number) => string }[]): void {
-@@ -278,13 +279,13 @@
- const D_ID = 0x1bc;
- const D_VISIBLE = 0x254;
- const MAX_ITEMS = 38;
--const ADJ_ITEM = 6;
-+const ADJ_ITEM = 7; // 1.11: 6 (1.20 inserts item 0x02000149 before it)
- const ADJ_ITEM_ID = 0x020000d3;
- const ADJ_ITEM_DRAW = 0x531b1598;
- const TOP_SET_ICON = 0x5359d6f4;
- const TOP_SET_TITLE = 0x5359d48c;
+@@ -276,7 +277,7 @@
+ 
+ // --- Settings: ADJ Mode Setting's submenu record and lists, SubMenuController's list.
  const ADJ_SUBMENU = 10;
 -const ADJ_LIST_RECORD = 67;
 +const ADJ_LIST_RECORD = 68; // 1.11: 67 (1.20 inserts a list record before it)
  const SELECT_TABLE = 0x53dcd470;
  const SELECT_RECORD = 0x4c;
  const ADJ1_COUNT = 0x531d0b7c;
-@@ -305,9 +306,9 @@
-   if (new DataView(patch.readMapped(MENU_TABLE + 3 * 4, 4).buffer).getUint32(0, true) !== CUSTOM_MENU) fail('unexpected-layout', 'Customize Settings descriptor is not where it was expected');
-   const d = patch.read(CUSTOM_MENU, 0x38c);
-   const dv = new DataView(d.buffer);
--  if (d[0x68] !== 3 || [...d.subarray(D_FIRST, D_FIRST + 3)].join() !== '0,5,14' || d[D_COUNT] !== 23) fail('unexpected-layout', 'Customize Settings pages are not the official ones');
-+  if (d[0x68] !== 3 || [...d.subarray(D_FIRST, D_FIRST + 3)].join() !== '0,6,15' || d[D_COUNT] !== 24) fail('unexpected-layout', 'Customize Settings pages are not the official ones');
-   if (dv.getUint32(D_ID + ADJ_ITEM * 4, true) !== ADJ_ITEM_ID || dv.getUint32(D_DRAW + ADJ_ITEM * 8, true) !== ADJ_ITEM_DRAW) fail('unexpected-layout', 'ADJ Mode Setting item is not the official one');
--  expectWord(patch, ADJ_ITEM_DRAW + 0x20, 0xe3a01f73); // mov r1, #0x1cc (text 460)
-+  expectWord(patch, ADJ_ITEM_DRAW + 0x20, 0xe3a01e1f); // mov r1, #0x1f0 (text 496)
-   for (const f of [TOP_SET_ICON, TOP_SET_TITLE, APP, RESOURCES, ADJ1_DRAW, ADJ1_SET, ADJ1_CURRENT]) expectWord(patch, f, MOV_IP_SP);
-   expectWord(patch, ADJ1_COUNT, 0xe59031ac);
-   const listRecord = patch.read(SELECT_TABLE + ADJ_LIST_RECORD * SELECT_RECORD, SELECT_RECORD);
-@@ -402,7 +403,7 @@
-   nv.setUint32(D_VISIBLE + at * 8, 0, true);
-   nv.setUint32(D_VISIBLE + at * 8 + 4, 0, true);
-   nd[D_COUNT] = count + 1;
--  nd[D_FIRST + 2] = 15;
-+  nd[D_FIRST + 2] = 16;
-   for (let o = 0; o < nd.length; o += 4) {
-     const w = nv.getUint32(o, true);
-     if (w !== dv.getUint32(o, true)) patch.setWord(CUSTOM_MENU + o, w, 'ADJ slots: Customize Settings item');
 diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/build.ts
 --- a/core/src/fw/gr4v120/aspect/build.ts
 +++ b/core/src/fw/gr4v120/aspect/build.ts
@@ -1830,7 +1802,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
  }
  
  
-@@ -324,7 +327,8 @@
+@@ -327,7 +330,8 @@
      mo, mp = Machine(official), Machine(patched)
      lead = lead or {}
      failures, tested, notes = [], 0, {}
@@ -1840,7 +1812,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
          special = SPECIAL.get(site)
          if special == 'entry':
              continue
-@@ -435,7 +439,8 @@
+@@ -438,7 +442,8 @@
      # (start, id register, language register, address reached with the record pointer, register holding it, skip addresses)
      for start, hit, pointer_reg, skips in ((0x535967C0, 0x535967dc, 3, (0x535968B0,)), (0x53595DA4, 0x53595DCC, 7, (0x53595F1C, 0x53595F28))):
          for language in list(range(21)) + [21, 22, 255]:
@@ -1850,7 +1822,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
                  state = dict(base_state)
                  state['regs'] = list(base_state['regs'])
                  state['regs'][0] = language
-@@ -449,7 +454,7 @@
+@@ -452,7 +457,7 @@
                      pointer = machine.uc.reg_read(REGS[pointer_reg]) if pc == hit else None
                      results.append((pc == hit, pointer))
                  (old_hit, old_pointer), (new_hit, new_pointer) = results
@@ -1859,7 +1831,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
                      assert old_hit and new_hit and old_pointer == new_pointer, ('text lookup changed', hex(start), language, text)
                  elif old_hit:
                      raise AssertionError('official lookup accepted an out-of-range text')
-@@ -461,7 +466,7 @@
+@@ -464,7 +469,7 @@
                      assert raw[-2:] == b'\0\0' and b'\0\0' not in [raw[i:i + 2] for i in range(0, len(raw) - 2, 2)], 'bad text'
                      new_names += 1
                  checked += 1
@@ -1868,7 +1840,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
      old_table = struct.unpack_from('<I', official, 0)[0]  # placeholder, replaced below
      state = random_state(rng)
      getter = 0x534013F8
-@@ -472,23 +477,32 @@
+@@ -475,23 +480,32 @@
          if address >= RAM:
              address = RAM_SRC + address - RAM
          return image[address - BASE:address - BASE + size]
@@ -1908,7 +1880,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
      return checked, new_names, new_icons
  
  
-@@ -563,7 +577,7 @@
+@@ -566,7 +580,7 @@
  
  
  # The settings guard (guard.ts, in every build) puts looks, ADJ functions and ratios the firmware
@@ -1917,7 +1889,7 @@ diff --git a/tools/gr4v120/aspect/boot_checks.py b/tools/gr4v120/aspect/boot_che
  # checks that rule. Here the guarded bytes hold values every build keeps (factory looks 0..30, ADJ
  # functions 0..0x14 but soft focus's 0x0A), so the guard leaves them alone and the rest is compared.
  GUARD_LOOKS = (0x153, 0x154, 0x155, 0x156, 0x515, 0x516, 0x517, 0x518)
-@@ -928,10 +942,26 @@
+@@ -938,10 +952,26 @@
              SPECIAL[a] = 'entry'
      unknown = [hex(a) for a in SPECIAL if a not in hooks]
      assert not unknown, 'SPECIAL lists addresses that are not hooks: %s' % unknown
@@ -3111,7 +3083,7 @@ diff --git a/tools/gr4v120/softfocus/check.py b/tools/gr4v120/softfocus/check.py
 diff --git a/tools/gr4v120/adjslots/check.py b/tools/gr4v120/adjslots/check.py
 --- a/tools/gr4v120/adjslots/check.py
 +++ b/tools/gr4v120/adjslots/check.py
-@@ -174,7 +174,7 @@
+@@ -179,7 +179,7 @@
              uc.reg_write(UC_ARM_REG_R0, 0)
              uc.reg_write(UC_ARM_REG_PC, lr)
              return
@@ -3120,7 +3092,7 @@ diff --git a/tools/gr4v120/adjslots/check.py b/tools/gr4v120/adjslots/check.py
              r0, r1, r2 = (uc.reg_read(x) for x in (UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2))
              ret = 0
              if addr == 0x535ad1b4:
-@@ -514,7 +514,7 @@
+@@ -519,11 +519,11 @@
  # Menu
  
  ADJ_MENU_ID = 0x020001c0
@@ -3128,30 +3100,13 @@ diff --git a/tools/gr4v120/adjslots/check.py b/tools/gr4v120/adjslots/check.py
 +T0 = 1014  # 1.11: 970 (+ TEXT_SHIFT 44)
  
  
- def check_menu(d, name, n, other_menu_ids=()):
-@@ -529,17 +529,17 @@
-         ids = lambda m: [struct.unpack_from('<I', m, 0x1bc + 4 * i)[0] for i in range(m[0x8b])]
-         draws = lambda m: [struct.unpack_from('<2I', m, 0x8c + 8 * i) for i in range(m[0x8b])]
-         ia, ib = ids(ma), ids(mb)
--        check(ia == ib[:7] + [ADJ_MENU_ID] + ib[7:], f'{name}: Customize Settings ids (model {model})')
--        check(list(ma[0x80:0x83]) == [0, 5, 15], f'{name}: Customize Settings pages {list(ma[0x80:0x83])}')
-+        check(ia == ib[:8] + [ADJ_MENU_ID] + ib[8:], f'{name}: Customize Settings ids (model {model})')
-+        check(list(ma[0x80:0x83]) == [0, 6, 16], f'{name}: Customize Settings pages {list(ma[0x80:0x83])}')
-         da, db = draws(ma), draws(mb)
--        check(da[:7] + da[8:] == db, f'{name}: Customize Settings items moved')
-+        check(da[:8] + da[9:] == db, f'{name}: Customize Settings items moved')
-         for m in (0, 1, 2, 4):
-             if m == 0 and other_menu_ids:
-                 continue
-             check(a[m] == b[m], f'{name}: menu {m} changed (model {model})')
-     # The item draws the new title, no value icon.
-     e = dm.Emu(new)
--    item = struct.unpack_from('<I', dm.built_menus(new, 0)[3], 0x8c + 8 * 7)[0]
-+    item = struct.unpack_from('<I', dm.built_menus(new, 0)[3], 0x8c + 8 * 8)[0]
-     e.call(item, (0x70000000, 0x70700000))
-     calls = [c for c in e.calls if c[0] in ('top-icon', 'top-title')]
-     check(calls == [('top-icon', 0x70700000, 0, calls[0][3] if calls else 0), ('top-title', 0x70700000, T0, calls[1][3] if len(calls) > 1 else 0)][:len(calls)] and len(calls) == 2,
-@@ -570,7 +570,7 @@
+ ADJ_LIST_ID = ADJ_MENU_ID + 1
+-T_ADJ_MODE, T_SETTING1 = 460, 462
++T_ADJ_MODE, T_SETTING1 = 496, 498  # 1.11: 460, 462
+ SUB_CTOR, SUB_SET_CURRENT, SUB_SHOW = 0x531e4414, 0x531e361c, 0x531e4168
+ SUB_DOWN, SUB_UP, SUB_OK = 0x531e3a8c, 0x531e3a44, 0x531e3af4
+ SUB_DRAW_CALL = 0x531e3f90   # blx r2: a line's value draw (skipped and recorded)
+@@ -676,7 +676,7 @@
      vec = list(range(20))
      for j in range(lines):
          r = new.rd(seltab + list_recs[j] * 0x4c, 0x4c)
@@ -3160,7 +3115,7 @@ diff --git a/tools/gr4v120/adjslots/check.py b/tools/gr4v120/adjslots/check.py
          check(v('<H', r, 4)[0] == T0 + 1 + j, f'{name}: list {j} title')
          check(v('<I', r, 0x0c)[0] == v('<I', o, 0x0c)[0] and v('<I', r, 0x14)[0] == v('<I', o, 0x14)[0], f'{name}: list {j} count / draw')
          setf, cur = v('<I', r, 0x24)[0], v('<I', r, 0x2c)[0]
-@@ -673,7 +673,7 @@
+@@ -828,7 +828,7 @@
  
  def check_calls(d, name):
      img = dm.Image(d / name)
@@ -3169,7 +3124,7 @@ diff --git a/tools/gr4v120/adjslots/check.py b/tools/gr4v120/adjslots/check.py
      code = base64.b64decode(re.search(r"ADJSLOTS_CODE = '([^']+)'", src).group(1))
      # find the module in the image
      at = img.R.find(code)
-@@ -701,7 +701,7 @@
+@@ -856,7 +856,7 @@
      # each is a function the firmware itself calls (a bl to it exists in the official image)
      off = dm.Image(d / 'official.rtos')
      called = set()

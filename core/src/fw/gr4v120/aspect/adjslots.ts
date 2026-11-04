@@ -46,10 +46,16 @@
  *  - SlotFunction's out-of-range branch, vtable 9, the strip, the touchable icons and the taps go to
  *    the module (`tools/gr4v120/adjslots/adjslots.c`); next / previous / first slot try N slots and wrap at
  *    N - 1; the slot last used goes through the module;
- *  - the settings: Customize Settings gets an item after ADJ Mode Setting, "ADJ Mode Setting 6-N",
- *    that opens a submenu record of N - 5 lines "Setting6".. (texts made from the camera's own in
- *    each language), each a list that is ADJ Mode Setting 1's (record 68) with its own set and
- *    "is current".
+ *  - the settings: ADJ Mode Setting itself has N lines "Setting1".."SettingN" (texts of lines 6..N
+ *    made from the camera's own in each language), lines 6..N each a list that is ADJ Mode Setting
+ *    1's (record 68) with its own set and "is current". A submenu record holds five lines, so lines
+ *    6..N are kept in a record of their own (appended, never opened) and SubMenuController reads
+ *    them there for ADJ Mode Setting (record 10): the line's text, value icon x and value draw in
+ *    its list builder (0x531E3E70), the line's controller id on OK (0x531E3AF4). Its list (made once
+ *    for every submenu) has N rows instead of five; rows from a record's line count on are hidden,
+ *    as the official code hides rows 3 and 4 of a three-line submenu. Six rows fit the list's area
+ *    (the builder's own limit); with seven or eight lines the list scrolls with the cursor, as long
+ *    lists do. Customize Settings is as the camera's.
  * In the fixed layout (movies) the extra slots are empty and their frames hidden: the five fixed
  * functions are as before.
  */
@@ -64,10 +70,10 @@ export const ADJ_SLOTS_MAX = 8;
 /** Settings bytes of slots 6..8 (CURRENT() + 4 + 0x489..0x48B); in the user settings object 0x48D..0x48F. */
 export const ADJ_EXTRA_BYTE = 0x550832a8 + 4 + 0x489;
 export const ADJ_EXTRA_OBJECT_OFFSET = 0x48d;
-/** Controller ids (not used by the firmware): the submenu, then the lists of slots 6..8. */
+/** Controller ids (not used by the firmware): the record of lines 6..8 (never opened), then the lists of slots 6..8. */
 export const ADJ_MENU_ID = 0x020001c0;
 export const ADJ_LIST_ID = 0x020001c1;
-/** Texts: the submenu (and its Customize Settings item), the lines of slots 6..8. */
+/** Texts: the lines of slots 6..8 are ADJ_TEXT_ID + 1.. (ADJ_TEXT_ID itself is not used). */
 export const ADJ_TEXT_ID = 1014; // 1.11: 970 (+ TEXT_SHIFT)
 /** The controller's new members and size. */
 export const ADJ_FRAMES = 0x294;
@@ -247,7 +253,6 @@ export function settingName(text: string, digit: number): string {
   if (wide > ascii) return text.slice(0, wide) + String.fromCharCode(0xff10 + digit) + text.slice(wide + 1);
   return text.slice(0, ascii) + String(digit) + text.slice(ascii + 1);
 }
-export const adjMenuName = (text: string, n: number): string => `${text} 6${n > 6 ? `-${n}` : ''}`;
 
 const TEXT_ADJ_MODE = 496; // 1.11: 460 (1.20 renumbered the texts)
 const TEXT_SETTING1 = 498; // 1.11: 462
@@ -270,20 +275,7 @@ function installTexts(patch: Patch, entries: readonly { id: number; make: (row: 
   }
 }
 
-// --- Settings: Customize Settings (descriptor 3 of the menus), ADJ Mode Setting's records.
-const CUSTOM_MENU = 0x53dc6b38;
-const MENU_TABLE = 0x55001e78;
-const D_FIRST = 0x80;
-const D_COUNT = 0x8b;
-const D_DRAW = 0x8c;
-const D_ID = 0x1bc;
-const D_VISIBLE = 0x254;
-const MAX_ITEMS = 38;
-const ADJ_ITEM = 7; // 1.11: 6 (1.20 inserts item 0x02000149 before it)
-const ADJ_ITEM_ID = 0x020000d3;
-const ADJ_ITEM_DRAW = 0x531b1598;
-const TOP_SET_ICON = 0x5359d6f4;
-const TOP_SET_TITLE = 0x5359d48c;
+// --- Settings: ADJ Mode Setting's submenu record and lists, SubMenuController's list.
 const ADJ_SUBMENU = 10;
 const ADJ_LIST_RECORD = 68; // 1.11: 67 (1.20 inserts a list record before it)
 const SELECT_TABLE = 0x53dcd470;
@@ -296,6 +288,28 @@ const APP = 0x532406a4;
 const RESOURCES = 0x53240f98;
 const ICON_OF = 0x53390e40;
 const VALUE_X = 0x21c;
+const NOP = 0xe1a00000; // mov r0, r0
+/** SubMenuController (the controller of every submenu): its list's five rows, made once. */
+const SUB_ROWS = 0x531e3e0c; // mov r2, #5
+const SUB_KIND_MOV = 0x531e3e28; // mov ip, #0x22
+const SUB_KIND = 0x531e3e34; // strb ip, [fp, #-0x20] .. (five bytes, with str lr, [fp, #-0x18] among them)
+/** Its list builder: rows from the line count to row 4 hidden; a line's text, value icon x, value draw. */
+const SUB_HIDE_A = 0x531e3ee0; // cmp r7, #4
+const SUB_HIDE_B = 0x531e3f04; // cmp r4, #4
+const SUB_LINE_TEXT = 0x531e3fd0;
+const SUB_LINE_X = 0x531e3fe8;
+const SUB_LINE_DRAW = 0x531e4004;
+/** OK on a line: the line's controller id. */
+const SUB_OK_ID = 0x531e3b34; // ldr r5, [r2, #0x14]
+const SUBMENU_OFFICIAL: readonly (readonly [number, number])[] = [
+  [0x531e3e0c, 0xe3a02005], [0x531e3e28, 0xe3a0c022], [0x531e3e34, 0xe54bc020], [0x531e3e38, 0xe24b1020], [0x531e3e3c, 0xe54bc01f],
+  [0x531e3e40, 0xe50be018], [0x531e3e44, 0xe54bc01e], [0x531e3e48, 0xe54bc01d], [0x531e3e4c, 0xe54bc01c], [0x531e3ee0, 0xe3570004],
+  [0x531e3f04, 0xe3540004], [0x531e3fd0, 0xe5d53174], [0x531e3fd4, 0xe1a00009], [0x531e3fd8, 0xe023439a], [0x531e3fdc, 0xe0883083],
+  [0x531e3fe0, 0xe1d310b8], [0x531e3fe8, 0xe5d53174], [0x531e3fec, 0xe3a02019], [0x531e3ff0, 0xe1a00009], [0x531e3ff4, 0xe0234392],
+  [0x531e3ff8, 0xe283300a], [0x531e3ffc, 0xe7981103], [0x531e4004, 0xe5d51174], [0x531e4008, 0xe3a02064], [0x531e400c, 0xe2843007],
+  [0x531e4010, 0xe0020192], [0x531e4014, 0xe0823183], [0x531e4018, 0xe0883003], [0x531e401c, 0xe5932004], [0x531e4020, 0xe5930008],
+  [0x531e3b34, 0xe5925014],
+];
 
 /** r1 = the function of slot k (5..7) as kept (above 0x14: none); r2 its byte's address. */
 const loadExtra = (k: number): string => `movw r2, #${lo(ADJ_EXTRA_BYTE + k - 5)}; movt r2, #${hi(ADJ_EXTRA_BYTE + k - 5)}
@@ -303,13 +317,8 @@ const loadExtra = (k: number): string => `movw r2, #${lo(ADJ_EXTRA_BYTE + k - 5)
 
 function installMenu(patch: Patch, n: number): void {
   // --- Checks.
-  if (new DataView(patch.readMapped(MENU_TABLE + 3 * 4, 4).buffer).getUint32(0, true) !== CUSTOM_MENU) fail('unexpected-layout', 'Customize Settings descriptor is not where it was expected');
-  const d = patch.read(CUSTOM_MENU, 0x38c);
-  const dv = new DataView(d.buffer);
-  if (d[0x68] !== 3 || [...d.subarray(D_FIRST, D_FIRST + 3)].join() !== '0,6,15' || d[D_COUNT] !== 24) fail('unexpected-layout', 'Customize Settings pages are not the official ones');
-  if (dv.getUint32(D_ID + ADJ_ITEM * 4, true) !== ADJ_ITEM_ID || dv.getUint32(D_DRAW + ADJ_ITEM * 8, true) !== ADJ_ITEM_DRAW) fail('unexpected-layout', 'ADJ Mode Setting item is not the official one');
-  expectWord(patch, ADJ_ITEM_DRAW + 0x20, 0xe3a01e1f); // mov r1, #0x1f0 (text 496)
-  for (const f of [TOP_SET_ICON, TOP_SET_TITLE, APP, RESOURCES, ADJ1_DRAW, ADJ1_SET, ADJ1_CURRENT]) expectWord(patch, f, MOV_IP_SP);
+  for (const f of [APP, RESOURCES, ADJ1_DRAW, ADJ1_SET, ADJ1_CURRENT]) expectWord(patch, f, MOV_IP_SP);
+  for (const [at, word] of SUBMENU_OFFICIAL) expectWord(patch, at, word);
   expectWord(patch, ADJ1_COUNT, 0xe59031ac);
   const listRecord = patch.read(SELECT_TABLE + ADJ_LIST_RECORD * SELECT_RECORD, SELECT_RECORD);
   const lv = new DataView(listRecord.buffer);
@@ -320,12 +329,9 @@ function installMenu(patch: Patch, n: number): void {
   if (sv.getUint16(2, true) !== TEXT_ADJ_MODE || sub[6] !== 5 || [0, 1, 2, 3, 4].some((k) => sv.getUint16(8 + 2 * k, true) !== TEXT_SETTING1 + k
     || sv.getUint32(0x14 + 4 * k, true) !== 0x020000a8 + k || sv.getUint32(0x28 + 4 * k, true) !== VALUE_X)) fail('unexpected-layout', 'ADJ Mode Setting submenu record is not as expected');
 
-  // --- Texts: the submenu (and item), "Setting6".. in every language from the camera's own.
+  // --- Texts: the lines of slots 6..8 ("Setting6".., made from the camera's own in each language).
   const lines = n - 5;
-  installTexts(patch, [
-    { id: ADJ_TEXT_ID, make: (l) => adjMenuName(officialText(patch, l, TEXT_ADJ_MODE), n) },
-    ...Array.from({ length: lines }, (_, j) => ({ id: ADJ_TEXT_ID + 1 + j, make: (l: number) => settingName(officialText(patch, l, TEXT_SETTING1), 6 + j) })),
-  ]);
+  installTexts(patch, Array.from({ length: lines }, (_, j) => ({ id: ADJ_TEXT_ID + 1 + j, make: (l: number) => settingName(officialText(patch, l, TEXT_SETTING1), 6 + j) })));
 
   // --- Lists: ADJ Mode Setting 1's, with set and "is current" of slot 6 + j (this = r0, value i = r1).
   const records: { id: number; record: Uint8Array }[] = [];
@@ -360,10 +366,10 @@ function installMenu(patch: Patch, n: number): void {
   }
   addListRecords(patch, records, 'ADJ slots');
 
-  // --- The submenu: ADJ Mode Setting's record with our title, lines, ids and value icons.
+  // --- Lines 6..N: a record of the submenu table that is never opened (no menu item, no controller
+  // id), laid out as ADJ Mode Setting's, whose lines 0..N-6 are ADJ Mode Setting's lines 6..N.
   const rec = sub.slice();
   const rv = new DataView(rec.buffer);
-  rv.setUint16(2, ADJ_TEXT_ID, true);
   rec[6] = lines;
   for (let k = 0; k < 5; k++) {
     rv.setUint16(8 + 2 * k, k < lines ? ADJ_TEXT_ID + 1 + k : 0, true);
@@ -372,42 +378,63 @@ function installMenu(patch: Patch, n: number): void {
     rv.setUint32(0x3c + 8 * k, k < lines ? lineDraws[k] : 0, true);
     rv.setUint32(0x40 + 8 * k, 0, true);
   }
-  addSubmenuRecord(patch, ADJ_MENU_ID, rec, 'ADJ slots');
-  hookControllerFactory(patch, `movw ip, #${lo(ADJ_MENU_ID)}; movt ip, #${hi(ADJ_MENU_ID)}
-     sub ip, r1, ip; cmp ip, #${lines}; bhi prior
-     cmp ip, #0
-     movweq r1, #${lo(SUBMENU_CONTROLLER_ID)}; movteq r1, #${hi(SUBMENU_CONTROLLER_ID)}
-     movwne r1, #${lo(LIST_CONTROLLER_ID)}; movtne r1, #${hi(LIST_CONTROLLER_ID)}`, 'ADJ slots: submenu and list controllers');
+  const extra = addSubmenuRecord(patch, ADJ_MENU_ID, rec, 'ADJ slots');
+  if (extra > 0xff) fail('internal', 'ADJ slots: submenu record number');
+  hookControllerFactory(patch, `movw ip, #${lo(ADJ_LIST_ID)}; movt ip, #${hi(ADJ_LIST_ID)}
+     sub ip, r1, ip; cmp ip, #${lines - 1}; bhi prior
+     movw r1, #${lo(LIST_CONTROLLER_ID)}; movt r1, #${hi(LIST_CONTROLLER_ID)}`, 'ADJ slots: list controllers');
 
-  // --- Customize Settings: an item after ADJ Mode Setting (same page; the pages after it start one later).
-  const itemDraw = patch.append((at) => assembleWords(
-    `push {r4, lr}
-     mov r4, r1
-     mov r0, r4; mov r1, #0; bl #${TOP_SET_ICON}
-     mov r0, r4; movw r1, #${ADJ_TEXT_ID}
-     pop {r4, lr}
-     b #${TOP_SET_TITLE}`, at), 16);
-  const count = d[D_COUNT];
-  if (count + 1 > MAX_ITEMS) fail('unexpected-layout', 'Customize Settings is full');
-  const nd = d.slice();
-  const nv = new DataView(nd.buffer);
-  for (let i = count; i > ADJ_ITEM + 1; i--) {
-    nd.set(d.subarray(D_DRAW + (i - 1) * 8, D_DRAW + i * 8), D_DRAW + i * 8);
-    nd.set(d.subarray(D_ID + (i - 1) * 4, D_ID + i * 4), D_ID + i * 4);
-    nd.set(d.subarray(D_VISIBLE + (i - 1) * 8, D_VISIBLE + i * 8), D_VISIBLE + i * 8);
-  }
-  const at = ADJ_ITEM + 1;
-  nv.setUint32(D_DRAW + at * 8, itemDraw, true);
-  nv.setUint32(D_DRAW + at * 8 + 4, 0, true);
-  nv.setUint32(D_ID + at * 4, ADJ_MENU_ID, true);
-  nv.setUint32(D_VISIBLE + at * 8, 0, true);
-  nv.setUint32(D_VISIBLE + at * 8 + 4, 0, true);
-  nd[D_COUNT] = count + 1;
-  nd[D_FIRST + 2] = 16;
-  for (let o = 0; o < nd.length; o += 4) {
-    const w = nv.getUint32(o, true);
-    if (w !== dv.getUint32(o, true)) patch.setWord(CUSTOM_MENU + o, w, 'ADJ slots: Customize Settings item');
-  }
+  // --- ADJ Mode Setting shows N lines: its record's line count, N rows in the submenu's list.
+  const table = submenuTable(patch);
+  const countWord = table + ADJ_SUBMENU * SUB_RECORD + 4;
+  patch.setWord(countWord, (patch.word(countWord) & ~0xff0000) | (n << 16), 'ADJ slots: ADJ Mode Setting has N lines');
+  // The submenu's list is made once with five rows (kind 0x22, from a byte array on the stack, the
+  // stack protector's word right after it): N rows from eight bytes that end where the word starts.
+  patch.setWord(SUB_ROWS, assembleWords(`mov r2, #${n}`, SUB_ROWS)[0], 'ADJ slots: N rows in the submenu list');
+  patch.setWord(SUB_KIND_MOV, assembleWords('movw ip, #0x2222', SUB_KIND_MOV)[0], 'ADJ slots: N rows in the submenu list');
+  patch.setWord(SUB_KIND + 0, assembleWords('movt ip, #0x2222', SUB_KIND)[0], 'ADJ slots: N rows in the submenu list');
+  patch.setWord(SUB_KIND + 8, assembleWords('str ip, [fp, #-0x20]', SUB_KIND + 8)[0], 'ADJ slots: N rows in the submenu list');
+  patch.setWord(SUB_KIND + 16, assembleWords('str ip, [fp, #-0x1c]', SUB_KIND + 16)[0], 'ADJ slots: N rows in the submenu list');
+  patch.setWord(SUB_KIND + 20, NOP, 'ADJ slots: N rows in the submenu list');
+  patch.setWord(SUB_KIND + 24, NOP, 'ADJ slots: N rows in the submenu list');
+  // Rows from a record's line count on are hidden: up to row N - 1.
+  patch.setWord(SUB_HIDE_A, assembleWords(`cmp r7, #${n - 1}`, SUB_HIDE_A)[0], 'ADJ slots: rows hidden up to N');
+  patch.setWord(SUB_HIDE_B, assembleWords(`cmp r4, #${n - 1}`, SUB_HIDE_B)[0], 'ADJ slots: rows hidden up to N');
+  // Line i of a record: ADJ Mode Setting's lines 6..N are the extra record's lines 0..N-6.
+  // In: r0 table, r1 record, r2 line. Out: r0 the record to read, r2 its line. Uses ip.
+  const select = patch.append((at) => assembleWords(
+    `mov ip, #0
+     cmp r1, #${ADJ_SUBMENU}; moveq ip, #1
+     cmp r2, #5; movlo ip, #0
+     cmp ip, #0; subne r2, r2, #5; movne r1, #${extra}
+     mov ip, #${SUB_RECORD}; mul r1, ip, r1; add r0, r0, r1; bx lr`, at), 16);
+  // In the list builder (this r5, table r8, line r4): a line's text, value icon x and value draw.
+  const lineOf = (tail: string): number => patch.append((at) => assembleWords(
+    `push {lr}
+     mov r2, r0; ldrb r1, [r5, #0x174]; mov r0, r8; bl #${select}
+     ${tail}
+     pop {pc}`, at), 16);
+  const textOf = lineOf('add r0, r0, r2, lsl #1; ldrh r0, [r0, #8]');
+  const xOf = lineOf('add r0, r0, r2, lsl #2; ldr r0, [r0, #0x28]');
+  const drawOf = lineOf('add r0, r0, r2, lsl #3; add r0, r0, #0x3c');
+  const put = (at: number, body: string, words: number): void => {
+    const w = assembleWords(body, at);
+    if (w.length > words) fail('internal', 'ADJ slots: submenu line patch');
+    while (w.length < words) w.push(NOP);
+    w.forEach((x, i) => patch.setWord(at + 4 * i, x, 'ADJ slots: ADJ Mode Setting lines 6..N'));
+  };
+  put(SUB_LINE_TEXT, `mov r0, r4; bl #${textOf}; mov r1, r0; mov r0, sb`, 5);
+  put(SUB_LINE_X, `mov r0, r4; bl #${xOf}; mov r1, r0; mov r0, sb`, 6);
+  put(SUB_LINE_DRAW, `mov r0, r4; bl #${drawOf}; ldr r2, [r0]; ldr r0, [r0, #4]`, 8);
+  // OK on a line (this r4, line r0, r2 = table + 4 (0x19 record + line), r1 = 0x19 record + line):
+  // r5 = the line's controller id; everything else kept.
+  const idOf = patch.append((at) => assembleWords(
+    `push {r0, r1, r2, r3, ip, lr}
+     sub r0, r2, r1, lsl #2
+     ldr r2, [sp]; ldrb r1, [r4, #0x174]; bl #${select}
+     add r0, r0, r2, lsl #2; ldr r5, [r0, #0x14]
+     pop {r0, r1, r2, r3, ip, pc}`, at), 16);
+  patch.setWord(SUB_OK_ID, branchWord(SUB_OK_ID, idOf, 14, true), 'ADJ slots: ADJ Mode Setting lines 6..N');
 }
 
 /**

@@ -223,7 +223,10 @@ LEAD = {0x5364DEE4: 1, 0x5364E484: 1, 0x5388BE10: 1}
 # SlotFunction past slot 5, the strip, the touchable icons, the taps and the slot last used go to
 # functions of N slots on purpose. Their behaviour is checked function by function, with five slots
 # against the official image and with 6..8 against the rules, by tools/adjslots/check.py.
-ADJ_SLOTS_ENTRY = (0x531C0528, 0x531BD5AC, 0x531BFA3C, 0x531BD6BC, 0x531BBB40, 0x531BEE84, 0x531BEECC, 0x531BEF60)
+ADJ_SLOTS_ENTRY = (0x531C0528, 0x531BD5AC, 0x531BFA3C, 0x531BD6BC, 0x531BBB40, 0x531BEE84, 0x531BEECC, 0x531BEF60,
+                   # ADJ Mode Setting's lines 6..N (SubMenuController's list builder, OK on a line): checked with
+                   # SubMenuController's own code, every submenu against the official image, by the same check.py
+                   0x531E2588, 0x531E25A0, 0x531E25BC, 0x531E20E8)
 
 
 def hooks_of(official, patched):

@@ -38,8 +38,6 @@ describe('ADJ lever slots: data', () => {
     expect(aspect.settingName('Setting1', 6)).toBe('Setting6');
     expect(aspect.settingName('設定1', 8)).toBe('設定8');
     expect(aspect.settingName('設定１', 7)).toBe('設定７');
-    expect(aspect.adjMenuName('ADJ Mode Setting', 6)).toBe('ADJ Mode Setting 6');
-    expect(aspect.adjMenuName('ADJ Mode Setting', 8)).toBe('ADJ Mode Setting 6-8');
   });
   it('the compiled module is the one of the committed source', () => {
     expect(ADJSLOTS_CODE.length).toBeGreaterThan(100);

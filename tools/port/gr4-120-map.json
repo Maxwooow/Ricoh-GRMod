@@ -13,6 +13,7 @@
     "core/src/fw/aspect/package.ts",
     "core/src/fw/patch.ts",
     "core/src/fw/profile.ts",
+    "tools/adjslots/check.py",
     "tools/aspect/boot_checks.py",
     "tools/aspect/playback_check.py",
     "tools/datestamp/menu_check.py",
@@ -42,6 +43,14 @@
    "files": [
     "core/src/fw/aspect/arm.ts",
     "core/src/fw/aspect/build.ts"
+   ]
+  },
+  "0x53182e4c": {
+   "new": "0x5318408c",
+   "how": "aligned + refs 0x5318408cx210",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
    ]
   },
   "0x531831e8": {
@@ -1007,6 +1016,8 @@
    "how": "aligned + refs 0x531be238x38",
    "ok": true,
    "files": [
+    "core/src/fw/aspect/adjslots.ts",
+    "tools/adjslots/check.py",
     "tools/softfocus/check.py"
    ]
   },
@@ -1039,6 +1050,7 @@
    "how": "aligned + refs 0x531be5e4x1",
    "ok": true,
    "files": [
+    "core/src/fw/aspect/adjslots.ts",
     "tools/softfocus/check.py"
    ]
   },
@@ -1071,6 +1083,8 @@
    "how": "aligned + refs 0x531beab8x37",
    "ok": true,
    "files": [
+    "core/src/fw/aspect/adjslots.ts",
+    "tools/adjslots/check.py",
     "tools/softfocus/check.py"
    ]
   },
@@ -2747,6 +2761,7 @@
    "why": "fork B: SelectMenuController SetCurrent (list record lookup): aligned + 1 ref; datestamp menu_check passes",
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/adjslots/check.py",
     "tools/datestamp/menu_check.py",
     "tools/directflash/settings_check.py"
    ]
@@ -2758,6 +2773,7 @@
    "why": "fork B: list table movw (SELECT_RECORDS reader)",
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/adjslots/check.py",
     "tools/datestamp/list_width_check.py",
     "tools/datestamp/menu_check.py"
    ]
@@ -2769,6 +2785,7 @@
    "why": "fork B: list table movt",
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/adjslots/check.py",
     "tools/datestamp/list_width_check.py",
     "tools/datestamp/menu_check.py"
    ]
@@ -3170,9 +3187,26 @@
    "ok": true,
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/adjslots/check.py",
     "tools/datestamp/menu_check.py",
     "tools/directflash/settings_check.py",
     "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x531e1ff8": {
+   "new": "0x531e3a44",
+   "how": "aligned + refs 0x531e3a44x2",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531e2040": {
+   "new": "0x531e3a8c",
+   "how": "aligned + refs 0x531e3a8cx2",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
    ]
   },
   "0x531e2064": {
@@ -3181,6 +3215,7 @@
    "ok": true,
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/adjslots/check.py",
     "tools/datestamp/menu_check.py",
     "tools/directflash/settings_check.py",
     "tools/shutdown/menu_check.py"
@@ -3192,6 +3227,7 @@
    "ok": true,
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/adjslots/check.py",
     "tools/datestamp/menu_check.py",
     "tools/directflash/settings_check.py",
     "tools/shutdown/menu_check.py"
@@ -3202,7 +3238,9 @@
    "how": "aligned + refs 0x531e3af4x2",
    "ok": true,
    "files": [
-    "core/src/fw/aspect/directflash-menu.ts"
+    "core/src/fw/aspect/adjslots.ts",
+    "core/src/fw/aspect/directflash-menu.ts",
+    "tools/adjslots/check.py"
    ]
   },
   "0x531e20cc": {
@@ -3225,6 +3263,14 @@
     "tools/datestamp/menu_check.py",
     "tools/directflash/settings_check.py",
     "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x531e20e8": {
+   "new": "0x531e3b34",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
    ]
   },
   "0x531e20fc": {
@@ -3283,11 +3329,84 @@
     "core/src/fw/aspect/directflash-menu.ts"
    ]
   },
+  "0x531e23c0": {
+   "new": "0x531e3e0c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e23dc": {
+   "new": "0x531e3e28",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e23e8": {
+   "new": "0x531e3e34",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e23ec": {
+   "new": "0x531e3e38",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e23f0": {
+   "new": "0x531e3e3c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e23f4": {
+   "new": "0x531e3e40",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e23f8": {
+   "new": "0x531e3e44",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e23fc": {
+   "new": "0x531e3e48",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e2400": {
+   "new": "0x531e3e4c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
   "0x531e2424": {
    "new": "0x531e3e70",
    "how": "aligned + refs 0x531e3e70x1",
    "ok": true,
    "files": [
+    "core/src/fw/aspect/adjslots.ts",
     "core/src/fw/aspect/datestamp-menu.ts",
     "tools/datestamp/menu_check.py"
    ]
@@ -3312,6 +3431,182 @@
     "tools/datestamp/menu_check.py",
     "tools/directflash/settings_check.py",
     "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x531e2494": {
+   "new": "0x531e3ee0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e24b8": {
+   "new": "0x531e3f04",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e2544": {
+   "new": "0x531e3f90",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531e2584": {
+   "new": "0x531e3fd0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e2588": {
+   "new": "0x531e3fd4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e258c": {
+   "new": "0x531e3fd8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e2590": {
+   "new": "0x531e3fdc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e2594": {
+   "new": "0x531e3fe0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e259c": {
+   "new": "0x531e3fe8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e25a0": {
+   "new": "0x531e3fec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e25a4": {
+   "new": "0x531e3ff0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e25a8": {
+   "new": "0x531e3ff4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e25ac": {
+   "new": "0x531e3ff8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e25b0": {
+   "new": "0x531e3ffc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e25b8": {
+   "new": "0x531e4004",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e25bc": {
+   "new": "0x531e4008",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e25c0": {
+   "new": "0x531e400c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e25c4": {
+   "new": "0x531e4010",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e25c8": {
+   "new": "0x531e4014",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e25cc": {
+   "new": "0x531e4018",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e25d0": {
+   "new": "0x531e401c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531e25d4": {
+   "new": "0x531e4020",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
    ]
   },
   "0x531e2668": {
@@ -3341,6 +3636,7 @@
    "how": "aligned + refs 0x531e4168x1",
    "ok": true,
    "files": [
+    "tools/adjslots/check.py",
     "tools/datestamp/menu_check.py",
     "tools/directflash/settings_check.py",
     "tools/shutdown/menu_check.py"
@@ -3366,6 +3662,14 @@
     "tools/datestamp/menu_check.py",
     "tools/directflash/settings_check.py",
     "tools/shutdown/menu_check.py"
+   ]
+  },
+  "0x531e29c8": {
+   "new": "0x531e4414",
+   "how": "aligned + refs 0x531e4414x1",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
    ]
   },
   "0x531e2a10": {
@@ -3495,6 +3799,7 @@
    "how": "aligned + refs 0x532406a4x22741",
    "ok": true,
    "files": [
+    "core/src/fw/aspect/adjslots.ts",
     "core/src/fw/aspect/build.ts",
     "core/src/fw/aspect/datestamp-menu.ts",
     "core/src/fw/aspect/directflash.ts",
@@ -3502,6 +3807,7 @@
     "core/src/fw/aspect/halation-ui.ts",
     "core/src/fw/aspect/shutdown.ts",
     "core/src/fw/aspect/slots.ts",
+    "tools/adjslots/check.py",
     "tools/aspect/boot_checks.py",
     "tools/directflash/check.py",
     "tools/shutdown/menu_check.py",
@@ -3535,6 +3841,7 @@
     "core/src/fw/aspect/guard.ts",
     "core/src/fw/aspect/shutdown.ts",
     "third_party/gr-custom-tool/native/crop_state.c",
+    "tools/adjslots/check.py",
     "tools/aspect/boot_checks.py",
     "tools/directflash/check.py",
     "tools/shutdown/menu_check.py",
@@ -3572,7 +3879,9 @@
    "how": "aligned + refs 0x53240f98x433",
    "ok": true,
    "files": [
+    "core/src/fw/aspect/adjslots.ts",
     "core/src/fw/aspect/shutdown.ts",
+    "tools/adjslots/check.py",
     "tools/shutdown/menu_check.py"
    ]
   },
@@ -3775,6 +4084,7 @@
    "how": "aligned + refs 0x532a0584x5",
    "ok": true,
    "files": [
+    "core/src/fw/aspect/adjslots.ts",
     "core/src/fw/aspect/softfocus.ts",
     "tools/softfocus/check.py"
    ]
@@ -4431,7 +4741,9 @@
    "ok": true,
    "why": "fork B: soft focus icon function: softfocus check ALL PASS",
    "files": [
+    "core/src/fw/aspect/adjslots.ts",
     "core/src/fw/aspect/softfocus.ts",
+    "tools/adjslots/check.py",
     "tools/softfocus/check.py"
    ]
   },
@@ -5565,6 +5877,7 @@
     "core/src/fw/aspect/build.ts",
     "core/src/fw/aspect/guard.ts",
     "core/src/fw/aspect/slots.ts",
+    "tools/adjslots/check.py",
     "tools/aspect/boot_checks.py"
    ]
   },
@@ -5578,6 +5891,7 @@
     "core/src/fw/aspect/guard.ts",
     "core/src/fw/aspect/shutdown.ts",
     "core/src/fw/aspect/slots.ts",
+    "tools/adjslots/check.py",
     "tools/aspect/boot_checks.py",
     "tools/datestamp/menu_check.py",
     "tools/directflash/settings_check.py",
@@ -5612,6 +5926,7 @@
    "ok": true,
    "why": "fork B: SpecModel query stub (list_width_check): aligned + 1 ref, normalised body equal (only mov r1 index / literal differ)",
    "files": [
+    "tools/adjslots/check.py",
     "tools/datestamp/list_width_check.py"
    ]
   },
@@ -5647,6 +5962,7 @@
    "ok": true,
    "why": "UserDataInitValue (comment): aligned function start; like 1.11 it has no store at any padding byte (0x109, 0x90F, 0x94B, 0x99A, 0x99B, either base)",
    "files": [
+    "core/src/fw/aspect/adjslots.ts",
     "core/src/fw/aspect/directflash.ts",
     "core/src/fw/aspect/softfocus.ts"
    ]
@@ -5656,6 +5972,7 @@
    "how": "not aligned; refs ",
    "ok": false,
    "files": [
+    "tools/adjslots/check.py",
     "tools/datestamp/menu_check.py"
    ]
   },
@@ -5882,6 +6199,7 @@
    "how": "aligned + refs 0x5359a104x280",
    "ok": true,
    "files": [
+    "tools/adjslots/check.py",
     "tools/shutdown/menu_check.py",
     "tools/shutdown/shutdown.c"
    ]
@@ -6026,6 +6344,7 @@
    "how": "aligned + refs 0x535a62e0x5",
    "ok": true,
    "files": [
+    "tools/adjslots/check.py",
     "tools/datestamp/menu_check.py",
     "tools/directflash/settings_check.py",
     "tools/shutdown/menu_check.py"
@@ -6037,6 +6356,7 @@
    "ok": true,
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/adjslots/check.py",
     "tools/datestamp/menu_check.py",
     "tools/directflash/settings_check.py"
    ]
@@ -6100,6 +6420,7 @@
    "how": "aligned + refs 0x535acd84x1234",
    "ok": true,
    "files": [
+    "tools/adjslots/check.py",
     "tools/shutdown/menu_check.py",
     "tools/shutdown/shutdown.c"
    ]
@@ -6117,6 +6438,7 @@
    "how": "aligned",
    "ok": true,
    "files": [
+    "tools/adjslots/check.py",
     "tools/datestamp/menu_check.py"
    ]
   },
@@ -7692,9 +8014,11 @@
    "how": "aligned + refs 0x539084bcx6263",
    "ok": true,
    "files": [
+    "core/src/fw/aspect/adjslots.ts",
     "core/src/fw/aspect/directflash.ts",
     "core/src/fw/aspect/halation.ts",
     "core/src/fw/aspect/slots.ts",
+    "tools/adjslots/check.py",
     "tools/aspect/playback_check.py",
     "tools/datestamp/menu_check.py",
     "tools/directflash/diag_check.py",
@@ -7709,6 +8033,7 @@
    "ok": true,
    "files": [
     "core/src/fw/aspect/halation.ts",
+    "tools/adjslots/check.py",
     "tools/aspect/playback_check.py",
     "tools/halation/halation.c",
     "tools/softfocus/check.py"
@@ -7719,6 +8044,7 @@
    "how": "aligned + refs 0x53908530x552",
    "ok": true,
    "files": [
+    "tools/adjslots/check.py",
     "tools/aspect/playback_check.py",
     "tools/datestamp/list_width_check.py"
    ]
@@ -7728,6 +8054,7 @@
    "how": "aligned + refs 0x5390856cx698",
    "ok": true,
    "files": [
+    "tools/adjslots/check.py",
     "tools/aspect/playback_check.py"
    ]
   },
@@ -7754,6 +8081,14 @@
    "files": [
     "core/src/fw/aspect/datestamp.ts",
     "tools/datestamp/datestamp.c"
+   ]
+  },
+  "0x538eb380": {
+   "new": "0x53912f48",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
    ]
   },
   "0x538ebbec": {
@@ -8172,6 +8507,7 @@
    "ok": true,
    "why": "fork B: menu descriptor (check scripts)",
    "files": [
+    "core/src/fw/aspect/adjslots.ts",
     "tools/datestamp/menu_check.py",
     "tools/shutdown/menu_check.py"
    ]
@@ -8235,6 +8571,7 @@
    "files": [
     "core/src/fw/aspect/directflash.ts",
     "core/src/fw/aspect/softfocus.ts",
+    "tools/adjslots/check.py",
     "tools/directflash/check.py",
     "tools/softfocus/check.py"
    ]
@@ -8270,8 +8607,10 @@
    "how": "refs 0x53dcd470x16",
    "ok": true,
    "files": [
+    "core/src/fw/aspect/adjslots.ts",
     "core/src/fw/aspect/datestamp-menu.ts",
     "core/src/fw/aspect/directflash.ts",
+    "tools/adjslots/check.py",
     "tools/datestamp/menu_check.py",
     "tools/directflash/settings_check.py"
    ]
@@ -8282,6 +8621,7 @@
    "ok": true,
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts",
+    "tools/adjslots/check.py",
     "tools/datestamp/menu_check.py",
     "tools/directflash/settings_check.py",
     "tools/shutdown/menu_check.py"
@@ -8800,11 +9140,13 @@
    "how": "refs 0x550832a8x3",
    "ok": true,
    "files": [
+    "core/src/fw/aspect/adjslots.ts",
     "core/src/fw/aspect/datestamp.ts",
     "core/src/fw/aspect/directflash.ts",
     "core/src/fw/aspect/guard.ts",
     "core/src/fw/aspect/slots.ts",
     "core/src/fw/aspect/softfocus.ts",
+    "tools/adjslots/check.py",
     "tools/datestamp/menu_check.py",
     "tools/directflash/check.py",
     "tools/directflash/settings_check.py",
