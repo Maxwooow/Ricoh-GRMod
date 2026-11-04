@@ -94,3 +94,25 @@ describe.skipIf(!have)('ADJ lever slots: builds', () => {
     for (const n of [4, 9, 6.5]) await expect(eng.buildFirmware([], [], [], { adjSlots: n })).rejects.toThrow(/5 to 8/);
   });
 });
+
+// GR IV 1.20 (the generated port, core/src/fw/gr4v120/aspect/adjslots.ts): needs GRMOD_GR4_120_FIRMWARE.
+const file120 = process.env.GRMOD_GR4_120_FIRMWARE;
+describe.skipIf(!file120 || !existsSync(file120))('ADJ lever slots: GR IV 1.20', () => {
+  it('builds 6..8 slots with the other additions, passes the self-check, reads back', async () => {
+    const eng = await Engine.open(new Uint8Array(readFileSync(file120!)), { newFirmware: true });
+    expect(eng.info.version).toBe('1.20');
+    expect(eng.info.features.maxAdjSlots).toBe(8);
+    for (const n of [6, 8]) {
+      const b = await eng.buildFirmware([], [], [], { adjSlots: n, adjSoftFocus: true, dateStamp: true, directFlash: true, monoUnlock: true });
+      expect(Object.values(b.checks).every((v) => v === true)).toBe(true);
+      const s = await eng.inspect(b.file);
+      expect(s.verified).toBe(true);
+      expect([s.adjSlots, s.adjSoftFocus, s.dateStamp, s.directFlash]).toEqual([n, true, true, true]);
+    }
+  }, 240_000);
+  it('the compiled 1.20 module is the one of its committed source', async () => {
+    const m = await import('../src/fw/gr4v120/aspect/adjslots-code');
+    const src = readFileSync(new URL('../../tools/gr4v120/adjslots/adjslots.c', import.meta.url));
+    expect(createHash('sha256').update(src).digest('hex')).toBe(m.ADJSLOTS_SOURCE_SHA256);
+  });
+});

@@ -41,6 +41,7 @@ import type { LookLayout } from './looks';
 import type { ExtraSlotSpec } from './slots';
 import { installShutdownMenu } from './shutdown';
 import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
+import { installAdjSlots } from './adjslots';
 import { FRAME_LOOK, LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
 import type { ShutdownPictureSpec } from './shutdown';
 
@@ -141,6 +142,8 @@ export interface ExtensionFeatures {
   guard?: boolean;
   /** Direct Flash, a fifth Flash Mode (0.8.4, see `directflash.ts`); the guide number is chosen in the camera. */
   directFlash?: boolean;
+  /** ADJ lever slots, 6 to 8 (see `adjslots.ts`); absent or 5: the camera's five. */
+  adjSlots?: number;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -1053,7 +1056,8 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   const slots = features.extraSlots ?? [];
   const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
   const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
-  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash;
+  const adjSlots = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
+  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0;
   if (extra) revision = 3;
   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
@@ -1117,9 +1121,11 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   if (shutdown) icons = installShutdownMenu(patch, icons, shutdown.pictures, shutdown.factory);
   // After every other addition that copies the submenu or list table.
   if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
+  // ADJ lever slots: after the other additions that copy the submenu or list table (it adds records the same way).
+  if (adjSlots > 0) installAdjSlots(patch, adjSlots);
   // Last: wraps every other settings save/load and user-mode recall hook.
-  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}) });
+  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}) });
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}) } };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}) } };
 }

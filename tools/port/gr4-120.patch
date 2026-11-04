@@ -1,7 +1,125 @@
+diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect/adjslots.ts
+--- a/core/src/fw/gr4v120/aspect/adjslots.ts
++++ b/core/src/fw/gr4v120/aspect/adjslots.ts
+@@ -1,8 +1,9 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ /**
+- * More ADJ lever slots (GR IV firmware 1.11): N = 6, 7 or 8 slots instead of the camera's five.
++ * More ADJ lever slots (GR IV firmware 1.20, ported from the 1.11 program): N = 6, 7 or 8 slots
++ * instead of the camera's five.
+  *
+- * Everything below was found by reading the official 1.11 code (AdjModeController, its view table,
++ * Everything below was found by reading the official code (1.11, then checked on 1.20: the same code, moved; AdjModeController, its view table,
+  * the ADJ Mode Setting submenu and its lists, the settings structure).
+  *
+  * What the camera has:
+@@ -23,9 +24,9 @@
+  *    (0x531C029C, from 0x91E: five tries, wrap at 4), the selection frame's x (0x531C0900,
+  *    425 + 60 k), and the state functions (0x531BD4BC, 0x531BE260, 0x531C0574, 0x531C095C,
+  *    0x531C09C0, 0x531C0A70);
+- *  - the settings: Customize Settings (menu descriptor 0x53DC6B38) item 6 "ADJ Mode Setting" opens
+- *    submenu record 10 (five lines "Setting1".."Setting5", texts 462..466, at most five lines in a
+- *    record); each opens a list (records 67..71: value count and row drawing from the list
++ *  - the settings: Customize Settings (menu descriptor 0x53DC6B38) item 7 "ADJ Mode Setting" opens
++ *    submenu record 10 (five lines "Setting1".."Setting5", texts 498..502, at most five lines in a
++ *    record); each opens a list (records 68..72: value count and row drawing from the list
+  *    controller's own vector of the ADJ functions, set and "is current" through the slot's setter
+  *    and getter).
+  *
+@@ -47,7 +48,7 @@
+  *    N - 1; the slot last used goes through the module;
+  *  - the settings: Customize Settings gets an item after ADJ Mode Setting, "ADJ Mode Setting 6-N",
+  *    that opens a submenu record of N - 5 lines "Setting6".. (texts made from the camera's own in
+- *    each language), each a list that is ADJ Mode Setting 1's (record 67) with its own set and
++ *    each language), each a list that is ADJ Mode Setting 1's (record 68) with its own set and
+  *    "is current".
+  * In the fixed layout (movies) the extra slots are empty and their frames hidden: the five fixed
+  * functions are as before.
+@@ -67,7 +68,7 @@
+ export const ADJ_MENU_ID = 0x020001c0;
+ export const ADJ_LIST_ID = 0x020001c1;
+ /** Texts: the submenu (and its Customize Settings item), the lines of slots 6..8. */
+-export const ADJ_TEXT_ID = 970;
++export const ADJ_TEXT_ID = 1014; // 1.11: 970 (+ TEXT_SHIFT)
+ /** The controller's new members and size. */
+ export const ADJ_FRAMES = 0x294;
+ export const ADJ_ICONS = 0x2b4;
+@@ -139,19 +140,19 @@
+ 
+ /** Official words of every place changed, checked first. */
+ const OFFICIAL: readonly (readonly [number, number])[] = [
+-  [0x53187c88, 0xe3a00fa5], [0x531c1a14, 0xe2840c02], [0x531c1a18, 0xe3a02078], [0x531c1a60, 0xebff0b2e],
++  [0x53187c88, 0xe3a00fa5], [0x531c1a14, 0xe2840c02], [0x531c1a18, 0xe3a02078], [0x531c1a60, 0xebff0a70],
+   [0x531bd58c, 0xe2862c02], [0x531bd590, 0xe2863f8f], [0x531bd5b8, 0xe2860f9e], [0x531be2a4, 0xe3a0203c], [0x531be2bc, 0xe5c4220a],
+   [0x531c0590, 0xe3a0303c], [0x531c05a8, 0xe283cf82], [0x531c05ac, 0xe5d3220a], [0x531c0654, 0xe3a0303c], [0x531c0670, 0xe2822f82],
+   [0x531c0678, 0xe2811f81], [0x531c0690, 0xe5c6220a], [0x531c06a0, 0xe5931204],
+   [0x531c0974, 0xe3a0403c], [0x531c0980, 0xe5d4320a], [0x531c0994, 0xe3550005], [0x531c09ac, 0xe5d43200], [0x531c09b4, 0x15c40200],
+   [0x531c09b8, 0x15c4720a], [0x531c09d0, 0xe3a0403c], [0x531c09e8, 0xe2804f82], [0x531c0a50, 0xe3550005],
+   [0x531c0a88, 0xe3a0c03c], [0x531c0aa0, 0xe2832f82], [0x531c0aa8, 0xe2811f81], [0x531beae4, 0xea00002f], [0x53dc9dac, 0x531be5e4],
+-  [0x531c0f74, 0xe1a0c00d], [0x531c0f78, 0xe30439bc], [0x531bebf4, 0xe1a0c00d], [0x531bebf8, 0xe92ddff0], [0x531bd078, 0xe1a0c00d],
++  [0x531c0f74, 0xe1a0c00d], [0x531c0f78, 0xe30c3484], [0x531bebf4, 0xe1a0c00d], [0x531bebf8, 0xe92ddff0], [0x531bd078, 0xe1a0c00d],
+   [0x531bd07c, 0xe3a02000], [0x531c0c10, 0xe3a05005], [0x531c0c14, 0xe3540004], [0x531c0ccc, 0xe3a05005], [0x531c0cdc, 0x03a04004],
+-  [0x531c0338, 0xe3a06005], [0x531c0340, 0xe3540004], [0x531c03bc, 0xeb0374e9], [0x531c0404, 0xeb05ec90], [0x531c0498, 0xea05ec6b],
++  [0x531c0338, 0xe3a06005], [0x531c0340, 0xe3540004], [0x531c03bc, 0xeb03806c], [0x531c0404, 0xeb05fb37], [0x531c0498, 0xea05fb12],
+   [0x531c0920, 0xe30031a9], [0x531c0928, 0xe3a0103c],
+   // the functions the module and the stubs call or go back into
+-  [0x531beba8, 0xe300333c], [0x531beba0, 0xe24bd018], [0x531beba4, 0xe89da870], [0x531c0e84, MOV_IP_SP], [0x532a0574, 0xe5d0091e], [0x5333f0e8, MOV_IP_SP], [0x53184428, MOV_IP_SP],
++  [0x531beba8, 0xe30a3a24], [0x531beba0, 0xe24bd018], [0x531beba4, 0xe89da870], [0x531c0e84, MOV_IP_SP], [0x532a0574, 0xe5d0091e], [0x5333f0e8, MOV_IP_SP], [0x53184428, MOV_IP_SP],
+   [0x531be238, MOV_IP_SP], [0x531beab8, MOV_IP_SP], [0x535ab874, MOV_IP_SP], [0x539084bc, MOV_IP_SP],
+ ];
+ 
+@@ -248,8 +249,8 @@
+ }
+ export const adjMenuName = (text: string, n: number): string => `${text} 6${n > 6 ? `-${n}` : ''}`;
+ 
+-const TEXT_ADJ_MODE = 460;
+-const TEXT_SETTING1 = 462;
++const TEXT_ADJ_MODE = 496; // 1.11: 460 (1.20 renumbered the texts)
++const TEXT_SETTING1 = 498; // 1.11: 462
+ 
+ /** Texts of row l (every row of the catalog, as the program indexes languages). */
+ function installTexts(patch: Patch, entries: readonly { id: number; make: (row: number) => string }[]): void {
+@@ -278,13 +279,13 @@
+ const D_ID = 0x1bc;
+ const D_VISIBLE = 0x254;
+ const MAX_ITEMS = 38;
+-const ADJ_ITEM = 6;
++const ADJ_ITEM = 7; // 1.11: 6 (1.20 inserts item 0x02000149 before it)
+ const ADJ_ITEM_ID = 0x020000d3;
+ const ADJ_ITEM_DRAW = 0x531b1598;
+ const TOP_SET_ICON = 0x5359d6f4;
+ const TOP_SET_TITLE = 0x5359d48c;
+ const ADJ_SUBMENU = 10;
+-const ADJ_LIST_RECORD = 67;
++const ADJ_LIST_RECORD = 68; // 1.11: 67 (1.20 inserts a list record before it)
+ const SELECT_TABLE = 0x53dcd470;
+ const SELECT_RECORD = 0x4c;
+ const ADJ1_COUNT = 0x531d0b7c;
+@@ -305,9 +306,9 @@
+   if (new DataView(patch.readMapped(MENU_TABLE + 3 * 4, 4).buffer).getUint32(0, true) !== CUSTOM_MENU) fail('unexpected-layout', 'Customize Settings descriptor is not where it was expected');
+   const d = patch.read(CUSTOM_MENU, 0x38c);
+   const dv = new DataView(d.buffer);
+-  if (d[0x68] !== 3 || [...d.subarray(D_FIRST, D_FIRST + 3)].join() !== '0,5,14' || d[D_COUNT] !== 23) fail('unexpected-layout', 'Customize Settings pages are not the official ones');
++  if (d[0x68] !== 3 || [...d.subarray(D_FIRST, D_FIRST + 3)].join() !== '0,6,15' || d[D_COUNT] !== 24) fail('unexpected-layout', 'Customize Settings pages are not the official ones');
+   if (dv.getUint32(D_ID + ADJ_ITEM * 4, true) !== ADJ_ITEM_ID || dv.getUint32(D_DRAW + ADJ_ITEM * 8, true) !== ADJ_ITEM_DRAW) fail('unexpected-layout', 'ADJ Mode Setting item is not the official one');
+-  expectWord(patch, ADJ_ITEM_DRAW + 0x20, 0xe3a01f73); // mov r1, #0x1cc (text 460)
++  expectWord(patch, ADJ_ITEM_DRAW + 0x20, 0xe3a01e1f); // mov r1, #0x1f0 (text 496)
+   for (const f of [TOP_SET_ICON, TOP_SET_TITLE, APP, RESOURCES, ADJ1_DRAW, ADJ1_SET, ADJ1_CURRENT]) expectWord(patch, f, MOV_IP_SP);
+   expectWord(patch, ADJ1_COUNT, 0xe59031ac);
+   const listRecord = patch.read(SELECT_TABLE + ADJ_LIST_RECORD * SELECT_RECORD, SELECT_RECORD);
+@@ -402,7 +403,7 @@
+   nv.setUint32(D_VISIBLE + at * 8, 0, true);
+   nv.setUint32(D_VISIBLE + at * 8 + 4, 0, true);
+   nd[D_COUNT] = count + 1;
+-  nd[D_FIRST + 2] = 15;
++  nd[D_FIRST + 2] = 16;
+   for (let o = 0; o < nd.length; o += 4) {
+     const w = nv.getUint32(o, true);
+     if (w !== dv.getUint32(o, true)) patch.setWord(CUSTOM_MENU + o, w, 'ADJ slots: Customize Settings item');
 diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/build.ts
 --- a/core/src/fw/gr4v120/aspect/build.ts
 +++ b/core/src/fw/gr4v120/aspect/build.ts
-@@ -34,30 +34,33 @@
+@@ -34,7 +34,7 @@
  import { installDateStampMenu } from './datestamp-menu';
  import { installMonoUnlock } from './monounlock';
  import { CINEMA_STYLES, installExtraSlots, installHalation } from './slots';
@@ -10,9 +128,10 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  import type { HalationLook } from './halation';
  import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
  import type { LookLayout } from './looks';
- import type { ExtraSlotSpec } from './slots';
+@@ -42,23 +42,26 @@
  import { installShutdownMenu } from './shutdown';
  import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
+ import { installAdjSlots } from './adjslots';
 -import { LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
 +import { FRAME_LOOK, LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
  import type { ShutdownPictureSpec } from './shutdown';
@@ -43,7 +162,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  export const LANGUAGES = 21;
  const ROW_STRIDE = TEXT_CAPACITY * 4;
  const NATIVE_ICON_CATALOG = 0x55014280;
-@@ -80,10 +83,10 @@
+@@ -81,10 +84,10 @@
    return id;
  }
  
@@ -57,7 +176,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  }
  
  export interface RatioSpec {
-@@ -147,7 +150,16 @@
+@@ -150,7 +153,16 @@
    dateStampDiag?: boolean;
    /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
    directFlashDiag?: boolean;
@@ -75,7 +194,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  export interface AspectResult {
    revision: BuildRevision;
-@@ -310,7 +322,7 @@
+@@ -313,7 +325,7 @@
    for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
    const rowsStart = TEXT_CATALOG + 0x100;
    const end = rowsStart + LANGUAGES * ROW_STRIDE;
@@ -84,7 +203,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    patch.extendTo(end - BASE);
    patch.write(ICON_CATALOG, icons);
    const relocated: number[] = [];
-@@ -322,8 +334,15 @@
+@@ -325,8 +337,15 @@
    // language directory themselves.
    patch.setWord(0x534013f8, movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
    patch.setWord(0x534013fc, movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
@@ -102,7 +221,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    }
    for (const [low, high] of [[0x535967cc, 0x535967d0], [0x53595db4, 0x53595dbc]] as const) {
      patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
-@@ -354,7 +373,10 @@
+@@ -357,7 +376,10 @@
  // --------------------------------------------------------------------------------------------
  // crop_icons.py
  
@@ -114,7 +233,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
    const parts: Uint8Array[] = [iconbin];
-@@ -446,7 +468,7 @@
+@@ -449,7 +471,7 @@
    // Complete language rows again, now wide enough for the new names; every original entry is kept.
    let priorColumns = TEXT_CAPACITY;
    for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
@@ -123,7 +242,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    for (const id of allIds) upper = Math.max(upper, textId(id));
    const columns = Math.max(priorColumns, upper + 1);
    const catalogs: Uint8Array[] = [];
-@@ -659,8 +681,8 @@
+@@ -662,8 +684,8 @@
      out = '';
      for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
      out += `bic ip,ip,#4;b #${resume};custom:`;
@@ -134,7 +253,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      out += 'ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;';
      p.hook(entry, out);
    }
-@@ -880,7 +902,7 @@
+@@ -883,7 +905,7 @@
  function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
    const priorSave = branchTarget(0x533f3674, patch.word(0x533f3674));
    const priorLoad = branchTarget(0x533f3254, patch.word(0x533f3254));
@@ -143,7 +262,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    expectWord(patch, 0x5381d6bc, 0xe1a0c00d);
    // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
    const rects: Uint8Array[] = [];
-@@ -1018,6 +1040,16 @@
+@@ -1021,6 +1043,16 @@
   * features this is `installRatios`, byte for byte. With features the revision is 3.
   */
  export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
@@ -160,7 +279,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    const slots = features.extraSlots ?? [];
    const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
    const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
-@@ -1056,7 +1088,9 @@
+@@ -1060,7 +1092,9 @@
      const fixed = test.dateStampFixed;
      // From 0.8.2 (builds with the guard) the imprint goes by the picture's look.
      const look = features.guard ? { stash: LOOK_STASH, monoLooks: monoTable(patch, slots.map((x) => monoLook(x.matrixQ13, x.curves, x.postQ9)), FIRST_ADDED_LOOK), names: lookNames(patch, slots.map((x) => x.name)) } : undefined;
@@ -620,7 +739,7 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
    slots: number;
    /** Added ratios are installed (their module resets the ratio). */
    ratios: boolean;
-@@ -72,14 +74,14 @@
+@@ -78,14 +80,14 @@
  function fixSource(o: GuardOptions): string {
    const lines: string[] = ['cmp r0,#0', 'bxeq lr', 'sub r0,r0,r1'];
    LOOKS.forEach((off, i) => {
@@ -637,7 +756,7 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
        }
      }
    });
-@@ -105,7 +107,7 @@
+@@ -132,7 +134,7 @@
    const recallWord = p.word(RECALL);
    if (recallWord >>> 24 !== 0xeb) fail('unexpected-layout', 'user-mode recall is not a call');
    const priorRecall = branchTarget(RECALL, recallWord);
@@ -2989,6 +3108,91 @@ diff --git a/tools/gr4v120/softfocus/check.py b/tools/gr4v120/softfocus/check.py
      for c3 in (4,5):
          for clar in (4,6):
              for sfv in (0,1,2,3,4,0x7a):
+diff --git a/tools/gr4v120/adjslots/check.py b/tools/gr4v120/adjslots/check.py
+--- a/tools/gr4v120/adjslots/check.py
++++ b/tools/gr4v120/adjslots/check.py
+@@ -174,7 +174,7 @@
+             uc.reg_write(UC_ARM_REG_R0, 0)
+             uc.reg_write(UC_ARM_REG_PC, lr)
+             return
+-        if 0x53560000 <= addr < 0x535c3784:
++        if 0x53574000 <= addr < 0x535c3784:   # the view classes (1.11: 0x53560000..0x535a0000), as in tools/gr4v120/datestamp/menu_check.py
+             r0, r1, r2 = (uc.reg_read(x) for x in (UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2))
+             ret = 0
+             if addr == 0x535ad1b4:
+@@ -514,7 +514,7 @@
+ # Menu
+ 
+ ADJ_MENU_ID = 0x020001c0
+-T0 = 970
++T0 = 1014  # 1.11: 970 (+ TEXT_SHIFT 44)
+ 
+ 
+ def check_menu(d, name, n, other_menu_ids=()):
+@@ -529,17 +529,17 @@
+         ids = lambda m: [struct.unpack_from('<I', m, 0x1bc + 4 * i)[0] for i in range(m[0x8b])]
+         draws = lambda m: [struct.unpack_from('<2I', m, 0x8c + 8 * i) for i in range(m[0x8b])]
+         ia, ib = ids(ma), ids(mb)
+-        check(ia == ib[:7] + [ADJ_MENU_ID] + ib[7:], f'{name}: Customize Settings ids (model {model})')
+-        check(list(ma[0x80:0x83]) == [0, 5, 15], f'{name}: Customize Settings pages {list(ma[0x80:0x83])}')
++        check(ia == ib[:8] + [ADJ_MENU_ID] + ib[8:], f'{name}: Customize Settings ids (model {model})')
++        check(list(ma[0x80:0x83]) == [0, 6, 16], f'{name}: Customize Settings pages {list(ma[0x80:0x83])}')
+         da, db = draws(ma), draws(mb)
+-        check(da[:7] + da[8:] == db, f'{name}: Customize Settings items moved')
++        check(da[:8] + da[9:] == db, f'{name}: Customize Settings items moved')
+         for m in (0, 1, 2, 4):
+             if m == 0 and other_menu_ids:
+                 continue
+             check(a[m] == b[m], f'{name}: menu {m} changed (model {model})')
+     # The item draws the new title, no value icon.
+     e = dm.Emu(new)
+-    item = struct.unpack_from('<I', dm.built_menus(new, 0)[3], 0x8c + 8 * 7)[0]
++    item = struct.unpack_from('<I', dm.built_menus(new, 0)[3], 0x8c + 8 * 8)[0]
+     e.call(item, (0x70000000, 0x70700000))
+     calls = [c for c in e.calls if c[0] in ('top-icon', 'top-title')]
+     check(calls == [('top-icon', 0x70700000, 0, calls[0][3] if calls else 0), ('top-title', 0x70700000, T0, calls[1][3] if len(calls) > 1 else 0)][:len(calls)] and len(calls) == 2,
+@@ -570,7 +570,7 @@
+     vec = list(range(20))
+     for j in range(lines):
+         r = new.rd(seltab + list_recs[j] * 0x4c, 0x4c)
+-        o = off.rd(0x53dcd470 + 67 * 0x4c, 0x4c)
++        o = off.rd(0x53dcd470 + 68 * 0x4c, 0x4c)  # ADJ Mode Setting 1's list (1.11: record 67)
+         check(v('<H', r, 4)[0] == T0 + 1 + j, f'{name}: list {j} title')
+         check(v('<I', r, 0x0c)[0] == v('<I', o, 0x0c)[0] and v('<I', r, 0x14)[0] == v('<I', o, 0x14)[0], f'{name}: list {j} count / draw')
+         setf, cur = v('<I', r, 0x24)[0], v('<I', r, 0x2c)[0]
+@@ -673,7 +673,7 @@
+ 
+ def check_calls(d, name):
+     img = dm.Image(d / name)
+-    src = (ROOT / 'core' / 'src' / 'fw' / 'aspect' / 'adjslots-code.ts').read_text()
++    src = (ROOT / 'core' / 'src' / 'fw' / 'gr4v120' / 'aspect' / 'adjslots-code.ts').read_text()
+     code = base64.b64decode(re.search(r"ADJSLOTS_CODE = '([^']+)'", src).group(1))
+     # find the module in the image
+     at = img.R.find(code)
+@@ -701,7 +701,7 @@
+     # each is a function the firmware itself calls (a bl to it exists in the official image)
+     off = dm.Image(d / 'official.rtos')
+     called = set()
+-    for o in range(0, 0x13d2ac0, 4):
++    for o in range(0, len(off.R) // 4 * 4, 4):   # the official RTOS (1.20: 0x140b600 bytes)
+         x = struct.unpack_from('<I', off.R, o)[0]
+         if (x >> 24) in (0xeb, 0xea):
+             called.add(0x53000000 + o + 8 + (((x & 0xffffff) ^ 0x800000) - 0x800000) * 4)
+diff --git a/tools/gr4v120/adjslots/gen.py b/tools/gr4v120/adjslots/gen.py
+--- a/tools/gr4v120/adjslots/gen.py
++++ b/tools/gr4v120/adjslots/gen.py
+@@ -16,9 +16,9 @@
+ from pathlib import Path
+ 
+ HERE = Path(__file__).resolve().parent
+-ROOT = HERE.parent.parent
++ROOT = HERE.parent.parent.parent
+ SRC = HERE / 'adjslots.c'
+-OUT = ROOT / 'core' / 'src' / 'fw' / 'aspect' / 'adjslots-code.ts'
++OUT = ROOT / 'core' / 'src' / 'fw' / 'gr4v120' / 'aspect' / 'adjslots-code.ts'
+ ENTRIES = ['adj_slot_function', 'adj_can_open', 'adj_draw_more', 'adj_touchable_more', 'adj_taps_more', 'adj_bind',
+            'adj_get_position', 'adj_set_position']
+ USE_ZIG = bool(os.environ.get('GRMOD_ZIG')) or not (shutil.which('clang') and shutil.which('ld.lld') and shutil.which('llvm-objcopy'))
 diff --git a/core/src/fw/gr4v120/profile.ts b/core/src/fw/gr4v120/profile.ts
 --- a/core/src/fw/gr4v120/profile.ts
 +++ b/core/src/fw/gr4v120/profile.ts

@@ -18,7 +18,10 @@
  * case their number follows in one more byte; bit 4: power-off pictures, their number follows in
  * one more byte; the data of both is read back from the image itself; bit 5: the settings guard;
  * bit 6 (0.8.4): an Image Control menu order / hidden looks (`looks.ts`): u8 n, the n styles in
- * menu order, u8 h, the h hidden styles; bit 7 (0.8.4): Direct Flash (`directflash.ts`)).
+ * menu order, u8 h, the h hidden styles; bit 7 (0.8.4): Direct Flash (`directflash.ts`)). Then one
+ * more byte of additions, where earlier builds have their zero padding (bit 0 is the HDR gain map's,
+ * on its own branch): bit 1, ADJ lever slots (`adjslots.ts`), their number (6..8) follows in one more
+ * byte. A build without them reads as before; earlier programs do not take a record with this byte set.
  *
  * Power-off pictures (`shutdown.ts`) also add files to the RES section, the last one: their records
  * (two container frames each) are inserted after RES_ANCHOR, and the section's file count grows.
@@ -30,6 +33,7 @@ import type { Range } from '../../types';
 import { MAX_CUSTOM_RATIOS, OFFICIAL_ICONBIN_LENGTH, OFFICIAL_RTOS_LENGTH } from './build';
 import type { AspectResult, BuildRevision, ExtensionFeatures, RatioSpec } from './build';
 import { MAX_EXTRA_SLOTS } from './slots';
+import { ADJ_SLOTS_MAX } from './adjslots';
 import { RES_ANCHOR, SHUTDOWN_MAX_PICTURES, shutdownFiles } from './shutdown';
 import { readRes, resRecords } from './res';
 
@@ -64,6 +68,9 @@ const FEATURE_LOOK_LAYOUT = 64;
 /** Direct Flash (`directflash.ts`), 0.8.4. */
 const FEATURE_DIRECT_FLASH = 128;
 
+/** Second feature byte: bit 1, ADJ lever slots (`adjslots.ts`; bit 0 is the HDR gain map's). */
+const FEATURE2_ADJ_SLOTS = 2;
+
 /**
  * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
  * zero-padded to 4 bytes.
@@ -90,6 +97,10 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
     bytes.push(layout.order.length, ...layout.order, layout.hidden.length, ...layout.hidden);
   }
   if (features.directFlash && revision < 3) fail('internal', 'Direct Flash needs revision 3');
+  if (features.adjSlots && features.adjSlots > 5) {
+    if (revision < 3 || !(Number.isInteger(features.adjSlots) && features.adjSlots <= ADJ_SLOTS_MAX)) fail('internal', 'ADJ slots cannot be recorded');
+    bytes.push(FEATURE2_ADJ_SLOTS, features.adjSlots);
+  }
   while (bytes.length % 4) bytes.push(0);
   return Uint8Array.from(bytes);
 }
@@ -177,7 +188,17 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
       features.lookLayout = { order, hidden };
     }
     if (f & FEATURE_DIRECT_FLASH) features.directFlash = true;
-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash) return null;
+    if (p < rec.length) {
+      const f2 = rec[p++];
+      if ((f2 & ~FEATURE2_ADJ_SLOTS) !== 0) return null;
+      if (f2 & FEATURE2_ADJ_SLOTS) {
+        if (p >= rec.length) return null;
+        const n = rec[p++];
+        if (!(n > 5 && n <= ADJ_SLOTS_MAX)) return null;
+        features.adjSlots = n;
+      }
+    }
+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.adjSlots) return null;
   }
   for (; p < rec.length; p++) if (rec[p] !== 0) return null;
   return { specs: out, features, extraSlots, shutdownPictures };

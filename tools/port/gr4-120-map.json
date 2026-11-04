@@ -44,6 +44,25 @@
     "core/src/fw/aspect/build.ts"
    ]
   },
+  "0x531831e8": {
+   "new": "0x53184428",
+   "how": "aligned + refs 0x53184428x104",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts",
+    "tools/adjslots/adjslots.c",
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x53183e14": {
+   "new": "0x53185054",
+   "how": "aligned + refs 0x53185054x679",
+   "ok": true,
+   "files": [
+    "tools/adjslots/adjslots.c",
+    "tools/adjslots/check.py"
+   ]
+  },
   "0x53185f7c": {
    "new": "0x531871bc",
    "how": "aligned + refs 0x531871bcx3",
@@ -60,6 +79,15 @@
    "ok": true,
    "files": [
     "tools/datestamp/menu_check.py"
+   ]
+  },
+  "0x53186a48": {
+   "new": "0x53187c88",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts",
+    "tools/adjslots/check.py"
    ]
   },
   "0x53187784": {
@@ -666,6 +694,15 @@
     "core/src/fw/aspect/datestamp-menu.ts"
    ]
   },
+  "0x531b0028": {
+   "new": "0x531b1598",
+   "how": "override",
+   "ok": true,
+   "why": "adj: Customize Settings item draw of ADJ Mode Setting (item id 0x020000d3): item 6 in 1.11, item 7 in 1.20 (1.20 inserts item 0x02000149 before it); code identical side by side, title text 0x1cc (460) -> 0x1f0 (496)",
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
   "0x531b0800": {
    "new": "0x531b1d70",
    "how": "override",
@@ -833,6 +870,49 @@
     "core/src/fw/aspect/softfocus.ts"
    ]
   },
+  "0x531bb7c0": {
+   "new": "0x531bccf8",
+   "how": "aligned + refs 0x531bccf8x1",
+   "ok": true,
+   "files": [
+    "tools/adjslots/adjslots.c",
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531bb8ec": {
+   "new": "0x531bce24",
+   "how": "aligned + refs 0x531bce24x1",
+   "ok": true,
+   "files": [
+    "tools/adjslots/adjslots.c",
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531bbb40": {
+   "new": "0x531bd078",
+   "how": "aligned + refs 0x531bd078x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts",
+    "tools/adjslots/adjslots.c"
+   ]
+  },
+  "0x531bbb44": {
+   "new": "0x531bd07c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bbf84": {
+   "new": "0x531bd4bc",
+   "how": "aligned + refs 0x531bd4bcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
   "0x531bbf8c": {
    "new": "0x531bd4c4",
    "how": "aligned",
@@ -849,6 +929,71 @@
     "tools/softfocus/check.py"
    ]
   },
+  "0x531bc054": {
+   "new": "0x531bd58c",
+   "how": "aligned + refs 0x531bd58cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bc058": {
+   "new": "0x531bd590",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bc080": {
+   "new": "0x531bd5b8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bc178": {
+   "new": "0x531bd6b0",
+   "how": "aligned + refs 0x531bd6b0x1",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531bc280": {
+   "new": "0x531bd7b8",
+   "how": "aligned + refs 0x531bd7b8x1",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531bc3a8": {
+   "new": "0x531bd8e0",
+   "how": "aligned + refs 0x531bd8e0x1",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531bc43c": {
+   "new": "0x531bd974",
+   "how": "aligned + refs 0x531bd974x1",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531bc844": {
+   "new": "0x531bdd7c",
+   "how": "override",
+   "ok": true,
+   "why": "adj: exposure panel helper (check.py stub): code identical side by side, calls 0x531bc538/0x531bc660 -> 0x531bda70/0x531bdb98",
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
   "0x531bc9b4": {
    "new": "0x531bdeec",
    "how": "aligned + refs 0x531bdeecx8",
@@ -863,6 +1008,30 @@
    "ok": true,
    "files": [
     "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bcd28": {
+   "new": "0x531be260",
+   "how": "aligned + refs 0x531be260x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bcd6c": {
+   "new": "0x531be2a4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bcd84": {
+   "new": "0x531be2bc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
    ]
   },
   "0x531bd0ac": {
@@ -889,12 +1058,70 @@
     "tools/softfocus/check.py"
    ]
   },
+  "0x531bd1d0": {
+   "new": "0x531be708",
+   "how": "aligned + refs 0x531be708x2",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
   "0x531bd580": {
    "new": "0x531beab8",
    "how": "aligned + refs 0x531beab8x37",
    "ok": true,
    "files": [
     "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bd5ac": {
+   "new": "0x531beae4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bd668": {
+   "new": "0x531beba0",
+   "how": "aligned + refs 0x531beba0x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bd66c": {
+   "new": "0x531beba4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bd670": {
+   "new": "0x531beba8",
+   "how": "aligned + refs 0x531beba8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bd6bc": {
+   "new": "0x531bebf4",
+   "how": "aligned + refs 0x531bebf4x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts",
+    "tools/adjslots/adjslots.c",
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531bd6c0": {
+   "new": "0x531bebf8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
    ]
   },
   "0x531bd954": {
@@ -943,6 +1170,14 @@
    "ok": true,
    "files": [
     "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bdd64": {
+   "new": "0x531bf29c",
+   "how": "aligned + refs 0x531bf29cx2",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
    ]
   },
   "0x531be070": {
@@ -1099,6 +1334,16 @@
     "tools/softfocus/check.py"
    ]
   },
+  "0x531bed64": {
+   "new": "0x531c029c",
+   "how": "aligned + refs 0x531c029cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts",
+    "tools/adjslots/adjslots.c",
+    "tools/adjslots/check.py"
+   ]
+  },
   "0x531bedb0": {
    "new": "0x531c02e8",
    "how": "aligned",
@@ -1113,6 +1358,39 @@
    "ok": true,
    "files": [
     "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bee00": {
+   "new": "0x531c0338",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bee08": {
+   "new": "0x531c0340",
+   "how": "aligned + refs 0x531c0340x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bee84": {
+   "new": "0x531c03bc",
+   "how": "override",
+   "ok": true,
+   "why": "adj: ADJ entry, bl to the remembered-slot getter 0x5329c230 -> 0x532a0574; identical context",
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531beecc": {
+   "new": "0x531c0404",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
    ]
   },
   "0x531beed4": {
@@ -1139,6 +1417,46 @@
     "tools/softfocus/check.py"
    ]
   },
+  "0x531bef60": {
+   "new": "0x531c0498",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf03c": {
+   "new": "0x531c0574",
+   "how": "aligned + refs 0x531c0574x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf058": {
+   "new": "0x531c0590",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf070": {
+   "new": "0x531c05a8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf074": {
+   "new": "0x531c05ac",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
   "0x531bf09c": {
    "new": "0x531c05d4",
    "how": "aligned",
@@ -1153,6 +1471,46 @@
    "ok": true,
    "files": [
     "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf11c": {
+   "new": "0x531c0654",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf138": {
+   "new": "0x531c0670",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf140": {
+   "new": "0x531c0678",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf158": {
+   "new": "0x531c0690",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf168": {
+   "new": "0x531c06a0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
    ]
   },
   "0x531bf198": {
@@ -1171,6 +1529,102 @@
     "tools/softfocus/check.py"
    ]
   },
+  "0x531bf3c8": {
+   "new": "0x531c0900",
+   "how": "aligned + refs 0x531c0900x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf3e8": {
+   "new": "0x531c0920",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf3f0": {
+   "new": "0x531c0928",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf424": {
+   "new": "0x531c095c",
+   "how": "aligned + refs 0x531c095cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf43c": {
+   "new": "0x531c0974",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf448": {
+   "new": "0x531c0980",
+   "how": "aligned + refs 0x531c0980x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf45c": {
+   "new": "0x531c0994",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf474": {
+   "new": "0x531c09ac",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf47c": {
+   "new": "0x531c09b4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf480": {
+   "new": "0x531c09b8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf488": {
+   "new": "0x531c09c0",
+   "how": "aligned + refs 0x531c09c0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf498": {
+   "new": "0x531c09d0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
   "0x531bf4a4": {
    "new": "0x531c09dc",
    "how": "aligned",
@@ -1185,6 +1639,54 @@
    "ok": true,
    "files": [
     "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf4b0": {
+   "new": "0x531c09e8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf518": {
+   "new": "0x531c0a50",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf538": {
+   "new": "0x531c0a70",
+   "how": "aligned + refs 0x531c0a70x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf550": {
+   "new": "0x531c0a88",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf568": {
+   "new": "0x531c0aa0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf570": {
+   "new": "0x531c0aa8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
    ]
   },
   "0x531bf5b0": {
@@ -1219,6 +1721,15 @@
     "tools/softfocus/check.py"
    ]
   },
+  "0x531bf6bc": {
+   "new": "0x531c0bf4",
+   "how": "aligned + refs 0x531c0bf4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts",
+    "tools/adjslots/check.py"
+   ]
+  },
   "0x531bf6c4": {
    "new": "0x531c0bfc",
    "how": "aligned",
@@ -1233,6 +1744,31 @@
    "ok": true,
    "files": [
     "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf6d8": {
+   "new": "0x531c0c10",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf6dc": {
+   "new": "0x531c0c14",
+   "how": "aligned + refs 0x531c0c14x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf778": {
+   "new": "0x531c0cb0",
+   "how": "aligned + refs 0x531c0cb0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts",
+    "tools/adjslots/check.py"
    ]
   },
   "0x531bf780": {
@@ -1251,6 +1787,30 @@
     "tools/softfocus/check.py"
    ]
   },
+  "0x531bf794": {
+   "new": "0x531c0ccc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf7a4": {
+   "new": "0x531c0cdc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531bf94c": {
+   "new": "0x531c0e84",
+   "how": "aligned + refs 0x531c0e84x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
   "0x531bf964": {
    "new": "0x531c0e9c",
    "how": "aligned",
@@ -1265,6 +1825,68 @@
    "ok": true,
    "files": [
     "tools/softfocus/check.py"
+   ]
+  },
+  "0x531bf9d8": {
+   "new": "0x531c0f10",
+   "how": "aligned + refs 0x531c0f10x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts",
+    "tools/adjslots/adjslots.c",
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531bf9ec": {
+   "new": "0x531c0f24",
+   "how": "aligned + refs 0x531c0f24x1",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531bfa00": {
+   "new": "0x531c0f38",
+   "how": "aligned + refs 0x531c0f38x1",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531bfa14": {
+   "new": "0x531c0f4c",
+   "how": "aligned + refs 0x531c0f4cx1",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531bfa28": {
+   "new": "0x531c0f60",
+   "how": "aligned + refs 0x531c0f60x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts",
+    "tools/adjslots/adjslots.c",
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531bfa3c": {
+   "new": "0x531c0f74",
+   "how": "aligned + refs 0x531c0f74x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts",
+    "tools/adjslots/adjslots.c",
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531bfa40": {
+   "new": "0x531c0f78",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
    ]
   },
   "0x531bfb28": {
@@ -1297,6 +1919,46 @@
    "ok": true,
    "files": [
     "tools/softfocus/check.py"
+   ]
+  },
+  "0x531c02fc": {
+   "new": "0x531c1834",
+   "how": "aligned + refs 0x531c1834x1",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531c048c": {
+   "new": "0x531c19c4",
+   "how": "aligned + refs 0x531c19c4x1",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x531c04dc": {
+   "new": "0x531c1a14",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531c04e0": {
+   "new": "0x531c1a18",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
+  "0x531c0528": {
+   "new": "0x531c1a60",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
    ]
   },
   "0x531c0844": {
@@ -1937,6 +2599,15 @@
     "core/src/fw/aspect/datestamp-menu.ts"
    ]
   },
+  "0x531cf398": {
+   "new": "0x531d0b7c",
+   "how": "override",
+   "ok": true,
+   "why": "adj: ADJ Mode Setting1 list record count fn: 1.20 select record 68 (1.11 67; one record inserted before), text 0x1ce -> 0x1f2",
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
   "0x531d033c": {
    "new": "0x531d1ba0",
    "how": "aligned",
@@ -1970,6 +2641,15 @@
    "files": [
     "core/src/fw/aspect/build.ts",
     "tools/aspect/boot_checks.py"
+   ]
+  },
+  "0x531d15c4": {
+   "new": "0x531d2e8c",
+   "how": "override",
+   "ok": true,
+   "why": "adj: Setting1 value draw fn of select record 68 (aligned candidate 0x531d2e28 is record 67's)",
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
    ]
   },
   "0x531d2ae0": {
@@ -2007,6 +2687,15 @@
     "core/src/fw/aspect/datestamp-menu.ts"
    ]
   },
+  "0x531d35ec": {
+   "new": "0x531d4f28",
+   "how": "override",
+   "ok": true,
+   "why": "adj: Setting1 setter of select record 68",
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
   "0x531d4388": {
    "new": "0x531d5cf4",
    "how": "aligned",
@@ -2040,6 +2729,15 @@
    "ok": true,
    "files": [
     "core/src/fw/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x531d4f88": {
+   "new": "0x531d6928",
+   "how": "override",
+   "ok": true,
+   "why": "adj: Setting1 is-current fn of select record 68: calls slot-1 getter 0x532a0584",
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
    ]
   },
   "0x531d5e8c": {
@@ -3064,6 +3762,14 @@
     "core/src/fw/aspect/directflash.ts"
    ]
   },
+  "0x5329c230": {
+   "new": "0x532a0574",
+   "how": "aligned + refs 0x532a0574x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
+   ]
+  },
   "0x5329c240": {
    "new": "0x532a0584",
    "how": "aligned + refs 0x532a0584x5",
@@ -3212,6 +3918,15 @@
     "core/src/fw/aspect/slots.ts"
    ]
   },
+  "0x532a90b0": {
+   "new": "0x532adec0",
+   "how": "override",
+   "ok": true,
+   "why": "adj: settings loader (check.py stub): identical, memcpy size 0xae9 -> 0xb44",
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
   "0x532a90cc": {
    "new": "0x532adedc",
    "how": "override",
@@ -3314,6 +4029,17 @@
    "files": [
     "core/src/fw/aspect/slots.ts",
     "tools/slotparams/gen_slotparams.py"
+   ]
+  },
+  "0x5333a114": {
+   "new": "0x5333f0e8",
+   "how": "override",
+   "ok": true,
+   "why": "adj: still remembered-slot setter: identical; inner 0x5333f010 writes byte +0x91e as in 1.11",
+   "files": [
+    "core/src/fw/aspect/adjslots.ts",
+    "tools/adjslots/adjslots.c",
+    "tools/adjslots/check.py"
    ]
   },
   "0x5336b768": {
@@ -4933,6 +5659,15 @@
     "tools/datestamp/menu_check.py"
    ]
   },
+  "0x5357013c": {
+   "new": "0x53593404",
+   "how": "aligned + refs 0x53593404x167",
+   "ok": true,
+   "files": [
+    "tools/adjslots/adjslots.c",
+    "tools/adjslots/check.py"
+   ]
+  },
   "0x5357094c": {
    "new": "0x53593c14",
    "how": "aligned + refs 0x53593c14x45",
@@ -5333,6 +6068,33 @@
     "core/src/fw/aspect/datestamp-menu.ts"
    ]
   },
+  "0x535885a4": {
+   "new": "0x535ab874",
+   "how": "aligned + refs 0x535ab874x199",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts",
+    "tools/adjslots/adjslots.c",
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x535888a8": {
+   "new": "0x535abb78",
+   "how": "aligned + refs 0x535abb78x150",
+   "ok": true,
+   "files": [
+    "tools/adjslots/adjslots.c",
+    "tools/adjslots/check.py"
+   ]
+  },
+  "0x53588c5c": {
+   "new": "0x535abf2c",
+   "how": "aligned + refs 0x535abf2cx56",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
   "0x53589ab4": {
    "new": "0x535acd84",
    "how": "aligned + refs 0x535acd84x1234",
@@ -5340,6 +6102,14 @@
    "files": [
     "tools/shutdown/menu_check.py",
     "tools/shutdown/shutdown.c"
+   ]
+  },
+  "0x53589ee4": {
+   "new": "0x535ad1b4",
+   "how": "aligned + refs 0x535ad1b4x154",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
    ]
   },
   "0x535a0000": {
@@ -6294,6 +7064,14 @@
     "core/src/fw/aspect/datestamp.ts"
    ]
   },
+  "0x537575ec": {
+   "new": "0x5377cafc",
+   "how": "aligned + refs 0x5377cafcx19",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
   "0x5375c31c": {
    "new": "0x537818a8",
    "how": "aligned + refs 0x537818a8x1",
@@ -6893,6 +7671,14 @@
     "core/src/fw/aspect/build.ts"
    ]
   },
+  "0x538dc048": {
+   "new": "0x53903b54",
+   "how": "aligned + refs 0x53903b54x13",
+   "ok": true,
+   "files": [
+    "tools/adjslots/check.py"
+   ]
+  },
   "0x538dd620": {
    "new": "0x5390512c",
    "how": "aligned + refs 0x5390512cx267",
@@ -7432,6 +8218,16 @@
     "tools/shutdown/menu_check.py"
    ]
   },
+  "0x53d9f6c4": {
+   "new": "0x53dc9dac",
+   "how": "override",
+   "ok": true,
+   "why": "adj: ADJ controller vtable slot (can-open 0x531bd0ac -> 0x531be5e4): neighbouring entries map one to one",
+   "files": [
+    "core/src/fw/aspect/adjslots.ts",
+    "tools/adjslots/check.py"
+   ]
+  },
   "0x53d9f714": {
    "new": "0x53dc9dfc",
    "how": "aligned + refs 0x53dc9dfcx22",
@@ -7441,6 +8237,14 @@
     "core/src/fw/aspect/softfocus.ts",
     "tools/directflash/check.py",
     "tools/softfocus/check.py"
+   ]
+  },
+  "0x53d9fef8": {
+   "new": "0x53dca5e0",
+   "how": "aligned + refs 0x53dca5e0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/adjslots.ts"
    ]
   },
   "0x53da072c": {
