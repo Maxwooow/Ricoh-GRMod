@@ -234,12 +234,34 @@ class Machine:
 
 
 def split_camera_jpeg(b):
-    """Camera header (SOI..APP7) and main stream (DQT..EOI)."""
+    """The camera's two blocks as its writer has them (test 073): the header up to 2 bytes before
+    the end of APP7, and the main stream from its SOI (whose two bytes end APP7) to EOI. A file
+    from our own writer: its gain map and diagnostics block after the first EOI are left out."""
     i = 2
     while b[i + 1] != 0xDB:
         i += 2 + struct.unpack('>H', b[i + 2:i + 4])[0]
-    end = b.rfind(b'\xff\xd9') + 2
-    return b[:i], b[i:end]
+    check(b[i - 2:i] == b'\xff\xd8', 'camera file: no SOI before DQT')
+    end = first_eoi(b, i)
+    return b[:i - 2], b[i - 2:end]
+
+
+def split_dqt(b):
+    """Header ending at APP7's end and a stream starting with DQT (how 065..073 assumed it)."""
+    h, st = split_camera_jpeg(b)
+    return h + st[:2], st[2:]
+
+
+def first_eoi(b, sos_from):
+    """End of the entropy-coded data's EOI after the SOS that follows `sos_from`."""
+    i = sos_from
+    while b[i + 1] != 0xDA:
+        i += 2 + struct.unpack('>H', b[i + 2:i + 4])[0]
+    i += 2 + struct.unpack('>H', b[i + 2:i + 4])[0]
+    while True:
+        i = b.index(b'\xff', i)
+        if b[i + 1] == 0xD9:
+            return i + 2
+        i += 2 if b[i + 1] in (0x00,) or 0xD0 <= b[i + 1] <= 0xD7 else 1
 
 
 def picture(m, at, y, kind=1, packed=False):
@@ -338,7 +360,9 @@ def segments(b):
 def check_file(m, data, header, stream, gm, diag):
     t = m.t
     H, M = len(header), len(stream)
+    p = 2 if stream[:2] == b'\xff\xd8' else 0   # the stream's SOI ends the camera's APP7
     check(data[:H] == header, 'camera header changed')
+    check(data[H:H + p] == stream[:p], 'the stream\'s SOI does not end APP7')
     segs = segments(data)
     ins = [s for s in segs if s[1] >= H]
     kinds = [s[0] for s in ins]
@@ -350,17 +374,20 @@ def check_file(m, data, header, stream, gm, diag):
     check(ins[1][2] == bytes.fromhex(t['iso'])[4:], 'ISO version segment')
     mpf = ins[2][2]
     check(mpf[:4] == b'MPF\0', 'MPF')
-    seg_end = ins[len(want) - 1][1]  # DQT = start of the camera's main stream
+    seg_end = ins[len(want) - 1][1]  # DQT = start of the camera's main stream (after its SOI)
     S = seg_end - H
-    check(data[H + S:H + S + M] == stream, 'main stream changed')
-    check(data[H + S + M:] == gm, 'gain map at the end')
+    check(ins[0][1] == H + p, f'our first segment at {ins[0][1]}, not where APP7 ends ({H + p})')
+    end = seg_end + M - p
+    check(data[seg_end:end] == stream[p:], 'main stream changed')
+    check(first_eoi(data, seg_end) == end, 'the primary picture does not end with the camera\'s EOI')
+    check(data[end:] == gm, 'gain map at the end')
     tiff = ins[2][1] + 8
     count = struct.unpack('>I', mpf[4 + 30:4 + 34])[0]
     check(count == 2, 'MPF: two pictures')
     e1 = struct.unpack('>IIIHH', mpf[4 + 50:4 + 66])
     e2 = struct.unpack('>IIIHH', mpf[4 + 66:4 + 82])
-    check(e1 == (0x30000, H + S + M, 0, 0, 0), f'MPF primary {e1}')
-    check(e2[1] == len(gm) and tiff + e2[2] == H + S + M, f'MPF gain map {e2}')
+    check(e1 == (0x30000, end, 0, 0, 0), f'MPF primary {e1}')
+    check(e2[1] == len(gm) and tiff + e2[2] == end, f'MPF gain map {e2}')
     return S
 
 
@@ -390,9 +417,10 @@ def tail_of(data, camera):
 
 def app15_of(data, header, stream):
     """The diagnostics segment (version 2) of a file written as header, segment, stream; or None."""
-    if data[:len(header)] != header or not data.endswith(stream):
+    p = 2 if stream[:2] == b'\xff\xd8' else 0
+    if data[:len(header)] != header or data[len(header):len(header) + p] != stream[:p] or not data.endswith(stream[p:]):
         return None
-    rest = data[len(header):len(data) - len(stream)]
+    rest = data[len(header) + p:len(data) - len(stream) + p]
     if rest[:2] != b'\xff\xef' or rest[4:12] != b'GRMODHDR' or rest[13] != 2:
         return None
     n = struct.unpack('>H', rest[2:4])[0]
@@ -552,7 +580,7 @@ def main():
     if t['diag']:
         segs = segments(data)
         check([s[0] for s in segs if s[1] >= len(header)][:2] == [0xEF, 0xDB], 'unknown stream: diagnostics then the stream')
-        check(data[:len(header)] == header and data.endswith(bytes(other)), 'unknown stream: file')
+        check(app15_of(data, header, bytes(other)) is not None, 'unknown stream: file')
     else:
         check(data == header + bytes(other), 'unknown stream: the camera\'s file')
     # ---- odd blocks: header that is not SOI + APPn, stream too short
@@ -562,6 +590,15 @@ def main():
     check(plain_or_tail(data, bytes(bad) + stream, t['diag'], 2), 'odd header: the camera\'s file')
     data = write_file(m, header, stream[:8000] + b'\xff\xd9')
     check(plain_or_tail(data, header + stream[:8000] + b'\xff\xd9', t['diag'], 3), 'short stream: the camera\'s file')
+    # the layout 065..073 assumed (header to APP7's end, stream from DQT): still a valid file
+    oh, os_ = split_dqt(open(photos[0], 'rb').read())
+    y0 = np.asarray(Image.open(photos[0]).convert('YCbCr'), np.uint8)[..., 0].copy()
+    run_execute(m, y0, os_)
+    data = write_file(m, oh, os_)
+    st0 = m.state()
+    es = [struct.unpack('<8I', m.uc.mem_read(st0 + 16 + 32 * i, 32)) for i in range(8)]
+    e0 = max(x for x in es if x[0])
+    check_file(m, data, oh, os_, bytes(m.uc.mem_read(e0[4], e0[5])), t['diag'])
     print('fallbacks ok')
 
     # ---- small pictures: burst, pin, memory, writes watched
@@ -576,7 +613,7 @@ def main():
         Image.fromarray(yy, 'L').save(buf, 'JPEG', quality=90)
         jb = buf.getvalue()
         i = jb.find(b'\xff\xdb')
-        s2 = jb[i:]
+        s2 = jb[:2] + jb[i:]                         # SOI, then DQT (as the camera's stream)
         smalls.append((yy, s2))
         run_execute(m, yy, s2, stream_at=STREAM2, packed=(k == 3), desc_slot=(0x58 if k == 4 else 0x4C))
         if k in (3, 4):
@@ -634,7 +671,7 @@ def main():
         buf = io.BytesIO()
         Image.fromarray(big, 'L').save(buf, 'JPEG', quality=80)
         jb = buf.getvalue()
-        run_execute(m, big, jb[jb.find(b'\xff\xdb'):], stream_at=STREAM2)
+        run_execute(m, big, jb[:2] + jb[jb.find(b'\xff\xdb'):], stream_at=STREAM2)
         st = m.state()
         es = [struct.unpack('<8I', m.uc.mem_read(st + 16 + 32 * i, 32)) for i in range(8)]
         held = sum(e[5] for e in es if e[0])

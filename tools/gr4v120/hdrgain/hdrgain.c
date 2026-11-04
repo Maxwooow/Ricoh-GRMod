@@ -15,7 +15,10 @@
  *    has the fingerprint of a kept gain map, the file is written as 4 blocks (the camera's header,
  *    our segments: XMP, ISO 21496-1 version, MPF [, diagnostics], the camera's main stream, the gain
  *    map); otherwise 2 (as the camera) or, in diagnostic builds with a sane layout, 3 (header, the
- *    diagnostics segment, main stream).
+ *    diagnostics segment, main stream). The camera writes its header up to 2 bytes before the end
+ *    of its APP7 segment and its stream, which starts with SOI, right after: the SOI's two bytes
+ *    end APP7 (test 073). Then our block starts with those two bytes and the stream's block starts
+ *    2 bytes into the stream.
  *
  *  OP_INFO (ExifJpegWriter::GetWriteBlockInfo; a = the writer, b = block): a block of ours, or 0
  *    (the stub then calls the camera's own function).
@@ -212,10 +215,12 @@ static u32 fingerprint(const u8 *st, u32 dims) {
   return h;
 }
 
-/* A camera main stream: DQT first, then segments up to SOS within `limit` bytes; the SOF's size. */
+/* A camera main stream: SOI (the camera's stream starts with one, test 073) or not, then DQT, then
+ * segments up to SOS within `limit` bytes; the SOF's size. */
 static u32 stream_dims(const u8 *st, u32 limit) {
   u32 i = 0, dims = 0;
-  if (st[0] != 0xff || st[1] != 0xdb) return 0;
+  if (st[0] == 0xff && st[1] == 0xd8) i = 2;
+  if (st[i] != 0xff || st[i + 1] != 0xdb) return 0;
   while (i + 4 <= limit) {
     u32 m, len;
     if (st[i] != 0xff) return 0;
@@ -594,9 +599,11 @@ static u32 decimal(u8 *out, u32 v) {
 
 /* The segments inserted after the camera's header: XMP, ISO version, MPF; or none (e == 0). Then
  * the diagnostics segment in diagnostic builds. Returns their length, 0 if they do not fit. */
-static u32 segments(const struct ctx *k, struct state *s, struct wslot *w, const struct entry *e, u32 H, u32 M) {
+static u32 segments(const struct ctx *k, struct state *s, struct wslot *w, const struct entry *e, u32 H, u32 M, const u8 *A, u32 p) {
   u8 *o = w->seg;
   u32 n = 0, i;
+  /* The stream's first p bytes (its SOI) close the camera's last APP segment: they come first. */
+  for (i = 0; i < p; i++) o[n++] = A[i];
   if (e) {
     u32 x0 = n, len, tiff, primary;
     if (k->xmp_pre_len + k->xmp_post_len + 16 + k->iso_len + 90 > SEG_MAX) return 0;
@@ -623,7 +630,7 @@ static u32 segments(const struct ctx *k, struct state *s, struct wslot *w, const
       put32(t + 46, 0);
       seglen = n + 90;
       if (k->flags & FLAG_DIAG) seglen += 4 + 10 + 4 * D_END;
-      primary = H + seglen + M;
+      primary = H + seglen + M - p;
       put32(t + 50, 0x00030000u); put32(t + 54, primary); put32(t + 58, 0); put16(t + 62, 0); put16(t + 64, 0);
       put32(t + 66, 0); put32(t + 70, e->gm_len); put32(t + 74, primary - tiff); put16(t + 78, 0); put16(t + 80, 0);
     }
@@ -640,7 +647,10 @@ static u32 segments(const struct ctx *k, struct state *s, struct wslot *w, const
   return n;
 }
 
-static u32 header_ok(const u8 *hdr, u32 H) {
+/* The camera's header: SOI and APP segments. 1: they end at H; 2: the last one ends 2 bytes after
+ * H and the stream starts with SOI (the camera writes its stream, SOI first, at H: the SOI's two
+ * bytes are the last two of the APP7 segment, test 073); else 0. */
+static u32 header_ok(const u8 *hdr, u32 H, const u8 *A) {
   u32 i = 2;
   if (hdr[0] != 0xff || hdr[1] != 0xd8) return 0;
   while (i < H) {
@@ -652,7 +662,9 @@ static u32 header_ok(const u8 *hdr, u32 H) {
     if (len < 2) return 0;
     i += 2 + len;
   }
-  return i == H;
+  if (i == H) return 1;
+  if (i == H + 2 && A[0] == 0xff && A[1] == 0xd8) return 2;
+  return 0;
 }
 
 /* Diagnostic builds, a file written as the camera's two blocks: a third block after the camera's
@@ -694,7 +706,7 @@ static u32 count(const struct ctx *k, const u8 *self) {
   struct state *s = get_state(k, (k->flags & FLAG_DIAG) ? 2 : 0);
   const u32 *b;
   const u8 *hdr, *A;
-  u32 H, M, dims = 0, fp, i, reason = 0;
+  u32 H, M, dims = 0, fp, i, reason = 0, p = 0;
   struct wslot *w = 0;
   struct entry *e = 0;
   if (!s || !ram(self) || ((u32)self & 3u)) return 2;
@@ -708,11 +720,13 @@ static u32 count(const struct ctx *k, const u8 *self) {
   }
   hdr = (const u8 *)b[1]; H = b[2]; A = (const u8 *)b[4]; M = b[5];
   if (b[0] != 0 || b[3] != H || !ram(hdr) || !ram(A) || !ram(A + M) || H < 64 || H > 0x20000u) reason = 1;
-  else if (!header_ok(hdr, H)) reason = 2;
   else if (M < STREAM_MIN || M > STREAM_MAX) reason = 3;
   else {
     flush(k, A, 1024);
-    if (!(dims = stream_dims(A, 1024))) reason = 3;
+    i = header_ok(hdr, H, A);
+    if (!i) reason = 2;
+    else if (!(dims = stream_dims(A, 1024))) reason = 3;
+    else p = i == 2 ? 2 : 0;
   }
   if (reason) {
     /* This writer's blocks are the camera's: forget what it was given before. */
@@ -755,7 +769,7 @@ static u32 count(const struct ctx *k, const u8 *self) {
     w->e = e;
   }
   {
-    u32 n = (e || (k->flags & FLAG_DIAG)) ? segments(k, s, w, e, H, M) : 0;
+    u32 n = (e || (k->flags & FLAG_DIAG)) ? segments(k, s, w, e, H, M, A, p) : 0;
     w->seg_len = n;
     if (!n) {
       if (w->e && w->e->pins) w->e->pins--;
@@ -765,10 +779,10 @@ static u32 count(const struct ctx *k, const u8 *self) {
     } else {
       w->blocks[0] = 0; w->blocks[1] = (u32)hdr; w->blocks[2] = H;
       w->blocks[3] = H; w->blocks[4] = (u32)w->seg; w->blocks[5] = n;
-      w->blocks[6] = H + n; w->blocks[7] = (u32)A; w->blocks[8] = M;
+      w->blocks[6] = H + n; w->blocks[7] = (u32)A + p; w->blocks[8] = M - p;
       w->n = 3;
       if (e) {
-        w->blocks[9] = H + n + M; w->blocks[10] = (u32)e->gm; w->blocks[11] = e->gm_len;
+        w->blocks[9] = H + n + M - p; w->blocks[10] = (u32)e->gm; w->blocks[11] = e->gm_len;
         w->n = 4;
       }
     }
