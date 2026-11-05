@@ -75,6 +75,8 @@ export interface FirmwareInfo {
     directFlash?: boolean;
     /** The most ADJ lever slots a build can have (GR IV: 8; absent: the camera's five only). */
     maxAdjSlots?: number;
+    /** An HDR gain map in the JPEGs, switched in the camera's still menu (GR IV). */
+    hdrGainMap?: boolean;
     /** GR III / IIIx: the most films a build can have (9; 20 on GR III 2.10, where
      * the number is chosen with BuildOptions.filmCount and Halation is set in the camera). */
     maxFilms?: number };
@@ -494,7 +496,7 @@ export class Engine {
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
       // The 1.12 bridge firmware goes back to 1.11 only: no bridge for 1.20.
       capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, bridge: !bridge && g4 === Gr4Program111, menuPictures: true, lookLayout: true },
-      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, directFlash: true, maxAdjSlots: 8 },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true },
       version: g4.FIRMWARE_VERSION,
       looks: { factory: [...g4.aspect.FACTORY_LOOK_IDS], extraFirst: g4.aspect.EXTRA_FIRST_STYLE, monoOnly: g4.aspect.FACTORY_LOOK_IDS.filter((n) => n >= 25) },
       sha256: await sha256Hex(raw),

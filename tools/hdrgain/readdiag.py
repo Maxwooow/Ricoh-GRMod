@@ -81,6 +81,9 @@ def show(r):
         cn = d.get('cnt')
         if ex is not None:
             print(f"     Execute entries {ex & 0xFFFF}, returns {ex >> 16}; block counts {cn & 0xFFFF}, block infos {cn >> 16}")
+            # 0.8.9: with the camera-menu switch Off the encode step is not looked at (no module call)
+            if (ex >> 16) > d['post_calls']:
+                print(f"     pictures with HDR Off in the menu (encode step returned, module not called): {(ex >> 16) - d['post_calls']}")
         if 'state_by' in d:
             print(f"     state made by: {STATE_BY.get(d['state_by'], d['state_by'])}; word before: {d['state_raw']:#010x}; at {d['state_at']:#010x}; lock failures {d['lock_fail']}; tails {d['tails']}")
         print(f"     encode step: calls {d['post_calls']}, gain maps {d['post_ok']}, last: {POST_REASON.get(d['post_reason'], d['post_reason'])}")

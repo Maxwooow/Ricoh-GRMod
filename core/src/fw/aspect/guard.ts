@@ -64,11 +64,15 @@ export interface GuardOptions {
   hiddenLooks?: readonly number[];
   /** ADJ lever slots installed (6..8, `adjslots.ts`); absent: the camera's five. */
   adjSlots?: number;
+  /** 0.8.9: the HDR gain map's menu switch is installed (`hdrgain.ts`, byte 0x10A of the settings: 0 On, 1 Off). */
+  hdr?: boolean;
 }
 
 /** Slots 6..8 (`adjslots.ts`): bytes 0x48D..0x48F of the user settings object, bits 0..4 the function, bits 5..7 of the first the slot last used (1..3: slot 6..8). */
 const ADJ_EXTRA = [0x48d, 0x48e, 0x48f];
 const ADJ_STILL_POSITION = 0x91e;
+/** The HDR gain map's switch (`HDR_SWITCH_BYTE`): byte 0x10E of the user settings object; 0 or 1. */
+const HDR_SWITCH = 0x10e;
 
 /** The standard photo and movie sets' looks (the others are custom sets' looks). */
 const CURRENT_LOOKS = [0x153, 0x515];
@@ -116,6 +120,7 @@ function fixSource(o: GuardOptions): string {
       lines.push(`strb r2,[r0,#${off}]`);
     });
   }
+  if (o.hdr) lines.push(`ldrb r2,[r0,#${HDR_SWITCH}]`, 'cmp r2,#1', 'movhi r2,#0', `strbhi r2,[r0,#${HDR_SWITCH}]`);
   lines.push('bx lr');
   return lines.join(';');
 }

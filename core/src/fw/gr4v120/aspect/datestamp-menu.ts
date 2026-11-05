@@ -57,7 +57,7 @@
 import { FirmwareError } from '../../types';
 import { assembleWords, branchTarget, movImmediate, movWord } from './arm';
 import {
-  ICON_CATALOG, LANGUAGES, LOOKUP_BOUNDS, NATIVE_TEXT_ROOTS, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z,
+  ICON_CATALOG, LANGUAGES, LOOKUP_BOUNDS, NATIVE_TEXT_ROOTS, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z, widenTextRows,
 } from './build';
 import { DATESTAMP_AS_STORED, DATESTAMP_BYTE, DATESTAMP_LONG, DATESTAMP_NAME } from './datestamp';
 
@@ -484,7 +484,7 @@ function relocateTable(patch: Patch, table: number, record: number, copyRecords:
  * Install the menu entry. `patch` must already hold the scaffold of `build.ts` (relocated
  * catalogs) and the imprint itself. Returns the ICONBIN data with the four style icons appended.
  */
-export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Array {
+export function installDateStampMenu(patch: Patch, iconbin: Uint8Array, hdrDraw = 0): Uint8Array {
   // --- Checks of the official code and data this relies on.
   expectWord(patch, BUILDER, 0xe1a0c00d); // mov ip, sp
   expectWord(patch, BUILDER + 4, movWord(3, lo(MENU_TABLE)));
@@ -701,43 +701,47 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Ar
   relocateTable(patch, SUB_TABLE, SUB_RECORD, SUB_RECORDS + 1, [subRecord], SUB_SITES, 'date imprint: submenu records');
   patch.submenuRecords = SUB_RECORD_NUMBER + 1;
 
-  // --- Two still-menu descriptors.
-  const descriptor = (keep: number): Uint8Array => {
-    const d = still.slice();
-    const v = new DataView(d.buffer);
-    const items: number[] = [];
-    for (let i = 0; i < MAX_ITEMS; i++) if (i !== HDF_ITEM && i !== RED_FILTER_ITEM) items.push(i);
-    items.splice(HDF_ITEM, 0, keep);
-    for (let j = 0; j < MAX_ITEMS - 1; j++) {
-      const i = items[j];
-      d.set(still.subarray(D_DRAW + i * 8, D_DRAW + i * 8 + 8), D_DRAW + j * 8);
-      d.set(still.subarray(D_ID + i * 4, D_ID + i * 4 + 4), D_ID + j * 4);
-      d.set(still.subarray(D_VISIBLE + i * 8, D_VISIBLE + i * 8 + 8), D_VISIBLE + j * 8);
-    }
-    const last = MAX_ITEMS - 1;
-    v.setUint32(D_DRAW + last * 8, topDraw, true);
-    v.setUint32(D_DRAW + last * 8 + 4, 0, true);
-    v.setUint32(D_ID + last * 4, DATESTAMP_MENU_ID, true);
-    v.setUint32(D_VISIBLE + last * 8, 0, true);
-    v.setUint32(D_VISIBLE + last * 8 + 4, 0, true);
-    d.set([0, 10, 18, 23, 29, 34], D_FIRST);
-    d[D_COUNT] = MAX_ITEMS;
-    return d;
-  };
-  const withHdf = patch.append(descriptor(HDF_ITEM), 16);
-  const withRedFilter = patch.append(descriptor(RED_FILTER_ITEM), 16);
-  const builder = patch.append((at) => assembleWords(
-    `push {r0, r1, r2, r3, ip, lr}
-     bl #${APP}; bl #${SPEC_MODEL}; bl #${MODEL_NUMBER}
-     movw r1, #${lo(withHdf)}; movt r1, #${hi(withHdf)}
-     cmp r0, #2
-     movweq r1, #${lo(withRedFilter)}; movteq r1, #${hi(withRedFilter)}
-     movw r2, #${lo(MENU_TABLE)}; movt r2, #${hi(MENU_TABLE)}
-     str r1, [r2]
-     pop {r0, r1, r2, r3, ip, lr}
-     mov ip, sp
-     b #${BUILDER + 4}`, at), 16);
-  patch.setWord(BUILDER, branchWord(BUILDER, builder), 'date imprint: still menu for this model');
+  // --- Two still-menu descriptors (with the HDR gain map's line: one per model, see `stillMenuForModels`).
+  if (hdrDraw) {
+    stillMenuForModels(patch, still, topDraw, hdrDraw, 'date imprint and HDR gain map');
+  } else {
+    const descriptor = (keep: number): Uint8Array => {
+      const d = still.slice();
+      const v = new DataView(d.buffer);
+      const items: number[] = [];
+      for (let i = 0; i < MAX_ITEMS; i++) if (i !== HDF_ITEM && i !== RED_FILTER_ITEM) items.push(i);
+      items.splice(HDF_ITEM, 0, keep);
+      for (let j = 0; j < MAX_ITEMS - 1; j++) {
+        const i = items[j];
+        d.set(still.subarray(D_DRAW + i * 8, D_DRAW + i * 8 + 8), D_DRAW + j * 8);
+        d.set(still.subarray(D_ID + i * 4, D_ID + i * 4 + 4), D_ID + j * 4);
+        d.set(still.subarray(D_VISIBLE + i * 8, D_VISIBLE + i * 8 + 8), D_VISIBLE + j * 8);
+      }
+      const last = MAX_ITEMS - 1;
+      v.setUint32(D_DRAW + last * 8, topDraw, true);
+      v.setUint32(D_DRAW + last * 8 + 4, 0, true);
+      v.setUint32(D_ID + last * 4, DATESTAMP_MENU_ID, true);
+      v.setUint32(D_VISIBLE + last * 8, 0, true);
+      v.setUint32(D_VISIBLE + last * 8 + 4, 0, true);
+      d.set([0, 10, 18, 23, 29, 34], D_FIRST);
+      d[D_COUNT] = MAX_ITEMS;
+      return d;
+    };
+    const withHdf = patch.append(descriptor(HDF_ITEM), 16);
+    const withRedFilter = patch.append(descriptor(RED_FILTER_ITEM), 16);
+    const builder = patch.append((at) => assembleWords(
+      `push {r0, r1, r2, r3, ip, lr}
+       bl #${APP}; bl #${SPEC_MODEL}; bl #${MODEL_NUMBER}
+       movw r1, #${lo(withHdf)}; movt r1, #${hi(withHdf)}
+       cmp r0, #2
+       movweq r1, #${lo(withRedFilter)}; movteq r1, #${hi(withRedFilter)}
+       movw r2, #${lo(MENU_TABLE)}; movt r2, #${hi(MENU_TABLE)}
+       str r1, [r2]
+       pop {r0, r1, r2, r3, ip, lr}
+       mov ip, sp
+       b #${BUILDER + 4}`, at), 16);
+    patch.setWord(BUILDER, branchWord(BUILDER, builder), 'date imprint: still menu for this model');
+  }
 
   // --- Controller ids.
   const factory = patch.append((at) => assembleWords(
@@ -770,4 +774,173 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array): Uint8Ar
   patch.setWord(SELECT_SET_CURRENT, branchWord(SELECT_SET_CURRENT, selectCurrent), 'date imprint: list records');
 
   return icons;
+}
+
+// --------------------------------------------------------------------------------------------
+// 0.8.9 (test 075): the HDR gain map's line of the still shooting menu.
+//
+// "HDR" (On / Off) right after Color Space (page "File / JPEG"), opening a list of two values, as
+// Horizon Correction's line opens its list. The setting is bit 0 of byte 0x10A of the user settings
+// (HDR_SWITCH_BYTE, `hdrgain.ts`): 0 On (every camera has 0 there: on as soon as the firmware is
+// written), 1 Off. The still menu holds at most 38 items (the descriptor's arrays) and has 38; three
+// of them are model-specific, each shown on one model only: item 15 (0x0200007F, visibility
+// 0x531B1130: GR IV), HDF (22, HDF) and Red Filter (23, Monochrome). So with this line there is one
+// descriptor per model, without the two items that model never shows; each model sees exactly the
+// official menu plus the new lines (HDR, and the date imprint's at the end when it is installed).
+
+/** The list's controller id (not used by the firmware) and the line / list title. */
+export const HDR_LIST_ID = 0x020001d0;
+export const HDR_TEXT_ID = 1018; // 1.11: 974 (+ TEXT_SHIFT)
+/** Color Space: the HDR line follows it. */
+const COLOR_SPACE_ID = 0x0200008d;
+/** The item only the GR IV (not HDF, not Monochrome) shows, and its visibility function. */
+const GR4_ONLY_ITEM = 15;
+const GR4_ONLY_ID = 0x0200007f;
+const GR4_ONLY_VISIBLE = 0x531b1130;
+/** (menu line, icon): the one-icon still-menu line (as Horizon Correction's). */
+const TOP_SET_ICON = 0x5359d6f4;
+/** The model's visibility functions of the HDF and Red Filter items. */
+const HDF_VISIBLE = 0x531b1154;
+const RED_FILTER_VISIBLE = 0x531b117c;
+
+/** Load the HDR setting byte into r3 (r2 = its address). */
+function loadHdr(byte: number): string {
+  return `movw r2, #${lo(byte)}; movt r2, #${hi(byte)}; ldrb r3, [r2]`;
+}
+
+/** The still-menu line: icon ON / OFF and "HDR" (menu line in r1). */
+export function hdrTopDraw(patch: Patch, byte: number): number {
+  expectWord(patch, TOP_SET_ICON, 0xe1a0c00d);
+  expectWord(patch, TOP_SET_TITLE, 0xe1a0c00d);
+  return patch.append((at) => assembleWords(
+    `push {r4, lr}
+     mov r4, r1
+     ${loadHdr(byte)}
+     tst r3, #1; movweq r1, #${ICON_ON}; movwne r1, #${ICON_OFF}
+     mov r0, r4; bl #${TOP_SET_ICON}
+     mov r0, r4; movw r1, #${HDR_TEXT_ID}
+     pop {r4, lr}; b #${TOP_SET_TITLE}`, at), 16);
+}
+
+/**
+ * One still-menu descriptor per model (0 GR IV, 1 HDF, 2 Monochrome; any other number gets the
+ * HDF's), each without the model-specific items that model does not show, with the HDR line after
+ * Color Space and (when `dateDraw`) the date imprint's line at the end; the builder stores the
+ * model's at 0x55001E78 before it builds the menus (it is the only reader of that table).
+ */
+function stillMenuForModels(patch: Patch, still: Uint8Array, dateDraw: number, hdrDraw: number, what: string): void {
+  const dv = new DataView(still.buffer, still.byteOffset, still.byteLength);
+  const id = (i: number): number => dv.getUint32(D_ID + i * 4, true);
+  const visible = (i: number): number => dv.getUint32(D_VISIBLE + i * 8, true);
+  if (id(GR4_ONLY_ITEM) !== GR4_ONLY_ID || visible(GR4_ONLY_ITEM) !== GR4_ONLY_VISIBLE || visible(HDF_ITEM) !== HDF_VISIBLE || visible(RED_FILTER_ITEM) !== RED_FILTER_VISIBLE) {
+    fail('unexpected-layout', 'model-specific still-menu items are not the official ones');
+  }
+  for (let i = 0; i < MAX_ITEMS; i++) if (id(i) === HDR_LIST_ID) fail('unexpected-layout', 'HDR controller id already in use');
+  const colour = Array.from({ length: MAX_ITEMS }, (_, i) => i).filter((i) => id(i) === COLOR_SPACE_ID);
+  if (colour.length !== 1) fail('unexpected-layout', 'Color Space is not in the still menu');
+  const firsts = [...still.subarray(D_FIRST, D_FIRST + still[D_PAGES])];
+  const descriptor = (drop: readonly number[]): Uint8Array => {
+    const d = still.slice();
+    const v = new DataView(d.buffer);
+    const order: ({ i: number } | { draw: number; id: number })[] = [];
+    for (let i = 0; i < MAX_ITEMS; i++) {
+      if (drop.includes(i)) continue;
+      order.push({ i });
+      if (i === colour[0]) order.push({ draw: hdrDraw, id: HDR_LIST_ID });
+    }
+    if (dateDraw) order.push({ draw: dateDraw, id: DATESTAMP_MENU_ID });
+    if (order.length > MAX_ITEMS) fail('internal', 'still menu: too many items');
+    for (let j = 0; j < MAX_ITEMS; j++) {
+      const o = order[j];
+      if (o && 'i' in o) {
+        d.set(still.subarray(D_DRAW + o.i * 8, D_DRAW + o.i * 8 + 8), D_DRAW + j * 8);
+        d.set(still.subarray(D_ID + o.i * 4, D_ID + o.i * 4 + 4), D_ID + j * 4);
+        d.set(still.subarray(D_VISIBLE + o.i * 8, D_VISIBLE + o.i * 8 + 8), D_VISIBLE + j * 8);
+      } else {
+        v.setUint32(D_DRAW + j * 8, o ? o.draw : 0, true);
+        v.setUint32(D_DRAW + j * 8 + 4, 0, true);
+        v.setUint32(D_ID + j * 4, o ? o.id : 0, true);
+        v.setUint32(D_VISIBLE + j * 8, 0, true);
+        v.setUint32(D_VISIBLE + j * 8 + 4, 0, true);
+      }
+    }
+    // Pages start at the same official items (none of them is dropped).
+    const at = firsts.map((f) => order.findIndex((o) => 'i' in o && o.i === f));
+    if (at.some((x) => x < 0)) fail('internal', 'still menu: a page starts at a dropped item');
+    d.set(at, D_FIRST);
+    d[D_COUNT] = order.length;
+    return d;
+  };
+  const gr4 = patch.append(descriptor([HDF_ITEM, RED_FILTER_ITEM]), 16);
+  const hdf = patch.append(descriptor([GR4_ONLY_ITEM, RED_FILTER_ITEM]), 16);
+  const mono = patch.append(descriptor([GR4_ONLY_ITEM, HDF_ITEM]), 16);
+  const builder = patch.append((at) => assembleWords(
+    `push {r0, r1, r2, r3, ip, lr}
+     bl #${APP}; bl #${SPEC_MODEL}; bl #${MODEL_NUMBER}
+     movw r1, #${lo(hdf)}; movt r1, #${hi(hdf)}
+     cmp r0, #0
+     movweq r1, #${lo(gr4)}; movteq r1, #${hi(gr4)}
+     cmp r0, #2
+     movweq r1, #${lo(mono)}; movteq r1, #${hi(mono)}
+     movw r2, #${lo(MENU_TABLE)}; movt r2, #${hi(MENU_TABLE)}
+     str r1, [r2]
+     pop {r0, r1, r2, r3, ip, lr}
+     mov ip, sp
+     b #${BUILDER + 4}`, at), 16);
+  patch.setWord(BUILDER, branchWord(BUILDER, builder), `${what}: still menu for this model`);
+}
+
+/** The HDR line in a build without the date imprint's menu (the still menu is still the official one). */
+export function installHdrStillLine(patch: Patch, hdrDraw: number): void {
+  expectWord(patch, BUILDER, 0xe1a0c00d); // mov ip, sp
+  expectWord(patch, BUILDER + 4, movWord(3, lo(MENU_TABLE)));
+  expectWord(patch, BUILDER + 0x10, movWord(3, hi(MENU_TABLE), true));
+  if (new DataView(patch.readMapped(MENU_TABLE, 4).buffer).getUint32(0, true) !== STILL_MENU) fail('unexpected-layout', 'still menu descriptor is not where it was expected');
+  for (const f of [APP, SPEC_MODEL]) expectWord(patch, f, 0xe1a0c00d);
+  expectWord(patch, MODEL_NUMBER, 0xe5903000); // ldr r3, [r0]
+  expectWord(patch, MODEL_NUMBER + 4, 0xe5930004); // ldr r0, [r3, #4]
+  const still = patch.read(STILL_MENU, DESCRIPTOR);
+  const dv = new DataView(still.buffer);
+  const firsts = [...still.subarray(D_FIRST, D_FIRST + 6)];
+  if (still[D_PAGES] !== 6 || firsts.join() !== '0,10,18,24,30,35' || still[D_COUNT] !== MAX_ITEMS) fail('unexpected-layout', 'still menu pages are not the official ones');
+  if (dv.getUint32(D_ID + HDF_ITEM * 4, true) !== 0x02000133 || dv.getUint32(D_ID + RED_FILTER_ITEM * 4, true) !== 0x02000135) fail('unexpected-layout', 'HDF and Red Filter items are not the official ones');
+  stillMenuForModels(patch, still, 0, hdrDraw, 'HDR gain map');
+}
+
+/**
+ * The HDR list (Off / On, the camera's texts and icons) and its controller: after the date
+ * imprint's menu, the power-off pictures' and Direct Flash's (they copy the list table first).
+ */
+export function installHdrMenu(patch: Patch, byte: number): void {
+  expectWord(patch, LIST_SET_ITEM, 0xe1a0c00d);
+  widenTextRows(patch, HDR_TEXT_ID);
+  installTexts(patch, [{ id: HDR_TEXT_ID, names: Array(LANGUAGES).fill('HDR') as string[] }]);
+  const count = patch.append((at) => assembleWords('mov r0, #2; bx lr', at), 16);
+  const draw = patch.append((at) => assembleWords(
+    `cmp r2, #1; bxhi lr
+     mov r0, r1; cmp r2, #0
+     movweq r1, #${ICON_OFF}; movweq r2, #${TEXT_OFF}
+     movwne r1, #${ICON_ON}; movwne r2, #${TEXT_ON}
+     b #${LIST_SET_ITEM}`, at), 16);
+  // Values: 0 Off, 1 On; stored inverted in bit 0 (0 On), the other bits cleared.
+  const set = patch.append((at) => assembleWords(
+    `cmp r1, #1; bxhi lr
+     movw r2, #${lo(byte)}; movt r2, #${hi(byte)}
+     eor r3, r1, #1; strb r3, [r2]; bx lr`, at), 16);
+  const current = patch.append((at) => assembleWords(
+    `${loadHdr(byte)}
+     and r3, r3, #1; eor r3, r3, #1
+     cmp r3, r1; moveq r0, #1; movne r0, #0; bx lr`, at), 16);
+  const r = listTemplate(patch);
+  const v = new DataView(r.buffer);
+  v.setUint16(4, HDR_TEXT_ID, true);
+  v.setUint32(0x0c, count, true);
+  v.setUint32(0x14, draw, true);
+  v.setUint32(0x24, set, true);
+  v.setUint32(0x2c, current, true);
+  for (const off of [0x10, 0x18, 0x28, 0x30]) v.setUint32(off, 0, true);
+  addListRecords(patch, [{ id: HDR_LIST_ID, record: r }], 'HDR gain map');
+  hookControllerFactory(patch, `movw ip, #${lo(HDR_LIST_ID)}; movt ip, #${hi(HDR_LIST_ID)}
+     cmp r1, ip; bne prior
+     movw r1, #${lo(HORIZON_ID)}; movt r1, #${hi(HORIZON_ID)}`, 'HDR gain map: the list controller');
 }

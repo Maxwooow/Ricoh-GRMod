@@ -54,6 +54,7 @@ function FirmwareLine({ info, builds, lang, name }: { info: CopyInfo | undefined
           {s.monoUnlock && <span className="chip tiny" title={t('monoLine')}><b>{t('navMono')}</b></span>}
           {s.directFlash && <span className="chip tiny" title={t('flashLine')}><b>{t('navFlash')}</b></span>}
           {s.adjSlots && <span className="chip tiny" title={t('adjSlotsLine', { n: s.adjSlots })}><b>ADJ {s.adjSlots}</b></span>}
+          {s.hdrGainMap && <span className="chip tiny" title={t('hdrLine')}><b>HDR</b></span>}
         </div>
       </div>
     </>

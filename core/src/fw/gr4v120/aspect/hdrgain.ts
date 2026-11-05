@@ -71,6 +71,15 @@ export const HDR_STATE_WORD = 0x5583901c;
 const ZERO_FILL_END = 0x53000460;
 /** Test builds: two zero-filled words before the heap the stubs count their calls in (the zero fill's old end). */
 export const HDR_COUNTERS = 0x55839014;
+/**
+ * 0.8.9 (test 075): the camera-menu switch (`datestamp-menu.ts`, the still menu's HDR line), bit 0
+ * of byte 0x10A of the user settings: 0 On, 1 Off. Alignment padding between a byte field (0x108)
+ * and a word (0x10C), next to Direct Flash's 0x109, that UserDataInitValue (run in the emulator,
+ * all 30 records, 1.11 and 1.20) never writes; inside the bytes the settings save keeps, copied with
+ * the user modes. Every camera has 0 there: on. Off: the encode step is not looked at (no gain map,
+ * no time spent), so the writer writes the camera's two blocks.
+ */
+export const HDR_SWITCH_BYTE = 0x550832a8 + 4 + 0x10a;
 
 const OP_POST = 1;
 const OP_COUNT = 2;
@@ -289,12 +298,14 @@ export function installHdrGainMap(patch: Patch, diag = false): number {
      bl #${tramp}
      ${cnt('r2', 0, 0x10000)}
      str r0, [sp]
+     movw r2, #${lo(HDR_SWITCH_BYTE)}; movt r2, #${hi(HDR_SWITCH_BYTE)}
+     ldrb r2, [r2]; tst r2, #1; bne off
      ldr r2, [sp, #4]
      ldr r2, [r2, #8]
      movw r0, #${lo(ctx)}; movt r0, #${hi(ctx)}
      mov r1, #${OP_POST}
      bl #${mod}
-     pop {r0, r1, r4, pc}`, a), 16);
+     off: pop {r0, r1, r4, pc}`, a), 16);
   const countStub = patch.append((a) => assembleWords(
     `push {r4, lr}
      ${cnt('r1', 4, 1)}

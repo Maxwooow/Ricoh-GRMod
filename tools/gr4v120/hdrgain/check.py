@@ -52,6 +52,7 @@ ALLOC = 0x539084BC
 FREE = 0x539084F8
 FLUSH = 0x53000930
 SETTINGS = 0x550832A8
+SWITCH = SETTINGS + 4 + 0x10A  # 0.8.9: the camera-menu switch, bit 0 = Off
 
 HEAP = 0x58000000
 HEAP_END = 0x5C000000
@@ -572,6 +573,43 @@ def main():
             os.makedirs(outdir, exist_ok=True)
             open(os.path.join(outdir, name.replace('.JPG', '_HDR.JPG')), 'wb').write(data)
         print(json.dumps(results[-1]))
+
+    # ---- 0.8.9: the menu switch Off (bit 0 of the byte): the encode step does not look at the
+    # picture (no gain map, nothing kept, the module not called), the camera's file; On again: as before
+    header, stream = split_camera_jpeg(open(photos[0], 'rb').read())
+    y0 = np.asarray(Image.open(photos[0]).convert('YCbCr'), np.uint8)[..., 0].copy()
+    off = bytearray(stream)
+    off[7000] ^= 0x33
+    off = bytes(off)
+    prev = None
+    for raw in (1, 3, 0xFF):
+        st = m.state()
+        before = bytes(m.uc.mem_read(st, 16 + 32 * 8))
+        m.uc.mem_write(SWITCH, bytes([raw]))
+        m.counting = True
+        m.insns = 0
+        run_execute(m, y0, off)
+        m.counting = False
+        print(f'  switch {raw:#x} (Off): {m.insns} instructions')
+        check(m.insns < 400, f'switch {raw}: the wrapper ran {m.insns} instructions (the module was called)')
+        check(bytes(m.uc.mem_read(st, 16 + 32 * 8)) == before, f'switch {raw}: the state changed')
+        data = write_file(m, header, off)
+        if t['diag']:
+            d = app15_of(data, header, off)
+            check(d is not None and d['w_reason'] == 5, f'switch {raw}: diagnostics {d}')
+            # Execute entered and returned, the module not called
+            check(d is None or prev is None or (d['post_calls'] == prev['post_calls'] and d['exec'] == prev['exec'] + 0x10001), f'switch {raw}: counters {d and (d["post_calls"], hex(d["exec"]))}')
+            prev = d
+        else:
+            check(data == header + off, f'switch {raw}: not the camera\'s file')
+    for raw in (0, 2):
+        m.uc.mem_write(SWITCH, bytes([raw]))
+        run_execute(m, y0, off)
+        data = write_file(m, header, off)
+        check(len(data) > len(header) + len(off) + 1000, f'switch {raw} (On): no gain map')
+        off = bytearray(off); off[7001] ^= 0x11; off = bytes(off)
+    m.uc.mem_write(SWITCH, b'\0')
+    print('menu switch ok')
 
     # ---- a stream that has no gain map: the camera's two blocks (three with diagnostics)
     other = bytearray(stream)

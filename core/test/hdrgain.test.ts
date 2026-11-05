@@ -12,8 +12,9 @@ import { createHash } from 'node:crypto';
 const sha = async (b: Uint8Array): Promise<string> => createHash('sha256').update(b).digest('hex');
 import { Engine, fw } from '../src';
 import { HDRGAIN_SOURCE_SHA256 } from '../src/fw/aspect/hdrgain-code';
-import { HDR_COUNTERS, HDR_CTX_MAGIC, HDR_GAIN, WRITER_VTABLE, ZIGZAG, gainCodes, hdrTables, huffCodes, isoMetadata, quantTable } from '../src/fw/aspect/hdrgain';
+import { HDR_COUNTERS, HDR_CTX_MAGIC, HDR_GAIN, HDR_SWITCH_BYTE, WRITER_VTABLE, ZIGZAG, gainCodes, hdrTables, huffCodes, isoMetadata, quantTable } from '../src/fw/aspect/hdrgain';
 import { JPEG_EXECUTE } from '../src/fw/aspect/datestamp';
+import { HDR_LIST_ID, HDR_TEXT_ID } from '../src/fw/aspect/datestamp-menu';
 import { WRITER_VTABLE as WRITER_VTABLE_120 } from '../src/fw/gr4v120/aspect/hdrgain';
 import { HDRGAIN_SOURCE_SHA256 as HDRGAIN_SOURCE_SHA256_120 } from '../src/fw/gr4v120/aspect/hdrgain-code';
 import type { ExtraSlotSpec } from '../src';
@@ -130,6 +131,35 @@ describe.skipIf(!have)('HDR gain map: builds', () => {
     // the same file with the gain map added later (extendVerified) is the one built at once
     expect(await sha(await eng.extendVerified(plain.file, { hdrGainMap: true }))).toBe(b.sha256);
   });
+  it('0.8.9: the camera-menu switch (still menu line, byte 0x10A) with ADJ slots and the date imprint; HDR text in every language', async () => {
+    const b = await eng.buildFirmware([], [], [], { dateStamp: true, adjSlots: 8, hdrGainMap: true });
+    expect(Object.values(b.checks).every((v) => v === true)).toBe(true);
+    const s = await eng.inspect(b.file);
+    expect(s.verified).toBe(true);
+    expect(s.hdrGainMap).toBe(true);
+    expect(s.adjSlots).toBe(8);
+    const rtos = rtosOf(b.file);
+    expect(fw.readExtensionFeatures(rtos)).toEqual({ guard: true, dateStamp: true, hdrGainMap: true, adjSlots: 8 });
+    const dv = new DataView(rtos.buffer, rtos.byteOffset);
+    const has = (lo16: number, hi16: number, reg: number): boolean => {
+      const movw = (0xe3000000 | (reg << 12) | ((lo16 & 0xf000) << 4) | (lo16 & 0xfff)) >>> 0;
+      const movt = (0xe3400000 | (reg << 12) | ((hi16 & 0xf000) << 4) | (hi16 & 0xfff)) >>> 0;
+      for (let i = 0x01000000; i + 8 <= rtos.length; i += 4) if (dv.getUint32(i, true) === movw && dv.getUint32(i + 4, true) === movt) return true;
+      return false;
+    };
+    // the wrapper and the menu read the switch byte; the line's id is in the still menus
+    expect(has(HDR_SWITCH_BYTE & 0xffff, HDR_SWITCH_BYTE >>> 16, 2)).toBe(true);
+    let ids = 0;
+    for (let i = 0x01000000; i + 4 <= rtos.length; i += 4) if (dv.getUint32(i, true) === HDR_LIST_ID) ids++;
+    expect(ids).toBeGreaterThanOrEqual(3);
+    expect(HDR_TEXT_ID).toBe(974);
+    // without the gain map: no line
+    const plain = rtosOf((await eng.buildFirmware([], [], [], { dateStamp: true, adjSlots: 8 })).file);
+    const pv = new DataView(plain.buffer, plain.byteOffset);
+    let none = 0;
+    for (let i = 0x01000000; i + 4 <= plain.length; i += 4) if (pv.getUint32(i, true) === HDR_LIST_ID) none++;
+    expect(none).toBe(0);
+  }, 120000);
   it('a test build differs from the plain one in its context (flag, counters word) and stubs (the counters), not in the module', async () => {
     const a = rtosOf((await eng.buildFirmware([], [], [], { hdrGainMap: true })).file);
     const b = rtosOf((await eng.buildFirmware([], [], [], { hdrGainMap: true, hdrDiag: true })).file);

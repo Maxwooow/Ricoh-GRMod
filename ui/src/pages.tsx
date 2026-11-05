@@ -15,7 +15,7 @@ import {
   setSoft,
   setDateStamp,
   setMonoUnlock,
-  setDirectFlash, setAdjSlots, adjSlotsOf,
+  setDirectFlash, setAdjSlots, adjSlotsOf, setHdr,
   extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, slotOf,
   filmCountChoosable, removeFilm, setFilmCount,
   hasLookLayout, isGr3, KEEP_VISIBLE, lookHiddenNow, lookMonoOnly, lookName, lookOrderAvailable, lookOrderNow, moveLook, moveLookTo, resetLookLayout, setLookHidden,
@@ -695,6 +695,8 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
   const flash = useStore((s) => s.directFlash);
   const flashOk = useStore((s) => !!s.info?.features.directFlash);
   const adjMax = useStore((s) => s.info?.features.maxAdjSlots ?? 5);
+  const hdr = useStore((s) => s.hdr);
+  const hdrOk = useStore((s) => !!s.info?.features.hdrGainMap);
   const own = useRef<HTMLDivElement | null>(null);
   // Moved to the other column: glide from where it was (FLIP). Rectangles are in window pixels,
   // the transform is in the zoomed interface's pixels.
@@ -714,6 +716,7 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
       {(!gr3x || dateOk) && <FeatureRow icon={Ico.date} title={t('navDate')} sub={t('dateSub')} on={date} onChange={setDateStamp} />}
       {!mono && !gr3x && <FeatureRow icon={Ico.mono} title={t(gr3x ? 'gr3xReplicaTitle' : 'navMono')} sub={t(gr3x ? 'gr3xReplicaSub' : 'monoSub')} on={looks} onChange={setMonoUnlock} />}
       {flashOk && <FeatureRow icon={Ico.flash} title={t('navFlash')} sub={t('flashSub')} on={flash} onChange={setDirectFlash} />}
+      {hdrOk && <FeatureRow icon={Ico.hdr} title={t('navHdr')} sub={t('hdrSub')} on={hdr} onChange={setHdr} />}
       {adjMax > 5 && <AdjSlotsRow max={adjMax} />}
     </div>
   );

@@ -9376,6 +9376,15 @@
     "tools/shutdown/menu_check.py",
     "core/src/fw/aspect/hdrgain.ts"
    ]
+  },
+  "0x531afbc0": {
+   "new": "0x531b1130",
+   "how": "override",
+   "ok": true,
+   "why": "HDR gain map menu (0.8.9): visibility function of still-menu item 15 (0x0200007F), the one only the GR IV (not HDF, not Monochrome) shows; 1.20's still descriptor 0x53DC74B0 has item 15 = 0x0200007F with visibility 0x531B1130, which returns 1 / 0 / 0 for models 0 / 1 / 2 in the emulator as 0x531AFBC0 does in 1.11 (HDF's 0x531AFBE4 -> 0x531B1154 and Red Filter's 0x531AFC0C -> 0x531B117C sit right after it in both)",
+   "files": [
+    "core/src/fw/aspect/datestamp-menu.ts"
+   ]
   }
  }
 }

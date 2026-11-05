@@ -31,8 +31,8 @@ import { installAdjSoftFocus } from './softfocus';
 import { installDirectFlash } from './directflash';
 import { installDirectFlashMenu } from './directflash-menu';
 import { DATESTAMP_BYTE, installDateStamp, lookNames } from './datestamp';
-import { installHdrGainMap } from './hdrgain';
-import { installDateStampMenu } from './datestamp-menu';
+import { HDR_SWITCH_BYTE, installHdrGainMap } from './hdrgain';
+import { hdrTopDraw, installDateStampMenu, installHdrMenu, installHdrStillLine } from './datestamp-menu';
 import { installMonoUnlock } from './monounlock';
 import { CINEMA_STYLES, installExtraSlots, installHalation } from './slots';
 import { halationLight } from './halation';
@@ -1061,14 +1061,17 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   // Before the date imprint's menu, which copies the list table with Flash Mode's records.
   if (features.directFlash) icons = installDirectFlash(patch, icons, !!test.directFlashDiag);
   if (features.monoUnlock) installMonoUnlock(patch);
+  // 0.8.9: the HDR gain map's line in the still menu (one descriptor per model, with the date imprint's).
+  const hdrDraw = features.hdrGainMap ? hdrTopDraw(patch, HDR_SWITCH_BYTE) : 0;
   if (features.dateStamp) {
     const fixed = test.dateStampFixed;
     // From 0.8.2 (builds with the guard) the imprint goes by the picture's look.
     const look = features.guard ? { stash: LOOK_STASH, monoLooks: monoTable(patch, slots.map((x) => monoLook(x.matrixQ13, x.curves, x.postQ9)), FIRST_ADDED_LOOK), names: lookNames(patch, slots.map((x) => x.name)) } : undefined;
     installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : DATESTAMP_BYTE, test.directFlashDiag && features.directFlash ? 'df' : !!test.dateStampDiag, look);
-    if (!fixed) icons = installDateStampMenu(patch, icons);
+    if (!fixed) icons = installDateStampMenu(patch, icons, hdrDraw);
     if (look && slots.length === 0) installLookStash(patch);
   }
+  if (hdrDraw && (!features.dateStamp || test.dateStampFixed)) installHdrStillLine(patch, hdrDraw);
   // Halation: added slots that have it, Cinema slots with a preset that are asked to.
   const halation: HalationLook[] = [];
   slots.forEach((x, k) => {
@@ -1094,10 +1097,12 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   if (shutdown) icons = installShutdownMenu(patch, icons, shutdown.pictures, shutdown.factory);
   // After every other addition that copies the submenu or list table.
   if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
+  // The HDR line's list: after the additions that copy the list table first.
+  if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
   // ADJ lever slots: after the other additions that copy the submenu or list table (it adds records the same way).
   if (adjSlots > 0) installAdjSlots(patch, adjSlots);
   // Last: wraps every other settings save/load and user-mode recall hook.
-  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}) });
+  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}) });
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
   return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}) } };
