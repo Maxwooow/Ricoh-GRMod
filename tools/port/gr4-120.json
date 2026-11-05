@@ -81,7 +81,9 @@
     ],
     [
       "tools/hdrgain",
-      "tools/gr4v120/hdrgain",
+      "tools/gr4v120/hdrgain"
+    ],
+    [
       "tools/adjslots",
       "tools/gr4v120/adjslots"
     ]
@@ -130,7 +132,9 @@
     ],
     [
       "tools/hdrgain/",
-      "tools/gr4v120/hdrgain/",
+      "tools/gr4v120/hdrgain/"
+    ],
+    [
       "tools/adjslots/",
       "tools/gr4v120/adjslots/"
     ],
@@ -171,7 +175,10 @@
     ],
     [
       "python3",
-      "tools/gr4v120/hdrgain/gen.py",
+      "tools/gr4v120/hdrgain/gen.py"
+    ],
+    [
+      "python3",
       "tools/gr4v120/adjslots/gen.py"
     ],
     [
