@@ -62,7 +62,13 @@ export interface GuardOptions {
   adjSoftFocus: boolean;
   /** Looks hidden from the lists (0.8.4); never 11 or 25. */
   hiddenLooks?: readonly number[];
+  /** ADJ lever slots installed (6..8, `adjslots.ts`); absent: the camera's five. */
+  adjSlots?: number;
 }
+
+/** Slots 6..8 (`adjslots.ts`): bytes 0x48D..0x48F of the user settings object, bits 0..4 the function, bits 5..7 of the first the slot last used (1..3: slot 6..8). */
+const ADJ_EXTRA = [0x48d, 0x48e, 0x48f];
+const ADJ_STILL_POSITION = 0x91e;
 
 /** The standard photo and movie sets' looks (the others are custom sets' looks). */
 const CURRENT_LOOKS = [0x153, 0x515];
@@ -87,6 +93,27 @@ function fixSource(o: GuardOptions): string {
   if (!o.adjSoftFocus) {
     ADJ_SLOTS.forEach((off, i) => {
       lines.push(`ldrb r2,[r0,#${off}]`, 'cmp r2,#10', `beq adjbad${i}`, 'cmp r2,#20', `bls adj${i}`, `adjbad${i}:`, 'mov r2,#0', `strb r2,[r0,#${off}]`, `adj${i}:`);
+    });
+  }
+  const n = o.adjSlots ?? 5;
+  if (n > 5) {
+    if (!(Number.isInteger(n) && n <= 8)) fail('internal', 'guard: ADJ slots');
+    // The official slot last used: 0..4 (with more slots this firmware keeps 5..7 elsewhere).
+    lines.push(`ldrb r2,[r0,#${ADJ_STILL_POSITION}]`, 'cmp r2,#4', 'movhi r2,#0', `strbhi r2,[r0,#${ADJ_STILL_POSITION}]`);
+    ADJ_EXTRA.forEach((off, j) => {
+      lines.push(`ldrb r2,[r0,#${off}]`);
+      if (5 + j >= n) {
+        lines.push('mov r2,#0');
+      } else {
+        // the function: 0..0x14, soft focus (0x0A) only with soft focus on the ADJ lever
+        lines.push('and r3,r2,#0x1f', 'cmp r3,#20', `bhi xbad${j}`);
+        if (!o.adjSoftFocus) lines.push('cmp r3,#10', `beq xbad${j}`);
+        lines.push(`b xok${j}`, `xbad${j}:`, 'bic r2,r2,#0x1f', `xok${j}:`);
+        // the slot last used (first byte only): slots 6..n
+        if (j === 0) lines.push('mov r3,r2,lsr #5', `cmp r3,#${n - 5}`, 'bichi r2,r2,#0xe0');
+        else lines.push('and r2,r2,#0x1f');
+      }
+      lines.push(`strb r2,[r0,#${off}]`);
     });
   }
   lines.push('bx lr');

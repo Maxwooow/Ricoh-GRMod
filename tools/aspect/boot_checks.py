@@ -219,6 +219,15 @@ SPECIAL = {
 # Hooks whose displaced instruction is conditional: include the instruction(s) before it, which set the flags.
 LEAD = {0x5364DEE4: 1, 0x5364E484: 1, 0x5388BE10: 1}
 
+# More ADJ lever slots (core/src/fw/aspect/adjslots.ts), when the build has them: the views' binding,
+# SlotFunction past slot 5, the strip, the touchable icons, the taps and the slot last used go to
+# functions of N slots on purpose. Their behaviour is checked function by function, with five slots
+# against the official image and with 6..8 against the rules, by tools/adjslots/check.py.
+ADJ_SLOTS_ENTRY = (0x531C0528, 0x531BD5AC, 0x531BFA3C, 0x531BD6BC, 0x531BBB40, 0x531BEE84, 0x531BEECC, 0x531BEF60,
+                   # ADJ Mode Setting's lines 6..N (SubMenuController's list builder, OK on a line): checked with
+                   # SubMenuController's own code, every submenu against the official image, by the same check.py
+                   0x531E2588, 0x531E25A0, 0x531E25BC, 0x531E20E8)
+
 
 def hooks_of(official, patched):
     """Addresses in the official part whose word changed into a B/BL to the appended area."""
@@ -562,6 +571,10 @@ def check_menu(official, patched):
 # functions 0..0x14 but soft focus's 0x0A), so the guard leaves them alone and the rest is compared.
 GUARD_LOOKS = (0x153, 0x154, 0x155, 0x156, 0x515, 0x516, 0x517, 0x518)
 GUARD_ADJ = (0x920, 0x921, 0x922, 0x923, 0x924)
+# More ADJ lever slots (adjslots.ts): slots 6..8 (0x48D..0x48F; 0 is valid whatever their number) and
+# the camera's remembered slot 0x91E (0..4), which the guard of such a build also puts back.
+GUARD_ADJ_EXTRA = (0x48D, 0x48E, 0x48F)
+GUARD_ADJ_POSITION = 0x91E
 
 
 def guard_valid(state, settings, rng, adjust=0):
@@ -570,6 +583,9 @@ def guard_valid(state, settings, rng, adjust=0):
         poke(state, settings + off - adjust, bytes([rng.choice(range(11, 25))]))
     for off in GUARD_ADJ:
         poke(state, settings + off - adjust, bytes([rng.choice([n for n in range(0x15) if n != 0x0A])]))
+    for off in GUARD_ADJ_EXTRA:
+        poke(state, settings + off - adjust, bytes([0]))
+    poke(state, settings + GUARD_ADJ_POSITION - adjust, bytes([rng.randrange(5)]))
 
 
 def check_settings(official, patched, order):
@@ -917,6 +933,9 @@ def run(official, patched, icon_bytes, official_icons, quiet=False):
             'identical for heights that are multiples of 8; callee-saved registers, stack and memory as after the official call' % cases)
     else:
         say('build revision 1: no decode buffer change')
+    for a in ADJ_SLOTS_ENTRY:
+        if a in hooks:
+            SPECIAL[a] = 'entry'
     unknown = [hex(a) for a in SPECIAL if a not in hooks]
     assert not unknown, 'SPECIAL lists addresses that are not hooks: %s' % unknown
     tested, failures, notes = check_transparent(official, patched, hooks, lead=LEAD)

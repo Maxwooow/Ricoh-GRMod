@@ -81,7 +81,9 @@
     ],
     [
       "tools/hdrgain",
-      "tools/gr4v120/hdrgain"
+      "tools/gr4v120/hdrgain",
+      "tools/adjslots",
+      "tools/gr4v120/adjslots"
     ]
   ],
   "exclude": [
@@ -128,7 +130,9 @@
     ],
     [
       "tools/hdrgain/",
-      "tools/gr4v120/hdrgain/"
+      "tools/gr4v120/hdrgain/",
+      "tools/adjslots/",
+      "tools/gr4v120/adjslots/"
     ],
     [
       "parents[2]",
@@ -167,7 +171,8 @@
     ],
     [
       "python3",
-      "tools/gr4v120/hdrgain/gen.py"
+      "tools/gr4v120/hdrgain/gen.py",
+      "tools/gr4v120/adjslots/gen.py"
     ],
     [
       "python3",
@@ -179,7 +184,8 @@
       "core/src/fw/gr4v120/aspect/halation-code.ts",
       "core/src/fw/gr4v120/aspect/shutdown-code.ts",
       "core/src/fw/gr4v120/aspect/slotparams-native.ts",
-      "core/src/fw/gr4v120/aspect/hdrgain-code.ts"
+      "core/src/fw/gr4v120/aspect/hdrgain-code.ts",
+      "core/src/fw/gr4v120/aspect/adjslots-code.ts"
     ]
   ],
   "old_marker": "1.11"

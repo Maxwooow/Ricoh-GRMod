@@ -53,6 +53,7 @@ function FirmwareLine({ info, builds, lang, name }: { info: CopyInfo | undefined
           {s.dateStamp && <span className="chip tiny" title={t('dateLine')}><b>{t('navDate')}</b></span>}
           {s.monoUnlock && <span className="chip tiny" title={t('monoLine')}><b>{t('navMono')}</b></span>}
           {s.directFlash && <span className="chip tiny" title={t('flashLine')}><b>{t('navFlash')}</b></span>}
+          {s.adjSlots && <span className="chip tiny" title={t('adjSlotsLine', { n: s.adjSlots })}><b>ADJ {s.adjSlots}</b></span>}
         </div>
       </div>
     </>

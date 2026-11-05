@@ -1,0 +1,42 @@
+{
+ "0x531b0028": {
+  "new": "0x531b1598",
+  "reason": "Customize Settings item draw of ADJ Mode Setting (item id 0x020000d3): item 6 in 1.11, item 7 in 1.20 (1.20 inserts item 0x02000149 before it); code identical side by side, title text 0x1cc (460) -> 0x1f0 (496)"
+ },
+ "0x531bc844": {
+  "new": "0x531bdd7c",
+  "reason": "adj: exposure panel helper (check.py stub): code identical side by side, calls 0x531bc538/0x531bc660 -> 0x531bda70/0x531bdb98"
+ },
+ "0x531bee84": {
+  "new": "0x531c03bc",
+  "reason": "adj: ADJ entry, bl to the remembered-slot getter 0x5329c230 -> 0x532a0574; identical context"
+ },
+ "0x531cf398": {
+  "new": "0x531d0b7c",
+  "reason": "adj: ADJ Mode Setting1 list record count fn: 1.20 select record 68 (1.11 67; one record inserted before), text 0x1ce -> 0x1f2"
+ },
+ "0x531d15c4": {
+  "new": "0x531d2e8c",
+  "reason": "adj: Setting1 value draw fn of select record 68 (aligned candidate 0x531d2e28 is record 67's)"
+ },
+ "0x531d35ec": {
+  "new": "0x531d4f28",
+  "reason": "adj: Setting1 setter of select record 68"
+ },
+ "0x531d4f88": {
+  "new": "0x531d6928",
+  "reason": "adj: Setting1 is-current fn of select record 68: calls slot-1 getter 0x532a0584"
+ },
+ "0x532a90b0": {
+  "new": "0x532adec0",
+  "reason": "adj: settings loader (check.py stub): identical, memcpy size 0xae9 -> 0xb44"
+ },
+ "0x5333a114": {
+  "new": "0x5333f0e8",
+  "reason": "adj: still remembered-slot setter: identical; inner 0x5333f010 writes byte +0x91e as in 1.11"
+ },
+ "0x53d9f6c4": {
+  "new": "0x53dc9dac",
+  "reason": "adj: ADJ controller vtable slot (can-open 0x531bd0ac -> 0x531be5e4): neighbouring entries map one to one"
+ }
+}
