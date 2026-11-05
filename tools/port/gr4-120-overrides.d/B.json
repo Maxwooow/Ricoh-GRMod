@@ -1,0 +1,226 @@
+{
+ "0x531d5e8c": {
+  "new": "0x531d7860",
+  "reason": "SelectMenuController SetCurrent (list record lookup): aligned + 1 ref; datestamp menu_check passes"
+ },
+ "0x533e0330": {
+  "new": "0x533f1dbc",
+  "reason": "SpecModel model number: aligned; datestamp menu_check stub reached for models 0..2"
+ },
+ "0x533e033c": {
+  "new": "0x533f1dc8",
+  "reason": "SpecModel function valid: SpecModel model number + 0xc as in 1.11"
+ },
+ "0x533ef000": {
+  "new": "0x53400df4",
+  "reason": "SpecModel query stub (datestamp menu_check): aligned, normalised body equal"
+ },
+ "0x533ef18c": {
+  "new": "0x53400f80",
+  "reason": "SpecModel query stub (list_width_check): aligned + 1 ref, normalised body equal (only mov r1 index / literal differ)"
+ },
+ "0x53d9cdb0": {
+  "new": "0x53dc74b0",
+  "reason": "still (shooting) menu descriptor: menu table entry; guarded in datestamp-menu.ts"
+ },
+ "0x53e984e0": {
+  "new": "0x53ece708",
+  "reason": "label widget vtable: aligned + 3 refs; list_width_check ALL OK"
+ },
+ "0x53e98f18": {
+  "new": "0x53ecf140",
+  "reason": "SelectMenu row vtable: aligned + 2 refs; list_width_check ALL OK"
+ },
+ "0x538f21a0": {
+  "new": "0x53919d68",
+  "reason": "date imprint platform function (datestamp.ts PLATFORM): aligned, normalised body equal"
+ },
+ "0x5537960c": {
+  "new": "0x5537b29c",
+  "reason": "direction singleton: movw/movt in 0x53750028 (expectWord 0xe30b029c)"
+ },
+ "0x5372b640": {
+  "new": "0x53750028",
+  "reason": "direction singleton getter: aligned, its movw word checked by expectWord"
+ },
+ "0x531db2c4": {
+  "new": "0x531dccc8",
+  "reason": "SelectMenu list fill site (expectWord 0xe3a0e07e)"
+ },
+ "0x531da9d4": {
+  "new": "0x531dc3d8",
+  "reason": "SelectMenuController list fill: aligned; list_width_check runs it"
+ },
+ "0x5357ab24": {
+  "new": "0x5359ddf0",
+  "reason": "SelectMenu row constructor: aligned; list_width_check runs it"
+ },
+ "0x53579f28": {
+  "new": "0x5359d1f4",
+  "reason": "other row class constructor: aligned; list_width_check runs it"
+ },
+ "0x531d6868": {
+  "new": "0x531d825c",
+  "reason": "list table movw (SELECT_RECORDS reader)"
+ },
+ "0x531d6878": {
+  "new": "0x531d826c",
+  "reason": "list table movt"
+ },
+ "0x5337ff98": {
+  "new": "0x5338f584",
+  "reason": "soft focus name site (mov r0,#140, word 0xe3a0008c checked)"
+ },
+ "0x5337ff9c": {
+  "new": "0x5338f588",
+  "reason": "soft focus name site + 4"
+ },
+ "0x53381934": {
+  "new": "0x53390f84",
+  "reason": "soft focus icon body: iconAt branch target; softfocus check ALL PASS"
+ },
+ "0x533817f0": {
+  "new": "0x53390e40",
+  "reason": "soft focus icon function: softfocus check ALL PASS"
+ },
+ "0x531b0800": {
+  "new": "0x531b1d70",
+  "reason": "Direct Flash current-icon site 1 (CURRENT_ICON_SITES)"
+ },
+ "0x5339787c": {
+  "new": "0x533a6f30",
+  "reason": "Direct Flash current-icon site 3 (CURRENT_ICON_SITES)"
+ },
+ "0x53da09b4": {
+  "new": "0x53dcb09c",
+  "reason": "Fn menu Flash record (FN_RECORD)"
+ },
+ "0x53187784": {
+  "new": "0x5318876c",
+  "reason": "menu factory switch case (word 0xe5940180 checked)"
+ },
+ "0x53187790": {
+  "new": "0x53188778",
+  "reason": "menu factory switch case (word 0xe3a00f5b checked)"
+ },
+ "0x53187794": {
+  "new": "0x5318877c",
+  "reason": "menu factory switch case (word 0xeb1dff4e checked)"
+ },
+ "0x5318779c": {
+  "new": "0x53188784",
+  "reason": "menu factory switch case (word 0xeb027476 checked)"
+ },
+ "0x531b9488": {
+  "new": "0x531baa50",
+  "reason": "power-off picture request (APP, DISPLAY 0x53240998, then 0x53264390); shutdown menu_check compares 10 scenarios with official"
+ },
+ "0x531b948c": {
+  "new": "0x531baa54",
+  "reason": "power-off picture request + 4 (continuation)"
+ },
+ "0x531b1cd8": {
+  "new": "0x531b32a0",
+  "reason": "Setup item draw (SETUP_ITEM_DRAW)"
+ },
+ "0x53255a20": {
+  "new": "0x5325765c",
+  "reason": "key map id read 1 (KEY_MAP_ID_READS)"
+ },
+ "0x53255a0c": {
+  "new": "0x53257648",
+  "reason": "key map has-own-map function: shutdown menu_check runs it, as officially"
+ },
+ "0x53262558": {
+  "new": "0x53264274",
+  "reason": "JPEG picture request (only reader of the JPEG table in 1.20)"
+ },
+ "0x5326255c": {
+  "new": "0x53264278",
+  "reason": "JPEG table movw in the picture request"
+ },
+ "0x5326256c": {
+  "new": "0x53264288",
+  "reason": "JPEG table movt in the picture request"
+ },
+ "0x53380874": {
+  "new": "0x5338fe60",
+  "reason": "menu helper used by shutdown.ts (expectWord + bl target)"
+ },
+ "0x5357a428": {
+  "new": "0x5359d6f4",
+  "reason": "Setup submenu line value icon (LINE_VALUE_ICON): aligned + 21 refs"
+ },
+ "0x53d9ca10": {
+  "new": "0x53dc7110",
+  "reason": "Setup menu descriptor: RAM image 0x55001e88 holds it (checked in both images)"
+ },
+ "0x53d9c438": {
+  "new": "0x53dc6b38",
+  "reason": "menu descriptor (check scripts)"
+ },
+ "0x53d9d13c": {
+  "new": "0x53dc783c",
+  "reason": "menu descriptor (check scripts)"
+ },
+ "0x53d9d4d0": {
+  "new": "0x53dc7bd0",
+  "reason": "menu descriptor (check scripts)"
+ },
+ "0x55013e70": {
+  "new": "0x55014d98",
+  "reason": "full-screen JPEG table: movw/movt in 0x53264274 point at 0x55014D98 (13 entries, 12 = GB_30th); the map candidate 0x55014D9C is 4 bytes off"
+ },
+ "0x53a7e434": {
+  "new": "0x53aa6680",
+  "reason": "APData store read: aligned, normalised body equal"
+ },
+ "0x5372b620": {
+  "new": "0x53750008",
+  "reason": "setting root getter (+0x28: power-off picture setting, APData record 7)"
+ },
+ "0x538ed930": {
+  "new": "0x539154f8",
+  "reason": "assert/trace function: aligned + 8710 refs; 1.11 0x538ee49c / 1.20 0x53916064 keep the same 0xb6c distance"
+ },
+ "0x538ee49c": {
+  "new": "0x53916064",
+  "reason": "second assert-like function, 0xb6c after 0x539154f8 as in 1.11"
+ },
+ "0x5508207c": {
+  "new": "0x5508307c",
+  "reason": "APP singleton (RAM)"
+ },
+ "0x55082184": {
+  "new": "0x55083194",
+  "reason": "SpecModel singleton (RAM)"
+ },
+ "0x55082234": {
+  "new": "0x55083244",
+  "reason": "CURRENT settings singleton (RAM)"
+ },
+ "0x553a09c4": {
+  "new": "0x553a26c4",
+  "reason": "cache object (RAM): 1 ref 0x553a26c4 (datestamp CACHE word 0xe30206c4)"
+ },
+ "0x5329bf70": {
+  "new": "0x532a02b4",
+  "reason": "aligned + refs (datestamp)"
+ },
+ "0x53701c40": {
+  "new": "0x53726594",
+  "reason": "aligned + refs (directflash)"
+ },
+ "0x53000460": {
+  "new": "0x53000460",
+  "reason": "unchanged (aligned, same bytes)"
+ },
+ "0x55001e88": {
+  "new": "0x55001e88",
+  "reason": "Setup menu table entry in the RAM image: holds the Setup menu descriptor in both images"
+ },
+ "0x543d4ac0": {
+  "new": "0x5440da00",
+  "reason": "TEXT_CATALOG: fork B moved it from 0x5440D600 to ICON_CATALOG + 0x1400 so the icon catalog holds 1280 entries (Direct Flash icons 1004..1054)"
+ }
+}

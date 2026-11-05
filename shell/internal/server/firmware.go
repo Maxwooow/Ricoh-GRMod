@@ -23,6 +23,8 @@ import (
 const (
 	codeBusy    = "busy"
 	codeNetwork = "network"
+	// codeChecksum: the archive downloaded is not the file expected.
+	codeChecksum = "checksum"
 
 	firmwareLookupTimeout   = 40 * time.Second
 	firmwareDownloadTimeout = 30 * time.Minute
@@ -59,8 +61,9 @@ type firmwareSource struct {
 }
 
 type cachedRelease struct {
-	rel  *ricoh.Release
-	when time.Time
+	rel      *ricoh.Release // nil: the site lists nothing for the model
+	fallback *ricoh.Release // the supported release when rel is another version, else nil
+	when     time.Time
 }
 
 // outgoingClient is the HTTP client for requests to the internet: through
@@ -83,30 +86,56 @@ func outgoingClient(opt Options) *http.Client {
 
 func newFirmwareSource(opt Options) *firmwareSource {
 	return &firmwareSource{
-		client: ricoh.Client{Base: opt.FirmwareSite, HTTP: outgoingClient(opt)},
+		client: ricoh.Client{Base: opt.FirmwareSite, HTTP: outgoingClient(opt), Pinned: opt.FirmwareArchive},
 		cached: map[string]cachedRelease{},
 	}
 }
 
-// release returns what the site offers for a model, asking the site unless
-// it was asked a moment ago.
-func (f *firmwareSource) release(ctx context.Context, model string, now time.Time) (*ricoh.Release, error) {
+// release returns what the site offers for a model and, when that is not
+// the release this program supports, the supported one (see
+// ricoh.Supported), asking the site unless it was asked a moment ago. With
+// no release listed for the model, rel is nil and fallback may still be set;
+// when both are nil the error is ricoh.ErrNoRelease.
+func (f *firmwareSource) release(ctx context.Context, model string, now time.Time) (rel, fallback *ricoh.Release, err error) {
 	f.mu.Lock()
 	c, ok := f.cached[model]
 	f.mu.Unlock()
 	if ok && now.Sub(c.when) < firmwareCacheAge {
-		return c.rel, nil
+		return c.rel, c.fallback, nil
 	}
 	ctx, cancel := context.WithTimeout(ctx, firmwareLookupTimeout)
 	defer cancel()
-	rel, err := f.client.Latest(ctx, model)
-	if err != nil {
-		return nil, err
+	rel, err = f.client.Latest(ctx, model)
+	if err != nil && !errors.Is(err, ricoh.ErrNoRelease) {
+		return nil, nil, err
+	}
+	if fallback, err = f.client.Fallback(model, rel); err != nil {
+		return nil, nil, err
+	}
+	// GR III / IIIx: the earlier release this program builds on is fetched by name; when the
+	// site lists a newer one, that is the release with the pinned one as the fallback, as for
+	// GR IV. A failed look at the pages leaves the pinned release alone.
+	if rel != nil && ricoh.IsPinned(model) {
+		if cur, cerr := f.client.Current(ctx, model); cerr == nil && cur != nil && cur.Version != rel.Version {
+			rel, fallback = cur, rel
+		}
+	}
+	if rel == nil && fallback == nil {
+		return nil, nil, ricoh.ErrNoRelease
 	}
 	f.mu.Lock()
-	f.cached[model] = cachedRelease{rel: rel, when: now}
+	f.cached[model] = cachedRelease{rel: rel, fallback: fallback, when: now}
 	f.mu.Unlock()
-	return rel, nil
+	return rel, fallback, nil
+}
+
+// chosen is the release to download: the supported one when the page asks
+// for its version, else what the site offers.
+func chosen(rel, fallback *ricoh.Release, version string) *ricoh.Release {
+	if fallback != nil && (rel == nil || (version != "" && version == fallback.Version)) {
+		return fallback
+	}
+	return rel
 }
 
 // firmwareError maps the errors of package ricoh to API errors.
@@ -116,6 +145,8 @@ func firmwareError(r *http.Request, err error) error {
 		return errInvalid("unknown model")
 	case errors.Is(err, ricoh.ErrNoRelease):
 		return errNotFound("no firmware is listed for this model")
+	case errors.Is(err, ricoh.ErrChecksum):
+		return errf(http.StatusBadGateway, codeChecksum, "%v", err)
 	case r.Context().Err() != nil:
 		return errf(statusClientClosed, codeCancelled, "request cancelled")
 	}
@@ -131,6 +162,16 @@ type firmwareLatest struct {
 	Page    string `json:"page"`
 	File    string `json:"file"`
 	Size    int64  `json:"size"`
+	// Fallback is the release this program supports, when the site offers
+	// another version (still downloadable: POST .../download with its version).
+	Fallback *firmwareLatest `json:"fallback,omitempty"`
+}
+
+func latestJSON(rel *ricoh.Release) *firmwareLatest {
+	return &firmwareLatest{
+		Model: rel.Model, Name: rel.Name, Applies: rel.Applies, Version: rel.Version,
+		Date: rel.Date, Page: rel.Page, File: rel.File, Size: rel.Size,
+	}
 }
 
 func (s *Server) now() time.Time {
@@ -140,39 +181,51 @@ func (s *Server) now() time.Time {
 	return time.Now()
 }
 
-// handleFirmwareLatest answers GET /api/firmware/latest?model=HDF.
+// handleFirmwareLatest answers GET /api/firmware/latest?model=HDF: what the
+// site offers, with the supported release as "fallback" when that is another
+// version. When the site lists nothing for the model, the supported release
+// (if any) is the answer itself.
 func (s *Server) handleFirmwareLatest(w http.ResponseWriter, r *http.Request) error {
-	rel, err := s.firmware.release(r.Context(), r.URL.Query().Get("model"), s.now())
+	rel, fallback, err := s.firmware.release(r.Context(), r.URL.Query().Get("model"), s.now())
 	if err != nil {
 		return firmwareError(r, err)
 	}
-	writeJSON(w, http.StatusOK, firmwareLatest{
-		Model: rel.Model, Name: rel.Name, Applies: rel.Applies, Version: rel.Version,
-		Date: rel.Date, Page: rel.Page, File: rel.File, Size: rel.Size,
-	})
+	var out *firmwareLatest
+	if rel == nil {
+		out = latestJSON(fallback)
+	} else {
+		out = latestJSON(rel)
+		if fallback != nil {
+			out.Fallback = latestJSON(fallback)
+		}
+	}
+	writeJSON(w, http.StatusOK, out)
 	return nil
 }
 
 type firmwareRequest struct {
 	Model string `json:"model"`
+	// Version asks for that release (the supported one); "" for the site's.
+	Version string `json:"version,omitempty"`
 }
 
-func (s *Server) firmwareModel(w http.ResponseWriter, r *http.Request) (string, error) {
+func (s *Server) firmwareRequest(w http.ResponseWriter, r *http.Request) (firmwareRequest, error) {
 	var req firmwareRequest
 	body := http.MaxBytesReader(w, r.Body, 4096)
 	if err := json.NewDecoder(body).Decode(&req); err != nil {
-		return "", errInvalid("malformed request body")
+		return req, errInvalid("malformed request body")
 	}
 	if _, ok := ricoh.Models[req.Model]; !ok {
-		return "", errInvalid("unknown model")
+		return req, errInvalid("unknown model")
 	}
-	return req.Model, nil
+	return req, nil
 }
 
-// handleFirmwareDownload answers POST /api/firmware/download {"model":...}
-// with the firmware file itself. One download runs at a time.
+// handleFirmwareDownload answers POST /api/firmware/download
+// {"model":...,"version":...} with the firmware file itself: the supported
+// release when version names it, else the site's. One download runs at a time.
 func (s *Server) handleFirmwareDownload(w http.ResponseWriter, r *http.Request) error {
-	model, err := s.firmwareModel(w, r)
+	req, err := s.firmwareRequest(w, r)
 	if err != nil {
 		return err
 	}
@@ -184,9 +237,16 @@ func (s *Server) handleFirmwareDownload(w http.ResponseWriter, r *http.Request) 
 	f.received.Store(0)
 	f.total.Store(0)
 
-	rel, err := f.release(r.Context(), model, s.now())
+	latest, fallback, err := f.release(r.Context(), req.Model, s.now())
 	if err != nil {
 		return firmwareError(r, err)
+	}
+	// Either release: the site's current one or the earlier one this program also builds on (GR IV
+	// 1.11, GR III 2.10, GR IIIx 1.60). Which of them the engine accepts it decides itself, by the
+	// SHA-256 of the file inside.
+	rel := chosen(latest, fallback, req.Version)
+	if req.Version != "" && rel.Version != req.Version {
+		return errNotFound("version %s is not offered for this model", req.Version)
 	}
 	f.total.Store(rel.Size)
 	ctx, cancel := context.WithTimeout(r.Context(), firmwareDownloadTimeout)
@@ -227,7 +287,7 @@ func (s *Server) handleFirmwareProgress(w http.ResponseWriter, r *http.Request) 
 // handleFirmwarePage answers POST /api/firmware/page {"model":...}: it shows
 // the model's download page (with Ricoh's licence terms) in the browser.
 func (s *Server) handleFirmwarePage(w http.ResponseWriter, r *http.Request) error {
-	model, err := s.firmwareModel(w, r)
+	req, err := s.firmwareRequest(w, r)
 	if err != nil {
 		return err
 	}
@@ -235,10 +295,11 @@ func (s *Server) handleFirmwarePage(w http.ResponseWriter, r *http.Request) erro
 	if !ok {
 		return errf(http.StatusNotImplemented, codeInvalid, "this build cannot open a browser")
 	}
-	rel, err := s.firmware.release(r.Context(), model, s.now())
+	latest, fallback, err := s.firmware.release(r.Context(), req.Model, s.now())
 	if err != nil {
 		return firmwareError(r, err)
 	}
+	rel := chosen(latest, fallback, req.Version)
 	if err := opener.OpenURL(rel.Page); err != nil {
 		return errIO("cannot open the browser: %v", err)
 	}

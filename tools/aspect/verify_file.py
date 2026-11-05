@@ -51,6 +51,20 @@ def main():
             assert grown > 0 and grown % 0x6000 == 0, row['name']
             diff = sum(1 for i in range(16, len(old_bytes), 4) if new_bytes[i:i + 4] != old_bytes[i:i + 4])
             print(f"  {row['name']}: +{grown} bytes, {diff} words changed in the official part")
+        elif row['name'] == 'RES' and new_bytes != old_bytes:
+            # power-off pictures: the official files in order, with A:\Resource\Jpeg\GRMOD<k>.jpg added
+            def files(data):
+                count, at, out = int.from_bytes(data[12:16], 'little'), 16, []
+                for _ in range(count):
+                    path = data[at:at + 32].split(b'\0')[0].decode('ascii')
+                    size = int.from_bytes(data[at + 32:at + 36], 'little')
+                    out.append((path, data[at + 36:at + 36 + size]))
+                    at += 36 + size
+                return out
+            old_files, new_files = files(old_bytes), files(new_bytes)
+            added = [p for p, _ in new_files if p.startswith('A:\\Resource\\Jpeg\\GRMOD')]
+            assert added and [x for x in new_files if x[0] not in added] == old_files, 'RES: official files changed'
+            print(f'  RES: +{len(added)} files ({", ".join(p.split(chr(92))[-1] for p in added)}), official files unchanged')
         else:
             assert new_bytes == old_bytes, 'section changed: ' + row['name']
     assert image.version == truly_official.version

@@ -1,17 +1,18 @@
 /// <reference lib="webworker" />
-import { Engine } from '@grmod/core';
+import { Engine, encodeShutdownPicture } from '@grmod/core';
 import type { BuildOptions, CameraModel, RatioSpec, SlotRequest, SoftFocusRequest } from '@grmod/core';
 
 let engine: Engine | null = null;
 type Req =
   | { id: number; type: 'open'; raw: ArrayBuffer }
-  | { id: number; type: 'convert'; kind: 'xmp' | 'cube'; text: string }
+  | { id: number; type: 'convert'; kind: 'xmp' | 'cube'; text: string; options?: { hue?: boolean } }
   | { id: number; type: 'build'; requests: SlotRequest[]; ratios?: RatioSpec[]; softFocus?: SoftFocusRequest[]; options?: BuildOptions }
   | { id: number; type: 'ratio'; ratio: string; others: string[] }
   | { id: number; type: 'encode'; rgb: ArrayBuffer; model: CameraModel }
+  | { id: number; type: 'menuPicture'; rgb: ArrayBuffer }
   | { id: number; type: 'script'; model: CameraModel; count: number }
   | { id: number; type: 'inspect'; raw: ArrayBuffer }
-  | { id: number; type: 'bridge' }
+  | { id: number; type: 'reset' }
   | { id: number; type: 'heartbeat'; token: string };
 
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
@@ -22,12 +23,14 @@ ctx.onmessage = async (ev: MessageEvent<Req>) => {
   const progress = (f: number): void => ctx.postMessage({ id: m.id, progress: f });
   try {
     switch (m.type) {
+      case 'reset': engine = null; ctx.postMessage({ id: m.id, ok: true, result: true }); break;
       case 'open': {
+        engine = null;
         engine = await Engine.open(new Uint8Array(m.raw));
         ctx.postMessage({ id: m.id, ok: true, result: engine.info });
         break;
       }
-      case 'convert': ctx.postMessage({ id: m.id, ok: true, result: need().convertPreset(m.kind, m.text, progress) }); break;
+      case 'convert': ctx.postMessage({ id: m.id, ok: true, result: need().convertPreset(m.kind, m.text, progress, m.options ?? {}) }); break;
       case 'build': {
         const r = await need().buildFirmware(m.requests, m.ratios || [], m.softFocus || [], m.options || {});
         ctx.postMessage({ id: m.id, ok: true, result: r }, [r.file.buffer as ArrayBuffer]);
@@ -38,14 +41,14 @@ ctx.onmessage = async (ev: MessageEvent<Req>) => {
         ctx.postMessage({ id: m.id, ok: true, result: r }, [r.data.buffer as ArrayBuffer, r.preview.buffer as ArrayBuffer]);
         break;
       }
+      case 'menuPicture': {
+        const r = engine ? engine.encodeMenuPicture(new Uint8Array(m.rgb), progress) : encodeShutdownPicture(new Uint8Array(m.rgb), progress);
+        ctx.postMessage({ id: m.id, ok: true, result: r }, [r.buffer as ArrayBuffer]);
+        break;
+      }
       case 'ratio': ctx.postMessage({ id: m.id, ok: true, result: need().previewRatio(m.ratio, m.others) }); break;
       case 'script': ctx.postMessage({ id: m.id, ok: true, result: need().rotationScript(m.model, m.count) }); break;
       case 'inspect': ctx.postMessage({ id: m.id, ok: true, result: await need().inspect(new Uint8Array(m.raw)) }); break;
-      case 'bridge': {
-        const b = await need().bridgeFirmware();
-        ctx.postMessage({ id: m.id, ok: true, result: b }, [b.buffer as ArrayBuffer]);
-        break;
-      }
       case 'heartbeat': {
         // keeps the shell alive while the window is hidden (page timers are throttled, worker timers less so)
         const beat = (): void => { fetch('/api/ping', { headers: { 'X-GRMod-Token': m.token }, cache: 'no-store' }).catch(() => undefined); };

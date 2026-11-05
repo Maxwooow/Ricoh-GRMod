@@ -6,6 +6,7 @@ package server
 import (
 	"crypto/subtle"
 	"errors"
+	"grmod/shell/internal/ricoh"
 	"io"
 	"io/fs"
 	"log"
@@ -49,6 +50,9 @@ type Options struct {
 	// firmware endpoints fetch (tests and development); empty selects the
 	// real one.
 	FirmwareSite string
+	// FirmwareArchive replaces ricoh.Supported, the release offered when the
+	// site offers another version (tests).
+	FirmwareArchive *ricoh.Archive
 
 	// Update configures the updater; nil disables the update endpoints'
 	// downloads (a check then reports "unsupported").

@@ -131,19 +131,23 @@ function scaleRound(value: number, n: number, d: number): number {
   return toInt((BigInt(value) * BigInt(n) + BigInt(d >>> 1)) / BigInt(d));
 }
 
-export type RatioProblem = 'bad-ratio' | 'ratio-factory' | 'ratio-too-extreme' | 'ratio-quick-view' | 'ratio-metering';
+export type RatioProblem = 'bad-ratio' | 'ratio-factory' | 'ratio-portrait' | 'ratio-too-extreme' | 'ratio-quick-view' | 'ratio-metering';
 
 /**
  * Plan one ratio. Throws `FirmwareError` with one of the `RatioProblem` codes when the ratio
  * cannot be used; these are the same refusals as the reference's.
  */
-export function planRatio(text: string): RatioGeometry {
+export function planRatio(text: string, options: { portrait?: boolean } = {}): RatioGeometry {
   const requested = parseRatio(text);
   // A ratio the camera already has would silently take that ratio's (differently rounded)
   // geometry in the reference. There is no point in adding one, so it is refused here.
   for (const f of FACTORY) {
     if (factoryRatio(f.id).eq(requested)) bad('ratio-factory', 'the camera already has this ratio');
   }
+  // From 0.8.2 an added ratio is wider than tall: upright pictures are taken with the camera turned.
+  // Ratios narrower than 1:1 left the live view's side strips unpainted on the camera (tests 036..040).
+  // `portrait` only to read back files of earlier versions.
+  if (!options.portrait && requested.cmp(1) <= 0) bad('ratio-portrait', 'an added ratio must be wider than tall (A:B with A > B)');
   const screen = alignedCrop(SCREEN_W, SCREEN_H, requested);
   if (!screen) bad('ratio-too-extreme', 'this ratio leaves nothing on the screen');
   const actual = new Frac(screen.width, screen.height);

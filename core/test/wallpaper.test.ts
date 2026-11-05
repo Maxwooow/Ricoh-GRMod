@@ -1,10 +1,10 @@
 import { afterAll, describe, expect, it } from 'vitest';
 
-import { CARD_FILES, MODEL_FILE, MODEL_INFO, imageFileName, rotationScript, runScript } from '../src/wallpaper';
-import type { CameraModel, SimFs } from '../src/wallpaper';
+import { CARD_FILES, MODEL_FILE, MODEL_INFO, imageFileName, rotationScript, rotationScriptInfo, runScript } from '../src/wallpaper';
+import type { WallpaperModel as CameraModel, SimFs } from '../src/wallpaper';
 
 const SIZE = 56842;
-const MODELS: CameraModel[] = ['STANDARD', 'HDF', 'MONO'];
+const MODELS: CameraModel[] = ['STANDARD', 'HDF', 'MONO', 'GR3X_HDF'];
 const MAGIC = [0xa5, 0x5a, 0x5a, 0xa5];
 const IDX = 'C:\\GBRIDX.TXT';
 const STOP = 'C:\\GBRSTOP.TXT';
@@ -56,6 +56,17 @@ afterAll(() => console.log(['', 'generated script sizes:', ...report].join('\n')
 
 // =============================================================================
 describe('rotation script: normal operation', () => {
+  it('recognizes the exact model only after checking the entire saved script', () => {
+    for (const model of MODELS) {
+      const opts = { model, size: model === 'GR3X_HDF' ? 7264 : SIZE, count: 3 };
+      const script = rotationScript(opts);
+      expect(rotationScriptInfo(script)).toEqual(opts);
+      expect(rotationScriptInfo(script + 'filedelete target\n')).toBeNull();
+      expect(rotationScriptInfo(script.replace('code <> 165', 'code <> 0'))).toBeNull();
+      expect(rotationScriptInfo(script.replace(`${model},`, `${model === 'GR3X_HDF' ? 'HDF' : 'GR3X_HDF'},`))).toBeNull();
+      expect(rotationScriptInfo(script.replace(`${opts.size} bytes`, '9999999999 bytes'))).toBeNull();
+    }
+  });
   it('cycles 1, 2, ..., N, 1, ... for every model and N = 1..9', () => {
     for (const model of MODELS) {
       for (let n = 1; n <= 9; n++) {
@@ -146,6 +157,20 @@ describe('rotation script: normal operation', () => {
 describe('rotation script: safety exits', () => {
   const model: CameraModel = 'HDF';
   const script = rotationScript({ model, size: SIZE, count: 4 });
+
+  it('IIIx HDF pauses for either update filename and never writes GR IV resources', () => {
+    const script = rotationScript({ model: 'GR3X_HDF', size: 7264, count: 2 });
+    const fs = makeFs('GR3X_HDF', 2, 7264);
+    for (const name of ['C:\\fwdc243b.bin', 'C:\\FWDC243B.BIN', FIRMWARE]) {
+      fs.files.set(name, new Uint8Array(8));
+      bootExpectingNothing(script, fs);
+      fs.files.delete(name);
+    }
+    for (const m of ['STANDARD', 'HDF', 'MONO'] as const) fs.files.set(MODEL_INFO[m].target, new Uint8Array(7264).fill(FACTORY));
+    boot(script, fs);
+    expect(installed(fs, 'GR3X_HDF')).toBe(1);
+    for (const m of ['STANDARD', 'HDF', 'MONO'] as const) expect(installed(fs, m)).toBe(FACTORY);
+  });
 
   it('pause file present: nothing is written, and rotation resumes when it is removed', () => {
     const fs = makeFs(model, 4);
@@ -449,7 +474,7 @@ describe('rotation script: generated text', () => {
       const codes = [...s.matchAll(/^if code <> (\d+) then$/gm)].map((m) => Number(m[1]));
       expect(codes).toEqual([...MAGIC, ...MODEL_INFO[model].productBytes]);
       expect(s).toContain(`target = '${MODEL_INFO[model].target}'`);
-      for (const other of MODELS) if (other !== model) expect(s).not.toContain(MODEL_INFO[other].resourceName);
+      for (const other of MODELS) if (other !== model) expect(s).not.toContain(MODEL_INFO[other].target);
       expect(s.match(/E:\\BlkCtl15\.bin/g)?.length).toBe(2);
       expect(s).toContain(`if sz <> ${SIZE} then`);
     }
@@ -484,6 +509,7 @@ describe('rotation script: generated text', () => {
       STANDARD: { productBytes: [0xe0, 0x32, 0x01, 0x00], target: 'A:\\Resource\\Jpeg\\GoodBye.jpg', resourceName: 'GoodBye.jpg' },
       HDF: { productBytes: [0xe1, 0x32, 0x01, 0x00], target: 'A:\\Resource\\Jpeg\\GB_HDF.jpg', resourceName: 'GB_HDF.jpg' },
       MONO: { productBytes: [0x30, 0x33, 0x01, 0x00], target: 'A:\\Resource\\Jpeg\\GB_Mono.jpg', resourceName: 'GB_Mono.jpg' },
+      GR3X_HDF: { productBytes: [0x9c, 0x32, 0x01, 0x00], target: 'B:\\Resource\\Jpeg\\GoodBye.jpg', resourceName: 'GoodBye.jpg' },
     });
     expect(CARD_FILES).toEqual({ index: 'GBRIDX.TXT', stop: 'GBRSTOP.TXT', firmware: 'fwdc248b.bin', script: 'script\\startup.ttl' });
     expect(MODEL_FILE).toBe('E:\\BlkCtl15.bin');

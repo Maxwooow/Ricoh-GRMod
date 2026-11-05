@@ -185,10 +185,19 @@ type Info struct {
 	// itself; Reason then says why (a code the UI translates).
 	CanInstall bool   `json:"canInstall"`
 	Reason     string `json:"reason,omitempty"`
+	// Other is the newest release of a later line (see Updater.Below), which
+	// this copy does not install: GR Mod for a later camera firmware.
+	Other *OtherLine `json:"other,omitempty"`
 
 	source   *url.URL
 	manifest *Manifest
 	file     File
+}
+
+// OtherLine is a release of a later line of GR Mod.
+type OtherLine struct {
+	Version string `json:"version"`
+	Page    string `json:"page,omitempty"`
 }
 
 // Reasons for CanInstall == false.
@@ -222,6 +231,17 @@ type Updater struct {
 	// says whether this copy is the newest; a newer one is then offered for
 	// download by hand only. "" disables this.
 	LatestPage string
+	// Below, when set, ends this copy's line: a release of this version or
+	// later belongs to a later line (GR Mod 0.8.x is for camera firmware
+	// 1.11, a later GR Mod for 1.20) and is only reported (Info.Other), never
+	// offered as this copy's update. Sources are then best ordered with this
+	// line's own channel first.
+	Below string
+}
+
+// ofLine reports whether version v belongs to this copy's line.
+func (u *Updater) ofLine(v string) bool {
+	return u.Below == "" || Newer(u.Below, v)
 }
 
 // Target is the program as installed on disk.
@@ -280,6 +300,30 @@ func (u *Updater) get(ctx context.Context, address string, limit int64) ([]byte,
 // cannot be reached or answers with something that does not verify is
 // skipped (the last error is returned when none works).
 func (u *Updater) Check(ctx context.Context) (*Info, error) {
+	in, other, err := u.check(ctx)
+	if in == nil && other != nil {
+		// Only releases of a later line: this copy is the newest of its own.
+		in, err = &Info{Current: u.Current, Latest: u.Current, Reason: ReasonManual}, nil
+	}
+	if in != nil && u.Below != "" && other == nil && u.LatestPage != "" {
+		// Is there a later line? (Its releases are the "latest" ones.)
+		if version, page, e := u.latestRelease(ctx); e == nil && !u.ofLine(version) {
+			other = &OtherLine{Version: version, Page: page}
+		}
+	}
+	if in != nil {
+		in.Other = other
+	}
+	return in, err
+}
+
+func (u *Updater) check(ctx context.Context) (*Info, *OtherLine, error) {
+	var other *OtherLine
+	note := func(version, page string) {
+		if other == nil || Newer(version, other.Version) {
+			other = &OtherLine{Version: version, Page: page}
+		}
+	}
 	var last error = errors.New("no update source")
 	for _, s := range u.Sources {
 		base, err := url.Parse(s)
@@ -305,20 +349,28 @@ func (u *Updater) Check(ctx context.Context) (*Info, error) {
 			last = err
 			continue
 		}
-		return u.info(base, m), nil
+		if !u.ofLine(m.Version) {
+			note(m.Version, m.Page)
+			continue
+		}
+		return u.info(base, m), other, nil
 	}
 	if u.LatestPage != "" {
 		version, page, err := u.latestRelease(ctx)
 		if err == nil {
+			if !u.ofLine(version) {
+				note(version, page)
+				return nil, other, last
+			}
 			in := &Info{Current: u.Current, Latest: version, Page: page, Reason: ReasonManual}
 			in.Available = Newer(version, u.Current)
-			return in, nil
+			return in, other, nil
 		}
 		if ctx.Err() == nil {
 			last = fmt.Errorf("%v; latest release: %w", last, err)
 		}
 	}
-	return nil, last
+	return nil, other, last
 }
 
 // latestRelease follows LatestPage to the page of the newest release and

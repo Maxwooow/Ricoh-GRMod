@@ -1,0 +1,711 @@
+diff --git a/core/src/fw/gr3x170/endscreen.ts b/core/src/fw/gr3x170/endscreen.ts
+--- a/core/src/fw/gr3x170/endscreen.ts
++++ b/core/src/fw/gr3x170/endscreen.ts
+@@ -27,8 +27,11 @@
+  *    points at the copy.
+  *  - The factory and the key map (datestamp.ts) give the submenu D-Range's submenu controller and
+  *    keys, the picture list the End Screen list's (setting PICTURE_MODE).
+- *  - The picture: at 0x5319f2c0 (after the camera chose r7, its own picture's number) es_pick, and
++ *  - The picture: at 0x5319f2d0 (after the camera chose r7, its own picture's number) es_pick, and
+  *    the full-screen JPEG table copied with the pictures (shutdown.ts, as round 5).
++ *  - 1.70 / 2.20: the camera sets its variant to 6 (the 30th anniversary) at every start
++ *    (0x53821a14, from the start-up 0x53820480), so its own picture is always GB_30th (A:, JPEG
++ *    table index 14): "Original" has that one thumbnail, whatever the variant (FACTORY 1).
+  */
+ import { decodeBaselineJpeg } from '../../jpeg/decoder';
+ import { assembleWords, branchWord, movWord, wordsToBytes } from '../aspect/arm';
+@@ -45,10 +48,9 @@
+ export const GR3X_PICTURE_MODE = 0x55803c3c;
+ export const GR3X_END_SCREEN_ID = 0x020000ad;
+ export const GR3X_PREVIEW_W = 520, GR3X_PREVIEW_H = 200;
+-/** The camera's own power-off pictures by variant (0x5319f240: 0 GoodBye, 1 Collabo, 2..4). */
++/** The camera's own power-off picture: always the 30th anniversary's in 1.70 / 2.20 (variant 6, set at every start). */
+ export const GR3X_FACTORY_PICTURES = [
+-  'B:\\Resource\\Jpeg\\GoodBye.jpg', 'B:\\Resource\\Jpeg\\Collabo.jpg', 'B:\\Resource\\Jpeg\\GB_Urban.jpg',
+-  'B:\\Resource\\Jpeg\\GB_ING.jpg', 'B:\\Resource\\Jpeg\\GB_Diary.jpg',
++  'A:\\Resource\\Jpeg\\GB_30th.jpg',
+ ] as const;
+ /** GR IV's line names (shutdown.ts), every glyph in GR III's own texts of that language. */
+ export const GR3X_TYPE_NAMES: readonly string[] = [
+@@ -62,13 +64,13 @@
+ 
+ const CTX_MAGIC = 0x33455347; // 'GSE3'
+ const CTX_MAGIC_R10 = 0x34455347; // 'GSE4'
+-const MAX = 8, FACTORY = 5;
++const MAX = 8, FACTORY = 1;
+ const CTX_BYTES = 12 + FACTORY * 2 + MAX * 2 + 2 + MAX * 4 * 2;
+ const REFRESH = 0x53204ad4, CONFIRM = 0x5320499c, UP = 0x5320490c, DOWN = 0x53204950, FOOTER = 0x53204b88;
+ const ROWS_AT = 0x5320459c, TYPES_AT = 0x532045cc, ROW_TYPE = 0x15, TITLE = 665;
+ const LIST_SHOWN = 0x53394f7c, TITLE_SET = 0x533a2c90, GRAPHIC_VISIBLE = 0x533ad4b0, SUB_LINE_TEXT = 0x533a6bc0;
+ const APP = 0x5320ae60, UI_MODEL = 0x5320b754, USERDATA = 0x5320b3f4, END_SCREEN_GET = 0x53246c60, END_SCREEN_TEXT = 0x53293258;
+-const JOIN = 0x5319f2c0, JOIN_WORD = 0xe8950003;
++const JOIN = 0x5319f2d0, JOIN_WORD = 0xe8950003;
+ 
+ export interface Gr3xEndScreenProgram {
+   code(source: string): number;
+@@ -79,7 +81,7 @@
+ export interface Gr3xEndScreenOptions {
+   /** Text of "Original"; the pictures' names follow it. The line names Type / Picture. */
+   factoryText: number; typeText: number; pictureText: number;
+-  /** Thumbnails: the five factory pictures (by variant), then the added pictures. */
++  /** Thumbnails: the factory picture (1.70 / 2.20: GB_30th only), then the added pictures. */
+   factoryIcons: readonly number[]; icons: readonly number[];
+   /** Stable identities and their numbers in the extended JPEG table. */
+   choices: readonly number[]; resources: readonly number[];
+@@ -134,7 +136,8 @@
+     [APP, 0xe1a0c00d], [UI_MODEL, 0xe1a0c00d], [USERDATA, 0xe1a0c00d], [END_SCREEN_GET, 0xe5903004], [END_SCREEN_TEXT, 0xe3510000],
+     // The native line (0x53198888) as the Type line draws it.
+     [0x531988ac, bl(0x531988ac, END_SCREEN_GET)], [0x531988b8, bl(0x531988b8, END_SCREEN_TEXT)],
+-    [JOIN, JOIN_WORD], [JOIN - 4, 0xe3a07002], [JOIN + 0x24, 0xe1a01007],
++    [JOIN, JOIN_WORD], [JOIN - 4, 0xe1a08000], [JOIN - 0x10, 0xe1a00006], [JOIN - 0x14, 0xe3a07002], [JOIN + 0x20, 0xe1a01007],
++
+   ];
+   for (const [at, w] of guards) if (p.word(at) !== w >>> 0) fail(`guard at ${at.toString(16)}`);
+   const r10 = o.r10;
+diff --git a/core/src/fw/gr3x170/factory.ts b/core/src/fw/gr3x170/factory.ts
+--- a/core/src/fw/gr3x170/factory.ts
++++ b/core/src/fw/gr3x170/factory.ts
+@@ -36,10 +36,14 @@
+   check(keyPath === 'C:\\DEVELOP.MOD', 'key filename');
+   const keyword = ascii(GR3X_FACTORY.keywords + 0x140, 32);
+   check(keyword === 'OPEN_FACTORY_DEBUG_MENU', 'factory keyword');
+-  // The native parser compares entry +0x140 and writes flag +4, with no
+-  // additional authorization branch. This is executed by factory_probe.py.
+-  check(word(0x536bdf50) === 0xe2851d05 && word(0x536bdf64) === 0xe3a00001 && word(0x536bdf68) === 0xe5c40004, 'factory keyword handler');
+-  check(word(GR3X_FACTORY.keyCompare + 4) === 0xe30218a0 && word(GR3X_FACTORY.keyCompare + 0x14) === 0xe34513d6, 'key reference');
++  // 1.70 / 2.20: the native parser compares the keyword through a literal-pool pointer (`ldr r1,[pc,#0x3e0]`,
++  // the pool word is the table's entry +0x140) and writes flag +4, with no additional authorization
++  // branch. This is executed by factory_probe.py.
++  check(word(0x536bdf50) === 0xe59f13e0 && word(0x536bdf50 + 8 + 0x3e0) === GR3X_FACTORY.keywords + 0x140 &&
++    word(0x536bdf64) === 0xe3a00001 && word(0x536bdf68) === 0xe5c40004, 'factory keyword handler');
++  check(word(GR3X_FACTORY.keyCompare + 4) === (0xe3001000 | ((GR3X_FACTORY.key & 0xf000) << 4) | (GR3X_FACTORY.key & 0xfff)) >>> 0 &&
++    word(GR3X_FACTORY.keyCompare + 0x14) === (0xe3401000 | ((GR3X_FACTORY.key >>> 12) & 0xf0000) | ((GR3X_FACTORY.key >>> 16) & 0xfff)) >>> 0, 'key reference');
++
+   const key = decoded.slice(gr3xOffset(GR3X_FACTORY.key), gr3xOffset(GR3X_FACTORY.key) + 10);
+   check(key.some(b => b !== 0) && key.some(b => b !== 255), 'empty key');
+   const modeSetName = `${String(product).padStart(8, '0')}.${String(project).padStart(3, '0')}`;
+diff --git a/core/src/fw/gr3x170/films-r10.ts b/core/src/fw/gr3x170/films-r10.ts
+--- a/core/src/fw/gr3x170/films-r10.ts
++++ b/core/src/fw/gr3x170/films-r10.ts
+@@ -296,7 +296,8 @@
+   if (looks.some(v => v === undefined) || new Set(looks).size !== looks.length) fail('RAW development list');
+   const L = looks.length;
+   const guards: readonly (readonly [number, number])[] = [[RAW_COUNT, 0xe5d03005], [RAW_COUNT + 8, 0x13a0000f], [RAW_COUNT + 12, 0x03a0000e],
+-    [RAW_BASE, 0xe5d03005], [RAW_LOOK, 0xe1a0c00d], [RAW_LOOK + 4, movWord(3, 0xacb4)], [RAW_CAPACITY, 0xe3a0000f], [RAW_CAPACITY + 4, 0xe12fff1e]];
++    [RAW_BASE, 0xe5d03005], [RAW_LOOK, 0xe1a0c00d], [RAW_LOOK + 4, movWord(3, 0xa5dc)]
++, [RAW_CAPACITY, 0xe3a0000f], [RAW_CAPACITY + 4, 0xe12fff1e]];
+   for (const [at, w] of guards) if (p.u32(at) !== w >>> 0) fail(`RAW development list at ${at.toString(16)}`);
+   const table = p.append(Uint8Array.from(looks));
+   const count = p.code(`ldrb r3,[r0,#5];cmp r3,#0;movne r0,#${L + 3};moveq r0,#${L + 2};bx lr;`);
+diff --git a/core/src/fw/gr3x170/halation-rows.ts b/core/src/fw/gr3x170/halation-rows.ts
+--- a/core/src/fw/gr3x170/halation-rows.ts
++++ b/core/src/fw/gr3x170/halation-rows.ts
+@@ -79,12 +79,12 @@
+     [SCALE10, 0xe3a030d3], [POSITIONS10, 0xe3a02002], [POSITIONS10 + 4, 0xe3a030b4], [POSITIONS10 + 8, 0xe24b0054],
+     [START10, bl(START10, STORED_GETTER10)], [START10 + 4, bl(START10 + 4, 0x531ac7c8)], [POSITION10, bl(POSITION10, LIVE_GETTER10)],
+     [LIST_TEXT10, bl(LIST_TEXT10, TEXT10)], [LIST_ICON10, movWord(1, TONING_ICON)], [SETTER10, bl(SETTER10, HDR_SETTER)],
+-    [SETTER10 - 0xc, 0xe30e3bc4], [SETTER10 - 8, 0xe34533b4], [SETTER10 - 4, 0xe7d31006],
++    [SETTER10 - 0xc, 0xe30e34ec], [SETTER10 - 8, 0xe34533b4], [SETTER10 - 4, 0xe7d31006],
+     // Kind 15.
+     [START15, bl(START15, STORED_GETTER15)], [START15 + 4, bl(START15 + 4, 0x531ac940)], [START15 + 0x1c, 0xe3a03039],
+     [POSITION15, bl(POSITION15, LIVE_GETTER15)], [POSITION15 + 4, bl(POSITION15 + 4, 0x531ac940)],
+     [LIST_TEXT15, bl(LIST_TEXT15, TEXT15)], [LIST_ICON15, movWord(1, GRAIN_ICON)], [SETTER15, bl(SETTER15, PARTICLE_SETTER)],
+-    [SETTER15 - 0xc, 0xe30930d8], [SETTER15 - 8, 0xe34533b5], [SETTER15 - 4, 0xe7d31006],
++    [SETTER15 - 0xc, 0xe3083a00], [SETTER15 - 8, 0xe34533b5], [SETTER15 - 4, 0xe7d31006],
+     // The registers the hooks read: the controller in r6 (builders, list lines), r5 (positions),
+     // r4 (subtitle, setter), the slider position in r6 (setter), as the surrounding official code has it.
+     [START10 - 0x18, 0xe1a06000], [START15 - 0x18, 0xe1a06000], [POSITION10 - 0x138, 0xe1a05000],
+diff --git a/core/src/fw/gr3x170/halation-screen.ts b/core/src/fw/gr3x170/halation-screen.ts
+--- a/core/src/fw/gr3x170/halation-screen.ts
++++ b/core/src/fw/gr3x170/halation-screen.ts
+@@ -79,7 +79,7 @@
+     [SUBTITLE, 0xe1d310b2], [SUBTITLE - 0x14, 0xe3520001],
+     [SCALE, 0xe3a030d3], [START, bl(START, STORED_GETTER)], [POSITION, bl(POSITION, LIVE_GETTER)],
+     [LIST_TEXT, bl(LIST_TEXT, TEXT_OF_VALUE)], [LIST_ICON, 0xe30011e9], [SETTER, bl(SETTER, HDR_SETTER)],
+-    [SETTER - 0xc, 0xe30e3bc4], [SETTER - 8, 0xe34533b4], [SETTER - 4, 0xe7d31006],
++    [SETTER - 0xc, 0xe30e34ec], [SETTER - 8, 0xe34533b4], [SETTER - 4, 0xe7d31006],
+     // The registers the hooks read: the controller in r6 (start, scale, list), r5 (position),
+     // r4 (subtitle, setter), as the surrounding official code has it.
+     [START - 0x18, 0xe1a06000], [POSITION - 0x138, 0xe1a05000], [LIST_TEXT - 0x18, 0xe1a06000], [SUBTITLE - 0x38, 0xe1a04000],
+diff --git a/core/src/fw/gr3x170/image-control-research.ts b/core/src/fw/gr3x170/image-control-research.ts
+--- a/core/src/fw/gr3x170/image-control-research.ts
++++ b/core/src/fw/gr3x170/image-control-research.ts
+@@ -248,7 +248,8 @@
+     patch(cfg.index, 0xe1a0c00d, branchWord(cfg.index, index), 'research: extra still-photo look reverse lookup');
+   }
+   const maximum = code(`mov r0,#${12 + slots.length};bx lr;`);
+-  patch(cfg.maximumCount, movWord(3, 0xd368), branchWord(cfg.maximumCount, maximum), 'research: maximum look menu allocation count');
++  patch(cfg.maximumCount, movWord(3, 0xcc98), branchWord(cfg.maximumCount, maximum), 'research: maximum look menu allocation count');
++
+ 
+   const payload = new Uint8Array((length + 3) & ~3);
+   let cursor = 0; for (const part of parts) { payload.set(part, cursor); cursor += part.length; }
+diff --git a/core/src/fw/gr3x170/look-resources.ts b/core/src/fw/gr3x170/look-resources.ts
+--- a/core/src/fw/gr3x170/look-resources.ts
++++ b/core/src/fw/gr3x170/look-resources.ts
+@@ -16,7 +16,8 @@
+  * (a proxy for the camera font of that language having the glyph, as on GR IV). */
+ export function gr3xAllowedChars(decoded: Uint8Array, lang: Gr3xTextLang): string {
+   const view = new DataView(decoded.buffer, decoded.byteOffset, decoded.byteLength);
+-  const RTOS = 0x10870, BASE = 0x53000000, RAM = 0x55000000, RAM_IMAGE = 0x5407b640, RAM_LEN = 0x3a080, LEN = 17520064;
++  const RTOS = 0x10870, BASE = 0x53000000, RAM = 0x55000000, RAM_IMAGE = 0x5407b640, RAM_LEN = 0x3a0c0, LEN = 17520384;
++
+   const off = (va: number) => {
+     if (va >= RAM && va < RAM + RAM_LEN) va = RAM_IMAGE + va - RAM;
+     if (va < BASE || va >= BASE + LEN) throw new FirmwareError('bad-address', 'IIIx text outside RTOS');
+diff --git a/core/src/fw/gr3x170/profile.ts b/core/src/fw/gr3x170/profile.ts
+--- a/core/src/fw/gr3x170/profile.ts
++++ b/core/src/fw/gr3x170/profile.ts
+@@ -1,10 +1,13 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+-/** GR IIIx 1.60 is shared by the standard, Urban and HDF cameras; GR III 2.10 by the standard,
+- * Street, Diary and HDF cameras. Both are the same build of one program: every function and data
+- * address is identical, and the two images differ only in ~30 identity bytes (camera name, project
+- * and product number, version, build time, the RTC epoch year). The IIIx port is therefore used
+- * unchanged on GR III 2.10; GR III is EXPERIMENTAL (no camera test yet). A firmware file cannot
+- * prove which physical variant is connected. No GR IV patch address is used here. */
++/** GENERATED by tools/port/generate.py (tools/port/gr3-p2.json) from ../gr3x: the port of GR Mod's
++ * GR III / IIIx code to GR IIIx 1.70 / GR III 2.20, Ricoh's 30th-anniversary release (one program
++ * again: the two images differ only in identity bytes). Every firmware address of ../gr3x went
++ * through the address map tools/port/gr3-p2-map.json (old and new code aligned, every reference
++ * agreeing, or a reviewed override); what Ricoh changed is edited by hand (tools/port/gr3-p2.patch):
++ * the power-off picture request (variants 5 and 6, the 20th and 30th anniversary pictures on A:,
++ * JPEG table indices 13 and 14), the factory keyword parser, GR Mod's RAM words (the start-up fill
++ * now ends 0x740 lower), the RES layout (24 A: files). EXPERIMENTAL: not camera-tested. Do not edit
++ * the files here: edit ../gr3x, or the patch, and generate again. No GR IV patch address is used here. */
+ import { Firmware, FirmwareError, sectionsOf, sha256Hex } from '../container';
+ 
+ export interface Gr3Profile {
+@@ -26,28 +29,29 @@
+ }
+ 
+ export const GR3X_170 = {
+-  id: 'gr3x-hdf-1.60', model: 'GR3X_HDF', standardModel: 'GR3X', camera: 'GR IIIx', tag: 'GR3X-HDF-160',
+-  version: '1.60', internalVersion: '1.60.11.17', versionWord: 0x013c0b11,
+-  filename: 'fwdc243b.bin', size: 30391788, decodedSize: 59718388,
+-  sha256: '708e79f3b7b96a7e1581b4acf4c412233050a1832718ef7f06c8397db1b431c7',
+-  decodedSha256: 'c4bfc09d1148deec2155b21bd3d63be8085cf835cbe5e5cde4832747f519e630',
+-  rtosSha256: '0f11b0d28bc67932d044c5d01bc0314844a756057c89984278c73a23449a24c6',
+-  project: 609, product: 78490, rtosOffset: 0x10870, rtosLength: 17520064, rtosBase: 0x53000000,
+-  ramSource: 0x5407b640, ramBase: 0x55000000, ramLength: 0x3a080,
++  id: 'gr3x-hdf-1.70', model: 'GR3X_HDF', standardModel: 'GR3X', camera: 'GR IIIx', tag: 'GR3X-HDF-170',
++  version: '1.70', internalVersion: '1.70.20.18', versionWord: 0x01461412,
++  filename: 'fwdc243b.bin', size: 30472528, decodedSize: 59798532,
++  sha256: 'aa8e3ae1349d94e83be381c20530e41d5e57b75c27ef24ba81c7b017d6c11592',
++  decodedSha256: '1129b9289b3cc68ab6f407a87d60db750483cc5ae41a6609596f6fe676b14521',
++  rtosSha256: '3d97f0f541c6711b56dcd66ffc081be97af303708cc1874b29f9bd8ee7a8d0c5',
++  project: 609, product: 78490, rtosOffset: 0x10870, rtosLength: 17520384, rtosBase: 0x53000000,
++  ramSource: 0x5407b640, ramBase: 0x55000000, ramLength: 0x3a0c0,
+   factoryRatios: ['3:2', '1:1'],
+   buildEnabled: true, buildRecipe: 'fixed-adj9-T4', fullFeatures: true,
+ } as const satisfies Gr3Profile;
+ 
+-/** GR III 2.10 (fwdc239b.bin). Layout fields must equal GR3X_170's: they are asserted below and in
++/** GR III 2.20 (fwdc239b.bin). Layout fields must equal GR3X_170's: they are asserted below and in
+  * the tests, and every address in this directory relies on it. */
+ export const GR3_220 = {
+   ...GR3X_170,
+-  id: 'gr3-hdf-2.10', model: 'GR3_HDF', standardModel: 'GR3', camera: 'GR III', tag: 'GR3-HDF-210',
+-  version: '2.10', internalVersion: '2.10.21.27', versionWord: 0x020a151b,
+-  filename: 'fwdc239b.bin', size: 30391780,
+-  sha256: 'd6a3c9c288d784080e7b283222ecdd8752adfeed6faa36dab44f73115354bfd4',
+-  decodedSha256: '53da690797f35ad6dc2c429d8ca1d0de8e333c211ed959816813982cd093b703',
+-  rtosSha256: '8a4eafcad2716e0b21e9909264e1242e534f0e39e05cba82a53546ceb4070b67',
++  id: 'gr3-hdf-2.20', model: 'GR3_HDF', standardModel: 'GR3', camera: 'GR III', tag: 'GR3-HDF-220',
++  version: '2.20', internalVersion: '2.20.20.28', versionWord: 0x0214141c,
++  filename: 'fwdc239b.bin', size: 30472516,
++  sha256: '5c53760b3b564c87239dbf7f5c94d0f6fd91accd156ec4ba672ebfd6b861793e',
++  decodedSha256: '5b475fcc434dec0f12e7956b02b5b38959d599b7a4ff90486263c46816a21b6d',
++  rtosSha256: 'fb13f9b4e49abec5f036d3f9fc5e4d21ba2a4e65522efb849ac52a7151c87da9',
++
+   project: 588, product: 78350, fullFeatures: true,
+ } as const satisfies Gr3Profile;
+ 
+@@ -92,7 +96,8 @@
+ export async function openGr3xOfficial(raw: Uint8Array): Promise<{ fw: Firmware; decoded: Uint8Array; profile: Gr3Profile }> {
+   const p = await gr3ProfileOf(raw);
+   if (!p) {
+-    throw new FirmwareError('unsupported-firmware', 'GR III / IIIx support requires the exact official GR IIIx 1.60 fwdc243b.bin or GR III 2.10 fwdc239b.bin');
++    throw new FirmwareError('unsupported-firmware', 'GR III / IIIx support requires the exact official GR IIIx 1.70 fwdc243b.bin or GR III 2.20 fwdc239b.bin');
++
+   }
+   // The shared addresses are only valid for this exact layout.
+   const L = GR3X_170;
+diff --git a/core/src/fw/gr3x170/research-package.ts b/core/src/fw/gr3x170/research-package.ts
+--- a/core/src/fw/gr3x170/research-package.ts
++++ b/core/src/fw/gr3x170/research-package.ts
+@@ -72,9 +72,12 @@
+   if (pictures.length) {
+     const dir = readRes(decoded);
+     const at = dir.files.findIndex(f => f.path === GR3X_RES_BEFORE);
+-    // Official: 22 A: files, then 13 B: files; the pictures go between them.
+-    if (dir.files.length !== 35 || at !== 22 || dir.files.slice(0, at).some(f => !f.path.startsWith('A:\\')) || dir.files.slice(at).some(f => !f.path.startsWith('B:\\')) ||
+-      dir.countOffset < iconEnd || dir.end !== decoded.length - 4) throw new FirmwareError('unexpected-layout', 'IIIx RES section is not the official one');
++    // Official (1.70 / 2.20): 24 A: files (GB_20th and GB_30th new), then 13 B: files; the pictures go between them.
++    if (dir.files.length !== 37 || at !== 24 ||
++ dir.files.slice(0, at).some(f => !f.path.startsWith('A:\\')) || dir.files.slice(at).some(f => !f.path.startsWith('B:\\')) ||
++      // 1.70 / 2.20: the files end one byte before the payload's last word (zero padding to 4 bytes).
++      dir.countOffset < iconEnd || dir.end !== decoded.length - 5 || decoded[dir.end] !== 0) throw new FirmwareError('unexpected-layout', 'IIIx RES section is not the official one');
++
+     if (dir.files.length + pictures.length > GR3X_RES_MAX_FILES) throw new FirmwareError('too-many-pictures', 'IIIx RES file count');
+     const last = dir.files[at];
+     const files = pictures.map((pic, k) => ({ path: gr3xPicturePath(k), data: pic.jpeg }));
+diff --git a/core/src/fw/gr3x170/shutdown.ts b/core/src/fw/gr3x170/shutdown.ts
+--- a/core/src/fw/gr3x170/shutdown.ts
++++ b/core/src/fw/gr3x170/shutdown.ts
+@@ -22,10 +22,12 @@
+  *    factory and key map for every added list), 1 + n values, each drawn with a 40x40 icon (the
+  *    camera's OFF icon for the original, a thumbnail for the pictures) and its name.
+  *  - The picture: GoodByeController::RequestBackgroundJpeg (0x5319f240) picks the full-screen JPEG
+- *    by the camera variant (r7 = table index, 2 GoodBye / 3 Collabo / 10..12) and then requests it
+- *    (0x5322e580). At 0x5319f2c0 (`ldm r5,{r0,r1}`, after every case) a stub replaces r7 by
+- *    13 + k - 1 when picture k is chosen (r2, r3 are dead there; the original `ldm r5,{r0,r1}` becomes
+- *    two loads). The table of full-screen JPEGs (13 pointers at
++ *    by the camera variant (r7 = table index, 2 GoodBye / 3 Collabo / 10..12, and in 1.70 / 2.20
++ *    13 GB_20th / 14 GB_30th: the camera sets its variant to 6, the 30th anniversary, at every
++ *    start, 0x53821a14) and then requests it (0x5322e580). At 0x5319f2d0 (`ldm r5,{r0,r1}`, after
++ *    the cases' join 0x5319f2c0 and the request object in r8) a stub replaces r7 by 15 + k - 1 when
++ *    picture k is chosen (r2, r3 are dead there; the original `ldm r5,{r0,r1}` becomes two loads).
++ *    The table of full-screen JPEGs (15 pointers at
+  *    0x55002b78, addressed only from 0x5322e58c/0x5322e594) is copied with n more entries
+  *    {720, 480, "A:\Resource\Jpeg\GRMODk.jpg"}.
+  *  - The files: RES records of exactly two container frames each (as on GR IV), 720 x 480 baseline
+@@ -52,8 +54,9 @@
+ export const GR3X_RES_BEFORE = 'B:\\Resource\\Jpeg\\AlpKey.jpg';
+ /** Most files RES may list: the camera's updater (0x5362a5b0) steps past RES by the file count in
+  * BYTES and reads a section header there (inside the first file, DF_EX.bin); counts up to 68 land
+- * on harmless bytes of the official file (simulated), 35 + 8 pictures is 43. */
+-export const GR3X_RES_MAX_FILES = 43;
++ * on harmless bytes of the official file (simulated on 1.60; DF_EX.bin and its place are the same
++ * in 1.70 / 2.20, SHA-256 equal), 37 + 8 pictures is 45. */
++export const GR3X_RES_MAX_FILES = 45;
+ 
+ const SETTINGS_POINTER = 0x55063f34;
+ const SETUP_MENU = 0x53b3637c, SETUP_ENTRY_IMAGE = 0x5407d508, SETUP_ENTRY_RAM = 0x55001ec8;
+@@ -66,8 +69,8 @@
+ const SETUP_FIRSTS_NEW = [0, 7, 12, 14, 16, 18, 21, 24, 26, 28, 30];
+ const LINE_VALUE_TEXT = 0x5339df5c, TOP_SET_TITLE = 0x5339dd60, LIST_SET_ITEM = 0x5339e9a0;
+ const ICON_OFF = 344;
+-const REQUEST = 0x5319f240, JOIN = 0x5319f2c0, JOIN_WORD = 0xe8950003;
+-const JPEG_TABLE = 0x55002b78, JPEG_TABLE_IMAGE = 0x5407e1b8, JPEG_TABLE_COUNT = 13;
++const REQUEST = 0x5319f240, JOIN = 0x5319f2d0, JOIN_WORD = 0xe8950003;
++const JPEG_TABLE = 0x55002b78, JPEG_TABLE_IMAGE = 0x5407e1b8, JPEG_TABLE_COUNT = 15;
+ const JPEG_TABLE_SITE: readonly [number, number, number] = [0x5322e58c, 0x5322e594, 12];
+ const PLAYBACK_JPEG = 0x5322e580;
+ 
+@@ -81,7 +84,7 @@
+ export const GR3X_PICTURE_ORIGINAL: readonly string[] = GR3X_PICTURE_LINE_NAMES.map((_, row) =>
+   row === 0 ? 'オリジナル' : row === 18 || row === 19 ? '原始' : 'Original');
+ 
+-export const GR3X_JPEG_TABLE_COUNT = 13;
++export const GR3X_JPEG_TABLE_COUNT = 15;
+ export interface Gr3xPictureSpec {
+   /** Round 6 (End Screen submenu): stable identity 1..0xffffffff, what the camera remembers. */
+   id?: number;
+@@ -291,8 +294,10 @@
+   const withPick = o.pick !== false;
+   if (n < 1 || n > GR3X_MAX_PICTURES) fail('internal', 'IIIx power-off picture count');
+   const guards: readonly (readonly [number, number])[] = [
+-    [REQUEST, 0xe1a0c00d], ...(withPick ? [[JOIN, JOIN_WORD]] as const : []), [JOIN - 4, 0xe3a07002], // mov r7,#2 (GoodBye), then the join
+-    [JOIN + 0x24, 0xe1a01007], [JOIN + 0x2c, 0xeb000000 | (((PLAYBACK_JPEG - (JOIN + 0x2c + 8)) >> 2) & 0xffffff)], // mov r1,r7; bl request
++    [REQUEST, 0xe1a0c00d], ...(withPick ? [[JOIN, JOIN_WORD]] as const : []), [JOIN - 4, 0xe1a08000], [JOIN - 0x14, 0xe3a07002], // mov r7,#2 (GoodBye), mov r0,r6 (the join), ..., mov r8,r0
++    [JOIN - 0x10, 0xe1a00006], [JOIN + 4, 0xe8860003], // stm r6,{r0,r1}
++    [JOIN + 0x20, 0xe1a01007], [JOIN + 0x28, 0xeb000000 | (((PLAYBACK_JPEG - (JOIN + 0x28 + 8)) >> 2) & 0xffffff)], // mov r1,r7; bl request
++
+     [PLAYBACK_JPEG, 0xe1a0c00d],
+     [JPEG_TABLE_SITE[0], movWord(12, lo(JPEG_TABLE))], [JPEG_TABLE_SITE[1], movWord(12, hi(JPEG_TABLE), true)],
+     [JPEG_TABLE_SITE[1] + 0xc, 0xe79c1101], // ldr r1,[ip,r1,lsl #2]: no bound
+diff --git a/tools/gr3x170/adj_probe.py b/tools/gr3x170/adj_probe.py
+--- a/tools/gr3x170/adj_probe.py
++++ b/tools/gr3x170/adj_probe.py
+@@ -124,7 +124,9 @@
+     pics=manifest['pictures']['count'] if manifest.get('pictures') else 0  # power-off pictures: 2 + n texts, n icons
+     # Round 6 (End Screen submenu): 3 + n texts, 5 + n thumbnails of 520 x 200.
+     esub=1 if manifest.get('pictures') and manifest['pictures'].get('form')=='submenu' else 0
+-    ptexts=(3 if esub else 2)+pics if pics else 0;picons=pics+5*esub;ppixels=(5+pics)*520*200*4 if esub else pics*6400
++    # 1.70 / 2.20: one factory thumbnail (GB_30th) in the End Screen submenu.
++    ptexts=(3 if esub else 2)+pics if pics else 0;picons=pics+1*esub;ppixels=(1+pics)*520*200*4 if esub else pics*6400
++
+     assert (catalog['textColumns'],catalog['iconCount'])==(786+customs+soft+dtexts+ptexts+added+htexts,671+customs+soft+dicons+picons+added+hicons)
+     for lang in range(21):
+         old_root=u32(cpu,0x55002bb4+lang*4);new_root=u32(cpu,catalog['textRoots']+lang*4)
+diff --git a/tools/gr3x170/chroma_alignment_probe.py b/tools/gr3x170/chroma_alignment_probe.py
+--- a/tools/gr3x170/chroma_alignment_probe.py
++++ b/tools/gr3x170/chroma_alignment_probe.py
+@@ -11,7 +11,7 @@
+ from display_descriptor_probe import DisplayProbe
+ from ratio_menu import menu as menu_of, is_t4
+ 
+-T3_MANIFEST_SHA='fb48c12cf8f8ad211b26a2bc47ddc4babb31770cde82a43d91fc9610f9a9b4a6'
++T3_MANIFEST_SHA='347cc02e4fa9470e09d1a1c8afdd68baee4d12dc2543f9405e5abdb918d2a485'  # tools/gr3x/fixtures' T3 translated to 1.70 (tools/port/translate_manifest.mts)
+ WIDE=(5,6,7)
+ USER_IDS=(0,3,4,5,6,7,8,9,10)
+ FLAGS=((0,0),(0,1),(1,0),(1,1))
+diff --git a/tools/gr3x170/development_bounds_probe.py b/tools/gr3x170/development_bounds_probe.py
+--- a/tools/gr3x170/development_bounds_probe.py
++++ b/tools/gr3x170/development_bounds_probe.py
+@@ -13,7 +13,7 @@
+ from native_probe import OBJECT
+ from ratio_menu import menu as menu_of, is_t4
+ 
+-T2_MANIFEST_SHA='5a538ac51f6ac1c5823a3d5cf046f20f5009a800318646680e813212c938e6f0'
++T2_MANIFEST_SHA='f4981ea41bda52ae526d0a8dced2d450ea9aae54129a5d16def58a67b8e3c69f'  # tools/gr3x/fixtures' T2 translated to 1.70 (tools/port/translate_manifest.mts)
+ WIDE=(5,6,7)
+ 
+ class DevelopmentProbe(LiveProbe):
+diff --git a/tools/gr3x170/endscreen_probe.py b/tools/gr3x170/endscreen_probe.py
+--- a/tools/gr3x170/endscreen_probe.py
++++ b/tools/gr3x170/endscreen_probe.py
+@@ -241,11 +241,12 @@
+                 p.selected=row;p.run(DOWN,CTL,stop);calls+=1
+                 assert [x for x in p.log if x[0]=='move']==([] if row==n and stop else [('move',LIST,1,1)])
+         # Footer: the focused row's thumbnail; the factory row by camera variant.
+-        for variant in range(6):
++        for variant in range(8):
+             p.variant=variant
+             for row in range(1+n):
+                 p.selected=row;p.run(FOOTER,CTL);calls+=1
+-                icon=ids['factoryIcons'][variant if variant<5 else 0] if row==0 else ids['icons'][row-1]
++                # 1.70 / 2.20: one factory thumbnail (GB_30th) whatever the variant.
++                icon=ids['factoryIcons'][0] if row==0 else ids['icons'][row-1]
+                 assert [x for x in p.log if x[0] in ('icon','visible')]==[('icon',GRAPH,icon),('visible',GRAPH,1)],(variant,row,p.log)
+     # No record at all: the factory picture, nothing written.
+     if p.r10:
+@@ -271,19 +272,20 @@
+     report['picture_mode_cases']=pic
+     # 7. The power-off picture.
+     jt_lo,jt_hi=u32(c,0x5322e58c),u32(c,0x5322e594);jt=(jt_lo&0xfff)|((jt_lo>>4)&0xf000)|(((jt_hi&0xfff)|((jt_hi>>4)&0xf000))<<16)
+-    assert jt==e['pictureTable'] and bytes(c.mem_read(jt,13*4))==orig(0x5407e1b8,13*4)
++    assert jt==e['pictureTable'] and bytes(c.mem_read(jt,15*4))==orig(0x5407e1b8,15*4)
+     for k in range(n):
+-        ent=u32(c,jt+(13+k)*4);w,h,path=struct.unpack('<HHI',bytes(c.mem_read(ent,8)))
++        ent=u32(c,jt+(15+k)*4);w,h,path=struct.unpack('<HHI',bytes(c.mem_read(ent,8)))
+         assert (w,h)==(720,480) and bytes(c.mem_read(path,40)).split(b'\0')[0]==f'A:\\Resource\\Jpeg\\GRMOD{k+1}.jpg'.encode()
+     seen=0
+-    for variant in range(5):
++    for variant in range(7):
+         for stored,pointer in [(None,True),(0,True),(0xdeadbeef,True),(1<<24,True),(3<<24,True),(choices[0],False)]+[(x,True) for x in choices]:
+             p.variant=variant;p.requests=[]
+             if p.r10:p.records(choice=0,pointers=pointer);p.record(stored)
+             else:p.records(choice=stored,pointers=pointer)
+             p.call(REQUEST,0x62056000);calls+=1
+             assert len(p.requests)==1
+-            want=13+choices.index(stored) if (pointer or p.r10) and stored in choices else NATIVE_INDEX[variant]
++            want=15+choices.index(stored) if (pointer or p.r10) and stored in choices else NATIVE_INDEX[variant]
++
+             assert p.requests[0][1]==want and p.requests[0][0]==0x6205e000,(variant,stored,pointer,p.requests)
+             seen+=1
+     report['picture_requests']=seen
+diff --git a/tools/gr3x170/factory_probe.py b/tools/gr3x170/factory_probe.py
+--- a/tools/gr3x170/factory_probe.py
++++ b/tools/gr3x170/factory_probe.py
+@@ -40,7 +40,7 @@
+     p=NativeProbe(data);calls=0
+     project=p.call(0x5381fe24);product=p.call(0x5381fe74);calls+=2
+     assert (project,product)==(p.profile['project'],p.profile['product'])
+-    key=data[0xd628a0:0xd628aa]
++    key=data[0xd629d8:0xd629e2]
+     for valid in (True,False):
+         content=bytearray(key+b'\x00')
+         if not valid:content[0]^=1
+@@ -48,7 +48,8 @@
+         result=p.call(0x536bf728,OBJECT);calls+=1
+         assert result==int(valid)
+         assert p.uc.mem_read(OBJECT+10,1)[0]==int(valid)
+-    p.call(0x536be7c0,OBJECT);calls+=1
++    # 1.70 / 2.20: no keyword table set-up (the parser compares through literal-pool pointers).
++
+     for text,flag in [('OPEN_FACTORY_DEBUG_MENU',4),('SCRIPT_EN_MODE EN',1),('NOT_A_FACTORY_KEYWORD',None)]:
+         p.uc.mem_write(OUTPUT,text.encode()+b'\x00')
+         p.uc.mem_write(OUTPUT+0x100,b'\x00'*32)
+diff --git a/tools/gr3x170/identity.py b/tools/gr3x170/identity.py
+--- a/tools/gr3x170/identity.py
++++ b/tools/gr3x170/identity.py
+@@ -1,22 +1,24 @@
+-"""Identities of the official images the IIIx port is applied to.
++"""Identities of the official images the IIIx port is applied to: GR IIIx 1.70 / GR III 2.20
++(generated port of tools/gr3x, see tools/port/gr3-p2.json).
+ 
+-GR IIIx 1.60 and GR III 2.10 are the same build of one program: every function and data address
++GR IIIx 1.70 and GR III 2.20 are the same build of one program (as 1.60 / 2.10): every function and data address
+ is identical; they differ only in identity bytes (camera name, project/product number, version,
+ build time, RTC epoch year). Probes accept either exact RTOS and look up the identity here.
+ """
+ import hashlib
+ 
+ PROFILES = [
+-    dict(id='gr3x-hdf-1.60', camera='GR IIIx', tag='GR3X-HDF-160', filename='fwdc243b.bin',
+-         project=609, product=78490, version_word=0x013c0b11,
+-         container_sha256='708e79f3b7b96a7e1581b4acf4c412233050a1832718ef7f06c8397db1b431c7',
+-         decoded_sha256='c4bfc09d1148deec2155b21bd3d63be8085cf835cbe5e5cde4832747f519e630',
+-         rtos_sha256='0f11b0d28bc67932d044c5d01bc0314844a756057c89984278c73a23449a24c6'),
+-    dict(id='gr3-hdf-2.10', camera='GR III', tag='GR3-HDF-210', filename='fwdc239b.bin',
+-         project=588, product=78350, version_word=0x020a151b,
+-         container_sha256='d6a3c9c288d784080e7b283222ecdd8752adfeed6faa36dab44f73115354bfd4',
+-         decoded_sha256='53da690797f35ad6dc2c429d8ca1d0de8e333c211ed959816813982cd093b703',
+-         rtos_sha256='8a4eafcad2716e0b21e9909264e1242e534f0e39e05cba82a53546ceb4070b67'),
++    dict(id='gr3x-hdf-1.70', camera='GR IIIx', tag='GR3X-HDF-170', filename='fwdc243b.bin',
++         project=609, product=78490, version_word=0x01461412,
++         container_sha256='aa8e3ae1349d94e83be381c20530e41d5e57b75c27ef24ba81c7b017d6c11592',
++         decoded_sha256='1129b9289b3cc68ab6f407a87d60db750483cc5ae41a6609596f6fe676b14521',
++         rtos_sha256='3d97f0f541c6711b56dcd66ffc081be97af303708cc1874b29f9bd8ee7a8d0c5'),
++    dict(id='gr3-hdf-2.20', camera='GR III', tag='GR3-HDF-220', filename='fwdc239b.bin',
++         project=588, product=78350, version_word=0x0214141c,
++         container_sha256='5c53760b3b564c87239dbf7f5c94d0f6fd91accd156ec4ba672ebfd6b861793e',
++         decoded_sha256='5b475fcc434dec0f12e7956b02b5b38959d599b7a4ff90486263c46816a21b6d',
++         rtos_sha256='fb13f9b4e49abec5f036d3f9fc5e4d21ba2a4e65522efb849ac52a7151c87da9'),
++
+ ]
+ RTOS_SHAS = {p['rtos_sha256'] for p in PROFILES}
+ 
+diff --git a/tools/gr3x170/native/endscreen.c b/tools/gr3x170/native/endscreen.c
+--- a/tools/gr3x170/native/endscreen.c
++++ b/tools/gr3x170/native/endscreen.c
+@@ -19,10 +19,11 @@
+  * recalling U1-U3 does not change it. An identity no longer in the list (or round 5's picture
+  * number, < 9 << 24 | 0) counts as the factory picture.
+  *
+- * The power-off picture (GoodByeController::RequestBackgroundJpeg 0x5319f240): at 0x5319f2c0 r7 is
+- * the number of the camera's own picture in the full-screen JPEG table (2 GoodBye, 3 Collabo, 10..12);
+- * es_pick gives the number of the chosen added picture (13 + row, the copied and extended table) or
+- * r7 as it was.
++ * The power-off picture (GoodByeController::RequestBackgroundJpeg 0x5319f240): at 0x5319f2d0 r7 is
++ * the number of the camera's own picture in the full-screen JPEG table (2 GoodBye, 3 Collabo, 10..12,
++ * 13 GB_20th, 14 GB_30th); es_pick gives the number of the chosen added picture (15 + row, the
++ * copied and extended table) or r7 as it was.
++
+  *
+  * Position independent: no global data; firmware functions at their fixed addresses, everything
+  * else from `struct es_ctx` (endscreen.ts). Built by tools/gr3x170/compile_slots.py endscreen.
+@@ -32,7 +33,7 @@
+ typedef unsigned int u32;
+ 
+ #define MAX_PICTURES 8u
+-#define FACTORY 5u
++#define FACTORY 1u   /* 1.70 / 2.20: the camera's own picture is always GB_30th (variant 6, set at every start) */
+ #ifdef STORE_RECORD
+ /* Round 10 (GR IV's shutdown.c): the choice is a record of the camera's settings store, { magic,
+  * choice }, written when a row is confirmed and again after every settings save (power off), like
+@@ -53,7 +54,7 @@
+   u32 magic;
+   u32 count;                   /* added pictures, 1..MAX_PICTURES */
+   u32 factory_text;            /* text of row 0 ("Original"); the pictures' names follow it */
+-  u16 factory_icon[FACTORY];   /* thumbnails of the factory pictures by camera variant 0..4 */
++  u16 factory_icon[FACTORY];   /* thumbnail of the factory picture (GB_30th) */
+   u16 icon[MAX_PICTURES];      /* thumbnails of the added pictures */
+   u16 pad;
+   u32 choice[MAX_PICTURES];    /* stable identities */
+@@ -181,7 +182,8 @@
+   return picture >= 0 ? 1u + (u32)picture : 0u;
+ }
+ 
+-/* The factory picture this camera shows (as 0x5319f240 chooses it): its variant 0..4, else 0. */
++/* The factory picture this camera shows (as 0x5319f240 chooses it): one (GB_30th) in 1.70 / 2.20. */
++
+ static u32 factory_index(void) {
+   u8 *node = (u8 *)VARIANT_ROOT();
+   u32 variant;
+diff --git a/tools/gr3x170/native_probe.py b/tools/gr3x170/native_probe.py
+--- a/tools/gr3x170/native_probe.py
++++ b/tools/gr3x170/native_probe.py
+@@ -14,7 +14,7 @@
+ BASE = 0x53000000
+ from identity import by_rtos
+ # The IIIx value; reports use the hash of the RTOS actually probed (identity.by_rtos).
+-RTOS_SHA = '0f11b0d28bc67932d044c5d01bc0314844a756057c89984278c73a23449a24c6'
++RTOS_SHA = '3d97f0f541c6711b56dcd66ffc081be97af303708cc1874b29f9bd8ee7a8d0c5'
+ OBJECT, OUTPUT = 0x62010000, 0x62030000
+ STACK, STOP = 0x610ff000, 0x620ff000
+ RESOLUTION = 0x536a2b20
+@@ -33,7 +33,8 @@
+         self.uc.mem_write(BASE, data)
+         self.uc.mem_protect(BASE, rom_bytes, UC_PROT_READ | UC_PROT_EXEC)
+         src, dst, size = struct.unpack_from('<3I', data, 0x450)
+-        if (src, dst, size) != (0x5407b640, 0x55000000, 0x3a080):
++        if (src, dst, size) != (0x5407b640, 0x55000000, 0x3a0c0):
++
+             raise ValueError('Unexpected startup initialized-data map')
+         self.uc.mem_map(dst, (size+4095) & ~4095)
+         self.uc.mem_write(dst, data[src-BASE:src-BASE+size])
+diff --git a/tools/gr3x170/package_probe.py b/tools/gr3x170/package_probe.py
+--- a/tools/gr3x170/package_probe.py
++++ b/tools/gr3x170/package_probe.py
+@@ -20,22 +20,26 @@
+     return out,at
+ 
+ def check_res(old,a,dec,b,build):
+-    """Power-off pictures: the official 22 A: records, then one record of exactly two frames per
+-    picture (A:\\Resource\\Jpeg\\GRMODk.jpg, 720x480 baseline 4:2:0 JPEG), then the 13 official B: records."""
++    """Power-off pictures: the official 24 A: records (1.70 / 2.20: GB_20th and GB_30th among them), then
++    one record of exactly two frames per picture (A:\\Resource\\Jpeg\\GRMODk.jpg, 720x480 baseline 4:2:0
++    JPEG), then the 13 official B: records."""
+     import struct
+     n=len(build['pictures']);assert 1<=n<=8
+-    oc=a['resource_count'];nc=b['resource_count'];assert oc==35 and nc==35+n<=43
++    oc=a['resource_count'];nc=b['resource_count'];assert oc==37 and nc==37+n<=45
+     orec,oend=res_records(old,a['start'],oc);nrec,nend=res_records(dec,b['start'],nc)
+-    assert oend==a['end'] and nend==b['end']
+-    for (p,at,size),(q,bt,bsize) in zip(orec[:22]+orec[22:],nrec[:22]+nrec[22+n:]):
++    # 1.70 / 2.20: the records end one zero byte before the section end (padding to 4 bytes).
++    assert a['end']-oend==b['end']-nend==1 and old[oend]==0 and dec[nend]==0,(a['end']-oend,b['end']-nend)
++
++    for (p,at,size),(q,bt,bsize) in zip(orec[:24]+orec[24:],nrec[:24]+nrec[24+n:]):
+         assert p==q and size==bsize and old[at:at+36+size]==dec[bt:bt+36+size]
+-    assert all(p.startswith('A:\\') for p,_,_ in orec[:22]) and all(p.startswith('B:\\') for p,_,_ in orec[22:])
+-    for k,(path,at,size) in enumerate(nrec[22:22+n]):
++    assert all(p.startswith('A:\\') for p,_,_ in orec[:24]) and all(p.startswith('B:\\') for p,_,_ in orec[24:])
++    for k,(path,at,size) in enumerate(nrec[24:24+n]):
+         assert path==f'A:\\Resource\\Jpeg\\GRMOD{k+1}.jpg' and size==2*0x6000-36,(path,size)
+         j=dec[at+36:at+36+size];assert j[:2]==b'\xff\xd8' and j.rstrip(b'\0')[-2:]==b'\xff\xd9'
+         sof=j.find(b'\xff\xc0');assert sof>0 and j.find(b'\xff\xc2')<0
+         assert struct.unpack('>HH',j[sof+5:sof+9])==(480,720) and j[sof+9]==3 and (j[sof+11],j[sof+14],j[sof+17])==(0x22,0x11,0x11)
+-    assert nrec[22][1]-(b['start']+16)==orec[22][1]-(a['start']+16)
++    assert nrec[24][1]-(b['start']+16)==orec[24][1]-(a['start']+16)
++
+ 
+ def updater_walk_past_res(dec):
+     """The camera's updater (DspFwUpdate, 0x5362a5b0) steps past RES by its file COUNT in bytes and
+@@ -87,7 +91,7 @@
+     assert len(soft)<=4 and len({r['level'] for r in soft})==len(soft)
+     for row in soft:
+         assert row['level'] in (-4,-3,-2,-1) and row['strength'] in gains
+-        struct.pack_into('<11h',expected,0x8f1fd4+(row['level']+4)*22,*gains[row['strength']])
++        struct.pack_into("<11h",expected,0x8f1fe4+(row['level']+4)*22,*gains[row['strength']])
+     assert dec[rt_start:rt_start+len(expected)]==expected
+     icon_old=next(s for s in old_sections if s['name']=='ICONBIN');icon_new=next(s for s in new_sections if s['name']=='ICONBIN')
+     old_pixels=old[icon_old['start']+16:icon_old['end']]
+diff --git a/tools/gr3x170/shutdown_probe.py b/tools/gr3x170/shutdown_probe.py
+--- a/tools/gr3x170/shutdown_probe.py
++++ b/tools/gr3x170/shutdown_probe.py
+@@ -36,7 +36,8 @@
+ LINE_TEXT,TITLE,LIST_ITEM=0x5339df5c,0x5339dd60,0x5339e9a0
+ REQUEST,PLAYBACK,VARIANT=0x5319f240,0x5322e580,0x53525e4c
+ TABLE,TABLE_SITE=0x55002b78,(0x5322e58c,0x5322e594)
+-NATIVE_INDEX={0:2,1:3,2:11,3:10,4:12}
++# 1.70 / 2.20: variants 5 (20th anniversary) and 6 (30th, which the camera sets at every start) -> GB_20th / GB_30th.
++NATIVE_INDEX={0:2,1:3,2:11,3:10,4:12,5:13,6:14}
+ LINES=['終了画面の画像','End Screen Picture','Image de fin','Endbild','Imagen final','Imagem final','Immagine finale',
+   'Eindafbeelding','Slutbillede','Slutbild','Päätöskuva','Obraz końcowy','Finální obrázek','Záró kép','Son resim',
+   'Τελική εικόνα','Конечное изображение','종료 이미지','結束畫面圖片','结束画面图片','ภาพหน้าจอสุดท้าย']
+@@ -128,23 +129,24 @@
+     lo_,hi_=u32(c,TABLE_SITE[0]),u32(c,TABLE_SITE[1])
+     jt=((lo_&0xfff)|((lo_>>4)&0xf000))|(((hi_&0xfff)|((hi_>>4)&0xf000))<<16)
+     assert lo_==movw(12,jt&0xffff) and hi_==movw(12,jt>>16,True) and jt==e['pictureTable']
+-    assert bytes(c.mem_read(jt,13*4))==orig(0x5407e1b8,13*4)
++    assert bytes(c.mem_read(jt,15*4))==orig(0x5407e1b8,15*4)
+     for k in range(n):
+-        ent=u32(c,jt+(13+k)*4);w,h,path=struct.unpack('<HHI',bytes(c.mem_read(ent,8)))
++        ent=u32(c,jt+(15+k)*4);w,h,path=struct.unpack('<HHI',bytes(c.mem_read(ent,8)))
+         assert (w,h)==(720,480) and bytes(c.mem_read(path,40)).split(b'\0')[0]==f'A:\\Resource\\Jpeg\\GRMOD{k+1}.jpg'.encode()
+     native=RearDialProbe(data)
+     seen={}
+-    for variant in range(5):
++    for variant in range(7):
+         for stored,pointer in [(0,True),(n+1,True),(0xff,True),(1,False)]+[(k,True) for k in range(1,n+1)]:
+             p.variant=variant;p.setting(stored,pointer);p.requests=[];p.call(REQUEST,0x62056000);calls+=1
+             assert len(p.requests)==1
+             idx=p.requests[0][1]
+-            want=13+stored-1 if pointer and 1<=stored<=n else NATIVE_INDEX[variant]
++            want=15+stored-1 if pointer and 1<=stored<=n else NATIVE_INDEX[variant]
+             assert idx==want,(variant,stored,pointer,idx)
+             seen[(variant,stored,pointer)]=idx
+             # The other arguments: r0 (playback model) as officially; r2, r3 point into the frame.
+             assert p.requests[0][0]==0x6205e000
+-    report['request']={'variants':5,'settings_per_variant':len(seen)//5,'pictures':n}
++    report['request']={'variants':7,'settings_per_variant':len(seen)//7,'pictures':n}
++
+     return dict(schema=1,rtos_sha256=hashlib.sha256(data).hexdigest(),calls=calls,pictures=n,names=names,**report,hardware_tested=False,
+         scope='Patched Setup menu copy, factory, key map read, list SetCurrentMenu, list handlers, GoodBye picture request and JPEG table with substitutes for UI widgets, singletons and the JPEG request.')
+ 
+diff --git a/core/test/gr3-p2-equivalence.test.ts b/core/test/gr3-p2-equivalence.test.ts
+--- a/core/test/gr3-p2-equivalence.test.ts
++++ b/core/test/gr3-p2-equivalence.test.ts
+@@ -1,6 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ /**
+- * GR III 2.10 support rests on one claim: GR III 2.10 and GR IIIx 1.60 are the same
++ * GENERATED from gr3-equivalence.test.ts (tools/port/gr3-p2.json): the same claims for the port to GR III
++ * 2.20 / GR IIIx 1.70. GR III 2.20 support rests on one claim: GR III 2.20 and GR IIIx 1.70 are the same
+  * build of one program, so the IIIx patches mean exactly the same on GR III. These tests check it on
+  * the two official files and on every recipe the app can produce:
+  *
+@@ -8,11 +9,11 @@
+  *    IIIx patch, guard or copied resource touches;
+  *  - every GR III build equals the IIIx build of the same recipe with only those identity bytes (and the
+  *    build's own marker and checksum word) swapped: the same code, data, tables and icons, byte for byte;
+- *  - the GR III container keeps GR III's own header (project 588, product 78350, version 2.10) and file
++ *  - the GR III container keeps GR III's own header (project 588, product 78350, version 2.20) and file
+  *    name, so the camera's updater (equal version accepted) sees its own firmware;
+  *  - a file is only ever recognised by the engine of its own camera.
+  *
+- * Needs both official files: GRMOD_GR3X_FIRMWARE (fwdc243b.bin 1.60) and GRMOD_GR3_FIRMWARE (fwdc239b.bin 2.10).
++ * Needs both official files: GRMOD_GR3X_170_FIRMWARE (fwdc243b.bin 1.70) and GRMOD_GR3_220_FIRMWARE (fwdc239b.bin 2.20).
+  */
+ import { beforeAll, describe, expect, it } from 'vitest';
+ import { readFileSync } from 'node:fs';
+@@ -29,7 +30,7 @@
+ import type { Gr3xLookOptions } from '../src/fw/gr3x170/image-control';
+ import type { Gr3xSoftFocusRequest as SoftFocusRequest } from '../src/fw/gr3x170/clarity';
+ 
+-const xPath = process.env.GRMOD_GR3X_FIRMWARE, iiiPath = process.env.GRMOD_GR3_FIRMWARE;
++const xPath = process.env.GRMOD_GR3X_170_FIRMWARE, iiiPath = process.env.GRMOD_GR3_220_FIRMWARE;
+ const soft = [{ level: -1, strength: 'weak' }, { level: -2, strength: 'medium' }, { level: -3, strength: 'strong' }] as const;
+ 
+ /** Offsets (in the decoded image) where the two official images differ. */
+@@ -40,7 +41,7 @@
+   return out;
+ }
+ 
+-describe.skipIf(!xPath || !iiiPath)('GR III 2.10 is the IIIx 1.60 program', () => {
++describe.skipIf(!xPath || !iiiPath)('GR III 2.20 is the IIIx 1.70 program', () => {
+   let rawX: Uint8Array, raw3: Uint8Array, decX: Uint8Array, dec3: Uint8Array, diff: number[];
+   beforeAll(async () => {
+     rawX = new Uint8Array(readFileSync(xPath!)); raw3 = new Uint8Array(readFileSync(iiiPath!));
+@@ -101,7 +102,7 @@
+       const bX = await buildGr3xTestFirmware(rawX, r.soft, r.looks, r.menu);
+       const b3 = await buildGr3xTestFirmware(raw3, r.soft, r.looks, r.menu);
+       expect(b3.report.filename).toBe('fwdc239b.bin');
+-      expect(b3.report.profile).toBe('gr3-hdf-2.10');
++      expect(b3.report.profile).toBe('gr3-hdf-2.20');
+       expect(b3.manifest.sites).toEqual(bX.manifest.sites);
+       expect(b3.manifest.append).toEqual(bX.manifest.append);
+       expect(b3.manifest.iconAddition).toEqual(bX.manifest.iconAddition);
+@@ -122,8 +123,8 @@
+       }
+       expect(growth).toBeGreaterThanOrEqual(rtosGrowth);
+       const entries = r.menu?.length ?? 9;
+-      const markerX = new TextEncoder().encode(`GR3X-HDF-160-ADJ${entries}-${bX.report.revision}-HARDWARE-UNTESTED\0`);
+-      const marker3 = new TextEncoder().encode(`GR3-HDF-210-ADJ${entries}-${b3.report.revision}-HARDWARE-UNTESTED\0`);
++      const markerX = new TextEncoder().encode(`GR3X-HDF-170-ADJ${entries}-${bX.report.revision}-HARDWARE-UNTESTED\0`);
++      const marker3 = new TextEncoder().encode(`GR3-HDF-220-ADJ${entries}-${b3.report.revision}-HARDWARE-UNTESTED\0`);
+       const end = rtosEnd + rtosGrowth;
+       expect(Array.from(oX.subarray(end - 4 - markerX.length, end - 4))).toEqual(Array.from(markerX));
+       expected.fill(0, end - 4 - markerX.length, end - 4);
+@@ -201,10 +202,10 @@
+     const b3 = await buildGr3xTestFirmware(raw3, [...soft]);
+     const head = (b: Uint8Array) => Array.from(b.subarray(0, 0x80));
+     const h3 = head(b3.bytes), o3 = head(raw3);
+-    // Only the payload length / sums in the header may change; identity and version stay GR III 2.10.
++    // Only the payload length / sums in the header may change; identity and version stay GR III 2.20.
+     expect(h3.slice(0, 0x38)).toEqual(o3.slice(0, 0x38));
+-    expect(new DataView(b3.bytes.buffer).getUint32(0x38, false)).toBe(0x020a151b);
+-    expect(new DataView(b3.bytes.buffer).getUint32(0x50, false)).toBe(0x020a151b);
++    expect(new DataView(b3.bytes.buffer).getUint32(0x38, false)).toBe(0x0214141c);
++    expect(new DataView(b3.bytes.buffer).getUint32(0x50, false)).toBe(0x0214141c);
+     expect(new Firmware(b3.bytes).project).toBe(588);
+     const d = new Firmware(b3.bytes).decoded, r = sectionsOf(d).find(s => s.name === 'RTOS')!;
+     expect(new DataView(d.buffer).getUint32(r.offset + 0x2030, true)).toBe(588);
+@@ -213,11 +214,11 @@
+ 
+   it('opens GR III as its own camera and recognises only its own builds', async () => {
+     const e3 = await Engine.open(raw3), eX = await Engine.open(rawX);
+-    expect(e3.info).toMatchObject({ family: 'gr3x', filename: 'fwdc239b.bin', models: ['GR3_HDF', 'GR3'], version: '2.10',
++    expect(e3.info).toMatchObject({ family: 'gr3x', filename: 'fwdc239b.bin', models: ['GR3_HDF', 'GR3'], version: '2.20',
+       capabilities: { build: true, presets: true, wallpaper: false, factoryEntry: false, bridge: false, menuPictures: true, lookLayout: true },
+       features: { dateStamp: true, maxFilms: 20 } });
+     expect(e3.info).not.toHaveProperty('experimental');
+-    expect(eX.info).toMatchObject({ filename: 'fwdc243b.bin', models: ['GR3X_HDF', 'GR3X'], version: '1.60',
++    expect(eX.info).toMatchObject({ filename: 'fwdc243b.bin', models: ['GR3X_HDF', 'GR3X'], version: '1.70',
+       capabilities: { menuPictures: true, lookLayout: true }, features: { dateStamp: true, maxFilms: 20 } });
+     expect(e3.info.factoryEntry.modeSetName).toBe('00078350.588');
+     expect(readGr3xFactoryEntry(dec3, GR3_220).modeSetName).toBe('00078350.588');

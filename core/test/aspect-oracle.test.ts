@@ -103,7 +103,10 @@ describe.skipIf(!have)('aspect: byte-identical to the reference implementation',
       let result: AspectResult | null = null;
       let error = '';
       try {
-        result = installRatios(rtos, iconbin, planRatios(specs), 1); // revision 1 = the reference's output
+        // Ratios narrower than 1:1 are no longer built (0.8.2) but still read back from earlier files.
+        const portrait = specs.some((s) => parseRatio(s.ratio).cmp(1) <= 0);
+        if (portrait) expect(() => planRatios(specs)).toThrowError(FirmwareError);
+        result = installRatios(rtos, iconbin, planRatios(specs, { portrait }), 1); // revision 1 = the reference's output
       } catch (e) {
         if (!(e instanceof FirmwareError)) throw e;
         error = e.message;

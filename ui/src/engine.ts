@@ -26,16 +26,17 @@ function call<T>(msg: Record<string, unknown>, transfer: Transferable[] = [], on
 }
 
 export const engine = {
+  reset: () => call<boolean>({ type: 'reset' }),
   open: (raw: Uint8Array) => call<FirmwareInfo>({ type: 'open', raw: raw.slice().buffer }),
-  convert: (kind: 'xmp' | 'cube', text: string) => call<PresetResult>({ type: 'convert', kind, text }),
+  convert: (kind: 'xmp' | 'cube', text: string, options: { hue?: boolean } = {}) => call<PresetResult>({ type: 'convert', kind, text, options }),
   build: (requests: SlotRequest[], ratios: RatioSpec[] = [], softFocus: SoftFocusRequest[] = [], options: BuildOptions = {}) => call<FirmwareBuild>({ type: 'build', requests, ratios, softFocus, options }),
   /** What a ratio would become in the camera, given the ratios already in the list. */
   ratio: (ratio: string, others: string[]) => call<RatioPreview>({ type: 'ratio', ratio, others }),
   encode: (rgb: Uint8Array, model: CameraModel) => { const copy = rgb.slice(); return call<ShutdownImage>({ type: 'encode', rgb: copy.buffer, model }, [copy.buffer]); },
+  /** A 720x480 RGB picture as a power-off picture file of the firmware (chosen in the camera's menu). */
+  menuPicture: (rgb: Uint8Array) => { const copy = rgb.slice(); return call<Uint8Array>({ type: 'menuPicture', rgb: copy.buffer }, [copy.buffer]); },
   script: (model: CameraModel, count: number) => call<string>({ type: 'script', model, count }),
   /** What a firmware file is; the buffer is handed over to the worker. */
   inspect: (raw: Uint8Array) => call<FirmwareSummary>({ type: 'inspect', raw: raw.buffer }, [raw.buffer as ArrayBuffer]),
-  /** The 1.12 bridge firmware, made from the open official file. */
-  bridge: () => call<Uint8Array>({ type: 'bridge' }),
   heartbeat: (token: string) => call<boolean>({ type: 'heartbeat', token }),
 };

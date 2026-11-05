@@ -1,6 +1,7 @@
-// Package platform holds everything that differs between the Windows build
-// and the headless development build: volume enumeration, the folder picker,
-// the file manager, ejecting and the location of the data directory.
+// Package platform holds everything that differs between the Windows, macOS
+// and Linux builds and the headless development build: volume enumeration,
+// the folder picker, the file manager, ejecting and the location of the data
+// directory.
 //
 // Logic that only interprets Windows data (drive types, bus types, IOCTL
 // codes, command lines) lives in winlogic.go, is compiled everywhere and is
@@ -29,7 +30,8 @@ var ErrUnsupported = errors.New("not supported on this platform")
 
 // Host is the operating-system side of the API.
 type Host interface {
-	// Kind is "windows" or "dev"; it is reported to the page in /host.js.
+	// Kind is "windows", "mac", "linux" or "dev"; it is reported to the
+	// page in /host.js.
 	Kind() string
 	// Volumes lists removable volumes, plus other fixed drives when all is
 	// set. Volumes that are not ready are left out.

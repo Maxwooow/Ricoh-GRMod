@@ -297,3 +297,60 @@ export function pchipEval(p: Pchip, v: number): number {
   res += c[i] * z;
   return res;
 }
+
+/**
+ * CIEDE2000 between Lab buffers (one value per colour), following Sharma, Wu & Dalal (2005).
+ * The Lab values are the ones `lab` produces (D65, sRGB white).
+ */
+export function deltaE2000Lab(labA: Float64Array, labB: Float64Array): Float64Array {
+  if (labA.length !== labB.length || labA.length % 3 !== 0) throw new ColorError('bad-input', 'deltaE2000: buffers differ in length');
+  const n = labA.length / 3;
+  const out = new Float64Array(n);
+  const rad = Math.PI / 180;
+  for (let i = 0, j = 0; i < n; i++, j += 3) {
+    const L1 = labA[j], a1 = labA[j + 1], b1 = labA[j + 2];
+    const L2 = labB[j], a2 = labB[j + 1], b2 = labB[j + 2];
+    const C1 = Math.hypot(a1, b1), C2 = Math.hypot(a2, b2);
+    const Cbar = (C1 + C2) / 2;
+    const Cbar7 = Math.pow(Cbar, 7);
+    const G = 0.5 * (1 - Math.sqrt(Cbar7 / (Cbar7 + 6103515625))); // 25^7
+    const a1p = (1 + G) * a1, a2p = (1 + G) * a2;
+    const C1p = Math.hypot(a1p, b1), C2p = Math.hypot(a2p, b2);
+    let h1p = Math.atan2(b1, a1p) / rad;
+    if (h1p < 0) h1p += 360;
+    let h2p = Math.atan2(b2, a2p) / rad;
+    if (h2p < 0) h2p += 360;
+    const dLp = L2 - L1, dCp = C2p - C1p;
+    let dhp = 0;
+    if (C1p * C2p !== 0) {
+      dhp = h2p - h1p;
+      if (dhp > 180) dhp -= 360;
+      else if (dhp < -180) dhp += 360;
+    }
+    const dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin((dhp / 2) * rad);
+    const Lbar = (L1 + L2) / 2, Cbarp = (C1p + C2p) / 2;
+    let hbarp: number;
+    if (C1p * C2p === 0) hbarp = h1p + h2p;
+    else if (Math.abs(h1p - h2p) <= 180) hbarp = (h1p + h2p) / 2;
+    else if (h1p + h2p < 360) hbarp = (h1p + h2p + 360) / 2;
+    else hbarp = (h1p + h2p - 360) / 2; // Sharma et al. eq. (14): the mean hue stays within 0..360
+    const T = 1 - 0.17 * Math.cos((hbarp - 30) * rad) + 0.24 * Math.cos(2 * hbarp * rad)
+      + 0.32 * Math.cos((3 * hbarp + 6) * rad) - 0.20 * Math.cos((4 * hbarp - 63) * rad);
+    const dtheta = 30 * Math.exp(-Math.pow((hbarp - 275) / 25, 2));
+    const Cbarp7 = Math.pow(Cbarp, 7);
+    const Rc = 2 * Math.sqrt(Cbarp7 / (Cbarp7 + 6103515625));
+    const Sl = 1 + (0.015 * Math.pow(Lbar - 50, 2)) / Math.sqrt(20 + Math.pow(Lbar - 50, 2));
+    const Sc = 1 + 0.045 * Cbarp;
+    const Sh = 1 + 0.015 * Cbarp * T;
+    const Rt = -Math.sin(2 * dtheta * rad) * Rc;
+    const l = dLp / Sl, c = dCp / Sc, h = dHp / Sh;
+    out[i] = Math.sqrt(l * l + c * c + h * h + Rt * c * h);
+  }
+  return out;
+}
+
+/** CIEDE2000 between two sRGB-encoded buffers, one value per colour. */
+export function deltaE2000(rgbA: Float64Array, rgbB: Float64Array): Float64Array {
+  if (rgbA.length !== rgbB.length) throw new ColorError('bad-input', 'deltaE2000: buffers differ in length');
+  return deltaE2000Lab(lab(rgbA), lab(rgbB));
+}

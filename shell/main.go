@@ -4,8 +4,11 @@
 // cannot do by itself (removable drives, file access on a memory card, a
 // folder picker, a key/value store).
 //
-// On other systems the same program runs headless, for development and
-// tests: it prints where it listens and serves until it is killed.
+// On macOS, and on Linux when built with the tag "desktop" (./build.sh
+// linux), it opens the UI as an app window of a Chromium-based browser. On
+// other systems, and on Linux without that tag, the same program runs
+// headless, for development and tests: it prints where it listens and
+// serves until it is killed.
 package main
 
 import (

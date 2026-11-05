@@ -4,6 +4,8 @@ import (
 	"archive/zip"
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -25,7 +27,7 @@ const indexPage = `<html><body><table>
 	<td align="center" nowrap>2.10</td>
 </tr>
 <tr>
-	<td nowrap>GR&nbsp;IV</td>
+	<td nowrap>%s</td>
 	<td nowrap><a href="digital/gr4_s.html" target="_top">Windows / Mac OS</a></td>
 	<td align="center" nowrap>%s</td>
 </tr>
@@ -61,6 +63,7 @@ func archive(t *testing.T, files map[string][]byte) []byte {
 }
 
 type site struct {
+	row     string // first cell of the GR IV row ("GR&nbsp;IV" when empty)
 	version string
 	extra   string // more rows of the list
 	applies string
@@ -76,7 +79,11 @@ type site struct {
 func (s *site) serve(t *testing.T) (*Client, func()) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/english/support/download_digital.html", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, indexPage, s.version, s.extra)
+		row := s.row
+		if row == "" {
+			row = "GR&nbsp;IV"
+		}
+		fmt.Fprintf(w, indexPage, row, s.version, s.extra)
 	})
 	mux.HandleFunc("/english/support/digital/gr4_s.html", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, modelPage, s.applies, s.link)
@@ -144,7 +151,7 @@ func TestLatest(t *testing.T) {
 	if _, err := c.Latest(context.Background(), "MONO"); !errors.Is(err, ErrNoRelease) {
 		t.Errorf("MONO: %v", err)
 	}
-	if _, err := c.Latest(context.Background(), "GR3"); !errors.Is(err, ErrUnknownModel) {
+	if _, err := c.Latest(context.Background(), "GR2"); !errors.Is(err, ErrUnknownModel) {
 		t.Errorf("unknown model: %v", err)
 	}
 	if s.hits.Load() != 0 {
@@ -313,6 +320,84 @@ func TestAppliesTo(t *testing.T) {
 	} {
 		if got := appliesTo(c.applies, c.name); got != c.want {
 			t.Errorf("appliesTo(%q, %q) = %v", c.applies, c.name, got)
+		}
+	}
+}
+
+// The list since 2026-10-21: one row "GR IV / GR IV HDF" and a row of its own
+// for the Monochrome.
+func TestCombinedRow(t *testing.T) {
+	s := newSite(t)
+	s.row = "GR IV / GR IV HDF"
+	s.version = "1.20"
+	s.extra = `<tr><td>GR IV Monochrome</td><td><a href="digital/gr4m_s.html">Windows / Mac OS</a></td><td>1.10</td></tr>`
+	c, done := s.serve(t)
+	defer done()
+	for _, model := range []string{"STANDARD", "HDF"} {
+		rel, err := c.Latest(context.Background(), model)
+		if err != nil || rel.Version != "1.20" || !strings.HasSuffix(rel.Page, "/gr4_s.html") {
+			t.Errorf("%s: %+v %v", model, rel, err)
+		}
+	}
+	if rel, err := c.Latest(context.Background(), "MONO"); err != nil || rel.Version != "1.10" || rel.Name != "GR IV Monochrome" {
+		t.Errorf("MONO: %+v %v", rel, err)
+	}
+	for cell, want := range map[string]bool{"GR IV": true, "GR IV / GR IV HDF": true, "GR IV Monochrome": false, "GR IIIx / GR IV": true, "GR IV HDF": false} {
+		if got := names(cell, "GR IV"); got != want {
+			t.Errorf("names(%q, GR IV) = %v", cell, got)
+		}
+	}
+}
+
+func TestFallback(t *testing.T) {
+	s := newSite(t)
+	s.version = "1.20"
+	c, done := s.serve(t)
+	defer done()
+	sum := sha256.Sum256(s.zip)
+	c.Pinned = &Archive{
+		Version: "1.11", Date: "2026/02/13", Path: "/resources/japan/support/download/digital/FIRMWARE/gr4_v111.zip",
+		Size: int64(len(s.zip)), SHA256: hex.EncodeToString(sum[:]), Models: []string{"STANDARD", "HDF"},
+		Applies: "RICOH GR IV / RICOH GR IV HDF", Page: "/english/support/digital/gr4_s.html",
+	}
+	latest, err := c.Latest(context.Background(), "HDF")
+	if err != nil || latest.Version != "1.20" {
+		t.Fatalf("%+v %v", latest, err)
+	}
+	fb, err := c.Fallback("HDF", latest)
+	if err != nil || fb == nil || fb.Version != "1.11" || fb.Date != "2026/02/13" || fb.File != "gr4_v111.zip" || fb.Size != int64(len(s.zip)) ||
+		!strings.HasSuffix(fb.URL, c.Pinned.Path) || fb.Page != latest.Page || fb.Model != "HDF" {
+		t.Fatalf("%+v %v", fb, err)
+	}
+	if name, data, err := c.Download(context.Background(), fb, nil); err != nil || name != "fwdc248b.bin" || len(data) != 32000 {
+		t.Errorf("download: %q %d %v", name, len(data), err)
+	}
+	bad := *fb
+	bad.SHA256 = strings.Repeat("0", 64)
+	if _, _, err := c.Download(context.Background(), &bad, nil); !errors.Is(err, ErrChecksum) {
+		t.Errorf("wrong archive: %v", err)
+	}
+	// not for the Monochrome; nothing when the site offers that release itself
+	if fb, err := c.Fallback("MONO", latest); fb != nil || err != nil {
+		t.Errorf("MONO: %+v %v", fb, err)
+	}
+	if fb, err := c.Fallback("HDF", &Release{Version: "1.11"}); fb != nil || err != nil {
+		t.Errorf("same version: %+v %v", fb, err)
+	}
+	// the site lists nothing: the supported release, with its own page
+	if fb, err := c.Fallback("STANDARD", nil); err != nil || fb == nil || !strings.HasSuffix(fb.Page, "/english/support/digital/gr4_s.html") {
+		t.Errorf("nothing listed: %+v %v", fb, err)
+	}
+}
+
+func TestSupported(t *testing.T) {
+	a := Supported
+	if a.Version != "1.11" || len(a.SHA256) != 64 || a.Size <= 0 || !strings.HasSuffix(a.Path, "/gr4_v111.zip") || !strings.HasPrefix(a.Path, "/") {
+		t.Errorf("%+v", a)
+	}
+	for _, m := range a.Models {
+		if _, ok := Models[m]; !ok {
+			t.Errorf("unknown model %q", m)
 		}
 	}
 }

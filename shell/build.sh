@@ -2,6 +2,7 @@
 # Builds the GR Mod shell.
 #
 #   ./build.sh dev       -> dist/grmod-dev   (Linux, headless, for development and tests)
+#   ./build.sh linux     -> dist/grmod       (Linux x64 desktop: a Chromium app window)
 #   ./build.sh windows   -> dist/GRMod.exe   (Windows x64, single file, no console)
 #   ./build.sh mac       -> dist/GR Mod.app and dist/GRMod-mac.zip
 #                           (macOS 11 or later, Intel and Apple silicon in one)
@@ -34,8 +35,8 @@ echo "go:      $go_actual"
 
 target="${1:-}"
 case "$target" in
-  dev|windows|mac|all) ;;
-  *) echo "usage: $0 dev|windows|mac|all" >&2; exit 2 ;;
+  dev|linux|windows|mac|all) ;;
+  *) echo "usage: $0 dev|linux|windows|mac|all" >&2; exit 2 ;;
 esac
 
 # ---------------------------------------------------------------- version
@@ -53,6 +54,13 @@ esac
 # a copy of it; otherwise whatever is there is kept (the placeholder page,
 # which is recreated if web/ is missing, e.g. in a fresh checkout).
 if [ -f ../ui/dist/index.html ]; then
+  # The UI bundle also holds the firmware code (core/); refuse one older than its sources.
+  stale="$(find ../ui/src ../ui/index.html ../core/src ../package.json -type f -newer ../ui/dist/index.html 2>/dev/null | head -n 3)"
+  if [ -n "$stale" ] && [ -z "${GRMOD_ALLOW_STALE_UI:-}" ]; then
+    echo "build.sh: ../ui/dist is older than its sources; run 'npm -w ui run build' first:" >&2
+    echo "$stale" | sed 's/^/  /' >&2
+    exit 2
+  fi
   rm -rf web.new
   cp -R ../ui/dist web.new
   rm -rf web
@@ -73,6 +81,19 @@ build_dev() {
     -ldflags "-X main.version=${version}" \
     -o dist/grmod-dev .
   echo "built:   dist/grmod-dev ($(wc -c < dist/grmod-dev | tr -d ' ') bytes, version ${version})"
+}
+
+# The Linux desktop build is the same program with the host of
+# internal/platform/linux.go instead of the development host (build tag
+# "desktop").
+build_linux() {
+  CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -tags desktop \
+    -ldflags "-s -w -X main.version=${version}" \
+    -o dist/grmod .
+  echo "built:   dist/grmod ($(wc -c < dist/grmod | tr -d ' ') bytes, version ${version})"
+  if command -v sha256sum >/dev/null 2>&1; then
+    echo "sha256:  $(sha256sum dist/grmod | cut -d' ' -f1)"
+  fi
 }
 
 # make_resources (re)generates rsrc_windows_amd64.syso, the object file that
@@ -226,7 +247,8 @@ build_mac() {
 
 case "$target" in
   dev)     build_dev ;;
+  linux)   build_linux ;;
   windows) build_windows ;;
   mac)     build_mac ;;
-  all)     build_dev; build_windows; build_mac ;;
+  all)     build_dev; build_linux; build_windows; build_mac ;;
 esac

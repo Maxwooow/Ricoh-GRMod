@@ -18,10 +18,18 @@ import (
 // with the matching private key, which is not part of the source).
 const updatePublicKey = "SmDyXQIIsZYfZ06bPIdeuzDMvpT4FbELxGu9BuCVx+I="
 
-// updateSources are where releases are looked for, in order.
+// updateSources are where releases are looked for, in order: the newest release, then the channel
+// the 0.8.0..0.8.6 copies look in first (a release tagged fw1.11).
 var updateSources = []string{
 	"https://github.com/Maxwooow/Ricoh-GRMod/releases/latest/download/",
+	"https://github.com/Maxwooow/Ricoh-GRMod/releases/download/fw1.11/",
 }
+
+// updateBelow: none from 0.8.7 on. GR Mod builds on both the earlier and the current official
+// firmware of each camera (GR IV 1.11 / 1.20, GR III 2.10 / 2.20, GR IIIx 1.60 / 1.70), so every
+// newer release is installed, 0.9 and later too. (0.8.0..0.8.6 end their line at 0.9: they install
+// 0.8.7 online and only report a 0.9 release; once on 0.8.7 they take any later one.)
+const updateBelow = ""
 
 // releaseNotesAPI lists the published releases with their text (what's new).
 const releaseNotesAPI = "https://api.github.com/repos/Maxwooow/Ricoh-GRMod/releases?per_page=30"
@@ -67,7 +75,19 @@ func updateTarget() update.Target {
 	return &update.FileTarget{Exe: exe}
 }
 
+// experimental reports a test build (a version such as 0.8.0-gr3exp.1). It keeps a data folder
+// of its own and never updates itself, so it can neither replace the released GR Mod nor be
+// replaced by it.
+func experimental() bool { return strings.Contains(version, "exp") }
+
+// experimentalDataSuffix is appended to the default data folder of an experimental build (the
+// GR III test builds' folder; a release takes their GR III work over once, migrate.go).
+const experimentalDataSuffix = gr3TestDataSuffix
+
 func updateOptions(target update.Target) *server.UpdateOptions {
+	if experimental() {
+		return nil
+	}
 	key, err := base64.StdEncoding.DecodeString(updatePublicKey)
 	if err != nil {
 		return nil
@@ -79,7 +99,7 @@ func updateOptions(target update.Target) *server.UpdateOptions {
 			notes = n
 		}
 	}
-	return &server.UpdateOptions{Key: key, Sources: sources, Platform: updatePlatform(), Target: target, LatestPage: latest, ReleaseNotes: notes}
+	return &server.UpdateOptions{Key: key, Sources: sources, Platform: updatePlatform(), Target: target, LatestPage: latest, ReleaseNotes: notes, Below: updateBelow}
 }
 
 // afterUpdate runs at the start of the program an update has launched: it

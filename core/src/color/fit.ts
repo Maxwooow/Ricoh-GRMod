@@ -16,11 +16,13 @@
 // fit (see the increment parametrisation below), so the fitted model is the delivered one. Where
 // the reference's raw solution already satisfies the constraints both agree; elsewhere this result
 // has the lower cost after post-processing.
-import { KN, KNOTS, S_TAB, Sinv, slotApply } from './camera';
-import type { SlotParams } from './camera';
+import { KN, KNOTS, GR4_CAMERA } from './camera';
+import type { CameraToneModel, SlotParams } from './camera';
 import { ColorError, deltaELab, lab, labWithJacobian, mean, percentile } from './math';
 
 export interface FitOptions {
+  /** Camera-specific base tone curve; defaults to the GR IV model. */
+  camera?: CameraToneModel;
   onProgress?: (fraction: number) => void;
   /** Upper bound on solver iterations (default 300, per stage). */
   maxIterations?: number;
@@ -57,8 +59,8 @@ export function mat6(p: ArrayLike<number>): number[][] {
 }
 
 /** Robust cost of a slot against a target, both evaluated on P (soft_l1, f_scale 3). */
-export function robustCost(params: SlotParams, P: Float64Array, target: Float64Array): number {
-  const a = lab(slotApply(params, P));
+export function robustCost(params: SlotParams, P: Float64Array, target: Float64Array, camera: CameraToneModel = GR4_CAMERA): number {
+  const a = lab(camera.slotApply(params, P));
   const b = lab(target);
   let s = 0;
   for (let i = 0; i < a.length; i++) {
@@ -81,15 +83,16 @@ class Problem {
   private readonly dout = new Float64Array(12);
   private readonly row = new Float64Array(12);
 
-  constructor(P: Float64Array, target: Float64Array) {
+  constructor(P: Float64Array, target: Float64Array, readonly camera: CameraToneModel = GR4_CAMERA) {
     this.n = P.length / 3;
-    this.lin = Float64Array.from(P, Sinv);
+    this.lin = Float64Array.from(P, camera.Sinv);
     this.labT = lab(target);
   }
 
   /** Robust cost at p; with `derivs` also the gradient g and the Gauss-Newton matrix H of the reweighted problem. */
   evaluate(p: Float64Array, derivs: boolean): number {
     const { n, lin, labT, g, H, labBuf, jac, idx, dout, row } = this;
+    const { S_TAB } = this.camera;
     if (derivs) {
       g.fill(0);
       H.fill(0);
@@ -200,9 +203,9 @@ class PostProblem {
   private readonly dO = new Float64Array(54);
   private readonly row = new Float64Array(18);
 
-  constructor(P: Float64Array, target: Float64Array) {
+  constructor(P: Float64Array, target: Float64Array, readonly camera: CameraToneModel = GR4_CAMERA) {
     this.n = P.length / 3;
-    this.lin = Float64Array.from(P, Sinv);
+    this.lin = Float64Array.from(P, camera.Sinv);
     this.labT = lab(target);
     for (let r = 0; r < 3; r++) {
       this.idx[12 + 2 * r] = NP + 2 * r;
@@ -212,6 +215,7 @@ class PostProblem {
 
   evaluate(p: Float64Array, derivs: boolean): number {
     const { n, lin, labT, g, H, labBuf, jac, idx, dv, dO, row } = this;
+    const { S_TAB } = this.camera;
     if (derivs) {
       g.fill(0);
       H.fill(0);
@@ -406,7 +410,7 @@ export function fitSlot(P: Float64Array, target: Float64Array, opts: FitOptions 
   const q0 = new Float64Array(NP);
   for (let c = 0; c < 3; c++)
     for (let k = 0; k < KNOTS; k++) q0[6 + c * KNOTS + k] = k === 0 || k === KNOTS - 1 ? 0 : KN[1];
-  const prob = new Problem(P, target);
+  const prob = new Problem(P, target, opts.camera);
   const p = new Float64Array(NP);
   const evaluate1 = (x: Float64Array, derivs: boolean): number => {
     knotsFromIncrements(x, p);
@@ -420,7 +424,7 @@ export function fitSlot(P: Float64Array, target: Float64Array, opts: FitOptions 
   let P2: number[][] | undefined;
   if (post) {
     // stage 2: the same model followed by P2, started at P2 = identity
-    const probP = new PostProblem(P, target);
+    const probP = new PostProblem(P, target, opts.camera);
     const pp = new Float64Array(NPP);
     const q2 = new Float64Array(NPP);
     q2.set(q);
@@ -452,10 +456,10 @@ export function fitSlot(P: Float64Array, target: Float64Array, opts: FitOptions 
     ck.push(k);
   }
   const params: SlotParams = P2 ? { M1, ck, P2 } : { M1, ck };
-  const fitted = slotApply(params, P);
+  const fitted = prob.camera.slotApply(params, P);
   const de = deltaELab(lab(fitted), prob.labT);
   if (progress) progress(1);
-  return { ...params, meanDE: mean(de), p95DE: percentile(de, 95), cost: robustCost(params, P, target), iterations };
+  return { ...params, meanDE: mean(de), p95DE: percentile(de, 95), cost: robustCost(params, P, target, prob.camera), iterations };
 }
 
 /** Chain rule from knots to increments for a gradient and a Gauss-Newton matrix of `n` parameters. */

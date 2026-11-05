@@ -27,18 +27,19 @@ export async function decodePreview(bytes: Uint8Array | Blob): Promise<ImageData
 }
 
 const TAB = 8192;
-let sinvTab: Float64Array | null = null;
+const inverseTables = new Map<boolean, Float64Array>();
 
 /** The slot applied to every pixel of `src` (RGBA, 8 bit). */
-export function applySlot(params: color.SlotParams, src: ImageData): ImageData {
-  if (!sinvTab) sinvTab = Float64Array.from({ length: 256 }, (_, i) => color.Sinv(i / 255));
-  const sinv = sinvTab;
+export function applySlot(params: color.SlotParams, src: ImageData, gr3x = false): ImageData {
+  const camera = gr3x ? color.GR3X_CAMERA : color;
+  if (!inverseTables.has(gr3x)) inverseTables.set(gr3x, Float64Array.from({ length: 256 }, (_, i) => camera.Sinv(i / 255)));
+  const sinv = inverseTables.get(gr3x)!;
   // per channel: linear value after the matrix -> 8-bit output of curve_c(S(l))
   const KN = color.KN; const n = KN.length;
   const tabs = params.ck.map((ck) => {
     const t = new Uint8ClampedArray(TAB + 1);
     for (let k = 0; k <= TAB; k++) {
-      const b = color.S(k / TAB);
+      const b = camera.S(k / TAB);
       let o: number;
       if (b >= 1) o = ck[n - 1];
       else { const j = Math.min(n - 2, Math.floor(b * (n - 1))); o = ck[j] + ((ck[j + 1] - ck[j]) * (b - KN[j])) / (KN[j + 1] - KN[j]); }

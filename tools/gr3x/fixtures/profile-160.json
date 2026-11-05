@@ -1,0 +1,186 @@
+{
+  "schema": 1,
+  "model": "GR IIIx HDF",
+  "menu_version": "1.60",
+  "internal_version": "1.60.11.17",
+  "rtos_sha256": "0f11b0d28bc67932d044c5d01bc0314844a756057c89984278c73a23449a24c6",
+  "upstream_commit": "0c15c8f9a97b464ac23ab1641740a8263e0068b0",
+  "firmware_generation_enabled": false,
+  "rtos_base": "0x53000000",
+  "rtos_decoded_payload_offset": "0x10870",
+  "base_evidence": {
+    "vector_base_literal_offset": "0x43c",
+    "value": "0x53000000",
+    "entry_literal_offset": "0x464",
+    "entry": "0x530005c0",
+    "startup_copy_instructions": "0x5300038c..0x530003a4"
+  },
+  "initialized_data": {
+    "rom_source": "0x5407b540",
+    "ram_destination": "0x55000000",
+    "size": "0x3a080",
+    "gr4_rom_source": "0x5437b640",
+    "gr4_size": "0x57480"
+  },
+  "symbols": {
+    "crop_cycle": {
+      "gr4": "0x5325adfc",
+      "gr3x": "0x53227114",
+      "rtos_offset": "0x227114",
+      "original_first_16_bytes": "0dc0a0e130d82de904b04ce208d04de2",
+      "status": "static_control_flow",
+      "evidence": "ChangeAspectRatio string; same getter/order/setter/notify flow"
+    },
+    "cycle_patch_site": {
+      "gr4": "0x5325ae34",
+      "gr3x": "0x5322714c",
+      "rtos_offset": "0x22714c",
+      "original_first_16_bytes": "0010d3e5010050e11500000a0120d3e5",
+      "status": "static_control_flow",
+      "evidence": "First order lookup after current-aspect getter; interior hook, not function entry"
+    },
+    "cycle_setter_join": {
+      "gr4": "0x5325ae6c",
+      "gr3x": "0x5322716c",
+      "rtos_offset": "0x22716c",
+      "original_first_16_bytes": "0400a0e10bad00eb0400a0e1307300eb",
+      "status": "static_control_flow",
+      "evidence": "Original crop setter and downstream notification path"
+    },
+    "crop_getter": {
+      "gr4": "0x53298ea0",
+      "gr3x": "0x53245260",
+      "rtos_offset": "0x245260",
+      "original_first_16_bytes": "043090e5c204d3e51eff2fe1043090e5",
+      "status": "static_control_flow",
+      "evidence": "Reads byte at selector->data + 0x4c2"
+    },
+    "crop_setter": {
+      "gr4": "0x532f8490",
+      "gr3x": "0x532525a4",
+      "rtos_offset": "0x2525a4",
+      "original_first_16_bytes": "043090e50dc0a0e130d82de904b04ce2",
+      "status": "static_control_flow",
+      "evidence": "Writes the same field and emits change notification; not emulated"
+    },
+    "preview_window": {
+      "gr4": "0x538876b8",
+      "gr3x": "0x5366632c",
+      "rtos_offset": "0x66632c",
+      "original_first_16_bytes": "0dc0a0e1f0df2de904b04ce22cd04de2",
+      "status": "native_executed",
+      "evidence": "Four IDs probed; only ID3 changes view to square"
+    },
+    "photo_dimensions": {
+      "gr4": "0x538cf488",
+      "gr3x": "0x536a2a30",
+      "rtos_offset": "0x6a2a30",
+      "original_first_16_bytes": "f87adfed0dc0a0e1f0db2de9124f6fe1",
+      "status": "native_executed",
+      "evidence": "48 original dimension calls; selector 0..3; magnifications 1.0,1.25,1.78"
+    },
+    "dng_window": {
+      "gr4": "0x5387b13c",
+      "gr3x": "0x53661054",
+      "rtos_offset": "0x661054",
+      "original_first_16_bytes": "0dc0a0e130d82de904b04ce208d04de2",
+      "status": "native_executed",
+      "evidence": "Six original window calls; centered on sensor origin 68,40; no serialization"
+    },
+    "dng_window_body": {
+      "gr4": "0x5387b024",
+      "gr3x": "0x5365f0ec",
+      "rtos_offset": "0x65f0ec",
+      "original_first_16_bytes": "0dc0a0e1f0db2de97c7705e3057445e3",
+      "status": "native_executed",
+      "evidence": "Reached through dng_window; calls original dimensions twice"
+    },
+    "rear_dial_router": {
+      "gr4": null,
+      "gr3x": "0x53295da0",
+      "rtos_offset": "0x295da0",
+      "original_first_16_bytes": "0dc0a0e1f0df2de97c4705e3054445e3",
+      "status": "static_candidate",
+      "evidence": "Contains GetEventSwitchRearDial diagnostic; input callers and state semantics still pending"
+    },
+    "mutex_take": {
+      "gr4": "0x53886694",
+      "gr3x": "0x536ae71c",
+      "rtos_offset": "0x6ae71c",
+      "original_first_16_bytes": "80280ce30dc0a0e1362545e310300ce3",
+      "status": "emulation_stub",
+      "evidence": "Preview lock helper tail-calls this address"
+    },
+    "mutex_release": {
+      "gr4": "0x538dff78",
+      "gr3x": "0x536ae870",
+      "rtos_offset": "0x6ae870",
+      "original_first_16_bytes": "80280ce30dc0a0e1362545e310300ce3",
+      "status": "emulation_stub",
+      "evidence": "Preview return path tail-calls this address"
+    },
+    "diagnostic": {
+      "gr4": "0x538ed930",
+      "gr3x": "0x536b93d0",
+      "rtos_offset": "0x6b93d0",
+      "original_first_16_bytes": "0dc0a0e1f0df2de97c6705e304b04ce2",
+      "status": "emulation_stub",
+      "evidence": "Assertion paths identified by source filename/function/line arguments"
+    }
+  },
+  "menu_order": {
+    "address": "0x53b5a520",
+    "active_ids": [
+      0,
+      3
+    ],
+    "references": [
+      {
+        "gr4": "0x531baf88",
+        "gr3x": "0x531a0df0"
+      },
+      {
+        "gr4": "0x531bb26c",
+        "gr3x": "0x531a1234"
+      },
+      {
+        "gr4": "0x531be31c",
+        "gr3x": "0x531a3438"
+      },
+      {
+        "gr4": "0x531d0ce8",
+        "gr3x": "0x531b4e08"
+      },
+      {
+        "gr4": "0x531d2f88",
+        "gr3x": "0x531b6bd0"
+      },
+      {
+        "gr4": "0x531d48a0",
+        "gr3x": "0x531b82f8"
+      },
+      {
+        "gr4": "0x5325ae2c",
+        "gr3x": "0x53227144"
+      }
+    ],
+    "count_callback_status": "not_mapped"
+  },
+  "structure_differences": {
+    "preview_scale_divisor_offset": {
+      "gr4": "0x1cd4",
+      "gr3x": "0x1ca8"
+    },
+    "current_selector_aspect_field": "0x4c2; not the persisted UserData offset"
+  },
+  "pending": [
+    "menu count/name/icon mapping",
+    "small and main image descriptors",
+    "AF/AE/ISP consumers",
+    "UserData/U-mode persistence",
+    "RAW development and playback identities",
+    "rear dial state/caller semantics",
+    "complete 65:24 patch",
+    "boot/flash/recovery and actual photos"
+  ]
+}

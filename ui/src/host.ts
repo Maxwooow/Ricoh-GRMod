@@ -7,7 +7,11 @@ export interface DirEntry { name: string; dir: boolean; size: number; mtime: num
 export interface ParkedEntry { path: string; size: number; mtime: number }
 export interface ParkedFailure { path: string; error: string }
 /** The firmware update Ricoh's site currently offers for a model. `page` is the model's download page there. */
-export interface FirmwareRelease { model: string; name: string; applies: string; version: string; date: string; page: string; file: string; size: number }
+export interface FirmwareRelease {
+  model: string; name: string; applies: string; version: string; date: string; page: string; file: string; size: number;
+  /** The release this program supports, when the site offers another version (still on Ricoh's site). */
+  fallback?: FirmwareRelease;
+}
 
 /** What GET /api/update/check reports. */
 export interface UpdateInfo {
@@ -18,6 +22,8 @@ export interface UpdateInfo {
   updatedFrom?: string;
   /** The latest version has already been downloaded and checked. */
   ready: boolean;
+  /** A release of a later line of GR Mod (for camera firmware 1.20), which this copy does not install. */
+  other?: { version: string; page?: string };
 }
 
 /** One published release of GR Mod and its text (Markdown), from GET /api/update/notes. */
@@ -95,8 +101,9 @@ export const host = {
     try { return (await call('GET', '/api/firmware/latest?model=' + q(model))).json(); }
     catch (e) { if (e instanceof HostError && e.code === 'not-found') return null; throw e; }
   },
-  async firmwareDownload(model: string, signal?: AbortSignal): Promise<{ name: string; version: string; data: Uint8Array }> {
-    const res = await call('POST', '/api/firmware/download', JSON.stringify({ model }), true, signal);
+  /** `version`: which release (the site's current one or its `fallback`); omitted for the current one. */
+  async firmwareDownload(model: string, version?: string, signal?: AbortSignal): Promise<{ name: string; version: string; data: Uint8Array }> {
+    const res = await call('POST', '/api/firmware/download', JSON.stringify(version ? { model, version } : { model }), true, signal);
     let data: Uint8Array;
     try { data = new Uint8Array(await res.arrayBuffer()); }
     catch (e) { throw new HostError(signal?.aborted ? 'cancelled' : 'offline', String(e)); }
@@ -104,7 +111,7 @@ export const host = {
   },
   async firmwareProgress(): Promise<{ active: boolean; received: number; total: number }> { return (await call('GET', '/api/firmware/progress')).json(); },
   /** Show the model's download page (with Ricoh's licence terms) in the browser. */
-  async firmwarePage(model: string): Promise<void> { try { await post('/api/firmware/page', { model }); } catch { /* no browser */ } },
+  async firmwarePage(model: string, version?: string): Promise<void> { try { await post('/api/firmware/page', version ? { model, version } : { model }); } catch { /* no browser */ } },
   // ---- updates of GR Mod itself (see shell/internal/update)
   async updateCheck(): Promise<UpdateInfo> { return (await call('GET', '/api/update/check')).json(); },
   async updateDownload(signal?: AbortSignal): Promise<void> { await call('POST', '/api/update/download', '{}', true, signal); },

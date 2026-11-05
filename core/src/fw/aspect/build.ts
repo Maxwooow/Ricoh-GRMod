@@ -28,12 +28,22 @@ import type { RatioGeometry } from './geometry';
 import { RATIO_ICON_BYTES, RATIO_ICON_H, RATIO_ICON_W, drawRatioIcon } from './icon';
 import { linkNative } from './native-link';
 import { installAdjSoftFocus } from './softfocus';
-import { DATESTAMP_BYTE, installDateStamp } from './datestamp';
+import { installDirectFlash } from './directflash';
+import { installDirectFlashMenu } from './directflash-menu';
+import { DATESTAMP_BYTE, installDateStamp, lookNames } from './datestamp';
 import { installDateStampMenu } from './datestamp-menu';
 import { installMonoUnlock } from './monounlock';
-import { installExtraSlots } from './slots';
+import { CINEMA_STYLES, installExtraSlots, installHalation } from './slots';
+import { halationLight } from './halation';
+import type { HalationLook } from './halation';
+import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
+import type { LookLayout } from './looks';
 import type { ExtraSlotSpec } from './slots';
 import { installHlgPhoto } from './hlg';
+import { installShutdownMenu } from './shutdown';
+import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
+import { LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
+import type { ShutdownPictureSpec } from './shutdown';
 
 export const BASE = 0x53000000;
 export const OFFICIAL_RTOS_LENGTH = 0x13d2ac0;
@@ -111,10 +121,26 @@ export interface ExtensionFeatures {
   dateStamp?: boolean;
   /** The six looks of the GR IV Monochrome (see `monounlock.ts`). */
   monoUnlock?: boolean;
-  /** Added Image Control slots, 1 to 6 (see `slots.ts`). */
+  /** Added Image Control slots, 1 to 20 (see `slots.ts`; up to 0.8.1 at most 6). */
   extraSlots?: readonly ExtraSlotSpec[];
   /** In-camera direct BT.2100 HLG HDR photo capture on HDR Tone slot (see `hlg.ts`). */
   hlgPhoto?: boolean;
+  /** Image Control menu order and hidden looks (see `looks.ts`). */
+  lookLayout?: LookLayout;
+  /**
+   * Halation for Cinema Yellow / Green (0.8.2): only for a slot whose curves were replaced by a
+   * preset (its Toning then does nothing and becomes the Halation slider, see `halation.ts`).
+   */
+  cinemaHalation?: Partial<Record<'CY' | 'CG', true>>;
+  /**
+   * Power-off pictures chosen in the camera's End Screen menu (see `shutdown.ts`): the pictures,
+   * and the four factory pictures of the payload's RES section (for their thumbnails).
+   */
+  shutdown?: { pictures: readonly ShutdownPictureSpec[]; factory: readonly Uint8Array[] };
+  /** Put back setting values this firmware does not know (see `guard.ts`). Every build from 0.8.2 on. */
+  guard?: boolean;
+  /** Direct Flash, a fifth Flash Mode (0.8.4, see `directflash.ts`); the guide number is chosen in the camera. */
+  directFlash?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -122,6 +148,8 @@ export interface TestOptions {
   dateStampFixed?: number;
   /** Also print the encoder configuration on the 720x480 picture. */
   dateStampDiag?: boolean;
+  /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
+  directFlashDiag?: boolean;
 }
 
 export interface AspectResult {
@@ -147,6 +175,10 @@ export class Patch {
   private len: number;
   readonly words: PatchedWord[] = [];
   textBoundSites: number[] = [];
+  /** Records of the relocated submenu table (0 while it is the official one; see `datestamp-menu.ts`). */
+  submenuRecords = 0;
+  /** List records (SelectMenuController) in the list table so far, once it is copied (see `datestamp-menu.ts`); 0 = the official table. */
+  listRecords = 0;
 
   constructor(official: Uint8Array) {
     this.buf = new Uint8Array(official.length + 0x80000);
@@ -360,6 +392,23 @@ function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioE
 
 // --------------------------------------------------------------------------------------------
 // crop_registry.py install_menu
+
+/**
+ * Make every language row of the relocated text catalog hold text numbers up to `upper` (copies
+ * the rows, every entry kept, when they are narrower) and raise the text lookup bound to it.
+ */
+export function widenTextRows(patch: Patch, upper: number): void {
+  let prior = TEXT_CAPACITY;
+  for (const site of patch.textBoundSites) prior = Math.max(prior, movImmediate(patch.word(site)) + 1);
+  if (upper + 1 > prior) {
+    for (let l = 0; l < LANGUAGES; l++) {
+      const row = new Uint8Array((upper + 1) * 4);
+      row.set(patch.read(patch.word(TEXT_CATALOG + l * 4), prior * 4));
+      patch.setWord(TEXT_CATALOG + l * 4, patch.append(row, 16), 'language row, wider');
+    }
+  }
+  for (const site of patch.textBoundSites) patch.setWord(site, movWord(3, Math.max(upper, movImmediate(patch.word(site)))), 'text upper bound');
+}
 
 export function utf16z(text: string): Uint8Array {
   const out = new Uint8Array((text.length + 1) * 2);
@@ -941,14 +990,14 @@ export function validateRatioName(name: string): 'empty' | 'too-long' | 'bad-cha
 }
 
 /** Validate a list of ratios and work out their identities, geometry and icons. Throws on any problem. */
-export function planRatios(specs: readonly RatioSpec[]): RatioEntry[] {
+export function planRatios(specs: readonly RatioSpec[], options: { portrait?: boolean } = {}): RatioEntry[] {
   if (!Array.isArray(specs)) fail('bad-ratio', 'the ratio list must be an array');
   if (specs.length > MAX_CUSTOM_RATIOS) fail('too-many-ratios', `at most ${MAX_CUSTOM_RATIOS} ratios can be added`);
   const out: RatioEntry[] = [];
   specs.forEach((s, i) => {
     const problem = validateRatioName(s.name);
     if (problem) fail('bad-name', `ratio ${i + 1}: name is ${problem}`);
-    const geometry = planRatio(s.ratio);
+    const geometry = planRatio(s.ratio, options);
     out.push({ name: s.name, ratio: s.ratio, id: FIRST_CUSTOM_ID + i, geometry, icon: drawRatioIcon(s.ratio) });
   });
   playbackRectangles(out.map((r) => r.geometry)); // throws on conflicting photo sizes
@@ -973,7 +1022,9 @@ export function installRatios(rtos: Uint8Array, iconbin: Uint8Array, ratios: rea
  */
 export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
   const slots = features.extraSlots ?? [];
-  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || !!features.hlgPhoto || slots.length > 0;
+  const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
+  const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
+  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || !!features.hlgPhoto || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash;
   if (extra) revision = 3;
   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
@@ -1001,15 +1052,43 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
     if (revision >= 2) installPlaybackDecode(patch);
   }
   if (features.adjSoftFocus) icons = installAdjSoftFocus(patch, icons);
+  // Before the date imprint's menu, which copies the list table with Flash Mode's records.
+  if (features.directFlash) icons = installDirectFlash(patch, icons, !!test.directFlashDiag);
   if (features.monoUnlock) installMonoUnlock(patch);
   if (features.dateStamp) {
     const fixed = test.dateStampFixed;
-    installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : DATESTAMP_BYTE, !!test.dateStampDiag);
+    // From 0.8.2 (builds with the guard) the imprint goes by the picture's look.
+    const look = features.guard ? { stash: LOOK_STASH, monoLooks: monoTable(patch, slots.map((x) => monoLook(x.matrixQ13, x.curves, x.postQ9)), FIRST_ADDED_LOOK), names: lookNames(patch, slots.map((x) => x.name)) } : undefined;
+    installDateStamp(patch, fixed ? patch.append([fixed, 0, 0, 0], 4) : DATESTAMP_BYTE, test.directFlashDiag && features.directFlash ? 'df' : !!test.dateStampDiag, look);
     if (!fixed) icons = installDateStampMenu(patch, icons);
+    if (look && slots.length === 0) installLookStash(patch);
+  }
+  // Halation: added slots that have it, Cinema slots with a preset that are asked to.
+  const halation: HalationLook[] = [];
+  slots.forEach((x, k) => {
+    if (x.halation === true) halation.push({ style: FIRST_ADDED_LOOK + k, light: halationLight(x.curves, x.postQ9) });
+  });
+  for (const id of cinema) {
+    const style = CINEMA_STYLES[id];
+    // The engine asks for it only with a preset (curves of its own: Toning does nothing then). The
+    // check of a built file installs this on the official image too, to find the hook places.
+    const colour = styleColour(patch, style);
+    halation.push({ style, light: colour.ownCurves ? halationLight(colour.curves, colour.postQ9) : halationLight() });
   }
   if (features.hlgPhoto) icons = installHlgPhoto(patch, icons);
   // Last: the added slots compose with the monochrome looks' visibility check.
-  if (slots.length > 0) icons = installExtraSlots(patch, icons, slots);
+  if (slots.length > 0) icons = installExtraSlots(patch, icons, slots, { stashLook: (!!features.dateStamp && !!features.guard) || halation.length > 0, layout: features.lookLayout });
+  else if (features.lookLayout) {
+    validateLookLayout(features.lookLayout, 0);
+    installLookOrder(patch, features.lookLayout.order);
+    installFactoryHidden(patch, features.lookLayout.hidden);
+  }
+  if (halation.length > 0) icons = installHalation(patch, icons, halation);
+  if (shutdown) icons = installShutdownMenu(patch, icons, shutdown.pictures, shutdown.factory);
+  // After every other addition that copies the submenu or list table.
+  if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
+  // Last: wraps every other settings save/load and user-mode recall hook.
+  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}) });
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
   return {
@@ -1024,6 +1103,11 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
       ...(features.monoUnlock ? { monoUnlock: true } : {}),
       ...(features.hlgPhoto ? { hlgPhoto: true } : {}),
       ...(slots.length > 0 ? { extraSlots: [...slots] } : {}),
+      ...(shutdown ? { shutdown } : {}),
+      ...(features.guard ? { guard: true } : {}),
+      ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}),
+      ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}),
+      ...(features.directFlash ? { directFlash: true } : {}),
     },
   };
 }

@@ -6,12 +6,14 @@ A small desktop shell for the GR Mod web UI, written in pure Go (no cgo).
 - On Windows it shows the UI in a native WebView2 window, falling back to Microsoft Edge in app mode and then to the default browser.
 - On macOS it opens the UI as an "app" window of a Chromium-based browser (Chrome, Edge, Brave, Chromium, Vivaldi) with a profile of its own, or in the default browser, and stops after the window is closed. The bundle is an agent (`LSUIElement`), so it has no Dock icon of its own.
 - Gives the page a local HTTP API for what a web page cannot do: listing removable drives, reading and writing files on a memory card, a native folder picker, a key/value store, fetching the official firmware from Ricoh's site, updating itself.
-- On Linux the same program runs headless, so the API can be developed against and tested without Windows.
+- On Linux, built with the tag `desktop` (`./build.sh linux`), it opens the UI as on macOS, in an "app" window of a Chromium-based browser found in `PATH` (Chrome, Chromium, Edge, Brave, Vivaldi), or in the default browser, and stops after the window is closed.
+- Without that tag the same program runs headless on Linux, so the API can be developed against and tested without Windows.
 
 ## Build
 
 ```sh
 ./build.sh dev        # dist/grmod-dev   Linux, headless
+./build.sh linux      # dist/grmod       Linux x64 desktop (Chromium app window)
 ./build.sh windows    # dist/GRMod.exe   Windows x64, single file, no console window
 ./build.sh mac        # dist/GR Mod.app + dist/GRMod-mac.zip (+ .dmg)   universal: Intel macOS 10.13+, Apple silicon macOS 11+
 ./build.sh all
@@ -29,6 +31,7 @@ A small desktop shell for the GR Mod web UI, written in pure Go (no cgo).
 
 ```sh
 go test ./...                                  # unit and integration tests
+go test -tags desktop ./...                    # the same with the Linux desktop host instead of the development host
 GOOS=windows GOARCH=amd64 go vet ./...          # the Windows build compiles and vets
 GOOS=darwin GOARCH=arm64 go vet ./...           # the macOS build compiles and vets
 ./build.sh dev && ./smoke.sh                   # end-to-end with curl against the dev build
@@ -48,14 +51,14 @@ GOOS=darwin GOARCH=arm64 go vet ./...           # the macOS build compiles and v
 
 The development build prints one line, `LISTEN http://127.0.0.1:<port>/ TOKEN <token>`, and serves until it gets SIGINT or SIGTERM. Its volumes are the directories in `GRMOD_DEV_VOLUMES` (separated like `PATH`), and its folder picker "picks" `GRMOD_DEV_PICK`. `GRMOD_FIRMWARE_SITE` replaces the address of Ricoh's site (a local stand-in for tests), and the addresses the page asks to show in a browser are appended to the file named by `GRMOD_DEV_OPENED`. Neither variable is read by the Windows build. `GRMOD_UPDATE_SOURCE` (all builds) replaces the address the updater reads releases from; a release found there still needs the project's signature.
 
-Data directory contents: `log.txt` (rotated to `log.txt.1` above 1 MB; requests, paths and errors, never file contents or the token), `crash.txt` (trace of a Go runtime crash, normally empty), `port`, `store/`, and the browser profiles: `webview/` and `edge/` on Windows, `browser/` on macOS.
+Data directory contents: `log.txt` (rotated to `log.txt.1` above 1 MB; requests, paths and errors, never file contents or the token), `crash.txt` (trace of a Go runtime crash, normally empty), `port`, `store/`, and the browser profiles: `webview/` and `edge/` on Windows, `browser/` on macOS and Linux.
 
 ## How the page talks to the shell
 
 The page loads `<script src="/host.js">`, which sets
 
 ```js
-window.__GRMOD_HOST__ = {"kind":"windows|mac|dev","token":"…","version":"…","os":"windows|linux|…"};
+window.__GRMOD_HOST__ = {"kind":"windows|mac|linux|dev","token":"…","version":"…","os":"windows|linux|…"};
 ```
 
 and sends the token with every API request in the header `X-GRMod-Token`.
@@ -83,8 +86,8 @@ All endpoints are under `/api/`. Request and response bodies are JSON unless not
 | `GET /api/store/KEY` | | raw bytes, or 404 |
 | `PUT /api/store/KEY` | raw bytes | `{"ok":true,"size":N}` |
 | `DELETE /api/store/KEY` | | `{"ok":true}` (also when the key did not exist) |
-| `GET /api/firmware/latest?model=M` | `M` is `STANDARD`, `HDF` or `MONO` | `{"model":"HDF","name":"GR IV","applies":"RICOH GR IV / RICOH GR IV HDF","version":"1.11","date":"2026/02/13","page":"https://…/gr4_s.html","file":"gr4_v111.zip","size":34478368}`; 404 when Ricoh lists nothing for the model |
-| `POST /api/firmware/download` | `{"model":"HDF"}` | the firmware file itself (`application/octet-stream`), its name and version in `X-GRMod-Firmware-Name` / `X-GRMod-Firmware-Version` |
+| `GET /api/firmware/latest?model=M` | `M` is `STANDARD`, `HDF` or `MONO` | `{"model":"HDF","name":"GR IV","applies":"RICOH GR IV / RICOH GR IV HDF","version":"1.11","date":"2026/02/13","page":"https://…/gr4_s.html","file":"gr4_v111.zip","size":34478368}`. When Ricoh offers another version (1.20 since 2026-10-21), the answer is that release with the supported one (`ricoh.Supported`, still on Ricoh's site at a fixed address) under `"fallback"`; when Ricoh lists nothing for a model the supported release covers, it is the answer itself. 404 when there is neither |
+| `POST /api/firmware/download` | `{"model":"HDF"}`, or `{"model":"HDF","version":"1.11"}` for the fallback | the firmware file itself (the fallback's archive must match its SHA-256, else 502 `checksum`) (`application/octet-stream`), its name and version in `X-GRMod-Firmware-Name` / `X-GRMod-Firmware-Version` |
 | `GET /api/firmware/progress` | | `{"active":true,"received":N,"total":N}` of the running (or last) download |
 | `POST /api/firmware/page` | `{"model":"HDF"}` | `{"page":"…"}` after showing the model's download page (with Ricoh's licence terms) in the default browser |
 
@@ -110,11 +113,11 @@ Details worth knowing:
 
 - **write** streams the body to a temporary file (`.grmod-*.tmp`) in the destination directory, flushes it to the medium, renames it over the destination and then reads the destination back. The answer carries the size and SHA-256 of what was read back; if that differs from what was received the request fails with `io`. On any failure the temporary file is removed and the old destination is untouched. Parent directories are created.
 - **move** is a rename: same volume only, never replaces anything, creates the destination's parents. On Windows a destination that differs from an existing name only in case counts as existing.
-- **volumes**: removable drives, plus fixed drives on a USB, SD or MMC bus. With `all=1` also other fixed drives, marked `"removable":false`. The system drive and the drive that holds the data directory are never listed.
+- **volumes**: removable drives, plus fixed drives on a USB, SD or MMC bus. With `all=1` also other fixed drives, marked `"removable":false`. The system drive and the drive that holds the data directory are never listed. On Linux a volume is a local file system on a block device as `/proc/self/mountinfo` lists it, mounted as a whole; the bus comes from its disk's place in sysfs, the FAT version from the udev database. The disk that holds `/` is the system drive (with all its partitions, `/boot/efi` too, also below LUKS or LVM); loop devices (mounted disk images) are never listed, like disk images on macOS.
 - **store** keys match `^[a-z0-9][a-z0-9._-]{0,63}$`. Values are files named exactly like the key in `<data dir>/store/`. Because of that, keys that Windows would not treat as plain file names are refused on every platform: keys ending in a dot and the device names (`nul`, `con`, `aux`, `prn`, `com0`–`com9`, `lpt0`–`lpt9`, with or without an extension).
 - **firmware**: the page names a model and nothing else; the shell reads Ricoh's list of firmware downloads (`/english/support/download_digital.html`), follows the model's row to its page and takes the version, the release date and the link to the archive from there (`internal/ricoh`). Every request, including redirects, has to stay on `www.ricoh-imaging.co.jp` over HTTPS; the archive must be a zip holding exactly one `fwdc*.bin`, which is what the answer carries. Nothing is written to disk by the shell (the page keeps the file in the store). A release that does not name the model (the list has one row for the GR IV and the GR IV HDF) is not offered for it. Answers of the site are remembered for ten minutes. One download at a time; it stops when the page drops the request. Outgoing requests use the proxy from the usual environment variables, else, on Windows, the user's system proxy settings (a set-up script is not evaluated).
 - **update**: `GET /api/update/check` reads the release manifest and its signature (see the main README, "Updates") and answers the current and latest version, the notes, the size and whether this copy can replace itself (`canInstall`, else `reason`: `translocated`, `read-only`, `no-package`, `unsupported`), and once after an update `updatedFrom`. `POST /api/update/download` fetches and verifies the package and stages it next to the program; `GET /api/update/progress` reports the bytes; `POST /api/update/install` swaps the program and, after answering, closes the window and starts the new program. `POST /api/update/page` opens the release page.
-- **eject** (Windows) locks the volume, dismounts it and asks the drive to eject the medium. It fails with `io` and changes nothing if any file on the volume is still open. Only volumes of the default listing can be ejected.
+- **eject** (Windows) locks the volume, dismounts it and asks the drive to eject the medium. It fails with `io` and changes nothing if any file on the volume is still open. On Linux it unmounts the volume with `udisksctl` (the service the file manager uses), with the same result while a file is open; the reader stays switched on. Only volumes of the default listing can be ejected.
 
 ## Security rules
 
@@ -139,12 +142,14 @@ main.go, app.go        flags, data directory, log, listener, HTTP server
 ui_windows.go          WebView2 window, Edge / default-browser fallback   (Windows only)
 internal/server/parked.go  the only endpoints that delete: files below `<volume>\GRMOD\parked-*` and below `<data dir>\backups\parked-*`, addressed by volume ID and a validated relative name, never by path; also listing, reading and backing them up
 chrome.go, chrome_windows.go  title-bar colours (DwmSetWindowAttribute) and the WebView2 switches that stop pinch zoom; `POST /api/window/chrome {caption,text,dark}` lets the page report its theme
+ui_linux.go            Chromium app window, default-browser fallback      (Linux, tag desktop)
+browser_linux.go       which process holds the browser profile            (Linux)
 ui_other.go            headless mode                                      (everything else)
 supervise.go           worker-process supervision for the WebView2 window
 window.go, browser.go  window sizes, Edge command line, heartbeat rule
 internal/server        HTTP API, static files, store, heartbeat
 internal/pathguard     path rules for POSIX and Windows, symlink resolution
-internal/platform      volumes, folder picker, reveal, eject, system proxy, default browser: windows.go / dev.go; winlogic.go is the testable part
+internal/platform      volumes, folder picker, reveal, eject, system proxy, default browser: windows.go / darwin.go / linux.go / dev.go; winlogic.go, maclogic.go, linuxlogic.go and linuxsys.go are the testable part
 internal/ricoh         finds and fetches the current firmware update on Ricoh's download pages
 internal/logfile       rotating log file
 tools/genicon          draws the icon
@@ -169,7 +174,7 @@ Nothing Windows-specific can be executed on the Linux build machine. Things to v
 8. Reveal: Explorer opens with the file selected (try a path with spaces and a comma) and opens a folder.
 9. Eject: afterwards Explorer shows the reader as empty or the drive as gone; with a file from the card open in another program it fails and the card stays usable.
 10. Paths: `\\?\E:\x`, `E:\x.`, `E:\x:stream`, `E:\..\..\Windows` and a junction on an NTFS volume pointing to `C:\Windows` are all refused with 403.
-11. Online firmware: the dialog shows version 1.11 with its date and size, the download ends with the firmware open (compare with a manual download: SHA-256 `a2f664df…5655f`), "cancel" during the download stops it, and the licence line opens Ricoh's page in the default browser. Repeat with a system proxy switched on (Settings > Network > Proxy), and offline (a message and "retry", no hang).
+11. Online firmware: the dialog shows Ricoh's current version (1.20, marked as not supported, with a warning not to update the camera) and below it 1.11 with its date and size, the download ends with the firmware open (compare with a manual download: SHA-256 `a2f664df…5655f`), "cancel" during the download stops it, and the licence line opens Ricoh's page in the default browser. Repeat with a system proxy switched on (Settings > Network > Proxy), and offline (a message and "retry", no hang).
 12. Update: with a signed test release served locally (`set GRMOD_UPDATE_SOURCE=http://127.0.0.1:8000/` before starting), "Check for updates" offers it, "Update and restart" closes the window and a new one opens within a few seconds showing the new version and "Updated to …"; `GRMod.exe.old` is gone afterwards and `localStorage` is kept (same port). Also from a read-only folder (the dialog offers the download page instead) and in Edge app mode (`--browser`: the old Edge window closes).
 
 ## Checking the macOS build on a real Mac
@@ -185,3 +190,15 @@ Nothing macOS-specific can be executed on the Linux build machine either. Things
 7. Eject: the card disappears from the Finder; with a file from the card open in another program it fails and the card stays mounted.
 8. Online firmware works, also with a system proxy (System Settings › Network › Proxies) and offline.
 9. Update (with `GRMOD_UPDATE_SOURCE` pointing at a signed test release, started as `open "/Applications/GR Mod.app" --env GRMOD_UPDATE_SOURCE=…` or from Terminal): the old window closes, the new version opens without the "Open Anyway" step, `.GR Mod.app.old` disappears from /Applications. Started from the Downloads folder without moving it first, the dialog explains why it cannot update (translocation) and offers the download page.
+
+## Checking the Linux build on a real PC
+
+`go test ./...` runs the volume logic on a fake sysfs (`internal/platform/linuxsys_test.go`) and on the machine's own mount table. Things to verify by hand, with KDE Plasma and with GNOME if possible:
+
+1. `./build.sh linux` and start `dist/grmod`: an app window opens (Chrome or Chromium), without one the default browser. Closing the window ends GR Mod at once (`log.txt`: "the window was closed"). With a browser of that profile left over from a killed run, the window opens there and GR Mod quits it when it stops.
+2. Insert an SD card (USB reader and built-in slot): once the desktop has mounted it, `GET /api/volumes` lists it with its label, `FAT32`, size and bus (`USB` or `SD`). `/`, `/home`, `/boot/efi` and mounted disk images never appear, also not with `all=1`.
+3. Write firmware and power-off images to the card and check them in the camera.
+4. Eject: the card disappears from the file manager; with a file from the card open in another program it fails and the card stays mounted.
+5. Folder picker: kdialog on KDE Plasma, zenity elsewhere; the folder becomes usable. Cancelling returns nothing.
+6. Reveal: the file manager opens with the file selected (try a path with spaces and a comma) and opens a folder.
+7. Online firmware works, also offline (a message and "retry", no hang).
