@@ -4,6 +4,16 @@ A small desktop tool for the Ricoh GR IV / GR IV HDF (firmware 1.20 or 1.11), th
 (firmware 1.10, the same file as GR IV 1.20), the GR III / GR III HDF (firmware 2.20 or 2.10) and the
 GR IIIx / GR IIIx HDF (firmware 1.70 or 1.60). Not a Ricoh product.
 
+0.8.9: two GR IV features, on firmware 1.20 and 1.11. HDR gain map (`core/src/fw/aspect/hdrgain.ts`,
+`tools/hdrgain/hdrgain.c`): every JPEG gets a quarter-size greyscale gain map made from the picture
+itself (highlights up to 2 stops), written as Ultra HDR (XMP hdrgm + MPF) and ISO 21496-1 after the
+camera's own header and stream, which stay byte for byte; a new HDR line in the still shooting menu
+(after Color Space, default On) turns it off. The camera's main stream starts with its own SOI,
+which completes the RICOH APP7 segment; test firmware 070 missed that and 073's diagnostics found it.
+ADJ lever items: up to 8 (`core/src/fw/aspect/adjslots.ts`, `tools/adjslots/adjslots.c`), settings
+1..N in ADJ Mode Setting itself (the submenu scrolls, 6 lines at a time). Checked on a GR IV HDF
+(1.20): test firmware 072 (ADJ), 074 (HDR) and 075 (both, with the menu switch).
+
 0.8.8: on GR IV 1.20 the B&W looks unlock includes Solarized (look 32, the GR IV Monochrome 1.10
 look with its three types): 1.20's availability table gives it a row of its own (10), set for the
 Monochrome only, so the colour models did not show it while the app listed it with the monochrome
