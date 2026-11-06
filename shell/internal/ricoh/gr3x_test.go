@@ -8,8 +8,7 @@ import (
 	"testing"
 )
 
-// GR III / IIIx support is built on exact older releases; the site's current release (a
-// different program) must never be offered for them, and no GR IV page may be consulted.
+// GR III / IIIx: the earlier releases (2.10, 1.60) are fetched by name, and no GR IV page is consulted.
 func TestGR3FamilyUsesPinnedReleases(t *testing.T) {
 	cases := []struct{ model, name, version, file, inner string }{
 		{"GR3X_HDF", "GR IIIx", "1.60", "gr3x_v160.zip", "fwdc243b.bin"},

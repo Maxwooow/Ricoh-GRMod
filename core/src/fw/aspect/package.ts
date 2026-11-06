@@ -63,6 +63,8 @@ const FEATURE_GUARD = 32;
 const FEATURE_LOOK_LAYOUT = 64;
 /** Direct Flash (`directflash.ts`), 0.8.4. */
 const FEATURE_DIRECT_FLASH = 128;
+/** In-camera direct BT.2100 HLG HDR photo capture (`hlg.ts`). Extended byte. */
+const FEATURE2_HLG_PHOTO = 1;
 
 /**
  * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
@@ -90,6 +92,7 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
     bytes.push(layout.order.length, ...layout.order, layout.hidden.length, ...layout.hidden);
   }
   if (features.directFlash && revision < 3) fail('internal', 'Direct Flash needs revision 3');
+  if (revision >= 3 && features.hlgPhoto) bytes.push(FEATURE2_HLG_PHOTO);
   while (bytes.length % 4) bytes.push(0);
   return Uint8Array.from(bytes);
 }
@@ -177,7 +180,12 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
       features.lookLayout = { order, hidden };
     }
     if (f & FEATURE_DIRECT_FLASH) features.directFlash = true;
-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash) return null;
+    if (p < rec.length && rec[p] !== 0) {
+      const f2 = rec[p++];
+      if ((f2 & ~FEATURE2_HLG_PHOTO) !== 0) return null;
+      if (f2 & FEATURE2_HLG_PHOTO) features.hlgPhoto = true;
+    }
+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hlgPhoto) return null;
   }
   for (; p < rec.length; p++) if (rec[p] !== 0) return null;
   return { specs: out, features, extraSlots, shutdownPictures };

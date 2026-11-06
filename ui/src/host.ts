@@ -101,7 +101,7 @@ export const host = {
     try { return (await call('GET', '/api/firmware/latest?model=' + q(model))).json(); }
     catch (e) { if (e instanceof HostError && e.code === 'not-found') return null; throw e; }
   },
-  /** `version`: the supported release (a `fallback`); omitted for the site's current one. */
+  /** `version`: which release (the site's current one or its `fallback`); omitted for the current one. */
   async firmwareDownload(model: string, version?: string, signal?: AbortSignal): Promise<{ name: string; version: string; data: Uint8Array }> {
     const res = await call('POST', '/api/firmware/download', JSON.stringify(version ? { model, version } : { model }), true, signal);
     let data: Uint8Array;

@@ -62,7 +62,7 @@ export interface State {
   slots: Record<SlotId, SlotState>;
   wall: WallItem[];
   ratios: RatioItem[]; activeRatio?: string; ratioBackdrop: RatioBackdrop;
-  soft: boolean; dateStamp: boolean; monoUnlock: boolean;
+  soft: boolean; dateStamp: boolean; monoUnlock: boolean; hlgPhoto: boolean;
   /** GR IV: Direct Flash, a fifth Flash Mode (GR III / IIIx have the GF-2 mode of their own). */
   directFlash: boolean;
   /** GR IV, experimental: .cube presets of added slots get hue sectors of their own (core color/hue.ts). */
@@ -80,10 +80,8 @@ export interface State {
   volumes: Volume[]; showAll: boolean; volumeId?: string; role?: card.CardRole;
   copySource: CopySource; parked: ParkedEntry[]; backups: ParkedEntry[]; copySel: string[]; copyInfo: Record<string, CopyInfo>; builds: BuildRecord[];
   busy?: string; toasts: Toast[]; confirm?: Confirm; cropId?: string; onlineOpen: boolean;
-  /** Why the download dialog is open, when it says so: the bridge firmware is open, or one is to be made and no firmware is open. */
-  onlineReason?: 'bridge-loaded' | 'bridge-base';
-  /** The bridge firmware dialog; `bridgeAfter` is where the bridge goes once a downloaded official file is open. */
-  bridgeOpen: boolean; bridgeAfter?: Dest;
+  /** Why the download dialog is open, when it says so: a 1.12 bridge firmware file is open. */
+  onlineReason?: 'bridge-loaded';
   tour?: TourState; toursSeen: TourId[];
 }
 
@@ -99,7 +97,7 @@ const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '',
 const emptySlots = (): Record<SlotId, SlotState> => Object.fromEntries(SLOT_IDS.map(id => [id, emptySlot()])) as Record<SlotId, SlotState>;
 let state: State = {
   ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: 'zh-CN',
-  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, directFlash: false, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [], bridgeOpen: false,
+  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', soft: false, dateStamp: false, monoUnlock: false, hlgPhoto: false, directFlash: false, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [],
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
@@ -139,13 +137,22 @@ function ask(title: string, lines: string[], ok: string, warn?: string, reset = 
   return new Promise((resolve) => set({ confirm: { title, warn, lines, ok, resolve, ...(reset ? { reset } : {}) } }));
 }
 /**
+ * The warning for a firmware made from (or being) one of the cameras' current releases (GR IV 1.20,
+ * GR III 2.20, GR IIIx 1.70): a camera that installs it cannot go back to the earlier release.
+ */
+function newFirmwareWarning(info: FirmwareInfo | undefined): string | null {
+  if (!info) return null;
+  const newer = info.family === 'gr4' ? ['1.20'] : ['2.20', '1.70'];
+  return newer.includes(info.version) ? t('newFwWriteLine') : null;
+}
+/**
  * Before the official firmware goes back on the camera: settings made with GR Mod's firmware (an
  * added slot or ratio selected, soft focus on the ADJ lever, the date imprint, added slots'
  * parameters) are values the official firmware does not know and may freeze on. The dialog says so
  * in red and its button confirms that the camera was reset to factory defaults.
  */
-function askOfficial(lines: string[]): Promise<boolean> {
-  return ask(t('resetConfirmTitle'), lines, t('resetConfirmOk'), undefined, true);
+function askOfficial(lines: string[], warn?: string): Promise<boolean> {
+  return ask(t('resetConfirmTitle'), lines, t('resetConfirmOk'), warn, true);
 }
 export function answerConfirm(v: boolean): void { const c = state.confirm; set({ confirm: undefined }); c?.resolve(v); }
 function fail(e: unknown): void {
@@ -210,7 +217,7 @@ function familyData(s: State): FamilyDoc {
     lookOrder: s.lookOrder, lookHidden: s.lookHidden, lookOrder3: s.lookOrder3, lookHidden3: s.lookHidden3,
     wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: 'image', width: w.width, height: w.height, crop: w.crop, ...(w.menuName !== undefined ? { menuName: w.menuName } : {}), ...(w.menuId ? { menuId: w.menuId } : {}) })),
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
-    soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock, directFlash: s.directFlash, filmCount: s.filmCount,
+    soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock, hlgPhoto: s.hlgPhoto, directFlash: s.directFlash, filmCount: s.filmCount,
   };
 }
 
@@ -238,7 +245,7 @@ function parseFamily(doc: FamilyDoc | null): Partial<State> {
     lookHidden: normalizeLookHidden(Array.isArray(doc?.lookHidden) ? doc!.lookHidden : [], extras),
     lookOrder3: gr3SavedKeys(doc?.lookOrder3), lookHidden3: gr3SavedKeys(doc?.lookHidden3).filter((k) => k !== 'g11'),
     soft: doc?.soft === true || (!!doc?.softFocus && typeof doc.softFocus === 'object' && Object.keys(doc.softFocus).length > 0),
-    dateStamp: doc?.dateStamp === true, monoUnlock: doc?.monoUnlock === true, directFlash: doc?.directFlash === true,
+    dateStamp: doc?.dateStamp === true, monoUnlock: doc?.monoUnlock === true, hlgPhoto: doc?.hlgPhoto === true, directFlash: doc?.directFlash === true,
     filmCount: Number.isInteger(doc?.filmCount) && doc!.filmCount >= 0 && doc!.filmCount <= GR3X_FILM_IDS.length ? doc!.filmCount : doc && doc.filmCount === undefined && doc.slots ? 9 : 0,
   };
 }
@@ -411,10 +418,10 @@ export function setModel(model: CameraModel): void {
   const otherFile = !!state.info && !state.info.models.includes(model);
   if (otherFile) {
     void engine.reset();
-    set({ info: undefined, raw: undefined, fwName: undefined, bridgeOpen: false, bridgeAfter: undefined,
+    set({ info: undefined, raw: undefined, fwName: undefined,
       copyInfo: {}, copySel: [], ratios: state.ratios.map(({ preview, ...r }) => r) });
   }
-  set({ model, ...(isGr3(model) ? { bridgeOpen: false, bridgeAfter: undefined } : {}) });
+  set({ model });
   // The other camera's work comes back (its pictures are encoded again once read).
   if (differentFamily) enterFamily(familyOf(model));
   else for (const w of state.wall) void encodeWall(w.id);
@@ -449,8 +456,7 @@ async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Pr
     const model = info.models.includes(state.model) ? state.model : info.models[0];
     const sameFamily = familyOf(state.model) === familyOf(model);
     if (!sameFamily) leaveFamily();
-    set({ info, raw, model, fwName: info.filename, fwBusy: false, copyInfo: {}, copySel: [],
-      ...(info.family === 'gr3x' ? { bridgeOpen: false, bridgeAfter: undefined } : {}) });
+    set({ info, raw, model, fwName: info.filename, fwBusy: false, copyInfo: {}, copySel: [], });
     // Opening the other camera's firmware brings back that camera's work.
     if (!sameFamily) enterFamily(familyOf(model));
     if (info.family === 'gr3x') set((s) => ({ dateStamp: s.dateStamp && info.features.dateStamp, monoUnlock: s.monoUnlock && info.features.monoUnlock }));
@@ -480,24 +486,18 @@ export async function loadFirmwareFile(file: File): Promise<void> {
 }
 /** The dialog that fetches the official firmware from Ricoh's site. */
 export function setOnlineOpen(onlineOpen: boolean, reason?: State['onlineReason']): void {
-  set({ onlineOpen, onlineReason: onlineOpen ? reason : undefined, ...(onlineOpen ? {} : { bridgeAfter: undefined }) });
+  set({ onlineOpen, onlineReason: onlineOpen ? reason : undefined });
 }
 /** Take over a firmware file the shell downloaded; true when it is now the open firmware. */
 export async function adoptFirmware(name: string, version: string, data: Uint8Array): Promise<boolean> {
-  const after = state.bridgeAfter;
   const ok = await openFirmware(data, name, true);
   if (ok) toast(t('fwDownloaded', { v: version || state.info?.version || '' }), 'ok');
-  if (ok && after) { set({ bridgeAfter: undefined }); setTimeout(() => { void outputBridge(after); }, 0); }
   return ok;
 }
 /** True while the open firmware is the 1.12 bridge firmware: nothing is written until the official one is open. */
 export const bridgeLoaded = (s: State = state): boolean => !!s.info?.bridge;
 /** What a write or export does while the bridge firmware is open: offer the official download instead. */
 export function askForOfficial(): void { setOnlineOpen(true, 'bridge-loaded'); }
-export function setBridgeOpen(bridgeOpen: boolean): void {
-  if (bridgeOpen && (isGr3(state.model) || (state.info && !state.info.capabilities.bridge))) return;
-  set({ bridgeOpen });
-}
 
 // ------------------------------------------------------------------ presets
 const PRESET_ERRORS: Record<string, Key> = {
@@ -568,6 +568,9 @@ const FACTORY_LOOK_NAMES: Record<number, { zh: string; en: string }> = {
   23: { zh: '正负逆冲', en: 'Cross Processing' }, 24: { zh: '负片', en: 'Negative Film' }, 25: { zh: '标准（单色）', en: 'Standard (mono)' },
   26: { zh: '柔和（单色）', en: 'Soft (mono)' }, 27: { zh: '高对比度（单色）', en: 'High Contrast (mono)' }, 28: { zh: '颗粒感（单色）', en: 'Grainy (mono)' },
   29: { zh: '无颗粒感（单色）', en: 'Solid (mono)' }, 30: { zh: 'HDR色调（单色）', en: 'HDR Tone (mono)' },
+  // Firmware 1.20 (the camera's texts): Pictorialist is offered on no model (not listed, see
+  // UNRELEASED_LOOKS), Solarized on the Monochrome (and with the B&W looks unlocked).
+  31: { zh: '画意摄影效果', en: 'Pictorialist Effect' }, 32: { zh: '中途曝光效果', en: 'Solarized Effect' },
 };
 /** GR III / IIIx (round 8): its twelve looks in the camera's menu order, their numbers and names (the camera's texts). */
 const GR3_LOOK_IDS: readonly number[] = [11, 12, 13, 14, 15, 16, 22, 17, 18, 19, 20, 21];
@@ -595,19 +598,41 @@ export function lookOrderAvailable(s: State = state): boolean {
 /** Every key the order can contain, in the camera's order: GR IV's 20 looks and the added slots; GR III's twelve and its films. */
 export function lookKeys(s: State = state): string[] {
   if (gr3Order(s)) return [...GR3_LOOK_IDS.map(gr3LookKey), ...Array.from({ length: gr3Films(s) }, (_, k) => gr3LookKey(64 + k))];
-  return [...FACTORY_LOOK_IDS.map(factoryLookKey), ...lookExtras(s).map((x) => x.key)];
+  return [...listedFactoryLooks(s).map(factoryLookKey), ...lookExtras(s).map((x) => x.key)];
 }
+/**
+ * Looks in the firmware's order table that no camera shows: 1.20's 31 (Pictorialist) is not
+ * offered on any model, not even the Monochrome, and the B&W unlock leaves it so. It is not listed
+ * (it could only be moved or hidden without anything changing on the camera); builds keep it in
+ * the order table just before 32, where the official firmware has it.
+ */
+const UNRELEASED_LOOKS: readonly number[] = [31];
+function listedFactoryLooks(s: State = state): number[] { return factoryLooks(s).filter((n) => !UNRELEASED_LOOKS.includes(n)); }
+/** The style order to build from the listed keys: the unlisted looks go back where the firmware has them. */
+function withUnlisted(styles: number[], s: State): number[] {
+  const out = [...styles];
+  const official = factoryLooks(s);
+  for (const n of UNRELEASED_LOOKS) {
+    const i = official.indexOf(n);
+    if (i < 0 || out.includes(n)) continue;
+    const next = official.slice(i + 1).find((m) => out.includes(m));
+    out.splice(next === undefined ? out.length : out.indexOf(next), 0, n);
+  }
+  return out;
+}
+/** GR IV's looks: the open firmware's (1.20 adds 31 and 32), 1.11's while none is open. */
+function factoryLooks(s: State = state): readonly number[] { return s.info?.looks?.factory ?? FACTORY_LOOK_IDS; }
 /** The style number the firmware uses for a key (GR IV 11..30, or 34.. for added slots; GR III 11..22, films 64..). */
 export function lookStyleOf(key: string, s: State = state): number | null {
   if (key.startsWith('g')) { const n = Number(key.slice(1)); return gr3Order(s) && lookKeys(s).includes(key) ? n : null; }
-  if (key.startsWith('f')) { const n = Number(key.slice(1)); return FACTORY_LOOK_IDS.includes(n) ? n : null; }
+  if (key.startsWith('f')) { const n = Number(key.slice(1)); return factoryLooks(s).includes(n) ? n : null; }
   const i = lookExtras(s).findIndex((x) => x.key === key);
-  return i < 0 ? null : 34 + i;
+  return i < 0 ? null : (s.info?.looks?.extraFirst ?? 34) + i;
 }
 /** Only on the GR IV Monochrome (its six black-and-white looks). */
 export function lookMonoOnly(key: string, s: State = state): boolean {
   const n = lookStyleOf(key, s);
-  return !gr3Order(s) && n !== null && n >= 25 && n <= 30;
+  return !gr3Order(s) && n !== null && (s.info?.looks?.monoOnly ?? [25, 26, 27, 28, 29, 30]).includes(n);
 }
 /** A display name for the UI: the camera's Chinese/English name, or an added slot's / a film's name. */
 export function lookName(key: string, s: State = state): string {
@@ -645,10 +670,10 @@ function normalizeHidden(hidden: readonly string[], keys: readonly string[]): st
 }
 /** GR IV's order for the current extras (projects keep it as saved; see `lookOrderNow`). */
 export function normalizeLookOrder(order: readonly string[], extras: readonly ExtraSlot[]): string[] {
-  return normalizeOrder(order, [...FACTORY_LOOK_IDS.map(factoryLookKey), ...extras.map((x) => x.key)]);
+  return normalizeOrder(order, [...listedFactoryLooks().map(factoryLookKey), ...extras.map((x) => x.key)]);
 }
 export function normalizeLookHidden(hidden: readonly string[], extras: readonly ExtraSlot[]): string[] {
-  return normalizeHidden(hidden, [...FACTORY_LOOK_IDS.map(factoryLookKey), ...extras.map((x) => x.key)]);
+  return normalizeHidden(hidden, [...listedFactoryLooks().map(factoryLookKey), ...extras.map((x) => x.key)]);
 }
 /** GR III's saved order and hidden keys (kept apart from GR IV's), checked like GR IV's when a project opens. */
 function gr3SavedKeys(list: unknown): string[] {
@@ -663,7 +688,8 @@ export function lookLayoutSpec(s: State = state): LookLayout | undefined {
   const hidden = lookHiddenNow(s);
   const factory = lookKeys(s);
   if (hidden.length === 0 && order.every((k, i) => k === factory[i])) return undefined;
-  return { order: order.map((k) => lookStyleOf(k, s)!), hidden: hidden.map((k) => lookStyleOf(k, s)!) };
+  const styles = order.map((k) => lookStyleOf(k, s)!);
+  return { order: gr3Order(s) ? styles : withUnlisted(styles, s), hidden: hidden.map((k) => lookStyleOf(k, s)!) };
 }
 export function hasLookLayout(s: State = state): boolean { return !!lookLayoutSpec(s); }
 /** Put the family's order / hidden keys. */
@@ -942,7 +968,7 @@ export function setCrop(id: string, crop: Crop): void { setWall(id, { crop }); s
 export function setSoft(soft: boolean): void { set({ soft }); scheduleSave(); }
 export function softOn(s: State = state): boolean { return !!s.soft; }
 
-// ------------------------------------------------------------------ date imprint, monochrome looks
+// ------------------------------------------------------------------ date imprint, monochrome looks, HLG photo
 /** Date imprint: the firmware gets the imprint and its menu (Shooting Assist > Date Imprint); it starts off. */
 export function setDateStamp(dateStamp: boolean): void {
   if (dateStamp && !state.info?.features.dateStamp) return;
@@ -953,7 +979,15 @@ export function setMonoUnlock(monoUnlock: boolean): void {
   if (monoUnlock && !state.info?.features.monoUnlock) return;
   set({ monoUnlock }); scheduleSave();
 }
-export function monoUnlockOn(s: State = state): boolean { return !!s.monoUnlock && s.model !== 'MONO' && !!s.info?.features.monoUnlock; }
+export function monoUnlockOn(s: State = state): boolean {
+  if (state.info?.family === 'gr3x') return !!s.monoUnlock && (state.info?.features.monoUnlock ?? false);
+  return !!s.monoUnlock && s.model !== 'MONO';
+}
+/** HLG HDR photo output on slot 22 (HDR Tone). */
+export function setHlgPhoto(hlgPhoto: boolean): void { set({ hlgPhoto }); scheduleSave(); }
+export function hlgPhotoOn(s: State = state): boolean {
+  return !!s.hlgPhoto && s.model !== 'MONO' && !isGr3(s.model);
+}
 export const GR3X_SOFT_FOCUS: readonly SoftFocusRequest[] = [
   { level: -1, strength: 'weak' }, { level: -2, strength: 'medium' }, { level: -3, strength: 'strong' },
 ];
@@ -963,7 +997,7 @@ export function setDirectFlash(directFlash: boolean): void {
 }
 export function directFlashOn(s: State = state): boolean { return !!s.directFlash && !!s.info?.features.directFlash; }
 /** Any addition that is not a slot or a ratio. */
-export function extrasOn(s: State = state): boolean { return softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hasLookLayout(s) || directFlashOn(s); }
+export function extrasOn(s: State = state): boolean { return softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hlgPhotoOn(s) || hasLookLayout(s) || directFlashOn(s); }
 const MINUS = '\u2212';
 const strengthLabel = (st: SoftFocusStrength | 'custom'): string => t(st === 'weak' ? 'softWeak' : st === 'medium' ? 'softMedium' : st === 'strong' ? 'softStrong' : 'softCustom');
 /** "−2 weak / −3 medium" (−1 first), for confirmations and the copies page. */
@@ -1244,6 +1278,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const soft = !stock && softOn();
   const dateStamp = !stock && !!state.dateStamp && !!state.info.features.dateStamp;
   const monoUnlock = !stock && monoUnlockOn();
+  const hlgPhoto = !stock && hlgPhotoOn();
   const directFlash = !stock && directFlashOn();
   if (!stock && (hasNameErrors() || hasRatioErrors())) return;
   if (!stock && hasExtraErrors()) { toast(t('extraIncomplete'), 'error'); return; }
@@ -1255,8 +1290,10 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const pictures = noPictures ? [] : menuPictures();
   const films = filmCountChoosable() ? state.filmCount : 0;
   const lookLayout = stock ? undefined : lookLayoutSpec();
-  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && !directFlash && extras.length === 0 && pictures.length === 0 && films === 0 && !lookLayout) { toast(t('nothingToDo'), 'info'); return; }
-  if (stock && !(await askOfficial([t('copyOfficial')]))) return;
+  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && !hlgPhoto && !directFlash && extras.length === 0 && pictures.length === 0 && films === 0 && !lookLayout) { toast(t('nothingToDo'), 'info'); return; }
+  const fresh = newFirmwareWarning(sourceInfo);
+  // The cannot-go-back warning is a paragraph (the dialog's lines are cut to one line each).
+  if (stock && !(await askOfficial([t('copyOfficial')], fresh && dest.kind === 'card' ? fresh : undefined))) return;
   if (dest.kind === 'card' && !stock) {
     const lines = changes.map((c) => `${state.info?.family === 'gr3x' ? (state.slots[c.id].names[state.lang] || state.info.slots.find(s => s.id === c.id)?.defaultName || c.id) : t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
     if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
@@ -1265,11 +1302,12 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (films) lines.push(t('extraLine', { n: films, l: (state.info?.slots ?? []).slice(0, films).map((sl) => `${state.slots[sl.id]?.names[state.lang] || sl.defaultName} (${t('halation')})`).join(' / ') }));
     if (dateStamp) lines.push(t('dateLine'));
     if (monoUnlock) lines.push(t(state.info?.family === 'gr3x' ? 'gr3xReplicaLine' : 'monoLine'));
+    if (hlgPhoto) lines.push(t('hlgLine'));
     if (directFlash) lines.push(t('flashLine'));
     if (extras.length) lines.push(t('extraLine', { n: extras.length, l: extras.map((x) => (x.halation ? `${x.name} (${t('halation')})` : x.name)).join(' / ') }));
     if (lookLayout) lines.push(t('lookOrderLine', { n: lookLayout.hidden.length }));
     if (pictures.length) lines.push(t('wallMenuLine', { n: pictures.length, l: pictures.map((p) => p.name).join(' / ') }));
-    if (!(await ask(t('confirmTitle'), lines, t('confirmOk')))) return;
+    if (!(await ask(t('confirmTitle'), lines, t('confirmOk'), fresh ?? undefined))) return;
   }
   const target = await destination(dest);
   if (!target || state.info !== sourceInfo || state.raw !== sourceRaw || state.model !== sourceModel || state.fwBusy) return;
@@ -1280,7 +1318,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
       set({ busy: t('building') });
       const clarity = soft && sourceInfo.features.softFocus === 'clarity' ? [...GR3X_SOFT_FOCUS] : [];
       const built = await engine.build(changes.map((c) => c.request), ratios, clarity,
-        { adjSoftFocus: soft && sourceInfo.features.softFocus === 'adj', dateStamp, monoUnlock, ...(directFlash ? { directFlash } : {}), ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}),
+        { adjSoftFocus: soft && sourceInfo.features.softFocus === 'adj', dateStamp, monoUnlock, hlgPhoto, ...(directFlash ? { directFlash } : {}), ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}),
           ...(films ? { filmCount: films } : {}), ...(lookLayout ? { lookLayout } : {}) });
       if (!Object.values(built.checks).every((v) => v === true)) throw new EngineError('selfcheck-failed', 'self-check');
       file = built.file;
@@ -1296,29 +1334,6 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   void refreshVolumes();
 }
 
-/**
- * Write the 1.12 bridge firmware (made from the official file, see core `fw/bridge.ts`). With no
- * firmware open, the official one is downloaded first and the write continues after it.
- */
-export async function outputBridge(dest: Dest): Promise<void> {
-  if (isGr3(state.model) || (state.info && !state.info.capabilities.bridge)) return;
-  if (state.busy || state.fwBusy) return;
-  if (!state.info) { set({ bridgeAfter: dest }); setOnlineOpen(true, 'bridge-base'); return; }
-  const sourceInfo = state.info, sourceModel = state.model;
-  const target = await destination(dest);
-  if (!target || state.info !== sourceInfo || state.model !== sourceModel || state.fwBusy) return;
-  try {
-    set({ busy: t('building') });
-    const file = await engine.bridge();
-    set({ busy: t('writing') });
-    let moved = 0;
-    if (target.volume) moved = await firmwareToCard(target.volume, file);
-    else await runPlan(target.root, [{ op: 'write', path: [firmwareFilename()], data: file }]);
-    set({ busy: undefined });
-    doneToast(target.root, target.volume, moved, firmwareFilename());
-  } catch (e) { set({ busy: undefined }); fail(e); }
-  void refreshVolumes();
-}
 
 export function wallReady(s: State = state): boolean { return menuReady(s); }
 
@@ -1472,6 +1487,7 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
   if (summary.adjSoftFocus) lines.push(t('softAdjLine'));
   if (summary.dateStamp) lines.push(t('dateLine'));
   if (summary.monoUnlock) lines.push(t(state.info?.family === 'gr3x' ? 'gr3xReplicaLine' : 'monoLine'));
+  if (summary.hlgPhoto) lines.push(t('hlgLine'));
   if (summary.directFlash) lines.push(t('flashLine'));
   if (summary.extraSlots?.length) lines.push(t('extraLine', { n: summary.extraSlots.length, l: summary.extraSlots.map((x) => x.name).join(' / ') }));
   if (summary.lookLayout) lines.push(t('lookOrderLine', { n: summary.lookLayout.hidden.length }));
@@ -1490,7 +1506,8 @@ export async function writeCopy(): Promise<void> {
   if (!pick) return;
   if (!v) { toast(t('noCard'), 'error'); return; }
   const official = pick.summary.kind === 'official';
-  if (!(await (official ? askOfficial(describeCopy(pick.summary)) : ask(t('confirmTitle'), describeCopy(pick.summary), t('confirmOk'))))) return;
+  const fresh = newFirmwareWarning(sourceInfo) ?? undefined;
+  if (!(await (official ? askOfficial(describeCopy(pick.summary), fresh) : ask(t('confirmTitle'), describeCopy(pick.summary), t('confirmOk'), fresh)))) return;
   if (state.info !== sourceInfo || state.model !== sourceModel || state.fwBusy) return;
   try {
     set({ busy: t('opening') });

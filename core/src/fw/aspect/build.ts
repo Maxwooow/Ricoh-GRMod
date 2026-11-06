@@ -39,6 +39,7 @@ import type { HalationLook } from './halation';
 import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
 import type { LookLayout } from './looks';
 import type { ExtraSlotSpec } from './slots';
+import { installHlgPhoto } from './hlg';
 import { installShutdownMenu } from './shutdown';
 import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
 import { LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
@@ -122,6 +123,8 @@ export interface ExtensionFeatures {
   monoUnlock?: boolean;
   /** Added Image Control slots, 1 to 20 (see `slots.ts`; up to 0.8.1 at most 6). */
   extraSlots?: readonly ExtraSlotSpec[];
+  /** In-camera direct BT.2100 HLG HDR photo capture on HDR Tone slot (see `hlg.ts`). */
+  hlgPhoto?: boolean;
   /** Image Control menu order and hidden looks (see `looks.ts`). */
   lookLayout?: LookLayout;
   /**
@@ -1021,7 +1024,7 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   const slots = features.extraSlots ?? [];
   const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
   const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
-  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash;
+  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || !!features.hlgPhoto || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash;
   if (extra) revision = 3;
   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
@@ -1072,6 +1075,7 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
     const colour = styleColour(patch, style);
     halation.push({ style, light: colour.ownCurves ? halationLight(colour.curves, colour.postQ9) : halationLight() });
   }
+  if (features.hlgPhoto) icons = installHlgPhoto(patch, icons);
   // Last: the added slots compose with the monochrome looks' visibility check.
   if (slots.length > 0) icons = installExtraSlots(patch, icons, slots, { stashLook: (!!features.dateStamp && !!features.guard) || halation.length > 0, layout: features.lookLayout });
   else if (features.lookLayout) {
@@ -1087,5 +1091,23 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}) });
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}) } };
+  return {
+    revision,
+    rtos: patch.bytes(),
+    iconbin: icons,
+    ratios: [...ratios],
+    words: patch.words,
+    features: {
+      adjSoftFocus: !!features.adjSoftFocus,
+      ...(features.dateStamp ? { dateStamp: true } : {}),
+      ...(features.monoUnlock ? { monoUnlock: true } : {}),
+      ...(features.hlgPhoto ? { hlgPhoto: true } : {}),
+      ...(slots.length > 0 ? { extraSlots: [...slots] } : {}),
+      ...(shutdown ? { shutdown } : {}),
+      ...(features.guard ? { guard: true } : {}),
+      ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}),
+      ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}),
+      ...(features.directFlash ? { directFlash: true } : {}),
+    },
+  };
 }

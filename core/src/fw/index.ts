@@ -85,3 +85,5 @@ export { EXTRA_NAME_MAX, FACTORY_LOOK_IDS, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, M
 export type { ExtensionFeatures, ExtraSlotSpec, LookLayout, RatioEntry, RatioGeometry, RatioSpec, ShutdownPictureSpec } from './aspect';
 export { HALATION, halateRgba, halationLight } from './aspect';
 export { readBuildRevision, readExtensionFeatures, readExtraSlotCount, readRatioRecord, readShutdownCount } from './aspect/package';
+export { grownRanges, growPayload } from './aspect/package';
+export { readRes, resFile } from './aspect/res';

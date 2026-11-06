@@ -343,7 +343,8 @@ svg { width: 18px; height: 18px; flex: none; }
 button.fw-rel:hover:not(:disabled) { background: var(--hover); border-color: var(--faint); }
 button.fw-rel:disabled { cursor: default; }
 .fw-rel.idle { border-style: dashed; color: var(--muted); font-size: 13.5px; }
-.fw-rel.newer { margin-bottom: 8px; color: var(--muted); }
+.fw-rels { display: grid; gap: 8px; }
+.fw-text b .chip.tiny { margin-left: 8px; vertical-align: 1px; font-weight: 500; }
 .fw-ico { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; background: var(--chip); color: var(--muted); flex: none; }
 .fw-ico svg { width: 20px; height: 20px; }
 .fw-text { flex: 1; min-width: 0; display: grid; gap: 1px; }
@@ -387,12 +388,6 @@ button.fw-rel:disabled { cursor: default; }
 /* 1.12 bridge firmware */
 .pop-sep { height: 1px; margin: 4px 6px; background: var(--line); }
 .pop-item:disabled { opacity: 0.45; }
-.dialog.bridge { width: 500px; }
-.dialog.bridge h3 small { font-weight: 400; font-size: 13px; margin-left: 4px; }
-.dialog.bridge .dialog-warn { margin-bottom: 12px; }
-.bridge-body { margin: 0 0 6px; font-size: 13.5px; line-height: 1.65; user-select: text; }
-.bridge-wait { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.bridge-ring { width: 14px; height: 14px; border-radius: 50%; background: conic-gradient(var(--amber) var(--p), var(--line2) 0); -webkit-mask: radial-gradient(circle, transparent 4px, #000 4.5px); mask: radial-gradient(circle, transparent 4px, #000 4.5px); }
 .bridge-banner { display: flex; align-items: center; gap: 10px; margin: 10px 14px 0; padding: 8px 10px 8px 12px; border-radius: 8px; background: var(--amber-bg); color: var(--amber); font-size: 13px; flex: none; }
 .bridge-banner-ico { display: grid; flex: none; }
 .bridge-banner-ico svg { width: 18px; height: 18px; }

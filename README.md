@@ -1,7 +1,37 @@
 # GR Mod
 
-A small desktop tool for the Ricoh GR IV / GR IV HDF / GR IV Monochrome (firmware 1.11), the GR III /
-GR III HDF (firmware 2.10) and the GR IIIx / GR IIIx HDF (firmware 1.60). Not a Ricoh product.
+A small desktop tool for the Ricoh GR IV / GR IV HDF (firmware 1.20 or 1.11), the GR IV Monochrome
+(firmware 1.10, the same file as GR IV 1.20), the GR III / GR III HDF (firmware 2.20 or 2.10) and the
+GR IIIx / GR IIIx HDF (firmware 1.70 or 1.60). Not a Ricoh product.
+
+0.8.8: on GR IV 1.20 the B&W looks unlock includes Solarized (look 32, the GR IV Monochrome 1.10
+look with its three types): 1.20's availability table gives it a row of its own (10), set for the
+Monochrome only, so the colour models did not show it while the app listed it with the monochrome
+looks; row 10 now gets every column but the Monochrome's, as rows 3..8. Pictorialist (31, row 9) is
+offered on no model by the official firmware, not even the Monochrome; it stays hidden and is no
+longer listed in the Image Control order (builds keep it in the order table before 32). Same build
+as 0.8.7 apart from row 10's six bytes and the compensation word; checked on a GR IV HDF (test
+firmware 068: B&W looks with Solarized, soft focus, date imprint, an added slot with halation).
+
+0.8.7: every feature on the cameras' current official firmware as well (GR IV 1.20, GR III 2.20,
+GR IIIx 1.70) besides the earlier one. The newer firmware is a different build with its addresses
+moved; it was ported with `tools/port` (an address map from the earlier firmware, every entry it
+could not vouch for reviewed by hand, see `tools/port/README.md`) into `core/src/fw/gr4v120`,
+`core/src/fw/gr3x170` and their tools, and each program is chosen by the SHA-256 of the opened file.
+The download dialog lists both releases of the model (the site's current one and the earlier one,
+which Ricoh still serves at a fixed address); writing a firmware made from the newer release warns
+that the camera cannot go back to the earlier one. The 1.12 bridge firmware is no longer made (a
+camera whose update failed can take the current release instead); a bridge file that is opened
+still only offers the official download. The camera-side start-up checks
+(`tools/gr4v120/aspect/boot_checks.py`) now count only branches into the appended area as hooks and
+keep the settings guard's bytes valid. On GR IV 1.20 added Image Control slots are styles 38.. (1.11:
+34..), because 1.20 adds looks 31 and 32; a camera coming from a 1.11 build with an added slot
+selected gets Standard (the settings guard) or another added slot, and the look is chosen again. GR IV 1.20's halation reads the picture's own look word (FRAME_LOOK, as the date imprint) instead of
+LOOK_STASH: with soft focus on, LOOK_STASH no longer held the picture's look by the JPEG step and the
+camera showed no halation (test firmware 065, GR IV HDF). GR III 2.20 / IIIx 1.70 were checked on
+cameras as well. Numbered 0.8.7 (not 0.9.0) so that every 0.8.x copy, whose line ends at 0.9 (`updateBelow`),
+installs it online; 0.8.7 itself has no such end and installs any later release (the newest
+release is looked at first, then the fw1.11 channel).
 
 0.8.6: on the GR IV, MENU works again in the Flash submenu after coming back from Direct Flash Settings (the firmware keeps a nested submenu's back target only for its own nested submenus; `installNestedBack` in `core/src/fw/aspect/directflash-menu.ts` adds Direct Flash Settings to both checks); the What's New dialog names the code contributors; GR III / IIIx films get a remove button each, as GR IV's added slots (`removeFilm` in `ui/src/store.ts`). GR IV's added slots also get hue sectors of their own: Standard's multi-axis stage (12 hue sectors, YCbCr hue, `core/src/color/hue.ts`) is fitted per slot as well (`hue-fit.ts`, from the LUTSmith parametrisation that PR #8 / #15 brought in) and written as the slot's own block; each .cube or .xmp is fitted both with and without it and the sectors are kept only when the whole look gets at least 2% closer while greys, near-neutrals and skin get at most a little worse (`huePasses` in `convert.ts`; an .xmp is checked on the third of the calibration colours its fit leaves out). Checked on a GR IV as test firmware 064 (camera vs model 0.5–0.8 dE00).
 
@@ -139,7 +169,7 @@ Orientation (0.8.3): with Follow Orientation on, the imprint sits in the bottom-
 
 ## Monochrome looks
 
-`core/src/fw/aspect/monounlock.ts` makes the six looks of the GR IV Monochrome selectable on the colour models, after [lemonadesaltbagel/GR4-MonoUnlock](https://github.com/lemonadesaltbagel/GR4-MonoUnlock) (no code copied): the check at 0x533cc6e0 becomes `cmp r1, #0x18` / `bhi`, and rows 3..8 of the look availability table at 0x53dbf36c (7 bytes per row, one column per camera model, column 1 = Monochrome) get every column except 1. The reference sets column 0 only (the standard GR IV); with every colour column the GR IV HDF has them too. 13 words in all.
+`core/src/fw/aspect/monounlock.ts` makes the six looks of the GR IV Monochrome selectable on the colour models, after [lemonadesaltbagel/GR4-MonoUnlock](https://github.com/lemonadesaltbagel/GR4-MonoUnlock) (no code copied): the check at 0x533cc6e0 becomes `cmp r1, #0x18` / `bhi`, and rows 3..8 of the look availability table at 0x53dbf36c (7 bytes per row, one column per camera model, column 1 = Monochrome) get every column except 1. The reference sets column 0 only (the standard GR IV); with every colour column the GR IV HDF has them too. 13 words in all. On 1.20 (`core/src/fw/gr4v120/aspect/monounlock.ts`, table 0x53de9cc4) row 10, Solarized (look 32), is set the same way (0.8.8); row 9, Pictorialist (31), has no column set in the official firmware and is left alone.
 
 ## Direct Flash
 
@@ -207,9 +237,19 @@ factory order. The order is saved in `project.json` (`lookOrder`, `lookHidden`).
 
 Checked in an emulator on built files (1, 2 and 8 pictures, alone and with every other addition): the picture request for every camera variant and record state, the constructor, ticks, labels, confirm, up / down at the ends, thumbnails, the store's record count and the settings save chain.
 
+## BT.2100 HLG HDR Photo
+
+`core/src/fw/aspect/hlg.ts` transforms the camera's factory "HDR Tone" (slot 22 = 0x16) into direct in-camera BT.2100 HLG HDR still photography. Instead of taking over Cinema Yellow or Cinema Green, slot 22 provides native wide color gamut (ITU-R BT.2020) and high dynamic range (ARIB STD-B67) out-of-camera JPEGs:
+- **Color Correction Matrix**: Signed int16 Q13 (8192 = 1.0) linear conversion matrix ($M_{\text{STD}} \times M_{709\to 2020}$) yielding exact unity row sums (no neutral color shift).
+- **14-bit Tone Curve**: 256-point monotonic ARIB STD-B67 tone curve with $S^{-1}$ inverse camera baseline curve pre-compensation to prevent compound curve distortion and midtone crush.
+- **Neutral Multi-Axis Table**: Repoints Slot 22 multi-axis pointer to Standard's neutral table (0x54049DE8).
+- **In-Camera APP2 ICC Injection Hook**: Hooks `ExifJpegWriter::SetupAppNInfo` at 0x5380BF50. When slot 22 is shot, it fixes the preceding Pentax APP7 screennail segment alignment and appends a 576-byte APP2 segment containing a BT.2100 HLG CICP [9, 18, 0, 1] ICC profile, recognized as native HDR on Apple XDR/EDR displays, Windows 11 HDR, Android, and Chromium.
+- **Universal Naming**: UI string 306 across all 21 camera languages is renamed to "HDR". The factory HDR Tone icon in ICONBIN is retained (0 bytes added to ICONBIN).
+- For complete technical documentation, see [`docs/HLG_PHOTO.md`](docs/HLG_PHOTO.md) (English) and [`docs/HLG_PHOTO_ZH.md`](docs/HLG_PHOTO_ZH.md) (中文).
+
 ## Updates
 
-The program can update itself (`shell/internal/update`, UI in `ui/src/updates.tsx`). At start (switchable off in the dialog) and from "Check for updates" in the ? menu it reads `update.json` and `update.json.sig` from the release tagged `fw1.11` (the line for camera firmware 1.11, whose files every 0.8.x release replaces), then from `https://github.com/Maxwooow/Ricoh-GRMod/releases/latest/download/`; a version 0.9 or later there (for camera firmware 1.20, which a camera cannot go back from) is only reported, never installed (`GRMOD_UPDATE_SOURCE` replaces these addresses for tests). The manifest is accepted only if its Ed25519 signature verifies with the public key in `shell/updates.go`; the package (Windows: `GRMod-x.y.z.exe`, macOS: `GRMod-x.y.z-mac.zip`) only if its size and SHA-256 match the manifest. Windows renames the running `GRMod.exe` to `GRMod.exe.old` and puts the new one in its place; macOS moves the running `GR Mod.app` to `.GR Mod.app.old` and the unpacked new bundle into its place. The shell then closes its window, starts the new program with `--after-update=PID`, which waits for the old one to end and removes the `.old` copy. An app that macOS runs translocated (never moved out of the download folder) or a folder that cannot be written is not replaced; the dialog offers the download page instead.
+The program can update itself (`shell/internal/update`, UI in `ui/src/updates.tsx`). At start (switchable off in the dialog) and from "Check for updates" in the ? menu it reads `update.json` and `update.json.sig` from `https://github.com/Maxwooow/Ricoh-GRMod/releases/latest/download/`, then from the release tagged `fw1.11` (the channel 0.8.0..0.8.6 read first, whose files every release replaces); up to 0.8.6 a version 0.9 or later was only reported, never installed; from 0.8.7 every newer version is installed (`GRMOD_UPDATE_SOURCE` replaces these addresses for tests). The manifest is accepted only if its Ed25519 signature verifies with the public key in `shell/updates.go`; the package (Windows: `GRMod-x.y.z.exe`, macOS: `GRMod-x.y.z-mac.zip`) only if its size and SHA-256 match the manifest. Windows renames the running `GRMod.exe` to `GRMod.exe.old` and puts the new one in its place; macOS moves the running `GR Mod.app` to `.GR Mod.app.old` and the unpacked new bundle into its place. The shell then closes its window, starts the new program with `--after-update=PID`, which waits for the old one to end and removes the `.old` copy. An app that macOS runs translocated (never moved out of the download folder) or a folder that cannot be written is not replaced; the dialog offers the download page instead.
 
 Publishing a release: build, then
 
@@ -220,13 +260,13 @@ Publishing a release: build, then
 
 ## The UI
 
-The Image Control page has one card of switches under the two slots: soft focus (ADJ lever), date imprint (with its menu) and monochrome looks (not shown for the Monochrome model). They are saved with the project (`soft`, `dateStamp`, `monoUnlock` in `project.json`) and passed to `Engine.buildFirmware`; the firmware copies page reads them back from a file through `Engine.inspect`.
+The Image Control page has one card of switches under the two slots: soft focus (ADJ lever), date imprint (with its menu), monochrome looks (not shown for the Monochrome model), and HLG HDR photo (slot 22). They are saved with the project (`soft`, `dateStamp`, `monoUnlock`, `hlgPhoto` in `project.json`) and passed to `Engine.buildFirmware`; the firmware copies page reads them back from a file through `Engine.inspect`.
 
 Going back to the factory firmware ("Write factory firmware" on the Image Control page, or an official copy on the firmware copies page) asks first, in red, whether the camera's settings were reset (Setup › Reset › Reset to Factory Default): settings made with GR Mod's firmware (an added slot or ratio selected, soft focus on the ADJ lever, the date imprint) are values the official firmware does not know. Cancel has the focus; only the red button writes.
 
 ## Combinations
 
-Anything that appends code or icons (ratios, ADJ soft focus, date imprint) gives the grown layout: RTOS grows, and ICONBIN too when icons are added (a build that only appends code, like the date imprint of a test build with a fixed setting, leaves ICONBIN as it is; `growPayload`, `grownRanges`, `Engine.inspect` and the self-check accept either). The monochrome looks (`core/src/fw/aspect/monounlock.ts`, 13 words) on their own are written in place, like Image Control edits: official layout plus the checksum compensation word; `Engine.inspect` recognises them when all 13 words are there. With any of the other additions they go into the grown build and its feature byte (bit 2). `core/test/combinations.test.ts` builds every combination, checks the self-check and what `inspect` reads back, that soft focus alone is unchanged, and that all additions with the contents of the earlier test firmware (`core/test/fw-helpers/test-firmware.ts`) give test firmware 017 byte for byte. `tools/testfw/build.ts` builds such test files.
+Anything that appends code or icons (ratios, ADJ soft focus, date imprint, HLG HDR photo) gives the grown layout: RTOS grows, and ICONBIN too when icons are added (a build that only appends code, like the date imprint of a test build with a fixed setting or HLG HDR photo, leaves ICONBIN as it is; `growPayload`, `grownRanges`, `Engine.inspect` and the self-check accept either). The monochrome looks (`core/src/fw/aspect/monounlock.ts`, 13 words) on their own are written in place, like Image Control edits: official layout plus the checksum compensation word; `Engine.inspect` recognises them when all 13 words are there. With any of the other additions they go into the grown build and its feature byte (bit 2 for mono unlock, bit 4 for HLG photo). `core/test/combinations.test.ts` builds every combination, checks the self-check and what `inspect` reads back, that soft focus alone is unchanged, and that all additions with the contents of the earlier test firmware (`core/test/fw-helpers/test-firmware.ts`) give test firmware 017 byte for byte. `tools/testfw/build.ts` builds such test files.
 
 ## Licence
 
