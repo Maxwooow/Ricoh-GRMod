@@ -15,7 +15,7 @@ import {
   setSoft,
   setDateStamp,
   setMonoUnlock,
-  setDirectFlash, setAdjSlots, adjSlotsOf, setHdr,
+  setDirectFlash, setAdjSlots, adjSlotsOf, setHdr, setBrightAuto,
   extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, slotOf,
   filmCountChoosable, removeFilm, setFilmCount,
   hasLookLayout, isGr3, KEEP_VISIBLE, lookHiddenNow, lookMonoOnly, lookName, lookOrderAvailable, lookOrderNow, moveLook, moveLookTo, resetLookLayout, setLookHidden,
@@ -696,6 +696,8 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
   const flashOk = useStore((s) => !!s.info?.features.directFlash);
   const adjMax = useStore((s) => s.info?.features.maxAdjSlots ?? 5);
   const hdr = useStore((s) => s.hdr);
+  const brightAuto = useStore((s) => s.brightAuto);
+  const brightAutoOk = useStore((s) => !!s.info?.features.brightAuto);
   const hdrOk = useStore((s) => !!s.info?.features.hdrGainMap);
   const own = useRef<HTMLDivElement | null>(null);
   // Moved to the other column: glide from where it was (FLIP). Rectangles are in window pixels,
@@ -718,6 +720,7 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
       {flashOk && <FeatureRow icon={Ico.flash} title={t('navFlash')} sub={t('flashSub')} on={flash} onChange={setDirectFlash} />}
       {hdrOk && <FeatureRow icon={Ico.hdr} title={t('navHdr')} sub={t('hdrSub')} on={hdr} onChange={setHdr} />}
       {adjMax > 5 && <AdjSlotsRow max={adjMax} />}
+      {brightAutoOk && <div className="soft-switch"><Select value={brightAuto || 'off'} options={[{ value: 'off', label: t('brightAutoOff') }, { value: 'balanced', label: t('brightAutoBalanced') }, { value: 'bright', label: t('brightAutoBright') }]} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')} label={t('navBrightAuto')} variant="row" /></div>}
     </div>
   );
 }

@@ -36,6 +36,10 @@
     [
       "core/src/fw/index.ts",
       "core/src/fw/gr4v120/index.ts"
+    ],
+    [
+      "core/src/fw/aspect/brightauto.ts",
+      "core/src/fw/gr4v120/aspect/brightauto.ts"
     ]
   ],
   "copies": [
