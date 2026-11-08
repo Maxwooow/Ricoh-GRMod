@@ -78,7 +78,7 @@ const fromOff = (x: ArrayLike<number>, at: number): number[][] => {
   return [[1 - a - b, a, b], [c, 1 - c - d, d], [e, f, 1 - e - f]];
 };
 
-export interface HueFitOptions { iterations?: number; regularise?: number; onProgress?: (f: number) => void }
+export interface HueFitOptions { additiveHue?: boolean; iterations?: number; regularise?: number; onProgress?: (f: number) => void }
 
 /**
  * Refine `start` (a plain fit: M1, curves, P2) with hue sectors of its own. `P` are colours as
@@ -95,7 +95,7 @@ export function fitHue(start: SlotParams, std: number[][], P: Float64Array, targ
     M1: fromOff(x, 0),
     ck: [0, 1, 2].map((c) => Float64Array.from({ length: KNOTS }, (_, k) => x[6 + c * KNOTS + k])),
     ...(hasP2 ? { P2: fromOff(x, 6 + 3 * KNOTS) } : {}),
-    hue: composeWithStandard(std, hueMatricesFromD(x, at)),
+    hue: composeWithStandard(std, hueMatricesFromD(x, at), opts.additiveHue),
     hueStd: std,
   });
   const n = x0.length, mc = tLab.length;

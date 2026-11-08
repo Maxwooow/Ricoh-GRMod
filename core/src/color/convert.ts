@@ -37,6 +37,8 @@ export interface Conversion {
 }
 
 export interface ConvertOptions {
+  /** Optional PR #21 fitting change, off by default. */
+  additiveHue?: boolean;
   onProgress?: (fraction: number) => void;
   /** Fit the post-curve ("second") matrix as well (default true). */
   post?: boolean;
@@ -79,7 +81,7 @@ export function convertXmp(text: string, opts?: ConvertOptions): Conversion {
   let params: SlotParams = fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck };
   let hueQ10: number[] | undefined;
   if (hueStd) {
-    const h = guardedHueXmp(target, params, hueStd, subProgress(opts, 0.5, 0.98));
+    const h = guardedHueXmp(target, params, hueStd, subProgress(opts, 0.5, 0.98), opts?.additiveHue);
     if (h) { params = h.params; hueQ10 = h.hueQ10; }
   }
   return {
@@ -122,7 +124,7 @@ export const XMP_HUE_HELD_OUT = (i: number): boolean => i % 3 === 2;
  * thirds of them and checked on the other third (see `huePasses`; the protected groups are its
  * pale colours, chroma below 10, and the skin-like ones).
  */
-export function guardedHueXmp(target: Float64Array, start: SlotParams, std: number[][], onProgress?: (f: number) => void): { params: SlotParams; hueQ10: number[] } | null {
+export function guardedHueXmp(target: Float64Array, start: SlotParams, std: number[][], onProgress?: (f: number) => void, additiveHue = false): { params: SlotParams; hueQ10: number[] } | null {
   const cam = Float64Array.from(CAL_CAM);
   const n = cam.length / 3;
   const pick = (held: boolean, src: Float64Array): Float64Array => {
@@ -159,7 +161,7 @@ export function guardedHueXmp(target: Float64Array, start: SlotParams, std: numb
   // A second try weighs the pale colours and the skin tones more.
   for (const boost of [1, 4]) {
     const w = boost === 1 ? weights : weights.map((v, i) => v * (v > 1 || skinFit[i] ? boost : 1));
-    const fitted = fitHue(start, std, fitP, fitT, w, { onProgress: (f) => onProgress?.(boost === 1 ? f * 0.5 : 0.5 + f * 0.5) });
+    const fitted = fitHue(start, std, fitP, fitT, w, { additiveHue, onProgress: (f) => onProgress?.(boost === 1 ? f * 0.5 : 0.5 + f * 0.5) });
     const q = hueToQ10(fitted.hue!);
     if (!q) continue;
     const out: SlotParams = { ...fitted, hue: Array.from({ length: 12 }, (_, g) => q.slice(g * 9, g * 9 + 9).map((v) => v / 1024)) };
@@ -407,7 +409,7 @@ function nearNeutralSamples(offset: number, sats: readonly number[], vals: reado
 }
 const HUE_NEAR_NEUTRAL_WEIGHT = 12;
 
-export function guardedHue(cube: ReturnType<typeof parseCube>, start: SlotParams, std: number[][], onProgress?: (f: number) => void): { params: SlotParams; hueQ10: number[] } | null {
+export function guardedHue(cube: ReturnType<typeof parseCube>, start: SlotParams, std: number[][], onProgress?: (f: number) => void, additiveHue = false): { params: SlotParams; hueQ10: number[] } | null {
   const refBase = cubeRefineSamples();
   const near = nearNeutralSamples(0, [0.04, 0.08, 0.13, 0.2], [0.3, 0.5, 0.7, 0.85, 0.97], HUE_NEAR_NEUTRAL_WEIGHT);
   const ref: WeightedSamples = { P: Float64Array.from([...refBase.P, ...near.P]), weights: Float64Array.from([...refBase.weights, ...near.weights]) };
@@ -424,7 +426,7 @@ export function guardedHue(cube: ReturnType<typeof parseCube>, start: SlotParams
   // skipped when the first one already leaves every protected group as good as it was.
   for (const boost of [1, 4]) {
     const weights = boost === 1 ? ref.weights : ref.weights.map((w) => (w === 60 || w === 10 || w === HUE_NEAR_NEUTRAL_WEIGHT ? w * boost : w));
-    const fitted = fitHue(start, std, ref.P, refTarget, weights, { onProgress: (f) => onProgress?.(boost === 1 ? f * 0.6 : 0.6 + f * 0.4) });
+    const fitted = fitHue(start, std, ref.P, refTarget, weights, { additiveHue, onProgress: (f) => onProgress?.(boost === 1 ? f * 0.6 : 0.6 + f * 0.4) });
     const q = hueToQ10(fitted.hue!);
     if (!q) continue;
     // what the firmware gets: the block rounded to Q10
@@ -469,7 +471,7 @@ export function convertCube(text: string, opts?: ConvertOptions): Conversion {
   }
   let hueQ10: number[] | undefined;
   if (hueStd) {
-    const h = guardedHue(cube, params, hueStd, subProgress(opts, refine ? 0.7 : 0.55, 0.98));
+    const h = guardedHue(cube, params, hueStd, subProgress(opts, refine ? 0.7 : 0.55, 0.98), opts?.additiveHue);
     if (h) { params = h.params; hueQ10 = h.hueQ10; }
   }
   // report on the original fitting colours (the first part of P), comparable with earlier versions
