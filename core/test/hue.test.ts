@@ -130,3 +130,20 @@ describe.skipIf(!have)('hue sectors: firmware', () => {
     await expect(eng.buildFirmware([], [], [], { extraSlots: [{ ...slot, hueQ10: bad }] })).rejects.toThrow(/1024/);
   }, 240_000);
 });
+
+describe('hue sectors: the slot\'s white', () => {
+  it('the hue-sector fit, which refines the curves too, keeps the LUT\'s white', () => {
+    // a look that turns the colours near white and keeps white itself
+    const N = 17, lines = ['TITLE "white"', `LUT_3D_SIZE ${N}`];
+    for (let b = 0; b < N; b++) for (let g = 0; g < N; g++) for (let r = 0; r < N; r++) {
+      const R = r / (N - 1), G = g / (N - 1), B = b / (N - 1);
+      lines.push([R, G, B - 0.2 * B * B * (1 - Math.min(R, G, B))].map((v) => Math.min(1, Math.max(0, v)).toFixed(6)).join(' '));
+    }
+    const text = lines.join('\n');
+    const on = convertCube(text, { hueStd: fakeStd(), keepWhite: true });
+    expect(on.hueQ10).toBeDefined();
+    const W = Float64Array.from([1, 1, 1]);
+    const d = color.deltaE2000Lab(color.lab(color.slotApply(on.params, W)), color.lab(color.applyCube(color.parseCube(text), W)))[0];
+    expect(d).toBeLessThan(1.5);
+  }, 120_000);
+});
