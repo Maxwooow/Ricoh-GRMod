@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
  * Hue sectors of added slots (color/hue.ts, hue-fit.ts, fw/aspect/slots.ts): the block's layout
- * and copies, the camera-order model, the guarded fit, and (with the official firmware in
- * testdata/private) the firmware block written, read back and verified.
+ * and copies, its continuity across the sector boundaries, the camera-order model, the guarded fit,
+ * and (with the official firmware in testdata/private) the firmware block written, read back and
+ * verified.
  */
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { Engine, color, fw } from '../src';
-import { composeWithStandard, hueBlockBytes, hueCopy0, hueFromBlock, hueMatricesFromD, hueToQ10, HUE_BLOCK_BYTES } from '../src/color/hue';
+import { composeWithStandard, hueBlockBytes, hueCopy0, hueFromBlock, hueMatricesFromD, hueSector, hueToQ10, HUE_BLOCK_BYTES } from '../src/color/hue';
 import { applyBeforeHue, beforeStandardHue } from '../src/color/hue-fit';
 import { convertCube } from '../src/color/convert';
 import { syntheticSamples } from '../src/color/convert';
@@ -18,6 +19,23 @@ const I = [1, 0, 0, 0, 1, 0, 0, 0, 1];
 const identity = (): number[][] => Array.from({ length: 12 }, () => I.slice());
 /** A made-up Standard-like block: small shifts at every boundary. */
 const fakeStd = (): number[][] => hueMatricesFromD(Array.from({ length: 36 }, (_, i) => 0.08 * Math.sin(i * 1.7)));
+
+/**
+ * Largest step of a block's stage across the sector boundaries: colours around grey 0.01 degree
+ * apart, and where two neighbours fall in different sectors, the first through both sectors' matrices.
+ */
+function boundaryStep(block: readonly (readonly number[])[]): number {
+  const N = 36000, third = (2 * Math.PI) / 3;
+  const at = (i: number): number[] => { const a = (2 * Math.PI * i) / N; return [0.3 + 0.1 * Math.cos(a), 0.3 + 0.1 * Math.cos(a - third), 0.3 + 0.1 * Math.cos(a + third)]; };
+  const apply = (m: readonly number[], v: number[]): number[] => [0, 1, 2].map((r) => m[r * 3] * v[0] + m[r * 3 + 1] * v[1] + m[r * 3 + 2] * v[2]);
+  let worst = 0, prev = at(0), gp = hueSector(prev[0], prev[1], prev[2]);
+  for (let i = 1; i <= N; i++) {
+    const v = at(i % N), g = hueSector(v[0], v[1], v[2]);
+    if (g !== gp) { const a = apply(block[gp], prev), b = apply(block[g], prev); for (let k = 0; k < 3; k++) worst = Math.max(worst, Math.abs(a[k] - b[k])); }
+    prev = v; gp = g;
+  }
+  return worst;
+}
 
 /** A LUT that turns yellows and greens (a hue-sector look), as a .cube text. */
 function hueCube(): string {
@@ -70,13 +88,25 @@ describe('hue sectors: block and model', () => {
     expect(Array.from(back).map((x) => +x.toFixed(4))).toEqual([0.4, 0.5, 0.3, 0.6, 0.35, 0.45]);
   });
 
+  it('a slot\'s block is as continuous across the sector boundaries as Standard\'s', () => {
+    const std = fakeStd();
+    const corr = hueMatricesFromD(Array.from({ length: 36 }, (_, i) => 0.05 * Math.cos(i * 2.3)));
+    expect(boundaryStep(std)).toBeLessThan(2e-5);
+    expect(boundaryStep(composeWithStandard(std, corr, true))).toBeLessThan(2e-5);
+    // Standard's matrix times the correction would step at the boundaries (a line in a smooth gradient)
+    const product = std.map((m, g) => [0, 1, 2].flatMap((i) => [0, 1, 2].map((j) => m[i * 3] * corr[g][j] + m[i * 3 + 1] * corr[g][3 + j] + m[i * 3 + 2] * corr[g][6 + j])));
+    expect(boundaryStep(product)).toBeGreaterThan(5e-4);
+    expect(composeWithStandard(std, corr)).toEqual(product);
+    expect(composeWithStandard(std, corr, false)).toEqual(product);
+  });
+
   it('the guarded fit lowers the camera-order error of a hue look, keeps greys, and is off unless asked', () => {
     const std = fakeStd();
     const text = hueCube();
     const off = convertCube(text, {});
     expect(off.hueQ10).toBeUndefined();
     expect(off.params.hue).toBeUndefined();
-    const on = convertCube(text, { hueStd: std });
+    const on = convertCube(text, { hueStd: std, additiveHue: true });
     expect(on.hueQ10).toBeDefined();
     expect(on.hueQ10!.length).toBe(108);
     const cube = color.parseCube(text);
@@ -90,6 +120,8 @@ describe('hue sectors: block and model', () => {
     const wantG = color.lab(color.applyCube(cube, grey));
     const errG = (p: color.SlotParams): number => { const d = color.deltaE2000Lab(color.lab(color.slotApply(p, grey)), wantG); return d.reduce((a, v) => a + v, 0) / d.length; };
     expect(errG(on.params)).toBeLessThanOrEqual(errG({ ...off.params, hue: std, hueStd: std }) + 0.02);
+    // the fitted block as the firmware gets it (Q10) steps at the boundaries only by its rounding
+    expect(boundaryStep(on.params.hue!)).toBeLessThan(5e-4);
   }, 120_000);
 });
 

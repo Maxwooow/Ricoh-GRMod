@@ -12,7 +12,7 @@ import { applySlot } from './preview';
 import {
   addRatio, addWallFiles, askForOfficial, bridgeLoaded, loadFirmwareFile, loadIconImage, loadPresetFile, loadPreviewFile, moveWall, nameProblem, openCrop, outputFirmware, previewPhoto, removePreset, removeWall,
   maxRatios, ratioName, ratioProblem, removeRatio, setActiveRatio, setActiveSlot, setCrop, setIcon, setName, setPreviewMode, setRatio, setRatioBackdrop, useStore, wallBitmap,
-  setSoft,
+  setSoft, setAdditiveHue,
   setDateStamp,
   setMonoUnlock,
   setDirectFlash, setAdjSlots, adjSlotsOf, setHdr,
@@ -696,6 +696,7 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
   const flashOk = useStore((s) => !!s.info?.features.directFlash);
   const adjMax = useStore((s) => s.info?.features.maxAdjSlots ?? 5);
   const hdr = useStore((s) => s.hdr);
+  const additiveHue = useStore((s) => s.additiveHue);
   const hdrOk = useStore((s) => !!s.info?.features.hdrGainMap);
   const own = useRef<HTMLDivElement | null>(null);
   // Moved to the other column: glide from where it was (FLIP). Rectangles are in window pixels,
@@ -718,6 +719,7 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
       {flashOk && <FeatureRow icon={Ico.flash} title={t('navFlash')} sub={t('flashSub')} on={flash} onChange={setDirectFlash} />}
       {hdrOk && <FeatureRow icon={Ico.hdr} title={t('navHdr')} sub={t('hdrSub')} on={hdr} onChange={setHdr} />}
       {adjMax > 5 && <AdjSlotsRow max={adjMax} />}
+      {!gr3x && <FeatureRow icon={Ico.image} title={t('additiveHueTitle')} sub={t('additiveHueSub')} on={additiveHue} onChange={setAdditiveHue} />}
     </div>
   );
 }
