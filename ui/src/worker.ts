@@ -5,7 +5,7 @@ import type { BuildOptions, CameraModel, RatioSpec, SlotRequest, SoftFocusReques
 let engine: Engine | null = null;
 type Req =
   | { id: number; type: 'open'; raw: ArrayBuffer }
-  | { id: number; type: 'convert'; kind: 'xmp' | 'cube'; text: string; options?: { hue?: boolean } }
+  | { id: number; type: 'convert'; kind: 'xmp' | 'cube'; text: string; options?: { hue?: boolean; keepWhite?: boolean } }
   | { id: number; type: 'build'; requests: SlotRequest[]; ratios?: RatioSpec[]; softFocus?: SoftFocusRequest[]; options?: BuildOptions }
   | { id: number; type: 'ratio'; ratio: string; others: string[] }
   | { id: number; type: 'encode'; rgb: ArrayBuffer; model: CameraModel }

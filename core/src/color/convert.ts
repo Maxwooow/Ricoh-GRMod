@@ -1,3 +1,4 @@
+import { withWhiteSamples, HUE_WHITE_WEIGHT } from './white-anchor';
 // Conversion of a film-look preset into the parameters of one GR IV Image Control slot.
 import { slotApply } from './camera';
 import type { CameraToneModel, SlotParams } from './camera';
@@ -37,6 +38,8 @@ export interface Conversion {
 }
 
 export interface ConvertOptions {
+  /** Optional PR #22 fitting change, off by default. */
+  keepWhite?: boolean;
   onProgress?: (fraction: number) => void;
   /** Fit the post-curve ("second") matrix as well (default true). */
   post?: boolean;
@@ -407,10 +410,10 @@ function nearNeutralSamples(offset: number, sats: readonly number[], vals: reado
 }
 const HUE_NEAR_NEUTRAL_WEIGHT = 12;
 
-export function guardedHue(cube: ReturnType<typeof parseCube>, start: SlotParams, std: number[][], onProgress?: (f: number) => void): { params: SlotParams; hueQ10: number[] } | null {
+export function guardedHue(cube: ReturnType<typeof parseCube>, start: SlotParams, std: number[][], onProgress?: (f: number) => void, keepWhite = false): { params: SlotParams; hueQ10: number[] } | null {
   const refBase = cubeRefineSamples();
   const near = nearNeutralSamples(0, [0.04, 0.08, 0.13, 0.2], [0.3, 0.5, 0.7, 0.85, 0.97], HUE_NEAR_NEUTRAL_WEIGHT);
-  const ref: WeightedSamples = { P: Float64Array.from([...refBase.P, ...near.P]), weights: Float64Array.from([...refBase.weights, ...near.weights]) };
+  const ref: WeightedSamples = { P: Float64Array.from([...refBase.P, ...near.P, ...(keepWhite ? [1, 1, 1] : [])]), weights: Float64Array.from([...refBase.weights, ...near.weights, ...(keepWhite ? [HUE_WHITE_WEIGHT] : [])]) };
   const refTarget = applyCube(cube, ref.P);
   const base: SlotParams = { ...start, hue: std, hueStd: std };
   const tr = lab(refTarget);
@@ -454,7 +457,8 @@ export function guardedHue(cube: ReturnType<typeof parseCube>, start: SlotParams
 export function convertCube(text: string, opts?: ConvertOptions): Conversion {
   const cube = parseCube(text);
   opts?.onProgress?.(0.05);
-  const P = cubeFitSamplesExpanded();
+  const baseP = cubeFitSamplesExpanded();
+  const P = opts?.keepWhite ? withWhiteSamples(baseP) : baseP;
   const target = applyCube(cube, P);
   opts?.onProgress?.(0.1);
   const refine = opts?.refine === true;
@@ -469,7 +473,7 @@ export function convertCube(text: string, opts?: ConvertOptions): Conversion {
   }
   let hueQ10: number[] | undefined;
   if (hueStd) {
-    const h = guardedHue(cube, params, hueStd, subProgress(opts, refine ? 0.7 : 0.55, 0.98));
+    const h = guardedHue(cube, params, hueStd, subProgress(opts, refine ? 0.7 : 0.55, 0.98), opts?.keepWhite);
     if (h) { params = h.params; hueQ10 = h.hueQ10; }
   }
   // report on the original fitting colours (the first part of P), comparable with earlier versions
