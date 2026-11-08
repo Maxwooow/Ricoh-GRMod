@@ -1,5 +1,7 @@
 # GR Mod
 
+<p align="center"><img src="docs/images/whats-new-0.8.0-0.8.5.jpg" alt="GR Mod 0.8.0–0.8.5: Direct Flash, halation, up to 20 added slots, date imprint, soft focus, custom power-off image, settings guard, Image Control menu order, better preset fitting, custom aspect ratios, GR III family support" width="720"></p>
+
 A small desktop tool for the Ricoh GR IV / GR IV HDF / GR IV Monochrome (firmware 1.11), the GR III /
 GR III HDF (firmware 2.10) and the GR IIIx / GR IIIx HDF (firmware 1.60). Not a Ricoh product.
 
