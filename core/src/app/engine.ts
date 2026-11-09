@@ -246,6 +246,8 @@ export interface BuildOptions {
   halationDiag?: boolean;
   /** Test builds: the HDR gain map's diagnostics segment (APP15 "GRMODHDR") in every JPEG. */
   hdrDiag?: boolean;
+  /** Test builds only (GR IV 1.20): exposure preview always off (issue #17). */
+  exposurePreviewOff?: boolean;
   /** GR III 2.10: the number of films, 1..20 (`features.maxFilms`), each with a Halation
    * line in the camera. Absent: the nine-film T6 build. */
   filmCount?: number;
@@ -1029,6 +1031,7 @@ export class Engine {
       ...(options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {}),
       ...(options && options.halationDiag ? { halationDiag: true } : {}),
       ...(options && options.hdrDiag ? { hdrDiag: true } : {}),
+      ...(options && options.exposurePreviewOff ? { exposurePreviewOff: true } : {}),
     };
     const { decoded: _decoded, ...rest } = await this.g4.buildFirmware(this.raw, edits, ratios, clarity, features, test);
     return rest;

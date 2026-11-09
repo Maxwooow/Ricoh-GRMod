@@ -43,6 +43,7 @@ import type { ExtraSlotSpec } from './slots';
 import { installShutdownMenu } from './shutdown';
 import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
 import { installAdjSlots } from './adjslots';
+import { installExposurePreviewOff } from './lvpreview';
 import { FRAME_LOOK, LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
 import type { ShutdownPictureSpec } from './shutdown';
 
@@ -164,6 +165,8 @@ export interface TestOptions {
   halationDiag?: boolean;
   /** HDR gain map: an APP15 segment with the module's counters in every JPEG. */
   hdrDiag?: boolean;
+  /** Exposure preview off (issue #17), always on: the live view keeps a normal brightness (`lvpreview.ts`). */
+  exposurePreviewOff?: boolean;
 }
 
 /** Test builds only: the halation module's status (the 44 bytes before the heap; Direct Flash diagnostics' word otherwise). */
@@ -1135,6 +1138,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
   // ADJ lever slots: after the other additions that copy the submenu or list table (it adds records the same way).
   if (adjSlots > 0) installAdjSlots(patch, adjSlots);
+  if (test.exposurePreviewOff) installExposurePreviewOff(patch);
   // Last: wraps every other settings save/load and user-mode recall hook.
   if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}) });
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
