@@ -399,8 +399,9 @@ def scenarios(wild=False):
     for _ in range(14):
         s = [rnd.choice([0, 0, 1, 2, 3, 6, 9, 10, 13, 16, 20, 21, 25]) for _ in range(5)]
         x = [rnd.choice([0, 0, 1, 4, 7, 14, 18, 20, 22]) for _ in range(3)]
-        d = [rnd.choice([0, 0, 0, 1]) for _ in range(FUNCTIONS)]
-        h = set(f for f in range(FUNCTIONS) if rnd.random() < 0.7)
+        # the same draws whatever the table (test 080's 22nd function: not disabled, has the check)
+        d = [rnd.choice([0, 0, 0, 1]) for _ in range(21)] + [0] * (FUNCTIONS - 21)
+        h = set(f for f in range(21) if rnd.random() < 0.7) | set(range(21, FUNCTIONS))
         out.append((s, x, rnd.choice([0, 0, 0, 1]), h, d))
     if not wild:
         out = [([v if v < FUNCTIONS else 0 for v in sc[0]],) + sc[1:] for sc in out]

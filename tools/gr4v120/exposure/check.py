@@ -488,7 +488,7 @@ def check_guard(new):
     print('  guard: exposure preview 0..2 kept, else 0; ADJ slots 6..8 up to 0x15')
 
 
-def check_texts(new, off):
+def check_texts(new, ctl):
     roots = [new.u32(0x55002118 + 4 * l) for l in range(21)]
     first = 0x55000000 + (0x543b5270 - 0x543b3100)
     for l in range(21):
@@ -496,7 +496,7 @@ def check_texts(new, off):
         got = [dm.text(new, l, t) for t in (T_NAME, T_OFF_DF, T_ALWAYS)]
         check(got[0] == EP_NAMES[k] and got[1] and got[2], f'texts, row {l}: {got}')
         for t in (1, 2, 10, 11, 12, 884, 885, 926, 1018):
-            check(dm.text(new, l, t) == (dm.text(off, l, t) if t < 881 else dm.text(new, l, t)), f'text {t} row {l}')
+            check(dm.text(new, l, t) == dm.text(ctl, l, t), f"text {t} row {l}")
     print('  texts:', [dm.text(new, 2, t) for t in (T_NAME, T_OFF_DF, T_ALWAYS)], [dm.text(new, 15, t) for t in (T_NAME, T_OFF_DF, T_ALWAYS)])
     for low in (0x5440c5c4, 0x5440c5e4):
         w = new.u32(low)
@@ -511,7 +511,7 @@ def check_texts(new, off):
 def main():
     new, ctl, off = Image(sys.argv[1]), Image(sys.argv[2]), Image(sys.argv[3])
     if len(sys.argv) > 4:
-        check_adj(new, ctl, off); check_live(new); check_guard(new); check_texts(new, off); return finish()
+        check_adj(new, ctl, off); check_live(new); check_guard(new); check_texts(new, ctl); return finish()
     print("1. builder")
     built = check_builder(new, ctl)
     print('2. OK')
@@ -531,7 +531,7 @@ def main():
     print('10. guard')
     check_guard(new)
     print('11. texts and icons')
-    check_texts(new, off)
+    check_texts(new, ctl)
     finish()
 
 
