@@ -31,6 +31,15 @@
  * own colour (three maps: the light times red, green, blue over the brightest of them) and each
  * channel is lifted by its own map, all by the same table: a white lamp blooms white, a red sign red.
  *
+ * White, GR Mod 0.9 (`struct scatter`, when the context has one): Weak and Medium scatter like a
+ * diffusion filter (Black Pro-Mist, the GR IV HDF): no start, a share k of all the light (in linear
+ * light) is spread with three widths and laid back over the picture, (1 - k) L + k blur(E). E is
+ * the light with the highlights opened up again (a clipped lamp was brighter than white: times
+ * 1 + 7 x^2 by how far the brightest channel is above 0.55 of white), so lamps glow and the rest
+ * gets a faint haze. Strong is the 0.8.2 white glow with a lower start (150 of 255 as Standard
+ * renders grey, its own table per look) and a smaller gain. Without a `struct scatter` (GR III /
+ * IIIx, and files of 0.8.2..0.8.9) white is the 0.8.2 glow at every level.
+ *
  * Position-independent: no global data, every address comes in through `struct ctx`. No division
  * (the module must not need a run-time library).
  */
@@ -62,6 +71,23 @@ struct look {
   u16 light[256];     /* light (0..16384) of a value (the brighter of Y and red) */
 };
 
+/* White's Weak and Medium (scatter), and Strong's own light (see the header). */
+struct scatter {
+  u32 magic;          /* 'HSC1' */
+  u16 k[2];           /* Weak, Medium: share of the light scattered, of 4096 */
+  u16 rad[3];         /* box radius of the three spreads, in 1/4096 of the picture's width */
+  u16 weight[3];      /* their shares, of 256 (together 256) */
+  u16 strong_gain;    /* Strong: table index = light * gain >> 10, as `look.gain` */
+  u16 pad;
+  const u16 *lin;     /* 256: linear light (0..16384) of a level */
+  const u16 *expand;  /* 256: by the brightest channel's level, how much brighter the light was, of 256 (256..2048) */
+  const u8 *srgb;     /* 16385: the level of a linear light (0..16384) */
+  const u16 *strong;  /* `count` x 256: Strong's light of each look, as `look.light` */
+};
+
+#define SCATTER_MAGIC 0x31435348u /* 'HSC1' */
+#define LIN_MAX 16384u
+
 #define LUT_N 4096    /* lut[0..N) red, [N..2N) green, [2N..3N) blue: lift towards white, of 255;
                          [3N..4N) the lift of every channel for the white glow */
 
@@ -75,7 +101,7 @@ struct ctx {
   const u8 *lut;
   const struct look *looks;
   u32 count;          /* entries of `looks` */
-  u32 reserved;
+  const struct scatter *scatter; /* white's Weak / Medium / Strong of GR Mod 0.9, or 0 (0.8.2 white glow) */
   struct params p;
   u32 magic;          /* 'HAL4' */
   u8 look_map[64];    /* style -> entry of `looks` + 1, 0: no halation */
@@ -378,10 +404,143 @@ out:
   }
 }
 
+/* White's Weak and Medium: (1 - k) L + k blur(E), in linear light, per channel (see the header).
+ * Maps of E (of 2048 = white) averaged over F x F blocks as the glow's light; three spreads mixed
+ * by their shares; then every pair of pixels: to RGB, linear, mixed, back to levels, back to
+ * YCbCr. A pair whose three levels stay as they were is left untouched. */
+static void halate_scatter(const struct ctx *k, void *cache, const struct picture *p, const struct scatter *S, u32 kq) {
+  const u16 *lin = S->lin, *ex = S->expand;
+  const u8 *srgb = S->srgb;
+  u32 w = p->width, h = p->height, s = 0, q, F, sw, sh, x, y, i, n, c;
+  u16 *map[3] = {0, 0, 0}, *row[3] = {0, 0, 0}, *t1 = 0, *t2 = 0, *tmp = 0, *lk = 0;
+  u32 *acc = 0;
+  while ((w >> s) > SMALL_MAX || (h >> s) > SMALL_MAX) s++;
+  F = 1u << s;
+  sw = (w + F - 1) >> s; sh = (h + F - 1) >> s;
+  n = sw * sh;
+  for (c = 0; c < 3; c++) {
+    map[c] = (u16 *)k->alloc(n * 2 + 8);
+    row[c] = (u16 *)k->alloc(sw * 2 + 8);
+    if (!map[c] || !row[c]) { COUNT(k, 0x1000u); goto out; }
+  }
+  t1 = (u16 *)k->alloc(n * 2 + 8);
+  t2 = (u16 *)k->alloc(n * 2 + 8);
+  tmp = (u16 *)k->alloc((sw > sh ? sw : sh) * 2 + 8);
+  acc = (u32 *)k->alloc(3 * sw * 4 + 8);
+  lk = (u16 *)k->alloc(256 * 2 + 8);
+  if (!t1 || !t2 || !tmp || !acc || !lk) { COUNT(k, 0x1000u); goto out; }
+  COUNT(k, 0x100u);
+  sync(k, cache, p, 0);
+
+  /* 1. E of each channel, of 2048: the linear light times the opening of the brightest channel */
+  q = s >= 2 ? 1 : 0;
+  for (y = 0; y < h; y += F) {
+    u32 by = y >> s, yy, ylim = y + F > h ? h : y + F;
+    for (x = 0; x < 3 * sw; x++) acc[x] = 0;
+    for (yy = y; yy < ylim; yy += 1u << q) {
+      const u8 *yr = p->y + yy * p->stride, *cr = p->c + yy * p->stride;
+      for (x = 0; x < w; x += 1u << q) {
+        s32 Y = yr[x], cb = (s32)cr[x & ~1u] - 128, crr = (s32)cr[x | 1] - 128;
+        s32 R = clamp8(Y + ((91881 * crr + 32768) >> 16));
+        s32 G = clamp8(Y - ((22554 * cb + 46802 * crr - 32768) >> 16));
+        s32 B = clamp8(Y + ((116130 * cb + 32768) >> 16));
+        s32 m = R > G ? (R > B ? R : B) : (G > B ? G : B);
+        u32 f = ex[m];
+        acc[x >> s] += ((u32)lin[R] * f) >> 11;
+        acc[sw + (x >> s)] += ((u32)lin[G] * f) >> 11;
+        acc[2 * sw + (x >> s)] += ((u32)lin[B] * f) >> 11;
+      }
+    }
+    for (c = 0; c < 3; c++) for (x = 0; x < sw; x++) {
+      u32 v = acc[c * sw + x] >> (2 * (s - q));
+      map[c][by * sw + x] = (u16)(v > E_MAX ? E_MAX : v);
+    }
+  }
+
+  /* 2. per channel: the three spreads, mixed by their shares */
+  for (c = 0; c < 3; c++) {
+    u16 *m = map[c];
+    for (i = 0; i < n; i++) { t1[i] = m[i]; t2[i] = m[i]; }
+    spread(t1, sw, sh, S->rad[0], tmp);
+    spread(t2, sw, sh, S->rad[1], tmp);
+    spread(m, sw, sh, S->rad[2], tmp);
+    for (i = 0; i < n; i++) m[i] = (u16)(((u32)t1[i] * S->weight[0] + (u32)t2[i] * S->weight[1] + (u32)m[i] * S->weight[2]) >> 8);
+  }
+
+  /* 3. (1 - k) L + k blur(E): (1 - k) L of each level, k blur(E) of 16384 = (E * k) >> 9 */
+  for (i = 0; i < 256; i++) lk[i] = (u16)(((u32)lin[i] * (4096 - kq) + 2048) >> 12);
+  for (y = 0; y < h; y++) {
+    s32 fy = (s32)(((y << 8) + 128) >> s) - 128, sy0, sy1, wy;
+    u8 *yr = p->y + y * p->stride, *cr = p->c + y * p->stride;
+    if (fy < 0) fy = 0;
+    sy0 = fy >> 8; wy = fy & 255; sy1 = sy0 + 1;
+    if ((u32)sy0 >= sh) sy0 = (s32)sh - 1;
+    if ((u32)sy1 >= sh) sy1 = (s32)sh - 1;
+    for (c = 0; c < 3; c++) for (i = 0; i < sw; i++)
+      row[c][i] = (u16)(((u32)map[c][(u32)sy0 * sw + i] * (u32)(256 - wy) + (u32)map[c][(u32)sy1 * sw + i] * (u32)wy) >> 8);
+    for (x = 0; x + 1 < w; x += 2) {
+      s32 fx = (s32)(((x << 8) + 128) >> s) - 128, sx0, sx1, wx, cb, crr, j, sb = 0, sr = 0, same = 1;
+      u32 kb[3];
+      s32 o[2][3];
+      if (fx < 0) fx = 0;
+      sx0 = fx >> 8; wx = fx & 255; sx1 = sx0 + 1;
+      if ((u32)sx1 >= sw) sx1 = (s32)sw - 1;
+      for (c = 0; c < 3; c++)
+        kb[c] = ((((u32)row[c][sx0] * (u32)(256 - wx) + (u32)row[c][sx1] * (u32)wx) >> 8) * kq) >> 9;
+      cb = (s32)cr[x] - 128; crr = (s32)cr[x + 1] - 128;
+      for (j = 0; j < 2; j++) {
+        s32 Y = yr[x + j], v[3];
+        u32 t;
+        v[0] = clamp8(Y + ((91881 * crr + 32768) >> 16));
+        v[1] = clamp8(Y - ((22554 * cb + 46802 * crr - 32768) >> 16));
+        v[2] = clamp8(Y + ((116130 * cb + 32768) >> 16));
+        for (c = 0; c < 3; c++) {
+          t = lk[v[c]] + kb[c];
+          o[j][c] = srgb[t > LIN_MAX ? LIN_MAX : t];
+          if (o[j][c] != v[c]) same = 0;
+        }
+      }
+      if (same) continue;
+      for (j = 0; j < 2; j++) {
+        s32 R = o[j][0], G = o[j][1], B = o[j][2];
+        yr[x + j] = (u8)clamp8((19595 * R + 38470 * G + 7471 * B + 32768) >> 16);
+        sb += -11059 * R - 21709 * G + 32768 * B;
+        sr += 32768 * R - 27439 * G - 5329 * B;
+      }
+      cr[x] = (u8)clamp8(128 + ((sb + 65536) >> 17));
+      cr[x + 1] = (u8)clamp8(128 + ((sr + 65536) >> 17));
+    }
+  }
+  sync(k, cache, p, 1);
+out:
+  if (lk) k->release(lk);
+  if (acc) k->release(acc);
+  if (tmp) k->release(tmp);
+  if (t2) k->release(t2);
+  if (t1) k->release(t1);
+  for (c = 0; c < 3; c++) {
+    if (row[c]) k->release(row[c]);
+    if (map[c]) k->release(map[c]);
+  }
+}
+
+/* The context's scatter, when it is whole: 0 otherwise (white is then the 0.8.2 glow). */
+static const struct scatter *scatter_of(const struct ctx *k, u32 e) {
+  const struct scatter *S = k->scatter;
+  u32 i;
+  if (!S || !ram(S) || S->magic != SCATTER_MAGIC) return 0;
+  if (!ram(S->lin) || !ram(S->expand) || !ram(S->strong) || !ram(S->srgb)) return 0;
+  if (S->k[0] > 4096 || S->k[1] > 4096 || !S->strong_gain) return 0;
+  if ((u32)S->weight[0] + S->weight[1] + S->weight[2] != 256) return 0;
+  for (i = 0; i < 256; i++) if (S->lin[i] > LIN_MAX || S->expand[i] > 2048 || S->strong[(e - 1) * 256 + i] > E_MAX) return 0;
+  return S;
+}
+
 /* Entry: k = context, config = JpegEncodeMacroProcess configuration. */
 void halation(const struct ctx *k, u32 *config) {
   u32 st = *k->stash, style, level, i, j, gain, e;
   const struct look *look;
+  const struct scatter *S = 0;
   struct picture *seen[4];
   void *cache;
 #ifdef STATUS
@@ -419,6 +578,7 @@ void halation(const struct ctx *k, u32 *config) {
   if (!gain || k->p.mix > 256) return;
   for (i = 0; i < 256; i++) if (look->light[i] > E_MAX) return;
 #endif
+  if (st & STASH_WHITE) S = scatter_of(k, e);
   cache = k->cache();
   /* One picture per buffer (another entry with the same planes describes the whole sensor). */
   for (i = 0; i < 4; i++) {
@@ -430,8 +590,10 @@ void halation(const struct ctx *k, u32 *config) {
   }
   for (i = 0; i < 4; i++) {
     if (!seen[i]) continue;
-    if (st & STASH_WHITE) halate_white(k, cache, seen[i], gain, look->light);
-    else halate(k, cache, seen[i], gain, look->light);
+    if (!(st & STASH_WHITE)) halate(k, cache, seen[i], gain, look->light);
+    else if (!S) halate_white(k, cache, seen[i], gain, look->light);
+    else if (level < 3) halate_scatter(k, cache, seen[i], S, S->k[level - 1]);
+    else halate_white(k, cache, seen[i], S->strong_gain, S->strong + (e - 1) * 256);
   }
 #ifdef STATUS
   if (seen[0] || seen[1] || seen[2] || seen[3]) *k->status = (*k->status & ~0xffu) | 8;

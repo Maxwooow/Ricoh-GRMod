@@ -30,6 +30,7 @@ import { FirmwareError } from '../../types';
 import { assembleWords, branchTarget, movImmediate } from './arm';
 import { Patch, concat, u16le, u32le } from './build';
 import { HALATION_CODE, HALATION_CODE_LENGTH, HALATION_STATUS_CODE } from './halation-code';
+import { HALATION_CODE_089, HALATION_CODE_089_LENGTH } from './halation-code-089';
 
 /**
  * The look of the glow, the same for every look that has it: fitted to CineStill 800T pictures
@@ -57,6 +58,17 @@ export const HALATION = {
   channels: [1, 0.06, 0.03] as const,
   /** White (0.8.2, chosen on the camera): every channel lifted alike, a soft white bloom like the GR IV HDF's highlight diffusion. */
   white: [0.6, 0.6, 0.6] as const,
+  /**
+   * White's Weak and Medium from 0.9 (the camera's levels 1 and 2; `struct scatter` in halation.c):
+   * like a diffusion filter (Black Pro-Mist 1/8 and 1/4, the GR IV HDF), no start. A share `k` of
+   * all the light, in linear light, is spread with three widths (gaussian sigma of `radii` of the
+   * picture's width, mixed by `weights`) and laid back: (1 - k) L + k blur(E). E is the light with
+   * clipped highlights opened up again, times 1 + `open` x^2 where x is how far the brightest
+   * channel's linear light is above `knee` (to 1 at white): a lamp was brighter than white.
+   */
+  scatter: { k: [0.08, 0.15] as const, radii: [0.004, 0.02, 0.06] as const, weights: [0.5, 0.35, 0.15] as const, open: 7, knee: 0.55 },
+  /** White's Strong from 0.9: the 0.8.2 white glow with a lower start (of 255 as Standard renders grey) and gain (table index = light * gain >> 10). */
+  whiteStrong: { start: 150, gain: 25 },
 };
 
 /** Colour of the glow: red (film halation) or white (highlight diffusion). */
@@ -84,6 +96,10 @@ const CTX_MAGIC = 0x344c4148; // 'HAL4'
 const CTX_MAGIC_TEST = 0x334c4148; // 'HAL3'
 const CTX_MAGIC_081 = 0x324c4148; // 'HAL2'
 const CTX_MAGIC_072 = 0x4f4c4148; // 'HALO'
+/** `struct scatter` (0.9: white's Weak / Medium scatter and Strong's own light), at context word 9 (0 before 0.9). */
+const SCATTER_MAGIC = 0x31435348; // 'HSC1'
+const SCATTER_WORD = 9;
+const SCATTER_STRONG_AT = 36;
 /** Words of the context before its parameters (see `struct ctx`); the magic follows the parameters, the look map the magic. */
 const CTX_WORDS = 10;
 const MAGIC_AT = CTX_WORDS * 4 + PARAM_BYTES;
@@ -112,7 +128,11 @@ export function halationGains(): [number, number, number] {
 }
 
 /** A look's light: 256 values (0..16384), for the brighter of Y and red of a pixel. */
-export interface HalationLight { table: Uint16Array }
+export interface HalationLight {
+  table: Uint16Array;
+  /** White's Strong (0.9): the same light from `HALATION.whiteStrong.start`. */
+  strong?: Uint16Array;
+}
 
 const linear = (v: number): number => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
 
@@ -124,6 +144,11 @@ const linear = (v: number): number => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) /
  * light. Without curves: Standard's own levels.
  */
 export function halationLight(curves?: readonly [ArrayLike<number>, ArrayLike<number>, ArrayLike<number>], postQ9?: ArrayLike<number>): HalationLight {
+  return { table: lightTable(HALATION.start, curves, postQ9), strong: lightTable(HALATION.whiteStrong.start, curves, postQ9) };
+}
+
+/** A look's light from Standard level `start` (see `halationLight`). */
+function lightTable(start: number, curves?: readonly [ArrayLike<number>, ArrayLike<number>, ArrayLike<number>], postQ9?: ArrayLike<number>): Uint16Array {
   const level = (v: number): number => {
     if (!curves) return v;
     const x = (v / 255) * (16383 / 64);
@@ -143,7 +168,7 @@ export function halationLight(curves?: readonly [ArrayLike<number>, ArrayLike<nu
   // `minRange` below it when the look clips early, so that the light still fades in).
   let dw = 255;
   while (dw > 0 && out[dw - 1] >= white - 0.5) dw--;
-  const L0 = linear(Math.min(HALATION.start, dw - HALATION.minRange) / 255);
+  const L0 = linear(Math.min(start, dw - HALATION.minRange) / 255);
   const Lw = linear(dw / 255);
   const table = new Uint16Array(256);
   let d = 0;
@@ -156,11 +181,40 @@ export function halationLight(curves?: readonly [ArrayLike<number>, ArrayLike<nu
     const t = (linear(lv / 255) - L0) / (Lw - L0);
     table[v] = t <= 0 ? 0 : Math.min(E_MAX, Math.round(E_MAX * Math.min(1, t) * Math.min(1, t)));
   }
-  return { table };
+  return table;
 }
 
 /** Without a look (the camera's Standard). */
 export const PLAIN_LIGHT: HalationLight = halationLight();
+
+/** White's scatter (0.9, `struct scatter` in halation.c): its parameters in the module's units. */
+export function scatterParams(): { k: [number, number]; rad: [number, number, number]; weight: [number, number, number]; strongGain: number } {
+  const S = HALATION.scatter;
+  const weight = S.weights.map((w) => Math.round(w * 256)) as [number, number, number];
+  weight[0] = 256 - weight[1] - weight[2];
+  return {
+    k: [Math.round(S.k[0] * 4096), Math.round(S.k[1] * 4096)],
+    rad: S.radii.map((r) => Math.round(r * 4096)) as [number, number, number],
+    weight,
+    strongGain: HALATION.whiteStrong.gain,
+  };
+}
+
+/** The scatter's tables: linear light of a level (0..16384), the opening of clipped light by the brightest level (of 256), and a level of a linear light (16385). */
+export function scatterTables(): { lin: Uint16Array; expand: Uint16Array; srgb: Uint8Array } {
+  const S = HALATION.scatter;
+  const lin = new Uint16Array(256), expand = new Uint16Array(256), srgb = new Uint8Array(16385);
+  for (let v = 0; v < 256; v++) {
+    lin[v] = Math.round(16384 * linear(v / 255));
+    const x = Math.min(1, Math.max(0, (linear(v / 255) - S.knee) / (1 - S.knee)));
+    expand[v] = Math.round(256 * (1 + S.open * x * x));
+  }
+  for (let t = 0; t <= 16384; t++) {
+    const l = t / 16384;
+    srgb[t] = Math.round(255 * (l <= 0.0031308 ? 12.92 * l : 1.055 * l ** (1 / 2.4) - 0.055));
+  }
+  return { lin, expand, srgb };
+}
 
 const lutCache: Partial<Record<HalationColour, Uint8Array>> = {};
 /** The table of halation.c: lift of red, green, blue (of 255) for light index i (i / 64 units). */
@@ -175,9 +229,20 @@ export function halationLut(colour: HalationColour = 'red'): Uint8Array {
   return out;
 }
 
-export function halationModule(): Uint8Array {
+/** This version's module (GR IV): white's Weak / Medium scatter and Strong's own light when the context has a `struct scatter`. */
+function currentModule(): Uint8Array {
   const raw = Uint8Array.from(atob(HALATION_CODE), (c) => c.charCodeAt(0));
   if (raw.length !== HALATION_CODE_LENGTH || raw.length % 4 !== 0) fail('internal', 'halation module length');
+  return raw;
+}
+
+/**
+ * The module of 0.8.2..0.8.9, kept as it was (halation-code-089.ts): GR III / IIIx's round 7
+ * installs it, so their white stays the 0.8.2 glow. GR IV builds install `currentModule`.
+ */
+export function halationModule(): Uint8Array {
+  const raw = Uint8Array.from(atob(HALATION_CODE_089), (c) => c.charCodeAt(0));
+  if (raw.length !== HALATION_CODE_089_LENGTH || raw.length % 4 !== 0) fail('internal', 'halation module length');
   return raw;
 }
 
@@ -202,6 +267,7 @@ export function installHalationModule(p: Patch, looks: readonly HalationLook[], 
   looks.forEach((l, k) => {
     if (!(Number.isInteger(l.style) && l.style >= 0 && l.style < HALATION_LOOKS) || map[l.style]) fail('internal', 'halation: style of a look');
     if (!(l.light.table instanceof Uint16Array) || l.light.table.length !== 256 || l.light.table.some((v) => v > E_MAX)) fail('internal', 'halation: light of a look');
+    if (!(l.light.strong instanceof Uint16Array) || l.light.strong.length !== 256 || l.light.strong.some((v) => v > E_MAX)) fail('internal', 'halation: Strong white light of a look');
     map[l.style] = k + 1;
     entries.push(u16le([...halationGains(), 0, ...l.light.table]));
   });
@@ -213,14 +279,25 @@ export function installHalationModule(p: Patch, looks: readonly HalationLook[], 
   // Red (three channels), then the white glow's table (one, the same for every channel).
   const lut = p.append(concat([halationLut('red'), halationLut('white').subarray(0, LUT_N)]), 16);
   const table = p.append(new Uint8Array(entries.flatMap((e) => [...e])), 16);
+  // White's scatter (0.9): its tables, Strong's light of each look, then `struct scatter`.
+  const T = scatterTables(), SP = scatterParams();
+  const lin = p.append(u16le(Array.from(T.lin)), 16);
+  const expand = p.append(u16le(Array.from(T.expand)), 16);
+  const srgb = p.append(T.srgb, 16);
+  const strong = p.append(u16le(looks.flatMap((l) => Array.from(l.light.strong!))), 16);
+  const scatter = p.append(new Uint8Array([
+    ...u32le([SCATTER_MAGIC]),
+    ...u16le([...SP.k, ...SP.rad, ...SP.weight, SP.strongGain, 0]),
+    ...u32le([lin, expand, srgb, strong]),
+  ]), 16);
   const ctx = p.append(new Uint8Array([
-    ...u32le([CACHE, CACHE_FLUSH_FOR_READ, CACHE_CLEAN, HEAP_ALLOC, HEAP_FREE, stash, lut, table, looks.length, 0]),
+    ...u32le([CACHE, CACHE_FLUSH_FOR_READ, CACHE_CLEAN, HEAP_ALLOC, HEAP_FREE, stash, lut, table, looks.length, scatter]),
     ...paramBytes(),
     ...u32le([CTX_MAGIC]),
     ...map,
     ...(HALATION_TEST.statusWord ? u32le([HALATION_TEST.statusWord]) : []),
   ]), 16);
-  const code = p.append(HALATION_TEST.statusWord ? Uint8Array.from(atob(HALATION_STATUS_CODE), (c) => c.charCodeAt(0)) : halationModule(), 16);
+  const code = p.append(HALATION_TEST.statusWord ? Uint8Array.from(atob(HALATION_STATUS_CODE), (c) => c.charCodeAt(0)) : currentModule(), 16);
   const stub = p.append((at) => assembleWords(
     `push {r0-r3,ip,lr}
      ldr r1,[r1,#8]
@@ -287,7 +364,11 @@ export function readHalationLight(p: Patch, style: number): HalationLight | null
     if (!e || e > p.word(ctx + 8 * 4)) return null;
     const [stride, at] = magic === CTX_MAGIC ? [520, 8] : [516, 4];
     const b = p.read(p.word(ctx + 7 * 4) + (e - 1) * stride + at, 512);
-    return { table: Uint16Array.from({ length: 256 }, (_, i) => b[2 * i] | (b[2 * i + 1] << 8)) };
+    const table = Uint16Array.from({ length: 256 }, (_, i) => b[2 * i] | (b[2 * i + 1] << 8));
+    const sc = magic === CTX_MAGIC ? p.word(ctx + SCATTER_WORD * 4) : 0;
+    if (!sc || p.word(sc) !== SCATTER_MAGIC) return { table };
+    const t = p.read(p.word(sc + SCATTER_STRONG_AT) + (e - 1) * 512, 512);
+    return { table, strong: Uint16Array.from({ length: 256 }, (_, i) => t[2 * i] | (t[2 * i + 1] << 8)) };
   } catch {
     return null;
   }
@@ -399,22 +480,28 @@ const lift = (v: number, h: number): number => v + Math.floor(((255 - v) * h * 2
  * The module's computation (halation.c, `halate`) in TypeScript, on a YCbCr 4:2:2 picture (Y and
  * the interleaved CbCr plane, `w` bytes per row each), for GR Mod's preview. Same integer steps.
  */
-export function halateYcc(Y: Uint8Array, C: Uint8Array, w: number, h: number, level: HalationLevel, light: HalationLight = PLAIN_LIGHT, colour: HalationColour = 'red'): void {
-  if (colour === 'white') halateYccWhite(Y, C, w, h, level, light);
-  else halateYccRed(Y, C, w, h, level, light);
+export function halateYcc(Y: Uint8Array, C: Uint8Array, w: number, h: number, level: HalationLevel, light: HalationLight = PLAIN_LIGHT, colour: HalationColour = 'red', white: WhiteModel = 'scatter'): void {
+  if (colour !== 'white') halateYccRed(Y, C, w, h, level, light);
+  else if (white === 'classic') halateYccWhite(Y, C, w, h, halationGains()[level - 1], light.table);
+  else if (level < 3) halateYccScatter(Y, C, w, h, scatterParams().k[level - 1]);
+  else halateYccWhite(Y, C, w, h, HALATION.whiteStrong.gain, light.strong ?? lightTable(HALATION.whiteStrong.start));
 }
+
+/**
+ * Which white: 'scatter' (GR IV from 0.9: Weak / Medium scatter, Strong the glow from a lower
+ * start) or 'classic' (the 0.8.2 white glow at every level: GR III / IIIx).
+ */
+export type WhiteModel = 'scatter' | 'classic';
 
 /**
  * White (highlight diffusion): the light of each highlight spreads in its own colour (three maps,
  * red, green and blue, each the light times that channel over the brightest one), and each channel
  * is lifted by its own map. A white lamp gives a white bloom, a red sign a red one.
  */
-function halateYccWhite(Y: Uint8Array, C: Uint8Array, w: number, h: number, level: HalationLevel, light: HalationLight): void {
+function halateYccWhite(Y: Uint8Array, C: Uint8Array, w: number, h: number, gain: number, tab: Uint16Array): void {
   const P = paramBytes();
   const v = new DataView(P.buffer);
-  const tab = light.table;
   const narrow = v.getUint16(0, true), wideR = v.getUint16(2, true), mix = v.getUint16(4, true);
-  const gain = halationGains()[level - 1];
   const lut = halationLut('white');
   let s = 0;
   while ((w >>> s) > 1024 || (h >>> s) > 1024) s++;
@@ -507,6 +594,117 @@ function halateYccWhite(Y: Uint8Array, C: Uint8Array, w: number, h: number, leve
         const R = lift(c8(y0 + ((91881 * cr + 32768) >> 16)), hc[0]);
         const G = lift(c8(y0 - ((22554 * cb + 46802 * cr - 32768) >> 16)), hc[1]);
         const B = lift(c8(y0 + ((116130 * cb + 32768) >> 16)), hc[2]);
+        Y[row + x + j] = c8((19595 * R + 38470 * G + 7471 * B + 32768) >> 16);
+        sb += -11059 * R - 21709 * G + 32768 * B;
+        sr += 32768 * R - 27439 * G - 5329 * B;
+      }
+      C[row + x] = c8(128 + ((sb + 65536) >> 17));
+      C[row + x + 1] = c8(128 + ((sr + 65536) >> 17));
+    }
+  }
+}
+
+/** Box blur, three passes each way, of radius `rad` (1/4096 of `sw`), as `spread` in halation.c. */
+function spreadMap(a: Uint16Array, sw: number, sh: number, rad: number, tmp: Uint16Array): void {
+  let r = (rad * sw + 2048) >>> 12;
+  if (r < 1) return;
+  if (r > 200) r = 200;
+  const recip = Math.floor(65536 / (2 * r + 1));
+  const box = (off: number, len: number, step: number): void => {
+    if (len < 2) return;
+    for (let i = 0; i < len; i++) tmp[i] = a[off + i * step];
+    let sum = 0;
+    for (let j = -r; j <= r; j++) sum += tmp[j < 0 ? 0 : j >= len ? len - 1 : j];
+    for (let i = 0; i < len; i++) {
+      const out = i - r, inn = i + r + 1;
+      a[off + i * step] = Math.floor((sum * recip) / 65536);
+      sum -= tmp[out < 0 ? 0 : out];
+      sum += tmp[inn >= len ? len - 1 : inn];
+    }
+  };
+  for (let pass = 0; pass < 3; pass++) {
+    for (let y = 0; y < sh; y++) box(y * sw, sw, 1);
+    for (let x = 0; x < sw; x++) box(x, sh, sw);
+  }
+}
+
+/**
+ * White's Weak / Medium (0.9): the module's `halate_scatter`, same integer steps. `kq` of 4096:
+ * (1 - k) L + k blur(E) in linear light, per channel.
+ */
+function halateYccScatter(Y: Uint8Array, C: Uint8Array, w: number, h: number, kq: number): void {
+  const { lin, expand: ex, srgb } = scatterTables();
+  const SP = scatterParams();
+  let s = 0;
+  while ((w >>> s) > 1024 || (h >>> s) > 1024) s++;
+  const F = 1 << s;
+  const sw = (w + F - 1) >>> s, sh = (h + F - 1) >>> s, n = sw * sh;
+  const maps = [new Uint16Array(n), new Uint16Array(n), new Uint16Array(n)];
+  const acc = [new Uint32Array(sw), new Uint32Array(sw), new Uint32Array(sw)];
+  const q = s >= 2 ? 1 : 0;
+  for (let y = 0; y < h; y += F) {
+    const by = y >>> s, ylim = Math.min(h, y + F);
+    for (const a of acc) a.fill(0);
+    for (let yy = y; yy < ylim; yy += 1 << q) {
+      const row = yy * w;
+      for (let x = 0; x < w; x += 1 << q) {
+        const y0 = Y[row + x], cb = C[row + (x & ~1)] - 128, cr = C[row + (x | 1)] - 128;
+        const R = c8(y0 + ((91881 * cr + 32768) >> 16));
+        const G = c8(y0 - ((22554 * cb + 46802 * cr - 32768) >> 16));
+        const B = c8(y0 + ((116130 * cb + 32768) >> 16));
+        const m = R > G ? (R > B ? R : B) : (G > B ? G : B);
+        const f = ex[m];
+        acc[0][x >>> s] += (lin[R] * f) >>> 11;
+        acc[1][x >>> s] += (lin[G] * f) >>> 11;
+        acc[2][x >>> s] += (lin[B] * f) >>> 11;
+      }
+    }
+    for (let c = 0; c < 3; c++) for (let x = 0; x < sw; x++) maps[c][by * sw + x] = Math.min(16384, acc[c][x] >>> (2 * (s - q)));
+  }
+  const tmp = new Uint16Array(Math.max(sw, sh));
+  for (const m of maps) {
+    const t1 = m.slice(), t2 = m.slice();
+    spreadMap(t1, sw, sh, SP.rad[0], tmp);
+    spreadMap(t2, sw, sh, SP.rad[1], tmp);
+    spreadMap(m, sw, sh, SP.rad[2], tmp);
+    for (let i = 0; i < n; i++) m[i] = (t1[i] * SP.weight[0] + t2[i] * SP.weight[1] + m[i] * SP.weight[2]) >>> 8;
+  }
+  const lk = new Uint16Array(256);
+  for (let i = 0; i < 256; i++) lk[i] = (lin[i] * (4096 - kq) + 2048) >>> 12;
+  const rowv = [new Uint32Array(sw), new Uint32Array(sw), new Uint32Array(sw)];
+  const v = [0, 0, 0], o = [[0, 0, 0], [0, 0, 0]], kb = [0, 0, 0];
+  for (let y = 0; y < h; y++) {
+    let fy = (((y << 8) + 128) >> s) - 128;
+    if (fy < 0) fy = 0;
+    let sy0 = fy >> 8; const wy = fy & 255; let sy1 = sy0 + 1;
+    if (sy0 >= sh) sy0 = sh - 1;
+    if (sy1 >= sh) sy1 = sh - 1;
+    for (let c = 0; c < 3; c++) for (let i = 0; i < sw; i++) rowv[c][i] = (maps[c][sy0 * sw + i] * (256 - wy) + maps[c][sy1 * sw + i] * wy) >>> 8;
+    const row = y * w;
+    for (let x = 0; x + 1 < w; x += 2) {
+      let fx = (((x << 8) + 128) >> s) - 128;
+      if (fx < 0) fx = 0;
+      const sx0 = fx >> 8, wx = fx & 255;
+      let sx1 = sx0 + 1;
+      if (sx1 >= sw) sx1 = sw - 1;
+      for (let c = 0; c < 3; c++) kb[c] = (((rowv[c][sx0] * (256 - wx) + rowv[c][sx1] * wx) >>> 8) * kq) >>> 9;
+      const cb = C[row + x] - 128, cr = C[row + x + 1] - 128;
+      let same = true;
+      for (let j = 0; j < 2; j++) {
+        const y0 = Y[row + x + j];
+        v[0] = c8(y0 + ((91881 * cr + 32768) >> 16));
+        v[1] = c8(y0 - ((22554 * cb + 46802 * cr - 32768) >> 16));
+        v[2] = c8(y0 + ((116130 * cb + 32768) >> 16));
+        for (let c = 0; c < 3; c++) {
+          const t = lk[v[c]] + kb[c];
+          o[j][c] = srgb[t > 16384 ? 16384 : t];
+          if (o[j][c] !== v[c]) same = false;
+        }
+      }
+      if (same) continue;
+      let sb = 0, sr = 0;
+      for (let j = 0; j < 2; j++) {
+        const [R, G, B] = o[j];
         Y[row + x + j] = c8((19595 * R + 38470 * G + 7471 * B + 32768) >> 16);
         sb += -11059 * R - 21709 * G + 32768 * B;
         sr += 32768 * R - 27439 * G - 5329 * B;
@@ -617,7 +815,7 @@ function halateYccRed(Y: Uint8Array, C: Uint8Array, w: number, h: number, level:
 }
 
 /** Halation on an RGBA picture (sRGB, through YCbCr 4:2:2 as in the camera), in place; `light` of the slot (`halationLight`). */
-export function halateRgba(data: Uint8ClampedArray, width: number, height: number, level: HalationLevel, light: HalationLight = PLAIN_LIGHT, colour: HalationColour = 'red'): void {
+export function halateRgba(data: Uint8ClampedArray, width: number, height: number, level: HalationLevel, light: HalationLight = PLAIN_LIGHT, colour: HalationColour = 'red', white: WhiteModel = 'scatter'): void {
   const w = width & ~1;
   if (w < 2 || height < 2) return;
   const Y = new Uint8Array(w * height), C = new Uint8Array(w * height);
@@ -634,7 +832,7 @@ export function halateRgba(data: Uint8ClampedArray, width: number, height: numbe
     C[y * w + x + 1] = Math.max(0, Math.min(255, Math.round(cr / 2)));
   }
   const before = Y.slice(), cbefore = C.slice();
-  halateYcc(Y, C, w, height, level, light, colour);
+  halateYcc(Y, C, w, height, level, light, colour, white);
   // Only the change is put back, so the rest of the picture keeps its full colour resolution.
   for (let y = 0; y < height; y++) for (let x = 0; x < w; x += 2) {
     const dcb = C[y * w + x] - cbefore[y * w + x], dcr = C[y * w + x + 1] - cbefore[y * w + x + 1];

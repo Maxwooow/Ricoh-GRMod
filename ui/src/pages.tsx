@@ -66,9 +66,10 @@ function PhotoCompare({ params }: { params?: color.SlotParams }) {
   const after = useMemo(() => {
     if (!base || !halo) return base;
     const out = new ImageData(new Uint8ClampedArray(base.data), base.width, base.height);
-    halateRgba(out.data, out.width, out.height, halo.preview as 1 | 2 | 3, light, haloColour);
+    // GR IV's white from 0.9 scatters at Weak / Medium; GR III / IIIx keep the 0.8.2 white glow
+    halateRgba(out.data, out.width, out.height, halo.preview as 1 | 2 | 3, light, haloColour, gr3x ? 'classic' : 'scatter');
     return out;
-  }, [base, haloLevel, light, haloColour]);
+  }, [base, haloLevel, light, haloColour, gr3x]);
   return <Compare photo={photo} after={after} label={t('preset')} />;
 }
 
