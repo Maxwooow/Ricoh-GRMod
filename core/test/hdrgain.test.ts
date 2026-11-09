@@ -59,7 +59,7 @@ describe('HDR gain map: tables', () => {
     const t = hdrTables();
     const h = Buffer.from(t.head);
     expect(h.subarray(0, 2)).toEqual(Buffer.from([0xff, 0xd8]));
-    expect(h.indexOf('hdrgm:GainMapMax="2"')).toBeGreaterThan(0);
+    expect(h.indexOf('hdrgm:GainMapMax="1.2"')).toBeGreaterThan(0);
     expect(h.indexOf('urn:iso:std:iso:ts:21496:-1\0')).toBeGreaterThan(0);
     expect(h[t.sof - 5]).toBe(0xff);
     expect(h[t.sof - 4]).toBe(0xc0);

@@ -49,9 +49,9 @@ import { JPEG_EXECUTE } from './datestamp';
 /** The look of the gain map. */
 export const HDR_GAIN = {
   /** Most the highlights are lifted (stops; also the HDR headroom the file asks for). */
-  stops: 2,
+  stops: 1.2,
   /** Linear light (0..1, of the picture's sRGB value) where the lift starts; it rises smoothly to `stops` at white. */
-  start: 0.35,
+  start: 0.6,
   /** JPEG quality of the gain map. */
   quality: 85,
 };
