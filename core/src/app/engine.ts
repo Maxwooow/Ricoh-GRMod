@@ -248,6 +248,8 @@ export interface BuildOptions {
   hdrDiag?: boolean;
   /** Test builds only (GR IV 1.20): exposure preview always off (issue #17). */
   exposurePreviewOff?: boolean;
+  /** Test builds only (GR IV 1.20): exposure preview as a setting in the camera (still menu, ADJ lever), soft focus in the still menu (test 080). */
+  exposurePreview?: boolean;
   /** GR III 2.10: the number of films, 1..20 (`features.maxFilms`), each with a Halation
    * line in the camera. Absent: the nine-film T6 build. */
   filmCount?: number;
@@ -1032,6 +1034,7 @@ export class Engine {
       ...(options && options.halationDiag ? { halationDiag: true } : {}),
       ...(options && options.hdrDiag ? { hdrDiag: true } : {}),
       ...(options && options.exposurePreviewOff ? { exposurePreviewOff: true } : {}),
+      ...(options && options.exposurePreview ? { exposurePreview: true } : {}),
     };
     const { decoded: _decoded, ...rest } = await this.g4.buildFirmware(this.raw, edits, ratios, clarity, features, test);
     return rest;

@@ -68,6 +68,11 @@ export interface GuardOptions {
   adjSlots?: number;
   /** 0.8.9: the HDR gain map's menu switch is installed (`hdrgain.ts`, byte 0x10A of the settings: 0 On, 1 Off). */
   hdr?: boolean;
+  /**
+   * Test 080: exposure preview (`exposure.ts`, byte 0x10B of the settings: 0..2) is installed, and
+   * is the ADJ lever function 0x15 (so slots may hold it).
+   */
+  exposurePreview?: boolean;
 }
 
 /** Slots 6..8 (`adjslots.ts`): bytes 0x48D..0x48F of the user settings object, bits 0..4 the function, bits 5..7 of the first the slot last used (1..3: slot 6..8). */
@@ -75,6 +80,8 @@ const ADJ_EXTRA = [0x48d, 0x48e, 0x48f];
 const ADJ_STILL_POSITION = 0x91e;
 /** The HDR gain map's switch (`HDR_SWITCH_BYTE`): byte 0x10E of the user settings object; 0 or 1. */
 const HDR_SWITCH = 0x10e;
+/** Exposure preview (`EXPOSURE_PREVIEW_BYTE`): byte 0x10F of the user settings object; 0..2. */
+const EXPOSURE_PREVIEW = 0x10f;
 
 /** The standard photo and movie sets' looks (the others are custom sets' looks). */
 const CURRENT_LOOKS = [0x153, 0x515];
@@ -96,9 +103,11 @@ function fixSource(o: GuardOptions): string {
     }
   });
   if (!o.ratios) lines.push(`ldrb r2,[r0,#${RATIO}]`, 'cmp r2,#3', 'movhi r2,#0', `strbhi r2,[r0,#${RATIO}]`);
+  // The last ADJ function: 0x14, 0x15 with exposure preview on the ADJ lever.
+  const last = o.exposurePreview ? 21 : 20;
   if (!o.adjSoftFocus) {
     ADJ_SLOTS.forEach((off, i) => {
-      lines.push(`ldrb r2,[r0,#${off}]`, 'cmp r2,#10', `beq adjbad${i}`, 'cmp r2,#20', `bls adj${i}`, `adjbad${i}:`, 'mov r2,#0', `strb r2,[r0,#${off}]`, `adj${i}:`);
+      lines.push(`ldrb r2,[r0,#${off}]`, 'cmp r2,#10', `beq adjbad${i}`, `cmp r2,#${last}`, `bls adj${i}`, `adjbad${i}:`, 'mov r2,#0', `strb r2,[r0,#${off}]`, `adj${i}:`);
     });
   }
   const n = o.adjSlots ?? 5;
@@ -112,7 +121,7 @@ function fixSource(o: GuardOptions): string {
         lines.push('mov r2,#0');
       } else {
         // the function: 0..0x14, soft focus (0x0A) only with soft focus on the ADJ lever
-        lines.push('and r3,r2,#0x1f', 'cmp r3,#20', `bhi xbad${j}`);
+        lines.push('and r3,r2,#0x1f', `cmp r3,#${last}`, `bhi xbad${j}`);
         if (!o.adjSoftFocus) lines.push('cmp r3,#10', `beq xbad${j}`);
         lines.push(`b xok${j}`, `xbad${j}:`, 'bic r2,r2,#0x1f', `xok${j}:`);
         // the slot last used (first byte only): slots 6..n
@@ -123,6 +132,7 @@ function fixSource(o: GuardOptions): string {
     });
   }
   if (o.hdr) lines.push(`ldrb r2,[r0,#${HDR_SWITCH}]`, 'cmp r2,#1', 'movhi r2,#0', `strbhi r2,[r0,#${HDR_SWITCH}]`);
+  if (o.exposurePreview) lines.push(`ldrb r2,[r0,#${EXPOSURE_PREVIEW}]`, 'cmp r2,#2', 'movhi r2,#0', `strbhi r2,[r0,#${EXPOSURE_PREVIEW}]`);
   lines.push('bx lr');
   return lines.join(';');
 }

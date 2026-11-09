@@ -192,7 +192,8 @@ function hi(v: number): number {
  * Install soft focus on the ADJ lever. `patch` must already hold the scaffold of `build.ts`
  * (relocated catalogs). Returns the ICONBIN data with the icon appended.
  */
-export function installAdjSoftFocus(patch: Patch, iconbin: Uint8Array): Uint8Array {
+export function installAdjSoftFocus(patch: Patch, iconbin: Uint8Array, maxFunction = ADJ_FUNCTIONS - 1): Uint8Array {
+  if (maxFunction !== ADJ_FUNCTIONS - 1 && maxFunction !== ADJ_FUNCTIONS) fail('internal', 'soft focus: the last ADJ function');
   // --- Checks of the official code this relies on.
   for (const [off, value] of OFFICIAL_RECORD) expectWord(patch, ADJ_TABLE + ADJ_SOFT_FOCUS * ADJ_RECORD + off, value);
   if (ADJ_SOFT_FOCUS >= ADJ_FUNCTIONS) fail('internal', 'soft focus must reuse a record of the table');
@@ -321,10 +322,10 @@ export function installAdjSoftFocus(patch: Patch, iconbin: Uint8Array): Uint8Arr
     patch.setWord(site, branchTo(site, gate, 14), 'ADJ soft focus: digital filter step');
   }
 
-  // --- Slot getters: a stored function above 0x14 reads as off.
+  // --- Slot getters: a stored function above 0x14 (test 080 with exposure preview on the ADJ lever: 0x15) reads as off.
   SLOT_GETTERS.forEach((at, i) => {
     const getter = patch.append((a) => assembleWords(
-      `ldrb r0, [r0, #${0x920 + i}]; cmp r0, #${ADJ_FUNCTIONS - 1}; movhi r0, #0; bx lr`, a), 16);
+      `ldrb r0, [r0, #${0x920 + i}]; cmp r0, #${maxFunction}; movhi r0, #0; bx lr`, a), 16);
     patch.setWord(at, branchTo(at, getter, 14), 'ADJ soft focus: slot getter');
   });
 

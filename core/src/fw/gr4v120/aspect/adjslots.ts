@@ -60,7 +60,7 @@
  * functions are as before.
  */
 import { FirmwareError } from '../../types';
-import { assembleWords, branchTarget, branchWord } from './arm';
+import { assembleWords, branchTarget, branchWord, movWord } from './arm';
 import { LANGUAGES, Patch, TEXT_CATALOG, concat, expectWord, u32le, utf16z, widenTextRows } from './build';
 import { LIST_CONTROLLER_ID, SUBMENU_CONTROLLER_ID, SUB_RECORD, SUB_SET_ICON, addListRecords, addSubmenuRecord, hookControllerFactory, submenuTable } from './datestamp-menu';
 import { ADJSLOTS_CODE, ADJSLOTS_ENTRY } from './adjslots-code';
@@ -311,9 +311,29 @@ const SUBMENU_OFFICIAL: readonly (readonly [number, number])[] = [
   [0x531e3b34, 0xe5925014],
 ];
 
-/** r1 = the function of slot k (5..7) as kept (above 0x14: none); r2 its byte's address. */
+/** The last ADJ function: 0x14, or 0x15 with exposure preview on the ADJ lever (set by `installAdjSlots`). */
+let MAX_FUNCTION = 0x14;
+
+/** r1 = the function of slot k (5..7) as kept (above the last: none); r2 its byte's address. */
 const loadExtra = (k: number): string => `movw r2, #${lo(ADJ_EXTRA_BYTE + k - 5)}; movt r2, #${hi(ADJ_EXTRA_BYTE + k - 5)}
-  ldrb r1, [r2]; and r1, r1, #0x1f; cmp r1, #0x14; movhi r1, #0`;
+  ldrb r1, [r2]; and r1, r1, #0x1f; cmp r1, #${MAX_FUNCTION}; movhi r1, #0`;
+
+/**
+ * Test 080: the module (compiled for the official table, 21 functions at 0x53DC9DFC) with the
+ * table copied with a 22nd function: its two loads of the table's "disabled" members (MOVW / MOVT
+ * of table + 0x3C) and its bound of a slot's function (cmp r4, #0x14), checked word for word.
+ */
+function moduleWithTable(code: Uint8Array, table: number): void {
+  const v = new DataView(code.buffer, code.byteOffset, code.byteLength);
+  const sites: readonly (readonly [number, number])[] = [[68, 0xe3540014], [172, 0xe3091e38], [176, 0xe34513dc], [416, 0xe3091e38], [420, 0xe34513dc]];
+  for (const [at, word] of sites) if (v.getUint32(at, true) !== word) fail('internal', 'ADJ slots: the module is not the one expected');
+  const member = table + 0x3c;
+  v.setUint32(68, 0xe3540015, true);
+  for (const at of [172, 416]) {
+    v.setUint32(at, movWord(1, lo(member)), true);
+    v.setUint32(at + 4, movWord(1, hi(member), true), true);
+  }
+}
 
 function installMenu(patch: Patch, n: number): void {
   // --- Checks.
@@ -340,7 +360,7 @@ function installMenu(patch: Patch, n: number): void {
     const k = 5 + j;
     const set = patch.append((at) => assembleWords(
       `ldr r3, [r0, #0x1a8]; ldr ip, [r0, #0x1ac]; sub ip, ip, r3; cmp r1, ip; bxhs lr
-       ldrb r1, [r3, r1]; cmp r1, #0x14; bxhi lr
+       ldrb r1, [r3, r1]; cmp r1, #${MAX_FUNCTION}; bxhi lr
        movw r2, #${lo(ADJ_EXTRA_BYTE + j)}; movt r2, #${hi(ADJ_EXTRA_BYTE + j)}
        ldrb r3, [r2]; bic r3, r3, #0x1f; orr r3, r3, r1; strb r3, [r2]; bx lr`, at), 16);
     const current = patch.append((at) => assembleWords(
@@ -441,7 +461,10 @@ function installMenu(patch: Patch, n: number): void {
  * Install N ADJ slots (6..8; 5 only for the emulator checks, the official layout through the new
  * code). Returns nothing; the ICONBIN data does not change.
  */
-export function installAdjSlots(patch: Patch, n: number, options: { menu?: boolean } = {}): void {
+export function installAdjSlots(patch: Patch, n: number, options: { menu?: boolean; functionTable?: number } = {}): void {
+  // Test 080: the function table copied with function 0x15 (exposure preview, `exposure.ts`).
+  const functionTable = options.functionTable ?? 0;
+  MAX_FUNCTION = functionTable ? 0x15 : 0x14;
   if (!(Number.isInteger(n) && n >= ADJ_SLOTS_MIN && n <= ADJ_SLOTS_MAX)) fail('internal', 'ADJ slots: 5 to 8');
   for (const [at, word] of OFFICIAL) expectWord(patch, at, word);
   const officialTable = patch.readMapped(VIEW_TABLE, OFFICIAL_VIEWS * VIEW_ENTRY);
@@ -456,7 +479,9 @@ export function installAdjSlots(patch: Patch, n: number, options: { menu?: boole
   }
 
   // --- The module and the view table.
-  const module = patch.append(decodeBase64(ADJSLOTS_CODE), 16);
+  const code = decodeBase64(ADJSLOTS_CODE);
+  if (functionTable) moduleWithTable(code, functionTable);
+  const module = patch.append(code, 16);
   const E = ADJSLOTS_ENTRY;
   const table = patch.append(adjViewTable(officialTable, n), 16);
   const stub = (body: string): number => patch.append((at) => assembleWords(body, at), 16);

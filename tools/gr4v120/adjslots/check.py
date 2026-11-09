@@ -57,6 +57,19 @@ FIXED_FLAG = CURRENT + 0x32
 TABLE = 0x53dc9dfc
 REC = 0x5c
 FUNCTIONS = 0x15
+# Test 080 (exposure preview on the ADJ lever, core/src/fw/gr4v120/aspect/exposure.ts): the table is
+# copied with a 22nd function; `use_table` reads where an image has it (the MOVW / MOVT of the
+# controller's initialiser 0x531BD4BC and its end word) before that image's checks.
+TABLE_MOVW, TABLE_MOVT, TABLE_END = 0x531bd4c4, 0x531bd4d4, 0x531bd600
+
+
+def use_table(path):
+    global TABLE, FUNCTIONS
+    img = dm.Image(path)
+    TABLE = img.movw_movt(TABLE_MOVW, TABLE_MOVT)
+    FUNCTIONS = (img.u32(TABLE_END) - TABLE) // REC
+    assert FUNCTIONS in (0x15, 0x16) and img.u32(TABLE_END) == TABLE + FUNCTIONS * REC, 'ADJ function table'
+    return TABLE, FUNCTIONS
 FIXED_FUNCTIONS = [0x0f, 0x01, 0x07, 0x12, 0x11]
 OFFICIAL_SIZE, NEW_SIZE = 0x294, 0x3a0
 FRAMES, ICONS, STATE = 0x294, 0x2b4, 0x2d8
@@ -256,11 +269,11 @@ class Model:
                 f = FIXED_FUNCTIONS[k] if k < 5 else 0
             elif k < 5:
                 f = slots[k]
-                if softfocus and f > 0x14:
+                if softfocus and f >= FUNCTIONS:
                     f = 0
             else:
                 f = ext[k - 5] & 0x1f
-                f = 0 if f > 0x14 else f
+                f = 0 if f >= FUNCTIONS else f
             self.fn.append(f)
 
     def disabled(self, f):
@@ -390,7 +403,7 @@ def scenarios(wild=False):
         h = set(f for f in range(FUNCTIONS) if rnd.random() < 0.7)
         out.append((s, x, rnd.choice([0, 0, 0, 1]), h, d))
     if not wild:
-        out = [([v if v <= 0x14 else 0 for v in sc[0]],) + sc[1:] for sc in out]
+        out = [([v if v < FUNCTIONS else 0 for v in sc[0]],) + sc[1:] for sc in out]
     return out
 
 
@@ -673,7 +686,7 @@ def check_menu(d, name, n, other_menu_ids=(), reference=None):
     check(rec[0] == off_adj[0] and rec[1] == off_adj[1], f'{name}: lines record head')
     # Lists: count / row draw are ADJ Mode Setting 1's; set and is current per value.
     seltab = new.movw_movt(0x531d825c, 0x531d826c)
-    vec = list(range(20))
+    vec = list(range(FUNCTIONS - 1))
     for j in range(lines):
         r = new.rd(seltab + list_recs[j] * 0x4c, 0x4c)
         o = off.rd(0x53dcd470 + 68 * 0x4c, 0x4c)  # ADJ Mode Setting 1's list (1.11: record 67)
@@ -690,12 +703,12 @@ def check_menu(d, name, n, other_menu_ids=(), reference=None):
                 e.mu.mem_write(EXT + j, bytes([raw]))
                 ic = e.call(cur, (this, i))
                 fval = raw & 0x1f
-                fval = 0 if fval > 0x14 else fval
+                fval = 0 if fval >= FUNCTIONS else fval
                 want = 1 if i < len(vec) and vec[i] == fval else 0
                 check(ic == want, f'{name}: list {j} byte {raw:#x} is-current {i}: {ic}')
                 e.call(setf, (this, i))
                 after = e.byte(EXT + j)
-                if i < len(vec) and vec[i] <= 0x14:
+                if i < len(vec) and vec[i] < FUNCTIONS:
                     check(after == (raw & 0xe0) | vec[i], f'{name}: list {j} byte {raw:#x} set {i}: {after:#x}')
                 else:
                     check(after == raw, f'{name}: list {j} byte {raw:#x} set {i} (none): {after:#x}')
@@ -708,7 +721,7 @@ def check_menu(d, name, n, other_menu_ids=(), reference=None):
             e.call(draw, (0x70000000, 0x70700000))
             icons = [c for c in e.calls if c[0] == 'sub-icon']
             fval = raw & 0x1f
-            fval = 0 if fval > 0x14 else fval
+            fval = 0 if fval >= FUNCTIONS else fval
             check(icons == [('sub-icon', 0x70700000, ICON_BASE + fval, icons[0][3] if icons else 0)], f'{name}: line {j} icon for {raw:#x}: {icons}')
 
     # SubMenuController itself, every widget function real: every other submenu as in the reference
@@ -808,7 +821,7 @@ def check_guard(d, name, n, softfocus):
                 want.append(0)
                 continue
             f = b[j] & 0x1f
-            ok = f <= 20 and (softfocus or f != 10)
+            ok = f < FUNCTIONS and (softfocus or f != 10)
             v = (b[j] & 0xe0) | (f if ok else 0)
             if j == 0:
                 if (v >> 5) > n - 5:
@@ -829,7 +842,15 @@ def check_guard(d, name, n, softfocus):
 def check_calls(d, name):
     img = dm.Image(d / name)
     src = (ROOT / 'core' / 'src' / 'fw' / 'gr4v120' / 'aspect' / 'adjslots-code.ts').read_text()
-    code = base64.b64decode(re.search(r"ADJSLOTS_CODE = '([^']+)'", src).group(1))
+    code = bytearray(base64.b64decode(re.search(r"ADJSLOTS_CODE = '([^']+)'", src).group(1)))
+    if TABLE != 0x53dc9dfc:
+        # test 080: the module with the copied table (adjslots.ts, moduleWithTable)
+        member = TABLE + 0x3c
+        mw = lambda r, v, t: (0xe3400000 if t else 0xe3000000) | ((v & 0xf000) << 4) | (r << 12) | (v & 0xfff)
+        struct.pack_into('<I', code, 68, 0xe3540015)
+        for at in (172, 416):
+            struct.pack_into('<2I', code, at, mw(1, member & 0xffff, False), mw(1, member >> 16, True))
+    code = bytes(code)
     # find the module in the image
     at = img.R.find(code)
     check(at > 0, f'{name}: module not found')
@@ -879,6 +900,9 @@ def main():
         images = (('n6.rtos', 6, False), ('n7.rtos', 7, False), ('n8.rtos', 8, False), ('n8sf.rtos', 8, True), ('n8all.rtos', 8, True))
     for name, n, sf in images:
         print(f'{name}:')
+        table, functions = use_table(d / name)
+        if functions != 0x15:
+            print(f'  ADJ function table at {table:#x}, {functions} functions')
         check_slots(d, name, n, sf)
         check_menu(d, name, n, other_menu_ids=(1,) if 'all' in name or len(sys.argv) > 3 else (),
                    reference=('n5all.rtos' if 'all' in name else REFERENCE))

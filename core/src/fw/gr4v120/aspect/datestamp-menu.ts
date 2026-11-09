@@ -60,6 +60,7 @@ import {
   ICON_CATALOG, LANGUAGES, LOOKUP_BOUNDS, NATIVE_TEXT_ROOTS, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z, widenTextRows,
 } from './build';
 import { DATESTAMP_AS_STORED, DATESTAMP_BYTE, DATESTAMP_LONG, DATESTAMP_NAME } from './datestamp';
+import { OFFICIAL_ITEMS, WIDE_DESCRIPTOR, WIDE_ITEMS, W_DRAW, W_ID, W_VISIBLE, installWideMenus } from './menuwide';
 
 /** Controller ids of the submenu and of its two lists. */
 export const DATESTAMP_MENU_ID = 0x020001a0;
@@ -281,7 +282,7 @@ export function drawStyleIcon(long: boolean, name = false): Uint8Array {
 // --------------------------------------------------------------------------------------------
 // Texts
 
-function installTexts(patch: Patch, entries: readonly { id: number; names: readonly string[] }[]): void {
+export function installTexts(patch: Patch, entries: readonly { id: number; names: readonly string[] }[]): void {
   const roots = new DataView(patch.readMapped(NATIVE_TEXT_ROOTS, LANGUAGES * 4).buffer);
   const order: number[] = [];
   const seen = new Set<number>();
@@ -345,7 +346,7 @@ function installIcons(patch: Patch, iconbin: Uint8Array): Uint8Array {
 // Shared with other camera-menu additions (`shutdown.ts`)
 
 export { FACTORY as CONTROLLER_FACTORY, D_RANGE_ID as SUBMENU_CONTROLLER_ID, HORIZON_ID as LIST_CONTROLLER_ID };
-export { SUB_SET_ICON, LIST_SET_ITEM, SUB_RECORD };
+export { SUB_SET_ICON, LIST_SET_ITEM, SUB_RECORD, TOP_SET_TITLE, ICON_OFF, ICON_ON, TEXT_OFF, TEXT_ON };
 
 /** Where the submenu table (SubMenuController records, 0x64 bytes) is now: the official one or its latest copy. */
 export function submenuTable(patch: Patch): number {
@@ -484,7 +485,7 @@ function relocateTable(patch: Patch, table: number, record: number, copyRecords:
  * Install the menu entry. `patch` must already hold the scaffold of `build.ts` (relocated
  * catalogs) and the imprint itself. Returns the ICONBIN data with the four style icons appended.
  */
-export function installDateStampMenu(patch: Patch, iconbin: Uint8Array, hdrDraw = 0): Uint8Array {
+export function installDateStampMenu(patch: Patch, iconbin: Uint8Array, lines: readonly StillLine[] = []): Uint8Array {
   // --- Checks of the official code and data this relies on.
   expectWord(patch, BUILDER, 0xe1a0c00d); // mov ip, sp
   expectWord(patch, BUILDER + 4, movWord(3, lo(MENU_TABLE)));
@@ -701,9 +702,9 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array, hdrDraw 
   relocateTable(patch, SUB_TABLE, SUB_RECORD, SUB_RECORDS + 1, [subRecord], SUB_SITES, 'date imprint: submenu records');
   patch.submenuRecords = SUB_RECORD_NUMBER + 1;
 
-  // --- Two still-menu descriptors (with the HDR gain map's line: one per model, see `stillMenuForModels`).
-  if (hdrDraw) {
-    stillMenuForModels(patch, still, topDraw, hdrDraw, 'date imprint and HDR gain map');
+  // --- Two still-menu descriptors (with the HDR gain map's line, or the other added lines: one per model, see `stillMenuForModels`).
+  if (lines.length) {
+    stillMenuForModels(patch, still, topDraw, lines, 'date imprint and HDR gain map');
   } else {
     const descriptor = (keep: number): Uint8Array => {
       const d = still.slice();
@@ -822,46 +823,69 @@ export function hdrTopDraw(patch: Patch, byte: number): number {
      pop {r4, lr}; b #${TOP_SET_TITLE}`, at), 16);
 }
 
+/** A line added to the still menu: its draw function, the controller id OK opens, and the official item it follows (null: at the end, before the date imprint's). */
+export interface StillLine { draw: number; id: number; after: number | null }
+
+/** The HDR line: after Color Space. */
+export function hdrStillLine(hdrDraw: number): StillLine {
+  return { draw: hdrDraw, id: HDR_LIST_ID, after: COLOR_SPACE_ID };
+}
+
 /**
  * One still-menu descriptor per model (0 GR IV, 1 HDF, 2 Monochrome; any other number gets the
- * HDF's), each without the model-specific items that model does not show, with the HDR line after
- * Color Space and (when `dateDraw`) the date imprint's line at the end; the builder stores the
- * model's at 0x55001E78 before it builds the menus (it is the only reader of that table).
+ * HDF's), each without the model-specific items that model does not show, with the added `lines`
+ * after their official items (HDR after Color Space) and (when `dateDraw`) the date imprint's line
+ * at the end; the builder stores the model's at 0x55001E78 before it builds the menus (it is the
+ * only reader of that table). Up to 38 lines in the official layout; more (test 080: soft focus and
+ * exposure preview) in the wide layout of `menuwide.ts`, for all five tabs.
  */
-function stillMenuForModels(patch: Patch, still: Uint8Array, dateDraw: number, hdrDraw: number, what: string): void {
+function stillMenuForModels(patch: Patch, still: Uint8Array, dateDraw: number, lines: readonly StillLine[], what: string): void {
   const dv = new DataView(still.buffer, still.byteOffset, still.byteLength);
   const id = (i: number): number => dv.getUint32(D_ID + i * 4, true);
   const visible = (i: number): number => dv.getUint32(D_VISIBLE + i * 8, true);
   if (id(GR4_ONLY_ITEM) !== GR4_ONLY_ID || visible(GR4_ONLY_ITEM) !== GR4_ONLY_VISIBLE || visible(HDF_ITEM) !== HDF_VISIBLE || visible(RED_FILTER_ITEM) !== RED_FILTER_VISIBLE) {
     fail('unexpected-layout', 'model-specific still-menu items are not the official ones');
   }
-  for (let i = 0; i < MAX_ITEMS; i++) if (id(i) === HDR_LIST_ID) fail('unexpected-layout', 'HDR controller id already in use');
-  const colour = Array.from({ length: MAX_ITEMS }, (_, i) => i).filter((i) => id(i) === COLOR_SPACE_ID);
-  if (colour.length !== 1) fail('unexpected-layout', 'Color Space is not in the still menu');
+  for (const line of lines) {
+    for (let i = 0; i < MAX_ITEMS; i++) if (id(i) === line.id) fail('unexpected-layout', 'controller id of an added line already in use');
+    if (line.after !== null && Array.from({ length: MAX_ITEMS }, (_, i) => i).filter((i) => id(i) === line.after).length !== 1) fail('unexpected-layout', 'the item an added line follows is not in the still menu');
+    if (line.after === GR4_ONLY_ID || line.after === id(HDF_ITEM) || line.after === id(RED_FILTER_ITEM)) fail('internal', 'an added line cannot follow a model-specific item');
+  }
+  if (new Set(lines.map((l) => l.id)).size !== lines.length) fail('internal', 'still menu: added lines with the same id');
   const firsts = [...still.subarray(D_FIRST, D_FIRST + still[D_PAGES])];
-  const descriptor = (drop: readonly number[]): Uint8Array => {
-    const d = still.slice();
-    const v = new DataView(d.buffer);
+  const orderFor = (drop: readonly number[]): ({ i: number } | { draw: number; id: number })[] => {
     const order: ({ i: number } | { draw: number; id: number })[] = [];
     for (let i = 0; i < MAX_ITEMS; i++) {
       if (drop.includes(i)) continue;
       order.push({ i });
-      if (i === colour[0]) order.push({ draw: hdrDraw, id: HDR_LIST_ID });
+      for (const line of lines) if (line.after === id(i)) order.push({ draw: line.draw, id: line.id });
     }
+    for (const line of lines) if (line.after === null) order.push({ draw: line.draw, id: line.id });
     if (dateDraw) order.push({ draw: dateDraw, id: DATESTAMP_MENU_ID });
-    if (order.length > MAX_ITEMS) fail('internal', 'still menu: too many items');
-    for (let j = 0; j < MAX_ITEMS; j++) {
+    return order;
+  };
+  const drops = [[HDF_ITEM, RED_FILTER_ITEM], [GR4_ONLY_ITEM, RED_FILTER_ITEM], [GR4_ONLY_ITEM, HDF_ITEM]] as const;
+  const wide = drops.some((d) => orderFor(d).length > MAX_ITEMS);
+  const [n, drawAt, idAt, visibleAt, size] = wide ? [WIDE_ITEMS, W_DRAW, W_ID, W_VISIBLE, WIDE_DESCRIPTOR] : [MAX_ITEMS, D_DRAW, D_ID, D_VISIBLE, DESCRIPTOR];
+  const descriptor = (drop: readonly number[]): Uint8Array => {
+    const d = new Uint8Array(size);
+    d.set(still.subarray(0, D_DRAW));
+    if (!wide) d.set(still);
+    const v = new DataView(d.buffer);
+    const order = orderFor(drop);
+    if (order.length > n) fail('internal', 'still menu: too many items');
+    for (let j = 0; j < n; j++) {
       const o = order[j];
       if (o && 'i' in o) {
-        d.set(still.subarray(D_DRAW + o.i * 8, D_DRAW + o.i * 8 + 8), D_DRAW + j * 8);
-        d.set(still.subarray(D_ID + o.i * 4, D_ID + o.i * 4 + 4), D_ID + j * 4);
-        d.set(still.subarray(D_VISIBLE + o.i * 8, D_VISIBLE + o.i * 8 + 8), D_VISIBLE + j * 8);
+        d.set(still.subarray(D_DRAW + o.i * 8, D_DRAW + o.i * 8 + 8), drawAt + j * 8);
+        d.set(still.subarray(D_ID + o.i * 4, D_ID + o.i * 4 + 4), idAt + j * 4);
+        d.set(still.subarray(D_VISIBLE + o.i * 8, D_VISIBLE + o.i * 8 + 8), visibleAt + j * 8);
       } else {
-        v.setUint32(D_DRAW + j * 8, o ? o.draw : 0, true);
-        v.setUint32(D_DRAW + j * 8 + 4, 0, true);
-        v.setUint32(D_ID + j * 4, o ? o.id : 0, true);
-        v.setUint32(D_VISIBLE + j * 8, 0, true);
-        v.setUint32(D_VISIBLE + j * 8 + 4, 0, true);
+        v.setUint32(drawAt + j * 8, o ? o.draw : 0, true);
+        v.setUint32(drawAt + j * 8 + 4, 0, true);
+        v.setUint32(idAt + j * 4, o ? o.id : 0, true);
+        v.setUint32(visibleAt + j * 8, 0, true);
+        v.setUint32(visibleAt + j * 8 + 4, 0, true);
       }
     }
     // Pages start at the same official items (none of them is dropped).
@@ -871,9 +895,14 @@ function stillMenuForModels(patch: Patch, still: Uint8Array, dateDraw: number, h
     d[D_COUNT] = order.length;
     return d;
   };
-  const gr4 = patch.append(descriptor([HDF_ITEM, RED_FILTER_ITEM]), 16);
-  const hdf = patch.append(descriptor([GR4_ONLY_ITEM, RED_FILTER_ITEM]), 16);
-  const mono = patch.append(descriptor([GR4_ONLY_ITEM, HDF_ITEM]), 16);
+  const gr4 = patch.append(descriptor(drops[0]), 16);
+  const hdf = patch.append(descriptor(drops[1]), 16);
+  const mono = patch.append(descriptor(drops[2]), 16);
+  if (wide) {
+    if (OFFICIAL_ITEMS !== MAX_ITEMS) fail('internal', 'still menu: official item count');
+    installWideMenus(patch, { gr4, hdf, mono }, { app: APP, specModel: SPEC_MODEL, number: MODEL_NUMBER, builder: BUILDER }, what);
+    return;
+  }
   const builder = patch.append((at) => assembleWords(
     `push {r0, r1, r2, r3, ip, lr}
      bl #${APP}; bl #${SPEC_MODEL}; bl #${MODEL_NUMBER}
@@ -890,8 +919,8 @@ function stillMenuForModels(patch: Patch, still: Uint8Array, dateDraw: number, h
   patch.setWord(BUILDER, branchWord(BUILDER, builder), `${what}: still menu for this model`);
 }
 
-/** The HDR line in a build without the date imprint's menu (the still menu is still the official one). */
-export function installHdrStillLine(patch: Patch, hdrDraw: number): void {
+/** Added still-menu lines in a build without the date imprint's menu (the still menu is still the official one). */
+export function installStillLines(patch: Patch, lines: readonly StillLine[], what = 'HDR gain map'): void {
   expectWord(patch, BUILDER, 0xe1a0c00d); // mov ip, sp
   expectWord(patch, BUILDER + 4, movWord(3, lo(MENU_TABLE)));
   expectWord(patch, BUILDER + 0x10, movWord(3, hi(MENU_TABLE), true));
@@ -904,7 +933,7 @@ export function installHdrStillLine(patch: Patch, hdrDraw: number): void {
   const firsts = [...still.subarray(D_FIRST, D_FIRST + 6)];
   if (still[D_PAGES] !== 6 || firsts.join() !== '0,10,18,24,30,35' || still[D_COUNT] !== MAX_ITEMS) fail('unexpected-layout', 'still menu pages are not the official ones');
   if (dv.getUint32(D_ID + HDF_ITEM * 4, true) !== 0x02000133 || dv.getUint32(D_ID + RED_FILTER_ITEM * 4, true) !== 0x02000135) fail('unexpected-layout', 'HDF and Red Filter items are not the official ones');
-  stillMenuForModels(patch, still, 0, hdrDraw, 'HDR gain map');
+  stillMenuForModels(patch, still, 0, lines, what);
 }
 
 /**

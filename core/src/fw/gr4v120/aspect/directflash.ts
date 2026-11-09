@@ -105,7 +105,7 @@ export const DIRECT_FLASH_NAMES: readonly string[] = [
 ];
 
 const CURRENT = 0x550832a8;
-const LIVE_FLASH_MODE = CURRENT + 0xc50; // 1.11: + 0xbf8
+export const LIVE_FLASH_MODE = CURRENT + 0xc50; // 1.11: + 0xbf8
 const FLASH_OUTPUT = CURRENT + 0x114;
 
 // Camera functions (checked below by their first instructions or their callers).

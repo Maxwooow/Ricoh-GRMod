@@ -34,33 +34,88 @@ function fail(message: string): never {
   throw new FirmwareError('internal', `exposure preview: ${message}`);
 }
 
-export function installExposurePreviewOff(patch: Patch): void {
+/**
+ * When the live view's exposure is taken over. 'always' (test 078): every still frame. Otherwise
+ * by the setting (test 080, `exposure.ts`): 0 never (the official preview), 1 while Direct Flash is
+ * the Flash Mode (`directFlash`: its byte and its Flash Mode 0; without Direct Flash in the build,
+ * never), 2 always; anything else as 0.
+ */
+export type PreviewCondition = 'always' | { byte: number; directFlash: { byte: number; flashMode: number } | null };
+
+export function installExposurePreviewOff(patch: Patch, when: PreviewCondition = 'always'): void {
   expectWord(patch, PROGRAM_GETTER, 0xe5d00039);
   expectWord(patch, PROGRAM_GETTER + 4, 0xe12fff1e);
   expectWord(patch, BIAS_GETTER, 0xed900a37);
   expectWord(patch, BIAS_GETTER + 4, 0xe12fff1e);
   for (const at of PROGRAM_SITES) expectWord(patch, at, branchWord(at, PROGRAM_GETTER, 14, true));
   expectWord(patch, BIAS_SITE, branchWord(BIAS_SITE, BIAS_GETTER, 14, true));
-  // As the getters: r0 = the exposure record; only r0 / s0, ip and the flags change.
-  const program = patch.append((at) => assembleWords(
+  // As the getters: r0 = the exposure record; only r0 / s0, ip and the flags change (the callers
+  // may count on the getters' own use of registers: everything else is kept).
+  // ip = 1 when the preview is off for this frame (a still: record byte 8 clear), else 0.
+  const lo = (v: number): number => v & 0xffff;
+  const hi = (v: number): number => v >>> 16;
+  const condition = when === 'always' ? 0 : patch.append((at) => assembleWords(
     `ldrb ip, [r0, #8]
-     ldrb r0, [r0, #0x39]
      cmp ip, #0
+     movne ip, #0
      bxne lr
-     cmp r0, #${PROGRAM_M}
-     moveq r0, #0
+     push {r1}
+     movw r1, #${lo(when.byte)}; movt r1, #${hi(when.byte)}; ldrb r1, [r1]
+     cmp r1, #2
+     beq off
+     ${when.directFlash ? `cmp r1, #1
+     bne on
+     movw r1, #${lo(when.directFlash.byte)}; movt r1, #${hi(when.directFlash.byte)}; ldrb r1, [r1]
+     tst r1, #1
+     beq on
+     movw r1, #${lo(when.directFlash.flashMode)}; movt r1, #${hi(when.directFlash.flashMode)}; ldrb r1, [r1]
+     cmp r1, #0
+     beq off` : ''}
+     on: mov ip, #0
+     pop {r1}
+     bx lr
+     off: mov ip, #1
+     pop {r1}
      bx lr`, at), 4);
-  const bias = patch.append((at) => {
-    const head = assembleWords(
+  const program = when === 'always'
+    ? patch.append((at) => assembleWords(
       `ldrb ip, [r0, #8]
-       vldr s0, [r0, #0xdc]
+       ldrb r0, [r0, #0x39]
        cmp ip, #0
        bxne lr
-       mov ip, #0`, at);
+       cmp r0, #${PROGRAM_M}
+       moveq r0, #0
+       bx lr`, at), 4)
+    : patch.append((at) => assembleWords(
+      `push {lr}
+       bl #${condition}
+       pop {lr}
+       ldrb r0, [r0, #0x39]
+       cmp ip, #0
+       bxeq lr
+       cmp r0, #${PROGRAM_M}
+       moveq r0, #0
+       bx lr`, at), 4);
+  const bias = patch.append((at) => {
+    const head = when === 'always'
+      ? assembleWords(
+        `ldrb ip, [r0, #8]
+         vldr s0, [r0, #0xdc]
+         cmp ip, #0
+         bxne lr
+         mov ip, #0`, at)
+      : assembleWords(
+        `push {lr}
+         bl #${condition}
+         pop {lr}
+         vldr s0, [r0, #0xdc]
+         cmp ip, #0
+         bxeq lr
+         mov ip, #0`, at);
     const tail = assembleWords('bx lr', at + (head.length + 1) * 4);
     return [...head, VMOV_S0_IP, ...tail];
   }, 4);
-  if (program % 4 !== 0 || bias % 4 !== 0) fail('unaligned code');
+  if (program % 4 !== 0 || bias % 4 !== 0 || condition % 4 !== 0) fail('unaligned code');
   for (const at of PROGRAM_SITES) patch.setWord(at, branchWord(at, program, 14, true), 'exposure preview off: live view program');
   patch.setWord(BIAS_SITE, branchWord(BIAS_SITE, bias, 14, true), 'exposure preview off: live view bias');
 }
