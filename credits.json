@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "updated": "2026-11-10",
+  "sections": [
+    {
+      "title": { "zh": "代码贡献", "en": "Code" },
+      "people": [
+        { "name": "Mrjie7205", "url": "https://github.com/Mrjie7205", "note": { "zh": "GR IIIx HDF 1.60 的固件与色彩引擎移植", "en": "GR IIIx HDF 1.60 firmware and colour engine port" } },
+        { "name": "sjclijie", "url": "https://github.com/sjclijie", "note": { "zh": "影像控制菜单顺序与隐藏、预设拟合改进、时间戳印风格名的思路", "en": "Image Control menu order and hidden looks, preset fitting improvements, the look name in the date imprint" } },
+        { "name": "orbitsail", "url": "https://github.com/orbitsail", "note": { "zh": "色相区拟合、屏幕自动亮度曲线", "en": "Hue-sector fitting, Auto LCD curves" } },
+        { "name": "xxmathias", "url": "https://github.com/xxmathias", "note": { "zh": "Linux 桌面版", "en": "Linux desktop build" } },
+        { "name": "xiaoyuanzi1230", "url": "https://github.com/xiaoyuanzi1230", "note": { "zh": "GR IV Monochrome 1.10 支持", "en": "GR IV Monochrome 1.10 support" } },
+        { "name": "cqkking", "url": "https://github.com/cqkking", "note": { "zh": "HLG 照片", "en": "HLG photos" } }
+      ]
+    },
+    {
+      "title": { "zh": "建议与反馈", "en": "Ideas and reports" },
+      "people": [
+        { "name": "Antsupantsu", "url": "https://github.com/Antsupantsu", "note": { "zh": "柔焦", "en": "Soft focus" } },
+        { "name": "idontknownihil", "url": "https://github.com/idontknownihil", "note": { "zh": "预设的第二个色彩矩阵", "en": "A second colour matrix for presets" } },
+        { "name": "zhirendashu", "url": "https://github.com/zhirendashu", "note": { "zh": "GR III HDF 支持", "en": "GR III HDF support" } },
+        { "name": "rollk2", "url": "https://github.com/rollk2", "note": { "zh": "GR III 胶卷模式的想法", "en": "Film roll mode idea for GR III" } },
+        { "name": "leviglaesle", "url": "https://github.com/leviglaesle", "note": { "zh": "关闭曝光预览、闪光灯关机后保持供电", "en": "Exposure preview off, flash kept powered" } },
+        { "name": "filviu", "url": "https://github.com/filviu", "note": { "zh": "GR III 2.20", "en": "GR III 2.20" } },
+        { "name": "davvanc", "url": "https://github.com/davvanc", "note": { "zh": "裁切与 RAW", "en": "Crop and RAW files" } },
+        { "name": "hisnameisren", "url": "https://github.com/hisnameisren", "note": { "zh": "GR III 故障排查", "en": "GR III troubleshooting" } },
+        { "name": "lewczakzbigniew-beep", "url": "https://github.com/lewczakzbigniew-beep", "note": { "zh": "GR III 光圈优先更长的自动快门", "en": "Longer automatic shutter speeds in Av on GR III" } }
+      ]
+    },
+    {
+      "title": { "zh": "特别鸣谢", "en": "Special thanks" },
+      "people": [
+        { "name": "radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion", "url": "https://github.com/radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion" },
+        { "name": "DoYitNow/gr-custom-tool", "url": "https://github.com/DoYitNow/gr-custom-tool" },
+        { "name": "DPReview", "note": { "zh": "样张", "en": "Sample picture" } },
+        { "name": "Barlow Condensed", "note": { "zh": "图标字体", "en": "Icon font" } }
+      ]
+    }
+  ]
+}

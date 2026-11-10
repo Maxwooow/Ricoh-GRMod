@@ -447,6 +447,8 @@ button.fw-rel:disabled { cursor: default; }
 .wn-body { flex: 1 1 auto; min-height: 120px; max-height: 52vh; overflow: auto; padding: 4px 14px 8px; margin: 0 0 10px; border-radius: 8px; background: var(--chip); user-select: text; }
 .upd-full { max-height: 260px; min-height: 0; }
 .wn-about { margin: 0 0 4px; line-height: 1.5; }
+.wn-credits { margin: 6px 0 2px; max-height: 160px; overflow-y: auto; }
+.wn-credits-title { font-weight: 600; margin: 0 0 4px; }
 .md { font-size: 13.5px; line-height: 1.6; }
 .md h4 { font-size: 14.5px; margin: 14px 0 4px; }
 .md h5 { font-size: 13.5px; margin: 10px 0 2px; }

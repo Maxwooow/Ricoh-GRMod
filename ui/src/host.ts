@@ -123,6 +123,11 @@ export const host = {
   async updateState(): Promise<UpdateState> { return (await call('GET', '/api/update/state')).json(); },
   /** The published releases with their text, newest first. */
   async updateNotes(): Promise<UpdateState & { releases: ReleaseNote[] }> { return (await call('GET', '/api/update/notes')).json(); },
+  /** The acknowledgements file (credits.json) from the project's site; null when it cannot be had. */
+  async credits(): Promise<unknown> {
+    try { return ((await (await call('GET', '/api/credits')).json()) as { credits?: unknown }).credits ?? null; }
+    catch { return null; }
+  },
   /** Show a release's page in the browser. */
   async releasePage(version: string): Promise<void> { try { await post('/api/update/page', { version }); } catch { /* no browser */ } },
   /** A file the user may keep next to the program (e.g. `preview.jpg`); null when there is none. */

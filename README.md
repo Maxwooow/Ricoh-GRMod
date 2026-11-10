@@ -13,7 +13,11 @@ moved). Soft focus, until now only on the ADJ lever, is also a line of the still
 Settings, after Image Control). The camera's menus hold at most 38 lines a tab and the still menu was
 full, so with these lines every tab of the menu holds 42 (`core/src/fw/gr4v120/aspect/menuwide.ts`).
 Checked on a GR IV HDF with test firmware 078 and 080; emulator checks in `tools/gr4v120/exposure/check.py`.
-Firmware 1.11 builds are unchanged.
+Also in 0.8.11, on firmware 1.20 and 1.11: optional Auto curves for the rear screen (Setup › Outdoor View
+Setting › Auto: stock, balanced or bright; PR #16 by orbitsail, test firmware 079, `docs/bright-auto.md`).
+The About dialog's acknowledgements come from `credits.json` on the main branch (fetched by the
+program, `/api/credits`, the list built into the version when it cannot be had): edit that file on
+GitHub to add a name, no release needed.
 
 0.8.10: GR IV only, firmware 1.20 and 1.11. White halation's three levels are new: Weak and Medium
 are a diffusion filter (like a Black Pro-Mist 1/8 and 1/4: a share of all the light, 8 % / 15 %,

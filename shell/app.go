@@ -145,6 +145,7 @@ func (a *app) start(host platform.Host) error {
 		Host:         host,
 		SidecarDir:   sidecarDir(a.cfg.sidecarDir),
 		FirmwareSite: firmwareSite,
+		Credits:      creditsSources(host.Kind()),
 		Update:       updateOptions(a.target),
 		UpdatedFrom:  a.cfg.updatedFrom,
 		Restart:      a.restart.request,

@@ -54,6 +54,10 @@ type Options struct {
 	// site offers another version (tests).
 	FirmwareArchive *ricoh.Archive
 
+	// Credits are the addresses of the acknowledgements file (credits.json),
+	// tried in order; empty disables /api/credits.
+	Credits []string
+
 	// Update configures the updater; nil disables the update endpoints'
 	// downloads (a check then reports "unsupported").
 	Update *UpdateOptions
@@ -87,6 +91,9 @@ type Server struct {
 	firmware  *firmwareSource
 	upd       *updateState
 	routes    map[string]route
+
+	credits       creditsCache
+	creditsClient *http.Client
 
 	pickedMu sync.Mutex
 	picked   []string
@@ -139,6 +146,8 @@ func New(opt Options) (*Server, error) {
 		firmware:  newFirmwareSource(opt),
 		upd:       newUpdateState(opt),
 		rename:    renameFile,
+
+		creditsClient: outgoingClient(opt),
 	}
 	port := strconv.Itoa(opt.Port)
 	for _, name := range []string{"127.0.0.1", "localhost"} {
@@ -183,6 +192,8 @@ func New(opt Options) (*Server, error) {
 		"/api/update/page":     {http.MethodPost, s.handleUpdatePage},
 		"/api/update/state":    {http.MethodGet, s.handleUpdateState},
 		"/api/update/notes":    {http.MethodGet, s.handleUpdateNotes},
+
+		"/api/credits": {http.MethodGet, s.handleCredits},
 	}
 	return s, nil
 }

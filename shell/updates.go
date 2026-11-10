@@ -31,6 +31,27 @@ var updateSources = []string{
 // 0.8.7 online and only report a 0.9 release; once on 0.8.7 they take any later one.)
 const updateBelow = ""
 
+// creditsURLs are the acknowledgements shown in About (0.8.11): credits.json on
+// the repository's main branch, edited on GitHub whenever a name is added;
+// jsDelivr's copy of the same file second (it answers where GitHub's raw files
+// do not, and follows the branch within hours).
+var creditsURLs = []string{
+	"https://raw.githubusercontent.com/Maxwooow/Ricoh-GRMod/main/credits.json",
+	"https://cdn.jsdelivr.net/gh/Maxwooow/Ricoh-GRMod@main/credits.json",
+}
+
+// envCredits replaces creditsURLs (the development build and tests).
+const envCredits = "GRMOD_CREDITS"
+
+func creditsSources(hostKind string) []string {
+	if hostKind == "dev" || experimental() {
+		if c := strings.TrimSpace(os.Getenv(envCredits)); c != "" {
+			return []string{c}
+		}
+	}
+	return creditsURLs
+}
+
 // releaseNotesAPI lists the published releases with their text (what's new).
 const releaseNotesAPI = "https://api.github.com/repos/Maxwooow/Ricoh-GRMod/releases?per_page=30"
 
