@@ -60,6 +60,8 @@ WIDE, OFFICIAL_ITEMS = 42, 38
 C_ID, C_DRAW, C_VIS, OBJECT = 0x13ec, 0x1734, 0x1dc4, 0x2454
 BUILDER = 0x531b5494
 TABS = 5
+# SF_ONLY=1: a build with soft focus's line and no exposure preview (steps 1..6 for that line only)
+WITH_EP = __import__('os').environ.get('SF_ONLY') != '1'
 
 EP_NAMES = ['Náhled expozice', 'Eksponeringsvisning', 'Exposure Preview', 'Valotuksen esikatselu', "Aperçu de l'exposition", 'Belichtungsvorschau',
             'Προεπισκόπηση έκθεσης', 'Expozíció előnézete', 'Anteprima esposizione', '露出プレビュー', '노출 미리보기', 'Belichtingsvoorbeeld',
@@ -128,11 +130,11 @@ def check_builder(new, ctl):
             want.append(it[0])
             if it[0] == IMAGE_CONTROL:
                 want.append(SF_LIST)
-            if it[0] == LINK_AE_AF:
+            if it[0] == LINK_AE_AF and WITH_EP:
                 want.append(EP_LIST)
         nids = [i for i, _, _ in nitems]
         check(nids == want, f'model {model}: still ids {[hex(i) for i in nids]}')
-        check(nn == cn + 2 and nn <= WIDE, f'model {model}: still count {nn} (control {cn})')
+        check(nn == cn + (2 if WITH_EP else 1) and nn <= WIDE, f'model {model}: still count {nn} (control {cn})')
         # the control's lines, with their draw functions and visibility, in order
         kept = [it for it in nitems if it[0] not in (SF_LIST, EP_LIST)]
         check(kept == citems, f'model {model}: still lines other than the new two differ')
@@ -233,22 +235,23 @@ def list_record(img, rec):
 
 def check_lists(new, ctl):
     lst = dm.factory_class(ctl, 0x02000094)
-    for cid in (SF_LIST, EP_LIST):
+    ours = (SF_LIST, EP_LIST) if WITH_EP else (SF_LIST,)
+    for cid in ours:
         check(dm.factory_class(new, cid) == lst, f'factory: {cid:#x}')
     for cid in list(range(0x02000073, 0x02000073 + 0xe3)) + list(range(0x020001a0, 0x020001e0)):
-        if cid in (SF_LIST, EP_LIST):
+        if cid in ours:
             continue
         a, b = dm.set_current(new, 0x531d7860, 0x1a4, cid), dm.set_current(ctl, 0x531d7860, 0x1a4, cid)
         check(a == b, f'list SetCurrentMenu({cid:#x}): {a} vs control {b}')
     for cid in (0x020001d3, 0x020001cf, 0x020001e0):
         check(dm.factory_class(new, cid) == dm.factory_class(ctl, cid), f'factory: {cid:#x} (not ours)')
-    recs = {cid: dm.set_current(new, 0x531d7860, 0x1a4, cid) for cid in (SF_LIST, EP_LIST)}
+    recs = {cid: dm.set_current(new, 0x531d7860, 0x1a4, cid) for cid in ours}
     check(all(isinstance(r, int) and r > 126 for r in recs.values()), f'list records {recs}')
     print('  factory: the list controller for both ids; SetCurrentMenu: records', recs, '; every other id as the control')
     # handlers
     for cid, title, values, texts, icons, byte, valid in (
             (SF_LIST, T_SOFT, [0, 1, 2, 3], [2, 10, 11, 12], [I_OFF] + I_LEVELS, SF_BYTE, lambda r: r <= 3),
-            (EP_LIST, T_NAME, [0, 1, 2], [1, T_OFF_DF, T_ALWAYS], [I_ON, I_DF, I_OFF], EP_BYTE, lambda r: r <= 2)):
+            (EP_LIST, T_NAME, [0, 1, 2], [1, T_OFF_DF, T_ALWAYS], [I_ON, I_DF, I_OFF], EP_BYTE, lambda r: r <= 2))[:len(ours)]:
         r = list_record(new, recs[cid])
         title_got = struct.unpack_from('<H', r, 4)[0]
         count, draw, setf, cur = (struct.unpack_from('<I', r, o)[0] for o in (0x0c, 0x14, 0x24, 0x2c))
@@ -284,7 +287,7 @@ def check_lines(new, built):
     draws = {i: d[0] for i, d, _ in nm[0][1] if i in (SF_LIST, EP_LIST)}
     for cid, byte, valid, icon_of, title in (
             (SF_LIST, SF_BYTE, lambda r: r <= 3, lambda v: ([I_OFF] + I_LEVELS)[v], T_SOFT),
-            (EP_LIST, EP_BYTE, lambda r: r <= 2, lambda v: [I_ON, I_DF, I_OFF][v], T_NAME)):
+            (EP_LIST, EP_BYTE, lambda r: r <= 2, lambda v: [I_ON, I_DF, I_OFF][v], T_NAME))[:2 if WITH_EP else 1]:
         for raw in list(range(6)) + [0xff]:
             e = Emu(new)
             e.mu.mem_write(byte, bytes([raw]))
@@ -524,6 +527,10 @@ def main():
     check_lists(new, ctl)
     print('6. still-menu lines')
     check_lines(new, built)
+    if not WITH_EP:
+        check(new.u32(0x531bd600) == 0x53dc9dfc + 21 * 0x5c and new.movw_movt(0x531bd4c4, 0x531bd4d4) == 0x53dc9dfc, 'ADJ table moved without exposure preview')
+        print('  ADJ table where it is officially')
+        return finish()
     print('7-8. ADJ')
     check_adj(new, ctl, off)
     print('9. live view')

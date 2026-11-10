@@ -4,6 +4,17 @@ A small desktop tool for the Ricoh GR IV / GR IV HDF (firmware 1.20 or 1.11), th
 (firmware 1.10, the same file as GR IV 1.20), the GR III / GR III HDF (firmware 2.20 or 2.10) and the
 GR IIIx / GR IIIx HDF (firmware 1.70 or 1.60). Not a Ricoh product.
 
+0.8.11: GR IV, firmware 1.20 (issue #17). Exposure preview is a camera setting: On (the camera's
+own live view), Off in Direct Flash (only while Direct Flash is the Flash Mode) and Always Off, where
+the live view of stills keeps a normal brightness in M and with exposure compensation and the
+pictures are still taken as set (movies unchanged). It is a line of the still menu (Exposure
+Settings) and an ADJ lever function (the ADJ table copied with a 22nd function, every reference
+moved). Soft focus, until now only on the ADJ lever, is also a line of the still menu (Image Process
+Settings, after Image Control). The camera's menus hold at most 38 lines a tab and the still menu was
+full, so with these lines every tab of the menu holds 42 (`core/src/fw/gr4v120/aspect/menuwide.ts`).
+Checked on a GR IV HDF with test firmware 078 and 080; emulator checks in `tools/gr4v120/exposure/check.py`.
+Firmware 1.11 builds are unchanged.
+
 0.8.10: GR IV only, firmware 1.20 and 1.11. White halation's three levels are new: Weak and Medium
 are a diffusion filter (like a Black Pro-Mist 1/8 and 1/4: a share of all the light, 8 % / 15 %,
 spread in linear light, lamps glowing and a faint haze elsewhere), Strong is the earlier white glow

@@ -144,6 +144,13 @@ export interface ExtensionFeatures {
   hdrGainMap?: boolean;
   /** ADJ lever slots, 6 to 8 (see `adjslots.ts`); absent or 5: the camera's five. */
   adjSlots?: number;
+  /**
+   * 0.8.11, GR IV 1.20 only (`fw/gr4v120/aspect/exposure.ts`; not built on 1.11): exposure preview
+   * as a camera setting, On / Off with Direct Flash / Always Off, in the still menu and on the ADJ lever.
+   */
+  exposurePreview?: boolean;
+  /** 0.8.11, GR IV 1.20 only (not built on 1.11): soft focus (with `adjSoftFocus`) also a line of the still menu. */
+  softFocusMenu?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */

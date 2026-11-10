@@ -73,6 +73,9 @@ const FEATURE2_HDR_GAIN_MAP = 1;
 
 /** Second feature byte: bit 1, ADJ lever slots (`adjslots.ts`; bit 0 is the HDR gain map's). */
 const FEATURE2_ADJ_SLOTS = 2;
+/** Second feature byte (0.8.11): bit 2 exposure preview, bit 3 soft focus's still-menu line (`exposure.ts`). */
+const FEATURE2_EXPOSURE_PREVIEW = 4;
+const FEATURE2_SOFT_FOCUS_MENU = 8;
 
 /**
  * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
@@ -100,11 +103,11 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
     bytes.push(layout.order.length, ...layout.order, layout.hidden.length, ...layout.hidden);
   }
   if (features.directFlash && revision < 3) fail('internal', 'Direct Flash needs revision 3');
-  if (features.hdrGainMap || (features.adjSlots && features.adjSlots > 5)) {
-    if (revision < 3) fail('internal', 'the HDR gain map and ADJ slots need revision 3');
+  if (features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.exposurePreview || features.softFocusMenu) {
+    if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, exposure preview and the soft focus line need revision 3');
     const adj = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
     if (adj && !(Number.isInteger(adj) && adj <= ADJ_SLOTS_MAX)) fail('internal', 'ADJ slots cannot be recorded');
-    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0));
+    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.exposurePreview ? FEATURE2_EXPOSURE_PREVIEW : 0) | (features.softFocusMenu ? FEATURE2_SOFT_FOCUS_MENU : 0));
     if (adj) bytes.push(adj);
   }
   while (bytes.length % 4) bytes.push(0);
@@ -196,8 +199,10 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
     if (f & FEATURE_DIRECT_FLASH) features.directFlash = true;
     if (p < rec.length) {
       const f2 = rec[p++];
-      if ((f2 & ~(FEATURE2_HDR_GAIN_MAP | FEATURE2_ADJ_SLOTS)) !== 0) return null;
+      if ((f2 & ~(FEATURE2_HDR_GAIN_MAP | FEATURE2_ADJ_SLOTS | FEATURE2_EXPOSURE_PREVIEW | FEATURE2_SOFT_FOCUS_MENU)) !== 0) return null;
       if (f2 & FEATURE2_HDR_GAIN_MAP) features.hdrGainMap = true;
+      if (f2 & FEATURE2_EXPOSURE_PREVIEW) features.exposurePreview = true;
+      if (f2 & FEATURE2_SOFT_FOCUS_MENU) features.softFocusMenu = true;
       if (f2 & FEATURE2_ADJ_SLOTS) {
         if (p >= rec.length) return null;
         const n = rec[p++];
@@ -205,7 +210,7 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
         features.adjSlots = n;
       }
     }
-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots) return null;
+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview) return null;
   }
   for (; p < rec.length; p++) if (rec[p] !== 0) return null;
   return { specs: out, features, extraSlots, shutdownPictures };

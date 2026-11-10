@@ -149,6 +149,13 @@ export interface ExtensionFeatures {
   hdrGainMap?: boolean;
   /** ADJ lever slots, 6 to 8 (see `adjslots.ts`); absent or 5: the camera's five. */
   adjSlots?: number;
+  /**
+   * 0.8.11: exposure preview as a camera setting, On / Off with Direct Flash / Always Off, in the
+   * still menu and on the ADJ lever (function 0x15); see `exposure.ts`, `lvpreview.ts`.
+   */
+  exposurePreview?: boolean;
+  /** 0.8.11: soft focus (with `adjSoftFocus`) also a line of the still menu (`exposure.ts`). */
+  softFocusMenu?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -168,12 +175,6 @@ export interface TestOptions {
   hdrDiag?: boolean;
   /** Exposure preview off (issue #17), always on: the live view keeps a normal brightness (`lvpreview.ts`). */
   exposurePreviewOff?: boolean;
-  /**
-   * Test 080: exposure preview as a setting (On / Off with Direct Flash / Always Off) in the still
-   * menu and on the ADJ lever, and soft focus (with `adjSoftFocus`) in the still menu (`exposure.ts`;
-   * the still menu then has more than 38 lines, `menuwide.ts`).
-   */
-  exposurePreview?: boolean;
 }
 
 /** Test builds only: the halation module's status (the 44 bytes before the heap; Direct Flash diagnostics' word otherwise). */
@@ -1072,7 +1073,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
   const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
   const adjSlots = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
-  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap;
+  const extra = !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap;
   if (extra) revision = 3;
   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
@@ -1099,8 +1100,11 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
     installImageIdentity(patch, ratios);
     if (revision >= 2) installPlaybackDecode(patch);
   }
-  // Test 080: exposure preview as a setting (with soft focus's line in the still menu).
-  const ep = test.exposurePreview ? { directFlash: !!features.directFlash, softFocus: !!features.adjSoftFocus } : null;
+  // 0.8.11: exposure preview as a setting, soft focus's line in the still menu (test 080; the still
+  // menu then has more than 38 lines: `menuwide.ts`).
+  if (features.softFocusMenu && !features.adjSoftFocus) fail('internal', 'soft focus menu line without soft focus');
+  const lineOpts = features.exposurePreview || features.softFocusMenu ? { exposurePreview: !!features.exposurePreview, directFlash: !!features.directFlash, softFocus: !!features.softFocusMenu } : null;
+  const ep = features.exposurePreview ? lineOpts : null;
   if (ep && test.exposurePreviewOff) fail('internal', 'exposure preview: the setting or always off, not both');
   if (features.adjSoftFocus) icons = installAdjSoftFocus(patch, icons, ep ? 0x15 : 0x14);
   // Before the date imprint's menu, which copies the list table with Flash Mode's records.
@@ -1109,9 +1113,9 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   // 0.8.9: the HDR gain map's line in the still menu (one descriptor per model, with the date imprint's).
   const hdrDraw = features.hdrGainMap ? hdrTopDraw(patch, HDR_SWITCH_BYTE) : 0;
   const stillLines: StillLine[] = hdrDraw ? [hdrStillLine(hdrDraw)] : [];
-  if (ep) {
-    icons = installExposurePreviewAssets(patch, icons, ep);
-    stillLines.push(...exposurePreviewStillLines(patch, ep));
+  if (lineOpts) {
+    icons = installExposurePreviewAssets(patch, icons, lineOpts);
+    stillLines.push(...exposurePreviewStillLines(patch, lineOpts));
   }
   if (features.dateStamp) {
     const fixed = test.dateStampFixed;
@@ -1123,7 +1127,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
     if (!fixed) icons = installDateStampMenu(patch, icons, stillLines);
     if (look && slots.length === 0) installLookStash(patch);
   }
-  if (stillLines.length && (!features.dateStamp || test.dateStampFixed)) installStillLines(patch, stillLines, ep ? 'exposure preview' : 'HDR gain map');
+  if (stillLines.length && (!features.dateStamp || test.dateStampFixed)) installStillLines(patch, stillLines, lineOpts ? 'exposure preview and soft focus' : 'HDR gain map');
   // Halation: added slots that have it, Cinema slots with a preset that are asked to.
   const halation: HalationLook[] = [];
   slots.forEach((x, k) => {
@@ -1151,7 +1155,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
   // The HDR line's list: after the additions that copy the list table first.
   if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
-  if (ep) installExposurePreviewLists(patch, ep);
+  if (lineOpts) installExposurePreviewLists(patch, lineOpts);
   // Exposure preview on the ADJ lever: the function table copied with a 22nd function (after soft
   // focus and Direct Flash, which change its records in place; before the ADJ slots' module, which reads it).
   const adjTable = ep ? installExposurePreviewAdj(patch, ep) : 0;
@@ -1163,5 +1167,5 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}), ...(ep ? { exposurePreview: true } : {}) });
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}) } };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}) } };
 }

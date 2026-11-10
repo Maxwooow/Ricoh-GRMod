@@ -107,6 +107,8 @@ export const EP_ALWAYS_OFF_NAMES: readonly string[] = [
 ];
 
 export interface ExposurePreviewOptions {
+  /** Exposure preview (the setting, its line, the ADJ function, the live view). */
+  exposurePreview: boolean;
   /** Direct Flash is in the build: the middle value is offered. */
   directFlash: boolean;
   /** Soft focus is on the ADJ lever: its line in the still menu too. */
@@ -224,14 +226,16 @@ export function drawSoftLevelIcon(level: number): Uint8Array {
 
 /** Texts and icons (call once, before the menus use them). Returns ICONBIN with the icons appended. */
 export function installExposurePreviewAssets(patch: Patch, iconbin: Uint8Array, o: ExposurePreviewOptions): Uint8Array {
-  widenTextRows(patch, EP_TEXT_IDS.alwaysOff);
-  installTexts(patch, [
-    { id: EP_TEXT_IDS.name, names: EP_NAMES },
-    { id: EP_TEXT_IDS.offDirect, names: EP_OFF_DIRECT_NAMES },
-    { id: EP_TEXT_IDS.alwaysOff, names: EP_ALWAYS_OFF_NAMES },
-  ]);
+  if (o.exposurePreview) {
+    widenTextRows(patch, EP_TEXT_IDS.alwaysOff);
+    installTexts(patch, [
+      { id: EP_TEXT_IDS.name, names: EP_NAMES },
+      { id: EP_TEXT_IDS.offDirect, names: EP_OFF_DIRECT_NAMES },
+      { id: EP_TEXT_IDS.alwaysOff, names: EP_ALWAYS_OFF_NAMES },
+    ]);
+  }
   if (EP_NAMES.length !== LANGUAGES || EP_OFF_DIRECT_NAMES.length !== LANGUAGES || EP_ALWAYS_OFF_NAMES.length !== LANGUAGES) fail('internal', 'exposure preview: texts');
-  const icons: { id: number; px: Uint8Array }[] = [{ id: EP_ICON_ID, px: drawExposurePreviewIcon() }];
+  const icons: { id: number; px: Uint8Array }[] = o.exposurePreview ? [{ id: EP_ICON_ID, px: drawExposurePreviewIcon() }] : [];
   if (o.softFocus) SOFT_LEVEL_ICON_IDS.forEach((id, k) => icons.push({ id, px: drawSoftLevelIcon(k + 1) }));
   const parts: Uint8Array[] = [iconbin];
   let length = iconbin.length;
@@ -248,6 +252,7 @@ export function installExposurePreviewAssets(patch: Patch, iconbin: Uint8Array, 
     const descriptor = patch.append(concat([u16le([1, 40, 40, 0]), u32le([offset / 4])]), 16);
     patch.write(ICON_CATALOG + id * 4, u32le([descriptor]));
   }
+  if (icons.length === 0) return iconbin;
   const upper = Math.max(...icons.map((x) => x.id));
   for (const [site, register] of LOOKUP_BOUNDS) {
     if ((patch.word(site) & 0xfff0f000) >>> 0 !== (0xe3000000 | (register << 12)) >>> 0) fail('unexpected-layout', 'icon bound is not a MOVW');
@@ -275,6 +280,7 @@ export function exposurePreviewStillLines(patch: Patch, o: ExposurePreviewOption
        pop {r4, lr}; b #${TOP_SET_TITLE}`, at), 16);
     lines.push({ draw, id: SOFT_FOCUS_LIST_ID, after: IMAGE_CONTROL_ID });
   }
+  if (!o.exposurePreview) return lines;
   const draw = patch.append((at) => assembleWords(
     `push {r4, lr}
      mov r4, r1
@@ -319,6 +325,17 @@ export function installExposurePreviewLists(patch: Patch, o: ExposurePreviewOpti
        cmp r3, r1; moveq r0, #1; movne r0, #0; bx lr`, at), 16);
     entries.push({ id: SOFT_FOCUS_LIST_ID, record: record(SOFT_FOCUS_TEXT_ID, count, draw, set, current) });
   }
+  if (o.exposurePreview) addExposurePreviewList(patch, o, entries, record);
+  if (entries.length === 0) return;
+  addListRecords(patch, entries, 'exposure preview and soft focus');
+  const ids = entries.map((x) => x.id);
+  hookControllerFactory(patch, `${ids.map((id) => `movw ip, #${lo(id)}; movt ip, #${hi(id)}
+     cmp r1, ip; beq list`).join('\n')}
+     b prior
+     list: movw r1, #${lo(LIST_CONTROLLER_ID)}; movt r1, #${hi(LIST_CONTROLLER_ID)}`, 'exposure preview and soft focus: the list controller');
+}
+
+function addExposurePreviewList(patch: Patch, o: ExposurePreviewOptions, entries: { id: number; record: Uint8Array }[], record: (title: number, count: number, draw: number, set: number, current: number) => Uint8Array): void {
   const values = exposurePreviewValues(o.directFlash);
   const count = patch.append((at) => assembleWords(`mov r0, #${values.length}; bx lr`, at), 16);
   const draw = patch.append((at) => assembleWords(
@@ -337,12 +354,6 @@ export function installExposurePreviewLists(patch: Patch, o: ExposurePreviewOpti
      ${values.map((v, i) => `cmp r3, #${v}; moveq ip, #${i}`).join('\n')}
      cmp ip, r1; moveq r0, #1; movne r0, #0; bx lr`, at), 16);
   entries.push({ id: EP_LIST_ID, record: record(EP_TEXT_IDS.name, count, draw, set, current) });
-  addListRecords(patch, entries, 'exposure preview and soft focus');
-  hookControllerFactory(patch, `movw ip, #${lo(SOFT_FOCUS_LIST_ID)}; movt ip, #${hi(SOFT_FOCUS_LIST_ID)}
-     cmp r1, ip; beq list
-     movw ip, #${lo(EP_LIST_ID)}; movt ip, #${hi(EP_LIST_ID)}
-     cmp r1, ip; bne prior
-     list: movw r1, #${lo(LIST_CONTROLLER_ID)}; movt r1, #${hi(LIST_CONTROLLER_ID)}`, 'exposure preview and soft focus: the list controller');
 }
 
 /** The live view (`lvpreview.ts`) by the setting. */
