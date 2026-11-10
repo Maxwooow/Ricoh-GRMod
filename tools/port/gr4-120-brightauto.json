@@ -1,0 +1,13 @@
+{
+  "map": "tools/port/gr4-120-map.json",
+  "patch": "tools/port/gr4-120-brightauto.patch",
+  "files": [
+    [
+      "core/src/fw/aspect/brightauto.ts",
+      "core/src/fw/gr4v120/aspect/brightauto.ts"
+    ]
+  ],
+  "copies": [],
+  "old_marker": "1.11",
+  "rename": []
+}

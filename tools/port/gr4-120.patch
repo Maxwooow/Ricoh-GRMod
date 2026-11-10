@@ -161,10 +161,30 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
    const E = ADJSLOTS_ENTRY;
    const table = patch.append(adjViewTable(officialTable, n), 16);
    const stub = (body: string): number => patch.append((at) => assembleWords(body, at), 16);
+diff --git a/core/src/fw/gr4v120/aspect/brightauto.ts b/core/src/fw/gr4v120/aspect/brightauto.ts
+--- a/core/src/fw/gr4v120/aspect/brightauto.ts
++++ b/core/src/fw/gr4v120/aspect/brightauto.ts
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ /**
+- * A brighter rear screen when Setup > Outdoor View Setting is Auto (GR IV / HDF / Monochrome, firmware 1.11).
++ * A brighter rear screen when Setup > Outdoor View Setting is Auto (GR IV / HDF / Monochrome, firmware 1.20).
+  *
+  * The function at 0x53269f74(this, x) maps the Auto-brightness input x to a backlight luminance
+  * target by piecewise-linear interpolation over an 18-entry table of (x, y) word pairs at
+@@ -12,7 +12,7 @@
+  * This replaces the 18 y words with a brighter curve and raises the two 1050 limits to 1500, the
+  * value the fixed Outdoor View +2 already uses (+1 uses 800), so the panel is driven that far
+  * already. Data and two immediates only; no code is added. Read from a disassembly of the official
+- * 1.11 file. The balanced curve is used daily by the owner on GR IV HDF 1.11 and 1.20.
++ * 1.20 file. The balanced curve is used daily by the owner on GR IV HDF 1.11 and 1.20.
+  */
+ import { Patch, expectWord } from './build';
+ 
 diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/build.ts
 --- a/core/src/fw/gr4v120/aspect/build.ts
 +++ b/core/src/fw/gr4v120/aspect/build.ts
-@@ -32,10 +32,11 @@
+@@ -32,11 +32,12 @@
  import { installDirectFlashMenu } from './directflash-menu';
  import { DATESTAMP_BYTE, installDateStamp, lookNames } from './datestamp';
  import { HDR_SWITCH_BYTE, installHdrGainMap } from './hdrgain';
@@ -172,13 +192,14 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +import { StillLine, hdrStillLine, hdrTopDraw, installDateStampMenu, installHdrMenu, installStillLines } from './datestamp-menu';
 +import { exposurePreviewStillLines, installExposurePreviewAdj, installExposurePreviewAssets, installExposurePreviewLists, installExposurePreviewLive } from './exposure';
  import { installMonoUnlock } from './monounlock';
+ import { installBrightAuto } from './brightauto';
  import { CINEMA_STYLES, installExtraSlots, installHalation } from './slots';
 -import { halationLight } from './halation';
 +import { HALATION_TEST, halationLight } from './halation';
  import type { HalationLook } from './halation';
  import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
  import type { LookLayout } from './looks';
-@@ -43,23 +44,27 @@
+@@ -44,23 +45,27 @@
  import { installShutdownMenu } from './shutdown';
  import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
  import { installAdjSlots } from './adjslots';
@@ -213,7 +234,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  export const LANGUAGES = 21;
  const ROW_STRIDE = TEXT_CAPACITY * 4;
  const NATIVE_ICON_CATALOG = 0x55014280;
-@@ -82,10 +87,10 @@
+@@ -83,10 +88,10 @@
    return id;
  }
  
@@ -227,7 +248,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  }
  
  export interface RatioSpec {
-@@ -145,11 +150,11 @@
+@@ -148,11 +153,11 @@
    /** ADJ lever slots, 6 to 8 (see `adjslots.ts`); absent or 5: the camera's five. */
    adjSlots?: number;
    /**
@@ -242,7 +263,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    softFocusMenu?: boolean;
  }
  
-@@ -160,9 +165,20 @@
+@@ -163,9 +168,20 @@
    dateStampDiag?: boolean;
    /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
    directFlashDiag?: boolean;
@@ -264,7 +285,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  export interface AspectResult {
    revision: BuildRevision;
-@@ -325,7 +341,7 @@
+@@ -328,7 +344,7 @@
    for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
    const rowsStart = TEXT_CATALOG + 0x100;
    const end = rowsStart + LANGUAGES * ROW_STRIDE;
@@ -273,7 +294,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    patch.extendTo(end - BASE);
    patch.write(ICON_CATALOG, icons);
    const relocated: number[] = [];
-@@ -337,8 +353,15 @@
+@@ -340,8 +356,15 @@
    // language directory themselves.
    patch.setWord(0x534013f8, movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
    patch.setWord(0x534013fc, movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
@@ -291,7 +312,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    }
    for (const [low, high] of [[0x535967cc, 0x535967d0], [0x53595db4, 0x53595dbc]] as const) {
      patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
-@@ -369,7 +392,10 @@
+@@ -372,7 +395,10 @@
  // --------------------------------------------------------------------------------------------
  // crop_icons.py
  
@@ -303,7 +324,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
    const parts: Uint8Array[] = [iconbin];
-@@ -461,7 +487,7 @@
+@@ -464,7 +490,7 @@
    // Complete language rows again, now wide enough for the new names; every original entry is kept.
    let priorColumns = TEXT_CAPACITY;
    for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
@@ -312,7 +333,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    for (const id of allIds) upper = Math.max(upper, textId(id));
    const columns = Math.max(priorColumns, upper + 1);
    const catalogs: Uint8Array[] = [];
-@@ -674,8 +700,8 @@
+@@ -677,8 +703,8 @@
      out = '';
      for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
      out += `bic ip,ip,#4;b #${resume};custom:`;
@@ -323,7 +344,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      out += 'ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;';
      p.hook(entry, out);
    }
-@@ -895,7 +921,7 @@
+@@ -898,7 +924,7 @@
  function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
    const priorSave = branchTarget(0x533f3674, patch.word(0x533f3674));
    const priorLoad = branchTarget(0x533f3254, patch.word(0x533f3254));
@@ -332,7 +353,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    expectWord(patch, 0x5381d6bc, 0xe1a0c00d);
    // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
    const rects: Uint8Array[] = [];
-@@ -1033,11 +1059,21 @@
+@@ -1036,11 +1062,21 @@
   * features this is `installRatios`, byte for byte. With features the revision is 3.
   */
  export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
@@ -350,12 +371,12 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
    const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
    const adjSlots = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
--  const extra = !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap;
-+  const extra = !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap;
+-  const extra = !!features.brightAuto || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap;
++  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap;
    if (extra) revision = 3;
    if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
    if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
-@@ -1064,21 +1100,34 @@
+@@ -1068,21 +1104,34 @@
      installImageIdentity(patch, ratios);
      if (revision >= 2) installPlaybackDecode(patch);
    }
@@ -394,7 +415,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    // Halation: added slots that have it, Cinema slots with a preset that are asked to.
    const halation: HalationLook[] = [];
    slots.forEach((x, k) => {
-@@ -1106,11 +1155,17 @@
+@@ -1110,12 +1159,18 @@
    if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
    // The HDR line's list: after the additions that copy the list table first.
    if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
@@ -410,11 +431,12 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    // Last: wraps every other settings save/load and user-mode recall hook.
 -  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}) });
 +  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}), ...(ep ? { exposurePreview: true } : {}) });
+   if (features.brightAuto) installBrightAuto(patch, features.brightAuto === 'balanced' ? 'balanced' : 'bright');
    if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
    if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
--  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}) } };
+-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}) } };
 -}
-+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}) } };
++  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}) } };
 +}
 diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/aspect/datestamp-menu.ts
 --- a/core/src/fw/gr4v120/aspect/datestamp-menu.ts
@@ -2318,49 +2340,49 @@ diff --git a/core/src/fw/gr4v120/aspect/monounlock.ts b/core/src/fw/gr4v120/aspe
 diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/package.ts
 --- a/core/src/fw/gr4v120/aspect/package.ts
 +++ b/core/src/fw/gr4v120/aspect/package.ts
-@@ -73,6 +73,9 @@
- 
- /** Second feature byte: bit 1, ADJ lever slots (`adjslots.ts`; bit 0 is the HDR gain map's). */
+@@ -76,6 +76,9 @@
  const FEATURE2_ADJ_SLOTS = 2;
-+/** Second feature byte (0.8.11): bit 2 exposure preview, bit 3 soft focus's still-menu line (`exposure.ts`). */
-+const FEATURE2_EXPOSURE_PREVIEW = 4;
-+const FEATURE2_SOFT_FOCUS_MENU = 8;
+ /** A following byte selects 1 = bright or 2 = balanced. */
+ const FEATURE2_BRIGHT_AUTO = 4;
++/** Second feature byte (0.8.11): bit 3 exposure preview, bit 4 soft focus's still-menu line (`exposure.ts`). */
++const FEATURE2_EXPOSURE_PREVIEW = 8;
++const FEATURE2_SOFT_FOCUS_MENU = 16;
  
  /**
   * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
-@@ -100,11 +103,11 @@
+@@ -103,11 +106,11 @@
      bytes.push(layout.order.length, ...layout.order, layout.hidden.length, ...layout.hidden);
    }
    if (features.directFlash && revision < 3) fail('internal', 'Direct Flash needs revision 3');
--  if (features.hdrGainMap || (features.adjSlots && features.adjSlots > 5)) {
+-  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5)) {
 -    if (revision < 3) fail('internal', 'the HDR gain map and ADJ slots need revision 3');
-+  if (features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.exposurePreview || features.softFocusMenu) {
-+    if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, exposure preview and the soft focus line need revision 3');
++  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.exposurePreview || features.softFocusMenu) {
++    if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, bright Auto, exposure preview and the soft focus line need revision 3');
      const adj = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
      if (adj && !(Number.isInteger(adj) && adj <= ADJ_SLOTS_MAX)) fail('internal', 'ADJ slots cannot be recorded');
--    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0));
-+    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.exposurePreview ? FEATURE2_EXPOSURE_PREVIEW : 0) | (features.softFocusMenu ? FEATURE2_SOFT_FOCUS_MENU : 0));
+-    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.brightAuto ? FEATURE2_BRIGHT_AUTO : 0));
++    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.brightAuto ? FEATURE2_BRIGHT_AUTO : 0) | (features.exposurePreview ? FEATURE2_EXPOSURE_PREVIEW : 0) | (features.softFocusMenu ? FEATURE2_SOFT_FOCUS_MENU : 0));
      if (adj) bytes.push(adj);
+     if (features.brightAuto) bytes.push(features.brightAuto === 'balanced' ? 2 : 1);
    }
-   while (bytes.length % 4) bytes.push(0);
-@@ -196,8 +199,10 @@
+@@ -200,8 +203,10 @@
      if (f & FEATURE_DIRECT_FLASH) features.directFlash = true;
      if (p < rec.length) {
        const f2 = rec[p++];
--      if ((f2 & ~(FEATURE2_HDR_GAIN_MAP | FEATURE2_ADJ_SLOTS)) !== 0) return null;
-+      if ((f2 & ~(FEATURE2_HDR_GAIN_MAP | FEATURE2_ADJ_SLOTS | FEATURE2_EXPOSURE_PREVIEW | FEATURE2_SOFT_FOCUS_MENU)) !== 0) return null;
+-      if ((f2 & ~(FEATURE2_HDR_GAIN_MAP | FEATURE2_ADJ_SLOTS | FEATURE2_BRIGHT_AUTO)) !== 0) return null;
++      if ((f2 & ~(FEATURE2_HDR_GAIN_MAP | FEATURE2_ADJ_SLOTS | FEATURE2_BRIGHT_AUTO | FEATURE2_EXPOSURE_PREVIEW | FEATURE2_SOFT_FOCUS_MENU)) !== 0) return null;
        if (f2 & FEATURE2_HDR_GAIN_MAP) features.hdrGainMap = true;
 +      if (f2 & FEATURE2_EXPOSURE_PREVIEW) features.exposurePreview = true;
 +      if (f2 & FEATURE2_SOFT_FOCUS_MENU) features.softFocusMenu = true;
        if (f2 & FEATURE2_ADJ_SLOTS) {
          if (p >= rec.length) return null;
          const n = rec[p++];
-@@ -205,7 +210,7 @@
-         features.adjSlots = n;
+@@ -215,7 +220,7 @@
+         features.brightAuto = mode === 2 ? 'balanced' : 'bright';
        }
      }
--    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots) return null;
-+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview) return null;
+-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.brightAuto) return null;
++    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview && !features.brightAuto) return null;
    }
    for (; p < rec.length; p++) if (rec[p] !== 0) return null;
    return { specs: out, features, extraSlots, shutdownPictures };

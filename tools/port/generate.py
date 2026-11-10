@@ -109,9 +109,11 @@ def main():
                 p = root / dst
                 if p.is_file(): return {dst}
                 return {str(f.relative_to(root)) for f in p.rglob('*') if f.is_file()} if p.is_dir() else set()
+            seen = set()   # a file listed both on its own and inside a copied directory: one diff
             for _, dst in cfg['copies'] + cfg.get('files', []):
                 for rel in sorted(files_of(raw, dst) | files_of(REPO, dst)):
-                    if skip(rel) or Path(rel).suffix not in TEXT: continue
+                    if rel in seen or skip(rel) or Path(rel).suffix not in TEXT: continue
+                    seen.add(rel)
                     a, b = raw / rel, REPO / rel
                     ta = a.read_text(encoding='utf-8') if a.exists() else None
                     tb = b.read_text(encoding='utf-8') if b.exists() else None

@@ -1,0 +1,20 @@
+diff --git a/core/src/fw/gr4v120/aspect/brightauto.ts b/core/src/fw/gr4v120/aspect/brightauto.ts
+--- a/core/src/fw/gr4v120/aspect/brightauto.ts
++++ b/core/src/fw/gr4v120/aspect/brightauto.ts
+@@ -1,6 +1,6 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ /**
+- * A brighter rear screen when Setup > Outdoor View Setting is Auto (GR IV / HDF / Monochrome, firmware 1.11).
++ * A brighter rear screen when Setup > Outdoor View Setting is Auto (GR IV / HDF / Monochrome, firmware 1.20).
+  *
+  * The function at 0x53269f74(this, x) maps the Auto-brightness input x to a backlight luminance
+  * target by piecewise-linear interpolation over an 18-entry table of (x, y) word pairs at
+@@ -12,7 +12,7 @@
+  * This replaces the 18 y words with a brighter curve and raises the two 1050 limits to 1500, the
+  * value the fixed Outdoor View +2 already uses (+1 uses 800), so the panel is driven that far
+  * already. Data and two immediates only; no code is added. Read from a disassembly of the official
+- * 1.11 file. The balanced curve is used daily by the owner on GR IV HDF 1.11 and 1.20.
++ * 1.20 file. The balanced curve is used daily by the owner on GR IV HDF 1.11 and 1.20.
+  */
+ import { Patch, expectWord } from './build';
+ 

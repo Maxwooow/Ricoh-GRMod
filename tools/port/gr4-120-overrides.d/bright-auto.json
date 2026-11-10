@@ -1,0 +1,30 @@
+{
+ "0x5326811c": {
+  "new": "0x53269f74",
+  "reason": "LCD Auto curve: paired stock-function disassembly, identical 18 x/y pairs and 1050 limits; on/off ARM replay checks both firmware versions."
+ },
+ "0x53dba138": {
+  "new": "0x53de4968",
+  "reason": "LCD Auto curve: paired stock-function disassembly, identical 18 x/y pairs and 1050 limits; on/off ARM replay checks both firmware versions."
+ },
+ "0x53dba13c": {
+  "new": "0x53de496c",
+  "reason": "LCD Auto curve: paired stock-function disassembly, identical 18 x/y pairs and 1050 limits; on/off ARM replay checks both firmware versions."
+ },
+ "0x532681a4": {
+  "new": "0x53269ffc",
+  "reason": "LCD Auto curve: paired stock-function disassembly, identical 18 x/y pairs and 1050 limits; on/off ARM replay checks both firmware versions."
+ },
+ "0x532681c4": {
+  "new": "0x5326a01c",
+  "reason": "LCD Auto curve: paired stock-function disassembly, identical 18 x/y pairs and 1050 limits; on/off ARM replay checks both firmware versions."
+ },
+ "0x532681cc": {
+  "new": "0x5326a024",
+  "reason": "LCD Auto curve: paired stock-function disassembly, identical 18 x/y pairs and 1050 limits; on/off ARM replay checks both firmware versions."
+ },
+ "0x53268198": {
+  "new": "0x53269ff0",
+  "reason": "LCD Auto curve: paired stock-function disassembly, identical 18 x/y pairs and 1050 limits; on/off ARM replay checks both firmware versions."
+ }
+}
