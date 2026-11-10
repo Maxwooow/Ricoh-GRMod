@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { Engine, fw } from '../src';
 import { EXPOSURE_PREVIEW_BYTE, EP_LIST_ID, SOFT_FOCUS_LIST_ID } from '../src/fw/gr4v120/aspect/exposure';
+import { readExtensionFeatures } from '../src/fw/gr4v120/aspect/package';
 
 const file120 = process.env.GRMOD_GR4_120_FIRMWARE;
 const have120 = !!file120 && existsSync(file120);
@@ -38,7 +39,7 @@ describe.skipIf(!have120)('exposure preview and soft focus line: GR IV 1.20', ()
     expect(s.verified).toBe(true);
     expect(s.exposurePreview).toBe(true);
     const rtos = rtosOf(b.file);
-    expect(fw.readExtensionFeatures(rtos)).toMatchObject({ exposurePreview: true, softFocusMenu: true, adjSoftFocus: true, hdrGainMap: true, adjSlots: 8 });
+    expect(readExtensionFeatures(rtos)).toMatchObject({ exposurePreview: true, softFocusMenu: true, adjSoftFocus: true, hdrGainMap: true, adjSlots: 8 });
     // three still descriptors per model hold each line; the ADJ table moved (its end word with it)
     expect(count(rtos, EP_LIST_ID)).toBeGreaterThanOrEqual(3);
     expect(count(rtos, SOFT_FOCUS_LIST_ID)).toBeGreaterThanOrEqual(3);
@@ -51,7 +52,7 @@ describe.skipIf(!have120)('exposure preview and soft focus line: GR IV 1.20', ()
     expect(s2.verified).toBe(true);
     expect(s2.exposurePreview).toBeUndefined();
     const r2 = rtosOf(sf.file);
-    expect(fw.readExtensionFeatures(r2)).toMatchObject({ softFocusMenu: true });
+    expect(readExtensionFeatures(r2)).toMatchObject({ softFocusMenu: true });
     expect(count(r2, EP_LIST_ID)).toBe(0);
     expect(count(r2, SOFT_FOCUS_LIST_ID)).toBeGreaterThanOrEqual(3);
     expect(word(r2, 0x531bd600)).toBe(0x53dc9dfc + 21 * 0x5c);
