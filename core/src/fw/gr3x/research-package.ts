@@ -50,7 +50,7 @@ async function buildContainer(raw: Uint8Array, purpose: 'research' | 'hardware-t
   const addition = unhex(manifest.append.bytes), pixels = unhex(manifest.iconAddition.bytes);
   const revision = features.round10 ? 'T10' : features.round9 ? 'T9' : features.round8 ? 'T8' : features.round7 ? 'T7' : looks ? (looks.displayRevision === 3 ? 'T6' : looks.displayRevision === 1 ? 'T5' : 'T5-L1') : softFocus.length ? 'T4-SF1' : 'T4';
   const lookRecipe = looks ? encodeGr3xLookRecipe(looks) : new Uint8Array();
-  const ratioRecipe = t4 && !features.adjSoftFocus && !features.dateImprint && !features.pictures?.length && !features.round7 ? new Uint8Array() : encodeGr3xRatioRecipe(menu, features);
+  const ratioRecipe = t4 && !features.adjSoftFocus && !features.dateImprint && !features.pictures?.length && !features.round7 && !features.minShutter ? new Uint8Array() : encodeGr3xRatioRecipe(menu, features);
   const recipe = new Uint8Array(lookRecipe.length + ratioRecipe.length);
   recipe.set(lookRecipe); recipe.set(ratioRecipe, lookRecipe.length);
   const record = new TextEncoder().encode(purpose === 'research'
@@ -146,7 +146,7 @@ async function buildContainer(raw: Uint8Array, purpose: 'research' | 'hardware-t
       schema: 1, kind: purpose === 'research' ? 'gr3x-adj-research-container' : 'gr3x-adj9-test-firmware',
       profile: profile.id, camera: profile.camera, fullFeatures: profile.fullFeatures, purpose,
       revision: purpose === 'research' ? 'research' : revision,
-      softFocus: softFocus.map(r => ({ ...r })), adjSoftFocus: features.adjSoftFocus === true,
+      softFocus: softFocus.map(r => ({ ...r })), adjSoftFocus: features.adjSoftFocus === true, minShutter: features.minShutter === true,
       imageControls: looks && 'addedLooks' in manifest ? manifest.addedLooks.map(s => ({
         id: s.id, name: s.name, source: s.source, nativeBase: s.nativeBase,
       })) : [],

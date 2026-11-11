@@ -4896,6 +4896,86 @@
 "how": "override",
 "ok": true,
 "why": "emulator scratch memory / link address of a probe or module generator, not a firmware address"
+},
+"0x531cf710": {
+"new": "0x531cf7e8",
+"how": "aligned + refs 0x531cf7e8x1",
+"ok": true
+},
+"0x531cf7a8": {
+"new": "0x531cf880",
+"how": "aligned + refs 0x531cf880x2",
+"ok": true
+},
+"0x531cf948": {
+"new": "0x531cfa20",
+"how": "aligned + refs 0x531cfa20x1",
+"ok": true
+},
+"0x531cf9d8": {
+"new": "0x531cfab0",
+"how": "aligned + refs 0x531cfab0x1",
+"ok": true
+},
+"0x531cfa68": {
+"new": "0x531cfb40",
+"how": "aligned + refs 0x531cfb40x1",
+"ok": true
+},
+"0x53242768": {
+"new": "0x53242840",
+"how": "aligned + refs 0x53242840x2",
+"ok": true
+},
+"0x536c0870": {
+"new": "0x536c0848",
+"how": "aligned + refs 0x536c0848x5",
+"ok": true
+},
+"0x53820074": {
+"new": "0x5382004c",
+"how": "aligned + refs 0x5382004cx5680",
+"ok": true
+},
+"0x53b42210": {
+"new": "0x53b41b38",
+"how": "aligned + refs 0x53b41b38x2",
+"ok": true
+},
+"0x53d62b80": {
+"new": "0x53d62cb8",
+"how": "aligned + refs 0x53d62cb8x1",
+"ok": true
+},
+"0x5405577c": {
+"new": "0x540558b4",
+"how": "aligned + refs 0x540558b4x5671",
+"ok": true
+},
+"0x532440a4": {
+"new": "0x5324417c",
+"how": "aligned + refs 0x5324417cx3",
+"ok": true
+},
+"0x5339e7dc": {
+"new": "0x5339e8cc",
+"how": "aligned + refs 0x5339e8ccx7",
+"ok": true
+},
+"0x536c02f8": {
+"new": "0x536c02d0",
+"how": "aligned + refs 0x536c02d0x45",
+"ok": true
+},
+"0x536c07a8": {
+"new": "0x536c0780",
+"how": "aligned + refs 0x536c0780x8",
+"ok": true
+},
+"0x53d62b7c": {
+"new": "0x53d62cb4",
+"how": "aligned + refs 0x53d62cb4x40",
+"ok": true
 }
 }
 }

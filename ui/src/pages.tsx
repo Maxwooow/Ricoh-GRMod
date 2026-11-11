@@ -15,7 +15,7 @@ import {
   setSoft,
   setDateStamp,
   setMonoUnlock,
-  setDirectFlash, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setBrightAuto,
+  setDirectFlash, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setMinShutter, setBrightAuto,
   extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, slotOf,
   filmCountChoosable, removeFilm, setFilmCount,
   hasLookLayout, isGr3, KEEP_VISIBLE, lookHiddenNow, lookMonoOnly, lookName, lookOrderAvailable, lookOrderNow, moveLook, moveLookTo, resetLookLayout, setLookHidden,
@@ -702,6 +702,8 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
   const hdrOk = useStore((s) => !!s.info?.features.hdrGainMap);
   const preview = useStore((s) => s.exposurePreview);
   const previewOk = useStore((s) => !!s.info?.features.exposurePreview);
+  const minShutter = useStore((s) => s.minShutter);
+  const minShutterOk = useStore((s) => !!s.info?.features.minShutter);
   const own = useRef<HTMLDivElement | null>(null);
   // Moved to the other column: glide from where it was (FLIP). Rectangles are in window pixels,
   // the transform is in the zoomed interface's pixels.
@@ -723,6 +725,7 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
       {flashOk && <FeatureRow icon={Ico.flash} title={t('navFlash')} sub={t('flashSub')} on={flash} onChange={setDirectFlash} />}
       {hdrOk && <FeatureRow icon={Ico.hdr} title={t('navHdr')} sub={t('hdrSub')} on={hdr} onChange={setHdr} />}
       {previewOk && <FeatureRow icon={Ico.preview} title={t('navPreview')} sub={t('previewSub')} on={preview} onChange={setExposurePreview} />}
+      {minShutterOk && <FeatureRow icon={Ico.shutter} title={t('navMinShutter')} sub={t('minShutterSub')} on={minShutter} onChange={setMinShutter} />}
       {adjMax > 5 && <AdjSlotsRow max={adjMax} />}
       {brightAutoOk && <div className="soft-switch"><Select value={brightAuto || 'off'} options={[{ value: 'off', label: t('brightAutoOff') }, { value: 'balanced', label: t('brightAutoBalanced') }, { value: 'bright', label: t('brightAutoBright') }]} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')} label={t('navBrightAuto')} variant="row" /></div>}
     </div>

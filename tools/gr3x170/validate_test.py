@@ -22,6 +22,7 @@ from guard_probe import verify as settings_guard
 from live_refresh_probe import verify as live_refresh
 from look_layout_probe import verify as look_layout
 from list_width_probe import verify as list_width
+from minshutter_probe import verify as min_shutter
 
 if not __debug__:raise RuntimeError('Validation requires Python assertions')
 
@@ -66,6 +67,7 @@ def main():
         *((('settings-guard',lambda:settings_guard(data,manifest)),) if manifest.get('round7') else ()),
         *((('look-layout',lambda:look_layout(data,manifest)),) if manifest.get('round8') else ()),
         *((('date-style-labels',lambda:list_width(data,manifest)),) if manifest.get('round8') and manifest.get('dateImprint') else ()),
+        *((('min-shutter-speed',lambda:min_shutter(data,manifest)),) if manifest.get('minShutter') else ()),
         *((('live-refresh',lambda:live_refresh(data,manifest)),) if manifest['kind']=='gr3x-image-control-patchset' and manifest.get('filmCount') else ()),
         ('updater-loader',lambda:loader(data,a.boot.read_bytes(),original,candidate,build)),
         ('independent-codec',lambda:package(original,candidate,manifest,build,a.reference)),

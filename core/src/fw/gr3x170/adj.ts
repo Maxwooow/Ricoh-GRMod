@@ -7,6 +7,7 @@ import { assembleWords, branchWord, movWord, wordsToBytes } from '../aspect/arm'
 import { drawRatioIcon } from '../aspect/icon';
 import { drawSoftFocusIcon, SOFT_FOCUS_NAMES } from '../aspect/softfocus';
 import { installGr3xAdjSoftFocus } from './adj-softfocus';
+import { installGr3xMinShutter } from './minshutter';
 import { DATESTAMP_LONG_TEXT, DATESTAMP_NAMES, DATESTAMP_ON_OFF_NAMES, DATESTAMP_ORIENT_NAMES, DATESTAMP_SHORT_TEXT, DATESTAMP_STYLE_NAMES, datestampNameTexts, drawStyleIcon } from '../aspect/datestamp-menu';
 import type { Gr3xDateForm } from './datestamp';
 import { GR3X_FACTORY_LOOK_NAMES, GR3X_FACTORY_LOOK_TEXTS, gr3xRawDevelopmentWords, installGr3xDateImprintStage, installGr3xMenuAdditions } from './datestamp';
@@ -100,6 +101,9 @@ export interface Gr3xAdjFeatures {
   /** Round 8: the Image Control order and hidden looks (look-layout.ts; the camera's order with
    * nothing hidden is the same as none). */
   lookLayout?: Gr3xLookLayout;
+  /** ISO Setting › Minimum Shutter Speed continues past 1" to 30" (minshutter.ts, issue #25).
+   * Absent: the files of before, byte for byte. */
+  minShutter?: boolean;
 }
 /** How the image-control layer builds on this one (not recorded: it follows from the films). */
 export interface Gr3xAdjLayer {
@@ -323,6 +327,7 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
   const rawEntries = installGr3xRawDevelopment(program);
   const shadingEntries = installGr3xShading(program);
   const softEntries = softFocus ? installGr3xAdjSoftFocus({ code, append, patch, word }, softText, softIcon, round10) : {};
+  const minShutterEntries = features.minShutter === true ? installGr3xMinShutter({ patch, word }) : {};
   const fullRawEntries = installGr3xFullFrameRaw(program);
   const endScreen = pictureSub ? installGr3xEndScreen({ code, append, patch, word }, { ...endIds,
     choices: pictures.map(x => x.id!), resources: pictures.map((_, k) => GR3X_JPEG_TABLE_COUNT + k), ...(date8 ? { modeByte: true } : {}),
@@ -383,9 +388,10 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
     schema: 1, kind: 'gr3x-adj-patchset' as const, profile: profile.id,
     originalRtosSha256: profile.rtosSha256, originalLength: p.rtosLength, base: BASE,
     sites, append: { address: geometry.append.address, bytes: hex(payload) }, geometry,
-    entries: { ...geometry.entries, ...scaffold, ratioText, ratioIcon, fnCycle, ...imageEntries, ...developEntries, ...afEntries, ...mapEntries, ...liveEntries, ...rawEntries, ...shadingEntries, ...fullRawEntries, ...softEntries, ...dateEntries, ...lookEntries },
+    entries: { ...geometry.entries, ...scaffold, ratioText, ratioIcon, fnCycle, ...imageEntries, ...developEntries, ...afEntries, ...mapEntries, ...liveEntries, ...rawEntries, ...shadingEntries, ...fullRawEntries, ...softEntries, ...minShutterEntries, ...dateEntries, ...lookEntries },
     catalogs: { order, textRoots, textColumns: columns, iconRoot, iconCount },
     adjSoftFocus: softFocus,
+    ...(features.minShutter === true ? { minShutter: true } : {}),
     dateImprint: dateImprint ? { ...dateIds, form: dateForm, ...(round7 ? { iconOff: 296, iconOn: 297 } : {}), ...(lookNames ? { names: lookNames } : {}) } : undefined,
     round7,
     ...(round8 ? { round8 } : {}), ...(round9 ? { round9 } : {}), ...(round10 ? { round10 } : {}),
