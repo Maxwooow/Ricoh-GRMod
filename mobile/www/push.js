@@ -211,6 +211,14 @@ $('share').addEventListener('click', () => { if (state.logPath) Gr.shareLog({ pa
 if (!native) {
   document.querySelector('main').innerHTML = '<section><p>这个页面要在 GR Mod Android App 里打开。</p></section>';
 } else {
-  Gr.getStatus().then((s) => { if (!s.bluetooth) $('cam-hint').textContent = '手机蓝牙没开：先打开蓝牙。'; });
+  Gr.getStatus().then((s) => {
+    if (!s.bluetooth) $('cam-hint').textContent = '手机蓝牙没开：先打开蓝牙。';
+    if (s.vpn) {
+      const p = document.createElement('p');
+      p.className = 'hint warn-vpn';
+      p.textContent = '手机正在用 VPN：推送前请先关掉 VPN，或在 VPN 设置里让 GR Mod 不走 VPN，否则连不上相机 Wi-Fi。';
+      document.querySelector('header').append(p);
+    }
+  });
   refreshButtons();
 }

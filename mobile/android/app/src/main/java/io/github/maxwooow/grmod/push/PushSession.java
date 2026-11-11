@@ -150,6 +150,8 @@ public final class PushSession implements Runnable {
             check();
 
             // 2. Wi-Fi + checks
+            boolean vpn = CameraNet.vpnActive(ctx);
+            if (vpn) log.add("注意：手机正在用 VPN。如果 VPN 不允许 App 绕过，就连不上相机 Wi-Fi 里的 192.168.0.1");
             ev.stage("wifi", "连接相机 Wi-Fi「" + ssid + "」：请在系统弹窗里选择它");
             net.join(ssid, pass, 120_000);
             CameraNet.Reply props = null;
@@ -159,6 +161,11 @@ public final class PushSession implements Runnable {
                 try {
                     props = net.get("/v1/props", 10_000);
                 } catch (java.io.IOException e) {
+                    if (CameraNet.isBindRefused(e)) {
+                        log.add("Android 拒绝把连接绑到相机 Wi-Fi：" + e.getMessage());
+                        throw new Fail("vpn", (vpn ? "手机上的 VPN 不允许 GR Mod 直接连相机的 Wi-Fi。" : "Android 不允许 GR Mod 直接连相机的 Wi-Fi（通常是 VPN 造成的）。")
+                                + "请先关掉 VPN（或在 VPN 设置里关掉「阻止未使用 VPN 的连接」、把 GR Mod 设为不走 VPN），再重新推送");
+                    }
                     if (System.currentTimeMillis() > until) throw new Fail("wifi", "连上了相机 Wi-Fi，但访问不到 192.168.0.1：" + e.getMessage());
                     Thread.sleep(1000);
                 }

@@ -99,6 +99,7 @@ public class GrCameraPlugin extends Plugin {
         o.put("bluetooth", ad != null && ad.isEnabled());
         o.put("permissions", granted());
         o.put("sdk", Build.VERSION.SDK_INT);
+        o.put("vpn", CameraNet.vpnActive(getContext()));
         return o;
     }
 

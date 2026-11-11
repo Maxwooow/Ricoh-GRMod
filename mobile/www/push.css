@@ -46,3 +46,4 @@ dialog::backdrop { background: rgba(0,0,0,.45); }
 .warn { padding-left: 18px; color: var(--quiet); font-size: 13px; }
 #confirm-text { font-size: 14px; }
 #confirm-text b { font-weight: 600; }
+.warn-vpn { color: var(--bad); font-weight: 600; }

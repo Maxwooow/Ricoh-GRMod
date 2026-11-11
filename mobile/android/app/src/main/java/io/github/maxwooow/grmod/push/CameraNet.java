@@ -76,6 +76,31 @@ public final class CameraNet {
 
     public boolean isLost() { return lost; }
 
+    /**
+     * True when a VPN is up. A VPN that does not allow apps to bypass it (Always-on with "Block connections
+     * without VPN", or a VPN app that does not allow bypass) makes Android refuse to bind sockets to the camera's
+     * network: "Binding socket to network N failed: EPERM".
+     */
+    public static boolean vpnActive(Context ctx) {
+        ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if (cm == null) return false;
+        try {
+            for (Network n : cm.getAllNetworks()) {
+                NetworkCapabilities c = cm.getNetworkCapabilities(n);
+                if (c != null && c.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) return true;
+            }
+        } catch (Exception ignored) { }
+        return false;
+    }
+
+    public static boolean isBindRefused(Throwable e) {
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            String m = String.valueOf(t.getMessage());
+            if (m.contains("EPERM") || m.contains("Operation not permitted")) return true;
+        }
+        return false;
+    }
+
     /** Joins the camera's access point. Android asks the user once per request (a system dialog). */
     public void join(String ssid, String passphrase, long timeoutMs) throws IOException, InterruptedException {
         ConnectivityManager cm = (ConnectivityManager) ctx.getSystemService(Context.CONNECTIVITY_SERVICE);
