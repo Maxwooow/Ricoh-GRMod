@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">GR Mod</string>
+    <string name="title_activity_main">GR Mod</string>
+    <string name="package_name">io.github.maxwooow.grmod</string>
+    <string name="custom_url_scheme">io.github.maxwooow.grmod</string>
+</resources>

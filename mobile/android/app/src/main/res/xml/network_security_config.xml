@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The camera's web interface is plain HTTP on its own access point (192.168.0.1). Nothing else may use cleartext. -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.0.1</domain>
+    </domain-config>
+</network-security-config>
