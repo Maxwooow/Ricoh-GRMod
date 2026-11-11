@@ -1,0 +1,244 @@
+{
+ "sites": [
+  {
+   "address": 1394407460,
+   "expected": "1e0050e3",
+   "replacement": "2d0050e3"
+  },
+  {
+   "address": 1394407576,
+   "expected": "383b01e3",
+   "replacement": "6c3d02e3"
+  },
+  {
+   "address": 1394407580,
+   "expected": "b43345e3",
+   "replacement": "d63345e3"
+  },
+  {
+   "address": 1394407588,
+   "expected": "002083e0",
+   "replacement": "002043e0"
+  },
+  {
+   "address": 1394407592,
+   "expected": "b05093e1",
+   "replacement": "b05013e1"
+  },
+  {
+   "address": 1394407976,
+   "expected": "b44805e3",
+   "replacement": "04b04ce2"
+  },
+  {
+   "address": 1394407980,
+   "expected": "054445e3",
+   "replacement": "34d04de2"
+  },
+  {
+   "address": 1394407984,
+   "expected": "04b04ce2",
+   "replacement": "0040a0e1"
+  },
+  {
+   "address": 1394407988,
+   "expected": "2cd04de2",
+   "replacement": "0d10a0e1"
+  },
+  {
+   "address": 1394407992,
+   "expected": "002094e5",
+   "replacement": "1520a0e3"
+  },
+  {
+   "address": 1394407996,
+   "expected": "38304be2",
+   "replacement": "2e30a0e3"
+  },
+  {
+   "address": 1394408000,
+   "expected": "19104be2",
+   "replacement": "0120c1e4"
+  },
+  {
+   "address": 1394408004,
+   "expected": "00c0a0e3",
+   "replacement": "013053e2"
+  },
+  {
+   "address": 1394408008,
+   "expected": "18200be5",
+   "replacement": "fcffff1a"
+  },
+  {
+   "address": 1394408012,
+   "expected": "1520a0e3",
+   "replacement": "600194e5"
+  },
+  {
+   "address": 1394408016,
+   "expected": "38c00be5",
+   "replacement": "0d10a0e1"
+  },
+  {
+   "address": 1394408020,
+   "expected": "34c00be5",
+   "replacement": "2e20a0e3"
+  },
+  {
+   "address": 1394408024,
+   "expected": "30c00be5",
+   "replacement": "3a30a0e3"
+  },
+  {
+   "address": 1394408028,
+   "expected": "2cc00be5",
+   "replacement": "271307eb"
+  },
+  {
+   "address": 1394408032,
+   "expected": "28c00be5",
+   "replacement": "10d04be2"
+  },
+  {
+   "address": 1394408036,
+   "expected": "24c00be5",
+   "replacement": "10a89de8"
+  },
+  {
+   "address": 1394408040,
+   "expected": "20c00be5",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408044,
+   "expected": "bcc14be1",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408048,
+   "expected": "1ac04be5",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408052,
+   "expected": "0120c3e4",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408056,
+   "expected": "010053e1",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408060,
+   "expected": "fcffff1a",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408064,
+   "expected": "600190e5",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408068,
+   "expected": "1f20a0e3",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408072,
+   "expected": "3a30a0e3",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408076,
+   "expected": "38104be2",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408080,
+   "expected": "1a1307eb",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408084,
+   "expected": "18201be5",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408088,
+   "expected": "003094e5",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408092,
+   "expected": "030052e1",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408096,
+   "expected": "0100001a",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408100,
+   "expected": "10d04be2",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408104,
+   "expected": "10a89de8",
+   "replacement": "00f020e3"
+  },
+  {
+   "address": 1394408128,
+   "expected": "384b01e3",
+   "replacement": "6c4d02e3"
+  },
+  {
+   "address": 1394408140,
+   "expected": "b44345e3",
+   "replacement": "d64345e3"
+  },
+  {
+   "address": 1394408216,
+   "expected": "1f0055e3",
+   "replacement": "2e0055e3"
+  },
+  {
+   "address": 1394408220,
+   "expected": "044084e2",
+   "replacement": "044044e2"
+  },
+  {
+   "address": 1394408296,
+   "expected": "385b01e3",
+   "replacement": "6c5d02e3"
+  },
+  {
+   "address": 1394408328,
+   "expected": "b45345e3",
+   "replacement": "d65345e3"
+  },
+  {
+   "address": 1394408384,
+   "expected": "045085e2",
+   "replacement": "045045e2"
+  },
+  {
+   "address": 1394408392,
+   "expected": "1f0054e3",
+   "replacement": "2e0054e3"
+  },
+  {
+   "address": 1394408452,
+   "expected": "045085e2",
+   "replacement": "045045e2"
+  },
+  {
+   "address": 1394408476,
+   "expected": "1f0054e3",
+   "replacement": "2e0054e3"
+  }
+ ]
+}
