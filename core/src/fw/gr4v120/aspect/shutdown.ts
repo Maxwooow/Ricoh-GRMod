@@ -56,6 +56,7 @@
  * The approach (pictures in RES, the extended JPEG table, the record) is that of gr-custom-tool's
  * End Screen list (Copyright (C) 2026 DoYitNow, GPL-2.0-only); the code is GR Mod's own.
  */
+import { menuItemWords } from './menuwide';
 import { decodeBaselineJpeg } from '../../../jpeg/decoder';
 import { encodeCoefficients, forwardTransform, makeLayout } from '../../../jpeg/encoder';
 import { qualityTables } from '../../../jpeg/tables';
@@ -444,8 +445,15 @@ export function installShutdownMenu(p: Patch, iconbin: Uint8Array, pictures: rea
      mov r0, r4; movw r1, #${END_SCREEN_TITLE}
      pop {r4, lr}
      b #${LINE_TITLE}`, a), 16);
-  p.setWord(SETUP_MENU + 0x8c + SETUP_ITEM * 8, setupLine, 'Setup > End Screen: line of a submenu');
-  p.setWord(SETUP_MENU + 0x1bc + SETUP_ITEM * 4, SHUTDOWN_MENU_ID, 'Setup > End Screen: opens the submenu');
+  // The official descriptor and, when the menus are wide (exposure preview / soft focus lines, see
+  // `menuwide.ts`, installed before this), the wide copy the camera reads: without it the End Screen
+  // line kept opening the camera's own list (found on the camera 2026-11-12, GR Mod 0.8.11 builds
+  // with exposure preview and the date imprint).
+  for (const at of menuItemWords(p, SETUP_MENU, SETUP_ITEM)) {
+    if (p.word(at.id) !== END_SCREEN_ID || p.word(at.draw) !== SETUP_ITEM_DRAW) fail('unexpected-layout', 'Setup > End Screen line is not the official one');
+    p.setWord(at.draw, setupLine, 'Setup > End Screen: line of a submenu');
+    p.setWord(at.id, SHUTDOWN_MENU_ID, 'Setup > End Screen: opens the submenu');
+  }
 
   // The settings store APData with room for the choice's record.
   // movw r3,#records; str r3,[sp] (the count argument); continue after the original `str sb,[sp]`.
