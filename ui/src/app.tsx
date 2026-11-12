@@ -4,7 +4,7 @@ import { Component, useLayoutEffect, useRef, useState } from 'react';
 import type { ErrorInfo } from 'react';
 import { GlassDefs, GlassFilter, useGlass, useSize } from './glass';
 import { Busy, ConfirmDialog, Hint, Ico, MobileSheet, Select, Toasts, useDismiss } from './components';
-import { host, isAndroid } from './host';
+import { host, isMobile } from './host';
 import { PushDialog } from './camera';
 import { haptic, setBackFallback } from './host-android';
 import { LANG_LABEL, t } from './i18n';
@@ -143,7 +143,7 @@ export function App() {
   const fwOpen = useStore((s) => !!s.info);
   const ready = useStore((s) => s.ready);
   if (!host.available) return <div className="nohost">{t('hostMissing')}</div>;
-  if (isAndroid) return <Crashed><MobileApp /></Crashed>;
+  if (isMobile) return <Crashed><MobileApp /></Crashed>;
   return (
     <div className="app" onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }} onDrop={(e) => e.preventDefault()}>
       <Sidebar />

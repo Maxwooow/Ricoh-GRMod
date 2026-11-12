@@ -1,6 +1,6 @@
-// The Android app (mobile/): the same interface as the desktop shell's API (host.ts), provided by the app's
-// native GrCamera plugin through Capacitor. There is no memory card here: firmware goes to the camera over
-// Wi-Fi (camera.ts) or into the phone's Downloads folder.
+// The phone app (mobile/, Android and iOS): the same interface as the desktop shell's API (host.ts), provided by
+// the app's native GrCamera plugin through Capacitor (Java on Android, Swift on iOS: mobile/ios-plugin). There is
+// no memory card here: firmware goes to the camera over Wi-Fi (camera.ts) or into the phone's own files.
 import { useEffect, useRef } from 'react';
 import type { DirEntry, FirmwareRelease, HostInfo, ParkedEntry, ParkedFailure, ReleaseNote, UpdateInfo, UpdateState, Volume } from './host';
 
@@ -18,8 +18,11 @@ interface CapacitorGlobal {
 }
 
 const cap = (globalThis as unknown as { Capacitor?: CapacitorGlobal }).Capacitor;
-export const isAndroid = !!cap && !!cap.isNativePlatform?.() && cap.getPlatform?.() === 'android';
-export const Gr: GrCameraPlugin = (isAndroid ? (cap!.registerPlugin ? cap!.registerPlugin('GrCamera') : cap!.Plugins?.GrCamera) : undefined) as GrCameraPlugin;
+const platform = cap && cap.isNativePlatform?.() ? cap.getPlatform?.() ?? '' : '';
+/** The phone app (Android or iOS), with its own layout (app.tsx MobileApp) and no memory cards. */
+export const isMobile = platform === 'android' || platform === 'ios';
+export const isIOS = platform === 'ios';
+export const Gr: GrCameraPlugin = (isMobile ? (cap!.registerPlugin ? cap!.registerPlugin('GrCamera') : cap!.Plugins?.GrCamera) : undefined) as GrCameraPlugin;
 
 declare const __GRMOD_VERSION__: string;
 const version = typeof __GRMOD_VERSION__ === 'string' ? __GRMOD_VERSION__ : '';
@@ -72,16 +75,16 @@ export async function upload(data: Uint8Array, to: Record<string, unknown>): Pro
   return Gr.uploadEnd({ id, ...to });
 }
 
-const unsupported = (): never => { throw err('unsupported', 'not available on Android'); };
+const unsupported = (): never => { throw err('unsupported', 'not available in the phone app'); };
 
 let fwProgress = { active: false, received: 0, total: 0 };
-if (isAndroid) void Gr.addListener('firmwareProgress', (p: { received: number; total: number }) => { fwProgress = { active: true, received: p.received, total: p.total }; });
+if (isMobile) void Gr.addListener('firmwareProgress', (p: { received: number; total: number }) => { fwProgress = { active: true, received: p.received, total: p.total }; });
 
-const info: HostInfo = { kind: 'android', token: '', version, os: 'android' };
+const info: HostInfo = { kind: platform, token: '', version, os: platform };
 
 export const androidHost = {
-  available: isAndroid,
-  info: isAndroid ? info : undefined,
+  available: isMobile,
+  info: isMobile ? info : undefined,
   sep: '/',
   join(root: string, ...parts: string[]): string { return [root, ...parts].join('/').replace(/\/+/g, '/'); },
   async volumes(_all = false): Promise<Volume[]> { return []; },
@@ -166,11 +169,11 @@ export async function pictureAsJpeg(blob: Blob): Promise<Blob> {
 }
 
 /** A light tap of the phone's vibration motor (as the system's own controls give). */
-export function haptic(kind: 'tick' | 'confirm' = 'tick'): void { if (isAndroid) Promise.resolve().then(() => Gr.haptic({ kind })).catch(() => { /* none */ }); }
+export function haptic(kind: 'tick' | 'confirm' = 'tick'): void { if (isMobile) Promise.resolve().then(() => Gr.haptic({ kind })).catch(() => { /* none */ }); }
 
 export async function openUrl(url: string): Promise<void> { try { await Gr.openUrl({ url }); } catch { /* no browser */ } }
 
-// ---- the system back button / gesture (MainActivity hands it over as the "back" event)
+// ---- the system back button / gesture (MainActivity hands it over as the "back" event; iOS has none)
 // Whatever is open on top (a sheet, a dialog) takes it first, through useBack; dialogs that close on Escape get an
 // Escape; then the other pages go back to the first; on the first page the app goes to the background
 // (as Home: nothing is lost). The WebView itself never goes "back" (that left an empty page).
@@ -199,4 +202,4 @@ function onBack(): void {
   if (fallback()) return;
   Promise.resolve().then(() => Gr.leave()).catch(() => { /* none */ });
 }
-if (isAndroid) void Gr.addListener('back', onBack);
+if (isMobile) void Gr.addListener('back', onBack);

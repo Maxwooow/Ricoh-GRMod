@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 import { FACTORY_LOOK_IDS, card, GR3X_FILM_IDS, GR3X_MAX_CUSTOM_RATIOS, GR3X_T4_CUSTOM, LANGS, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_MAX_PICTURES, SHUTDOWN_NAME_MAX, validateExtraSlotName, validateGr3xRatioName, validateRatioName, validateShutdownName } from '@grmod/core';
 import type { CameraModel, ClarityChange, ExtraSlotSpec, FirmwareInfo, FirmwareSummary, LangCode, LookLayout, PresetResult, RatioPreview, RatioSpec, ShutdownPictureSpec, SlotId, SlotRequest, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
 import { engine, EngineError } from './engine';
-import { host, HostError, isAndroid, sha256Hex } from './host';
+import { host, HostError, isMobile, sha256Hex } from './host';
 import { upload } from './host-android';
 import type { ParkedEntry, Volume } from './host';
 import { t } from './i18n';
@@ -353,7 +353,7 @@ async function saveProject(): Promise<void> {
 }
 export async function init(): Promise<void> {
   if (!host.available) { set({ ready: true }); return; }
-  if (!isAndroid) void engine.heartbeat(host.info!.token);
+  if (!isMobile) void engine.heartbeat(host.info!.token);
   void ensureIconFont();
   void loadPreviewPhoto();
   void loadBuilds();
@@ -386,7 +386,7 @@ export async function init(): Promise<void> {
   set({ ready: true });
   // A GR III project found in project.json goes to its own file at once.
   if (gr3Legacy) scheduleSave();
-  if (!isAndroid) {
+  if (!isMobile) {
     void refreshVolumes();
     setInterval(() => { if (!document.hidden && !state.busy) void refreshVolumes(); }, 2500);
   }
@@ -396,7 +396,7 @@ export async function init(): Promise<void> {
 // ------------------------------------------------------------------ guided tours
 export function startTour(id: TourId, steps: number[], replay: boolean): void {
   // The guides point at the desktop layout; the phone layout has none yet.
-  if (isAndroid || state.tour || steps.length === 0) return;
+  if (isMobile || state.tour || steps.length === 0) return;
   set({ tour: { id, steps, index: 0, replay } });
 }
 /** One step on or back; going on from the last step ends the tour. */
@@ -1269,7 +1269,7 @@ async function runPlan(root: string, steps: card.PlanStep[]): Promise<number> {
 }
 type Dest = { kind: 'card' } | { kind: 'folder' } | { kind: 'camera' } | { kind: 'phone' };
 async function destination(dest: Dest): Promise<{ root: string; volume?: Volume } | null> {
-  // Android: to the camera over Wi-Fi, or into the phone's Downloads folder.
+  // The phone app: to the camera over Wi-Fi, or into the phone's own files.
   if (dest.kind === 'camera' || dest.kind === 'phone') return { root: '' };
   if (dest.kind === 'card') {
     const v = state.volumes.find((x) => x.id === state.volumeId);
@@ -1369,9 +1369,10 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (dest.kind === 'camera') { set({ busy: undefined, push: { file, label: firmwareFilename(), stock } }); return; }
     if (dest.kind === 'phone') {
       set({ busy: t('writing') });
-      const r = await upload(file, { to: 'download', name: firmwareFilename() }) as { path: string };
+      // Android: Download/GR Mod/…; iOS: wherever the user puts it in the Files app (or nowhere: cancelled)
+      const r = await upload(file, { to: 'download', name: firmwareFilename() }) as { path?: string; cancelled?: boolean };
       set({ busy: undefined });
-      toast(t('savedTo', { p: r.path }), 'ok');
+      if (!r.cancelled) toast(t('savedTo', { p: r.path ?? '' }), 'ok');
       return;
     }
     set({ busy: t('writing') });

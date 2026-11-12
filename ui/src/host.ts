@@ -1,6 +1,6 @@
 // The platform behind the page. On Windows and macOS this is the GRMod shell's local HTTP API; the Android app
 // provides the same interface with its own implementation (host-android.ts).
-import { androidHost, isAndroid, useHostError } from './host-android';
+import { androidHost, isMobile, useHostError } from './host-android';
 
 export interface HostInfo { kind: string; token: string; version: string; os: string }
 export interface Volume { id: string; root: string; label: string; fs: string; total: number; free: number; removable: boolean; bus: string }
@@ -140,8 +140,8 @@ const desktopHost = {
   },
 };
 
-export const host: typeof desktopHost = isAndroid ? androidHost : desktopHost;
-export { isAndroid };
+export const host: typeof desktopHost = isMobile ? androidHost : desktopHost;
+export { isMobile };
 
 export async function sha256Hex(data: Uint8Array): Promise<string> {
   const d = new Uint8Array(await crypto.subtle.digest('SHA-256', data as unknown as BufferSource));

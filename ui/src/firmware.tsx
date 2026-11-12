@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { FIRMWARE_VERSION, FIRMWARE_VERSION_120, GR3_210, GR3_220, GR3X_160, GR3X_170 } from '@grmod/core';
 import type { CameraModel } from '@grmod/core';
 import { ChoiceSheet, FileButton, Ico, Segmented, useDismiss } from './components';
-import { isAndroid } from './host-android';
+import { isMobile } from './host-android';
 import { host, HostError } from './host';
 import type { FirmwareRelease } from './host';
 import { t } from './i18n';
@@ -21,20 +21,20 @@ export function FirmwareRow() {
   const wrap = useRef<HTMLDivElement>(null);
   const file = useRef<HTMLInputElement>(null);
   const close = (): void => setOpen(false);
-  useDismiss(open && !isAndroid, wrap, close);
+  useDismiss(open && !isMobile, wrap, close);
   return (
     <div className={`sel row ${open ? 'open' : ''}`} ref={wrap} data-tour="firmware">
       <button type="button" className="sel-btn" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
         <span className="side-label">{t('firmware')}</span>
         <span className={`sel-value ${info ? '' : 'muted'}`}>{info ? (info.bridge ? t('fwBridgeValue') : info.version) : t('noFirmware')}<i className={`dot ${info ? (info.bridge ? 'warn' : 'ok') : ''}`} /></span>
       </button>
-      {open && isAndroid && (
+      {open && isMobile && (
         <ChoiceSheet label={t('firmware')} onClose={close} items={[
           { label: t('fwPick'), icon: Ico.folder, run: () => file.current?.click() },
           { label: t('fwOnline'), icon: Ico.download, run: () => setOnlineOpen(true) },
         ]} />
       )}
-      {open && !isAndroid && (
+      {open && !isMobile && (
         <div className="pop up" role="menu">
           <button type="button" role="menuitem" className="pop-item" onClick={() => { close(); file.current?.click(); }}><span className="pop-ico">{Ico.folder}</span><span>{t('fwPick')}</span></button>
           <button type="button" role="menuitem" className="pop-item" onClick={() => { close(); setOnlineOpen(true); }}><span className="pop-ico">{Ico.download}</span><span>{t('fwOnline')}</span></button>

@@ -436,7 +436,14 @@ func main() {
 	preview := flag.String("preview", "", "also write a contact sheet of all sizes to this file")
 	icns := flag.String("icns", "", "also write the macOS icon (.icns) to this file")
 	android := flag.String("android", "", "also write the Android launcher icons into this res directory")
+	ios := flag.String("ios", "", "also write the iOS app icon (1024 px, opaque, full bleed) to this file")
 	flag.Parse()
+	if *ios != "" {
+		writeIOS(*ios)
+		if *out == "" {
+			return
+		}
+	}
 	if *android != "" {
 		writeAndroid(*android)
 		if *out == "" {
@@ -491,4 +498,15 @@ func writeAndroid(res string) {
 		}
 		writePNG(filepath.Join(splash, "splash_icon.png"), render(int(math.Round(96*d.scale))))
 	}
+}
+
+// writeIOS writes the iOS app icon: one 1024 px square that iOS rounds itself, so
+// the drawing goes without its own rounded square, full bleed on the icon's
+// gradient (as the Android adaptive layer), and opaque (App Store icons have no alpha).
+func writeIOS(name string) {
+	img := renderAdaptive(1024, 0.74)
+	for i := 3; i < len(img.Pix); i += 4 {
+		img.Pix[i] = 255
+	}
+	writePNG(name, img)
 }

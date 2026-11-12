@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { isAndroid, useBack } from './host-android';
+import { isMobile, useBack } from './host-android';
 import { ICON_H, ICON_W, RATIO_ICON_H, RATIO_ICON_W } from '@grmod/core';
 import { uiScale } from './fit';
 import { rgbToCanvas, rgbaToCanvas } from './pixels';
@@ -141,7 +141,7 @@ export function Menu({ items, children }: { items: { label: string; run: () => v
     window.addEventListener('mousedown', close);
     return () => window.removeEventListener('mousedown', close);
   }, [open]);
-  if (isAndroid) {
+  if (isMobile) {
     return (
       <div className="menu-wrap" ref={ref}>
         <button className="btn ghost icon-only" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-expanded={open}>{children}</button>
@@ -297,7 +297,7 @@ export function Select<T extends string>({ value, options, onChange, label, vari
   const count = options.length + extra.length;
   const current = options.find((o) => o.value === value);
   const close = (): void => { if (list.current?.contains(document.activeElement)) button.current?.focus(); setOpen(false); };
-  useDismiss(open && !isAndroid, wrap, close);
+  useDismiss(open && !isMobile, wrap, close);
   const show = (): void => {
     setPlace(popPlace(wrap.current!, Math.min(320, count * 28 + (extra.length ? 9 : 0) + 8)));
     setActive(options.findIndex((o) => o.value === value));
@@ -328,7 +328,7 @@ export function Select<T extends string>({ value, options, onChange, label, vari
     else return;
     e.preventDefault();
   };
-  if (isAndroid) {
+  if (isMobile) {
     // a phone: the choices in a sheet from the bottom
     return (
       <div className={`sel ${variant} ${open ? 'open' : ''}`} ref={wrap} data-tour={tour}>

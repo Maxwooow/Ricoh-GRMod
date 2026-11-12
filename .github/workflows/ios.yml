@@ -1,0 +1,62 @@
+# The iOS app (mobile/ios, mobile/ios-plugin): built on GitHub's Mac machines, since Xcode only runs on macOS.
+# For now unsigned, only to see that it compiles; signing and TestFlight come once the developer account
+# is ready (App Store Connect API key in the repository's secrets).
+name: iOS
+
+on:
+  push:
+    branches: [ios]
+    paths: ['mobile/**', 'ui/**', 'core/**', 'package.json', 'package-lock.json', '.github/workflows/ios.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            mobile/package-lock.json
+
+      - name: Install
+        run: |
+          npm ci
+          cd mobile && npm ci
+
+      - name: Build the page and copy it into the Xcode project
+        run: cd mobile && npm run sync:ios
+
+      - name: Xcode
+        run: xcodebuild -version
+
+      - name: Build (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project mobile/ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            2>&1 | tee xcodebuild.log | grep -E "error:|warning: .*GrCamera|BUILD (SUCCEEDED|FAILED)|\*\*" || true
+          grep -q "BUILD SUCCEEDED" xcodebuild.log
+
+      - name: Keep the build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log
+          if-no-files-found: ignore

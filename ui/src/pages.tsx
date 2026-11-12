@@ -3,7 +3,7 @@ import { color, EXTRA_NAME_MAX, GR3X_RATIO_NAME_MAX, halateRgba, halationLight, 
 import type { SlotId } from '@grmod/core';
 import type { ReactNode } from 'react';
 import { DropZone, FileButton, Ico, IconCanvas, Menu, Prop, RatioIcon, RgbCanvas, Segmented, Select, Switch } from './components';
-import { isAndroid } from './host';
+import { isMobile } from './host';
 import { FirmwareHero } from './firmware';
 import { t } from './i18n';
 import type { Key } from './i18n';
@@ -110,12 +110,12 @@ function Compare({ photo, after, label }: { photo: ImageData | null; after: Imag
       onPointerDown={(e) => {
         if (!after || (e.target as HTMLElement).closest('button')) return;
         // on a phone only the divider is dragged; the rest of the picture scrolls the page (a tap moves the divider)
-        if (isAndroid && !(e.target as HTMLElement).closest('.compare-line')) return;
-        e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); dragging.current = true; if (!isAndroid) at(e.clientX);
+        if (isMobile && !(e.target as HTMLElement).closest('.compare-line')) return;
+        e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); dragging.current = true; if (!isMobile) at(e.clientX);
       }}
       onPointerMove={(e) => { if (dragging.current) at(e.clientX); }}
       onPointerUp={() => { dragging.current = false; }} onPointerCancel={() => { dragging.current = false; }}
-      onClick={isAndroid ? (e) => { if (after && !(e.target as HTMLElement).closest('.compare-line, button')) { boxRef.current?.classList.add('glide'); at(e.clientX); window.setTimeout(() => boxRef.current?.classList.remove('glide'), 320); } } : undefined}
+      onClick={isMobile ? (e) => { if (after && !(e.target as HTMLElement).closest('.compare-line, button')) { boxRef.current?.classList.add('glide'); at(e.clientX); window.setTimeout(() => boxRef.current?.classList.remove('glide'), 320); } } : undefined}
       onDoubleClick={() => setPos(0.5)}
     >
       {after && <canvas ref={afterRef} className="compare-img" />}
@@ -201,7 +201,7 @@ function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number
         </>}
         <span className="grow" />
         {/* on a phone the looks need the width: the two views as icons */}
-        <Segmented tour="ic-mode" className={isAndroid ? 'seg-icons' : undefined} value={mode} onChange={setPreviewMode} options={isAndroid
+        <Segmented tour="ic-mode" className={isMobile ? 'seg-icons' : undefined} value={mode} onChange={setPreviewMode} options={isMobile
           ? [{ value: 'photo', label: Ico.image, title: t('previewPhoto') }, { value: 'swatch', label: Ico.swatch, title: t('previewSwatch') }]
           : [{ value: 'photo', label: t('previewPhoto') }, { value: 'swatch', label: t('previewSwatch') }]} />
       </div>
@@ -594,11 +594,11 @@ function NameInput({ className, value, placeholder, maxLength, onChange }: { cla
   const field = (
     <input
       ref={ref} className={className} value={value} placeholder={placeholder} maxLength={maxLength} spellCheck={false} aria-label={t('name')}
-      readOnly={isAndroid && !editing} tabIndex={isAndroid && !editing ? -1 : undefined} enterKeyHint="done"
-      onChange={(e) => onChange(e.target.value)} onBlur={() => setEditing(false)} onKeyDown={(e) => { if (isAndroid && e.key === 'Enter') e.currentTarget.blur(); }}
+      readOnly={isMobile && !editing} tabIndex={isMobile && !editing ? -1 : undefined} enterKeyHint="done"
+      onChange={(e) => onChange(e.target.value)} onBlur={() => setEditing(false)} onKeyDown={(e) => { if (isMobile && e.key === 'Enter') e.currentTarget.blur(); }}
     />
   );
-  if (!isAndroid) return field;
+  if (!isMobile) return field;
   const edit = (): void => {
     setEditing(true);
     requestAnimationFrame(() => { const el = ref.current; if (el) { el.focus(); const n = el.value.length; el.setSelectionRange(n, n); } });
@@ -616,7 +616,7 @@ function NameInput({ className, value, placeholder, maxLength, onChange }: { cla
  * tap or when one of its fields takes the focus, so that scrolling the page over the cards does not pick one.
  */
 function pick(run: () => void): React.HTMLAttributes<HTMLDivElement> {
-  return isAndroid ? { onClickCapture: run, onFocusCapture: run } : { onPointerDownCapture: run, onFocusCapture: run };
+  return isMobile ? { onClickCapture: run, onFocusCapture: run } : { onPointerDownCapture: run, onFocusCapture: run };
 }
 
 /** An added slot: one name for every language (ASCII), a preset, an icon. */
@@ -786,9 +786,9 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
       {hdrOk && <FeatureRow icon={Ico.hdr} title={t('navHdr')} sub={t('hdrSub')} on={hdr} onChange={setHdr} />}
       {previewOk && <FeatureRow icon={Ico.preview} title={t('navPreview')} sub={t('previewSub')} on={preview} onChange={setExposurePreview} />}
       {adjMax > 5 && <AdjSlotsRow max={adjMax} />}
-      {brightAutoOk && !isAndroid && <div className="soft-switch"><Select value={brightAuto || 'off'} options={[{ value: 'off', label: t('brightAutoOff') }, { value: 'balanced', label: t('brightAutoBalanced') }, { value: 'bright', label: t('brightAutoBright') }]} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')} label={t('navBrightAuto')} variant="row" /></div>}
+      {brightAutoOk && !isMobile && <div className="soft-switch"><Select value={brightAuto || 'off'} options={[{ value: 'off', label: t('brightAutoOff') }, { value: 'balanced', label: t('brightAutoBalanced') }, { value: 'bright', label: t('brightAutoBright') }]} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')} label={t('navBrightAuto')} variant="row" /></div>}
       {/* on a phone: a row like the others, the three levels side by side (as the ADJ items) */}
-      {brightAutoOk && isAndroid && (
+      {brightAutoOk && isMobile && (
         <div className={`soft-switch bright-row ${brightAuto ? 'on' : ''}`}>
           <span className="page-icon soft-ico">{Ico.bright}</span>
           <div className="soft-text"><b>{t('navBrightAuto')}</b></div>
@@ -972,7 +972,7 @@ export function ImageControlPage() {
             {info.bridge
               ? <span className="chip warn">{Ico.bridge}<span className="ellipsis">{fwName || info.filename} · {t('fwBridgeValue')}</span></span>
               : <span className="chip ok">{Ico.check}<span className="ellipsis">{fwName || info.filename} · {info.version}</span></span>}
-            <Menu items={isAndroid ? [
+            <Menu items={isMobile ? [
               ...(info.family === 'gr4' ? [{ label: t('pushStock'), run: () => { void outputFirmware({ kind: 'camera' }, true); } }] : []),
               { label: t('saveStock'), run: () => { void outputFirmware({ kind: 'phone' }, true); } },
             ] : [
