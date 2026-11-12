@@ -51,14 +51,16 @@ public final class CameraNet {
             Object d = json.opt("detail");
             if (d instanceof JSONObject) d = ((JSONObject) d).opt("reason");
             if (d != null) sb.append(" reason=").append(d);
-            String hint = hint(json.optString("errMsg"));
+            String hint = hint(d instanceof String ? (String) d : json.optString("errMsg"));
             if (hint != null) sb.append("（").append(hint).append("）");
             return sb.toString();
         }
         public static String hint(String errMsg) {
             switch (errMsg == null ? "" : errMsg) {
                 case "err_fw_same": return "相机认为版本相同，拒绝";
-                case "err_fw_old": return "相机认为版本更旧，拒绝";
+                // seen 2026-11-11 after an update that hung and was switched off: the camera still ran 1.20 and
+                // turned down 1.20 files; flashing the file once from a memory card set it right
+                case "err_fw_old": return "相机认为版本更旧，拒绝。如果相机显示的版本和这个文件一样（比如上次更新中途卡住、关过机），用存储卡刷一次这个文件就能恢复，之后可以再无线推送";
                 case "err_fw_broken": return "相机认为文件损坏";
                 case "battery_too_low": return "相机电量不足";
                 default: return null;
