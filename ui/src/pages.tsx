@@ -229,7 +229,7 @@ function SlotCard({ id }: { id: SlotId }) {
   const first = id === 'CY'; // the one the tour points at
   return (
     <DropZone className={`card ${active ? 'on' : ''}`} tour={first ? 'ic-slot' : undefined} accept={isPreset} onFiles={(f) => { void loadPresetFile(id, f[0]); }}>
-      <div className="card-in" onPointerDownCapture={() => setActiveSlot(id)} onFocusCapture={() => setActiveSlot(id)}>
+      <div className="card-in" {...pick(() => setActiveSlot(id))}>
         <div className="card-head">
           <IconCanvas pixels={slot.icon.mode !== 'keep' && slot.icon.pixels ? slot.icon.pixels : off.icon} />
           <div className="card-title" data-tour={first ? 'ic-name' : undefined}>
@@ -584,6 +584,14 @@ function LookOrderView() {
   );
 }
 
+/**
+ * Makes a card the current one when it is used. On the desktop as soon as it is pressed; on a phone only on a
+ * tap or when one of its fields takes the focus, so that scrolling the page over the cards does not pick one.
+ */
+function pick(run: () => void): React.HTMLAttributes<HTMLDivElement> {
+  return isAndroid ? { onClickCapture: run, onFocusCapture: run } : { onPointerDownCapture: run, onFocusCapture: run };
+}
+
 /** An added slot: one name for every language (ASCII), a preset, an icon. */
 function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
   const active = useStore((s) => s.activeSlot === x.key);
@@ -595,7 +603,7 @@ function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
   const k = x.key;
   return (
     <DropZone className={`card ${active ? 'on' : ''}`} accept={isPreset} onFiles={(f) => { void loadPresetFile(k, f[0]); }}>
-      <div className="card-in" onPointerDownCapture={() => setActiveSlot(k)} onFocusCapture={() => setActiveSlot(k)}>
+      <div className="card-in" {...pick(() => setActiveSlot(k))}>
         <div className="card-head">
           <IconCanvas pixels={x.icon.pixels ?? tile} />
           <div className="card-title">
@@ -968,7 +976,7 @@ function RatioRow({ r, active, tour }: { r: RatioItem; active: boolean; tour?: s
   const problem = portrait ? null : ratioProblem(r);
   const busy = !!r.ratio.trim() && !p;
   return (
-    <div className={`ratio-row ${active ? 'on' : ''}`} data-tour={tour} onPointerDownCapture={() => setActiveRatio(r.id)} onFocusCapture={() => setActiveRatio(r.id)}>
+    <div className={`ratio-row ${active ? 'on' : ''}`} data-tour={tour} {...pick(() => setActiveRatio(r.id))}>
       <RatioIcon pixels={p?.icon} width={48} />
       <input
         className={`input ratio-in ${p?.problem ? 'bad' : ''}`} title={portrait ? ratioProblem(r) ?? undefined : undefined} value={r.ratio} maxLength={16} spellCheck={false} placeholder={t('ratioPlaceholder')} aria-label={t('navRatio')}

@@ -585,7 +585,7 @@ html.android body { background: var(--side); font-size: 15px; }
 .m-actions .btn.glass:disabled { opacity: 1; color: var(--faint); }
 /* "send to camera": the same glass, tinted blue */
 .m-actions .btn.glass.tint { color: #fff; background: color-mix(in srgb, var(--blue) 60%, transparent); backdrop-filter: blur(5px) url(#lg-send) saturate(1.8);
-  box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.5), inset 0 -1px 1px rgba(0, 0, 0, 0.12), inset 0 0 0 0.5px rgba(255, 255, 255, 0.3), 0 8px 24px color-mix(in srgb, var(--blue) 30%, transparent); }
+  box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.5), inset 0 -1px 1px rgba(0, 0, 0, 0.12), inset 0 0 0 0.5px rgba(255, 255, 255, 0.3), var(--glass-shadow); }
 .m-actions .btn.glass.tint:disabled { color: rgba(255, 255, 255, 0.6); background: color-mix(in srgb, var(--blue) 26%, transparent); box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.3), inset 0 0 0 0.5px rgba(255, 255, 255, 0.18), var(--glass-shadow); }
 .m-dock { position: fixed; z-index: 21; left: 16px; right: 16px; bottom: var(--dock-b); height: var(--dock-h); }
 .m-tabs { position: absolute; inset: 0; display: flex; padding: 4px; border-radius: 999px; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
@@ -735,12 +735,16 @@ html.android, html.android * { -webkit-tap-highlight-color: transparent; }
 .app.mobile .ic .pane-head > .grow { display: none; }
 .seg.seg-icons button { padding: 0 9px; display: grid; place-items: center; }
 .seg.seg-icons svg { width: 17px; height: 17px; }
+/* the two views of Image Control: the page is as long as the one shown (the other folds away once the turn is over) */
+.app.mobile .ic-track { align-items: flex-start; }
+.app.mobile .ic-track:not(.moving) > .ic-view[inert] { height: 0; overflow: hidden; }
 /* the menu order: what it does first, then the list at the full width, rows tall enough for a finger */
 .app.mobile .looks { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
 .app.mobile .look-info { order: -1; }
 .app.mobile .look-card { max-height: none; overflow: visible; }
 .app.mobile .look-list { overflow: visible; padding: 4px 6px; }
 .app.mobile .look-row { height: 46px; }
+.app.mobile .look-row:hover:not(.lifted) { background: none; }
 .app.mobile .look-grip { width: 30px; height: 40px; color: var(--muted); }
 .app.mobile .look-btns { gap: 2px; }
 .app.mobile .look-btns .btn.icon-only { width: 36px; height: 36px; }
