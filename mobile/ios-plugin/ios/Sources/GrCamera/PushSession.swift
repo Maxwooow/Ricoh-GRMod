@@ -188,7 +188,7 @@ final class PushSession: BleListener {
             let fwVersion = p["firmwareVersion"] as? String ?? ""
             let battery = (p["battery"] as? NSNumber)?.intValue ?? -1
             let hot = (p["hot"] as? NSNumber)?.boolValue ?? false
-            result["camera"] = ["model": model, "firmwareVersion": fwVersion, "battery": battery, "hot": hot, "serialNo": p["serialNo"] as? String ?? ""]
+            result["camera"] = ["model": model, "firmwareVersion": fwVersion, "battery": battery, "hot": hot, "serialNo": p["serialNo"] as? String ?? ""] as [String: Any]
             log.add("相机：\(model)，固件 \(fwVersion)，电量 \(battery)%")
             if mode == .INFO {
                 result["ok"] = true

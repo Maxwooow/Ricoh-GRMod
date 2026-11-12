@@ -140,9 +140,9 @@ final class Ricoh: NSObject, URLSessionDataDelegate {
 
     /// The archive's size without fetching it (HEAD, else a one-byte range); 0 when the site says neither.
     private func size(_ u: URL) -> Int64 {
-        if let (_, r) = try? fetch(u, method: "HEAD"), r.statusCode == 200, r.expectedContentLength > 0 { return r.expectedContentLength }
-        if let (_, r) = try? fetch(u, range: "bytes=0-0"), r.statusCode == 206,
-           let cr = r.value(forHTTPHeaderField: "Content-Range"), let m = Ricoh.first(#"^bytes \d+-\d+/(\d+)$"#, cr), let n = Int64(m[1]) {
+        if let head = try? fetch(u, method: "HEAD"), head.1.statusCode == 200, head.1.expectedContentLength > 0 { return head.1.expectedContentLength }
+        if let one = try? fetch(u, range: "bytes=0-0"), one.1.statusCode == 206,
+           let cr = one.1.value(forHTTPHeaderField: "Content-Range"), let m = Ricoh.first(#"^bytes \d+-\d+/(\d+)$"#, cr), let n = Int64(m[1]) {
             return n
         }
         return 0
