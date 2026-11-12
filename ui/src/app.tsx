@@ -7,7 +7,7 @@ import { Busy, ConfirmDialog, Hint, Ico, MobileSheet, Select, Toasts, useDismiss
 import { host, isMobile } from './host';
 import { PushDialog } from './camera';
 import { haptic, setBackFallback } from './host-android';
-import { LANG_LABEL, t } from './i18n';
+import { LANG_LABEL, setUiLangPref, t, uiLangPref } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
 import { BridgeBanner, FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
@@ -15,7 +15,7 @@ import { CropEditor, ImageControlPage, RatioPage, WallpaperPage } from './pages'
 import { Tour, replayTour, restartTours } from './tour';
 import { UpdatePill, UpdateWatcher, checkForUpdate, openWhatsNew } from './updates';
 import {
-  askForOfficial, bridgeLoaded, getState, isGr3, backupCopies, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
+  askForOfficial, bridgeLoaded, getState, isGr3, backupCopies, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setLang, setLangAuto, setModel, setPage, setShowAll, systemCameraLang, useStore, wallReady,
 } from './store';
 import type { State } from './store';
 
@@ -174,11 +174,11 @@ function MobileTop({ onSettings }: { onSettings: () => void }) {
     <header className="m-top">
       <h1 className="m-title">{t(PAGE_TITLE[page] ?? 'navIC')}</h1>
       <span className="grow" />
-      <button type="button" className="m-fw" onClick={onSettings} aria-label={t('mSettings')}>
-        <span className={info ? '' : 'muted'}>{info ? (info.bridge ? t('fwBridgeValue') : `${info.filename} · ${info.version}`) : t('noFirmware')}</span>
+      <button type="button" className="m-fw" data-tour="m-fw" onClick={onSettings} aria-label={t('mSettings')}>
+        <span className={info ? '' : 'muted'}>{info ? (info.bridge ? t('fwBridgeValue') : <><span className="m-fw-file">{info.filename} · </span>{info.version}</>) : t('noFirmware')}</span>
         <i className={`dot ${info ? (info.bridge ? 'warn' : 'ok') : ''}`} />
       </button>
-      <button type="button" className="btn ghost icon-only m-icon" onClick={onSettings} aria-label={t('mSettings')}>{Ico.sliders}</button>
+      <button type="button" className="btn ghost icon-only m-icon" data-tour="m-settings" onClick={onSettings} aria-label={t('mSettings')}>{Ico.sliders}</button>
     </header>
   );
 }
@@ -186,6 +186,9 @@ function MobileTop({ onSettings }: { onSettings: () => void }) {
 function MobileSettings({ onClose }: { onClose: () => void }) {
   const model = useStore((s) => s.model);
   const lang = useStore((s) => s.lang);
+  const langAuto = useStore((s) => s.langAuto);
+  const sys = systemCameraLang();
+  const ui = uiLangPref();
   return (
     <MobileSheet label={t('mSettings')} onClose={onClose} side="right">
       {(close) => (
@@ -196,10 +199,20 @@ function MobileSettings({ onClose }: { onClose: () => void }) {
               variant="row" label={t('model')} lead={<span className="side-label">{t('model')}</span>} value={model} onChange={setModel}
               options={MODELS.map((m) => ({ value: m, label: modelLabel(m) }))}
             />
-            <Select<LangCode>
-              variant="row" label={t('language')} lead={<span className="side-label">{t('language')}</span>} value={lang} onChange={setLang}
-              options={LANGS.map((l) => ({ value: l, label: LANG_LABEL[l] || l }))}
+            <Select<string>
+              variant="row" label={t('language')} lead={<span className="side-label">{t('language')}</span>} value={langAuto ? 'auto' : lang}
+              onChange={(v) => { if (v === 'auto') setLangAuto(); else setLang(v as LangCode); }}
+              options={[{ value: 'auto', label: `${t('followSystem')} · ${LANG_LABEL[sys] || sys}` }, ...LANGS.map((l) => ({ value: l, label: LANG_LABEL[l] || l }))]}
             />
+            <Select<string>
+              variant="row" label={t('uiLanguage')} lead={<span className="side-label">{t('uiLanguage')}</span>} value={ui || 'auto'}
+              onChange={(v) => { if (v !== (ui || 'auto')) setUiLangPref(v === 'zh' || v === 'en' ? v : ''); }}
+              options={[{ value: 'auto', label: t('followSystem') }, { value: 'zh', label: '简体中文' }, { value: 'en', label: 'English' }]}
+            />
+          </div>
+          <div className="side-props m-props m-help">
+            <button type="button" className="m-row" onClick={() => { close(); window.setTimeout(replayTour, 480); }}>{Ico.help}<span>{t('tourReplay')}</span></button>
+            <button type="button" className="m-row" onClick={() => { close(); window.setTimeout(restartTours, 480); }}>{Ico.refresh}<span>{t('tourRestart')}</span></button>
           </div>
           <div className="m-sheet-foot">
             <button type="button" className="about-link" onClick={() => { close(); window.setTimeout(openWhatsNew, 200); }}>GR Mod v{host.info?.version || ''} · {t('mWhatsNew')}</button>
@@ -247,8 +260,8 @@ function MobileActions() {
   return (
     <div className="m-actions">
       <GlassDefs>{glass.filter}{glass2.filter}</GlassDefs>
-      <button ref={glass.ref} className={`btn glass ${p1.pressed ? 'pressed' : ''}`} disabled={!can && !bridge} {...p1.bind} onClick={() => run('phone')}>{Ico.save}<span>{t('saveToPhone')}</span></button>
-      <button ref={glass2.ref} className={`btn glass tint ${p2.pressed ? 'pressed' : ''}`} disabled={(!can && !bridge) || (!!s.info && !gr4)} title={s.info && !gr4 ? t('pushOnlyGr4') : undefined} {...p2.bind} onClick={() => run('camera')}>{Ico.send}<span>{t('pushCamera')}</span></button>
+      <button ref={glass.ref} data-tour="export" className={`btn glass ${p1.pressed ? 'pressed' : ''}`} disabled={!can && !bridge} {...p1.bind} onClick={() => run('phone')}>{Ico.save}<span>{t('saveToPhone')}</span></button>
+      <button ref={glass2.ref} data-tour="write" className={`btn glass tint ${p2.pressed ? 'pressed' : ''}`} disabled={(!can && !bridge) || (!!s.info && !gr4)} title={s.info && !gr4 ? t('pushOnlyGr4') : undefined} {...p2.bind} onClick={() => run('camera')}>{Ico.send}<span>{t('pushCamera')}</span></button>
     </div>
   );
 }
@@ -371,7 +384,7 @@ function MobileTabs() {
 
   const row = (hot: boolean): React.ReactNode => tabs.map((x, i) => (
     <button
-      key={x.p} type="button" tabIndex={hot ? -1 : 0} aria-hidden={hot || undefined} className={`m-tab ${hot ? 'on' : ''}`}
+      key={x.p} type="button" tabIndex={hot ? -1 : 0} aria-hidden={hot || undefined} className={`m-tab ${hot ? 'on' : ''}`} data-tour={hot ? undefined : `nav-${x.p}`}
       aria-current={!hot && i === current ? 'page' : undefined} onClick={hot ? undefined : (e) => { if (e.detail === 0) setPage(x.p); }}
     >{x.icon}<span>{t(x.key)}</span></button>
   ));
@@ -443,6 +456,7 @@ function MobileApp() {
       <UpdateWatcher />
       <PushDialog />
       <ConfirmDialog />
+      <Tour />
       <Busy />
       <Toasts />
     </div>

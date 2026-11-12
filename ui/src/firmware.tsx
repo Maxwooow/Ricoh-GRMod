@@ -99,6 +99,25 @@ function OnlineDialog() {
     return () => { window.removeEventListener('keydown', key); abort.current?.abort(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // The phone: the model tabs scroll sideways; the chosen one is brought into view, and fades mark hidden tabs.
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState({ l: false, r: false });
+  const edges = (): void => {
+    const el = tabsRef.current;
+    if (!el) return;
+    const l = el.scrollLeft > 2, r = el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
+    setMore((o) => (o.l === l && o.r === r ? o : { l, r }));
+  };
+  useEffect(() => {
+    const el = tabsRef.current;
+    const on = el?.querySelector<HTMLElement>('button.on');
+    if (el && on && isMobile) {
+      const want = on.offsetLeft - (el.clientWidth - on.offsetWidth) / 2;
+      el.scrollTo({ left: Math.max(0, want), behavior: 'smooth' });
+    }
+    edges();
+  }, [model]);
+
   const latest = look.state === 'ready' ? look.rel : null;
   // Both releases are offered: the site's current one and, while Ricoh still serves it, the earlier
   // one this program also builds on. A release the program does not know (a newer one) is shown
@@ -136,7 +155,7 @@ function OnlineDialog() {
       <div className="dialog online" role="dialog" aria-modal="true" aria-label={t('fwOnlineTitle')}>
         <h3>{t('fwOnlineTitle')}</h3>
         {reason && <p className="dialog-warn">{t('bridgeNeedOfficial')}</p>}
-        <div className={`online-models ${progress ? 'off' : ''}`}>
+        <div className={`online-models ${progress ? 'off' : ''} ${more.l ? 'more-l' : ''} ${more.r ? 'more-r' : ''}`} ref={tabsRef} onScroll={edges}>
           <Segmented<CameraModel> value={model} onChange={(m) => { if (!progress) setModel(m); }} options={MODELS.map((m) => ({ value: m, label: modelLabel(m) }))} />
         </div>
         {look.state === 'loading' && <div className="fw-rel idle"><span className="spinner small" /><span className="muted">{t('fwLooking')}</span></div>}
@@ -155,9 +174,9 @@ function OnlineDialog() {
                     <b>{modelLabel(model)}<span className="fw-ver">{rel.version}</span>{ok && known.length > 1 && <span className={`chip tiny ${rel.version === newest ? 'ok' : 'muted'}`}>{t(rel.version === newest ? 'fwNewVersion' : 'fwOldVersion')}</span>}</b>
                     <small>{busy && progress
                       ? `${t('fwDownloading')}${progress.received > 0 ? `  ${fmtSize(progress.received)}${progress.total > 0 ? ` / ${fmtSize(progress.total)}` : ''}` : ''}`
-                      : [rel.date, rel.size > 0 ? fmtSize(rel.size) : ''].filter(Boolean).join('  ·  ')}</small>
+                      : [rel.date, rel.size > 0 ? fmtSize(rel.size) : ''].filter(Boolean).join('  ·  ')}{!ok && isMobile && <span className="chip warn">{t('fwUnsupported')}</span>}</small>
                   </span>
-                  {!ok ? <span className="chip warn">{t('fwUnsupported')}</span> : busy ? <span className="spinner small" /> : <span className="fw-go">{Ico.download}</span>}
+                  {!ok ? (isMobile ? null : <span className="chip warn">{t('fwUnsupported')}</span>) : busy ? <span className="spinner small" /> : <span className="fw-go">{Ico.download}</span>}
                   {busy && <i className="fw-bar" style={{ width: `${percent}%` }} />}
                 </button>
               );

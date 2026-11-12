@@ -157,7 +157,28 @@ const zh = {
   pushStart: '开始推送', pushStop: '停止', pushClose: '关闭', pushShareLog: '发送日志', pushDetails: '日志', pushPreparing: '准备文件…',
   pushOnlyGr4: '无线推送只支持 GR IV 系列。GR III / IIIx 请保存到手机，再用读卡器写入存储卡。',
   pushVpn: '手机正在用 VPN：推送前请先关掉，或在 VPN 设置里让 GR Mod 不走 VPN。', pushPerm: '需要蓝牙和附近设备权限才能找到相机',
-  pushBtOff: '手机蓝牙没有打开', mSettings: '设置', saveTitle: '保存到手机', rename: '改名', saveStart: '保存', mWhatsNew: '更新内容', mCrashed: '界面出错了，请把下面的内容截图发给开发者', mReload: '重新加载',
+  pushBtOff: '手机蓝牙没有打开', mSettings: '设置', saveTitle: '保存到手机', rename: '改名', saveStart: '保存', mWhatsNew: '更新内容', followSystem: '跟随系统', uiLanguage: '界面语言',
+  // the phone app: where it differs from the desktop wording, the key + 'M' (t() picks it on the phone)
+  wallEmptyM: '添加图片', dropFirmwareSubM: '点击从手机里选择文件', dropPresetM: '选择 .xmp / .cube', dropFirmwareM: '导入官方固件 .bin',
+  tOvFirmwareBM: '点这里打开设置，选择正确的机型后即可从官方途径在线下载固件；也可以导入手机里已经下载好的固件。新版（1.20）和旧版（1.11）固件都可以使用，相机刷入新版后无法降级为旧版',
+  tOvFirmwareBG3M: '点这里打开设置，选择正确的机型后即可从官方途径在线下载固件；也可以导入手机里已经下载好的固件。新版（GR III 2.20 / GR IIIx 1.70）和旧版（2.10 / 1.60）固件都可以使用，相机刷入新版后无法降级为旧版',
+  tMSettingsT: '设置', tMSettingsB: '机型、相机语言和界面语言都在这里设置；也可以在这里查看更新内容、回顾新手教程',
+  tOvCombineBM: '影像控制和长宽比页面中的内容可以被同时刷入，只需分别更改后，在任意页面保存或推送即可，之前的改动会被保留',
+  tOvExportTM: '保存到手机', tOvExportBM: '生成固件并保存到手机的「下载 › GR Mod」文件夹，再用读卡器写入存储卡。所有机型都可以使用',
+  tOvWriteTM: '推送到相机', tOvWriteBM: '通过蓝牙和 Wi-Fi 把固件直接推送到相机并开始更新，不需要存储卡。仅支持 GR IV 系列，且只能推送与相机相同基础版本的固件（例如 1.20 → 1.20）',
+  tOvHelpBM: '如果在某一阶段忘了该如何操作，可以在设置里回顾此教程；也可以从那里重新开始全部教程',
+  tIcStockBM: '“⋯”中可以把原厂固件推送到相机或保存到手机',
+  tIcSlotBM: '可自定义的预设槽位，点击可选中当前槽位并在上方预览效果', tIcSlotBG3M: '可自定义的预设槽位，点击可选中当前槽位并在上方预览效果',
+  tIcPresetBM: '点击选择 .xmp / .cube（基于 sRGB / Rec.709）导入',
+  tIcTabsBM: '切换上方预览的槽位，和点下面的卡片效果相同。',
+  tIcPreviewBM: '可以进行左右对比，中间分割线可以拖动，点击画面可把分割线移到该处。用户可以导入自己的照片。',
+  tIcWriteTM: '推送到相机', tIcWriteBM: '生成固件并推送到相机，相机收到后自动更新；也可以保存到手机，再用读卡器写入存储卡。所有改动（包括关机画面）将写在同一个固件里。',
+  tRatioFrameBM: '此处为取景范围示例，可以点右上角的按钮换成自己的照片。',
+  tWallMenuBM: '图片会写进固件。更新后在相机「设置 › 显示设定 › 结束画面 › 图片」中选择，不需要开启工厂菜单', tWallMenuBG3M: '图片会写进固件。更新后在相机「设置 › 显示 › 结束画面 › 图片」中选择',
+  tWallAddBM: '点击添加图片，最多 8 张',
+  tWallCardBM: '右上角可以裁切、移除；下方的名称会显示在相机的菜单里（英文字母、数字和符号）',
+  tWallWriteTM: '推送到相机', tWallWriteBM: '图片和其它页面的改动一起写进固件，推送到相机或保存到手机后更新',
+ mCrashed: '界面出错了，请把下面的内容截图发给开发者', mReload: '重新加载',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -318,12 +339,49 @@ const en: typeof zh = {
   pushStart: 'Send', pushStop: 'Stop', pushClose: 'Close', pushShareLog: 'Send log', pushDetails: 'Log', pushPreparing: 'Preparing the file…',
   pushOnlyGr4: 'Only the GR IV family takes firmware over Wi-Fi. For a GR III / IIIx, save it to the phone and copy it to a card.',
   pushVpn: 'A VPN is on: switch it off, or let GR Mod bypass it, before sending.', pushPerm: 'Bluetooth and nearby-devices permissions are needed to find the camera',
-  pushBtOff: 'Bluetooth is off', mSettings: 'Settings', saveTitle: 'Save to phone', rename: 'Rename', saveStart: 'Save', mWhatsNew: 'What\'s new', mCrashed: 'Something went wrong in the interface. Please send a screenshot of this to the developer.', mReload: 'Reload',
+  pushBtOff: 'Bluetooth is off', mSettings: 'Settings', saveTitle: 'Save to phone', rename: 'Rename', saveStart: 'Save', mWhatsNew: 'What\'s new', followSystem: 'Follow system', uiLanguage: 'App language',
+  wallEmptyM: 'Add images', dropFirmwareSubM: 'Tap to choose a file on the phone', dropPresetM: 'Choose .xmp / .cube', dropFirmwareM: 'Import an official firmware .bin',
+  tOvFirmwareBM: 'Tap here to open the settings: choose the right model and download the firmware from the official source, or import a firmware file already on the phone. Both the new (1.20) and the earlier firmware (1.11) can be used; a camera that installs the new one cannot go back to the earlier one.',
+  tOvFirmwareBG3M: 'Tap here to open the settings: choose the right model and download the firmware from the official source, or import a firmware file already on the phone. Both the new (GR III 2.20 / GR IIIx 1.70) and the earlier firmware (2.10 / 1.60) can be used; a camera that installs the new one cannot go back to the earlier one.',
+  tMSettingsT: 'Settings', tMSettingsB: 'The model, the camera language and the app language are set here; here you also find what is new and the guides.',
+  tOvCombineBM: 'What you set on the Image Control and Aspect ratio pages goes into one firmware: make the changes on each page, then save or send from either page. Earlier changes are kept.',
+  tOvExportTM: 'Save to phone', tOvExportBM: 'Builds the firmware and saves it in the phone\'s Download › GR Mod folder, to copy to the card with a card reader. Works for every model.',
+  tOvWriteTM: 'Send to camera', tOvWriteBM: 'Sends the firmware straight to the camera over Bluetooth and Wi-Fi and starts the update, no card needed. GR IV family only, and only a firmware of the camera\'s own base version (e.g. 1.20 to 1.20).',
+  tOvHelpBM: 'If you forget how something works at any point, go through this guide again from the settings, or start all guides from the beginning there.',
+  tIcStockBM: 'The "⋯" menu sends the factory firmware to the camera or saves it to the phone.',
+  tIcSlotBM: 'Preset slots that can be customised. Tap one to select it and see its effect in the preview above.', tIcSlotBG3M: 'Preset slots that can be customised. Tap one to select it and see its effect in the preview above.',
+  tIcPresetBM: 'Tap to choose an .xmp / .cube file (sRGB / Rec.709) to import it.',
+  tIcTabsBM: 'Switches the slot shown in the preview above, like tapping a card.',
+  tIcPreviewBM: 'A side-by-side comparison: drag the line in the middle, or tap the picture to move the line there. You can use your own photo.',
+  tIcWriteTM: 'Send to camera', tIcWriteBM: 'Builds the firmware and sends it to the camera, which then updates by itself; or save it to the phone and write it to the card with a card reader. Everything (power-off images included) goes into this one firmware.',
+  tRatioFrameBM: 'An example of what the frame covers; the button at the top right puts your own photo here.',
+  tWallMenuBM: 'The pictures go into the firmware. After the update, choose one in the camera under Setup › Display › End Screen › Picture. The factory menu is not needed.', tWallMenuBG3M: 'The pictures go into the firmware. After the update, choose one in the camera under Setup › Display › End Screen › Picture.',
+  tWallAddBM: 'Tap to add pictures, 8 at most.',
+  tWallCardBM: 'Crop or remove at the top right; the name below is shown in the camera menu (letters, digits and symbols).',
+  tWallWriteTM: 'Send to camera', tWallWriteBM: 'The pictures go into the firmware together with the changes on the other pages; send it to the camera, or save it to the phone, to update.',
+ mCrashed: 'Something went wrong in the interface. Please send a screenshot of this to the developer.', mReload: 'Reload',
 };
 export type Key = keyof typeof zh;
-const dict = (navigator.language || 'zh').toLowerCase().startsWith('zh') ? zh : en;
+/** The interface language the user picked in the phone app ('' = as the system), kept in the web view's storage. */
+const UI_LANG_KEY = 'grmod.uiLang';
+export function uiLangPref(): '' | 'zh' | 'en' {
+  try { const v = localStorage.getItem(UI_LANG_KEY); return v === 'zh' || v === 'en' ? v : ''; } catch { return ''; }
+}
+/** Changes the interface language; the page reloads in it (nothing is lost: the work is saved). */
+export function setUiLangPref(v: '' | 'zh' | 'en'): void {
+  try { if (v) localStorage.setItem(UI_LANG_KEY, v); else localStorage.removeItem(UI_LANG_KEY); } catch { /* not kept */ }
+  window.setTimeout(() => window.location.reload(), 120);
+}
+const systemZh = (navigator.language || 'zh').toLowerCase().startsWith('zh');
+/** The interface language in use. */
+export const UI_LANG: 'zh' | 'en' = uiLangPref() || (systemZh ? 'zh' : 'en');
+const dict = UI_LANG === 'zh' ? zh : en;
+/** The phone app (Android, iOS): its own wording where the desktop's would be wrong (no dragging, no card). */
+const capx = (globalThis as unknown as { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string } }).Capacitor;
+const PHONE = !!capx?.isNativePlatform?.() && ['android', 'ios'].includes(capx.getPlatform?.() ?? '');
 export function t(key: Key, vars?: Record<string, string | number>): string {
-  let s: string = dict[key] ?? key;
+  const own = PHONE ? (dict as Record<string, string>)[`${key}M`] : undefined;
+  let s: string = own ?? dict[key] ?? key;
   if (vars) for (const k of Object.keys(vars)) s = s.split(`{${k}}`).join(String(vars[k]));
   return s;
 }

@@ -590,7 +590,7 @@ html.mobile-app body { background: var(--side); font-size: 15px; }
 .m-dock { position: fixed; z-index: 21; left: 16px; right: 16px; bottom: var(--dock-b); height: var(--dock-h); }
 .m-tabs { position: absolute; inset: 0; display: flex; padding: 4px; border-radius: 999px; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 .m-tab { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; background: none; color: var(--muted); font-size: 11px; font-weight: 600; transition: color 0.2s; -webkit-tap-highlight-color: transparent; }
-.m-tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 4px; }
+.m-tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; font-size: clamp(9.5px, 2.85vw, 11px); letter-spacing: -0.1px; }
 .m-tab svg { width: 24px; height: 24px; }
 .m-tab.on { color: var(--blue); }
 /* the lens over the current tab: a lighter pill at rest; held, it swells past the bar and magnifies what is under it */
@@ -625,6 +625,13 @@ html.ios .m-lens.held { -webkit-backdrop-filter: saturate(1.45) brightness(1.06)
 /* dialogs fill the width of a phone */
 .app.mobile .dialog { width: calc(100% - 24px); max-width: 520px; max-height: calc(100% - 48px); overflow-y: auto; padding: 18px 16px 14px; }
 .app.mobile .dialog-actions .btn { min-height: 42px; }
+/* confirm lines on the phone: slide sideways when too long (SwipeLine); a soft fade marks the hidden side */
+.app.mobile .dialog-lines li.swipe-line { overflow: hidden; text-overflow: clip; touch-action: pan-y; position: relative;
+  -webkit-mask-image: linear-gradient(90deg, var(--ml, #000) 0, #000 18px, #000 calc(100% - 22px), var(--mr, #000) 100%);
+  mask-image: linear-gradient(90deg, var(--ml, #000) 0, #000 18px, #000 calc(100% - 22px), var(--mr, #000) 100%); }
+.app.mobile .dialog-lines li.swipe-line.more-l { --ml: transparent; }
+.app.mobile .dialog-lines li.swipe-line.more-r { --mr: transparent; }
+.swipe-line-text { display: inline-block; white-space: nowrap; will-change: transform; }
 /* sending to the camera (camera.tsx) */
 .dialog.push h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 .push-file { font-size: 12.5px; font-weight: 400; color: var(--muted); }
@@ -652,7 +659,28 @@ html.ios .m-lens.held { -webkit-backdrop-filter: saturate(1.45) brightness(1.06)
 .app.mobile .cards, .app.mobile .ratio-list { overflow: visible; padding-right: 0; min-height: auto; }
 .app.mobile .ic > .pane, .app.mobile .ratio > .pane { order: -1; flex: none; }
 .app.mobile .ic > .pane .pane-body { flex: none; height: calc((100vw - 32px) / 1.5 + 4px); }
-.app.mobile .ratio-body { flex: none; height: calc((100vw - 32px) / 1.5 + 48px); }
+/* the phone has no hover to read the rest: the descriptions of the switches are shown whole */
+.app.mobile .soft-switch .soft-text .ellipsis { display: block; -webkit-line-clamp: unset; overflow: visible; }
+.app.mobile .ratio-body { flex: none; height: auto; container-type: inline-size; }
+.app.mobile .ratio-frame { width: 100%; }
+/* the four sizes two by two, then the factory ratios lined up with them, the same gaps as between the rows below */
+.app.mobile .ratio-out { margin-top: 10px; width: 100%; }
+.app.mobile .ratio-out:empty { display: none; }
+.app.mobile .ratio-out.sizes { grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
+.app.mobile .ratio-out.sizes .chip { height: 30px; padding: 0 10px; font-size: 13px; gap: 6px; }
+.app.mobile .ratio-list { gap: 6px; }
+.app.mobile .ratio-factory { height: auto; min-height: 30px; padding: 0 2px; margin: 0 0 4px; flex-wrap: wrap; row-gap: 6px; }
+.app.mobile .ratio-factory .chip { height: 26px; padding: 0 9px; }
+/* download dialog: the model tabs scroll sideways under one track; a fade shows there are more */
+.app.mobile .online-models .seg { width: max-content; min-width: 100%; }
+.app.mobile .online-models { -webkit-mask-image: linear-gradient(90deg, var(--ml, #000), #000 16px, #000 calc(100% - 16px), var(--mr, #000)); mask-image: linear-gradient(90deg, var(--ml, #000), #000 16px, #000 calc(100% - 16px), var(--mr, #000)); }
+.app.mobile .online-models.more-l { --ml: transparent; }
+.app.mobile .online-models.more-r { --mr: transparent; }
+.app.mobile .fw-text { flex: 1; min-width: 0; }
+.app.mobile .fw-text b { display: flex; align-items: center; gap: 6px; white-space: nowrap; min-width: 0; }
+.app.mobile .fw-text small { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.app.mobile .fw-text small .chip { height: 20px; font-size: 11.5px; }
+.app.mobile .fw-text b .chip.tiny, .app.mobile .fw-ver { margin-left: 0; }
 .app.mobile .pane-head { flex-wrap: nowrap; }
 .app.mobile .ratio-x, .app.mobile .wall-actions, .app.mobile .compare-swap { opacity: 1; }
 .app.mobile .wall-fit { overflow: visible; }
@@ -722,6 +750,16 @@ html.mobile-app, html.mobile-app * { -webkit-tap-highlight-color: transparent; }
 .m-drawer-head .btn.icon-only { width: 38px; height: 38px; border-radius: 19px; }
 .m-drawer .m-props { flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-start; align-content: start; }
 .m-drawer .m-props > * { flex: none; }
+.m-drawer .m-props.m-help { flex: none; overflow: visible; border-top: 1px solid var(--line); padding-top: 6px; margin-top: 4px; }
+.m-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; padding: 0 10px; border: 0; border-radius: 10px; background: none; color: var(--text); font-size: 15px; text-align: left; }
+.m-row svg { width: 20px; height: 20px; color: var(--muted); flex: none; }
+.m-row:active { background: var(--hover); }
+/* the guides on the phone: the card as wide as the screen allows, buttons a finger can hit */
+html.mobile-app .tour-card { width: min(380px, calc(100vw - 24px)); padding: 16px 16px 12px; border-radius: 16px; }
+html.mobile-app .tour-text b { font-size: 16px; }
+html.mobile-app .tour-text p { font-size: 14.5px; }
+html.mobile-app .tour-foot .btn.small { min-height: 38px; padding: 0 14px; font-size: 14px; }
+html.mobile-app .tour-hole { border-radius: 14px; }
 .m-drawer .m-sheet-foot { margin-top: auto; }
 .m-choice svg { width: 18px; height: 18px; color: var(--blue); flex: none; }
 .m-choice.on { background: var(--blue-bg); color: var(--blue); font-weight: 600; }
@@ -769,7 +807,10 @@ html.mobile-app, html.mobile-app * { -webkit-tap-highlight-color: transparent; }
 .app.mobile .look-info { order: -1; }
 .app.mobile .look-card { max-height: none; overflow: visible; }
 .app.mobile .look-list { overflow: visible; padding: 4px 6px; }
-.app.mobile .look-row { height: 46px; }
+.app.mobile .look-row { height: auto; min-height: 46px; }
+/* the firmware pill: only the version where the title needs the room */
+@media (max-width: 380px) { .m-fw-file { display: none; } }
+.app.mobile .look-name { white-space: normal; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .app.mobile .look-row:hover:not(.lifted) { background: none; }
 .app.mobile .look-grip { width: 30px; height: 40px; color: var(--muted); }
 .app.mobile .look-btns { gap: 2px; }

@@ -21,10 +21,14 @@ public class FirmwareInfoTest {
     @Test public void readsTheOfficialFile() throws Exception {
         File f = official();
         assumeTrue("official120.bin not present", f.isFile());
+        L.set("zh");
         FirmwareInfo i = FirmwareInfo.read(f);
         assertTrue(i.describe(), i.container);
         assertEquals("7563d7e462f0c53b6ab2fbab7cdfbbb57151a41192ee82f4f3a2108f9d77650d", i.sha256);
         assertEquals("GR IV 官方 1.20", i.official);
+        L.set("en");
+        assertEquals("GR IV official 1.20", FirmwareInfo.read(f).official);
+        L.set("zh");
         assertEquals("GR IV", i.fileName);
         assertEquals("1.20.10.11", i.version);
         assertEquals(3, i.models.size());

@@ -47,22 +47,23 @@ public final class CameraNet {
         public boolean ok() { return json != null && json.optInt("errCode", 0) == 200; }
         public String describe() {
             if (json == null) return "HTTP " + status + " " + (body.length() > 200 ? body.substring(0, 200) : body);
-            StringBuilder sb = new StringBuilder("HTTP " + status + "，errCode=" + json.optInt("errCode") + " " + json.optString("errMsg"));
+            StringBuilder sb = new StringBuilder("HTTP " + status + L.s("，errCode=", ", errCode=") + json.optInt("errCode") + " " + json.optString("errMsg"));
             Object d = json.opt("detail");
             if (d instanceof JSONObject) d = ((JSONObject) d).opt("reason");
             if (d != null) sb.append(" reason=").append(d);
             String hint = hint(d instanceof String ? (String) d : json.optString("errMsg"));
-            if (hint != null) sb.append("（").append(hint).append("）");
+            if (hint != null) sb.append(L.s("（", " (")).append(hint).append(L.s("）", ")"));
             return sb.toString();
         }
         public static String hint(String errMsg) {
             switch (errMsg == null ? "" : errMsg) {
-                case "err_fw_same": return "相机认为版本相同，拒绝";
+                case "err_fw_same": return L.s("相机认为版本相同，拒绝", "the camera has this version already and refused it");
                 // seen 2026-11-11 after an update that hung and was switched off: the camera still ran 1.20 and
                 // turned down 1.20 files; flashing the file once from a memory card set it right
-                case "err_fw_old": return "相机认为版本更旧，拒绝。如果相机显示的版本和这个文件一样（比如上次更新中途卡住、关过机），用存储卡刷一次这个文件就能恢复，之后可以再无线推送";
-                case "err_fw_broken": return "相机认为文件损坏";
-                case "battery_too_low": return "相机电量不足";
+                case "err_fw_old": return L.s("相机认为版本更旧，拒绝。如果相机显示的版本和这个文件一样（比如上次更新中途卡住、关过机），用存储卡刷一次相同文件即可恢复，之后可再无线推送",
+                        "the camera takes this for an older version and refused it. If the camera shows the same version as this file (say an update got stuck and the camera was switched off), flashing the same file once from a memory card sets it right; after that, sending works again");
+                case "err_fw_broken": return L.s("相机认为文件损坏", "the camera takes the file for damaged");
+                case "battery_too_low": return L.s("相机电量不足", "the camera's battery is too low");
                 default: return null;
             }
         }
@@ -118,12 +119,12 @@ public final class CameraNet {
         callback = new ConnectivityManager.NetworkCallback() {
             @Override public void onAvailable(Network n) { network = n; got.countDown(); }
             @Override public void onUnavailable() { unavailable[0] = true; got.countDown(); }
-            @Override public void onLost(Network n) { lost = true; log.detail("相机 Wi-Fi 断开（onLost）"); }
+            @Override public void onLost(Network n) { lost = true; log.detail(L.s("相机 Wi-Fi 断开（onLost）", "Camera Wi-Fi lost (onLost)")); }
         };
         cm.requestNetwork(req, callback);
         if (!got.await(timeoutMs, TimeUnit.MILLISECONDS) || network == null) {
             release();
-            throw new IOException(unavailable[0] ? "没有连上相机 Wi-Fi（被取消或找不到热点）" : "连相机 Wi-Fi 超时");
+            throw new IOException(unavailable[0] ? L.s("没有连上相机 Wi-Fi（被取消或找不到热点）", "Not connected to the camera's Wi-Fi (cancelled, or the network was not found)") : L.s("连相机 Wi-Fi 超时", "Connecting to the camera's Wi-Fi timed out"));
         }
     }
 
@@ -139,7 +140,7 @@ public final class CameraNet {
 
     private HttpURLConnection open(String method, String path, int timeoutMs) throws IOException {
         Network n = network;
-        if (n == null) throw new IOException("没有连着相机 Wi-Fi");
+        if (n == null) throw new IOException(L.s("没有连着相机 Wi-Fi", "Not on the camera's Wi-Fi"));
         HttpURLConnection c = (HttpURLConnection) n.openConnection(new URL("http://" + HOST + path));
         c.setRequestMethod(method);
         c.setConnectTimeout(10000);
@@ -207,7 +208,7 @@ public final class CameraNet {
             }
             int st = c.getResponseCode();
             Reply r = new Reply(st, readAll(c));
-            log.detail("PUT " + path + " (" + total + " 字节) -> " + r.status + " " + clip(r.body));
+            log.detail("PUT " + path + " (" + total + L.s(" 字节) -> ", " bytes) -> ") + r.status + " " + clip(r.body));
             return r;
         } finally { c.disconnect(); }
     }
@@ -230,7 +231,7 @@ public final class CameraNet {
 
         public void open() throws IOException {
             Network n = network;
-            if (n == null) throw new IOException("没有连着相机 Wi-Fi");
+            if (n == null) throw new IOException(L.s("没有连着相机 Wi-Fi", "Not on the camera's Wi-Fi"));
             sock = n.getSocketFactory().createSocket();
             sock.connect(new InetSocketAddress(HOST, 80), 10000);
             sock.setSoTimeout(10000);
@@ -248,11 +249,11 @@ public final class CameraNet {
                 head.append((char) c);
                 int l = head.length();
                 if (l >= 4 && head.charAt(l - 4) == '\r' && head.charAt(l - 3) == '\n' && head.charAt(l - 2) == '\r' && head.charAt(l - 1) == '\n') break;
-                if (l > 8192) throw new IOException("WebSocket 握手回复太长");
+                if (l > 8192) throw new IOException(L.s("WebSocket 握手回复太长", "WebSocket handshake reply too long"));
             }
             String first = head.toString().split("\r\n", 2)[0];
-            log.detail("WebSocket 握手: " + first);
-            if (!first.contains(" 101 ")) throw new IOException("WebSocket 握手失败: " + first);
+            log.detail(L.s("WebSocket 握手: ", "WebSocket handshake: ") + first);
+            if (!first.contains(" 101 ")) throw new IOException(L.s("WebSocket 握手失败: ", "WebSocket handshake failed: ") + first);
             sock.setSoTimeout(0);
             alive = true;
             Thread r = new Thread(this::reader, "changes-reader");
@@ -288,11 +289,11 @@ public final class CameraNet {
                     if (mask != null) for (int i = 0; i < payload.length; i++) payload[i] ^= mask[i % 4];
                     if (op == 9) { send(10, payload); continue; }
                     if (op == 10) continue;
-                    if (op == 8) { log.detail("相机关闭了 WebSocket"); break; }
+                    if (op == 8) { log.detail(L.s("相机关闭了 WebSocket", "The camera closed the WebSocket")); break; }
                     log.detail("[changes] " + clip(new String(payload, StandardCharsets.UTF_8)));
                 }
             } catch (IOException e) {
-                log.detail("WebSocket 断开: " + e.getMessage());
+                log.detail(L.s("WebSocket 断开: ", "WebSocket closed: ") + e.getMessage());
             }
             alive = false;
         }

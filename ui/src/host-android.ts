@@ -2,6 +2,7 @@
 // the app's native GrCamera plugin through Capacitor (Java on Android, Swift on iOS: mobile/ios-plugin). There is
 // no memory card here: firmware goes to the camera over Wi-Fi (camera.ts) or into the phone's own files.
 import { useEffect, useRef } from 'react';
+import { UI_LANG } from './i18n';
 import type { DirEntry, FirmwareRelease, HostInfo, ParkedEntry, ParkedFailure, ReleaseNote, UpdateInfo, UpdateState, Volume } from './host';
 
 interface PluginListener { remove: () => Promise<void> }
@@ -78,7 +79,16 @@ export async function upload(data: Uint8Array, to: Record<string, unknown>): Pro
 const unsupported = (): never => { throw err('unsupported', 'not available in the phone app'); };
 
 let fwProgress = { active: false, received: 0, total: 0 };
+// the push messages and the log in the page's language
+if (isMobile) Promise.resolve().then(() => Gr.setLanguage({ lang: UI_LANG })).catch(() => { /* an older app */ });
 if (isMobile) void Gr.addListener('firmwareProgress', (p: { received: number; total: number }) => { fwProgress = { active: true, received: p.received, total: p.total }; });
+
+/** Release notes are written in Chinese, then "---" and "# English": the part in the page's language. */
+function inLanguage(body: string): string {
+  const m = /\n\s*-{3,}\s*\n+\s*#\s*English\b[^\n]*\n/i.exec(body);
+  if (!m) return body;
+  return (UI_LANG === 'en' ? body.slice(m.index + m[0].length) : body.slice(0, m.index)).trim();
+}
 
 const info: HostInfo = { kind: platform, token: '', version, os: platform };
 
@@ -146,7 +156,7 @@ export const androidHost = {
     if (!res.ok) throw err('network', `releases: ${res.status}`);
     const list = (await res.json()) as { tag_name: string; name?: string; body?: string; published_at?: string; html_url?: string; draft?: boolean; prerelease?: boolean }[];
     const releases = list.filter((r) => !r.draft && !r.prerelease && /^v?\d+\.\d+\.\d+$/.test(r.tag_name))
-      .map((r) => ({ version: r.tag_name.replace(/^v/, ''), name: r.name, date: r.published_at?.slice(0, 10), body: r.body || '', page: r.html_url }));
+      .map((r) => ({ version: r.tag_name.replace(/^v/, ''), name: r.name, date: r.published_at?.slice(0, 10), body: inLanguage(r.body || ''), page: r.html_url }));
     return { current: version, releases };
   },
   async credits(): Promise<unknown> {

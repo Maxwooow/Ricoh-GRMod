@@ -794,7 +794,7 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
           <div className="soft-text"><b>{t('navBrightAuto')}</b></div>
           <Segmented
             value={brightAuto || 'off'} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')}
-            options={([['off', 'brightAutoOff'], ['balanced', 'brightAutoBalanced'], ['bright', 'brightAutoBright']] as const).map(([value, key]) => ({ value, label: t(key).split(' · ').pop()! }))}
+            options={([['off', 'brightAutoOff'], ['balanced', 'brightAutoBalanced'], ['bright', 'brightAutoBright']] as const).map(([value, key]) => ({ value, label: ((x) => x.charAt(0).toUpperCase() + x.slice(1))(t(key).split(' · ').pop()!) }))}
           />
         </div>
       )}

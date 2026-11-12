@@ -60,6 +60,8 @@ export interface State {
   ready: boolean; page: Page;
   fwName?: string; fwBusy: boolean; info?: FirmwareInfo; raw?: Uint8Array;
   model: CameraModel; lang: LangCode;
+  /** The phone app: the camera language follows the phone's (lang is then systemCameraLang()). */
+  langAuto: boolean;
   slots: Record<SlotId, SlotState>;
   wall: WallItem[];
   ratios: RatioItem[]; activeRatio?: string; ratioBackdrop: RatioBackdrop;
@@ -107,7 +109,7 @@ const availableSlots = (s: State = state): SlotId[] => s.info ? shownSlots(s).ma
 const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '', style: 'film' } });
 const emptySlots = (): Record<SlotId, SlotState> => Object.fromEntries(SLOT_IDS.map(id => [id, emptySlot()])) as Record<SlotId, SlotState>;
 let state: State = {
-  ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: 'zh-CN',
+  ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: isMobile ? systemCameraLang() : 'zh-CN', langAuto: isMobile,
   slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hdr: false, exposurePreview: false, adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [],
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
@@ -343,7 +345,7 @@ async function saveProject(): Promise<void> {
   familyDocs[familyOf(s.model)] = currentFamilyDoc();
   const doc = {
     ...(familyDocs.gr4 ?? {}),
-    v: 1, page: s.page, model: s.model, lang: s.lang, fwName: s.fwName, showAll: s.showAll, previewMode: s.previewMode, ratioBackdrop: s.ratioBackdrop,
+    v: 1, page: s.page, model: s.model, lang: s.lang, langAuto: s.langAuto, fwName: s.fwName, showAll: s.showAll, previewMode: s.previewMode, ratioBackdrop: s.ratioBackdrop,
     tours: s.toursSeen, toursV: 2,
   };
   try {
@@ -370,7 +372,7 @@ export async function init(): Promise<void> {
       const fam = familyOf(model), work = familyDocs[fam];
       set({ ...parseFamily(work), model,
         page: doc.page === 'wall' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : doc.page === 'script' ? 'wall' : 'ic',
-        lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll,
+        ...langOf(doc), fwName: doc.fwName, showAll: !!doc.showAll,
         previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo',
         // GR Mod 0.8 changed the power-off page: its tour (which now says where the pictures are chosen) shows once more
         toursSeen: TOUR_IDS.filter((id) => Array.isArray(doc.tours) && doc.tours.includes(id) && (id !== 'wall' || doc.toursV >= 2)) });
@@ -395,8 +397,7 @@ export async function init(): Promise<void> {
 
 // ------------------------------------------------------------------ guided tours
 export function startTour(id: TourId, steps: number[], replay: boolean): void {
-  // The guides point at the desktop layout; the phone layout has none yet.
-  if (isMobile || state.tour || steps.length === 0) return;
+  if (state.tour || steps.length === 0) return;
   set({ tour: { id, steps, index: 0, replay } });
 }
 /** One step on or back; going on from the last step ends the tour. */
@@ -423,7 +424,26 @@ export function setPage(page: Page): void {
   if (page === 'wall' && isGr3(state.model) && state.info && !state.info.capabilities.menuPictures) return; // power-off pictures: GR III / IIIx with the End Screen menu
   set({ page }); scheduleSave(); if (page === 'copies') void refreshCopies();
 }
-export function setLang(lang: LangCode): void { set({ lang }); scheduleSave(); }
+export function setLang(lang: LangCode): void { set({ lang, langAuto: false }); scheduleSave(); }
+/** The camera language as the phone's (the phone app's "follow system"). */
+export function setLangAuto(): void { set({ lang: systemCameraLang(), langAuto: true }); scheduleSave(); }
+/** The camera language closest to the phone's own: its first language GR IV has, else English. */
+export function systemCameraLang(): LangCode {
+  const have = LANGS as readonly string[];
+  for (const raw of navigator.languages?.length ? navigator.languages : [navigator.language || 'en']) {
+    const l = raw.toLowerCase();
+    if (l.startsWith('zh')) return (/-(tw|hk|mo)|hant/.test(l) ? 'zh-TW' : 'zh-CN') as LangCode;
+    const base = l.split('-')[0];
+    if (have.includes(base)) return base as LangCode;
+  }
+  return 'en' as LangCode;
+}
+function langOf(doc: { lang?: string; langAuto?: boolean }): { lang: LangCode; langAuto: boolean } {
+  // The phone app follows the phone unless a language was picked (older saves had no choice: zh-CN was the default).
+  const langAuto = typeof doc.langAuto === 'boolean' ? doc.langAuto : isMobile;
+  if (langAuto) return { lang: systemCameraLang(), langAuto };
+  return { lang: (LANGS as readonly string[]).includes(doc.lang ?? '') ? doc.lang as LangCode : 'zh-CN', langAuto };
+}
 export function setModel(model: CameraModel): void {
   if (state.busy || state.fwBusy || model === state.model) return;
   const differentFamily = familyOf(state.model) !== familyOf(model);

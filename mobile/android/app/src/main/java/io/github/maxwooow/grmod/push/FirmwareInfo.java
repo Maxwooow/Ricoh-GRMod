@@ -28,7 +28,7 @@ public final class FirmwareInfo {
 
     /** The official files we know, by SHA-256. */
     public static String knownOfficial(String sha) {
-        if ("7563d7e462f0c53b6ab2fbab7cdfbbb57151a41192ee82f4f3a2108f9d77650d".equals(sha)) return "GR IV 官方 1.20";
+        if ("7563d7e462f0c53b6ab2fbab7cdfbbb57151a41192ee82f4f3a2108f9d77650d".equals(sha)) return L.s("GR IV 官方 1.20", "GR IV official 1.20");
         return null;
     }
 
@@ -79,18 +79,18 @@ public final class FirmwareInfo {
         byte[] head = new byte[HDR];
         byte[] foot = new byte[FOOTER];
         try (RandomAccessFile r = new RandomAccessFile(f, "r")) {
-            if (size < HDR + FOOTER + RECORD) return bad(size, sha, "文件太小，不是固件");
+            if (size < HDR + FOOTER + RECORD) return bad(size, sha, L.s("文件太小，不是固件", "Too small to be a firmware file"));
             r.readFully(head);
-            if (!cstr(head, 0, 8).equals("RICOH")) return bad(size, sha, "不是理光固件文件（开头不是 RICOH）");
+            if (!cstr(head, 0, 8).equals("RICOH")) return bad(size, sha, L.s("不是理光固件文件（开头不是 RICOH）", "Not a Ricoh firmware file (it does not start with RICOH)"));
             r.seek(size - FOOTER);
             r.readFully(foot);
             ByteBuffer fb = ByteBuffer.wrap(foot).order(ByteOrder.LITTLE_ENDIAN);
             long proj2 = fb.getInt(0) & 0xffffffffL, magic = fb.getInt(4) & 0xffffffffL, streamLen = fb.getInt(12) & 0xffffffffL;
             long project = ByteBuffer.wrap(head).order(ByteOrder.LITTLE_ENDIAN).getInt(0x30) & 0xffffffffL;
-            if (magic != MAGIC || proj2 != ((project | (project << 16)) & 0xffffffffL)) return bad(size, sha, "文件尾不对（不是完整的固件文件）");
+            if (magic != MAGIC || proj2 != ((project | (project << 16)) & 0xffffffffL)) return bad(size, sha, L.s("文件尾不对（不是完整的固件文件）", "The end of the file is wrong (not a whole firmware file)"));
             long start = (HDR + streamLen + 3) & ~3L;
             long end = size - FOOTER;
-            if (start > end || (end - start) % RECORD != 0 || end - start > 16 * RECORD) return bad(size, sha, "机型记录区不对");
+            if (start > end || (end - start) % RECORD != 0 || end - start > 16 * RECORD) return bad(size, sha, L.s("机型记录区不对", "The model records are wrong"));
             List<Model> models = new ArrayList<>();
             byte[] rec = new byte[RECORD];
             for (long o = start; o < end; o += RECORD) {
@@ -133,12 +133,12 @@ public final class FirmwareInfo {
     public String describe() {
         if (!container) return error;
         StringBuilder sb = new StringBuilder();
-        sb.append(fileName).append(" ").append(version).append("，生成于 ").append(date).append("；机型：");
+        sb.append(fileName).append(" ").append(version).append(L.s("，生成于 ", ", made ")).append(date).append(L.s("；机型：", "; models: "));
         for (int i = 0; i < models.size(); i++) {
-            if (i > 0) sb.append("、");
+            if (i > 0) sb.append(L.s("、", ", "));
             sb.append(models.get(i).name).append(" ").append(models.get(i).version);
         }
-        if (official != null) sb.append("（").append(official).append("）");
+        if (official != null) sb.append(L.s("（", " (")).append(official).append(L.s("）", ")"));
         return sb.toString();
     }
 }

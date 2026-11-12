@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { isMobile, useBack } from './host-android';
@@ -413,6 +413,107 @@ export function Toasts() {
   );
 }
 
+/**
+ * The phone app: a line too long for its row slides sideways under the finger, keeps going a little when let go
+ * and, past either end, gives way like rubber and springs back. Vertical drags still scroll the dialog.
+ */
+export function SwipeLine({ text }: { text: string }) {
+  const box = useRef<HTMLLIElement>(null);
+  const inner = useRef<HTMLSpanElement>(null);
+  const m = useRef({ x: 0, v: 0, min: 0, raf: 0, drag: false, id: -1, sx: 0, sy: 0, x0: 0, lt: 0, lx: 0, axis: '' as '' | 'x' | 'y' });
+  const [more, setMore] = useState({ l: false, r: false });
+
+  const draw = (): void => {
+    const s = m.current;
+    if (inner.current) inner.current.style.transform = `translate3d(${s.x}px,0,0)`;
+    const l = s.x < -1, r = s.x > s.min + 1;
+    setMore((o) => (o.l === l && o.r === r ? o : { l, r }));
+  };
+  const measure = (): void => {
+    const b = box.current, i = inner.current;
+    if (!b || !i) return;
+    const pad = 20;
+    m.current.min = Math.min(0, b.clientWidth - pad - i.scrollWidth);
+    m.current.x = Math.max(m.current.min, Math.min(0, m.current.x));
+    draw();
+  };
+  useLayoutEffect(() => {
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (box.current) ro.observe(box.current);
+    return () => { ro.disconnect(); cancelAnimationFrame(m.current.raf); };
+  }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // past an end the row gives way less and less (rubber), as iOS lists do
+  const rubber = (over: number): number => { const d = 120; return (over * d) / (d + Math.abs(over)) * 0.9; };
+  const settle = (): void => {
+    const s = m.current;
+    let last = performance.now();
+    const step = (now: number): void => {
+      const dt = Math.min(32, now - last) / 16.67;
+      last = now;
+      const lo = s.min, hi = 0;
+      if (s.x > hi || s.x < lo) {
+        // a spring back to the end, a little underdamped: it overshoots a hair and settles (the bounce)
+        const target = s.x > hi ? hi : lo;
+        const k = 0.085, c = 0.42;
+        s.v += (k * (target - s.x) - c * s.v) * dt;
+        const before = s.x - target;
+        s.x += s.v * dt;
+        // back at the end: it rests there (it does not drift on into the row)
+        if (Math.sign(s.x - target) !== Math.sign(before)) { s.x = target; s.v = 0; draw(); return; }
+      } else {
+        s.v *= Math.pow(0.95, dt);
+        s.x += s.v * dt;
+        if (s.x > hi || s.x < lo) s.v *= 0.6; // crossing an end with speed: it runs past, then springs back
+      }
+      draw();
+      const inside = s.x <= hi + 0.3 && s.x >= lo - 0.3;
+      if (Math.abs(s.v) < 0.03 && inside) { s.x = Math.max(lo, Math.min(hi, s.x)); s.v = 0; draw(); return; }
+      s.raf = requestAnimationFrame(step);
+    };
+    cancelAnimationFrame(s.raf);
+    s.raf = requestAnimationFrame(step);
+  };
+
+  return (
+    <li
+      ref={box}
+      className={`swipe-line ${more.l ? 'more-l' : ''} ${more.r ? 'more-r' : ''}`}
+      onPointerDown={(e) => {
+        const s = m.current;
+        if (s.min === 0) return; // it fits
+        cancelAnimationFrame(s.raf);
+        s.drag = true; s.id = e.pointerId; s.sx = e.clientX; s.sy = e.clientY; s.x0 = s.x; s.v = 0; s.axis = '';
+        s.lt = performance.now(); s.lx = e.clientX;
+      }}
+      onPointerMove={(e) => {
+        const s = m.current;
+        if (!s.drag || e.pointerId !== s.id) return;
+        const dx = e.clientX - s.sx, dy = e.clientY - s.sy;
+        if (!s.axis) {
+          if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+          s.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+          if (s.axis === 'x') (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        }
+        if (s.axis !== 'x') return;
+        let x = s.x0 + dx;
+        if (x > 0) x = rubber(x); else if (x < s.min) x = s.min + rubber(x - s.min);
+        const now = performance.now();
+        const dt = Math.max(1, now - s.lt) / 16.67;
+        s.v = 0.6 * s.v + 0.4 * ((e.clientX - s.lx) / dt);
+        s.lt = now; s.lx = e.clientX;
+        s.x = x;
+        draw();
+      }}
+      onPointerUp={(e) => { const s = m.current; if (!s.drag || e.pointerId !== s.id) return; s.drag = false; if (s.axis === 'x') settle(); }}
+      onPointerCancel={() => { const s = m.current; s.drag = false; settle(); }}
+    >
+      <span ref={inner} className="swipe-line-text">{text}</span>
+    </li>
+  );
+}
+
 export function ConfirmDialog() {
   const c = useStore((s) => s.confirm);
   useEffect(() => {
@@ -426,7 +527,7 @@ export function ConfirmDialog() {
     <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) answerConfirm(false); }}>
       <div className="dialog" role="alertdialog" aria-modal="true">
         <h3>{c.title}</h3>
-        {c.lines.length > 0 && <ul className={`dialog-lines ${c.warn ? '' : 'last'}`}>{c.lines.map((l) => <li key={l}>{l}</li>)}</ul>}
+        {c.lines.length > 0 && <ul className={`dialog-lines ${c.warn ? '' : 'last'}`}>{c.lines.map((l) => (isMobile ? <SwipeLine key={l} text={l} /> : <li key={l}>{l}</li>))}</ul>}
         {c.warn && <p className="dialog-warn">{c.warn}</p>}
         {c.reset && (
           <div className="dialog-reset" role="note">

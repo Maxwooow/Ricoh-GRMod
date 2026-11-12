@@ -65,7 +65,7 @@ public final class Ble {
                 l = discoverLatch; if (l != null) l.countDown();
                 l = opLatch; if (l != null) { opStatus = -1; l.countDown(); }
                 if (was) listener.onDisconnected(status);
-                else log.add("蓝牙连接失败，status=" + status);
+                else log.add(L.s("蓝牙连接失败，status=", "Bluetooth connection failed, status=") + status);
             }
         }
         @Override public void onServicesDiscovered(BluetoothGatt g, int status) {
@@ -104,16 +104,16 @@ public final class Ble {
         close();
         connectLatch = new CountDownLatch(1);
         gatt = device.connectGatt(ctx, false, cb, BluetoothDevice.TRANSPORT_LE);
-        if (gatt == null) throw new BleException("connectGatt 返回空");
+        if (gatt == null) throw new BleException(L.s("connectGatt 返回空", "connectGatt returned nothing"));
         if (!connectLatch.await(timeoutMs, TimeUnit.MILLISECONDS) || !connected) {
             close();
-            throw new BleException("蓝牙连不上相机");
+            throw new BleException(L.s("蓝牙连不上相机", "Cannot connect to the camera over Bluetooth"));
         }
         discoverLatch = new CountDownLatch(1);
         opStatus = -1;
-        if (!gatt.discoverServices()) throw new BleException("discoverServices 失败");
+        if (!gatt.discoverServices()) throw new BleException(L.s("discoverServices 失败", "discoverServices failed"));
         if (!discoverLatch.await(15, TimeUnit.SECONDS) || !connected || opStatus != BluetoothGatt.GATT_SUCCESS) {
-            throw new BleException("读不到相机的蓝牙服务（status=" + opStatus + "）");
+            throw new BleException(L.s("读不到相机的蓝牙服务（status=", "Cannot read the camera's Bluetooth services (status=") + opStatus + L.s("）", ")"));
         }
     }
 
@@ -143,9 +143,9 @@ public final class Ble {
         if (Build.VERSION.SDK_INT >= 33) ctx.registerReceiver(r, f, Context.RECEIVER_EXPORTED);
         else ctx.registerReceiver(r, f);
         try {
-            if (!device.createBond()) throw new BleException("没能开始配对");
-            if (!l.await(timeoutMs, TimeUnit.MILLISECONDS)) throw new BleException("配对超时");
-            if (last[0] != BluetoothDevice.BOND_BONDED) throw new BleException("配对没有成功（相机在配对状态吗？数字确认了吗？）");
+            if (!device.createBond()) throw new BleException(L.s("没能开始配对", "Could not start pairing"));
+            if (!l.await(timeoutMs, TimeUnit.MILLISECONDS)) throw new BleException(L.s("配对超时", "Pairing timed out"));
+            if (last[0] != BluetoothDevice.BOND_BONDED) throw new BleException(L.s("配对没有成功：请让相机进入配对状态，并在两边确认数字", "Pairing failed: put the camera in pairing mode and confirm the number on both"));
         } finally {
             ctx.unregisterReceiver(r);
         }
@@ -155,25 +155,25 @@ public final class Ble {
     private static BluetoothDevice legacyDevice(Intent i) { return i.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE); }
 
     private BluetoothGattCharacteristic find(UUID svc, UUID ch) throws BleException {
-        if (gatt == null) throw new BleException("没有蓝牙连接");
+        if (gatt == null) throw new BleException(L.s("没有蓝牙连接", "No Bluetooth connection"));
         BluetoothGattService s = gatt.getService(svc);
         BluetoothGattCharacteristic c = s == null ? null : s.getCharacteristic(ch);
-        if (c == null) throw new BleException("相机没有特征值 " + ch);
+        if (c == null) throw new BleException(L.s("相机没有特征值 ", "The camera has no characteristic ") + ch);
         return c;
     }
 
     private void await(String what) throws BleException, InterruptedException {
-        if (!opLatch.await(10, TimeUnit.SECONDS)) throw new BleException(what + " 超时");
-        if (!connected) throw new BleException(what + " 时蓝牙断开");
-        if (opStatus != BluetoothGatt.GATT_SUCCESS) throw new BleException(what + " 失败（GATT 错误 0x" + Integer.toHexString(opStatus) + "）");
+        if (!opLatch.await(10, TimeUnit.SECONDS)) throw new BleException(what + L.s(" 超时", " timed out"));
+        if (!connected) throw new BleException(what + L.s(" 时蓝牙断开", ": Bluetooth dropped"));
+        if (opStatus != BluetoothGatt.GATT_SUCCESS) throw new BleException(what + L.s(" 失败（GATT 错误 0x", " failed (GATT error 0x") + Integer.toHexString(opStatus) + L.s("）", ")"));
     }
 
     @SuppressWarnings("deprecation")
     public byte[] read(UUID svc, UUID ch) throws BleException, InterruptedException {
         BluetoothGattCharacteristic c = find(svc, ch);
         opLatch = new CountDownLatch(1);
-        if (!gatt.readCharacteristic(c)) throw new BleException("读 " + ch + " 没能发出");
-        await("读 " + short8(ch));
+        if (!gatt.readCharacteristic(c)) throw new BleException(L.s("读 ", "Read ") + ch + L.s(" 没能发出", " could not be sent"));
+        await(L.s("读 ", "Read ") + short8(ch));
         return opValue == null ? new byte[0] : opValue;
     }
 
@@ -189,14 +189,14 @@ public final class Ble {
             c.setValue(value);
             sent = gatt.writeCharacteristic(c);
         }
-        if (!sent) throw new BleException("写 " + ch + " 没能发出");
-        await("写 " + short8(ch));
+        if (!sent) throw new BleException(L.s("写 ", "Write ") + ch + L.s(" 没能发出", " could not be sent"));
+        await(L.s("写 ", "Write ") + short8(ch));
     }
 
     @SuppressWarnings("deprecation")
     public void subscribe(UUID svc, UUID ch) throws BleException, InterruptedException {
         BluetoothGattCharacteristic c = find(svc, ch);
-        if (!gatt.setCharacteristicNotification(c, true)) throw new BleException("打开通知失败 " + ch);
+        if (!gatt.setCharacteristicNotification(c, true)) throw new BleException(L.s("打开通知失败 ", "Cannot turn on notifications for ") + ch);
         BluetoothGattDescriptor d = c.getDescriptor(CCCD);
         if (d == null) return;
         byte[] v = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE;
@@ -204,8 +204,8 @@ public final class Ble {
         boolean sent;
         if (Build.VERSION.SDK_INT >= 33) sent = gatt.writeDescriptor(d, v) == android.bluetooth.BluetoothStatusCodes.SUCCESS;
         else { d.setValue(v); sent = gatt.writeDescriptor(d); }
-        if (!sent) throw new BleException("订阅 " + ch + " 没能发出");
-        await("订阅 " + short8(ch));
+        if (!sent) throw new BleException(L.s("订阅 ", "Subscribe ") + ch + L.s(" 没能发出", " could not be sent"));
+        await(L.s("订阅 ", "Subscribe ") + short8(ch));
     }
 
     public void close() {
