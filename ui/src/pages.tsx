@@ -26,7 +26,7 @@ import type { ExtraSlot, RatioItem, SlotKey, WallItem } from './store';
 
 const isPreset = (f: File): boolean => /\.(xmp|cube)$/i.test(f.name);
 const isFirmware = (f: File): boolean => /\.bin$/i.test(f.name);
-const isImage = (f: File): boolean => /^image\//.test(f.type) || /\.(jpe?g|png|webp|bmp|gif|avif)$/i.test(f.name);
+const isImage = (f: File): boolean => /^image\//.test(f.type) || /\.(jpe?g|png|webp|bmp|gif|avif|heic|heif)$/i.test(f.name);
 
 // 24 reference patches (sRGB), shown before / after a preset
 const CC24 = [[115, 82, 68], [194, 150, 130], [98, 122, 157], [87, 108, 67], [133, 128, 177], [103, 189, 170], [214, 126, 44], [80, 91, 166], [193, 90, 99], [94, 60, 108], [157, 188, 64], [224, 163, 46],

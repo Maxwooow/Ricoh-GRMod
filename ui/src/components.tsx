@@ -14,7 +14,7 @@ export const Ico = {
   send: <svg viewBox="0 0 20 20" {...P}><path d="M10 15.5V5M5.8 9.2L10 5l4.2 4.2" /><path d="M4 16.5h12" /></svg>,
   sliders: <svg viewBox="0 0 20 20" {...P}><path d="M3.5 6h8M15 6h1.5M3.5 14h1.5M8.5 14h8" /><circle cx="13" cy="6" r="1.8" /><circle cx="6.8" cy="14" r="1.8" /></svg>,
   save: <svg viewBox="0 0 20 20" {...P}><path d="M10 3.5V13M6 9.2l4 4 4-4" /><path d="M4 16.5h12" /></svg>,
-  aperture: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="7.2" /><path d="M10 2.8l3.4 6M17.2 10h-6.9M13.6 16.2l-3.4-6M6.4 16.2l3.4-6M2.8 10h6.9M6.4 3.8l3.4 6" /></svg>,
+  aperture: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="7.2" /><path d="M7.66 8.65L14.73 4.57M10.00 7.30L17.07 11.38M12.34 8.65L12.34 16.81M12.34 11.35L5.27 15.43M10.00 12.70L2.93 8.62M7.66 11.35L7.66 3.19" /></svg>,
   bright: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="3.4" /><path d="M10 6.6a3.4 3.4 0 0 1 0 6.8z" fill="currentColor" /><path d="M10 2.6v1.6M10 15.8v1.6M2.6 10h1.6M15.8 10h1.6M4.8 4.8l1.1 1.1M14.1 14.1l1.1 1.1M4.8 15.2l1.1-1.1M14.1 5.9l1.1-1.1" /></svg>,
   pen: <svg viewBox="0 0 20 20" {...P}><path d="M12.6 4.4l3 3L7.4 15.6 3.6 16.4l.8-3.8z" /><path d="M11.1 5.9l3 3" /></svg>,
   swatch: <svg viewBox="0 0 20 20" {...P}><rect x="3" y="3" width="6" height="6" rx="1.4" /><rect x="11" y="3" width="6" height="6" rx="1.4" /><rect x="3" y="11" width="6" height="6" rx="1.4" /><rect x="11" y="11" width="6" height="6" rx="1.4" /></svg>,

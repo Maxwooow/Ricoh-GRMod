@@ -259,12 +259,44 @@ public class GrCameraPlugin extends Plugin {
                     u.file.delete();
                     break;
                 }
+                case "jpeg": {
+                    // A picture the WebView cannot decode (HEIC / HEIF from a phone camera): decoded here, in sRGB,
+                    // turned upright, and handed back as a JPEG the page can read.
+                    File outDir = dir("pictures");
+                    File[] old = outDir.listFiles();
+                    if (old != null) for (File f : old) f.delete();
+                    File target = new File(outDir, "picture-" + System.currentTimeMillis() + ".jpg");
+                    toJpeg(u.file, target);
+                    u.file.delete();
+                    r.put("path", target.getAbsolutePath());
+                    break;
+                }
                 default: throw new IOException("bad target");
             }
             call.resolve(r);
         } catch (IOException e) {
             u.file.delete();
             call.reject(e.getMessage());
+        }
+    }
+
+    /** Decodes any picture Android can (HEIC / HEIF included) into an sRGB JPEG, at most 4096 px on the long side. */
+    private static void toJpeg(File in, File out) throws IOException {
+        android.graphics.Bitmap bmp;
+        try {
+            bmp = android.graphics.ImageDecoder.decodeBitmap(android.graphics.ImageDecoder.createSource(in), (decoder, info, src) -> {
+                decoder.setAllocator(android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE);
+                decoder.setTargetColorSpace(android.graphics.ColorSpace.get(android.graphics.ColorSpace.Named.SRGB));
+                int w = info.getSize().getWidth(), h = info.getSize().getHeight(), longSide = Math.max(w, h);
+                if (longSide > 4096) decoder.setTargetSize(Math.max(1, w * 4096 / longSide), Math.max(1, h * 4096 / longSide));
+            });
+        } catch (Exception e) {
+            throw new IOException("cannot decode the picture: " + e.getMessage());
+        }
+        try (FileOutputStream os = new FileOutputStream(out)) {
+            if (!bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 95, os)) throw new IOException("cannot write JPEG");
+        } finally {
+            bmp.recycle();
         }
     }
 

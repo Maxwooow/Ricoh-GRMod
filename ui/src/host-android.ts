@@ -156,6 +156,15 @@ export const androidHost = {
   async sidecar(_name: string): Promise<Uint8Array | null> { return null; },
 };
 
+/**
+ * A picture the WebView cannot decode (HEIC / HEIF from phone cameras): the app decodes it (Android's own
+ * decoder, sRGB, upright) and gives back a JPEG.
+ */
+export async function pictureAsJpeg(blob: Blob): Promise<Blob> {
+  const r = await upload(new Uint8Array(await blob.arrayBuffer()), { to: 'jpeg' }) as { path: string };
+  return new Blob([await readAppFile(r.path) as unknown as BlobPart], { type: 'image/jpeg' });
+}
+
 /** A light tap of the phone's vibration motor (as the system's own controls give). */
 export function haptic(kind: 'tick' | 'confirm' = 'tick'): void { if (isAndroid) Promise.resolve().then(() => Gr.haptic({ kind })).catch(() => { /* none */ }); }
 

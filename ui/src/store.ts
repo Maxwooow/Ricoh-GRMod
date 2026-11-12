@@ -908,7 +908,7 @@ export const wallMax = (): number => SHUTDOWN_MAX_PICTURES;
 export async function addWallFiles(files: File[]): Promise<void> {
   for (const f of files) {
     if (state.wall.length >= wallMax()) { toast(t('wallMax', { n: wallMax() }), 'info'); break; }
-    if (!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|bmp|gif|avif)$/i.test(f.name)) continue;
+    if (!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|bmp|gif|avif|heic|heif)$/i.test(f.name)) continue;
     try {
       const bmp = await loadBitmap(f);
       const wc = await workingCopy(bmp);
