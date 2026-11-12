@@ -1,4 +1,4 @@
-# GR Mod for Android
+# GR Mod for Android (and iOS)
 
 The GR Mod app on the phone: the same UI as the desktop app (`../ui`, built with `vite --mode android`), with two
 ways out instead of a memory card:
@@ -35,6 +35,28 @@ not update (it shows "processing failed" after a few minutes and stays as it was
 
 Not on Android yet: the guided tours, the copies page (no card), in-app updates (install the new APK from the
 releases page).
+
+## iOS (iPhone, iPad)
+
+Branch `ios`, not released yet. The same page (`www/`, built once for both), in `ios/` (Capacitor's Xcode
+project, iOS 17+) with the native side in `ios-plugin/`: a local Capacitor plugin (npm `grmod-camera`, Swift
+package `GrmodCamera`) that `cap sync ios` adds to `ios/App/CapApp-SPM/Package.swift`. Its Swift files are a
+port of the Java ones above, with the same methods and events, so `ui/src` does not know which phone it runs on
+(`isMobile`; `isIOS` only for the glass, which is frosted only: WebKit has no SVG filters in `backdrop-filter`).
+
+What differs on iOS:
+
+- Bluetooth: a camera's "address" is the identifier iOS gives it (a UUID). iOS pairs by itself on the first
+  read of a protected value (WLAN NetworkType) and shows its own dialog meanwhile; there is no list of paired
+  devices, so the app remembers the cameras it has talked to (`PushSession.remember`).
+- Wi-Fi: `NEHotspotConfiguration` with `joinOnce` (the app needs the Hotspot Configuration entitlement,
+  `ios/App/App/App.entitlements`); the camera's network is left as soon as GR Mod is not in front. The first
+  request to 192.168.0.1 makes iOS ask for local network access; requests never use the cellular network.
+- Save to phone: the Files app's export dialog (iOS has no shared Downloads folder).
+- No back button, so `Gr.leave` does nothing.
+
+Built on GitHub's Mac machines (`.github/workflows/ios.yml`, every push to `ios`), unsigned for now. Locally, on
+a Mac with Xcode 26: `cd mobile && npm run sync:ios`, then open `ios/App/App.xcodeproj`.
 
 ## Build
 
