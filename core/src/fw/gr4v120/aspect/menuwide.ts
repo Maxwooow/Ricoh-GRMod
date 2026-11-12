@@ -79,6 +79,24 @@ function fail(code: string, message: string): never {
   throw new FirmwareError(code, message);
 }
 
+/**
+ * The wide copies made in a build: official descriptor -> its appended wide copy. A later addition that
+ * changes an item of one of the other tabs (the power-off pictures: Setup's End Screen line) must
+ * change the copy, which is what the camera reads once the menus are wide.
+ */
+const wideCopies = new WeakMap<Patch, Map<number, number>>();
+
+/**
+ * Where an item of a menu descriptor is read from: its draw function and its controller id. The
+ * official arrays always; with the wide layout installed, also the wide copy's (the one in use).
+ */
+export function menuItemWords(patch: Patch, descriptor: number, item: number): { draw: number; id: number }[] {
+  const out = [{ draw: descriptor + D_DRAW + item * 8, id: descriptor + D_ID + item * 4 }];
+  const copy = wideCopies.get(patch)?.get(descriptor);
+  if (copy !== undefined) out.push({ draw: copy + W_DRAW + item * 8, id: copy + W_ID + item * 4 });
+  return out;
+}
+
 /** A descriptor (official layout) in the wide layout. */
 export function widen(official: Uint8Array): Uint8Array {
   if (official.length !== DESCRIPTOR) fail('internal', 'menu descriptor: not the official size');
@@ -135,6 +153,7 @@ export function installWideMenus(patch: Patch, still: { gr4: number; hdf: number
 
   // --- Descriptors of the other four tabs, wide.
   const others = OTHER_TABS.map((d) => patch.append(widen(patch.read(d, DESCRIPTOR)), 16));
+  wideCopies.set(patch, new Map(OTHER_TABS.map((d, k) => [d, others[k]])));
 
   // --- Builder: all five descriptors, the still menu's for the model.
   const lo = (v: number): number => v & 0xffff;
