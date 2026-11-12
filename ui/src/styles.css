@@ -713,6 +713,11 @@ html.android, html.android * { -webkit-tap-highlight-color: transparent; }
 .wn-versions { flex: none; }
 .app.mobile .wn-versions button { height: 30px; padding: 0 12px; font-size: 13px; line-height: 1; }
 .app.mobile .wn-cur { font-size: 11px; }
+/* what's new: the thanks are a card of their own that visibly scrolls (its title stays, the bottom fades while there is more) */
+.app.mobile .wn-credits { max-height: 34vh; margin: 10px 0 4px; padding: 0 14px 6px; border-radius: 12px; background: var(--chip); overscroll-behavior: contain; scrollbar-width: thin; }
+.app.mobile .wn-credits.more { -webkit-mask-image: linear-gradient(#000 calc(100% - 36px), transparent); mask-image: linear-gradient(#000 calc(100% - 36px), transparent); }
+.app.mobile .wn-credits-title { position: sticky; top: 0; z-index: 1; margin: 0 -14px 6px; padding: 10px 14px 8px; background: var(--chip); border-bottom: 1px solid var(--line); font-size: 13px; }
+.app.mobile .wn-credits .wn-about { margin: 0 0 8px; }
 /* the before / after picture: the page scrolls over it; only the divider (a finger wide) is dragged */
 .app.mobile .compare { touch-action: pan-y; cursor: default; }
 .app.mobile .compare-line { touch-action: none; }
