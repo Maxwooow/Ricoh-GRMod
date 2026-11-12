@@ -1,12 +1,13 @@
 {
   "name": "@grmod/mobile",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "GPL-2.0-only",
   "private": true,
-  "description": "GR Mod for Android: pushes firmware to the camera over Wi-Fi and Bluetooth (Capacitor shell)",
+  "description": "GR Mod for Android: builds GR Mod firmware on the phone and pushes it to the camera over Wi-Fi and Bluetooth (Capacitor shell around ../ui)",
   "scripts": {
-    "sync": "cap sync android",
-    "apk": "cap sync android && cd android && ./gradlew assembleDebug"
+    "ui": "npm --prefix ../ui run build:android",
+    "sync": "npm run ui && cap sync android",
+    "apk": "npm run sync && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
     "@capacitor/android": "8.6.0",

@@ -13,7 +13,8 @@
 // winres/winres.json turns into the icon resource of the executable. With
 // -preview FILE it also writes a contact sheet of all sizes, and with
 // -icns FILE the macOS icon file (the rounded square inset in its canvas the
-// way macOS icons are drawn).
+// way macOS icons are drawn), and with -android DIR the launcher icons of the
+// Android app into DIR (mobile/android/app/src/main/res).
 package main
 
 import (
@@ -113,6 +114,10 @@ type design struct {
 	tipW     float64 // half width of the blade
 	halo     float64 // dark gap kept around the screwdriver
 	detail   bool    // highlight and collar shading on the handle
+
+	// bleed: no rounded square and no rim, the background fills the whole
+	// plane (Android adaptive icons, whose shape the launcher cuts out).
+	bleed bool
 }
 
 // designFor picks the drawing for a size.
@@ -244,12 +249,15 @@ func (d design) screwdriver(p pt) (float64, part) {
 // unit square.
 func (d design) sample(x, y float64) (rgb, float64) {
 	bg := sdRoundRect(x, y, 0.5, 0.5, 0.5-d.margin, 0.5-d.margin, d.corner)
+	if d.bleed {
+		bg = -1
+	}
 	if bg > 0 {
 		return rgb{}, 0
 	}
 	p := pt{x, y}
 	background := func() rgb {
-		t := (y - d.margin) / (1 - 2*d.margin)
+		t := math.Max(0, math.Min(1, (y-d.margin)/(1-2*d.margin)))
 		return rgb{
 			bgTop.r + (bgBottom.r-bgTop.r)*t,
 			bgTop.g + (bgBottom.g-bgTop.g)*t,
@@ -288,17 +296,26 @@ func (d design) sample(x, y float64) (rgb, float64) {
 }
 
 // render draws the icon at the given size with 8x8 supersampling.
-func render(size int) *image.NRGBA {
+func render(size int) *image.NRGBA { return renderWith(size, designFor(size), 1) }
+
+// renderAdaptive draws the full-bleed layer of an Android adaptive icon:
+// the drawing takes `share` of the width, the background fills the rest.
+func renderAdaptive(size int, share float64) *image.NRGBA {
+	d := designFor(int(float64(size) * share))
+	d.bleed = true
+	return renderWith(size, d, share)
+}
+
+func renderWith(size int, d design, share float64) *image.NRGBA {
 	const ss = 8
-	d := designFor(size)
 	img := image.NewNRGBA(image.Rect(0, 0, size, size))
 	for py := 0; py < size; py++ {
 		for px := 0; px < size; px++ {
 			var r, g, b, a float64
 			for sy := 0; sy < ss; sy++ {
 				for sx := 0; sx < ss; sx++ {
-					x := (float64(px) + (float64(sx)+0.5)/ss) / float64(size)
-					y := (float64(py) + (float64(sy)+0.5)/ss) / float64(size)
+					x := 0.5 + ((float64(px)+(float64(sx)+0.5)/ss)/float64(size)-0.5)/share
+					y := 0.5 + ((float64(py)+(float64(sy)+0.5)/ss)/float64(size)-0.5)/share
 					c, alpha := d.sample(x, y)
 					r += c.r * alpha
 					g += c.g * alpha
@@ -418,7 +435,14 @@ func main() {
 	out := flag.String("out", "winres", "output directory")
 	preview := flag.String("preview", "", "also write a contact sheet of all sizes to this file")
 	icns := flag.String("icns", "", "also write the macOS icon (.icns) to this file")
+	android := flag.String("android", "", "also write the Android launcher icons into this res directory")
 	flag.Parse()
+	if *android != "" {
+		writeAndroid(*android)
+		if *out == "" {
+			return
+		}
+	}
 	if *icns != "" {
 		writeICNS(*icns)
 		if *out == "" {
@@ -436,5 +460,35 @@ func main() {
 	}
 	if *preview != "" {
 		writePNG(*preview, contactSheet(icons, []int{256, 48, 32, 16}))
+	}
+}
+
+// writeAndroid writes the launcher icons of the Android app: the icon itself
+// for launchers without adaptive icons (ic_launcher, ic_launcher_round) and,
+// for adaptive icons, a full-bleed foreground layer of 108 dp: the drawing
+// without its rounded square, small enough that the round mask (72 dp of the
+// 108) does not cut it, on the icon's gradient (the background layer behind it,
+// values/ic_launcher_background.xml, is never seen).
+// splash_icon is the icon the launch screen shows (drawable/splash.xml).
+func writeAndroid(res string) {
+	const adaptiveShare = 0.58
+	for _, d := range []struct {
+		dir   string
+		scale float64
+	}{{"mdpi", 1}, {"hdpi", 1.5}, {"xhdpi", 2}, {"xxhdpi", 3}, {"xxxhdpi", 4}} {
+		dir := filepath.Join(res, "mipmap-"+d.dir)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			log.Fatal(err)
+		}
+		legacy := render(int(math.Round(48 * d.scale)))
+		writePNG(filepath.Join(dir, "ic_launcher.png"), legacy)
+		writePNG(filepath.Join(dir, "ic_launcher_round.png"), legacy)
+		fg := renderAdaptive(int(math.Round(108*d.scale)), adaptiveShare)
+		writePNG(filepath.Join(dir, "ic_launcher_foreground.png"), fg)
+		splash := filepath.Join(res, "drawable-"+d.dir)
+		if err := os.MkdirAll(splash, 0o755); err != nil {
+			log.Fatal(err)
+		}
+		writePNG(filepath.Join(splash, "splash_icon.png"), render(int(math.Round(96*d.scale))))
 	}
 }

@@ -60,8 +60,6 @@ public class GrCameraPlugin extends Plugin {
     static final UUID ADV_INFO = UUID.fromString("9a5ed1c5-74cc-4c50-b5b6-66a48e7ccff1");
     static final UUID ADV_PAIRING = UUID.fromString("0f291746-0c80-4726-87a7-3c501fd3b4b6");
 
-    private File staging;
-    private FileOutputStream stagingOut;
     private File firmware;
     private PushSession session;
     private ScanCallback scanCallback;
@@ -194,7 +192,7 @@ public class GrCameraPlugin extends Plugin {
         }
     }
 
-    // ------------------------------------------------------------------ the firmware file (sent in base64 chunks)
+    // ------------------------------------------------------------------ files from the page (sent in base64 chunks)
 
     private File dir(String name) {
         File d = new File(getContext().getFilesDir(), name);
@@ -202,37 +200,181 @@ public class GrCameraPlugin extends Plugin {
         return d;
     }
 
+    private static final java.util.regex.Pattern KEY = java.util.regex.Pattern.compile("^[A-Za-z0-9._-]{1,128}$");
+
+    private static final class Upload { File file; FileOutputStream out; }
+    private final Map<String, Upload> uploads = new java.util.concurrent.ConcurrentHashMap<>();
+    private int uploadSeq;
+
     @PluginMethod
-    public void fileBegin(PluginCall call) {
+    public void uploadBegin(PluginCall call) {
         try {
-            if (stagingOut != null) stagingOut.close();
-            staging = new File(dir("firmware"), "incoming.bin");
-            stagingOut = new FileOutputStream(staging);
-            call.resolve();
+            Upload u = new Upload();
+            String id = "u" + (++uploadSeq);
+            u.file = new File(dir("incoming"), id + ".part");
+            u.out = new FileOutputStream(u.file);
+            uploads.put(id, u);
+            JSObject r = new JSObject();
+            r.put("id", id);
+            call.resolve(r);
         } catch (IOException e) { call.reject(e.getMessage()); }
     }
 
     @PluginMethod
-    public void fileAppend(PluginCall call) {
+    public void uploadAppend(PluginCall call) {
+        Upload u = uploads.get(call.getString("id", ""));
+        if (u == null) { call.reject("no such upload"); return; }
         try {
-            if (stagingOut == null) { call.reject("fileBegin first"); return; }
-            stagingOut.write(Base64.decode(call.getString("data", ""), Base64.DEFAULT));
+            u.out.write(Base64.decode(call.getString("data", ""), Base64.DEFAULT));
             call.resolve();
         } catch (IOException | IllegalArgumentException e) { call.reject(e.getMessage()); }
     }
 
+    /** Ends an upload and puts the file where `to` says: "store" (key), "push" (the file to push next), "download" (Downloads/GR Mod/name). */
     @PluginMethod
-    public void fileEnd(PluginCall call) {
+    public void uploadEnd(PluginCall call) {
+        Upload u = uploads.remove(call.getString("id", ""));
+        if (u == null) { call.reject("no such upload"); return; }
+        String to = call.getString("to", "");
         try {
-            if (stagingOut == null) { call.reject("fileBegin first"); return; }
-            stagingOut.close();
-            stagingOut = null;
-            File target = new File(dir("firmware"), "fwdc248b.bin");
-            if (target.exists() && !target.delete()) throw new IOException("cannot replace " + target);
-            if (!staging.renameTo(target)) throw new IOException("cannot rename " + staging);
-            firmware = target;
-            call.resolve(infoJson(FirmwareInfo.read(firmware)));
-        } catch (IOException e) { call.reject(e.getMessage()); }
+            u.out.close();
+            JSObject r = new JSObject();
+            switch (to) {
+                case "store": {
+                    String key = call.getString("key", "");
+                    if (!KEY.matcher(key).matches()) throw new IOException("bad key");
+                    move(u.file, new File(dir("store"), key));
+                    break;
+                }
+                case "push": {
+                    File target = new File(dir("firmware"), "push.bin");
+                    move(u.file, target);
+                    firmware = target;
+                    r = infoJson(FirmwareInfo.read(target));
+                    break;
+                }
+                case "download": {
+                    r.put("path", Downloads.save(getContext(), u.file, call.getString("name", "fwdc248b.bin")));
+                    u.file.delete();
+                    break;
+                }
+                default: throw new IOException("bad target");
+            }
+            call.resolve(r);
+        } catch (IOException e) {
+            u.file.delete();
+            call.reject(e.getMessage());
+        }
+    }
+
+    private static void move(File from, File to) throws IOException {
+        if (to.exists() && !to.delete()) throw new IOException("cannot replace " + to.getName());
+        if (!from.renameTo(to)) throw new IOException("cannot move " + from.getName());
+    }
+
+    /** A stored value: its path (the page reads it through the WebView's file server), or exists = false. */
+    @PluginMethod
+    public void storeRead(PluginCall call) {
+        String key = call.getString("key", "");
+        if (!KEY.matcher(key).matches()) { call.reject("bad key"); return; }
+        File f = new File(dir("store"), key);
+        JSObject r = new JSObject();
+        r.put("exists", f.isFile());
+        if (f.isFile()) { r.put("path", f.getAbsolutePath()); r.put("size", f.length()); }
+        call.resolve(r);
+    }
+
+    @PluginMethod
+    public void storeDelete(PluginCall call) {
+        String key = call.getString("key", "");
+        if (!KEY.matcher(key).matches()) { call.reject("bad key"); return; }
+        new File(dir("store"), key).delete();
+        call.resolve();
+    }
+
+    // ------------------------------------------------------------------ the official firmware from Ricoh's site
+
+    private final Ricoh ricoh = new Ricoh(null);
+    private volatile boolean downloading;
+
+    @PluginMethod
+    public void firmwareLatest(final PluginCall call) {
+        final String model = call.getString("model", "");
+        new Thread(() -> {
+            try { call.resolve(JSObject.fromJSONObject(ricoh.latestJson(model))); }
+            catch (Ricoh.NoRelease e) { call.reject(e.getMessage(), "not-found"); }
+            catch (Exception e) { call.reject(String.valueOf(e.getMessage()), "network"); }
+        }, "ricoh-latest").start();
+    }
+
+    /** Downloads and unpacks; resolves with the firmware file's path (read by the page through the file server). */
+    @PluginMethod
+    public void firmwareDownload(final PluginCall call) {
+        if (downloading) { call.reject("a download is already running", "busy"); return; }
+        downloading = true;
+        final String model = call.getString("model", ""), version = call.getString("version", "");
+        new Thread(() -> {
+            File work = new File(getContext().getCacheDir(), "firmware.zip");
+            File out = new File(getContext().getCacheDir(), "firmware.bin");
+            try {
+                Ricoh.Release rel = ricoh.chosen(model, version);
+                final long[] last = {0};
+                String name = ricoh.download(rel, work, out, (received, total) -> {
+                    long now = System.currentTimeMillis();
+                    if (now - last[0] < 150) return;
+                    last[0] = now;
+                    JSObject o = new JSObject();
+                    o.put("received", received);
+                    o.put("total", total);
+                    notifyListeners("firmwareProgress", o);
+                });
+                JSObject r = new JSObject();
+                r.put("name", name);
+                r.put("version", rel.version);
+                r.put("path", out.getAbsolutePath());
+                call.resolve(r);
+            } catch (Ricoh.NoRelease e) { call.reject(e.getMessage(), "not-found"); }
+            catch (Ricoh.Checksum e) { call.reject(e.getMessage(), "checksum"); }
+            catch (Exception e) { call.reject(String.valueOf(e.getMessage()), String.valueOf(e.getMessage()).contains("cancelled") ? "cancelled" : "network"); }
+            finally { work.delete(); downloading = false; }
+        }, "ricoh-download").start();
+    }
+
+    @PluginMethod
+    public void firmwareCancel(PluginCall call) { ricoh.cancel(); call.resolve(); }
+
+    /** The model's download page, for the licence terms. */
+    @PluginMethod
+    public void firmwarePage(final PluginCall call) {
+        final String model = call.getString("model", ""), version = call.getString("version", "");
+        new Thread(() -> {
+            try { open(ricoh.chosen(model, version).page); call.resolve(); }
+            catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+        }, "ricoh-page").start();
+    }
+
+    private void open(String url) {
+        if (url == null || !(url.startsWith("https://") || url.startsWith("http://"))) return;
+        Intent i = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().startActivity(i);
+    }
+
+    @PluginMethod
+    public void openUrl(PluginCall call) {
+        try { open(call.getString("url")); call.resolve(); } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+    }
+
+    @PluginMethod
+    public void appInfo(PluginCall call) {
+        JSObject r = new JSObject();
+        try {
+            android.content.pm.PackageInfo pi = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), 0);
+            r.put("version", pi.versionName);
+        } catch (Exception e) { r.put("version", ""); }
+        r.put("sdk", Build.VERSION.SDK_INT);
+        r.put("device", Build.MANUFACTURER + " " + Build.MODEL);
+        call.resolve(r);
     }
 
     static JSObject infoJson(FirmwareInfo i) {

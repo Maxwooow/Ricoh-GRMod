@@ -1,6 +1,6 @@
 // The window is the page: nothing scrolls and nothing can be zoomed. Below the size the layout
 // was designed for, the whole interface is scaled down uniformly instead of being cut off.
-import { host } from './host';
+import { host, isAndroid } from './host';
 
 export const DESIGN_W = 1040;
 export const DESIGN_H = 680;
@@ -13,6 +13,8 @@ const listeners = new Set<() => void>();
 export function onUiScale(f: () => void): () => void { listeners.add(f); return () => { listeners.delete(f); }; }
 
 function apply(): void {
+  // The Android app has a phone layout of its own (styles.css, .app.mobile): nothing is scaled there.
+  if (isAndroid) { document.documentElement.classList.add('android'); return; }
   const s = Math.min(1, window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H);
   const next = Math.max(0.5, Math.round(s * 1000) / 1000);
   const root = document.getElementById('root');

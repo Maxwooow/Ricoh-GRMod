@@ -3,6 +3,7 @@ import { color, EXTRA_NAME_MAX, GR3X_RATIO_NAME_MAX, halateRgba, halationLight, 
 import type { SlotId } from '@grmod/core';
 import type { ReactNode } from 'react';
 import { DropZone, FileButton, Ico, IconCanvas, Menu, Prop, RatioIcon, RgbCanvas, Segmented, Select, Switch } from './components';
+import { isAndroid } from './host';
 import { FirmwareHero } from './firmware';
 import { t } from './i18n';
 import type { Key } from './i18n';
@@ -899,7 +900,10 @@ export function ImageControlPage() {
             {info.bridge
               ? <span className="chip warn">{Ico.bridge}<span className="ellipsis">{fwName || info.filename} · {t('fwBridgeValue')}</span></span>
               : <span className="chip ok">{Ico.check}<span className="ellipsis">{fwName || info.filename} · {info.version}</span></span>}
-            <Menu items={[
+            <Menu items={isAndroid ? [
+              ...(info.family === 'gr4' ? [{ label: t('pushStock'), run: () => { void outputFirmware({ kind: 'camera' }, true); } }] : []),
+              { label: t('saveStock'), run: () => { void outputFirmware({ kind: 'phone' }, true); } },
+            ] : [
               { label: t('writeStock'), run: () => { void outputFirmware({ kind: 'card' }, true); } },
               { label: t('exportStock'), run: () => { void outputFirmware({ kind: 'folder' }, true); } },
             ]}>{Ico.more}</Menu>

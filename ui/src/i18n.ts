@@ -147,6 +147,17 @@ const zh = {
   icViews: '影像控制页面', icViewSlots: '影像控制', icViewOrder: '菜单顺序', lookOrderShown: '{n} 个显示', lookOrderMoved: '{name} 移到第 {n} 位', lookOrderDrag: '拖动调整顺序',
   tIcViewsT: '槽位与菜单顺序', tIcViewsB: '“影像控制”设置各个槽位；“菜单顺序”调整相机影像控制菜单里 look 的顺序，也可以隐藏不用的 look。',
   tIcSoftT: '附加功能', tIcSoftB: '柔焦：打开后，可将“柔焦”效果增添到 ADJ 快捷菜单，有关、弱、中、强四档，效果无法实时预览，可与 HDF 滤镜同时启用；相机固件 1.20 上也可以在“拍摄菜单 › 影像处理设置 › 柔焦”里设定。\n时间戳：在照片右下角打印日期（竖拍时也是看照片时的右下角；菜单里的“跟随相机方向”关掉后，按横向位置打印）。刷入后默认关闭，在“拍摄辅助 › 拍摄时间戳”里打开，可选两种样式。\n黑白风格：解锁 GR IV Monochrome 机型的 6 个黑白风格；相机固件 1.20 上还有“中途曝光效果”。\n直闪模式：当闪光灯以固定功率闪光时，启用直闪模式以让相机按照对焦距离与输入的闪光灯 GN 值进行曝光。\n曝光预览开关（固件 1.20）：在“拍摄菜单 › 曝光设置 › 曝光预览”或 ADJ 里选择取景是否随曝光设置变亮变暗（开 / 直闪模式时关闭 / 始终关闭）。',
+  // Android
+  pushCamera: '推送到相机', saveToPhone: '保存到手机', pushStock: '推送原厂固件到相机', saveStock: '保存原厂固件到手机', savedTo: '已保存到 {p}',
+  pushTitle: '推送到相机', pushFind: '查找相机', pushFinding: '正在查找相机…', pushRescan: '重新查找',
+  pushNoCam: '没找到相机。相机开着吗？手机蓝牙打开了吗？GR WORLD 关掉了吗？', pushPaired: '已配对', pushUnpaired: '未配对：相机要在配对状态',
+  pushFirstPair: '第一次连接这台手机时，先让相机进入蓝牙配对状态（和第一次用 GR WORLD 配对一样）。',
+  pushWarn1: '相机接受后会马上开始更新，完成后自动重启。', pushWarn2: '更新期间不要关机、不要拔电池；手机留在 GR Mod 里、不要锁屏。',
+  pushWarn3: '只能推送和相机现在同一基础版本的固件（例如 1.20 → 1.20），相机电量要在 50% 以上。',
+  pushStart: '开始推送', pushStop: '停止', pushClose: '关闭', pushShareLog: '发送日志', pushDetails: '日志', pushPreparing: '准备文件…',
+  pushOnlyGr4: '无线推送只支持 GR IV 系列。GR III / IIIx 请保存到手机，再用读卡器写入存储卡。',
+  pushVpn: '手机正在用 VPN：推送前请先关掉，或在 VPN 设置里让 GR Mod 不走 VPN。', pushPerm: '需要蓝牙和附近设备权限才能找到相机',
+  pushBtOff: '手机蓝牙没有打开', mSettings: '设置', mWhatsNew: '更新内容',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -297,6 +308,17 @@ const en: typeof zh = {
   icViews: 'Image Control views', icViewSlots: 'Image Control', icViewOrder: 'Menu order', lookOrderShown: '{n} shown', lookOrderMoved: '{name} moved to position {n}', lookOrderDrag: 'Drag to reorder',
   tIcViewsT: 'Slots and menu order', tIcViewsB: '"Image Control" sets up the slots; "Menu order" arranges the looks of the camera\'s Image Control menu and hides the ones you do not use.',
   tIcSoftT: 'Additions', tIcSoftB: 'Soft focus: adds "Soft Focus" to the ADJ lever, with off, low, medium and high. The effect cannot be seen in live view; it can be used together with the HDF filter. On camera firmware 1.20 it is also under Shooting › Image Process Settings › Soft Focus.\nDate imprint: prints the date in the bottom right corner of the photo (as it is viewed, also when shot upright; with "Follow Orientation" off in its menu, as stored). Off after flashing; turn it on under Shooting Assist › Date Imprint, two styles.\nB&W looks: unlocks the 6 black-and-white looks of the GR IV Monochrome, and on camera firmware 1.20 its Solarized Effect as well.\nDirect Flash: when the flash fires at a fixed power, Direct Flash sets the exposure from the focus distance and the flash\'s guide number you enter.\nExposure preview switch (firmware 1.20): choose under Shooting › Exposure Settings › Exposure Preview or on the ADJ lever whether the live view gets brighter and darker with the exposure set (On / Off in Direct Flash / Always Off).',
+  // Android
+  pushCamera: 'Send to camera', saveToPhone: 'Save to phone', pushStock: 'Send factory firmware to camera', saveStock: 'Save factory firmware to phone', savedTo: 'Saved to {p}',
+  pushTitle: 'Send to camera', pushFind: 'Find cameras', pushFinding: 'Looking for cameras…', pushRescan: 'Search again',
+  pushNoCam: 'No camera found. Is it on? Is Bluetooth on? Is GR WORLD closed?', pushPaired: 'Paired', pushUnpaired: 'Not paired: put the camera in pairing mode',
+  pushFirstPair: 'The first time with this phone, put the camera in Bluetooth pairing mode (as when pairing GR WORLD).',
+  pushWarn1: 'Once the camera takes the file it updates at once and restarts by itself.', pushWarn2: 'Do not switch the camera off or take the battery out; keep GR Mod open and the phone unlocked.',
+  pushWarn3: 'Only a firmware of the camera\'s own base version can be sent (e.g. 1.20 to 1.20), with the battery above 50%.',
+  pushStart: 'Send', pushStop: 'Stop', pushClose: 'Close', pushShareLog: 'Send log', pushDetails: 'Log', pushPreparing: 'Preparing the file…',
+  pushOnlyGr4: 'Only the GR IV family takes firmware over Wi-Fi. For a GR III / IIIx, save it to the phone and copy it to a card.',
+  pushVpn: 'A VPN is on: switch it off, or let GR Mod bypass it, before sending.', pushPerm: 'Bluetooth and nearby-devices permissions are needed to find the camera',
+  pushBtOff: 'Bluetooth is off', mSettings: 'Settings', mWhatsNew: 'What\'s new',
 };
 export type Key = keyof typeof zh;
 const dict = (navigator.language || 'zh').toLowerCase().startsWith('zh') ? zh : en;

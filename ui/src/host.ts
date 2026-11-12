@@ -1,5 +1,7 @@
-// The platform behind the page. On Windows and macOS this is the GRMod shell's local HTTP API; another
-// platform (Android) would provide the same interface with its own implementation.
+// The platform behind the page. On Windows and macOS this is the GRMod shell's local HTTP API; the Android app
+// provides the same interface with its own implementation (host-android.ts).
+import { androidHost, isAndroid, useHostError } from './host-android';
+
 export interface HostInfo { kind: string; token: string; version: string; os: string }
 export interface Volume { id: string; root: string; label: string; fs: string; total: number; free: number; removable: boolean; bus: string }
 export interface DirEntry { name: string; dir: boolean; size: number; mtime: number }
@@ -34,6 +36,7 @@ export class HostError extends Error {
   code: string;
   constructor(code: string, message: string) { super(message); this.code = code; }
 }
+useHostError(HostError);
 
 const info = (globalThis as unknown as { __GRMOD_HOST__?: HostInfo }).__GRMOD_HOST__;
 
@@ -56,7 +59,7 @@ async function call(method: string, path: string, body?: BodyInit | null, json =
 const q = (s: string): string => encodeURIComponent(s);
 const post = async <T>(path: string, body: unknown): Promise<T> => (await call('POST', path, JSON.stringify(body))).json() as Promise<T>;
 
-export const host = {
+const desktopHost = {
   available: !!info,
   info,
   sep: info && info.os === 'windows' ? '\\' : '/',
@@ -136,6 +139,9 @@ export const host = {
     catch { return null; }
   },
 };
+
+export const host: typeof desktopHost = isAndroid ? androidHost : desktopHost;
+export { isAndroid };
 
 export async function sha256Hex(data: Uint8Array): Promise<string> {
   const d = new Uint8Array(await crypto.subtle.digest('SHA-256', data as unknown as BufferSource));
