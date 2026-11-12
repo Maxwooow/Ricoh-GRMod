@@ -46,6 +46,8 @@ public final class PushSession implements Runnable {
     /** Refuse below this battery level (percent). GR WORLD's own limit is not known; the camera reports battery_too_low. */
     public static final int MIN_BATTERY = 50;
     static final long RESULT_WINDOW_MS = 200_000;   // GR WORLD waits 200 s for FirmwareUpdateResult
+    static final long START_AFTER_UPLOAD_MS = 30_000;
+    static final long START_AFTER_LINK_MS = 6_000;
 
     private final Context ctx;
     private final BluetoothDevice device;
@@ -84,13 +86,20 @@ public final class PushSession implements Runnable {
         return new String(b, 0, n, StandardCharsets.UTF_8);
     }
 
+    // FirmwareUpdateResult 0 ("invalid") right after the start: the camera did not take it (it is only noted: the
+    // wait for 1 / 2 goes on, in case 0 is also sent on the way to a success) (seen 2026-11-11 22:07
+    // when the start went out 7 s after Bluetooth came back: the camera then sat on "updating" with the bar at 0
+    // until it was switched off and on, unchanged).
+    private volatile boolean startSent = false, fwInvalid = false;
+
     private final Ble.Listener bleListener = new Ble.Listener() {
         @Override public void onNotify(UUID uuid, byte[] value) {
             String hex = hex(value);
             if (FW_RESULT.equals(uuid) && value.length > 0) {
                 int v = value[0] & 0xff;
-                log.add("FirmwareUpdateResult: " + hex + (v == 1 ? "（成功）" : v == 2 ? "（失败）" : ""));
+                log.add("FirmwareUpdateResult: " + hex + (v == 1 ? "（成功）" : v == 2 ? "（失败）" : v == 0 ? "（invalid：相机不接受）" : ""));
                 if (v == 1 || v == 2) fwResult = v;
+                else if (v == 0 && startSent) fwInvalid = true;
             } else {
                 log.detail("蓝牙通知 " + Ble.short8(uuid) + ": " + hex);
             }
@@ -218,11 +227,13 @@ public final class PushSession implements Runnable {
             final long[] lastShown = {0};
             long t0 = System.currentTimeMillis();
             uploaded = true;   // from here on: no cancel, no retry
+            final long[] putDone = {0};
             r = net.putFile("/v1/configs/firmware?storage=in&reboot=true", file, (done, total) -> {
                 long now = System.currentTimeMillis();
                 if (now - lastShown[0] > 200 || done == total) { lastShown[0] = now; ev.progress(done, total); }
             }, 180_000);
-            log.add("上传：" + r.describe() + "，用时 " + (System.currentTimeMillis() - t0) / 1000 + " 秒");
+            putDone[0] = System.currentTimeMillis();
+            log.add("上传：" + r.describe() + "，用时 " + (putDone[0] - t0) / 1000 + " 秒");
             if (!r.ok()) {
                 cancelUpdate(net);
                 throw new Fail("upload", "相机没有接受这个固件：" + r.describe());
@@ -240,14 +251,16 @@ public final class PushSession implements Runnable {
             Thread.sleep(2000);
 
             ev.stage("start", "重连蓝牙，发送「开始更新」…");
-            long deadline = System.currentTimeMillis() + RESULT_WINDOW_MS;
+            long deadline = System.currentTimeMillis() + START_AFTER_UPLOAD_MS + RESULT_WINDOW_MS;
             boolean started = false, reconnected = false;
+            long linkSince = 0;
             while (fwResult == null && System.currentTimeMillis() < deadline) {
                 if (!ble.isConnected()) {
                     try {
                         ble.connect(15_000);
                         log.add("蓝牙已重连");
                         reconnected = true;
+                        linkSince = System.currentTimeMillis();
                     } catch (Ble.BleException e) {
                         log.detail("重连失败：" + e.getMessage());
                         Thread.sleep(3000);
@@ -267,8 +280,20 @@ public final class PushSession implements Runnable {
                         // Bluetooth never dropped after the upload: subscribe on this link before starting.
                         try { ble.subscribe(CAMERA, FW_RESULT); } catch (Ble.BleException e) { log.detail("订阅结果失败：" + e.getMessage()); }
                         reconnected = true;
+                        linkSince = System.currentTimeMillis();
+                    }
+                    // Give the camera time to settle into "waiting for update" (it is still storing the file
+                    // after the upload): at least START_AFTER_UPLOAD_MS after the upload and START_AFTER_LINK_MS
+                    // on the new link. It waits minutes for the start, so this costs nothing.
+                    long now = System.currentTimeMillis();
+                    long ready = Math.max(putDone[0] + START_AFTER_UPLOAD_MS, linkSince + START_AFTER_LINK_MS);
+                    if (now < ready) {
+                        log.detail("等相机准备好，" + (ready - now + 999) / 1000 + " 秒后发送「开始更新」");
+                        Thread.sleep(Math.min(1000, ready - now));
+                        continue;
                     }
                     try {
+                        startSent = true;
                         ble.write(CAMERA, FW_START, new byte[]{1});
                         started = true;
                         put(result, "started", true);
@@ -283,7 +308,12 @@ public final class PushSession implements Runnable {
                 Thread.sleep(1000);
             }
             ble.close();
-            if (fwResult != null && fwResult == 1) {
+            if (fwInvalid && fwResult == null) {
+                put(result, "ok", false);
+                put(result, "reason", "start-invalid");
+                ev.stage("failed", "相机回应「开始更新」无效（invalid）。看相机屏幕：如果显示处理失败或回到正常画面，固件没有变化，可以重新推送；"
+                        + "如果停在「正在更新」且进度条长时间完全不动，不要拔电池，先等几分钟再长按电源键关机重开");
+            } else if (fwResult != null && fwResult == 1) {
                 put(result, "ok", true);
                 ev.stage("done", "相机报告更新成功。等相机重启后，在设置里确认固件版本");
             } else if (fwResult != null) {
@@ -294,7 +324,7 @@ public final class PushSession implements Runnable {
                 put(result, "ok", false);
                 put(result, "reason", started ? "no-result" : "not-started");
                 ev.stage("failed", started
-                        ? "已发送「开始更新」，但没收到结果。看相机屏幕：更新完成后它会自己重启"
+                        ? "已发送「开始更新」，但没收到结果。相机可能还在更新：不要关机，看相机屏幕，更新完成后它会自己重启"
                         : "没能发送「开始更新」。相机会在几分钟后显示处理失败，固件不变；可以重新推送");
             }
         } catch (Fail f) {

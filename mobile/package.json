@@ -1,6 +1,6 @@
 {
   "name": "@grmod/mobile",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "license": "GPL-2.0-only",
   "private": true,
   "description": "GR Mod for Android: builds GR Mod firmware on the phone and pushes it to the camera over Wi-Fi and Bluetooth (Capacitor shell around ../ui)",
