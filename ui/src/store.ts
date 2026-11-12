@@ -1321,21 +1321,22 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   // The cannot-go-back warning is a paragraph (the dialog's lines are cut to one line each).
   if (stock && !(await askOfficial([t('copyOfficial')], fresh && dest.kind === 'card' ? fresh : undefined))) return;
   if (dest.kind === 'card' && !stock) {
-    const lines = changes.map((c) => `${state.info?.family === 'gr3x' ? (state.slots[c.id].names[state.lang] || state.info.slots.find(s => s.id === c.id)?.defaultName || c.id) : t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
-    if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
-    if (soft) lines.push(sourceInfo.features.softFocus === 'clarity' ? t('softLine', { l: softText(GR3X_SOFT_FOCUS) }) : t(sourceInfo.features.exposurePreview ? 'softAdjMenuLine' : 'softAdjLine'));
-    // As GR IV's added slots: every film has Halation.
-    if (films) lines.push(t('extraLine', { n: films, l: (state.info?.slots ?? []).slice(0, films).map((sl) => `${state.slots[sl.id]?.names[state.lang] || sl.defaultName} (${t('halation')})`).join(' / ') }));
-    if (dateStamp) lines.push(t('dateLine'));
-    if (monoUnlock) lines.push(t(state.info?.family === 'gr3x' ? 'gr3xReplicaLine' : 'monoLine'));
-    if (brightAuto) lines.push(t(brightAuto === 'balanced' ? 'brightAutoBalanced' : 'brightAutoBright'));
-    if (directFlash) lines.push(t('flashLine'));
-    if (hdr) lines.push(t('hdrLine'));
-    if (exposurePreview) lines.push(t(directFlash ? 'previewLine' : 'previewLineNoFlash'));
-    if (adjSlots > 5) lines.push(t('adjSlotsLine', { n: adjSlots }));
-    if (extras.length) lines.push(t('extraLine', { n: extras.length, l: extras.map((x) => (x.halation ? `${x.name} (${t('halation')})` : x.name)).join(' / ') }));
-    if (lookLayout) lines.push(t('lookOrderLine', { n: lookLayout.hidden.length }));
-    if (pictures.length) lines.push(t('wallMenuLine', { n: pictures.length, l: pictures.map((p) => p.name).join(' / ') }));
+    // The check before writing: only what changes, by name; with a count where one item holds several.
+    const named = (name: string, n: number, unit: Key = 'chkCount'): string => (n > 1 ? `${name}  ·  ${t(unit, { n })}` : name);
+    const lines = changes.map((c) => named(state.info?.family === 'gr3x' ? (state.slots[c.id].names[state.lang] || state.info.slots.find(s => s.id === c.id)?.defaultName || c.id) : t(('slot' + c.id) as Key), c.labels.length, 'chkChanges'));
+    if (ratios.length) lines.push(named(t('chkRatios'), ratios.length));
+    if (soft) lines.push(t('navSoft'));
+    if (films) lines.push(named(t('extraTitle'), films));
+    if (dateStamp) lines.push(t('navDate'));
+    if (monoUnlock) lines.push(t(state.info?.family === 'gr3x' ? 'gr3xReplicaTitle' : 'navMono'));
+    if (brightAuto) lines.push(t('navBrightAuto'));
+    if (directFlash) lines.push(t('navFlash'));
+    if (hdr) lines.push(t('navHdr'));
+    if (exposurePreview) lines.push(t('navPreview'));
+    if (adjSlots > 5) lines.push(`${t('navAdjSlots')}  ·  ${t('chkCount', { n: adjSlots })}`);
+    if (extras.length) lines.push(named(t('extraTitle'), extras.length));
+    if (lookLayout) lines.push(lookLayout.hidden.length ? `${t('icViewOrder')}  ·  ${t('chkHidden', { n: lookLayout.hidden.length })}` : t('icViewOrder'));
+    if (pictures.length) lines.push(named(t('navWall'), pictures.length, 'chkPictures'));
     if (!(await ask(t('confirmTitle'), lines, t('confirmOk'), fresh ?? undefined))) return;
   }
   const target = await destination(dest);

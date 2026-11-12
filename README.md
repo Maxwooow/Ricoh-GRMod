@@ -4,6 +4,14 @@ A small desktop tool for the Ricoh GR IV / GR IV HDF (firmware 1.20 or 1.11), th
 (firmware 1.10, the same file as GR IV 1.20), the GR III / GR III HDF (firmware 2.20 or 2.10) and the
 GR IIIx / GR IIIx HDF (firmware 1.70 or 1.60). Not a Ricoh product.
 
+0.8.12: fixes and a shorter check. Power-off pictures on GR IV 1.20: when the menus are widened (the
+date imprint's menu with exposure preview or soft focus's menu line), the camera reads the wide copy
+of the Setup menu, and its End Screen line now gets the Picture item too (it had none:
+`menuItemWords` in `core/src/fw/gr4v120/aspect/menuwide.ts`, found on the camera). The Image Control
+icon is a true aperture. The check before writing lists only what changes, by name, with a count
+where one item holds several; the switches' descriptions are shorter, and the Auto screen
+brightness choices read stock / slightly brighter / brightest.
+
 0.8.11: GR IV, firmware 1.20 (issue #17). Exposure preview is a camera setting: On (the camera's
 own live view), Off in Direct Flash (only while Direct Flash is the Flash Mode) and Always Off, where
 the live view of stills keeps a normal brightness in M and with exposure compensation and the
