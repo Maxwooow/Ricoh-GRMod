@@ -1,6 +1,7 @@
 import { LANGS } from '@grmod/core';
 import type { CameraModel, LangCode } from '@grmod/core';
 import { useRef, useState } from 'react';
+import { GlassDefs, GlassFilter, useGlass, useSize } from './glass';
 import { Busy, ConfirmDialog, Hint, Ico, Select, Toasts, useDismiss } from './components';
 import { host, isAndroid } from './host';
 import { PushDialog } from './camera';
@@ -213,29 +214,93 @@ function MobileActions() {
   const can = canOutput(s);
   const bridge = bridgeLoaded(s) && !s.busy;
   const gr4 = s.info?.family === 'gr4';
+  const glass = useGlass('lg-save', { rim: 14, strength: 9, radius: 24 });
   const run = (kind: 'camera' | 'phone'): void => { if (bridge) { askForOfficial(); return; } void outputFirmware({ kind }); };
   return (
     <div className="m-actions">
-      <button className="btn" disabled={!can && !bridge} onClick={() => run('phone')}>{Ico.save}<span>{t('saveToPhone')}</span></button>
+      <GlassDefs>{glass.filter}</GlassDefs>
+      <button ref={glass.ref} className="btn glass" disabled={!can && !bridge} onClick={() => run('phone')}>{Ico.save}<span>{t('saveToPhone')}</span></button>
       <button className="btn primary" disabled={(!can && !bridge) || (!!s.info && !gr4)} title={s.info && !gr4 ? t('pushOnlyGr4') : undefined} onClick={() => run('camera')}>{Ico.send}<span>{t('pushCamera')}</span></button>
     </div>
   );
 }
 
+type TabPage = 'ic' | 'ratio' | 'wall';
+
+/**
+ * The page tabs: a floating bar of glass with a lens over the current tab. Pressing the bar swells the lens;
+ * it can be dragged along the bar and lands on the nearest tab, or a tap sends it to the tab tapped
+ * (as Kyant0/AndroidLiquidGlass's bottom tabs).
+ */
 function MobileTabs() {
   const page = useStore((s) => s.page);
   const model = useStore((s) => s.model);
   const menuPics = useStore((s) => !!s.info?.capabilities.menuPictures);
   const info = useStore((s) => !!s.info);
-  const tab = (p: 'ic' | 'ratio' | 'wall', icon: React.ReactNode, key: Key): React.ReactNode => (
-    <button type="button" className={`m-tab ${page === p || (p === 'ic' && page === 'copies') ? 'on' : ''}`} onClick={() => setPage(p)}>{icon}<span>{t(key)}</span></button>
-  );
+  const tabs: { p: TabPage; icon: React.ReactNode; key: Key }[] = [
+    { p: 'ic', icon: Ico.aperture, key: 'navIC' },
+    { p: 'ratio', icon: Ico.ratio, key: 'navRatio' },
+    ...((!isGr3(model) || menuPics || !info) ? [{ p: 'wall' as TabPage, icon: Ico.image, key: 'navWall' as Key }] : []),
+  ];
+  const current = Math.max(0, tabs.findIndex((x) => x.p === page || (x.p === 'ic' && page === 'copies')));
+  const bar = useRef<HTMLElement>(null);
+  const { w, h } = useSize(bar);
+  const pad = 4;
+  const cell = tabs.length ? (w - pad * 2) / tabs.length : 0;
+  const lensW = cell;
+  const lensH = Math.max(0, h - pad * 2);
+  // where the lens is while a finger holds it (its centre, px from the bar's left), and whether it is held
+  const [held, setHeld] = useState<{ x: number; moved: boolean } | null>(null);
+  const press = useRef<{ id: number; x0: number; c0: number; moved: boolean } | null>(null);
+  const centreOf = (i: number): number => pad + cell * (i + 0.5);
+  const clampC = (c: number): number => Math.max(pad + lensW / 2, Math.min(w - pad - lensW / 2, c));
+  const nearest = (c: number): number => Math.max(0, Math.min(tabs.length - 1, Math.floor((c - pad) / (cell || 1))));
+  const centre = held ? held.x : centreOf(current);
+  const hot = held?.moved ? nearest(centre) : current;
+
+  const down = (e: React.PointerEvent<HTMLElement>): void => {
+    if (press.current || !cell) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    const c0 = centreOf(current);
+    press.current = { id: e.pointerId, x0: e.clientX, c0, moved: false };
+    setHeld({ x: c0, moved: false });
+  };
+  const move = (e: React.PointerEvent<HTMLElement>): void => {
+    const p = press.current;
+    if (!p || p.id !== e.pointerId) return;
+    const dx = e.clientX - p.x0;
+    if (!p.moved && Math.abs(dx) < 8) return;
+    p.moved = true;
+    setHeld({ x: clampC(p.c0 + dx), moved: true });
+  };
+  const up = (e: React.PointerEvent<HTMLElement>): void => {
+    const p = press.current;
+    if (!p || p.id !== e.pointerId) return;
+    press.current = null;
+    const rect = bar.current!.getBoundingClientRect();
+    const target = e.type === 'pointercancel' ? current : p.moved ? nearest(clampC(p.c0 + (e.clientX - p.x0))) : nearest(e.clientX - rect.left);
+    setHeld(null);
+    if (target !== current) setPage(tabs[target].p);
+  };
+
   return (
-    <nav className="m-tabs">
-      {tab('ic', Ico.aperture, 'navIC')}
-      {tab('ratio', Ico.ratio, 'navRatio')}
-      {(!isGr3(model) || menuPics || !info) && tab('wall', Ico.image, 'navWall')}
-    </nav>
+    <div className="m-dock">
+      <GlassDefs>
+        <GlassFilter id="lg-bar" w={w} h={h} r={h / 2} rim={18} strength={10} />
+        <GlassFilter id="lg-lens" w={lensW} h={lensH} r={lensH / 2} rim={16} strength={14} zoom={0.18} />
+      </GlassDefs>
+      <nav className="m-tabs glass" ref={bar} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onContextMenu={(e) => e.preventDefault()}>
+        {tabs.map((x, i) => (
+          <button key={x.p} type="button" className={`m-tab ${i === hot ? 'on' : ''}`} aria-current={i === current ? 'page' : undefined} onClick={(e) => { if (e.detail === 0) setPage(x.p); }}>{x.icon}<span>{t(x.key)}</span></button>
+        ))}
+      </nav>
+      {cell > 0 && (
+        <span
+          className={`m-lens ${held ? 'held' : ''} ${held?.moved ? 'dragging' : ''}`} aria-hidden
+          style={{ width: lensW, height: lensH, translate: `${centre - lensW / 2}px ${pad}px` }}
+        />
+      )}
+    </div>
   );
 }
 
@@ -252,8 +317,9 @@ function MobileApp() {
       <main className="main">
         <BridgeBanner />
         <div className="stage">{ready ? (page === 'ratio' ? <RatioPage /> : page === 'wall' && (!gr3 || menuPicsReady || !fwOpen) ? <WallpaperPage /> : <ImageControlPage />) : <div className="page"><span className="spinner" /></div>}</div>
-        <MobileActions />
       </main>
+      {/* both float over the page, which scrolls on under them */}
+      <MobileActions />
       <MobileTabs />
       {settings && <MobileSettings onClose={() => setSettings(false)} />}
       <CropEditor />

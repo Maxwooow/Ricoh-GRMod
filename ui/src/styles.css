@@ -569,13 +569,35 @@ html.android body { background: var(--side); font-size: 15px; }
 .app.mobile .page-head { height: auto; min-height: 32px; margin-bottom: 12px; }
 .app.mobile .page-head h1, .app.mobile .page-head .page-icon { display: none; }
 .app.mobile .head-right { margin-left: 0; flex: 1; justify-content: flex-end; }
-.m-actions { flex: none; display: flex; gap: 10px; padding: 10px 12px; border-top: 1px solid var(--line); background: var(--bg); }
-.m-actions .btn { flex: 1; height: 46px; justify-content: center; font-size: 15px; border-radius: 10px; }
+/* the output buttons and the page tabs float over the page (app.tsx MobileActions, MobileTabs; glass.tsx) */
+.app.mobile { --dock-b: calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 10px); --dock-h: 64px; --act-h: 48px; }
+.app.mobile .page { padding-bottom: calc(var(--dock-b) + var(--dock-h) + var(--act-h) + 34px); }
+.glass-defs { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+/* the glass: the page behind, blurred a little, bent at the rim (the SVG filter) and lit along the top edge */
+.app.mobile { --glass-tint: rgba(255, 255, 255, 0.62); --glass-rim: rgba(255, 255, 255, 0.75); --glass-shade: rgba(0, 0, 0, 0.06); --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.14), 0 1px 3px rgba(0, 0, 0, 0.08); }
+@media (prefers-color-scheme: dark) { .app.mobile { --glass-tint: rgba(44, 44, 46, 0.52); --glass-rim: rgba(255, 255, 255, 0.22); --glass-shade: rgba(0, 0, 0, 0.3); --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4); } }
+.glass { background: var(--glass-tint); -webkit-backdrop-filter: blur(3px) saturate(1.7); backdrop-filter: blur(5px) url(#lg-bar) saturate(1.7);
+  box-shadow: inset 0 1px 0.5px var(--glass-rim), inset 0 -1px 1px var(--glass-shade), inset 0 0 0 0.5px var(--glass-rim), var(--glass-shadow); }
+.m-actions { position: fixed; z-index: 20; left: 16px; right: 16px; bottom: calc(var(--dock-b) + var(--dock-h) + 12px); display: flex; gap: 10px; pointer-events: none; }
+.m-actions .btn { pointer-events: auto; flex: 1; height: var(--act-h); justify-content: center; font-size: 15px; border-radius: 24px; border: 0; }
 .m-actions .btn svg { width: 20px; height: 20px; }
-.m-tabs { flex: none; display: flex; background: var(--side); border-top: 1px solid var(--line); padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)); }
-.m-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 0 7px; border: 0; background: none; color: var(--faint); font-size: 11.5px; font-weight: 500; }
-.m-tab svg { width: 23px; height: 23px; }
-.m-tab.on { color: var(--text); }
+.m-actions .btn.glass { backdrop-filter: blur(5px) url(#lg-save) saturate(1.7); color: var(--text); }
+.m-actions .btn.glass:disabled { opacity: 1; color: var(--faint); }
+.m-actions .btn.primary { box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.35), 0 8px 22px color-mix(in srgb, var(--blue) 35%, transparent); }
+.m-actions .btn.primary:disabled { opacity: 1; background: color-mix(in srgb, var(--blue) 45%, var(--glass-tint)); color: rgba(255, 255, 255, 0.7); backdrop-filter: blur(3px) saturate(1.5); box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.25), var(--glass-shadow); }
+.m-dock { position: fixed; z-index: 21; left: 16px; right: 16px; bottom: var(--dock-b); height: var(--dock-h); }
+.m-tabs { position: absolute; inset: 0; display: flex; padding: 4px; border-radius: 999px; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.m-tab { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; background: none; color: var(--muted); font-size: 11px; font-weight: 600; transition: color 0.2s; -webkit-tap-highlight-color: transparent; }
+.m-tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 4px; }
+.m-tab svg { width: 24px; height: 24px; }
+.m-tab.on { color: var(--blue); }
+/* the lens over the current tab: a lighter pill at rest; held, it swells past the bar and magnifies what is under it */
+.m-lens { position: absolute; left: 0; top: 0; border-radius: 999px; pointer-events: none; background: color-mix(in srgb, var(--text) 7%, transparent);
+  backdrop-filter: url(#lg-lens) saturate(1.3); box-shadow: inset 0 1px 0.5px var(--glass-rim), inset 0 0 0 0.5px color-mix(in srgb, var(--glass-rim) 60%, transparent);
+  scale: 1; transition: translate 520ms cubic-bezier(0.3, 1.45, 0.45, 1), scale 380ms cubic-bezier(0.3, 1.6, 0.5, 1), background-color 220ms ease, box-shadow 220ms ease; }
+.m-lens.held { scale: 1.22 1.3; background: color-mix(in srgb, var(--bg) 8%, transparent);
+  box-shadow: inset 0 1.5px 1px var(--glass-rim), inset 0 -1px 1px var(--glass-shade), inset 0 0 0 0.5px var(--glass-rim), inset 3px 0 6px -4px rgba(120, 180, 255, 0.35), inset -3px 0 6px -4px rgba(255, 150, 120, 0.35), 0 8px 24px rgba(0, 0, 0, 0.18); }
+.m-lens.dragging { transition: scale 380ms cubic-bezier(0.3, 1.6, 0.5, 1), background-color 220ms ease, box-shadow 220ms ease; }
 /* settings: a sheet from the bottom with the sidebar's rows */
 .m-sheet-wrap { align-items: end; place-items: end stretch; }
 .m-sheet { width: 100%; background: var(--bg); border-radius: 16px 16px 0 0; box-shadow: var(--shadow); padding: 8px 14px calc(14px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); animation: m-up 0.18s ease-out; }
@@ -621,4 +643,23 @@ html.android body { background: var(--side); font-size: 15px; }
 .app.mobile .wall-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px; }
 .app.mobile .hero-drop { flex: none; height: 240px; }
 .app.mobile .page-head .head-right > .chip.ok, .app.mobile .page-head .head-right > .chip.warn { display: none; }
-.app.mobile .toasts { bottom: calc(132px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); left: 12px; right: 12px; transform: none; }
+.app.mobile .toasts { bottom: calc(var(--dock-b) + var(--dock-h) + var(--act-h) + 24px); left: 12px; right: 12px; transform: none; }
+/* the looks above the preview: the full width, scrolled sideways (faded where more are out of view); the photo /
+   swatches choice as two icons */
+.app.mobile .ic .pane-head .seg-arrow { display: none; }
+.app.mobile .ic .pane-head .seg-scroll { flex: 1 1 auto; --fl: 0px; --fr: 0px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--fl), #000 calc(100% - var(--fr)), transparent); mask-image: linear-gradient(90deg, transparent, #000 var(--fl), #000 calc(100% - var(--fr)), transparent); }
+.app.mobile .ic .pane-head .seg-scroll.more-l { --fl: 22px; }
+.app.mobile .ic .pane-head .seg-scroll.more-r { --fr: 22px; }
+.app.mobile .ic .pane-head > .grow { display: none; }
+.seg.seg-icons button { padding: 0 9px; display: grid; place-items: center; }
+.seg.seg-icons svg { width: 17px; height: 17px; }
+/* the menu order: what it does first, then the list at the full width, rows tall enough for a finger */
+.app.mobile .looks { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+.app.mobile .look-info { order: -1; }
+.app.mobile .look-card { max-height: none; overflow: visible; }
+.app.mobile .look-list { overflow: visible; padding: 4px 6px; }
+.app.mobile .look-row { height: 46px; }
+.app.mobile .look-grip { width: 30px; height: 40px; color: var(--muted); }
+.app.mobile .look-btns { gap: 2px; }
+.app.mobile .look-btns .btn.icon-only { width: 36px; height: 36px; }
+.app.mobile .look-btns .btn.icon-only svg { width: 18px; height: 18px; }

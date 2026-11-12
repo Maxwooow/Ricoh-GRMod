@@ -13,6 +13,7 @@ export const Ico = {
   sliders: <svg viewBox="0 0 20 20" {...P}><path d="M3.5 6h8M15 6h1.5M3.5 14h1.5M8.5 14h8" /><circle cx="13" cy="6" r="1.8" /><circle cx="6.8" cy="14" r="1.8" /></svg>,
   save: <svg viewBox="0 0 20 20" {...P}><path d="M10 3.5V13M6 9.2l4 4 4-4" /><path d="M4 16.5h12" /></svg>,
   aperture: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="7.2" /><path d="M10 2.8l3.4 6M17.2 10h-6.9M13.6 16.2l-3.4-6M6.4 16.2l3.4-6M2.8 10h6.9M6.4 3.8l3.4 6" /></svg>,
+  swatch: <svg viewBox="0 0 20 20" {...P}><rect x="3" y="3" width="6" height="6" rx="1.4" /><rect x="11" y="3" width="6" height="6" rx="1.4" /><rect x="3" y="11" width="6" height="6" rx="1.4" /><rect x="11" y="11" width="6" height="6" rx="1.4" /></svg>,
   image: <svg viewBox="0 0 20 20" {...P}><rect x="2.8" y="4" width="14.4" height="12" rx="2" /><circle cx="7.3" cy="8.2" r="1.3" /><path d="M3.2 14l4-3.6 3 2.6 2.6-2.2 4 3.4" /></svg>,
   card: <svg viewBox="0 0 20 20" {...P}><path d="M5.5 2.8h6.2l3.3 3.3v9.6a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 4 15.7V4.3a1.5 1.5 0 0 1 1.5-1.5z" /><path d="M7.4 5.6v2.2M9.8 5.6v2.2M12.2 6.6v1.2" /></svg>,
   folder: <svg viewBox="0 0 20 20" {...P}><path d="M2.8 6a1.5 1.5 0 0 1 1.5-1.5h3.3l1.6 1.8h6.5a1.5 1.5 0 0 1 1.5 1.5v6.4a1.5 1.5 0 0 1-1.5 1.5H4.3a1.5 1.5 0 0 1-1.5-1.5z" /></svg>,
@@ -55,11 +56,11 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
   return <button type="button" role="switch" aria-checked={checked} aria-label={label} className={`switch ${checked ? 'on' : ''}`} onClick={() => onChange(!checked)}><i /></button>;
 }
 
-export function Segmented<T extends string>({ value, options, onChange, tour }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; tour?: string }) {
+export function Segmented<T extends string>({ value, options, onChange, tour, className }: { value: T; options: { value: T; label: ReactNode; title?: string }[]; onChange: (v: T) => void; tour?: string; className?: string }) {
   return (
-    <div className="seg" role="tablist" data-tour={tour}>
+    <div className={className ? `seg ${className}` : 'seg'} role="tablist" data-tour={tour}>
       {options.map((o) => (
-        <button key={o.value} role="tab" aria-selected={o.value === value} className={o.value === value ? 'on' : ''} onClick={() => onChange(o.value)}>{o.label}</button>
+        <button key={o.value} role="tab" aria-selected={o.value === value} title={o.title} aria-label={o.title} className={o.value === value ? 'on' : ''} onClick={() => onChange(o.value)}>{o.label}</button>
       ))}
     </div>
   );

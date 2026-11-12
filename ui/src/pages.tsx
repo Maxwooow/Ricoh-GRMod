@@ -158,12 +158,18 @@ function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number
   useEffect(() => {
     const el = tabsRef.current;
     if (!el) return;
-    const check = (): void => setOverflow(el.scrollWidth > el.clientWidth + 1);
+    // the edges fade where more tabs are scrolled out of view (on a phone, where there are no arrows)
+    const edges = (): void => {
+      el.classList.toggle('more-l', el.scrollLeft > 1);
+      el.classList.toggle('more-r', el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    };
+    const check = (): void => { setOverflow(el.scrollWidth > el.clientWidth + 1); edges(); };
     check();
     const ro = new ResizeObserver(check);
     ro.observe(el);
     if (el.firstElementChild) ro.observe(el.firstElementChild);
-    return () => ro.disconnect();
+    el.addEventListener('scroll', edges, { passive: true });
+    return () => { ro.disconnect(); el.removeEventListener('scroll', edges); };
   }, [tabs.length]);
   const at = Math.max(0, tabs.findIndex((x) => x.value === active));
   const step = (d: number): void => { const n = tabs[at + d]; if (n) setActiveSlot(n.value); };
@@ -177,7 +183,10 @@ function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number
         {overflow && <button className="btn ghost icon-only seg-arrow" title={t('nextSlot')} aria-label={t('nextSlot')} disabled={at === tabs.length - 1} onClick={() => step(1)}>{Ico.right}</button>}
         </>}
         <span className="grow" />
-        <Segmented tour="ic-mode" value={mode} onChange={setPreviewMode} options={[{ value: 'photo', label: t('previewPhoto') }, { value: 'swatch', label: t('previewSwatch') }]} />
+        {/* on a phone the looks need the width: the two views as icons */}
+        <Segmented tour="ic-mode" className={isAndroid ? 'seg-icons' : undefined} value={mode} onChange={setPreviewMode} options={isAndroid
+          ? [{ value: 'photo', label: Ico.image, title: t('previewPhoto') }, { value: 'swatch', label: Ico.swatch, title: t('previewSwatch') }]
+          : [{ value: 'photo', label: t('previewPhoto') }, { value: 'swatch', label: t('previewSwatch') }]} />
       </div>
       <div className="pane-body" style={{ '--below': below ? `${belowH + 10}px` : '0px' } as React.CSSProperties}>
         <div className="pane-fit" data-tour="ic-preview" data-tour-fit="">{mode === 'photo' ? <PhotoCompare params={params} /> : <Swatches params={params} />}</div>
