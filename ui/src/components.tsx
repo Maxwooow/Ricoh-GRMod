@@ -193,34 +193,64 @@ function scrollWithin(box: HTMLElement | null, el: Element | null | undefined): 
 }
 
 /**
- * Android: a sheet from the bottom over everything (outside the page, so nothing in the page clips or moves it).
- * It slides away on close, can be pulled down by its top, and closes with the back button. `children` gets the
- * closing function, so a choice can slide the sheet away before it acts.
+ * Android: a sheet over everything (outside the page, so nothing in the page clips or moves it), from the bottom
+ * or, with side "right", a panel from the right. The page behind is blurred. It slides away on close, can be pulled
+ * away (down, or to the right), and closes with the back button. `children` gets the closing function, so a choice
+ * can slide the sheet away before it acts.
  */
-export function MobileSheet({ label, onClose, children, className }: { label: string; onClose: () => void; children: (close: () => void) => ReactNode; className?: string }) {
+export function MobileSheet({ label, onClose, children, className, side = 'bottom' }: { label: string; onClose: () => void; children: (close: () => void) => ReactNode; className?: string; side?: 'bottom' | 'right' }) {
   const [closing, setClosing] = useState(false);
   const [pull, setPull] = useState(0);
   const [pulling, setPulling] = useState(false);
-  const drag = useRef<{ id: number; y0: number; t0: number } | null>(null);
+  const drag = useRef<{ id: number; x0: number; y0: number; t0: number; on: boolean | null } | null>(null);
   const done = useRef(false);
-  const close = (): void => { if (done.current) return; done.current = true; setClosing(true); window.setTimeout(onClose, 220); };
+  const right = side === 'right';
+  const close = (): void => { if (done.current) return; done.current = true; setClosing(true); window.setTimeout(onClose, right ? 260 : 220); };
   useBack(true, close);
-  const down = (e: React.PointerEvent<HTMLDivElement>): void => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { id: e.pointerId, y0: e.clientY, t0: e.timeStamp }; setPulling(true); };
-  const move = (e: React.PointerEvent<HTMLDivElement>): void => { const d = drag.current; if (d && d.id === e.pointerId) setPull(Math.max(0, e.clientY - d.y0)); };
-  const up = (e: React.PointerEvent<HTMLDivElement>): void => {
+  const down = (e: React.PointerEvent<HTMLElement>): void => {
+    if (drag.current) return;
+    drag.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: e.timeStamp, on: right ? null : true };
+    if (!right) { e.currentTarget.setPointerCapture(e.pointerId); setPulling(true); }
+  };
+  const move = (e: React.PointerEvent<HTMLElement>): void => {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    const dx = e.clientX - d.x0;
+    const dy = e.clientY - d.y0;
+    if (d.on === null) {
+      // the panel: a sideways pull to the right takes it; anything else is left to scrolling
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      d.on = dx > 0 && Math.abs(dx) > Math.abs(dy) * 1.2;
+      if (!d.on) { drag.current = null; return; }
+      e.currentTarget.setPointerCapture(e.pointerId);
+      setPulling(true);
+    }
+    setPull(Math.max(0, right ? dx : dy));
+  };
+  const up = (e: React.PointerEvent<HTMLElement>): void => {
     const d = drag.current;
     if (!d || d.id !== e.pointerId) return;
     drag.current = null;
+    if (!d.on) return;
     setPulling(false);
-    const dy = Math.max(0, e.clientY - d.y0);
-    if (dy > 90 || (dy / Math.max(1, e.timeStamp - d.t0) > 0.5 && dy > 24)) close(); else setPull(0);
+    const dist = Math.max(0, right ? e.clientX - d.x0 : e.clientY - d.y0);
+    if (dist > 90 || (dist / Math.max(1, e.timeStamp - d.t0) > 0.5 && dist > 24)) close(); else setPull(0);
   };
+  const pullStyle = pull && !closing ? { transform: right ? `translateX(${pull}px)` : `translateY(${pull}px)` } : undefined;
   return createPortal(
-    <div className={`overlay m-sheet-wrap ${closing ? 'closing' : ''}`} onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
-      <div className={`m-sheet ${className || ''} ${pulling ? 'pulling' : ''}`} role="dialog" aria-modal="true" aria-label={label} style={pull && !closing ? { transform: `translateY(${pull}px)` } : undefined}>
-        <div className="m-sheet-grip" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}><i /></div>
-        {children(close)}
-      </div>
+    <div className={`overlay m-sheet-wrap ${right ? 'm-drawer-wrap' : ''} ${closing ? 'closing' : ''}`} onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
+      {right ? (
+        <div className={`m-drawer ${className || ''} ${pulling ? 'pulling' : ''}`} role="dialog" aria-modal="true" aria-label={label} style={pullStyle}
+          onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
+          <div className="m-drawer-head"><b>{label}</b><button type="button" className="btn ghost icon-only" aria-label={t('pushClose')} onClick={close}>{Ico.x}</button></div>
+          {children(close)}
+        </div>
+      ) : (
+        <div className={`m-sheet ${className || ''} ${pulling ? 'pulling' : ''}`} role="dialog" aria-modal="true" aria-label={label} style={pullStyle}>
+          <div className="m-sheet-grip" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}><i /></div>
+          {children(close)}
+        </div>
+      )}
     </div>,
     document.querySelector('.app') ?? document.body,
   );

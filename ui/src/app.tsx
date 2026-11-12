@@ -187,7 +187,7 @@ function MobileSettings({ onClose }: { onClose: () => void }) {
   const model = useStore((s) => s.model);
   const lang = useStore((s) => s.lang);
   return (
-    <MobileSheet label={t('mSettings')} onClose={onClose}>
+    <MobileSheet label={t('mSettings')} onClose={onClose} side="right">
       {(close) => (
         <>
           <div className="side-props m-props">
@@ -232,9 +232,12 @@ function MobileActions() {
 type TabPage = 'ic' | 'ratio' | 'wall';
 
 /**
- * The page tabs: a floating bar of glass with a lens over the current tab. Pressing the bar swells the lens;
- * it can be dragged along the bar and lands on the nearest tab, or a tap sends it to the tab tapped
- * (as Kyant0/AndroidLiquidGlass's bottom tabs).
+ * The page tabs: a floating bar of glass with a lens over the current tab (after Kyant0/AndroidLiquidGlass).
+ * - The bar and the lens bend what is behind them at their rims (glass.tsx).
+ * - Under the lens a second copy of the tabs, all in the selected colour, is shown inside the lens's outline,
+ *   and the lens magnifies and bends that: where it passes over a tab, the tab turns blue and swells.
+ * - Pressing swells the lens and strengthens its rim, light and inner shade; it can be dragged along the bar and
+ *   lands on the nearest tab; a tap sends it to the tab tapped. It moves on a spring and stretches with its speed.
  */
 function MobileTabs() {
   const page = useStore((s) => s.page);
@@ -248,29 +251,78 @@ function MobileTabs() {
   ];
   const current = Math.max(0, tabs.findIndex((x) => x.p === page || (x.p === 'ic' && page === 'copies')));
   const bar = useRef<HTMLElement>(null);
+  const lens = useRef<HTMLSpanElement>(null);
+  const hotLayer = useRef<HTMLDivElement>(null);
   const { w, h } = useSize(bar);
   const pad = 4;
   const cell = tabs.length ? (w - pad * 2) / tabs.length : 0;
   const lensW = cell;
   const lensH = Math.max(0, h - pad * 2);
-  // where the lens is while a finger holds it (its centre, px from the bar's left), and whether it is held
-  const [held, setHeld] = useState<{ x: number; moved: boolean } | null>(null);
-  const press = useRef<{ id: number; x0: number; c0: number; moved: boolean; over: number } | null>(null);
   const centreOf = (i: number): number => pad + cell * (i + 0.5);
   const clampC = (c: number): number => Math.max(pad + lensW / 2, Math.min(w - pad - lensW / 2, c));
   const nearest = (c: number): number => Math.max(0, Math.min(tabs.length - 1, Math.floor((c - pad) / (cell || 1))));
-  const centre = held ? held.x : centreOf(current);
-  const hot = held ? nearest(centre) : current;
+  const [held, setHeld] = useState(false);
+  const press = useRef<{ id: number; x0: number; c0: number; moved: boolean; over: number } | null>(null);
+
+  // the lens's motion: springs for its place and for how far it is pressed; drawn straight into the elements
+  const m = useRef({ x: -1, v: 0, to: 0, p: 0, pv: 0, pTo: 0, stiff: 380, raf: 0, t: 0 });
+  const draw = (): void => {
+    const s = m.current;
+    const el = lens.current;
+    const hot = hotLayer.current;
+    if (!el || !hot || !lensW) return;
+    const stretch = Math.min(0.32, Math.abs(s.v) / 2600);
+    const sx = (1 + 0.24 * s.p) * (1 + stretch);
+    const sy = (1 + 0.32 * s.p) * (1 - stretch * 0.4);
+    el.style.translate = `${s.x - lensW / 2}px ${pad}px`;
+    el.style.scale = `${sx} ${sy}`;
+    const half = (lensW * sx) / 2;
+    const vy = Math.max(0, pad - (lensH * (sy - 1)) / 2);
+    hot.style.clipPath = `inset(${vy}px ${Math.max(0, w - (s.x + half))}px ${vy}px ${Math.max(0, s.x - half)}px round ${(lensH * sy) / 2}px)`;
+  };
+  const tick = (now: number): void => {
+    const s = m.current;
+    const dt = Math.min(0.032, Math.max(0.001, (now - (s.t || now)) / 1000 || 0.016));
+    s.t = now;
+    // underdamped springs: a little overshoot, then still
+    const k = s.stiff;
+    const c = 2 * Math.sqrt(k) * 0.62;
+    s.v += (k * (s.to - s.x) - c * s.v) * dt;
+    s.x += s.v * dt;
+    const kp = 520;
+    s.pv += (kp * (s.pTo - s.p) - 2 * Math.sqrt(kp) * 0.55 * s.pv) * dt;
+    s.p += s.pv * dt;
+    draw();
+    const still = Math.abs(s.to - s.x) < 0.3 && Math.abs(s.v) < 4 && Math.abs(s.pTo - s.p) < 0.004 && Math.abs(s.pv) < 0.02;
+    if (still) { s.x = s.to; s.v = 0; s.p = s.pTo; s.pv = 0; s.raf = 0; s.t = 0; draw(); return; }
+    s.raf = requestAnimationFrame(tick);
+  };
+  const go = (to: number, opts: { press?: number; stiff?: number } = {}): void => {
+    const s = m.current;
+    s.to = to;
+    if (opts.press !== undefined) s.pTo = opts.press;
+    s.stiff = opts.stiff ?? 380;
+    if (!s.raf) { s.t = 0; s.raf = requestAnimationFrame(tick); }
+  };
+  // follow the page (and the bar's size); the first time, no animation
+  useLayoutEffect(() => {
+    if (!cell) return;
+    const s = m.current;
+    if (s.x < 0) { s.x = s.to = centreOf(current); draw(); return; }
+    if (!press.current) go(centreOf(current));
+  }, [current, cell, w]); // eslint-disable-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => () => cancelAnimationFrame(m.current.raf), []);
 
   const down = (e: React.PointerEvent<HTMLElement>): void => {
     if (press.current || !cell) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    // pressed on another tab: the lens, swollen, glides there at once; on its own tab it swells where it is
+    // pressed on another tab: the lens, swelling, glides there at once; on its own tab it swells where it is
     const at = nearest(e.clientX - bar.current!.getBoundingClientRect().left);
     const c0 = centreOf(at);
     if (at !== current) haptic();
     press.current = { id: e.pointerId, x0: e.clientX, c0, moved: false, over: at };
-    setHeld({ x: c0, moved: false });
+    setHeld(true);
+    go(c0, { press: 1 });
   };
   const move = (e: React.PointerEvent<HTMLElement>): void => {
     const p = press.current;
@@ -281,34 +333,36 @@ function MobileTabs() {
     const c = clampC(p.c0 + dx);
     const over = nearest(c);
     if (over !== p.over) { p.over = over; haptic(); }
-    setHeld({ x: c, moved: true });
+    go(c, { press: 1, stiff: 900 });
   };
   const up = (e: React.PointerEvent<HTMLElement>): void => {
     const p = press.current;
     if (!p || p.id !== e.pointerId) return;
     press.current = null;
     const target = e.type === 'pointercancel' ? current : p.over;
-    setHeld(null);
+    setHeld(false);
+    go(centreOf(target), { press: 0 });
     if (target !== current) setPage(tabs[target].p);
   };
 
+  const row = (hot: boolean): React.ReactNode => tabs.map((x, i) => (
+    <button
+      key={x.p} type="button" tabIndex={hot ? -1 : 0} aria-hidden={hot || undefined} className={`m-tab ${hot ? 'on' : ''}`}
+      aria-current={!hot && i === current ? 'page' : undefined} onClick={hot ? undefined : (e) => { if (e.detail === 0) setPage(x.p); }}
+    >{x.icon}<span>{t(x.key)}</span></button>
+  ));
   return (
     <div className="m-dock">
       <GlassDefs>
         <GlassFilter id="lg-bar" w={w} h={h} r={h / 2} rim={18} strength={10} />
-        <GlassFilter id="lg-lens" w={lensW} h={lensH} r={lensH / 2} rim={16} strength={14} zoom={0.18} />
+        <GlassFilter id="lg-lens" w={lensW} h={lensH} r={lensH / 2} rim={16} strength={12} zoom={0.16} />
+        <GlassFilter id="lg-lens-held" w={lensW} h={lensH} r={lensH / 2} rim={20} strength={22} zoom={0.24} />
       </GlassDefs>
       <nav className="m-tabs glass" ref={bar} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} onContextMenu={(e) => e.preventDefault()}>
-        {tabs.map((x, i) => (
-          <button key={x.p} type="button" className={`m-tab ${i === hot ? 'on' : ''}`} aria-current={i === current ? 'page' : undefined} onClick={(e) => { if (e.detail === 0) setPage(x.p); }}>{x.icon}<span>{t(x.key)}</span></button>
-        ))}
+        {row(false)}
+        <div className="m-tabs-hot" ref={hotLayer} aria-hidden>{row(true)}</div>
       </nav>
-      {cell > 0 && (
-        <span
-          className={`m-lens ${held ? 'held' : ''} ${held?.moved ? 'dragging' : ''}`} aria-hidden
-          style={{ width: lensW, height: lensH, translate: `${centre - lensW / 2}px ${pad}px` }}
-        />
-      )}
+      {cell > 0 && <span className={`m-lens ${held ? 'held' : ''}`} ref={lens} aria-hidden style={{ width: lensW, height: lensH }} />}
     </div>
   );
 }

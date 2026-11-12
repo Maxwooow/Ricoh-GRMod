@@ -107,9 +107,15 @@ function Compare({ photo, after, label }: { photo: ImageData | null; after: Imag
   return (
     <div
       ref={boxRef} className={`compare ${after ? '' : 'plain'}`} style={{ '--ar': String(photo.width / photo.height) } as React.CSSProperties}
-      onPointerDown={(e) => { if (!after || (e.target as HTMLElement).closest('button')) return; e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); dragging.current = true; at(e.clientX); }}
+      onPointerDown={(e) => {
+        if (!after || (e.target as HTMLElement).closest('button')) return;
+        // on a phone only the divider is dragged; the rest of the picture scrolls the page (a tap moves the divider)
+        if (isAndroid && !(e.target as HTMLElement).closest('.compare-line')) return;
+        e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); dragging.current = true; if (!isAndroid) at(e.clientX);
+      }}
       onPointerMove={(e) => { if (dragging.current) at(e.clientX); }}
       onPointerUp={() => { dragging.current = false; }} onPointerCancel={() => { dragging.current = false; }}
+      onClick={isAndroid ? (e) => { if (after && !(e.target as HTMLElement).closest('.compare-line, button')) { boxRef.current?.classList.add('glide'); at(e.clientX); window.setTimeout(() => boxRef.current?.classList.remove('glide'), 320); } } : undefined}
       onDoubleClick={() => setPos(0.5)}
     >
       {after && <canvas ref={afterRef} className="compare-img" />}
@@ -746,13 +752,13 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
       {previewOk && <FeatureRow icon={Ico.preview} title={t('navPreview')} sub={t('previewSub')} on={preview} onChange={setExposurePreview} />}
       {adjMax > 5 && <AdjSlotsRow max={adjMax} />}
       {brightAutoOk && !isAndroid && <div className="soft-switch"><Select value={brightAuto || 'off'} options={[{ value: 'off', label: t('brightAutoOff') }, { value: 'balanced', label: t('brightAutoBalanced') }, { value: 'bright', label: t('brightAutoBright') }]} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')} label={t('navBrightAuto')} variant="row" /></div>}
-      {/* on a phone: a row like the others, the choice on the right without the repeated "Auto brightness ·" */}
+      {/* on a phone: a row like the others, the three levels side by side (as the ADJ items) */}
       {brightAutoOk && isAndroid && (
-        <div className={`soft-switch ${brightAuto ? 'on' : ''}`}>
+        <div className={`soft-switch bright-row ${brightAuto ? 'on' : ''}`}>
           <span className="page-icon soft-ico">{Ico.bright}</span>
           <div className="soft-text"><b>{t('navBrightAuto')}</b></div>
-          <Select
-            variant="box" value={brightAuto || 'off'} label={t('navBrightAuto')} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')}
+          <Segmented
+            value={brightAuto || 'off'} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')}
             options={([['off', 'brightAutoOff'], ['balanced', 'brightAutoBalanced'], ['bright', 'brightAutoBright']] as const).map(([value, key]) => ({ value, label: t(key).split(' · ').pop()! }))}
           />
         </div>
