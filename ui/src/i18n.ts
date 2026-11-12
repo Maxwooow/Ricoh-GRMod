@@ -157,7 +157,7 @@ const zh = {
   pushStart: '开始推送', pushStop: '停止', pushClose: '关闭', pushShareLog: '发送日志', pushDetails: '日志', pushPreparing: '准备文件…',
   pushOnlyGr4: '无线推送只支持 GR IV 系列。GR III / IIIx 请保存到手机，再用读卡器写入存储卡。',
   pushVpn: '手机正在用 VPN：推送前请先关掉，或在 VPN 设置里让 GR Mod 不走 VPN。', pushPerm: '需要蓝牙和附近设备权限才能找到相机',
-  pushBtOff: '手机蓝牙没有打开', mSettings: '设置', saveTitle: '保存到手机', saveStart: '保存', mWhatsNew: '更新内容', mCrashed: '界面出错了，请把下面的内容截图发给开发者', mReload: '重新加载',
+  pushBtOff: '手机蓝牙没有打开', mSettings: '设置', saveTitle: '保存到手机', rename: '改名', saveStart: '保存', mWhatsNew: '更新内容', mCrashed: '界面出错了，请把下面的内容截图发给开发者', mReload: '重新加载',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -318,7 +318,7 @@ const en: typeof zh = {
   pushStart: 'Send', pushStop: 'Stop', pushClose: 'Close', pushShareLog: 'Send log', pushDetails: 'Log', pushPreparing: 'Preparing the file…',
   pushOnlyGr4: 'Only the GR IV family takes firmware over Wi-Fi. For a GR III / IIIx, save it to the phone and copy it to a card.',
   pushVpn: 'A VPN is on: switch it off, or let GR Mod bypass it, before sending.', pushPerm: 'Bluetooth and nearby-devices permissions are needed to find the camera',
-  pushBtOff: 'Bluetooth is off', mSettings: 'Settings', saveTitle: 'Save to phone', saveStart: 'Save', mWhatsNew: 'What\'s new', mCrashed: 'Something went wrong in the interface. Please send a screenshot of this to the developer.', mReload: 'Reload',
+  pushBtOff: 'Bluetooth is off', mSettings: 'Settings', saveTitle: 'Save to phone', rename: 'Rename', saveStart: 'Save', mWhatsNew: 'What\'s new', mCrashed: 'Something went wrong in the interface. Please send a screenshot of this to the developer.', mReload: 'Reload',
 };
 export type Key = keyof typeof zh;
 const dict = (navigator.language || 'zh').toLowerCase().startsWith('zh') ? zh : en;

@@ -233,7 +233,7 @@ function SlotCard({ id }: { id: SlotId }) {
         <div className="card-head">
           <IconCanvas pixels={slot.icon.mode !== 'keep' && slot.icon.pixels ? slot.icon.pixels : off.icon} />
           <div className="card-title" data-tour={first ? 'ic-name' : undefined}>
-            <input className={`title-input ${problem ? 'bad' : ''}`} value={name} placeholder={off.names[lang].text} spellCheck={false} aria-label={t('name')} onChange={(e) => setName(id, lang, e.target.value)} />
+            <NameInput className={`title-input ${problem ? 'bad' : ''}`} value={name} placeholder={off.names[lang].text} onChange={(v) => setName(id, lang, v)} />
             <div className="sub">
               <span className="ellipsis">{gr3x ? off.defaultName : t(('slot' + id) as Key)}</span>
               <span className={`count ${problem ? 'bad' : ''}`}>{problem || `${name.length || off.names[lang].text.length}/${cap}`}</span>
@@ -585,6 +585,33 @@ function LookOrderView() {
 }
 
 /**
+ * A look's name. On the desktop a field that is always editable; on a phone the name is plain text and a pencil
+ * beside it opens it for editing (a touch near the name while scrolling must not bring up the keyboard).
+ */
+function NameInput({ className, value, placeholder, maxLength, onChange }: { className: string; value: string; placeholder: string; maxLength?: number; onChange: (v: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+  const field = (
+    <input
+      ref={ref} className={className} value={value} placeholder={placeholder} maxLength={maxLength} spellCheck={false} aria-label={t('name')}
+      readOnly={isAndroid && !editing} tabIndex={isAndroid && !editing ? -1 : undefined} enterKeyHint="done"
+      onChange={(e) => onChange(e.target.value)} onBlur={() => setEditing(false)} onKeyDown={(e) => { if (isAndroid && e.key === 'Enter') e.currentTarget.blur(); }}
+    />
+  );
+  if (!isAndroid) return field;
+  const edit = (): void => {
+    setEditing(true);
+    requestAnimationFrame(() => { const el = ref.current; if (el) { el.focus(); const n = el.value.length; el.setSelectionRange(n, n); } });
+  };
+  return (
+    <div className={`name-edit ${editing ? 'on' : ''}`}>
+      {field}
+      <button type="button" className="btn ghost icon-only name-pen" aria-label={t('rename')} onPointerDown={(e) => { if (editing) e.preventDefault(); }} onClick={() => (editing ? ref.current?.blur() : edit())}>{editing ? Ico.check : Ico.pen}</button>
+    </div>
+  );
+}
+
+/**
  * Makes a card the current one when it is used. On the desktop as soon as it is pressed; on a phone only on a
  * tap or when one of its fields takes the focus, so that scrolling the page over the cards does not pick one.
  */
@@ -607,7 +634,7 @@ function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
         <div className="card-head">
           <IconCanvas pixels={x.icon.pixels ?? tile} />
           <div className="card-title">
-            <input className={`title-input ${nameBad ? 'bad' : ''}`} value={x.name} placeholder={name} maxLength={40} spellCheck={false} aria-label={t('name')} onChange={(e) => setExtraName(k, e.target.value)} />
+            <NameInput className={`title-input ${nameBad ? 'bad' : ''}`} value={x.name} placeholder={name} maxLength={40} onChange={(v) => setExtraName(k, v)} />
             <div className="sub">
               <span className="ellipsis">{t('extraSlot', { n: index + 1 })}</span>
               <span className={`count ${nameBad ? 'bad' : ''}`}>{nameBad || `${name.length}/${EXTRA_NAME_MAX}`}</span>

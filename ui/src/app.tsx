@@ -212,6 +212,28 @@ function MobileSettings({ onClose }: { onClose: () => void }) {
   );
 }
 
+/**
+ * Press feedback that is seen even on a quick tap: the button swells and lights up while held, for at least a
+ * moment, and springs back (the action itself is not delayed).
+ */
+function usePressed(): { pressed: boolean; bind: React.HTMLAttributes<HTMLButtonElement> } {
+  const [pressed, setPressed] = useState(false);
+  const since = useRef(0);
+  const timer = useRef(0);
+  const release = (): void => {
+    const left = 180 - (performance.now() - since.current);
+    window.clearTimeout(timer.current);
+    if (left > 0) timer.current = window.setTimeout(() => setPressed(false), left); else setPressed(false);
+  };
+  return {
+    pressed,
+    bind: {
+      onPointerDown: () => { window.clearTimeout(timer.current); since.current = performance.now(); setPressed(true); },
+      onPointerUp: release, onPointerCancel: release, onPointerLeave: release,
+    },
+  };
+}
+
 function MobileActions() {
   const s = useStore((x) => x);
   const can = canOutput(s);
@@ -219,12 +241,14 @@ function MobileActions() {
   const gr4 = s.info?.family === 'gr4';
   const glass = useGlass('lg-save', { rim: 14, strength: 9, radius: 24 });
   const glass2 = useGlass('lg-send', { rim: 14, strength: 9, radius: 24 });
-  const run = (kind: 'camera' | 'phone'): void => { if (bridge) { askForOfficial(); return; } void outputFirmware({ kind }); };
+  const p1 = usePressed();
+  const p2 = usePressed();
+  const run = (kind: 'camera' | 'phone'): void => { haptic(); if (bridge) { askForOfficial(); return; } void outputFirmware({ kind }); };
   return (
     <div className="m-actions">
       <GlassDefs>{glass.filter}{glass2.filter}</GlassDefs>
-      <button ref={glass.ref} className="btn glass" disabled={!can && !bridge} onClick={() => run('phone')}>{Ico.save}<span>{t('saveToPhone')}</span></button>
-      <button ref={glass2.ref} className="btn glass tint" disabled={(!can && !bridge) || (!!s.info && !gr4)} title={s.info && !gr4 ? t('pushOnlyGr4') : undefined} onClick={() => run('camera')}>{Ico.send}<span>{t('pushCamera')}</span></button>
+      <button ref={glass.ref} className={`btn glass ${p1.pressed ? 'pressed' : ''}`} disabled={!can && !bridge} {...p1.bind} onClick={() => run('phone')}>{Ico.save}<span>{t('saveToPhone')}</span></button>
+      <button ref={glass2.ref} className={`btn glass tint ${p2.pressed ? 'pressed' : ''}`} disabled={(!can && !bridge) || (!!s.info && !gr4)} title={s.info && !gr4 ? t('pushOnlyGr4') : undefined} {...p2.bind} onClick={() => run('camera')}>{Ico.send}<span>{t('pushCamera')}</span></button>
     </div>
   );
 }
@@ -374,6 +398,16 @@ function MobileApp() {
   const fwOpen = useStore((s) => !!s.info);
   const ready = useStore((s) => s.ready);
   const [settings, setSettings] = useState(false);
+  // while the keyboard is up (a field being typed in) the floating buttons and tabs step aside
+  const [typing, setTyping] = useState(false);
+  useLayoutEffect(() => {
+    const field = (el: EventTarget | null): boolean => el instanceof HTMLElement && el.matches('input:not([readonly]):not([type=file]):not([type=checkbox]), textarea');
+    const on = (e: FocusEvent): void => { if (field(e.target)) setTyping(true); };
+    const off = (): void => { window.setTimeout(() => setTyping(field(document.activeElement)), 50); };
+    document.addEventListener('focusin', on);
+    document.addEventListener('focusout', off);
+    return () => { document.removeEventListener('focusin', on); document.removeEventListener('focusout', off); };
+  }, []);
   // back on another page goes to the first; on the first, the app goes to the background
   useLayoutEffect(() => { setBackFallback(() => { if (getState().page === 'ic') return false; setPage('ic'); return true; }); }, []);
   // Switching pages: each page keeps where it was scrolled to, and the new one slides in from the side of its tab.
@@ -394,7 +428,7 @@ function MobileApp() {
     }
   }, [page]);
   return (
-    <div className="app mobile">
+    <div className={`app mobile ${typing ? 'typing' : ''}`}>
       <MobileTop onSettings={() => setSettings(true)} />
       <main className="main">
         <BridgeBanner />
