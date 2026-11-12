@@ -7,7 +7,7 @@ import type { DirEntry, FirmwareRelease, HostInfo, ParkedEntry, ParkedFailure, R
 interface PluginListener { remove: () => Promise<void> }
 export interface GrCameraPlugin {
   [method: string]: ((args?: Record<string, unknown>) => Promise<any>) | any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  addListener(event: string, f: (data: any) => void): Promise<PluginListener>; // eslint-disable-line @typescript-eslint/no-explicit-any
+  addListener(event: string, f: (data: any) => void): Promise<PluginListener> | PluginListener; // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 interface CapacitorGlobal {
   isNativePlatform?: () => boolean;
@@ -38,6 +38,17 @@ const fromPlugin = (e: unknown, fallback = 'io'): Error => {
   const x = e as { code?: string; message?: string };
   return err(x && typeof x.code === 'string' && x.code ? x.code : fallback, String(x?.message ?? e));
 };
+
+/**
+ * Listens to an event of the app; returns the function that stops listening. The app's addListener gives a
+ * promise of the handle in some Capacitor builds and the handle itself in others (calling .then on the handle
+ * broke the page when the push dialog closed), so both are taken.
+ */
+export function listen(event: string, f: (data: any) => void): () => void { // eslint-disable-line @typescript-eslint/no-explicit-any
+  let handle: unknown;
+  try { handle = Gr.addListener(event, f); } catch { return () => { /* none */ }; }
+  return () => { Promise.resolve(handle).then((h) => (h as PluginListener | undefined)?.remove?.()).catch(() => { /* gone */ }); };
+}
 
 /** Reads a file of the app's own storage through the WebView's file server (no base64 on the way). */
 export async function readAppFile(path: string): Promise<Uint8Array> {

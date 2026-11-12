@@ -2,7 +2,7 @@
 // Bluetooth turns the camera's Wi-Fi on, the file goes up in one PUT, then "start update" goes over Bluetooth.
 import { useEffect, useRef, useState } from 'react';
 import { Ico } from './components';
-import { Gr, upload, useBack } from './host-android';
+import { Gr, listen, upload, useBack } from './host-android';
 import { t } from './i18n';
 import { closePush, fmtSize, useStore } from './store';
 
@@ -55,15 +55,15 @@ function Dialog() {
   };
 
   useEffect(() => {
-    const subs = [
-      Gr.addListener('found', (d: Cam) => add(d)),
-      Gr.addListener('log', (l: Line) => setLines((x) => [...x.slice(-1500), l])),
-      Gr.addListener('stage', (s: { id: string; text: string }) => setStage(s)),
-      Gr.addListener('progress', (p: { sent: number; total: number }) => setProgress(p)),
-      Gr.addListener('finished', (r: { ok: boolean; log?: string }) => { setResult(r); setPhase('done'); }),
+    const stops = [
+      listen('found', (d: Cam) => add(d)),
+      listen('log', (l: Line) => setLines((x) => [...x.slice(-1500), l])),
+      listen('stage', (s: { id: string; text: string }) => setStage(s)),
+      listen('progress', (p: { sent: number; total: number }) => setProgress(p)),
+      listen('finished', (r: { ok: boolean; log?: string }) => { setResult(r); setPhase('done'); }),
     ];
     void scan();
-    return () => { for (const s of subs) void s.then((h) => h.remove()); };
+    return () => { for (const stop of stops) stop(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { const el = logRef.current; if (el) el.scrollTop = el.scrollHeight; }, [lines, showLog]);
