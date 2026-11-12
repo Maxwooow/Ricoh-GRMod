@@ -1,11 +1,12 @@
 import { LANGS } from '@grmod/core';
 import type { CameraModel, LangCode } from '@grmod/core';
-import { useLayoutEffect, useRef, useState } from 'react';
+import { Component, useLayoutEffect, useRef, useState } from 'react';
+import type { ErrorInfo } from 'react';
 import { GlassDefs, GlassFilter, useGlass, useSize } from './glass';
-import { Busy, ConfirmDialog, Hint, Ico, Select, Toasts, useDismiss } from './components';
+import { Busy, ConfirmDialog, Hint, Ico, MobileSheet, Select, Toasts, useDismiss } from './components';
 import { host, isAndroid } from './host';
 import { PushDialog } from './camera';
-import { haptic } from './host-android';
+import { haptic, setBackFallback } from './host-android';
 import { LANG_LABEL, t } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
@@ -14,7 +15,7 @@ import { CropEditor, ImageControlPage, RatioPage, WallpaperPage } from './pages'
 import { Tour, replayTour, restartTours } from './tour';
 import { UpdatePill, UpdateWatcher, checkForUpdate, openWhatsNew } from './updates';
 import {
-  askForOfficial, bridgeLoaded, isGr3, backupCopies, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
+  askForOfficial, bridgeLoaded, getState, isGr3, backupCopies, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setLang, setModel, setPage, setShowAll, useStore, wallReady,
 } from './store';
 import type { State } from './store';
 
@@ -142,7 +143,7 @@ export function App() {
   const fwOpen = useStore((s) => !!s.info);
   const ready = useStore((s) => s.ready);
   if (!host.available) return <div className="nohost">{t('hostMissing')}</div>;
-  if (isAndroid) return <MobileApp />;
+  if (isAndroid) return <Crashed><MobileApp /></Crashed>;
   return (
     <div className="app" onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }} onDrop={(e) => e.preventDefault()}>
       <Sidebar />
@@ -185,43 +186,29 @@ function MobileTop({ onSettings }: { onSettings: () => void }) {
 function MobileSettings({ onClose }: { onClose: () => void }) {
   const model = useStore((s) => s.model);
   const lang = useStore((s) => s.lang);
-  // closing slides the sheet away first; it can also be pulled down by its top
-  const [closing, setClosing] = useState(false);
-  const [pull, setPull] = useState(0);
-  const drag = useRef<{ id: number; y0: number; t0: number } | null>(null);
-  const close = (): void => { if (closing) return; setClosing(true); window.setTimeout(onClose, 220); };
-  const down = (e: React.PointerEvent<HTMLDivElement>): void => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { id: e.pointerId, y0: e.clientY, t0: e.timeStamp }; };
-  const move = (e: React.PointerEvent<HTMLDivElement>): void => { const d = drag.current; if (d && d.id === e.pointerId) setPull(Math.max(0, e.clientY - d.y0)); };
-  const up = (e: React.PointerEvent<HTMLDivElement>): void => {
-    const d = drag.current;
-    if (!d || d.id !== e.pointerId) return;
-    drag.current = null;
-    const dy = Math.max(0, e.clientY - d.y0);
-    const fast = dy / Math.max(1, e.timeStamp - d.t0) > 0.5;
-    if (dy > 90 || (fast && dy > 24)) close(); else setPull(0);
-  };
   return (
-    <div className={`overlay m-sheet-wrap ${closing ? 'closing' : ''}`} onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
-      <div className={`m-sheet ${drag.current ? 'pulling' : ''}`} role="dialog" aria-modal="true" aria-label={t('mSettings')} style={pull && !closing ? { transform: `translateY(${pull}px)` } : undefined}>
-        <div className="m-sheet-grip" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}><i /></div>
-        <div className="side-props m-props">
-          <FirmwareRow />
-          <Select<CameraModel>
-            variant="row" label={t('model')} lead={<span className="side-label">{t('model')}</span>} value={model} onChange={setModel}
-            options={MODELS.map((m) => ({ value: m, label: modelLabel(m) }))}
-          />
-          <Select<LangCode>
-            variant="row" label={t('language')} lead={<span className="side-label">{t('language')}</span>} value={lang} onChange={setLang}
-            options={LANGS.map((l) => ({ value: l, label: LANG_LABEL[l] || l }))}
-          />
-        </div>
-        <div className="m-sheet-foot">
-          <button type="button" className="about-link" onClick={() => { onClose(); openWhatsNew(); }}>GR Mod v{host.info?.version || ''} · {t('mWhatsNew')}</button>
-          <span className="grow" />
-          <button type="button" className="btn" onClick={close}>{t('pushClose')}</button>
-        </div>
-      </div>
-    </div>
+    <MobileSheet label={t('mSettings')} onClose={onClose}>
+      {(close) => (
+        <>
+          <div className="side-props m-props">
+            <FirmwareRow />
+            <Select<CameraModel>
+              variant="row" label={t('model')} lead={<span className="side-label">{t('model')}</span>} value={model} onChange={setModel}
+              options={MODELS.map((m) => ({ value: m, label: modelLabel(m) }))}
+            />
+            <Select<LangCode>
+              variant="row" label={t('language')} lead={<span className="side-label">{t('language')}</span>} value={lang} onChange={setLang}
+              options={LANGS.map((l) => ({ value: l, label: LANG_LABEL[l] || l }))}
+            />
+          </div>
+          <div className="m-sheet-foot">
+            <button type="button" className="about-link" onClick={() => { close(); window.setTimeout(openWhatsNew, 200); }}>GR Mod v{host.info?.version || ''} · {t('mWhatsNew')}</button>
+            <span className="grow" />
+            <button type="button" className="btn" onClick={close}>{t('pushClose')}</button>
+          </div>
+        </>
+      )}
+    </MobileSheet>
   );
 }
 
@@ -231,12 +218,13 @@ function MobileActions() {
   const bridge = bridgeLoaded(s) && !s.busy;
   const gr4 = s.info?.family === 'gr4';
   const glass = useGlass('lg-save', { rim: 14, strength: 9, radius: 24 });
+  const glass2 = useGlass('lg-send', { rim: 14, strength: 9, radius: 24 });
   const run = (kind: 'camera' | 'phone'): void => { if (bridge) { askForOfficial(); return; } void outputFirmware({ kind }); };
   return (
     <div className="m-actions">
-      <GlassDefs>{glass.filter}</GlassDefs>
+      <GlassDefs>{glass.filter}{glass2.filter}</GlassDefs>
       <button ref={glass.ref} className="btn glass" disabled={!can && !bridge} onClick={() => run('phone')}>{Ico.save}<span>{t('saveToPhone')}</span></button>
-      <button className="btn primary" disabled={(!can && !bridge) || (!!s.info && !gr4)} title={s.info && !gr4 ? t('pushOnlyGr4') : undefined} onClick={() => run('camera')}>{Ico.send}<span>{t('pushCamera')}</span></button>
+      <button ref={glass2.ref} className="btn glass tint" disabled={(!can && !bridge) || (!!s.info && !gr4)} title={s.info && !gr4 ? t('pushOnlyGr4') : undefined} onClick={() => run('camera')}>{Ico.send}<span>{t('pushCamera')}</span></button>
     </div>
   );
 }
@@ -332,6 +320,8 @@ function MobileApp() {
   const fwOpen = useStore((s) => !!s.info);
   const ready = useStore((s) => s.ready);
   const [settings, setSettings] = useState(false);
+  // back on another page goes to the first; on the first, the app goes to the background
+  useLayoutEffect(() => { setBackFallback(() => { if (getState().page === 'ic') return false; setPage('ic'); return true; }); }, []);
   // Switching pages: each page keeps where it was scrolled to, and the new one slides in from the side of its tab.
   const stage = useRef<HTMLDivElement>(null);
   const scrolls = useRef<Record<string, number>>({});
@@ -369,4 +359,22 @@ function MobileApp() {
       <Toasts />
     </div>
   );
+}
+
+/** Android: if the interface fails, say so (with what failed) and offer to start it again, instead of an empty page. */
+class Crashed extends Component<{ children: React.ReactNode }, { error?: Error }> {
+  state: { error?: Error } = {};
+  static getDerivedStateFromError(error: Error): { error: Error } { return { error }; }
+  componentDidCatch(error: Error, info: ErrorInfo): void { console.error('GR Mod UI failed', error, info.componentStack); }
+  render(): React.ReactNode {
+    const e = this.state.error;
+    if (!e) return this.props.children;
+    return (
+      <div className="m-crash">
+        <b>{t('mCrashed')}</b>
+        <pre>{`${e.name}: ${e.message}\n${(e.stack || '').split('\n').slice(0, 8).join('\n')}`}</pre>
+        <button type="button" className="btn primary" onClick={() => location.reload()}>{t('mReload')}</button>
+      </div>
+    );
+  }
 }

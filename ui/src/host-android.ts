@@ -1,6 +1,7 @@
 // The Android app (mobile/): the same interface as the desktop shell's API (host.ts), provided by the app's
 // native GrCamera plugin through Capacitor. There is no memory card here: firmware goes to the camera over
 // Wi-Fi (camera.ts) or into the phone's Downloads folder.
+import { useEffect, useRef } from 'react';
 import type { DirEntry, FirmwareRelease, HostInfo, ParkedEntry, ParkedFailure, ReleaseNote, UpdateInfo, UpdateState, Volume } from './host';
 
 interface PluginListener { remove: () => Promise<void> }
@@ -148,3 +149,34 @@ export const androidHost = {
 export function haptic(kind: 'tick' | 'confirm' = 'tick'): void { if (isAndroid) Promise.resolve().then(() => Gr.haptic({ kind })).catch(() => { /* none */ }); }
 
 export async function openUrl(url: string): Promise<void> { try { await Gr.openUrl({ url }); } catch { /* no browser */ } }
+
+// ---- the system back button / gesture (MainActivity hands it over as the "back" event)
+// Whatever is open on top (a sheet, a dialog) takes it first, through useBack; dialogs that close on Escape get an
+// Escape; then the other pages go back to the first; on the first page the app goes to the background
+// (as Home: nothing is lost). The WebView itself never goes "back" (that left an empty page).
+const backs: { run: () => void }[] = [];
+let fallback: () => boolean = () => false;
+/** While `active`, the back button runs `fn` (the latest one opened wins). */
+export function useBack(active: boolean, fn: () => void): void {
+  const ref = useRef(fn);
+  ref.current = fn;
+  useEffect(() => {
+    if (!active) return;
+    const entry = { run: () => ref.current() };
+    backs.push(entry);
+    return () => { const i = backs.indexOf(entry); if (i >= 0) backs.splice(i, 1); };
+  }, [active]);
+}
+/** What back does when nothing is open: returns false to leave the app. */
+export function setBackFallback(f: () => boolean): void { fallback = f; }
+function onBack(): void {
+  const top = backs[backs.length - 1];
+  if (top) { top.run(); return; }
+  if (document.querySelector('.overlay')) {
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    return;
+  }
+  if (fallback()) return;
+  Promise.resolve().then(() => Gr.leave()).catch(() => { /* none */ });
+}
+if (isAndroid) void Gr.addListener('back', onBack);

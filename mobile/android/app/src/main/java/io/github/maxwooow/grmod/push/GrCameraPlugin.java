@@ -366,6 +366,20 @@ public class GrCameraPlugin extends Plugin {
         try { open(call.getString("url")); call.resolve(); } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
     }
 
+    /** The system back button: the page decides (see ui/src/host-android.ts). False when no page is listening. */
+    public boolean back() {
+        if (!hasListeners("back")) return false;
+        notifyListeners("back", new JSObject());
+        return true;
+    }
+
+    /** Leaves the app as Home does (it stays as it is, in the background). */
+    @PluginMethod
+    public void leave(PluginCall call) {
+        getActivity().runOnUiThread(() -> getActivity().moveTaskToBack(true));
+        call.resolve();
+    }
+
     /** A light tap of the vibration motor, as the system's own controls give (no permission needed). */
     @PluginMethod
     public void haptic(PluginCall call) {

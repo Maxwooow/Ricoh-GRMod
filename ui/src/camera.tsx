@@ -2,7 +2,7 @@
 // Bluetooth turns the camera's Wi-Fi on, the file goes up in one PUT, then "start update" goes over Bluetooth.
 import { useEffect, useRef, useState } from 'react';
 import { Ico } from './components';
-import { Gr, upload } from './host-android';
+import { Gr, upload, useBack } from './host-android';
 import { t } from './i18n';
 import { closePush, fmtSize, useStore } from './store';
 
@@ -82,6 +82,9 @@ function Dialog() {
       setPhase('done');
     }
   };
+
+  // back closes the dialog unless a push is under way (it is never left half done)
+  useBack(true, () => { if (phase !== 'run') closePush(); });
 
   const running = phase === 'run';
   const updating = stage?.id === 'updating';

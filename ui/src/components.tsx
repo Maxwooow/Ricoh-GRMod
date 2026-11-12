@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { isAndroid, useBack } from './host-android';
 import { ICON_H, ICON_W, RATIO_ICON_H, RATIO_ICON_W } from '@grmod/core';
 import { uiScale } from './fit';
 import { rgbToCanvas, rgbaToCanvas } from './pixels';
@@ -138,6 +140,14 @@ export function Menu({ items, children }: { items: { label: string; run: () => v
     window.addEventListener('mousedown', close);
     return () => window.removeEventListener('mousedown', close);
   }, [open]);
+  if (isAndroid) {
+    return (
+      <div className="menu-wrap" ref={ref}>
+        <button className="btn ghost icon-only" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-expanded={open}>{children}</button>
+        {open && <ChoiceSheet label="" onClose={() => setOpen(false)} items={items} />}
+      </div>
+    );
+  }
   return (
     <div className="menu-wrap" ref={ref}>
       <button className="btn ghost icon-only" onClick={() => setOpen((v) => !v)} aria-haspopup="menu" aria-expanded={open}>{children}</button>
@@ -175,6 +185,67 @@ export function popPlace(el: HTMLElement, want: number): { up: boolean; max: num
   return { up, max: Math.max(96, Math.min(want, up ? above : below)) };
 }
 
+/** Scrolls `box` (only) so that `el`, one of its rows, is in view. */
+function scrollWithin(box: HTMLElement | null, el: Element | null | undefined): void {
+  if (!box || !(el instanceof HTMLElement)) return;
+  if (el.offsetTop < box.scrollTop) box.scrollTop = el.offsetTop;
+  else if (el.offsetTop + el.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = el.offsetTop + el.offsetHeight - box.clientHeight;
+}
+
+/**
+ * Android: a sheet from the bottom over everything (outside the page, so nothing in the page clips or moves it).
+ * It slides away on close, can be pulled down by its top, and closes with the back button. `children` gets the
+ * closing function, so a choice can slide the sheet away before it acts.
+ */
+export function MobileSheet({ label, onClose, children, className }: { label: string; onClose: () => void; children: (close: () => void) => ReactNode; className?: string }) {
+  const [closing, setClosing] = useState(false);
+  const [pull, setPull] = useState(0);
+  const [pulling, setPulling] = useState(false);
+  const drag = useRef<{ id: number; y0: number; t0: number } | null>(null);
+  const done = useRef(false);
+  const close = (): void => { if (done.current) return; done.current = true; setClosing(true); window.setTimeout(onClose, 220); };
+  useBack(true, close);
+  const down = (e: React.PointerEvent<HTMLDivElement>): void => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { id: e.pointerId, y0: e.clientY, t0: e.timeStamp }; setPulling(true); };
+  const move = (e: React.PointerEvent<HTMLDivElement>): void => { const d = drag.current; if (d && d.id === e.pointerId) setPull(Math.max(0, e.clientY - d.y0)); };
+  const up = (e: React.PointerEvent<HTMLDivElement>): void => {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    drag.current = null;
+    setPulling(false);
+    const dy = Math.max(0, e.clientY - d.y0);
+    if (dy > 90 || (dy / Math.max(1, e.timeStamp - d.t0) > 0.5 && dy > 24)) close(); else setPull(0);
+  };
+  return createPortal(
+    <div className={`overlay m-sheet-wrap ${closing ? 'closing' : ''}`} onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
+      <div className={`m-sheet ${className || ''} ${pulling ? 'pulling' : ''}`} role="dialog" aria-modal="true" aria-label={label} style={pull && !closing ? { transform: `translateY(${pull}px)` } : undefined}>
+        <div className="m-sheet-grip" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}><i /></div>
+        {children(close)}
+      </div>
+    </div>,
+    document.querySelector('.app') ?? document.body,
+  );
+}
+
+/** Android: a few commands in a sheet (in place of a drop-down menu). */
+export function ChoiceSheet({ label, onClose, items }: { label: string; onClose: () => void; items: { label: string; run: () => void; disabled?: boolean; icon?: ReactNode }[] }) {
+  return (
+    <MobileSheet label={label} onClose={onClose} className="m-choices">
+      {(shut) => (
+        <>
+          {label && <div className="m-sheet-title">{label}</div>}
+          <div className="m-choice-list" role="menu">
+            {items.map((it) => (
+              <button key={it.label} type="button" role="menuitem" className="m-choice" disabled={it.disabled} onClick={() => { shut(); window.setTimeout(it.run, 120); }}>
+                {it.icon && <span className="m-choice-ico">{it.icon}</span>}<span className="ellipsis">{it.label}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </MobileSheet>
+  );
+}
+
 export interface SelectOption<T extends string> { value: T; label: string }
 /**
  * A chooser in the style of the rest of the interface (the system's own list does not follow it).
@@ -195,7 +266,7 @@ export function Select<T extends string>({ value, options, onChange, label, vari
   const count = options.length + extra.length;
   const current = options.find((o) => o.value === value);
   const close = (): void => { if (list.current?.contains(document.activeElement)) button.current?.focus(); setOpen(false); };
-  useDismiss(open, wrap, close);
+  useDismiss(open && !isAndroid, wrap, close);
   const show = (): void => {
     setPlace(popPlace(wrap.current!, Math.min(320, count * 28 + (extra.length ? 9 : 0) + 8)));
     setActive(options.findIndex((o) => o.value === value));
@@ -204,7 +275,7 @@ export function Select<T extends string>({ value, options, onChange, label, vari
   useEffect(() => {
     if (!open) return;
     list.current?.focus();
-    list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
+    scrollWithin(list.current, list.current?.querySelector('[aria-selected="true"]'));
   }, [open]);
   const run = (i: number): void => {
     close();
@@ -214,7 +285,7 @@ export function Select<T extends string>({ value, options, onChange, label, vari
     if (count === 0) return;
     const i = Math.max(0, Math.min(count - 1, to));
     setActive(i);
-    list.current?.children[i + (i >= options.length && extra.length ? 1 : 0)]?.scrollIntoView({ block: 'nearest' });
+    scrollWithin(list.current, list.current?.children[i + (i >= options.length && extra.length ? 1 : 0)]);
   };
   const onKey = (e: React.KeyboardEvent): void => {
     if (e.key === 'ArrowDown') move(active + 1);
@@ -226,6 +297,38 @@ export function Select<T extends string>({ value, options, onChange, label, vari
     else return;
     e.preventDefault();
   };
+  if (isAndroid) {
+    // a phone: the choices in a sheet from the bottom
+    return (
+      <div className={`sel ${variant} ${open ? 'open' : ''}`} ref={wrap} data-tour={tour}>
+        <button type="button" className="sel-btn" aria-haspopup="dialog" aria-expanded={open} aria-label={label} onClick={() => setOpen(true)}>
+          {lead}
+          <span className={`sel-value ${current ? '' : 'muted'}`}><span className="ellipsis">{current ? current.label : placeholder || ''}</span>{Ico.updown}</span>
+        </button>
+        {open && (
+          <MobileSheet label={label} onClose={() => setOpen(false)} className="m-choices">
+            {(shut) => (
+              <>
+                <div className="m-sheet-title">{label}</div>
+                <div className="m-choice-list" role="listbox" aria-label={label}>
+                  {options.map((o) => (
+                    <button key={o.value} type="button" role="option" aria-selected={o.value === value} className={`m-choice ${o.value === value ? 'on' : ''}`}
+                      onClick={() => { shut(); if (o.value !== value) window.setTimeout(() => onChange(o.value), 120); }}>
+                      <span className="ellipsis">{o.label}</span>{o.value === value && Ico.check}
+                    </button>
+                  ))}
+                  {extra.length > 0 && <div className="pop-sep" role="separator" />}
+                  {extra.map((a) => (
+                    <button key={a.label} type="button" className="m-choice action" onClick={() => { shut(); window.setTimeout(a.run, 120); }}><span className="ellipsis">{a.label}</span></button>
+                  ))}
+                </div>
+              </>
+            )}
+          </MobileSheet>
+        )}
+      </div>
+    );
+  }
   return (
     <div className={`sel ${variant} ${open ? 'open' : ''}`} ref={wrap} data-tour={tour}>
       <button

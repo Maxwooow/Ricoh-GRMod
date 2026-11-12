@@ -583,8 +583,10 @@ html.android body { background: var(--side); font-size: 15px; }
 .m-actions .btn svg { width: 20px; height: 20px; }
 .m-actions .btn.glass { backdrop-filter: blur(5px) url(#lg-save) saturate(1.7); color: var(--text); }
 .m-actions .btn.glass:disabled { opacity: 1; color: var(--faint); }
-.m-actions .btn.primary { box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.35), 0 8px 22px color-mix(in srgb, var(--blue) 35%, transparent); }
-.m-actions .btn.primary:disabled { opacity: 1; background: color-mix(in srgb, var(--blue) 45%, var(--glass-tint)); color: rgba(255, 255, 255, 0.7); backdrop-filter: blur(3px) saturate(1.5); box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.25), var(--glass-shadow); }
+/* "send to camera": the same glass, tinted blue */
+.m-actions .btn.glass.tint { color: #fff; background: color-mix(in srgb, var(--blue) 60%, transparent); backdrop-filter: blur(5px) url(#lg-send) saturate(1.8);
+  box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.5), inset 0 -1px 1px rgba(0, 0, 0, 0.12), inset 0 0 0 0.5px rgba(255, 255, 255, 0.3), 0 8px 24px color-mix(in srgb, var(--blue) 30%, transparent); }
+.m-actions .btn.glass.tint:disabled { color: rgba(255, 255, 255, 0.6); background: color-mix(in srgb, var(--blue) 26%, transparent); box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.3), inset 0 0 0 0.5px rgba(255, 255, 255, 0.18), var(--glass-shadow); }
 .m-dock { position: fixed; z-index: 21; left: 16px; right: 16px; bottom: var(--dock-b); height: var(--dock-h); }
 .m-tabs { position: absolute; inset: 0; display: flex; padding: 4px; border-radius: 999px; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
 .m-tab { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; background: none; color: var(--muted); font-size: 11px; font-weight: 600; transition: color 0.2s; -webkit-tap-highlight-color: transparent; }
@@ -662,13 +664,31 @@ html.android, html.android * { -webkit-tap-highlight-color: transparent; }
 .app.mobile .m-fw:active { background: var(--active); }
 .app.mobile .m-actions .btn:active:not(:disabled) { transform: scale(1.04); }
 .app.mobile .m-actions .btn.glass:active:not(:disabled) { background: color-mix(in srgb, var(--glass-tint) 70%, var(--text) 8%); }
-.app.mobile .m-actions .btn.primary:active:not(:disabled) { filter: brightness(1.08); }
+.app.mobile .m-actions .btn.glass.tint:active:not(:disabled) { background: color-mix(in srgb, var(--blue) 72%, transparent); }
 .app.mobile .switch { transition: background-color 200ms ease; }
 .app.mobile .switch i { transition: transform 420ms cubic-bezier(0.3, 1.5, 0.5, 1); }
 .app.mobile .toast { animation: m-toast 0.42s cubic-bezier(0.3, 1.4, 0.5, 1); }
 @keyframes m-toast { from { opacity: 0; transform: translateY(14px) scale(0.94); } }
 .app.mobile .dialog { animation: m-pop 0.34s cubic-bezier(0.3, 1.3, 0.5, 1); }
 @keyframes m-pop { from { opacity: 0; transform: scale(0.94); } }
+/* choices in a sheet (components.tsx Select on Android) */
+.m-sheet-title { font-size: 15px; font-weight: 600; padding: 0 6px 8px; }
+.m-choice-list { display: grid; gap: 2px; max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; margin-bottom: 4px; }
+.m-choice { display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 0 12px; border: 0; border-radius: 12px; background: none; font-size: 15.5px; text-align: left; color: var(--text);
+  transition: transform 420ms cubic-bezier(0.3, 1.5, 0.5, 1), background-color 160ms ease; }
+.m-choice .ellipsis { flex: 1; }
+.m-choice-ico { display: grid; color: var(--muted); }
+.m-choice-ico svg { width: 20px; height: 20px; color: inherit; }
+.m-choice:disabled { opacity: 0.4; }
+/* sheets stay under dialogs opened from them */
+.overlay.m-sheet-wrap { z-index: 45; }
+.m-choice svg { width: 18px; height: 18px; color: var(--blue); flex: none; }
+.m-choice.on { background: var(--blue-bg); color: var(--blue); font-weight: 600; }
+.m-choice:active { transform: scale(0.97); background: var(--active); transition-duration: 120ms; }
+.m-choice.action { color: var(--muted); }
+.m-crash { position: fixed; inset: 0; display: flex; flex-direction: column; gap: 14px; padding: calc(var(--safe-area-inset-top, 0px) + 40px) 20px 20px; background: var(--bg); color: var(--text); }
+.m-crash pre { margin: 0; padding: 12px; border-radius: 10px; background: var(--chip); font: 12px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-all; user-select: text; overflow: auto; }
+.m-crash .btn { height: 46px; justify-content: center; border-radius: 23px; }
 /* the brightness row (a choice, not a switch) */
 .app.mobile .extras .soft-switch > .sel.box { flex: none; }
 .app.mobile .extras .soft-switch > .sel.box .sel-btn { height: 32px; gap: 8px; }
