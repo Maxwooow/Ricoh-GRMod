@@ -17,6 +17,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.ParcelUuid;
 import android.util.Base64;
+import android.view.HapticFeedbackConstants;
 import android.view.WindowManager;
 
 import com.getcapacitor.JSArray;
@@ -363,6 +364,17 @@ public class GrCameraPlugin extends Plugin {
     @PluginMethod
     public void openUrl(PluginCall call) {
         try { open(call.getString("url")); call.resolve(); } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+    }
+
+    /** A light tap of the vibration motor, as the system's own controls give (no permission needed). */
+    @PluginMethod
+    public void haptic(PluginCall call) {
+        int kind = "confirm".equals(call.getString("kind")) && Build.VERSION.SDK_INT >= 30
+            ? HapticFeedbackConstants.CONFIRM : HapticFeedbackConstants.CLOCK_TICK;
+        getActivity().runOnUiThread(() -> {
+            bridge.getWebView().performHapticFeedback(kind);
+            call.resolve();
+        });
     }
 
     @PluginMethod

@@ -600,9 +600,17 @@ html.android body { background: var(--side); font-size: 15px; }
 .m-lens.dragging { transition: scale 380ms cubic-bezier(0.3, 1.6, 0.5, 1), background-color 220ms ease, box-shadow 220ms ease; }
 /* settings: a sheet from the bottom with the sidebar's rows */
 .m-sheet-wrap { align-items: end; place-items: end stretch; }
-.m-sheet { width: 100%; background: var(--bg); border-radius: 16px 16px 0 0; box-shadow: var(--shadow); padding: 8px 14px calc(14px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); animation: m-up 0.18s ease-out; }
-@keyframes m-up { from { transform: translateY(24px); opacity: 0.6; } }
-.m-sheet-grip { width: 38px; height: 4px; border-radius: 2px; background: var(--line2); margin: 2px auto 10px; }
+.m-sheet { width: 100%; background: var(--bg); border-radius: 20px 20px 0 0; box-shadow: var(--shadow); padding: 8px 14px calc(14px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); animation: m-up 0.36s cubic-bezier(0.2, 0.9, 0.25, 1); }
+@keyframes m-up { from { transform: translateY(100%); } }
+.m-sheet-grip { display: grid; place-items: center; height: 26px; margin: -8px -14px 4px; touch-action: none; cursor: grab; }
+.m-sheet-grip i { width: 38px; height: 4px; border-radius: 2px; background: var(--line2); }
+.m-sheet { transition: transform 340ms cubic-bezier(0.2, 0.9, 0.25, 1); will-change: transform; }
+.m-sheet.pulling { transition: none; }
+.m-sheet-wrap { animation: fade 0.22s ease-out; }
+.m-sheet-wrap.closing { animation: m-fade-out 0.22s ease-in forwards; }
+.m-sheet-wrap.closing .m-sheet { animation: m-down 0.22s cubic-bezier(0.4, 0, 1, 1) forwards; }
+@keyframes m-fade-out { to { background-color: transparent; } }
+@keyframes m-down { to { transform: translateY(100%); } }
 .m-props { border-top: 0; padding: 0; gap: 4px; }
 .m-props .sel-btn { min-height: 46px; font-size: 15px; }
 .m-sheet-foot { display: flex; align-items: center; gap: 8px; padding-top: 12px; margin-top: 8px; border-top: 1px solid var(--line); }
@@ -643,7 +651,27 @@ html.android body { background: var(--side); font-size: 15px; }
 .app.mobile .wall-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px; }
 .app.mobile .hero-drop { flex: none; height: 240px; }
 .app.mobile .page-head .head-right > .chip.ok, .app.mobile .page-head .head-right > .chip.warn { display: none; }
-.app.mobile .toasts { bottom: calc(var(--dock-b) + var(--dock-h) + var(--act-h) + 24px); left: 12px; right: 12px; transform: none; }
+.app.mobile .toasts { z-index: 80; bottom: calc(var(--dock-b) + var(--dock-h) + var(--act-h) + 24px); left: 12px; right: 12px; transform: none; }
+/* touch feedback: no grey box from the WebView; whatever is pressed gives a little under the finger, in its own
+   shape, and springs back. The floating buttons swell instead, like the glass of the tabs. */
+html.android, html.android * { -webkit-tap-highlight-color: transparent; }
+.app.mobile .btn, .app.mobile .m-fw, .app.mobile .seg button, .app.mobile .sel-btn, .app.mobile .push-cam, .app.mobile .about-link, .app.mobile .pop-item {
+  transition: transform 420ms cubic-bezier(0.3, 1.5, 0.5, 1), background-color 160ms ease, color 160ms ease, box-shadow 200ms ease, opacity 160ms ease; }
+.app.mobile .btn:active:not(:disabled), .app.mobile .m-fw:active, .app.mobile .seg button:active, .app.mobile .sel-btn:active, .app.mobile .push-cam:active, .app.mobile .about-link:active {
+  transform: scale(0.95); transition-duration: 120ms; }
+.app.mobile .m-fw:active { background: var(--active); }
+.app.mobile .m-actions .btn:active:not(:disabled) { transform: scale(1.04); }
+.app.mobile .m-actions .btn.glass:active:not(:disabled) { background: color-mix(in srgb, var(--glass-tint) 70%, var(--text) 8%); }
+.app.mobile .m-actions .btn.primary:active:not(:disabled) { filter: brightness(1.08); }
+.app.mobile .switch { transition: background-color 200ms ease; }
+.app.mobile .switch i { transition: transform 420ms cubic-bezier(0.3, 1.5, 0.5, 1); }
+.app.mobile .toast { animation: m-toast 0.42s cubic-bezier(0.3, 1.4, 0.5, 1); }
+@keyframes m-toast { from { opacity: 0; transform: translateY(14px) scale(0.94); } }
+.app.mobile .dialog { animation: m-pop 0.34s cubic-bezier(0.3, 1.3, 0.5, 1); }
+@keyframes m-pop { from { opacity: 0; transform: scale(0.94); } }
+/* the brightness row (a choice, not a switch) */
+.app.mobile .extras .soft-switch > .sel.box { flex: none; }
+.app.mobile .extras .soft-switch > .sel.box .sel-btn { height: 32px; gap: 8px; }
 /* the looks above the preview: the full width, scrolled sideways (faded where more are out of view); the photo /
    swatches choice as two icons */
 .app.mobile .ic .pane-head .seg-arrow { display: none; }

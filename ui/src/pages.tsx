@@ -152,7 +152,18 @@ function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number
   const tabs = gr3x ? slotOptions.map((x) => ({ value: x.id, label: slots[x.id].names[lang] || x.names[lang]?.text || x.defaultName }))
     : [{ value: 'CY', label: t('slotCY') }, { value: 'CG', label: t('slotCG') }, ...extras.map((x, i) => ({ value: x.key, label: extraLabels.split('\u0000')[i] }))];
   const tabsRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { tabsRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }, [active]);
+  // Bring the current tab into view by scrolling the tab strip only (scrollIntoView would also scroll the page,
+  // which on a phone jumps back up to the tabs whenever a card below is touched).
+  useEffect(() => {
+    const box = tabsRef.current;
+    const el = box?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!box || !el) return;
+    const b = box.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const k = b.width / (box.clientWidth || 1) || 1; // window px per CSS px (the interface may be zoomed)
+    const d = r.left < b.left ? r.left - b.left - 16 * k : r.right > b.right ? r.right - b.right + 16 * k : 0;
+    if (d) box.scrollBy({ left: d / k, behavior: 'smooth' });
+  }, [active]);
   // With many added slots in a narrow window the tabs do not all fit: arrows step through them.
   const [overflow, setOverflow] = useState(false);
   useEffect(() => {
@@ -734,7 +745,18 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
       {hdrOk && <FeatureRow icon={Ico.hdr} title={t('navHdr')} sub={t('hdrSub')} on={hdr} onChange={setHdr} />}
       {previewOk && <FeatureRow icon={Ico.preview} title={t('navPreview')} sub={t('previewSub')} on={preview} onChange={setExposurePreview} />}
       {adjMax > 5 && <AdjSlotsRow max={adjMax} />}
-      {brightAutoOk && <div className="soft-switch"><Select value={brightAuto || 'off'} options={[{ value: 'off', label: t('brightAutoOff') }, { value: 'balanced', label: t('brightAutoBalanced') }, { value: 'bright', label: t('brightAutoBright') }]} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')} label={t('navBrightAuto')} variant="row" /></div>}
+      {brightAutoOk && !isAndroid && <div className="soft-switch"><Select value={brightAuto || 'off'} options={[{ value: 'off', label: t('brightAutoOff') }, { value: 'balanced', label: t('brightAutoBalanced') }, { value: 'bright', label: t('brightAutoBright') }]} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')} label={t('navBrightAuto')} variant="row" /></div>}
+      {/* on a phone: a row like the others, the choice on the right without the repeated "Auto brightness ·" */}
+      {brightAutoOk && isAndroid && (
+        <div className={`soft-switch ${brightAuto ? 'on' : ''}`}>
+          <span className="page-icon soft-ico">{Ico.bright}</span>
+          <div className="soft-text"><b>{t('navBrightAuto')}</b></div>
+          <Select
+            variant="box" value={brightAuto || 'off'} label={t('navBrightAuto')} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')}
+            options={([['off', 'brightAutoOff'], ['balanced', 'brightAutoBalanced'], ['bright', 'brightAutoBright']] as const).map(([value, key]) => ({ value, label: t(key).split(' · ').pop()! }))}
+          />
+        </div>
+      )}
     </div>
   );
 }

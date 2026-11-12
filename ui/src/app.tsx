@@ -1,10 +1,11 @@
 import { LANGS } from '@grmod/core';
 import type { CameraModel, LangCode } from '@grmod/core';
-import { useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { GlassDefs, GlassFilter, useGlass, useSize } from './glass';
 import { Busy, ConfirmDialog, Hint, Ico, Select, Toasts, useDismiss } from './components';
 import { host, isAndroid } from './host';
 import { PushDialog } from './camera';
+import { haptic } from './host-android';
 import { LANG_LABEL, t } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
@@ -184,10 +185,25 @@ function MobileTop({ onSettings }: { onSettings: () => void }) {
 function MobileSettings({ onClose }: { onClose: () => void }) {
   const model = useStore((s) => s.model);
   const lang = useStore((s) => s.lang);
+  // closing slides the sheet away first; it can also be pulled down by its top
+  const [closing, setClosing] = useState(false);
+  const [pull, setPull] = useState(0);
+  const drag = useRef<{ id: number; y0: number; t0: number } | null>(null);
+  const close = (): void => { if (closing) return; setClosing(true); window.setTimeout(onClose, 220); };
+  const down = (e: React.PointerEvent<HTMLDivElement>): void => { e.currentTarget.setPointerCapture(e.pointerId); drag.current = { id: e.pointerId, y0: e.clientY, t0: e.timeStamp }; };
+  const move = (e: React.PointerEvent<HTMLDivElement>): void => { const d = drag.current; if (d && d.id === e.pointerId) setPull(Math.max(0, e.clientY - d.y0)); };
+  const up = (e: React.PointerEvent<HTMLDivElement>): void => {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    drag.current = null;
+    const dy = Math.max(0, e.clientY - d.y0);
+    const fast = dy / Math.max(1, e.timeStamp - d.t0) > 0.5;
+    if (dy > 90 || (fast && dy > 24)) close(); else setPull(0);
+  };
   return (
-    <div className="overlay m-sheet-wrap" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="m-sheet" role="dialog" aria-modal="true" aria-label={t('mSettings')}>
-        <div className="m-sheet-grip" />
+    <div className={`overlay m-sheet-wrap ${closing ? 'closing' : ''}`} onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
+      <div className={`m-sheet ${drag.current ? 'pulling' : ''}`} role="dialog" aria-modal="true" aria-label={t('mSettings')} style={pull && !closing ? { transform: `translateY(${pull}px)` } : undefined}>
+        <div className="m-sheet-grip" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}><i /></div>
         <div className="side-props m-props">
           <FirmwareRow />
           <Select<CameraModel>
@@ -202,7 +218,7 @@ function MobileSettings({ onClose }: { onClose: () => void }) {
         <div className="m-sheet-foot">
           <button type="button" className="about-link" onClick={() => { onClose(); openWhatsNew(); }}>GR Mod v{host.info?.version || ''} · {t('mWhatsNew')}</button>
           <span className="grow" />
-          <button type="button" className="btn" onClick={onClose}>{t('pushClose')}</button>
+          <button type="button" className="btn" onClick={close}>{t('pushClose')}</button>
         </div>
       </div>
     </div>
@@ -251,34 +267,39 @@ function MobileTabs() {
   const lensH = Math.max(0, h - pad * 2);
   // where the lens is while a finger holds it (its centre, px from the bar's left), and whether it is held
   const [held, setHeld] = useState<{ x: number; moved: boolean } | null>(null);
-  const press = useRef<{ id: number; x0: number; c0: number; moved: boolean } | null>(null);
+  const press = useRef<{ id: number; x0: number; c0: number; moved: boolean; over: number } | null>(null);
   const centreOf = (i: number): number => pad + cell * (i + 0.5);
   const clampC = (c: number): number => Math.max(pad + lensW / 2, Math.min(w - pad - lensW / 2, c));
   const nearest = (c: number): number => Math.max(0, Math.min(tabs.length - 1, Math.floor((c - pad) / (cell || 1))));
   const centre = held ? held.x : centreOf(current);
-  const hot = held?.moved ? nearest(centre) : current;
+  const hot = held ? nearest(centre) : current;
 
   const down = (e: React.PointerEvent<HTMLElement>): void => {
     if (press.current || !cell) return;
     e.currentTarget.setPointerCapture(e.pointerId);
-    const c0 = centreOf(current);
-    press.current = { id: e.pointerId, x0: e.clientX, c0, moved: false };
+    // pressed on another tab: the lens, swollen, glides there at once; on its own tab it swells where it is
+    const at = nearest(e.clientX - bar.current!.getBoundingClientRect().left);
+    const c0 = centreOf(at);
+    if (at !== current) haptic();
+    press.current = { id: e.pointerId, x0: e.clientX, c0, moved: false, over: at };
     setHeld({ x: c0, moved: false });
   };
   const move = (e: React.PointerEvent<HTMLElement>): void => {
     const p = press.current;
     if (!p || p.id !== e.pointerId) return;
     const dx = e.clientX - p.x0;
-    if (!p.moved && Math.abs(dx) < 8) return;
+    if (!p.moved && Math.abs(dx) < 6) return;
     p.moved = true;
-    setHeld({ x: clampC(p.c0 + dx), moved: true });
+    const c = clampC(p.c0 + dx);
+    const over = nearest(c);
+    if (over !== p.over) { p.over = over; haptic(); }
+    setHeld({ x: c, moved: true });
   };
   const up = (e: React.PointerEvent<HTMLElement>): void => {
     const p = press.current;
     if (!p || p.id !== e.pointerId) return;
     press.current = null;
-    const rect = bar.current!.getBoundingClientRect();
-    const target = e.type === 'pointercancel' ? current : p.moved ? nearest(clampC(p.c0 + (e.clientX - p.x0))) : nearest(e.clientX - rect.left);
+    const target = e.type === 'pointercancel' ? current : p.over;
     setHeld(null);
     if (target !== current) setPage(tabs[target].p);
   };
@@ -311,12 +332,29 @@ function MobileApp() {
   const fwOpen = useStore((s) => !!s.info);
   const ready = useStore((s) => s.ready);
   const [settings, setSettings] = useState(false);
+  // Switching pages: each page keeps where it was scrolled to, and the new one slides in from the side of its tab.
+  const stage = useRef<HTMLDivElement>(null);
+  const scrolls = useRef<Record<string, number>>({});
+  const shown = useRef(page);
+  useLayoutEffect(() => {
+    const el = stage.current;
+    const from = shown.current;
+    if (!el || from === page) return;
+    shown.current = page;
+    el.scrollTop = scrolls.current[page] ?? 0;
+    const ORDER = ['ic', 'ratio', 'wall'];
+    const dir = Math.sign(ORDER.indexOf(page) - ORDER.indexOf(from)) || 1;
+    const view = el.firstElementChild as HTMLElement | null;
+    if (view && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      view.animate([{ opacity: 0, transform: `translate3d(${dir * 28}px, 0, 0)` }, { opacity: 1, transform: 'none' }], { duration: 340, easing: 'cubic-bezier(0.2, 0.9, 0.25, 1)' });
+    }
+  }, [page]);
   return (
     <div className="app mobile">
       <MobileTop onSettings={() => setSettings(true)} />
       <main className="main">
         <BridgeBanner />
-        <div className="stage">{ready ? (page === 'ratio' ? <RatioPage /> : page === 'wall' && (!gr3 || menuPicsReady || !fwOpen) ? <WallpaperPage /> : <ImageControlPage />) : <div className="page"><span className="spinner" /></div>}</div>
+        <div className="stage" ref={stage} onScroll={(e) => { scrolls.current[shown.current] = e.currentTarget.scrollTop; }}>{ready ? (page === 'ratio' ? <RatioPage /> : page === 'wall' && (!gr3 || menuPicsReady || !fwOpen) ? <WallpaperPage /> : <ImageControlPage />) : <div className="page"><span className="spinner" /></div>}</div>
       </main>
       {/* both float over the page, which scrolls on under them */}
       <MobileActions />
