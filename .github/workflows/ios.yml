@@ -12,7 +12,7 @@ name: iOS
 
 on:
   push:
-    branches: [ios]
+    branches: [ios-iphone-compat]
     paths: ['mobile/**', 'ui/**', 'core/**', 'package.json', 'package-lock.json', '.github/workflows/ios.yml']
   workflow_dispatch:
 
@@ -98,6 +98,21 @@ jobs:
             "${AUTH[@]}" \
             2>&1 | tee xcodebuild.log | grep -E "error:|warning: .*GrCamera|ARCHIVE (SUCCEEDED|FAILED)|\*\*" || true
           grep -q "ARCHIVE SUCCEEDED" xcodebuild.log
+
+      - name: Check archived iPhone app before upload
+        if: env.HAS_ASC == 'true'
+        run: |
+          python3 - <<'PY'
+          import pathlib, plistlib, subprocess
+          app, = pathlib.Path('build/App.xcarchive/Products/Applications').glob('*.app')
+          info = plistlib.loads((app / 'Info.plist').read_bytes())
+          assert info['CFBundleIdentifier'] == 'io.github.maxwooow.grmod.iphonecompat', info['CFBundleIdentifier']
+          assert info['UIDeviceFamily'] == [1], info['UIDeviceFamily']
+          assert info['CFBundleDisplayName'] == 'GR Mod Phone', info['CFBundleDisplayName']
+          entitlements = plistlib.loads(subprocess.check_output(['codesign', '-d', '--entitlements', ':-', str(app)], stderr=subprocess.DEVNULL))
+          assert entitlements.get('com.apple.developer.networking.HotspotConfiguration') is True
+          print(info['CFBundleIdentifier'], info['UIDeviceFamily'], info['CFBundleShortVersionString'], info['CFBundleVersion'])
+          PY
 
       - name: Upload to App Store Connect (TestFlight)
         if: env.HAS_ASC == 'true'

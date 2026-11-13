@@ -1,6 +1,6 @@
 {
-  "appId": "io.github.maxwooow.grmod",
-  "appName": "GR Mod",
+  "appId": "io.github.maxwooow.grmod.iphonecompat",
+  "appName": "GR Mod Phone",
   "webDir": "www",
   "android": {
     "allowMixedContent": false
