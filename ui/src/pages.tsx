@@ -834,7 +834,9 @@ function IcBody() {
       const kids = [...cards!.children].filter((c) => c !== box) as HTMLElement[];
       kids.forEach((k) => ro.observe(k));
       const used = kids.reduce((a, k) => a + k.offsetHeight, 0) + gap * Math.max(0, kids.length - 1);
-      const want: Place = used + gap + boxH.current <= cards!.clientHeight + 0.5 ? 'left' : 'right';
+      // The phone has one column: the switches always follow the cards (under the preview there is no room kept
+      // for them, and a height measured in one language overlaps the cards in another).
+      const want: Place = isMobile || used + gap + boxH.current <= cards!.clientHeight + 0.5 ? 'left' : 'right';
       if (want !== placeRef.current) {
         from.current = first || !box ? null : box.getBoundingClientRect();
         placeRef.current = want;

@@ -89,7 +89,7 @@ public class GrCameraPlugin extends Plugin {
     @PermissionCallback
     private void permissionsDone(PluginCall call) {
         if (granted()) call.resolve(status());
-        else call.reject(L.s("没有得到蓝牙 / 附近设备权限", "Bluetooth / nearby devices permission was not given"), "permission");
+        else call.reject(L.s("未获得 Bluetooth® / 附近设备权限。", "Bluetooth / nearby devices permission was not given"), "permission");
     }
 
     private JSObject status() {
@@ -138,7 +138,7 @@ public class GrCameraPlugin extends Plugin {
     /** Cameras the phone is paired with (they may not advertise while another app is connected). */
     @PluginMethod
     public void bondedCameras(PluginCall call) {
-        if (!granted()) { call.reject(L.s("先授权", "Allow the permissions first"), "permission"); return; }
+        if (!granted()) { call.reject(L.s("请先授权。", "Allow the permissions first"), "permission"); return; }
         BluetoothAdapter ad = adapter();
         JSArray list = new JSArray();
         if (ad != null) {
@@ -153,11 +153,11 @@ public class GrCameraPlugin extends Plugin {
 
     @PluginMethod
     public void scan(final PluginCall call) {
-        if (!granted()) { call.reject(L.s("先授权", "Allow the permissions first"), "permission"); return; }
+        if (!granted()) { call.reject(L.s("请先授权。", "Allow the permissions first"), "permission"); return; }
         BluetoothAdapter ad = adapter();
-        if (ad == null || !ad.isEnabled()) { call.reject(L.s("蓝牙没有打开", "Bluetooth is off"), "bluetooth-off"); return; }
+        if (ad == null || !ad.isEnabled()) { call.reject(L.s("Bluetooth® 未开启", "Bluetooth is off"), "bluetooth-off"); return; }
         final BluetoothLeScanner sc = ad.getBluetoothLeScanner();
-        if (sc == null) { call.reject(L.s("蓝牙没有打开", "Bluetooth is off"), "bluetooth-off"); return; }
+        if (sc == null) { call.reject(L.s("Bluetooth® 未开启", "Bluetooth is off"), "bluetooth-off"); return; }
         stopScan();
         final Map<String, JSObject> found = new LinkedHashMap<>();
         scanCallback = new ScanCallback() {
@@ -171,7 +171,7 @@ public class GrCameraPlugin extends Plugin {
                 if (fresh) notifyListeners("found", o);
             }
             @Override public void onScanFailed(int code) {
-                notifyListeners("log", line(L.s("蓝牙扫描失败，code=", "Bluetooth scan failed, code=") + code, true));
+                notifyListeners("log", line(L.s("Bluetooth® 扫描失败，code=", "Bluetooth scan failed, code=") + code, true));
             }
         };
         ScanSettings s = new ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build();
@@ -471,21 +471,21 @@ public class GrCameraPlugin extends Plugin {
 
     @PluginMethod
     public void start(PluginCall call) {
-        if (!granted()) { call.reject(L.s("先授权", "Allow the permissions first"), "permission"); return; }
-        if (session != null) { call.reject(L.s("已经有一次推送在进行", "A push is already running"), "busy"); return; }
+        if (!granted()) { call.reject(L.s("请先授权。", "Allow the permissions first"), "permission"); return; }
+        if (session != null) { call.reject(L.s("已有推送正在进行", "A push is already running"), "busy"); return; }
         String address = call.getString("address");
         String modeName = call.getString("mode", "INFO");
         PushSession.Mode mode;
         try { mode = PushSession.Mode.valueOf(modeName.toUpperCase(Locale.ROOT).replace('-', '_')); }
         catch (IllegalArgumentException e) { call.reject("mode?"); return; }
-        if (mode != PushSession.Mode.INFO && firmware == null) { call.reject(L.s("还没有选固件文件", "No firmware file chosen yet"), "no-file"); return; }
+        if (mode != PushSession.Mode.INFO && firmware == null) { call.reject(L.s("尚未选择固件文件", "No firmware file chosen yet"), "no-file"); return; }
         BluetoothAdapter ad = adapter();
-        if (ad == null || !ad.isEnabled()) { call.reject(L.s("蓝牙没有打开", "Bluetooth is off"), "bluetooth-off"); return; }
-        if (address == null || !BluetoothAdapter.checkBluetoothAddress(address)) { call.reject(L.s("相机地址不对", "Not a camera address"), "address"); return; }
+        if (ad == null || !ad.isEnabled()) { call.reject(L.s("Bluetooth® 未开启", "Bluetooth is off"), "bluetooth-off"); return; }
+        if (address == null || !BluetoothAdapter.checkBluetoothAddress(address)) { call.reject(L.s("照相机地址不正确", "Not a camera address"), "address"); return; }
         stopScan();
         BluetoothDevice dev = ad.getRemoteDevice(address);
         PushLog log = new PushLog(dir("logs"), (text, detail) -> notifyListeners("log", line(text, detail)));
-        log.add(L.s("GR Mod Android，模式 ", "GR Mod Android, mode ") + mode + L.s("，相机 ", ", camera ") + address + ", Android " + Build.VERSION.RELEASE + " (" + Build.MODEL + ")");
+        log.add(L.s("GR Mod Android，模式 ", "GR Mod Android, mode ") + mode + L.s("，照相机 ", ", camera ") + address + ", Android " + Build.VERSION.RELEASE + " (" + Build.MODEL + ")");
         keepScreenOn(true);
         session = new PushSession(getContext(), dev, firmware, mode, log, new PushSession.Events() {
             @Override public void stage(String id, String text) {

@@ -79,18 +79,18 @@ public final class FirmwareInfo {
         byte[] head = new byte[HDR];
         byte[] foot = new byte[FOOTER];
         try (RandomAccessFile r = new RandomAccessFile(f, "r")) {
-            if (size < HDR + FOOTER + RECORD) return bad(size, sha, L.s("文件太小，不是固件", "Too small to be a firmware file"));
+            if (size < HDR + FOOTER + RECORD) return bad(size, sha, L.s("文件过小，不是固件", "Too small to be a firmware file"));
             r.readFully(head);
-            if (!cstr(head, 0, 8).equals("RICOH")) return bad(size, sha, L.s("不是理光固件文件（开头不是 RICOH）", "Not a Ricoh firmware file (it does not start with RICOH)"));
+            if (!cstr(head, 0, 8).equals("RICOH")) return bad(size, sha, L.s("不是理光固件文件（文件开头不是 RICOH）", "Not a Ricoh firmware file (it does not start with RICOH)"));
             r.seek(size - FOOTER);
             r.readFully(foot);
             ByteBuffer fb = ByteBuffer.wrap(foot).order(ByteOrder.LITTLE_ENDIAN);
             long proj2 = fb.getInt(0) & 0xffffffffL, magic = fb.getInt(4) & 0xffffffffL, streamLen = fb.getInt(12) & 0xffffffffL;
             long project = ByteBuffer.wrap(head).order(ByteOrder.LITTLE_ENDIAN).getInt(0x30) & 0xffffffffL;
-            if (magic != MAGIC || proj2 != ((project | (project << 16)) & 0xffffffffL)) return bad(size, sha, L.s("文件尾不对（不是完整的固件文件）", "The end of the file is wrong (not a whole firmware file)"));
+            if (magic != MAGIC || proj2 != ((project | (project << 16)) & 0xffffffffL)) return bad(size, sha, L.s("文件结尾不正确（不是完整的固件文件）", "The end of the file is wrong (not a whole firmware file)"));
             long start = (HDR + streamLen + 3) & ~3L;
             long end = size - FOOTER;
-            if (start > end || (end - start) % RECORD != 0 || end - start > 16 * RECORD) return bad(size, sha, L.s("机型记录区不对", "The model records are wrong"));
+            if (start > end || (end - start) % RECORD != 0 || end - start > 16 * RECORD) return bad(size, sha, L.s("机型记录区不正确", "The model records are wrong"));
             List<Model> models = new ArrayList<>();
             byte[] rec = new byte[RECORD];
             for (long o = start; o < end; o += RECORD) {
