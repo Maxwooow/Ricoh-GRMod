@@ -18,7 +18,7 @@ type Side = 'right' | 'left' | 'top' | 'bottom';
 interface Step { target?: string | string[]; title: Key; body: Key; side?: Side }
 /** GR III / IIIx have their own text where the GR IV one would be wrong (key + 'G3'). */
 const bodyFor = (key: Key, gr3: boolean): Key => (gr3 && (`${key}G3` as Key) in GR3_BODIES ? (`${key}G3` as Key) : key);
-const GR3_BODIES: Record<string, true> = { tOvFirmwareBG3: true, tOvIcBG3: true, tOvRatioBG3: true, tIcSlotBG3: true, tIcExtraBG3: true, tIcNameBG3: true, tRatioFactoryBG3: true, tWallMenuBG3: true };
+const GR3_BODIES: Record<string, true> = { tOvFirmwareBG3: true, tOvFirmwareBWG3: true, tOvIcBG3: true, tOvRatioBG3: true, tIcSlotBG3: true, tIcExtraBG3: true, tIcNameBG3: true, tRatioFactoryBG3: true, tWallMenuBG3: true };
 const step = (target: string | string[] | undefined, name: string, side?: Side): Step => ({ target, title: `t${name}T` as Key, body: `t${name}B` as Key, side });
 const names = (target: Step['target']): string[] => (target === undefined ? [] : Array.isArray(target) ? target : [target]);
 
@@ -94,7 +94,22 @@ const MOBILE_OVERVIEW: Step[] = [
   step('write', 'OvWrite', 'top'),
   step('m-settings', 'OvHelp', 'bottom'),
 ];
-const tours = (id: TourId): Step[] => (isMobile && id === 'overview' ? MOBILE_OVERVIEW : TOURS[id]);
+/** The same on a wide screen (an iPad, a tablet), where the pages and the settings are in a sidebar. */
+const WIDE_OVERVIEW: Step[] = [
+  step(undefined, 'OvWelcome'),
+  { target: ['firmware', 'model'], title: 'tOvFirmwareT', body: 'tOvFirmwareBW', side: 'right' },
+  step('m-settings', 'MSettings', 'right'),
+  step('nav-ic', 'OvIc', 'right'),
+  step('nav-ratio', 'OvRatio', 'right'),
+  step(['nav-ic', 'nav-ratio'], 'OvCombine', 'right'),
+  step('nav-wall', 'OvWall', 'right'),
+  step('export', 'OvExport', 'top'),
+  step('write', 'OvWrite', 'top'),
+  { target: 'm-help', title: 'tOvHelpT', body: 'tOvHelpBW', side: 'right' },
+];
+/** Which overview: chosen when it starts, so that the steps stay the same while it runs. */
+let mobileOverview = MOBILE_OVERVIEW;
+const tours = (id: TourId): Step[] => (isMobile && id === 'overview' ? mobileOverview : TOURS[id]);
 
 /**
  * The phone: the page scrolls, and the floating buttons and tabs cover its lower part. A step's target is brought
@@ -107,7 +122,7 @@ function bringIntoView(el: HTMLElement): void {
   if (!box) return;
   const b = box.getBoundingClientRect();
   const r = el.getBoundingClientRect();
-  const covered = 190; // the floating buttons and tabs
+  const covered = document.querySelector('.app.mobile.wide') ? 110 : 190; // the floating buttons (and tabs)
   const top = b.top + 8, bottom = Math.min(b.bottom, window.innerHeight - covered);
   if (r.top >= top && r.bottom <= bottom) return;
   const room = bottom - top;
@@ -131,6 +146,7 @@ export function beginTour(id: TourId, replay: boolean): boolean {
   if (getState().tour) return false;
   if (document.querySelector('.m-sheet-wrap')) return false; // a sheet of the phone app is open
   if (id !== 'overview' && !document.querySelector(`.app [data-tour-page="${id}"]`)) return false;
+  if (id === 'overview') mobileOverview = document.querySelector('.app.mobile.wide') ? WIDE_OVERVIEW : MOBILE_OVERVIEW;
   const steps: number[] = [];
   tours(id).forEach((st, i) => { if (names(st.target).every((n) => find(n))) steps.push(i); });
   if (steps.length === 0) return false;

@@ -167,61 +167,119 @@ export function App() {
 
 const PAGE_TITLE: Record<string, Key> = { ic: 'navIC', ratio: 'navRatio', wall: 'navWall', copies: 'navIC' };
 
-function MobileTop({ onSettings }: { onSettings: () => void }) {
+function MobileTop({ onSettings, wide }: { onSettings: () => void; wide: boolean }) {
   const page = useStore((s) => s.page);
   const info = useStore((s) => s.info);
   return (
     <header className="m-top">
       <h1 className="m-title">{t(PAGE_TITLE[page] ?? 'navIC')}</h1>
       <span className="grow" />
+      {!wide && <>
       <button type="button" className="m-fw" data-tour="m-fw" onClick={onSettings} aria-label={t('mSettings')}>
         <span className={info ? '' : 'muted'}>{info ? (info.bridge ? t('fwBridgeValue') : <><span className="m-fw-file">{info.filename} · </span>{info.version}</>) : t('noFirmware')}</span>
         <i className={`dot ${info ? (info.bridge ? 'warn' : 'ok') : ''}`} />
       </button>
       <button type="button" className="btn ghost icon-only m-icon" data-tour="m-settings" onClick={onSettings} aria-label={t('mSettings')}>{Ico.sliders}</button>
+      </>}
     </header>
   );
 }
 
-function MobileSettings({ onClose }: { onClose: () => void }) {
+/**
+ * The settings: the firmware, the model, the languages, the guides and the version. In the settings sheet on a phone,
+ * in the sidebar on a wide screen (`close` is then absent).
+ */
+function SettingsBody({ close }: { close?: () => void }) {
   const model = useStore((s) => s.model);
   const lang = useStore((s) => s.lang);
   const langAuto = useStore((s) => s.langAuto);
   const sys = systemCameraLang();
   const ui = uiLangPref();
+  // from the sheet: it slides away first, then the guide starts
+  const then = (f: () => void, wait: number): void => { if (close) { close(); window.setTimeout(f, wait); } else f(); };
+  return (
+    <>
+      <div className="side-props m-props">
+        <FirmwareRow />
+        <Select<CameraModel>
+          variant="row" tour="model" label={t('model')} lead={<span className="side-label">{t('model')}</span>} value={model} onChange={setModel}
+          options={MODELS.map((m) => ({ value: m, label: modelLabel(m) }))}
+        />
+        <Select<string>
+          variant="row" tour="language" label={t('language')} lead={<span className="side-label">{t('language')}</span>} value={langAuto ? 'auto' : lang}
+          onChange={(v) => { if (v === 'auto') setLangAuto(); else setLang(v as LangCode); }}
+          options={[{ value: 'auto', label: `${t('followSystem')} · ${LANG_LABEL[sys] || sys}` }, ...LANGS.map((l) => ({ value: l, label: LANG_LABEL[l] || l }))]}
+        />
+        <Select<string>
+          variant="row" tour="ui-language" label={t('uiLanguage')} lead={<span className="side-label">{t('uiLanguage')}</span>} value={ui || 'auto'}
+          onChange={(v) => { if (v !== (ui || 'auto')) setUiLangPref(v === 'zh' || v === 'en' ? v : ''); }}
+          options={[{ value: 'auto', label: t('followSystem') }, { value: 'zh', label: '简体中文' }, { value: 'en', label: 'English' }]}
+        />
+      </div>
+      <div className="side-props m-props m-help" data-tour="m-help">
+        <button type="button" className="m-row" onClick={() => then(replayTour, 480)}>{Ico.help}<span>{t('tourReplay')}</span></button>
+        <button type="button" className="m-row" onClick={() => then(restartTours, 480)}>{Ico.refresh}<span>{t('tourRestart')}</span></button>
+      </div>
+      <div className="m-sheet-foot">
+        <button type="button" className="about-link" onClick={() => then(openWhatsNew, 200)}>GR Mod v{host.info?.version || ''} · {t('mWhatsNew')}</button>
+        <span className="grow" />
+        {close && <button type="button" className="btn" onClick={close}>{t('pushClose')}</button>}
+      </div>
+    </>
+  );
+}
+
+function MobileSettings({ onClose }: { onClose: () => void }) {
   return (
     <MobileSheet label={t('mSettings')} onClose={onClose} side="right">
-      {(close) => (
-        <>
-          <div className="side-props m-props">
-            <FirmwareRow />
-            <Select<CameraModel>
-              variant="row" label={t('model')} lead={<span className="side-label">{t('model')}</span>} value={model} onChange={setModel}
-              options={MODELS.map((m) => ({ value: m, label: modelLabel(m) }))}
-            />
-            <Select<string>
-              variant="row" label={t('language')} lead={<span className="side-label">{t('language')}</span>} value={langAuto ? 'auto' : lang}
-              onChange={(v) => { if (v === 'auto') setLangAuto(); else setLang(v as LangCode); }}
-              options={[{ value: 'auto', label: `${t('followSystem')} · ${LANG_LABEL[sys] || sys}` }, ...LANGS.map((l) => ({ value: l, label: LANG_LABEL[l] || l }))]}
-            />
-            <Select<string>
-              variant="row" label={t('uiLanguage')} lead={<span className="side-label">{t('uiLanguage')}</span>} value={ui || 'auto'}
-              onChange={(v) => { if (v !== (ui || 'auto')) setUiLangPref(v === 'zh' || v === 'en' ? v : ''); }}
-              options={[{ value: 'auto', label: t('followSystem') }, { value: 'zh', label: '简体中文' }, { value: 'en', label: 'English' }]}
-            />
-          </div>
-          <div className="side-props m-props m-help">
-            <button type="button" className="m-row" onClick={() => { close(); window.setTimeout(replayTour, 480); }}>{Ico.help}<span>{t('tourReplay')}</span></button>
-            <button type="button" className="m-row" onClick={() => { close(); window.setTimeout(restartTours, 480); }}>{Ico.refresh}<span>{t('tourRestart')}</span></button>
-          </div>
-          <div className="m-sheet-foot">
-            <button type="button" className="about-link" onClick={() => { close(); window.setTimeout(openWhatsNew, 200); }}>GR Mod v{host.info?.version || ''} · {t('mWhatsNew')}</button>
-            <span className="grow" />
-            <button type="button" className="btn" onClick={close}>{t('pushClose')}</button>
-          </div>
-        </>
-      )}
+      {(close) => <SettingsBody close={close} />}
     </MobileSheet>
+  );
+}
+
+/** Wide screens (an iPad, a tablet): the pages and the settings in a sidebar, as on the desktop. */
+const WIDE = '(min-width: 740px)';
+function useWide(): boolean {
+  const [wide, setWide] = useState(() => window.matchMedia(WIDE).matches);
+  useLayoutEffect(() => {
+    const q = window.matchMedia(WIDE);
+    const f = (): void => setWide(q.matches);
+    f();
+    q.addEventListener('change', f);
+    return () => q.removeEventListener('change', f);
+  }, []);
+  return wide;
+}
+
+/** The page tabs that this model and firmware have. */
+function usePageTabs(): { p: TabPage; icon: React.ReactNode; key: Key }[] {
+  const model = useStore((s) => s.model);
+  const menuPics = useStore((s) => !!s.info?.capabilities.menuPictures);
+  const info = useStore((s) => !!s.info);
+  return [
+    { p: 'ic', icon: Ico.aperture, key: 'navIC' },
+    { p: 'ratio', icon: Ico.ratio, key: 'navRatio' },
+    ...((!isGr3(model) || menuPics || !info) ? [{ p: 'wall' as TabPage, icon: Ico.image, key: 'navWall' as Key }] : []),
+  ];
+}
+
+function MobileSide() {
+  const page = useStore((s) => s.page);
+  const tabs = usePageTabs();
+  return (
+    <aside className="m-side">
+      <div className="m-side-title">GR Mod</div>
+      <nav className="m-side-nav">
+        {tabs.map((x) => (
+          <button
+            key={x.p} type="button" className={`m-nav ${x.p === page || (x.p === 'ic' && page === 'copies') ? 'on' : ''}`} data-tour={`nav-${x.p}`}
+            aria-current={x.p === page ? 'page' : undefined} onClick={() => { if (x.p !== page) { haptic(); setPage(x.p); } }}
+          >{x.icon}<span>{t(x.key)}</span></button>
+        ))}
+      </nav>
+      <span className="grow" />
+      <div className="m-side-settings" data-tour="m-settings"><SettingsBody /></div>
+    </aside>
   );
 }
 
@@ -278,14 +336,7 @@ type TabPage = 'ic' | 'ratio' | 'wall';
  */
 function MobileTabs() {
   const page = useStore((s) => s.page);
-  const model = useStore((s) => s.model);
-  const menuPics = useStore((s) => !!s.info?.capabilities.menuPictures);
-  const info = useStore((s) => !!s.info);
-  const tabs: { p: TabPage; icon: React.ReactNode; key: Key }[] = [
-    { p: 'ic', icon: Ico.aperture, key: 'navIC' },
-    { p: 'ratio', icon: Ico.ratio, key: 'navRatio' },
-    ...((!isGr3(model) || menuPics || !info) ? [{ p: 'wall' as TabPage, icon: Ico.image, key: 'navWall' as Key }] : []),
-  ];
+  const tabs = usePageTabs();
   const current = Math.max(0, tabs.findIndex((x) => x.p === page || (x.p === 'ic' && page === 'copies')));
   const bar = useRef<HTMLElement>(null);
   const lens = useRef<HTMLSpanElement>(null);
@@ -411,6 +462,8 @@ function MobileApp() {
   const fwOpen = useStore((s) => !!s.info);
   const ready = useStore((s) => s.ready);
   const [settings, setSettings] = useState(false);
+  const wide = useWide();
+  useLayoutEffect(() => { if (wide) setSettings(false); }, [wide]);
   // while the keyboard is up (a field being typed in) the floating buttons and tabs step aside
   const [typing, setTyping] = useState(false);
   useLayoutEffect(() => {
@@ -440,17 +493,22 @@ function MobileApp() {
       view.animate([{ opacity: 0, transform: `translate3d(${dir * 28}px, 0, 0)` }, { opacity: 1, transform: 'none' }], { duration: 340, easing: 'cubic-bezier(0.2, 0.9, 0.25, 1)' });
     }
   }, [page]);
-  return (
-    <div className={`app mobile ${typing ? 'typing' : ''}`}>
-      <MobileTop onSettings={() => setSettings(true)} />
+  const body = (
+    <>
+      <MobileTop wide={wide} onSettings={() => setSettings(true)} />
       <main className="main">
         <BridgeBanner />
         <div className="stage" ref={stage} onScroll={(e) => { scrolls.current[shown.current] = e.currentTarget.scrollTop; }}>{ready ? (page === 'ratio' ? <RatioPage /> : page === 'wall' && (!gr3 || menuPicsReady || !fwOpen) ? <WallpaperPage /> : <ImageControlPage />) : <div className="page"><span className="spinner" /></div>}</div>
       </main>
       {/* both float over the page, which scrolls on under them */}
       <MobileActions />
-      <MobileTabs />
-      {settings && <MobileSettings onClose={() => setSettings(false)} />}
+      {!wide && <MobileTabs />}
+    </>
+  );
+  return (
+    <div className={`app mobile ${wide ? 'wide' : ''} ${typing ? 'typing' : ''}`}>
+      {wide ? <><MobileSide /><div className="m-body">{body}</div></> : body}
+      {settings && !wide && <MobileSettings onClose={() => setSettings(false)} />}
       <CropEditor />
       <FirmwareOnline />
       <UpdateWatcher />

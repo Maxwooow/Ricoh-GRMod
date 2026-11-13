@@ -658,7 +658,8 @@ html.ios .m-lens.held { -webkit-backdrop-filter: saturate(1.45) brightness(1.06)
 .app.mobile .ic, .app.mobile .ratio { display: flex; flex-direction: column; gap: 16px; flex: none; }
 .app.mobile .cards, .app.mobile .ratio-list { overflow: visible; padding-right: 0; min-height: auto; }
 .app.mobile .ic > .pane, .app.mobile .ratio > .pane { order: -1; flex: none; }
-.app.mobile .ic > .pane .pane-body { flex: none; height: calc((100vw - 32px) / 1.5 + 4px); }
+.app.mobile .ic > .pane { container-type: inline-size; }
+.app.mobile .ic > .pane .pane-body { flex: none; height: calc(100cqw / 1.5 + 4px); }
 /* the phone has no hover to read the rest: the descriptions of the switches are shown whole */
 .app.mobile .soft-switch .soft-text .ellipsis { display: block; -webkit-line-clamp: unset; overflow: visible; }
 .app.mobile .ratio-body { flex: none; height: auto; container-type: inline-size; }
@@ -816,3 +817,47 @@ html.mobile-app .tour-hole { border-radius: 14px; }
 .app.mobile .look-btns { gap: 2px; }
 .app.mobile .look-btns .btn.icon-only { width: 36px; height: 36px; }
 .app.mobile .look-btns .btn.icon-only svg { width: 18px; height: 18px; }
+
+/* ---- larger screens: an iPad, a tablet ----
+   600-739px (an iPad in split view, a small tablet): the phone layout in a column of a readable width.
+   From 740px: the pages and the settings in a sidebar, as on the desktop (app.tsx MobileSide); from 1100px the cards
+   and the preview side by side, the preview staying in view while the cards scroll. */
+@media (min-width: 600px) {
+  .app.mobile:not(.wide) .page { max-width: 712px; margin: 0 auto; }
+  .app.mobile:not(.wide) .m-top { padding-left: max(16px, calc(50% - 340px)); padding-right: max(8px, calc(50% - 348px)); }
+  .app.mobile:not(.wide) .m-actions, .app.mobile:not(.wide) .m-dock { left: max(16px, calc(50% - 340px)); right: max(16px, calc(50% - 340px)); }
+  .app.mobile:not(.wide) .toasts { left: max(12px, calc(50% - 340px)); right: max(12px, calc(50% - 340px)); }
+  .app.mobile .wall-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important; gap: 14px; }
+  /* a sheet of choices: a card floating above the bottom edge, not the whole width */
+  .m-sheet-wrap:not(.m-drawer-wrap) { place-items: end center; }
+  .m-sheet-wrap:not(.m-drawer-wrap) .m-sheet { width: min(520px, calc(100% - 32px)); border-radius: 20px; padding-bottom: 14px; margin-bottom: calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 16px); animation-name: m-up-card; }
+  .m-sheet-wrap.closing:not(.m-drawer-wrap) .m-sheet { animation-name: m-down-card; }
+}
+@keyframes m-up-card { from { transform: translateY(calc(100% + 60px)); } }
+@keyframes m-down-card { to { transform: translateY(calc(100% + 60px)); } }
+.app.mobile.wide { flex-direction: row; --side-w: 280px; }
+.m-side { width: calc(var(--side-w) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px))); flex: none; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 6px) 12px calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 10px) calc(var(--safe-area-inset-left, env(safe-area-inset-left, 0px)) + 12px); }
+.m-side-title { display: flex; align-items: center; min-height: 40px; padding: 0 10px; margin-bottom: 10px; font-size: 21px; font-weight: 700; letter-spacing: -0.01em; }
+.m-side-nav { display: grid; gap: 2px; }
+.m-nav { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; padding: 0 12px; border: 0; border-radius: 12px; background: none; color: var(--text); font-size: 16px; font-weight: 500; text-align: left; transition: background-color 0.15s, color 0.15s; }
+.m-nav svg { width: 22px; height: 22px; flex: none; color: var(--muted); transition: color 0.15s; }
+.m-nav span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-nav.on { background: var(--blue-bg); color: var(--blue); font-weight: 600; }
+.m-nav.on svg { color: var(--blue); }
+.m-nav:active:not(.on) { background: var(--hover); }
+.m-side-settings { display: flex; flex-direction: column; margin-top: 16px; }
+.m-side-settings .m-props.m-help { border-top: 1px solid var(--line); padding-top: 6px; margin-top: 4px; }
+.m-side-settings .m-sheet-foot { padding-top: 10px; margin-top: 4px; }
+.app.mobile.wide .m-body { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.app.mobile.wide .m-top { padding-left: 24px; padding-right: calc(var(--safe-area-inset-right, env(safe-area-inset-right, 0px)) + 16px); }
+.app.mobile.wide .main { border-top: 1px solid var(--line); border-left: 1px solid var(--line); border-top-left-radius: 14px; }
+.app.mobile.wide .page { padding: 16px calc(var(--safe-area-inset-right, env(safe-area-inset-right, 0px)) + 24px) calc(var(--dock-b) + var(--act-h) + 34px) 24px; max-width: 840px; margin: 0 auto; }
+/* the output buttons float over the bottom of the page, centred on it */
+.app.mobile.wide .m-actions { position: absolute; left: max(24px, calc(50% - 280px)); right: max(24px, calc(50% - 280px)); bottom: var(--dock-b); }
+.app.mobile.wide .toasts { bottom: calc(var(--dock-b) + var(--act-h) + 18px); left: calc(var(--side-w) + 24px); right: 24px; }
+@media (min-width: 1100px) {
+  .app.mobile.wide .page { max-width: 1240px; }
+  .app.mobile.wide .ic, .app.mobile.wide .ratio { display: grid; grid-template-columns: minmax(340px, 1fr) minmax(0, 1.15fr); align-items: start; gap: 28px; }
+  .app.mobile.wide .ic > .pane, .app.mobile.wide .ratio > .pane { order: 0; position: sticky; top: 4px; }
+}
