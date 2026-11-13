@@ -14,7 +14,7 @@ public class GrCameraPlugin: CAPPlugin, CAPBridgedPlugin, PushEvents, UIDocument
         "ensurePermissions", "getStatus", "bondedCameras", "scan",
         "uploadBegin", "uploadAppend", "uploadEnd", "storeRead", "storeDelete",
         "firmwareLatest", "firmwareDownload", "firmwareCancel", "firmwarePage",
-        "openUrl", "leave", "haptic", "appInfo", "start", "cancel", "shareLog",
+        "openUrl", "leave", "haptic", "appInfo", "start", "cancel", "shareLog", "setLanguage",
     ].map { CAPPluginMethod(name: $0, returnType: CAPPluginReturnPromise) }
 
     private let hub = BleCentral.shared
@@ -72,6 +72,14 @@ public class GrCameraPlugin: CAPPlugin, CAPBridgedPlugin, PushEvents, UIDocument
     }
 
     @objc func getStatus(_ call: CAPPluginCall) { work.async { call.resolve(self.status()) } }
+
+    /// The app's language ("zh" or "en"), for the messages made here. Kept for now; the messages on iOS
+    /// are still in Chinese only (Android's L.s(zh, en) is not ported yet).
+    static var language = "zh"
+    @objc func setLanguage(_ call: CAPPluginCall) {
+        GrCameraPlugin.language = call.getString("lang") == "en" ? "en" : "zh"
+        call.resolve()
+    }
 
     // MARK: scan
 
