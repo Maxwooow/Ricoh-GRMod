@@ -2,6 +2,7 @@
 // was designed for, the whole interface is scaled down uniformly instead of being cut off.
 import { host, isMobile } from './host';
 import { isIOS } from './host-android';
+import { installBounce } from './bounce';
 
 export const DESIGN_W = 1040;
 export const DESIGN_H = 680;
@@ -30,6 +31,8 @@ function apply(): void {
 const CHROME = { light: { caption: '#f7f7f5', text: '#37352f' }, dark: { caption: '#202020', text: '#d6d6d6' } };
 
 export function installWindowBehaviour(): void {
+  // Android: the rubber band at the ends of the scrolling panes (iOS has its own)
+  if (isMobile && !isIOS) installBounce();
   // no browser zoom: Ctrl+wheel (which is also what a touchpad pinch sends) and Ctrl +/-/0
   window.addEventListener('wheel', (e) => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive: false, capture: true });
   window.addEventListener('keydown', (e) => {

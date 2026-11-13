@@ -555,6 +555,8 @@ html.look-grabbing, html.look-grabbing * { cursor: grabbing !important; }
    scrolling under it, the output buttons and the page tabs at the bottom. Drawn edge to edge (viewport-fit=cover):
    the bars pad themselves by the system bars (Capacitor's --safe-area-inset-*). */
 html.mobile-app { touch-action: manipulation; }
+/* Android: no stretch or glow at the ends; bounce.ts gives the panes the rubber band instead */
+html.mobile-app.android * { overscroll-behavior-y: none !important; }
 html.mobile-app body { background: var(--side); font-size: 15px; }
 .app.mobile { flex-direction: column; background: var(--side); }
 .m-top { flex: none; display: flex; align-items: center; gap: 6px; padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 6px) 8px 6px 16px; min-height: 52px; background: var(--side); }
