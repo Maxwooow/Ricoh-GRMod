@@ -861,3 +861,5 @@ html.mobile-app .tour-hole { border-radius: 14px; }
   .app.mobile.wide .ic, .app.mobile.wide .ratio { display: grid; grid-template-columns: minmax(340px, 1fr) minmax(0, 1.15fr); align-items: start; gap: 28px; }
   .app.mobile.wide .ic > .pane, .app.mobile.wide .ratio > .pane { order: 0; position: sticky; top: 4px; }
 }
+.m-version { cursor: default; color: var(--faint); }
+.app.mobile .m-version:active, .m-version:hover { transform: none; background: none; color: var(--faint); }

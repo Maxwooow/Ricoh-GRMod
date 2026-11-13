@@ -193,7 +193,7 @@ function MobileTop({ onSettings, wide }: { onSettings: () => void; wide: boolean
 }
 
 /**
- * The settings: the firmware, the model, the languages, the guides and the version. In the settings sheet on a phone,
+ * The settings: the firmware, the model, the app language, the guides and the version (no release notes on the phone). In the settings sheet on a phone,
  * in the sidebar on a wide screen (`close` is then absent).
  */
 function SettingsBody({ close }: { close?: () => void }) {
@@ -215,7 +215,7 @@ function SettingsBody({ close }: { close?: () => void }) {
         <button type="button" className="m-row" onClick={() => then(restartTours, 480)}>{Ico.refresh}<span>{t('tourRestart')}</span></button>
       </div>
       <div className="m-sheet-foot">
-        <button type="button" className="about-link" onClick={() => then(openWhatsNew, 200)}>GR Mod v{host.info?.version || ''} · {t('mWhatsNew')}</button>
+        <span className="about-link m-version">GR Mod v{host.info?.version || ''}</span>
         <span className="grow" />
         {close && <button type="button" className="btn" onClick={close}>{t('pushClose')}</button>}
       </div>
@@ -505,7 +505,6 @@ function MobileApp() {
       {settings && !wide && <MobileSettings onClose={() => setSettings(false)} />}
       <CropEditor />
       <FirmwareOnline />
-      <UpdateWatcher />
       <PushDialog />
       <ConfirmDialog />
       <Tour />

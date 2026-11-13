@@ -135,7 +135,7 @@ public final class PushSession implements Runnable {
             ev.stage("ble", L.s("正在通过 Bluetooth® 连接照相机…", "Connecting to the camera over Bluetooth…"));
             connect(ble, 3);
             if (!ble.isBonded()) {
-                ev.stage("pair", L.s("配对：请确认手机与照相机显示的验证码一致，并在两端确认。", "Pairing: check that the phone and the camera show the same number, and confirm on both"));
+                ev.stage("pair", L.s("配对：请确认设备与照相机显示的验证码一致，并在两端确认。", "Pairing: check that the device and the camera show the same number, and confirm on both"));
                 ble.bond(120_000);
                 log.add(L.s("配对完成", "Paired"));
             }
@@ -145,10 +145,10 @@ public final class PushSession implements Runnable {
                 nt = ble.read(WLAN, NETWORK_TYPE);
             } catch (Ble.BleException e) {
                 log.add(L.s("读取照相机无线局域网状态失败：", "Reading the camera's Wi-Fi state failed: ") + e.getMessage());
-                throw new Fail("ble-auth", L.s("照相机不接受此手机的 Bluetooth® 连接。若已在照相机中删除此手机，请在手机的 Bluetooth® 设定中对 "
+                throw new Fail("ble-auth", L.s("照相机不接受此设备的 Bluetooth® 连接。若已在照相机中删除此设备，请在设备的 Bluetooth® 设定中对 "
                         + device.getName() + " 选择[取消配对]，再将照相机设为配对状态并重新推送。",
-                        "The camera does not accept this phone over Bluetooth. If the phone was removed in the camera: unpair "
-                        + device.getName() + " in the phone's Bluetooth settings, put the camera in pairing mode and send again"));
+                        "The camera does not accept this device over Bluetooth. If the device was removed in the camera: unpair "
+                        + device.getName() + " in the device's Bluetooth settings, put the camera in pairing mode and send again"));
             }
             if (nt.length == 0 || nt[0] != 1) {
                 ble.write(WLAN, NETWORK_TYPE, new byte[]{1});
@@ -162,7 +162,7 @@ public final class PushSession implements Runnable {
 
             // 2. Wi-Fi + checks
             boolean vpn = CameraNet.vpnActive(ctx);
-            if (vpn) log.add(L.s("注意：手机正在使用 VPN。若 VPN 不允许应用程序绕过，则无法连接照相机无线局域网中的 192.168.0.1", "Note: a VPN is on. If it does not let apps bypass it, 192.168.0.1 on the camera's Wi-Fi cannot be reached"));
+            if (vpn) log.add(L.s("注意：设备正在使用 VPN。若 VPN 不允许应用程序绕过，则无法连接照相机无线局域网中的 192.168.0.1", "Note: a VPN is on. If it does not let apps bypass it, 192.168.0.1 on the camera's Wi-Fi cannot be reached"));
             ev.stage("wifi", L.s("正在连接照相机的无线局域网[" + ssid + "]。若 1 分钟后仍无响应，请在系统的无线局域网设定中手动添加。", "Connecting to the camera's Wi-Fi “" + ssid + "”; if nothing happens within a minute, add it on the system's Wi-Fi page"));
             net.join(ssid, pass, 120_000);
             CameraNet.Reply props = null;
@@ -174,9 +174,9 @@ public final class PushSession implements Runnable {
                 } catch (java.io.IOException e) {
                     if (CameraNet.isBindRefused(e)) {
                         log.add(L.s("Android 拒绝将连接绑定至照相机无线局域网：", "Android refused to bind the connection to the camera's Wi-Fi: ") + e.getMessage());
-                        throw new Fail("vpn", L.s((vpn ? "手机上的 VPN 不允许 GR Mod 直接连接照相机的无线局域网。" : "Android 不允许 GR Mod 直接连接照相机的无线局域网，通常由 VPN 导致。")
+                        throw new Fail("vpn", L.s((vpn ? "设备上的 VPN 不允许 GR Mod 直接连接照相机的无线局域网。" : "Android 不允许 GR Mod 直接连接照相机的无线局域网，通常由 VPN 导致。")
                                 + "请关闭 VPN，或在 VPN 设定中关闭[阻止未使用 VPN 的连接]。",
-                                (vpn ? "The VPN on the phone does not let GR Mod reach the camera's Wi-Fi directly. " : "Android does not let GR Mod reach the camera's Wi-Fi directly (usually because of a VPN). ")
+                                (vpn ? "The VPN on the device does not let GR Mod reach the camera's Wi-Fi directly. " : "Android does not let GR Mod reach the camera's Wi-Fi directly (usually because of a VPN). ")
                                 + "Switch the VPN off first (or turn off \"Block connections without VPN\" in its settings)"));
                     }
                     if (System.currentTimeMillis() > until) throw new Fail("wifi", L.s("已连接照相机的无线局域网，但无法访问 192.168.0.1：", "On the camera's Wi-Fi, but 192.168.0.1 cannot be reached: ") + e.getMessage());
@@ -374,7 +374,7 @@ public final class PushSession implements Runnable {
             check();
             try { ble.connect(15_000); return; } catch (Ble.BleException e) { last = e; log.detail(L.s("第 " + (i + 1) + " 次 Bluetooth® 连接失败：", "Bluetooth connection attempt " + (i + 1) + " failed: ") + e.getMessage()); Thread.sleep(2000); }
         }
-        throw new Fail("ble", L.s("无法通过 Bluetooth® 连接照相机。请确认照相机已开启，并已退出手机上的 GR WORLD。（", "Cannot connect to the camera over Bluetooth: is it on? Is GR WORLD closed on the phone? (") + (last == null ? "" : last.getMessage()) + L.s("）", ")"));
+        throw new Fail("ble", L.s("无法通过 Bluetooth® 连接照相机。请确认照相机已开启，并已退出此设备上的 GR WORLD。（", "Cannot connect to the camera over Bluetooth: is it on? Is GR WORLD closed on this device? (") + (last == null ? "" : last.getMessage()) + L.s("）", ")"));
     }
 
     private void cancelUpdate(CameraNet net) {
