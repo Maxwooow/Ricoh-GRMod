@@ -4,7 +4,7 @@
  * content a little past it and back. (iOS does this by itself; Chromium on Android stops dead, so this is Android only.)
  *
  * The content is moved with the `translate` property on the pane's children, which adds to any `transform` they have.
- * Panes that do not overflow, text fields and handles that drag (touch-action: none) are left alone, as is a look
+ * Android's own stretch at the ends is switched off on the panes the finger touches. Panes that do not overflow, text fields and handles that drag (touch-action: none) are left alone, as is a look
  * being dragged in the look list (html.look-grabbing).
  */
 const C = 0.55; // the stiffness of the band (UIScrollView's constant)
@@ -78,6 +78,9 @@ export function installBounce(): void {
     if (e.touches.length !== 1) { g = null; return; }
     const el = paneOf(e.target);
     if (!el) { g = null; return; }
+    // no stretch or glow of its own at the ends (set on the pane only: on every element, `none` would also stop a
+    // swipe that starts on a clipping box inside the pane, such as the preview, from scrolling the pane)
+    if (el.style.overscrollBehaviorY !== 'none') el.style.overscrollBehaviorY = 'none';
     const tc = e.touches[0];
     const b = band(el);
     stop(el);
