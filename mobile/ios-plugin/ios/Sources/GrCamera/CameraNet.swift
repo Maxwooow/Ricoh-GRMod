@@ -26,20 +26,21 @@ final class CameraNet: NSObject, URLSessionWebSocketDelegate {
 
         func describe() -> String {
             guard let j = json else { return "HTTP \(status) \(String(body.prefix(200)))" }
-            var s = "HTTP \(status)，errCode=\((j["errCode"] as? NSNumber)?.intValue ?? 0) \(j["errMsg"] as? String ?? "")"
+            var s = "HTTP \(status)" + L.s("，errCode=", ", errCode=") + "\((j["errCode"] as? NSNumber)?.intValue ?? 0) \(j["errMsg"] as? String ?? "")"
             var d: Any? = j["detail"]
             if let o = d as? [String: Any] { d = o["reason"] }
             if let d = d, !(d is NSNull) { s += " reason=\(d)" }
-            if let h = Reply.hint((d as? String) ?? (j["errMsg"] as? String)) { s += "（\(h)）" }
+            if let h = Reply.hint((d as? String) ?? (j["errMsg"] as? String)) { s += L.s("（", " (") + h + L.s("）", ")") }
             return s
         }
 
         static func hint(_ errMsg: String?) -> String? {
             switch errMsg ?? "" {
-            case "err_fw_same": return "相机认为版本相同，拒绝"
-            case "err_fw_old": return "相机认为版本更旧，拒绝。如果相机显示的版本和这个文件一样（比如上次更新中途卡住、关过机），用存储卡刷一次这个文件就能恢复，之后可以再无线推送"
-            case "err_fw_broken": return "相机认为文件损坏"
-            case "battery_too_low": return "相机电量不足"
+            case "err_fw_same": return L.s("照相机判定版本相同，已拒绝", "the camera has this version already and refused it")
+            case "err_fw_old": return L.s("照相机判定版本较旧，已拒绝。若照相机显示的版本与此文件相同（例如上次更新中途停止或曾关闭电源），请使用存储卡安装一次相同文件以恢复，之后可再次无线推送。",
+                "the camera takes this for an older version and refused it. If the camera shows the same version as this file (say an update got stuck and the camera was switched off), flashing the same file once from a memory card sets it right; after that, sending works again")
+            case "err_fw_broken": return L.s("照相机判定文件已损坏", "the camera takes the file for damaged")
+            case "battery_too_low": return L.s("照相机电池电量不足", "the camera's battery is too low")
             default: return nil
             }
         }
@@ -80,23 +81,23 @@ final class CameraNet: NSObject, URLSessionWebSocketDelegate {
         let sem = DispatchSemaphore(value: 0)
         var failure: Error?
         NEHotspotConfigurationManager.shared.apply(conf) { e in failure = e; sem.signal() }
-        if sem.wait(timeout: .now() + timeout) == .timedOut { throw NetError(message: "连相机 Wi-Fi 超时") }
+        if sem.wait(timeout: .now() + timeout) == .timedOut { throw NetError(message: L.s("连接照相机的无线局域网超时", "Joining the camera's Wi-Fi timed out")) }
         if let e = failure as NSError? {
             if e.domain == NEHotspotConfigurationErrorDomain {
                 switch NEHotspotConfigurationError(rawValue: e.code) {
                 case .alreadyAssociated?: break
-                case .userDenied?: throw NetError(message: "没有连上相机 Wi-Fi（在系统弹窗里取消了）")
-                default: throw NetError(message: "没有连上相机 Wi-Fi：\(e.localizedDescription)（\(e.code)）")
+                case .userDenied?: throw NetError(message: L.s("未连接照相机的无线局域网（已在系统提示中取消）", "Not connected to the camera's Wi-Fi (cancelled in the system prompt)"))
+                default: throw NetError(message: L.s("未连接照相机的无线局域网：", "Not connected to the camera's Wi-Fi: ") + e.localizedDescription + " (\(e.code))")
                 }
             } else {
-                throw NetError(message: "没有连上相机 Wi-Fi：\(e.localizedDescription)")
+                throw NetError(message: L.s("未连接照相机的无线局域网：", "Not connected to the camera's Wi-Fi: ") + e.localizedDescription)
             }
         }
         joined = ssid
         // Only a note: iOS reports success even when the network was not found; the first request tells.
         let s2 = DispatchSemaphore(value: 0)
         NEHotspotNetwork.fetchCurrent { n in
-            if let n = n { self.log.detail("当前 Wi-Fi：\(n.ssid)") }
+            if let n = n { self.log.detail(L.s("当前无线局域网：", "Current Wi-Fi: ") + n.ssid) }
             s2.signal()
         }
         _ = s2.wait(timeout: .now() + 3)
@@ -136,7 +137,7 @@ final class CameraNet: NSObject, URLSessionWebSocketDelegate {
             if Date() > until {
                 task.cancel()
                 _ = done.sem.wait(timeout: .now() + 5)
-                throw NetError(message: "相机没有回应（超时）")
+                throw NetError(message: L.s("照相机无回应（超时）", "The camera did not answer (timed out)"))
             }
         }
         tick?(task)
@@ -171,7 +172,7 @@ final class CameraNet: NSObject, URLSessionWebSocketDelegate {
         let done = Done()
         let t = session.uploadTask(with: req, fromFile: file) { d, r, e in done.set(d, r, e) }
         let r = try wait(t, done, timeout: timeout, tick: { task in progress(task.countOfBytesSent, total) })
-        log.detail("PUT \(path) (\(total) 字节) -> \(r.status) \(CameraNet.clip(r.body))")
+        log.detail("PUT \(path) (\(total)" + L.s(" 字节) -> ", " bytes) -> ") + "\(r.status) \(CameraNet.clip(r.body))")
         return r
     }
 
@@ -197,15 +198,15 @@ final class CameraNet: NSObject, URLSessionWebSocketDelegate {
         t.resume()
         if sem.wait(timeout: .now() + 10) == .timedOut || t.state != .running {
             t.cancel()
-            throw NetError(message: "WebSocket 握手失败")
+            throw NetError(message: L.s("WebSocket 握手失败", "WebSocket handshake failed"))
         }
         wsLock.lock(); wsAlive = true; wsLock.unlock()
-        log.detail("WebSocket 已连上 /v1/changes")
+        log.detail(L.s("WebSocket 已连接 /v1/changes", "WebSocket open: /v1/changes"))
         receive(t)
         let p = DispatchSource.makeTimerSource(queue: DispatchQueue.global())
         p.schedule(deadline: .now() + 10, repeating: 10)
         p.setEventHandler { [weak self, weak t] in
-            t?.sendPing { e in if let e = e { self?.log.detail("WebSocket ping 失败：\(e.localizedDescription)") } }
+            t?.sendPing { e in if let e = e { self?.log.detail(L.s("WebSocket ping 失败：", "WebSocket ping failed: ") + e.localizedDescription) } }
         }
         p.resume()
         pinger = p
@@ -223,7 +224,7 @@ final class CameraNet: NSObject, URLSessionWebSocketDelegate {
                 }
                 self.receive(t)
             case .failure(let e):
-                self.log.detail("WebSocket 断开: \(e.localizedDescription)")
+                self.log.detail(L.s("WebSocket 断开：", "WebSocket closed: ") + e.localizedDescription)
                 self.wsLock.lock(); self.wsAlive = false; self.wsLock.unlock()
             }
         }
@@ -246,7 +247,7 @@ final class CameraNet: NSObject, URLSessionWebSocketDelegate {
     }
 
     func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
-        log.detail("相机关闭了 WebSocket（\(closeCode.rawValue)）")
+        log.detail(L.s("照相机已关闭 WebSocket（", "The camera closed the WebSocket (") + "\(closeCode.rawValue)" + L.s("）", ")"))
         wsLock.lock(); wsAlive = false; wsLock.unlock()
     }
 

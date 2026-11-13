@@ -94,16 +94,16 @@ final class PushSession: BleListener {
     func onNotify(_ uuid: CBUUID, _ value: Data) {
         let h = PushSession.hex(value)
         if uuid == GrUUID.fwResult, let v = value.first {
-            log.add("FirmwareUpdateResult: \(h)" + (v == 1 ? "（成功）" : v == 2 ? "（失败）" : v == 0 ? "（invalid：相机不接受）" : ""))
+            log.add("FirmwareUpdateResult: \(h)" + (v == 1 ? L.s("（成功）", " (success)") : v == 2 ? L.s("（失败）", " (failure)") : v == 0 ? L.s("（invalid：照相机未接受）", " (invalid: the camera did not take it)") : ""))
             lock.lock()
             if v == 1 || v == 2 { fwResultValue = Int(v) } else if v == 0 && startSentFlag { fwInvalidFlag = true }
             lock.unlock()
         } else {
-            log.detail("蓝牙通知 \(Ble.short8(uuid)): \(h)")
+            log.detail(L.s("Bluetooth® 通知 ", "Bluetooth notification ") + "\(Ble.short8(uuid)): \(h)")
         }
     }
 
-    func onDisconnected(_ reason: String) { log.detail("蓝牙断开：\(reason)") }
+    func onDisconnected(_ reason: String) { log.detail(L.s("Bluetooth® 断开：", "Bluetooth dropped: ") + reason) }
 
     // MARK: the session
 
@@ -127,43 +127,44 @@ final class PushSession: BleListener {
             var info: FirmwareInfo?
             var fileSize: Int64 = 0
             if mode != .INFO {
-                guard let f = file else { throw Fail(code: "file", message: "还没有选固件文件") }
+                guard let f = file else { throw Fail(code: "file", message: L.s("尚未选择固件文件", "No firmware file chosen yet")) }
                 let i = try FirmwareInfo.read(f)
                 info = i
                 fileSize = i.size
-                log.add("固件：\(i.describe())，\(i.size) 字节，SHA-256 \(i.sha256)")
-                if !i.container { throw Fail(code: "file", message: i.error ?? "不是固件文件") }
+                log.add(L.s("固件：", "Firmware: ") + i.describe() + L.s("，", ", ") + "\(i.size)" + L.s(" 字节，SHA-256 ", " bytes, SHA-256 ") + i.sha256)
+                if !i.container { throw Fail(code: "file", message: i.error ?? L.s("不是固件文件", "Not a firmware file")) }
             }
 
             // 1. Bluetooth
-            ev?.stage("ble", "连接相机蓝牙…")
+            ev?.stage("ble", L.s("正在通过 Bluetooth® 连接照相机…", "Connecting to the camera over Bluetooth…"))
             try connect(ble, tries: 3)
             try check()
             // iOS pairs by itself on the first protected read and shows its dialog meanwhile.
-            ev?.stage("pair", "如果手机弹出蓝牙配对请求：确认手机和相机上的数字一致，两边都按确定（已经配对过就不会弹出）")
+            ev?.stage("pair", L.s("配对：如出现 Bluetooth® 配对请求，请确认设备与照相机显示的验证码一致，并在两端确认（已配对时不会出现）。", "Pairing: if a Bluetooth pairing request comes up, check that the device and the camera show the same number, and confirm on both (it does not come up once paired)"))
             let nt: Data
             do {
                 nt = try ble.read(GrUUID.wlan, GrUUID.networkType, timeout: 120)
             } catch let e as BleError {
-                log.add("读相机 Wi-Fi 状态失败：\(e.message)")
-                throw Fail(code: "ble-auth", message: "相机不接受这台手机的蓝牙连接。如果相机里已经删掉了这台手机：在 iPhone 的「设置 › 蓝牙」里点 \(name) 旁边的 ⓘ，选「忽略此设备」，再让相机进入配对状态，重新推送")
+                log.add(L.s("读取照相机无线局域网状态失败：", "Reading the camera's Wi-Fi state failed: ") + e.message)
+                throw Fail(code: "ble-auth", message: L.s("照相机不接受此设备的 Bluetooth® 连接。若已在照相机中删除此设备，请在[设置] › [蓝牙]中轻触 \(name) 旁的 ⓘ，选择[忽略此设备]，再将照相机设为配对状态并重新推送。",
+                    "The camera does not accept this device over Bluetooth. If the device was removed in the camera: in Settings › Bluetooth tap ⓘ next to \(name), choose Forget This Device, put the camera in pairing mode and send again"))
             }
             PushSession.remember(peripheral)
-            ev?.stage("ble", "已连接相机蓝牙")
+            ev?.stage("ble", L.s("已通过 Bluetooth® 连接照相机", "Connected to the camera over Bluetooth"))
             if nt.isEmpty || nt[nt.startIndex] != 1 {
                 try ble.write(GrUUID.wlan, GrUUID.networkType, Data([1]))
-                log.add("已通过蓝牙打开相机 Wi-Fi")
+                log.add(L.s("已通过 Bluetooth® 开启照相机无线局域网", "Camera Wi-Fi turned on over Bluetooth"))
                 try sleep(1.5)
             }
             let ssid = PushSession.text(try ble.read(GrUUID.wlan, GrUUID.ssid))
             let pass = PushSession.text(try ble.read(GrUUID.wlan, GrUUID.passphrase))
-            log.add("相机热点：\(ssid)")
+            log.add(L.s("照相机热点：", "Camera network: ") + ssid)
             try check()
 
             // 2. Wi-Fi + checks
             let vpn = CameraNet.vpnActive()
-            if vpn { log.add("注意：手机正在用 VPN。如果 VPN 接管了所有流量，就连不上相机 Wi-Fi 里的 192.168.0.1") }
-            ev?.stage("wifi", "连接相机 Wi-Fi「\(ssid)」：请在系统弹窗里选「加入」")
+            if vpn { log.add(L.s("注意：设备正在使用 VPN。若 VPN 接管全部流量，则无法连接照相机无线局域网中的 192.168.0.1", "Note: a VPN is on. If it takes all traffic, 192.168.0.1 on the camera's Wi-Fi cannot be reached")) }
+            ev?.stage("wifi", L.s("正在连接照相机的无线局域网[\(ssid)]。请在系统提示中轻触[加入]。", "Connecting to the camera's Wi-Fi “\(ssid)”: tap Join when the system asks"))
             do { try net.join(ssid: ssid, passphrase: pass, timeout: 120) } catch let e as CameraNet.NetError {
                 throw Fail(code: "wifi", message: e.message)
             }
@@ -177,59 +178,62 @@ final class PushSession: BleListener {
                 } catch let e as CameraNet.NetError {
                     lastError = e.message
                     if Date() > until {
-                        throw Fail(code: "wifi", message: "连上了相机 Wi-Fi，但访问不到 192.168.0.1：\(lastError)。"
-                            + "请在「设置 › 隐私与安全性 › 本地网络」里打开 GR Mod" + (vpn ? "，并关掉 VPN" : "") + "，再重新推送")
+                        throw Fail(code: "wifi", message: L.s("已连接照相机的无线局域网，但无法访问 192.168.0.1：\(lastError)。"
+                            + "请在[设置] › [隐私与安全性] › [本地网络]中开启 GR Mod" + (vpn ? "，并关闭 VPN" : "") + "，再重新推送。",
+                            "On the camera's Wi-Fi, but 192.168.0.1 cannot be reached: \(lastError). "
+                            + "Turn GR Mod on under Settings › Privacy & Security › Local Network" + (vpn ? " and switch the VPN off" : "") + ", then send again"))
                     }
                     try sleep(1)
                 }
             }
-            guard let p = props!.json else { throw Fail(code: "camera", message: "读不到相机信息：\(props!.describe())") }
+            guard let p = props!.json else { throw Fail(code: "camera", message: L.s("无法读取照相机信息：", "Cannot read the camera's details: ") + props!.describe()) }
             let model = p["model"] as? String ?? ""
             let fwVersion = p["firmwareVersion"] as? String ?? ""
             let battery = (p["battery"] as? NSNumber)?.intValue ?? -1
             let hot = (p["hot"] as? NSNumber)?.boolValue ?? false
             result["camera"] = ["model": model, "firmwareVersion": fwVersion, "battery": battery, "hot": hot, "serialNo": p["serialNo"] as? String ?? ""] as [String: Any]
-            log.add("相机：\(model)，固件 \(fwVersion)，电量 \(battery)%")
+            log.add(L.s("照相机：", "Camera: ") + model + L.s("，固件 ", ", firmware ") + fwVersion + L.s("，电池电量 ", ", battery ") + "\(battery)%")
             if mode == .INFO {
                 result["ok"] = true
-                ev?.stage("done", "已读到相机信息")
+                ev?.stage("done", L.s("已读取照相机信息", "Camera details read"))
                 return
             }
 
-            guard let info = info, let f = file else { throw Fail(code: "file", message: "还没有选固件文件") }
+            guard let info = info, let f = file else { throw Fail(code: "file", message: L.s("尚未选择固件文件", "No firmware file chosen yet")) }
             guard let rec = info.modelFor(model) else {
-                throw Fail(code: "model", message: "这个固件不是给 \(model) 的（文件里的机型：\(info.describe())）")
+                throw Fail(code: "model", message: L.s("此固件不适用于 \(model)（文件中的机型：\(info.describe())）", "This firmware is not for the \(model) (models in the file: \(info.describe()))"))
             }
             let camBase = FirmwareInfo.baseOf(fwVersion)
             if rec.base != camBase {
-                throw Fail(code: "version", message: "相机是 \(fwVersion)，这个固件对它来说是 \(rec.version)。目前只支持推送同一基础版本的固件（跨版本请用存储卡更新）")
+                throw Fail(code: "version", message: L.s("照相机当前版本为 \(fwVersion)，此固件对应版本为 \(rec.version)。目前仅支持推送同一基础版本的固件；跨版本时，请使用存储卡更新。",
+                    "The camera runs \(fwVersion); for it this firmware is \(rec.version). Only a firmware of the same base version can be sent (across versions, update from a memory card)"))
             }
             if battery >= 0 && battery < PushSession.minBattery {
-                throw Fail(code: "battery", message: "相机电量 \(battery)%，请充到 \(PushSession.minBattery)% 以上再推送")
+                throw Fail(code: "battery", message: L.s("照相机电池电量为 \(battery)%。请充电至 \(PushSession.minBattery)% 以上后再推送。", "The camera's battery is at \(battery)%: charge it above \(PushSession.minBattery)% first"))
             }
-            if hot { throw Fail(code: "hot", message: "相机过热，请等它凉下来") }
+            if hot { throw Fail(code: "hot", message: L.s("照相机过热，请等待其冷却。", "The camera is too hot: let it cool down")) }
             try check()
 
             // 3. prepare + upload
             do { try net.openChanges() } catch let e as CameraNet.NetError { throw Fail(code: "wifi", message: e.message) }
             wsOpen = true
-            ev?.stage("prepare", "准备上传…")
+            ev?.stage("prepare", L.s("正在准备上传…", "Preparing the upload…"))
             var r: CameraNet.Reply
             do { r = try net.post("/v1/configs/firmware/prepare", form: "filesize=\(fileSize)", timeout: 60) } catch let e as CameraNet.NetError {
-                throw Fail(code: "prepare", message: "prepare 没有回应：\(e.message)")
+                throw Fail(code: "prepare", message: L.s("prepare 无回应：", "No answer to prepare: ") + e.message)
             }
-            log.add("prepare：\(r.describe())")
-            if !r.ok { throw Fail(code: "prepare", message: "相机没有接受：\(r.describe())") }
+            log.add(L.s("prepare：", "prepare: ") + r.describe())
+            if !r.ok { throw Fail(code: "prepare", message: L.s("照相机未接受：", "The camera did not accept it: ") + r.describe()) }
             prepared = true
             if mode == .PREPARE_TEST {
                 cancelUpdate(net)
                 prepared = false
                 result["ok"] = true
-                ev?.stage("done", "prepare 被接受（已取消，没有传文件）")
+                ev?.stage("done", L.s("prepare 已接受（已取消，未传输文件）", "prepare accepted (cancelled, no file sent)"))
                 return
             }
             try check()
-            ev?.stage("upload", "上传固件…")
+            ev?.stage("upload", L.s("正在上传固件…", "Uploading the firmware…"))
             var lastShown = Date.distantPast
             let t0 = Date()
             uploaded = true   // from here on: no cancel, no retry
@@ -238,14 +242,14 @@ final class PushSession: BleListener {
                 if now.timeIntervalSince(lastShown) > 0.2 || done == total { lastShown = now; self.ev?.progress(done, total) }
             }
             let putDone = Date()
-            log.add("上传：\(r.describe())，用时 \(Int(putDone.timeIntervalSince(t0))) 秒")
+            log.add(L.s("上传：", "Upload: ") + r.describe() + L.s("，耗时 ", ", ") + "\(Int(putDone.timeIntervalSince(t0)))" + L.s(" 秒", " s"))
             if !r.ok {
                 cancelUpdate(net)
-                throw Fail(code: "upload", message: "相机没有接受这个固件：\(r.describe())")
+                throw Fail(code: "upload", message: L.s("照相机未接受此固件：", "The camera did not accept this firmware: ") + r.describe())
             }
 
             // 4. the camera drops Wi-Fi and Bluetooth, then waits for FirmwareUpdateStart
-            ev?.stage("waiting", "相机收到固件，正在进入「等待更新」…")
+            ev?.stage("waiting", L.s("照相机已接收固件，正在准备更新…", "The camera has the firmware and is getting ready to update…"))
             let dropBy = Date().addingTimeInterval(40)
             while ble.isConnected && Date() < dropBy { Thread.sleep(forTimeInterval: 0.5) }
             let wsBy = Date().addingTimeInterval(15)
@@ -255,7 +259,7 @@ final class PushSession: BleListener {
             net.release()
             Thread.sleep(forTimeInterval: 2)
 
-            ev?.stage("start", "重连蓝牙，发送「开始更新」…")
+            ev?.stage("start", L.s("正在开始更新…", "Starting the update…"))
             let deadline = Date().addingTimeInterval(PushSession.startAfterUpload + PushSession.resultWindow)
             var started = false, reconnected = false
             var linkSince = Date.distantPast
@@ -264,27 +268,27 @@ final class PushSession: BleListener {
                 if !ble.isConnected {
                     do {
                         try ble.connect(timeout: 15)
-                        log.add("蓝牙已重连")
+                        log.add(L.s("Bluetooth® 已重新连接", "Bluetooth reconnected"))
                         reconnected = true
                         linkSince = Date()
                     } catch let e as BleError {
-                        log.detail("重连失败：\(e.message)")
+                        log.detail(L.s("重新连接失败：", "Reconnecting failed: ") + e.message)
                         Thread.sleep(forTimeInterval: 3)
                         continue
                     }
-                    do { try ble.subscribe(GrUUID.camera, GrUUID.fwResult) } catch let e as BleError { log.detail("订阅结果失败：\(e.message)") }
+                    do { try ble.subscribe(GrUUID.camera, GrUUID.fwResult) } catch let e as BleError { log.detail(L.s("订阅结果失败：", "Subscribing to the result failed: ") + e.message) }
                     if started {
                         do {
                             let v = try ble.read(GrUUID.camera, GrUUID.fwResult)
-                            log.detail("FirmwareUpdateResult 当前值 \(PushSession.hex(v))")
+                            log.detail(L.s("FirmwareUpdateResult 当前值 ", "FirmwareUpdateResult now ") + PushSession.hex(v))
                             if let b = v.first, b == 1 || b == 2 { lock.lock(); fwResultValue = Int(b); lock.unlock() }
-                        } catch let e as BleError { log.detail("读结果失败：\(e.message)") }
+                        } catch let e as BleError { log.detail(L.s("读取结果失败：", "Reading the result failed: ") + e.message) }
                     }
                 }
                 if !started && ble.isConnected {
                     if !reconnected {
                         // Bluetooth never dropped after the upload: subscribe on this link before starting.
-                        do { try ble.subscribe(GrUUID.camera, GrUUID.fwResult) } catch let e as BleError { log.detail("订阅结果失败：\(e.message)") }
+                        do { try ble.subscribe(GrUUID.camera, GrUUID.fwResult) } catch let e as BleError { log.detail(L.s("订阅结果失败：", "Subscribing to the result failed: ") + e.message) }
                         reconnected = true
                         linkSince = Date()
                     }
@@ -293,7 +297,7 @@ final class PushSession: BleListener {
                     let ready = max(putDone.addingTimeInterval(PushSession.startAfterUpload), linkSince.addingTimeInterval(PushSession.startAfterLink))
                     let now = Date()
                     if now < ready {
-                        log.detail("等相机准备好，\(Int(ceil(ready.timeIntervalSince(now)))) 秒后发送「开始更新」")
+                        log.detail(L.s("等待照相机准备就绪，\(Int(ceil(ready.timeIntervalSince(now)))) 秒后发送[开始更新]", "Waiting for the camera: \"start update\" in \(Int(ceil(ready.timeIntervalSince(now)))) s"))
                         Thread.sleep(forTimeInterval: min(1, ready.timeIntervalSince(now)))
                         continue
                     }
@@ -302,10 +306,10 @@ final class PushSession: BleListener {
                         try ble.write(GrUUID.camera, GrUUID.fwStart, Data([1]))
                         started = true
                         result["started"] = true
-                        log.add("已发送「开始更新」")
-                        ev?.stage("updating", "相机正在更新固件：不要关机、不要拔电池，等它自己重启")
+                        log.add(L.s("已发送[开始更新]", "\"Start update\" sent"))
+                        ev?.stage("updating", L.s("正在更新固件。请勿关闭照相机电源或取出电池，并等待照相机自动重启。", "Updating the firmware: do not switch the camera off or take the battery out; it restarts by itself"))
                     } catch let e as BleError {
-                        log.detail("发送「开始更新」失败：\(e.message)")
+                        log.detail(L.s("发送[开始更新]失败：", "Sending \"start update\" failed: ") + e.message)
                         Thread.sleep(forTimeInterval: 3)
                         continue
                     }
@@ -316,43 +320,46 @@ final class PushSession: BleListener {
             if fwInvalid && fwResult == nil {
                 result["ok"] = false
                 result["reason"] = "start-invalid"
-                ev?.stage("failed", "相机回应「开始更新」无效（invalid）。看相机屏幕：如果显示处理失败或回到正常画面，固件没有变化，可以重新推送；"
-                    + "如果停在「正在更新」且进度条长时间完全不动，不要拔电池，先等几分钟再长按电源键关机重开")
+                ev?.stage("failed", L.s("照相机返回[开始更新]无效（invalid）。若显示处理失败或返回正常画面，固件未发生变更，可重新推送；"
+                    + "若停留在[正在更新]且进度条长时间不动，请勿取出电池。请等待数分钟，再长按电源按钮关闭照相机后重试。",
+                    "The camera answered \"start update\" with invalid. If it shows that processing failed, or goes back to its normal screen, "
+                    + "the firmware has not changed and you can send again; if it stays on \"updating\" with the bar not moving for a long time, "
+                    + "do not take the battery out: wait a few minutes, then hold the power button to switch it off and try again"))
             } else if fwResult == 1 {
                 result["ok"] = true
-                ev?.stage("done", "相机报告更新成功。等相机重启后，在设置里确认固件版本")
+                ev?.stage("done", L.s("照相机固件更新成功。", "The camera updated successfully."))
             } else if fwResult != nil {
                 result["ok"] = false
                 result["reason"] = "update-failed"
-                ev?.stage("failed", "相机报告更新失败。相机的固件应该没有变化；可以重新推送，或用存储卡更新")
+                ev?.stage("failed", L.s("照相机报告更新失败。固件可能未发生变更。请重新推送，或使用存储卡更新。", "The camera reports that the update failed. Its firmware should be unchanged; send again, or update from a memory card"))
             } else {
                 result["ok"] = false
                 result["reason"] = started ? "no-result" : "not-started"
                 ev?.stage("failed", started
-                    ? "已发送「开始更新」，但没收到结果。相机可能还在更新：不要关机，看相机屏幕，更新完成后它会自己重启"
-                    : "没能发送「开始更新」。相机会在几分钟后显示处理失败，固件不变；可以重新推送")
+                    ? L.s("已发送[开始更新]，但未收到结果。照相机可能仍在更新。", "\"Start update\" was sent, but no result came back. The camera may still be updating")
+                    : L.s("未能发送[开始更新]。照相机将在数分钟后显示处理失败，固件不会发生变更；可重新推送。", "\"Start update\" could not be sent. In a few minutes the camera shows that processing failed, with its firmware unchanged; you can send again"))
             }
         } catch let f as Fail {
             result["ok"] = false
             result["reason"] = f.code
             result["message"] = f.message
-            log.add("停止：\(f.message)")
+            log.add(L.s("停止：", "Stopped: ") + f.message)
             if prepared && !uploaded { cancelUpdate(net) }
             ev?.stage("failed", f.message)
         } catch is Cancelled {
             result["ok"] = false
             result["reason"] = "cancelled"
-            log.add("已取消")
+            log.add(L.s("已取消", "Cancelled"))
             if prepared && !uploaded { cancelUpdate(net) }
-            ev?.stage("failed", uploaded ? "已停止等待；相机可能还在处理，看相机屏幕" : "已取消")
+            ev?.stage("failed", uploaded ? L.s("已停止等待。照相机可能仍在处理，请查看照相机显示屏", "Stopped waiting; the camera may still be at work: look at its screen") : L.s("已取消", "Cancelled"))
         } catch {
             let m = "\(error)"
             result["ok"] = false
             result["reason"] = "error"
             result["message"] = m
-            log.add("出错：\(m)")
+            log.add(L.s("错误：", "Error: ") + m)
             if prepared && !uploaded { cancelUpdate(net) }
-            ev?.stage("failed", uploaded ? "上传期间出错（\(m)）。不要马上重试：先看相机屏幕" : "出错：\(m)")
+            ev?.stage("failed", uploaded ? L.s("上传期间发生错误（\(m)）。请勿立即重试，请先查看照相机显示屏", "Error during the upload (\(m)). Do not try again at once: look at the camera's screen first") : L.s("错误：", "Error: ") + m)
         }
     }
 
@@ -362,19 +369,19 @@ final class PushSession: BleListener {
             try check()
             do { try ble.connect(timeout: 15); return } catch let e as BleError {
                 last = e
-                log.detail("蓝牙连接第 \(i + 1) 次失败：\(e.message)")
+                log.detail(L.s("第 \(i + 1) 次 Bluetooth® 连接失败：", "Bluetooth connection attempt \(i + 1) failed: ") + e.message)
                 try sleep(2)
             }
         }
-        throw Fail(code: "ble", message: "蓝牙连不上相机：相机开着吗？手机上的 GR WORLD 关掉了吗？（\(last?.message ?? "")）")
+        throw Fail(code: "ble", message: L.s("无法通过 Bluetooth® 连接照相机。请确认照相机已开启，并已退出此设备上的 GR WORLD。（", "Cannot connect to the camera over Bluetooth: is it on? Is GR WORLD closed on this device? (") + (last?.message ?? "") + L.s("）", ")"))
     }
 
     private func cancelUpdate(_ net: CameraNet) {
         do {
             let r = try net.post("/v1/configs/firmware/cancel", form: "", timeout: 30)
-            log.add("cancel：\(r.describe())")
+            log.add(L.s("cancel：", "cancel: ") + r.describe())
         } catch {
-            log.add("cancel 失败：\(error)")
+            log.add(L.s("cancel 失败：", "cancel failed: ") + "\(error)")
         }
     }
 

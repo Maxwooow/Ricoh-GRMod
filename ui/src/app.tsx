@@ -1,5 +1,4 @@
-import { LANGS } from '@grmod/core';
-import type { CameraModel, LangCode } from '@grmod/core';
+import type { CameraModel } from '@grmod/core';
 import { Component, useLayoutEffect, useRef, useState } from 'react';
 import type { ErrorInfo } from 'react';
 import { GlassDefs, GlassFilter, useGlass, useSize } from './glass';
@@ -7,7 +6,7 @@ import { Busy, ConfirmDialog, Hint, Ico, MobileSheet, Select, Toasts, useDismiss
 import { host, isMobile } from './host';
 import { PushDialog } from './camera';
 import { haptic, setBackFallback } from './host-android';
-import { LANG_LABEL, setUiLangPref, t, uiLangPref } from './i18n';
+import { t, uiLangPref } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
 import { BridgeBanner, FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
@@ -15,7 +14,7 @@ import { CropEditor, ImageControlPage, RatioPage, WallpaperPage } from './pages'
 import { Tour, replayTour, restartTours } from './tour';
 import { UpdatePill, UpdateWatcher, checkForUpdate, openWhatsNew } from './updates';
 import {
-  askForOfficial, bridgeLoaded, getState, isGr3, backupCopies, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setLang, setLangAuto, setModel, setPage, setShowAll, systemCameraLang, useStore, wallReady,
+  askForOfficial, bridgeLoaded, getState, isGr3, backupCopies, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setAppLanguage, setModel, setPage, setShowAll, useStore, wallReady,
 } from './store';
 import type { State } from './store';
 
@@ -24,7 +23,6 @@ const gb = (n: number): string => (n >= 1e9 ? `${(n / 1e9).toFixed(n >= 1e10 ? 0
 function Sidebar() {
   const page = useStore((s) => s.page);
   const model = useStore((s) => s.model);
-  const lang = useStore((s) => s.lang);
   const menuPics = useStore((s) => !!s.info?.capabilities.menuPictures);
   const info = useStore((s) => !!s.info);
   return (
@@ -42,10 +40,7 @@ function Sidebar() {
           variant="row" tour="model" label={t('model')} lead={<span className="side-label">{t('model')}</span>} value={model} onChange={setModel}
           options={MODELS.map((m) => ({ value: m, label: modelLabel(m) }))}
         />
-        <Select<LangCode>
-          variant="row" tour="language" label={t('language')} lead={<span className="side-label">{t('language')}</span>} value={lang} onChange={setLang}
-          options={LANGS.map((l) => ({ value: l, label: LANG_LABEL[l] || l }))}
-        />
+        <AppLanguage />
       </div>
       <div className="side-foot">
         <button className="about-link" data-tour="version" title={t('wnTitle')} onClick={() => openWhatsNew()}>v{host.info?.version || ''}</button>
@@ -54,6 +49,18 @@ function Sidebar() {
         <HelpMenu />
       </div>
     </aside>
+  );
+}
+
+/** The app language; the camera language (the names Image Control changes) follows it (store.ts cameraLang). */
+function AppLanguage() {
+  const ui = uiLangPref();
+  return (
+    <Select<string>
+      variant="row" tour="language" label={t('uiLanguage')} lead={<span className="side-label">{t('uiLanguage')}</span>} value={ui || 'auto'}
+      onChange={(v) => { void setAppLanguage(v === 'zh' || v === 'en' ? v : ''); }}
+      options={[{ value: 'auto', label: t('followSystem') }, { value: 'zh', label: '简体中文' }, { value: 'en', label: 'English' }]}
+    />
   );
 }
 
@@ -191,10 +198,6 @@ function MobileTop({ onSettings, wide }: { onSettings: () => void; wide: boolean
  */
 function SettingsBody({ close }: { close?: () => void }) {
   const model = useStore((s) => s.model);
-  const lang = useStore((s) => s.lang);
-  const langAuto = useStore((s) => s.langAuto);
-  const sys = systemCameraLang();
-  const ui = uiLangPref();
   // from the sheet: it slides away first, then the guide starts
   const then = (f: () => void, wait: number): void => { if (close) { close(); window.setTimeout(f, wait); } else f(); };
   return (
@@ -205,16 +208,7 @@ function SettingsBody({ close }: { close?: () => void }) {
           variant="row" tour="model" label={t('model')} lead={<span className="side-label">{t('model')}</span>} value={model} onChange={setModel}
           options={MODELS.map((m) => ({ value: m, label: modelLabel(m) }))}
         />
-        <Select<string>
-          variant="row" tour="language" label={t('language')} lead={<span className="side-label">{t('language')}</span>} value={langAuto ? 'auto' : lang}
-          onChange={(v) => { if (v === 'auto') setLangAuto(); else setLang(v as LangCode); }}
-          options={[{ value: 'auto', label: `${t('followSystem')} · ${LANG_LABEL[sys] || sys}` }, ...LANGS.map((l) => ({ value: l, label: LANG_LABEL[l] || l }))]}
-        />
-        <Select<string>
-          variant="row" tour="ui-language" label={t('uiLanguage')} lead={<span className="side-label">{t('uiLanguage')}</span>} value={ui || 'auto'}
-          onChange={(v) => { if (v !== (ui || 'auto')) setUiLangPref(v === 'zh' || v === 'en' ? v : ''); }}
-          options={[{ value: 'auto', label: t('followSystem') }, { value: 'zh', label: '简体中文' }, { value: 'en', label: 'English' }]}
-        />
+        <AppLanguage />
       </div>
       <div className="side-props m-props m-help" data-tour="m-help">
         <button type="button" className="m-row" onClick={() => then(replayTour, 480)}>{Ico.help}<span>{t('tourReplay')}</span></button>

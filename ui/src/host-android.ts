@@ -26,7 +26,11 @@ export const isIOS = platform === 'ios';
 export const Gr: GrCameraPlugin = (isMobile ? (cap!.registerPlugin ? cap!.registerPlugin('GrCamera') : cap!.Plugins?.GrCamera) : undefined) as GrCameraPlugin;
 
 declare const __GRMOD_VERSION__: string;
+declare const __GRMOD_MOBILE_VERSION__: string;
+/** The interface's version: its release notes are the desktop releases' (GitHub). */
 const version = typeof __GRMOD_VERSION__ === 'string' ? __GRMOD_VERSION__ : '';
+/** The app's own version, as the stores show it. */
+const appVersion = typeof __GRMOD_MOBILE_VERSION__ === 'string' ? __GRMOD_MOBILE_VERSION__ : version;
 const REPO = 'Maxwooow/Ricoh-GRMod';
 
 class AndroidHostError extends Error {
@@ -90,7 +94,7 @@ function inLanguage(body: string): string {
   return (UI_LANG === 'en' ? body.slice(m.index + m[0].length) : body.slice(0, m.index)).trim();
 }
 
-const info: HostInfo = { kind: platform, token: '', version, os: platform };
+const info: HostInfo = { kind: platform, token: '', version: appVersion, os: platform, notes: version };
 
 export const androidHost = {
   available: isMobile,

@@ -114,7 +114,7 @@ final class Ble: NSObject, CBPeripheralDelegate {
     private var discoverError: Error?
     private var opSem: DispatchSemaphore?
     private var opChar: CBUUID?
-    private var opKind = ""
+    private var opRead = false
     private var opValue: Data?
     private var opError: Error?
 
@@ -137,15 +137,15 @@ final class Ble: NSObject, CBPeripheralDelegate {
         connectedFlag = false
         connectError = error
         connectSem?.signal()
-        log.add("蓝牙连接失败：\(error?.localizedDescription ?? "?")")
+        log.add(L.s("Bluetooth® 连接失败：", "Bluetooth connection failed: ") + (error?.localizedDescription ?? "?"))
     }
 
     func didDisconnect(_ error: Error?) {
         let was = connectedFlag
         connectedFlag = false
         connectSem?.signal()
-        if discoverSem != nil { discoverError = error ?? BleError(message: "蓝牙断开"); discoverSem?.signal() }
-        if opSem != nil { opError = error ?? BleError(message: "蓝牙断开"); opSem?.signal() }
+        if discoverSem != nil { discoverError = error ?? BleError(message: L.s("Bluetooth® 断开", "Bluetooth dropped")); discoverSem?.signal() }
+        if opSem != nil { opError = error ?? BleError(message: L.s("Bluetooth® 断开", "Bluetooth dropped")); opSem?.signal() }
         if was { listener?.onDisconnected(error?.localizedDescription ?? "-") }
     }
 
@@ -167,7 +167,7 @@ final class Ble: NSObject, CBPeripheralDelegate {
         let ok = hub.queue.sync { () -> Bool in connectSem = nil; return connectedFlag }
         if waited == .timedOut || !ok {
             close()
-            throw BleError(message: "蓝牙连不上相机" + (connectError.map { "（\($0.localizedDescription)）" } ?? ""))
+            throw BleError(message: L.s("无法通过 Bluetooth® 连接照相机", "Cannot connect to the camera over Bluetooth") + (connectError.map { L.s("（", " (") + $0.localizedDescription + L.s("）", ")") } ?? ""))
         }
         let dsem = DispatchSemaphore(value: 0)
         hub.queue.sync {
@@ -178,28 +178,28 @@ final class Ble: NSObject, CBPeripheralDelegate {
         }
         let dw = dsem.wait(timeout: .now() + 15)
         let err = hub.queue.sync { () -> Error? in discoverSem = nil; return discoverError }
-        if dw == .timedOut { throw BleError(message: "读不到相机的蓝牙服务（超时）") }
-        if let e = err { throw BleError(message: "读不到相机的蓝牙服务（\(e.localizedDescription)）", underlying: e as NSError) }
+        if dw == .timedOut { throw BleError(message: L.s("无法读取照相机的 Bluetooth® 服务（超时）", "Cannot read the camera's Bluetooth services (timed out)")) }
+        if let e = err { throw BleError(message: L.s("无法读取照相机的 Bluetooth® 服务（", "Cannot read the camera's Bluetooth services (") + e.localizedDescription + L.s("）", ")"), underlying: e as NSError) }
     }
 
     private func find(_ svc: CBUUID, _ ch: CBUUID) throws -> CBCharacteristic {
         try hub.queue.sync {
-            guard connectedFlag else { throw BleError(message: "没有蓝牙连接") }
+            guard connectedFlag else { throw BleError(message: L.s("没有 Bluetooth® 连接", "No Bluetooth connection")) }
             guard let s = peripheral.services?.first(where: { $0.uuid == svc }),
                   let c = s.characteristics?.first(where: { $0.uuid == ch }) else {
-                throw BleError(message: "相机没有特征值 \(ch.uuidString)")
+                throw BleError(message: L.s("照相机没有特征值 ", "The camera has no characteristic ") + ch.uuidString)
             }
             return c
         }
     }
 
     /// Runs one GATT operation and waits for its answer.
-    private func run(_ what: String, _ ch: CBUUID, timeout: TimeInterval, _ start: @escaping () -> Void) throws -> Data? {
+    private func run(_ what: String, _ ch: CBUUID, read: Bool = false, timeout: TimeInterval, _ start: @escaping () -> Void) throws -> Data? {
         let sem = DispatchSemaphore(value: 0)
         hub.queue.sync {
             opSem = sem
             opChar = ch
-            opKind = what
+            opRead = read
             opValue = nil
             opError = nil
             start()
@@ -210,26 +210,26 @@ final class Ble: NSObject, CBPeripheralDelegate {
             opChar = nil
             return (opValue, opError, connectedFlag)
         }
-        if w == .timedOut { throw BleError(message: "\(what) 超时") }
-        if let e = error { throw BleError(message: "\(what) 失败（\(e.localizedDescription)）", underlying: e as NSError) }
-        if !alive { throw BleError(message: "\(what) 时蓝牙断开") }
+        if w == .timedOut { throw BleError(message: what + L.s(" 超时", " timed out")) }
+        if let e = error { throw BleError(message: what + L.s(" 失败（", " failed (") + e.localizedDescription + L.s("）", ")"), underlying: e as NSError) }
+        if !alive { throw BleError(message: what + L.s(" 操作时 Bluetooth® 断开", ": Bluetooth dropped")) }
         return value
     }
 
     /// `timeout` is long for the first read of a protected value: iOS shows its pairing dialog meanwhile.
     func read(_ svc: CBUUID, _ ch: CBUUID, timeout: TimeInterval = 10) throws -> Data {
         let c = try find(svc, ch)
-        return try run("读 \(Ble.short8(ch))", ch, timeout: timeout) { self.peripheral.readValue(for: c) } ?? Data()
+        return try run(L.s("读取 ", "Read ") + Ble.short8(ch), ch, read: true, timeout: timeout) { self.peripheral.readValue(for: c) } ?? Data()
     }
 
     func write(_ svc: CBUUID, _ ch: CBUUID, _ value: Data) throws {
         let c = try find(svc, ch)
-        _ = try run("写 \(Ble.short8(ch))", ch, timeout: 10) { self.peripheral.writeValue(value, for: c, type: .withResponse) }
+        _ = try run(L.s("写入 ", "Write ") + Ble.short8(ch), ch, timeout: 10) { self.peripheral.writeValue(value, for: c, type: .withResponse) }
     }
 
     func subscribe(_ svc: CBUUID, _ ch: CBUUID) throws {
         let c = try find(svc, ch)
-        _ = try run("订阅 \(Ble.short8(ch))", ch, timeout: 10) { self.peripheral.setNotifyValue(true, for: c) }
+        _ = try run(L.s("订阅 ", "Subscribe ") + Ble.short8(ch), ch, timeout: 10) { self.peripheral.setNotifyValue(true, for: c) }
     }
 
     func close() {
@@ -249,7 +249,7 @@ final class Ble: NSObject, CBPeripheralDelegate {
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         if let e = error { discoverError = e; discoverSem?.signal(); return }
         let services = peripheral.services ?? []
-        if services.isEmpty { discoverError = BleError(message: "相机没有提供服务"); discoverSem?.signal(); return }
+        if services.isEmpty { discoverError = BleError(message: L.s("照相机没有提供服务", "The camera offers no services")); discoverSem?.signal(); return }
         discoverPending = services.count
         for s in services { peripheral.discoverCharacteristics(nil, for: s) }
     }
@@ -261,7 +261,7 @@ final class Ble: NSObject, CBPeripheralDelegate {
     }
 
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
-        if opSem != nil, opChar == characteristic.uuid, opKind.hasPrefix("读") {
+        if opSem != nil, opChar == characteristic.uuid, opRead {
             opValue = characteristic.value
             opError = error
             opSem?.signal()

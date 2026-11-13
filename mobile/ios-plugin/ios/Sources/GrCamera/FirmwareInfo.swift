@@ -13,7 +13,7 @@ struct FirmwareInfo {
 
     /// The official files we know, by SHA-256.
     static func knownOfficial(_ sha: String) -> String? {
-        sha == "7563d7e462f0c53b6ab2fbab7cdfbbb57151a41192ee82f4f3a2108f9d77650d" ? "GR IV 官方 1.20" : nil
+        sha == "7563d7e462f0c53b6ab2fbab7cdfbbb57151a41192ee82f4f3a2108f9d77650d" ? L.s("GR IV 官方 1.20", "GR IV official 1.20") : nil
     }
 
     struct Model {
@@ -62,24 +62,24 @@ struct FirmwareInfo {
         let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
         let size = (attrs[.size] as? NSNumber)?.int64Value ?? 0
         let sha = try sha256(url)
-        if size < Int64(HDR + FOOTER + RECORD) { return bad(size, sha, "文件太小，不是固件") }
+        if size < Int64(HDR + FOOTER + RECORD) { return bad(size, sha, L.s("文件过小，不是固件", "Too small to be a firmware file")) }
         let h = try FileHandle(forReadingFrom: url)
         defer { try? h.close() }
         func at(_ off: Int64, _ n: Int) throws -> [UInt8] {
             try h.seek(toOffset: UInt64(off))
             let d = h.readData(ofLength: n)
-            if d.count != n { throw NSError(domain: "grmod", code: 1, userInfo: [NSLocalizedDescriptionKey: "读文件失败"]) }
+            if d.count != n { throw NSError(domain: "grmod", code: 1, userInfo: [NSLocalizedDescriptionKey: L.s("读取文件失败", "Reading the file failed")]) }
             return [UInt8](d)
         }
         let head = try at(0, HDR)
-        if cstr(head, 0, 8) != "RICOH" { return bad(size, sha, "不是理光固件文件（开头不是 RICOH）") }
+        if cstr(head, 0, 8) != "RICOH" { return bad(size, sha, L.s("不是理光固件文件（文件开头不是 RICOH）", "Not a Ricoh firmware file (it does not start with RICOH)")) }
         let foot = try at(size - Int64(FOOTER), FOOTER)
         let proj2 = u32(foot, 0), magic = u32(foot, 4), streamLen = Int64(u32(foot, 12))
         let project = u32(head, 0x30)
-        if magic != MAGIC || proj2 != (project | (project << 16)) { return bad(size, sha, "文件尾不对（不是完整的固件文件）") }
+        if magic != MAGIC || proj2 != (project | (project << 16)) { return bad(size, sha, L.s("文件结尾不正确（不是完整的固件文件）", "The end of the file is wrong (not a whole firmware file)")) }
         let start = (Int64(HDR) + streamLen + 3) & ~Int64(3)
         let end = size - Int64(FOOTER)
-        if start > end || (end - start) % Int64(RECORD) != 0 || end - start > Int64(16 * RECORD) { return bad(size, sha, "机型记录区不对") }
+        if start > end || (end - start) % Int64(RECORD) != 0 || end - start > Int64(16 * RECORD) { return bad(size, sha, L.s("机型记录区不正确", "The model records are wrong")) }
         var models: [Model] = []
         var o = start
         while o < end {
@@ -112,9 +112,9 @@ struct FirmwareInfo {
 
     func describe() -> String {
         if !container { return error ?? "" }
-        var s = "\(fileName ?? "") \(version ?? "")，生成于 \(date ?? "")；机型："
-        s += models.map { "\($0.name) \($0.version)" }.joined(separator: "、")
-        if let o = official { s += "（\(o)）" }
+        var s = "\(fileName ?? "") \(version ?? "")" + L.s("，生成于 ", ", made ") + (date ?? "") + L.s("；机型：", "; models: ")
+        s += models.map { "\($0.name) \($0.version)" }.joined(separator: L.s("、", ", "))
+        if let o = official { s += L.s("（", " (") + o + L.s("）", ")") }
         return s
     }
 

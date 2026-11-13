@@ -64,7 +64,7 @@ public class GrCameraPlugin: CAPPlugin, CAPBridgedPlugin, PushEvents, UIDocument
             // Creating the manager makes iOS ask, the first time; wait for the answer.
             let s = self.hub.settledState(timeout: 90)
             if s == .unauthorized || (!self.hub.authorized && !self.hub.undetermined) {
-                call.reject("没有得到蓝牙权限：请在「设置 › GR Mod」里打开蓝牙", "permission")
+                call.reject(L.s("未获得 Bluetooth® 权限。请在[设置] › [GR Mod]中开启蓝牙。", "Bluetooth permission was not given: turn Bluetooth on under Settings › GR Mod"), "permission")
                 return
             }
             call.resolve(self.status(s))
@@ -73,11 +73,11 @@ public class GrCameraPlugin: CAPPlugin, CAPBridgedPlugin, PushEvents, UIDocument
 
     @objc func getStatus(_ call: CAPPluginCall) { work.async { call.resolve(self.status()) } }
 
-    /// The app's language ("zh" or "en"), for the messages made here. Kept for now; the messages on iOS
-    /// are still in Chinese only (Android's L.s(zh, en) is not ported yet).
+    /// The app's language ("zh" or "en"): the native messages (L.swift) follow it.
     static var language = "zh"
     @objc func setLanguage(_ call: CAPPluginCall) {
         GrCameraPlugin.language = call.getString("lang") == "en" ? "en" : "zh"
+        L.set(GrCameraPlugin.language)
         call.resolve()
     }
 
@@ -105,7 +105,7 @@ public class GrCameraPlugin: CAPPlugin, CAPBridgedPlugin, PushEvents, UIDocument
     /// while another app is connected).
     @objc func bondedCameras(_ call: CAPPluginCall) {
         work.async {
-            guard self.hub.authorized else { call.reject("先授权", "permission"); return }
+            guard self.hub.authorized else { call.reject(L.s("请先授权。", "Allow the permissions first"), "permission"); return }
             var list: [[String: Any]] = []
             var ids = Set<UUID>()
             let remembered = PushSession.remembered()
@@ -124,8 +124,8 @@ public class GrCameraPlugin: CAPPlugin, CAPBridgedPlugin, PushEvents, UIDocument
 
     @objc func scan(_ call: CAPPluginCall) {
         work.async {
-            guard self.hub.authorized else { call.reject("先授权", "permission"); return }
-            guard self.hub.settledState(timeout: 5) == .poweredOn else { call.reject("蓝牙没有打开", "bluetooth-off"); return }
+            guard self.hub.authorized else { call.reject(L.s("请先授权。", "Allow the permissions first"), "permission"); return }
+            guard self.hub.settledState(timeout: 5) == .poweredOn else { call.reject(L.s("Bluetooth® 未开启", "Bluetooth is off"), "bluetooth-off"); return }
             self.foundLock.lock(); self.found = [:]; self.foundLock.unlock()
             self.hub.onDiscover = { [weak self] p, adv, rssi in
                 guard let self = self else { return }
@@ -403,21 +403,21 @@ public class GrCameraPlugin: CAPPlugin, CAPBridgedPlugin, PushEvents, UIDocument
 
     @objc func start(_ call: CAPPluginCall) {
         work.async {
-            guard self.hub.authorized else { call.reject("先授权", "permission"); return }
-            if self.session != nil { call.reject("已经有一次推送在进行", "busy"); return }
+            guard self.hub.authorized else { call.reject(L.s("请先授权。", "Allow the permissions first"), "permission"); return }
+            if self.session != nil { call.reject(L.s("已有推送正在进行", "A push is already running"), "busy"); return }
             guard let mode = PushSession.Mode(rawValue: (call.getString("mode") ?? "INFO").uppercased().replacingOccurrences(of: "-", with: "_")) else {
                 call.reject("mode?")
                 return
             }
-            if mode != .INFO && self.firmware == nil { call.reject("还没有选固件文件", "no-file"); return }
-            guard self.hub.settledState(timeout: 5) == .poweredOn else { call.reject("蓝牙没有打开", "bluetooth-off"); return }
+            if mode != .INFO && self.firmware == nil { call.reject(L.s("尚未选择固件文件", "No firmware file chosen yet"), "no-file"); return }
+            guard self.hub.settledState(timeout: 5) == .poweredOn else { call.reject(L.s("Bluetooth® 未开启", "Bluetooth is off"), "bluetooth-off"); return }
             guard let id = UUID(uuidString: call.getString("address") ?? ""), let p = self.hub.peripheral(id) else {
-                call.reject("相机地址不对", "address")
+                call.reject(L.s("照相机地址不正确", "Not a camera address"), "address")
                 return
             }
             self.stopScan()
             let log = PushLog(dir: self.dir("logs")) { [weak self] text, detail in self?.notifyListeners("log", data: self?.line(text, detail)) }
-            log.add("GR Mod iOS，模式 \(mode.rawValue)，相机 \(p.name ?? "?")（\(id.uuidString)），iOS \(UIDevice.current.systemVersion)（\(GrCameraPlugin.machine())）")
+            log.add(L.s("GR Mod iOS，模式 ", "GR Mod iOS, mode ") + mode.rawValue + L.s("，照相机 ", ", camera ") + (p.name ?? "?") + " (\(id.uuidString)), iOS \(UIDevice.current.systemVersion) (\(GrCameraPlugin.machine()))")
             self.keepAwake(true)
             let s = PushSession(peripheral: p, file: self.firmware, mode: mode, log: log, events: self)
             self.session = s

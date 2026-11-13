@@ -18,7 +18,7 @@ type Side = 'right' | 'left' | 'top' | 'bottom';
 interface Step { target?: string | string[]; title: Key; body: Key; side?: Side }
 /** GR III / IIIx have their own text where the GR IV one would be wrong (key + 'G3'). */
 const bodyFor = (key: Key, gr3: boolean): Key => (gr3 && (`${key}G3` as Key) in GR3_BODIES ? (`${key}G3` as Key) : key);
-const GR3_BODIES: Record<string, true> = { tOvFirmwareBG3: true, tOvFirmwareBWG3: true, tOvIcBG3: true, tOvRatioBG3: true, tIcSlotBG3: true, tIcExtraBG3: true, tIcNameBG3: true, tRatioFactoryBG3: true, tWallMenuBG3: true };
+const GR3_BODIES: Record<string, true> = { tOvFirmwareBG3: true, tOvFirmwareBWG3: true, tIcFSoftBG3: true, tOvIcBG3: true, tOvRatioBG3: true, tIcSlotBG3: true, tIcExtraBG3: true, tIcNameBG3: true, tRatioFactoryBG3: true, tWallMenuBG3: true };
 const step = (target: string | string[] | undefined, name: string, side?: Side): Step => ({ target, title: `t${name}T` as Key, body: `t${name}B` as Key, side });
 const names = (target: Step['target']): string[] => (target === undefined ? [] : Array.isArray(target) ? target : [target]);
 
@@ -48,6 +48,15 @@ export const TOURS: Record<TourId, Step[]> = {
     step('ic-icon', 'IcIcon', 'bottom'),
     step('ic-extra', 'IcExtra', 'bottom'),
     step('ic-soft', 'IcSoft', 'top'),
+    // then each addition on its own
+    { target: 'ic-f-soft', title: 'navSoft', body: 'tIcFSoftB', side: 'top' },
+    { target: 'ic-f-date', title: 'navDate', body: 'tIcFDateB', side: 'top' },
+    { target: 'ic-f-mono', title: 'navMono', body: 'tIcFMonoB', side: 'top' },
+    { target: 'ic-f-flash', title: 'navFlash', body: 'tIcFFlashB', side: 'top' },
+    { target: 'ic-f-hdr', title: 'navHdr', body: 'tIcFHdrB', side: 'top' },
+    { target: 'ic-f-preview', title: 'navPreview', body: 'tIcFPreviewB', side: 'top' },
+    { target: 'ic-f-adj', title: 'navAdjSlots', body: 'tIcFAdjB', side: 'top' },
+    { target: 'ic-f-bright', title: 'navBrightAuto', body: 'tIcFBrightB', side: 'top' },
     step('ic-tabs', 'IcTabs', 'bottom'),
     step('ic-mode', 'IcMode', 'bottom'),
     step('ic-preview', 'IcPreview', 'left'),
@@ -116,7 +125,8 @@ const tours = (id: TourId): Step[] => (isMobile && id === 'overview' ? mobileOve
  * into the free middle of the page first (smoothly), unless it already is there.
  */
 function bringIntoView(el: HTMLElement): void {
-  if (!isMobile) return;
+  // the desktop: the column that holds it scrolls just enough to show it
+  if (!isMobile) { el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' }); return; }
   let box: HTMLElement | null = el.parentElement;
   while (box && !(box.scrollHeight > box.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(box).overflowY))) box = box.parentElement;
   if (!box) return;

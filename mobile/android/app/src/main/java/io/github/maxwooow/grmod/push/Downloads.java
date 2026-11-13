@@ -1,11 +1,12 @@
 package io.github.maxwooow.grmod.push;
 
 import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
-import android.os.Environment;
-import android.provider.MediaStore;
+import android.provider.DocumentsContract;
+import android.provider.OpenableColumns;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -13,38 +14,45 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-/** Saves a file into the phone's Downloads folder (Download/GR Mod/), where the Files app and a card reader see it. */
+/**
+ * "Save to device": the system's save dialog (ACTION_CREATE_DOCUMENT), where the user picks the folder (it opens in
+ * Downloads) and may change the name; the file is then copied there.
+ */
 final class Downloads {
     private Downloads() { }
 
-    /** Returns the path as the user sees it ("Download/GR Mod/fwdc248b.bin"; Android adds " (1)" when the name is taken). */
-    static String save(Context ctx, File src, String name) throws IOException {
-        String safe = name.replaceAll("[^A-Za-z0-9._ -]", "_");
-        if (safe.isEmpty()) safe = "fwdc248b.bin";
+    static String safeName(String name) {
+        String safe = name == null ? "" : name.replaceAll("[^A-Za-z0-9._ -]", "_");
+        return safe.isEmpty() ? "fwdc248b.bin" : safe;
+    }
+
+    /** The save dialog for a file of this name. */
+    static Intent saveAs(String name) {
+        Intent i = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        i.addCategory(Intent.CATEGORY_OPENABLE);
+        i.setType("application/octet-stream");
+        i.putExtra(Intent.EXTRA_TITLE, name);
+        // start in Downloads (where a card reader's copy usually comes from); ignored where not supported
+        i.putExtra(DocumentsContract.EXTRA_INITIAL_URI, DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:Download"));
+        return i;
+    }
+
+    /** Copies the file to the place the save dialog gave; returns the name it got there. */
+    static String copy(Context ctx, File src, Uri to) throws IOException {
         ContentResolver cr = ctx.getContentResolver();
-        ContentValues v = new ContentValues();
-        v.put(MediaStore.MediaColumns.DISPLAY_NAME, safe);
-        v.put(MediaStore.MediaColumns.MIME_TYPE, "application/octet-stream");
-        v.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/GR Mod");
-        v.put(MediaStore.MediaColumns.IS_PENDING, 1);
-        Uri uri = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
-        if (uri == null) throw new IOException("cannot create the file in Downloads");
-        try (InputStream in = new FileInputStream(src); OutputStream out = cr.openOutputStream(uri)) {
-            if (out == null) throw new IOException("cannot write to Downloads");
+        try (InputStream in = new FileInputStream(src); OutputStream out = cr.openOutputStream(to, "wt")) {
+            if (out == null) throw new IOException("cannot write there");
             byte[] buf = new byte[256 * 1024];
             int n;
             while ((n = in.read(buf)) > 0) out.write(buf, 0, n);
         } catch (IOException e) {
-            cr.delete(uri, null, null);
+            try { DocumentsContract.deleteDocument(cr, to); } catch (Exception ignored) { /* left as it is */ }
             throw e;
         }
-        ContentValues done = new ContentValues();
-        done.put(MediaStore.MediaColumns.IS_PENDING, 0);
-        cr.update(uri, done, null, null);
-        String shown = safe;
-        try (android.database.Cursor c = cr.query(uri, new String[]{MediaStore.MediaColumns.DISPLAY_NAME}, null, null, null)) {
-            if (c != null && c.moveToFirst()) shown = c.getString(0);
-        }
-        return Environment.DIRECTORY_DOWNLOADS + "/GR Mod/" + shown;
+        String shown = src.getName();
+        try (Cursor c = cr.query(to, new String[]{OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (c != null && c.moveToFirst() && c.getString(0) != null) shown = c.getString(0);
+        } catch (Exception ignored) { /* the file's own name */ }
+        return shown;
     }
 }

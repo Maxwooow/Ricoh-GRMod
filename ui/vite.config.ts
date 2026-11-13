@@ -3,6 +3,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 const version = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version;
+// the phone app's own version (Android versionName, iOS MARKETING_VERSION are kept equal to it)
+const mobileVersion = (JSON.parse(readFileSync(new URL('../mobile/package.json', import.meta.url), 'utf8')) as { version: string }).version;
 
 export default defineConfig(({ mode }) => ({
   base: './',
@@ -17,7 +19,7 @@ export default defineConfig(({ mode }) => ({
         : html),
     },
   ],
-  define: { __GRMOD_VERSION__: JSON.stringify(version) },
+  define: { __GRMOD_VERSION__: JSON.stringify(version), __GRMOD_MOBILE_VERSION__: JSON.stringify(mobileVersion) },
   // Old enough for the browsers of macOS 10.13-10.15 (Chrome/Edge up to 116, Firefox ESR 115,
   // Safari 14+): a classic worker (module workers need Safari 15) and syntax lowered to ES2020.
   worker: { format: 'iife' },

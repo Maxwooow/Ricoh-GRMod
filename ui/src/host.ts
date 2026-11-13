@@ -2,7 +2,8 @@
 // provides the same interface with its own implementation (host-android.ts).
 import { androidHost, isMobile, useHostError } from './host-android';
 
-export interface HostInfo { kind: string; token: string; version: string; os: string }
+/** `notes`: the version whose release notes are this one's (the phone app shows the desktop releases' notes). */
+export interface HostInfo { kind: string; token: string; version: string; os: string; notes?: string }
 export interface Volume { id: string; root: string; label: string; fs: string; total: number; free: number; removable: boolean; bus: string }
 export interface DirEntry { name: string; dir: boolean; size: number; mtime: number }
 /** A file below `GRMOD\parked-*` on a card, or below the backups folder on the computer; `path` is relative to that. */

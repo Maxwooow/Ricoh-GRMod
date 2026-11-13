@@ -7,7 +7,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Resizing the window (iPad, Stage Manager): WebKit shows a scaled picture of the page while the window is
+        // dragged and lays it out again when the drag ends. Where WebKit lays it out during the drag as well (its
+        // "responsive live resize"), these settings let it do so often, so the page follows the window more closely.
+        // Read by WebKit from the app's own defaults; elsewhere they do nothing.
+        UserDefaults.standard.register(defaults: [
+            "WebKitLiveResizeMinimumTimeBetweenResizes": 0.1,
+            "WebKitLiveResizeMinimumWidthDifference": 4.0,
+        ])
         return true
     }
 

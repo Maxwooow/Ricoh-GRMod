@@ -1,6 +1,7 @@
 package io.github.maxwooow.grmod.push;
 
 import android.Manifest;
+import android.app.Activity;
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
@@ -12,6 +13,7 @@ import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
@@ -20,12 +22,15 @@ import android.util.Base64;
 import android.view.HapticFeedbackConstants;
 import android.view.WindowManager;
 
+import androidx.activity.result.ActivityResult;
+
 import com.getcapacitor.JSArray;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.PermissionState;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
@@ -235,7 +240,36 @@ public class GrCameraPlugin extends Plugin {
         } catch (IOException | IllegalArgumentException e) { call.reject(e.getMessage()); }
     }
 
-    /** Ends an upload and puts the file where `to` says: "store" (key), "push" (the file to push next), "download" (Downloads/GR Mod/name). */
+    /** The file waiting for the save dialog's answer. */
+    private volatile File exportFile;
+
+    @ActivityCallback
+    private void exportResult(PluginCall call, ActivityResult result) {
+        File f = exportFile;
+        exportFile = null;
+        if (call == null) { if (f != null) f.delete(); return; }
+        Uri to = result.getResultCode() == Activity.RESULT_OK && result.getData() != null ? result.getData().getData() : null;
+        if (to == null || f == null) {
+            if (f != null) f.delete();
+            JSObject r = new JSObject();
+            r.put("cancelled", true);
+            call.resolve(r);
+            return;
+        }
+        new Thread(() -> {
+            try {
+                JSObject r = new JSObject();
+                r.put("path", Downloads.copy(getContext(), f, to));
+                call.resolve(r);
+            } catch (IOException e) {
+                call.reject(e.getMessage());
+            } finally {
+                f.delete();
+            }
+        }, "export").start();
+    }
+
+    /** Ends an upload and puts the file where `to` says: "store" (key), "push" (the file to push next), "download" (where the user saves it). */
     @PluginMethod
     public void uploadEnd(PluginCall call) {
         Upload u = uploads.remove(call.getString("id", ""));
@@ -259,9 +293,15 @@ public class GrCameraPlugin extends Plugin {
                     break;
                 }
                 case "download": {
-                    r.put("path", Downloads.save(getContext(), u.file, call.getString("name", "fwdc248b.bin")));
-                    u.file.delete();
-                    break;
+                    // the system's save dialog; the answer comes to exportResult
+                    String name = Downloads.safeName(call.getString("name", "fwdc248b.bin"));
+                    File keep = new File(dir("export"), name);
+                    File[] old = keep.getParentFile().listFiles();
+                    if (old != null) for (File f : old) f.delete();
+                    move(u.file, keep);
+                    exportFile = keep;
+                    getActivity().runOnUiThread(() -> startActivityForResult(call, Downloads.saveAs(name), "exportResult"));
+                    return;
                 }
                 case "jpeg": {
                     // A picture the WebView cannot decode (HEIC / HEIF from a phone camera): decoded here, in sRGB,
