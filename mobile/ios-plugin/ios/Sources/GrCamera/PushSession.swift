@@ -68,6 +68,8 @@ final class PushSession: BleListener {
     private struct Fail: Error {
         let code: String
         let message: String
+        /// Shown with the message but kept out of the log (the camera's Wi-Fi password).
+        var shownOnly: String = ""
     }
 
     private func check() throws { if cancelled { throw Cancelled() } }
@@ -120,6 +122,7 @@ final class PushSession: BleListener {
             net.invalidate()
             ble.close()
             result["log"] = log.file?.path ?? NSNull()
+            result["uploaded"] = uploaded   // the page offers to try again only when nothing was sent
             log.close()
             ev?.finished(result)
         }
@@ -151,9 +154,11 @@ final class PushSession: BleListener {
             }
             PushSession.remember(peripheral)
             ev?.stage("ble", L.s("已通过 Bluetooth® 连接照相机", "Connected to the camera over Bluetooth"))
+            var wifiJustOn = false
             if nt.isEmpty || nt[nt.startIndex] != 1 {
                 try ble.write(GrUUID.wlan, GrUUID.networkType, Data([1]))
                 log.add(L.s("已通过 Bluetooth® 开启照相机无线局域网", "Camera Wi-Fi turned on over Bluetooth"))
+                wifiJustOn = true
                 try sleep(1.5)
             }
             let ssid = PushSession.text(try ble.read(GrUUID.wlan, GrUUID.ssid))
@@ -165,19 +170,40 @@ final class PushSession: BleListener {
             let vpn = CameraNet.vpnActive()
             if vpn { log.add(L.s("注意：设备正在使用 VPN。若 VPN 接管全部流量，则无法连接照相机无线局域网中的 192.168.0.1", "Note: a VPN is on. If it takes all traffic, 192.168.0.1 on the camera's Wi-Fi cannot be reached")) }
             ev?.stage("wifi", L.s("正在连接照相机的无线局域网[\(ssid)]。请在系统提示中轻触[加入]。", "Connecting to the camera's Wi-Fi “\(ssid)”: tap Join when the system asks"))
-            do { try net.join(ssid: ssid, passphrase: pass, timeout: 120) } catch let e as CameraNet.NetError {
+            // iOS does not wait for a network to appear: a camera that has only just turned its Wi-Fi on is given a
+            // few seconds first (joining too early fails with "Unable to join the network").
+            if wifiJustOn { try sleep(4) }
+            let manual = Fail(code: "wifi-join",
+                              message: L.s("无法自动加入照相机的无线局域网[\(ssid)]。请在[设置] › [无线局域网]中手动加入，再轻触[重试]。",
+                                           "Could not join the camera's Wi-Fi “\(ssid)” by itself. Join it under Settings › Wi-Fi, then tap Retry."),
+                              shownOnly: L.s("（密码：\(pass)）", " (password: \(pass))"))
+            do {
+                try net.join(ssid: ssid, passphrase: pass, timeout: 120, cancelled: { [weak self] in self?.cancelled ?? true })
+            } catch let e as CameraNet.NetError {
+                if e.notJoined { throw manual }
                 throw Fail(code: "wifi", message: e.message)
             }
+            try check()
             var props: CameraNet.Reply?
             let until = Date().addingTimeInterval(30)
             var lastError = ""
+            var otherNetwork = false
             while props == nil {
                 try check()
                 do {
-                    props = try net.get("/v1/props", timeout: 10)
+                    let r = try net.get("/v1/props", timeout: 10)
+                    // something else answers at 192.168.0.1 (the router of the network the device stayed on)
+                    if r.json?["model"] == nil {
+                        otherNetwork = true
+                        if Date() > until { throw manual }
+                        try sleep(1)
+                        continue
+                    }
+                    props = r
                 } catch let e as CameraNet.NetError {
                     lastError = e.message
                     if Date() > until {
+                        if otherNetwork { throw manual }
                         throw Fail(code: "wifi", message: L.s("已连接照相机的无线局域网，但无法访问 192.168.0.1：\(lastError)。"
                             + "请在[设置] › [隐私与安全性] › [本地网络]中开启 GR Mod" + (vpn ? "，并关闭 VPN" : "") + "，再重新推送。",
                             "On the camera's Wi-Fi, but 192.168.0.1 cannot be reached: \(lastError). "
@@ -345,7 +371,7 @@ final class PushSession: BleListener {
             result["message"] = f.message
             log.add(L.s("停止：", "Stopped: ") + f.message)
             if prepared && !uploaded { cancelUpdate(net) }
-            ev?.stage("failed", f.message)
+            ev?.stage("failed", f.message + f.shownOnly)
         } catch is Cancelled {
             result["ok"] = false
             result["reason"] = "cancelled"

@@ -48,6 +48,8 @@ final class CameraNet: NSObject, URLSessionWebSocketDelegate {
 
     struct NetError: Error, CustomStringConvertible {
         let message: String
+        /// iOS did not join the network (rather than: the user said no, or a request failed).
+        var notJoined = false
         var description: String { message }
     }
 
@@ -74,33 +76,71 @@ final class CameraNet: NSObject, URLSessionWebSocketDelegate {
         return scoped.keys.contains { k in ["tap", "tun", "ppp", "ipsec", "utun"].contains { k.hasPrefix($0) } }
     }
 
-    /// Joins the camera's access point (iOS asks the user, the first time for each network).
-    func join(ssid: String, passphrase: String, timeout: TimeInterval) throws {
-        let conf = NEHotspotConfiguration(ssid: ssid, passphrase: passphrase, isWEP: false)
-        conf.joinOnce = true
+    /// The network the device is on, if iOS tells (with the Wi-Fi information entitlement, for networks the app
+    /// joined; nil otherwise).
+    func currentSSID(timeout: TimeInterval = 3) -> String? {
         let sem = DispatchSemaphore(value: 0)
-        var failure: Error?
-        NEHotspotConfigurationManager.shared.apply(conf) { e in failure = e; sem.signal() }
-        if sem.wait(timeout: .now() + timeout) == .timedOut { throw NetError(message: L.s("连接照相机的无线局域网超时", "Joining the camera's Wi-Fi timed out")) }
-        if let e = failure as NSError? {
-            if e.domain == NEHotspotConfigurationErrorDomain {
-                switch NEHotspotConfigurationError(rawValue: e.code) {
-                case .alreadyAssociated?: break
-                case .userDenied?: throw NetError(message: L.s("未连接照相机的无线局域网（已在系统提示中取消）", "Not connected to the camera's Wi-Fi (cancelled in the system prompt)"))
-                default: throw NetError(message: L.s("未连接照相机的无线局域网：", "Not connected to the camera's Wi-Fi: ") + e.localizedDescription + " (\(e.code))")
+        var ssid: String?
+        NEHotspotNetwork.fetchCurrent { n in ssid = n?.ssid; sem.signal() }
+        _ = sem.wait(timeout: .now() + timeout)
+        return ssid
+    }
+
+    /// Joins the camera's access point (iOS asks the user, the first time for each network). iOS reports success
+    /// even when the network was not found (and shows "Unable to join the network"): where it can, the network the
+    /// device is on is checked, and the join is tried again, three times in all, a few seconds apart.
+    func join(ssid: String, passphrase: String, timeout: TimeInterval, cancelled: () -> Bool) throws {
+        if currentSSID() == ssid {
+            log.detail(L.s("已在照相机的无线局域网中", "Already on the camera's Wi-Fi"))
+            return   // joined in Settings: nothing to do, and nothing of ours to remove afterwards
+        }
+        for attempt in 1...3 {
+            if cancelled() { return }
+            let conf = NEHotspotConfiguration(ssid: ssid, passphrase: passphrase, isWEP: false)
+            conf.joinOnce = true
+            let sem = DispatchSemaphore(value: 0)
+            var failure: Error?
+            NEHotspotConfigurationManager.shared.apply(conf) { e in failure = e; sem.signal() }
+            if sem.wait(timeout: .now() + timeout) == .timedOut { throw NetError(message: L.s("连接照相机的无线局域网超时", "Joining the camera's Wi-Fi timed out")) }
+            var refused = false
+            if let e = failure as NSError? {
+                if e.domain == NEHotspotConfigurationErrorDomain {
+                    switch NEHotspotConfigurationError(rawValue: e.code) {
+                    case .alreadyAssociated?: break
+                    case .userDenied?: throw NetError(message: L.s("未连接照相机的无线局域网（已在系统提示中取消）", "Not connected to the camera's Wi-Fi (cancelled in the system prompt)"))
+                    default:
+                        refused = true
+                        log.detail(L.s("加入无线局域网失败：", "Joining the Wi-Fi failed: ") + e.localizedDescription + " (\(e.code))")
+                    }
+                } else {
+                    refused = true
+                    log.detail(L.s("加入无线局域网失败：", "Joining the Wi-Fi failed: ") + e.localizedDescription)
                 }
-            } else {
-                throw NetError(message: L.s("未连接照相机的无线局域网：", "Not connected to the camera's Wi-Fi: ") + e.localizedDescription)
             }
+            if !refused {
+                joined = ssid
+                // where iOS tells which network the device is on: wait for the camera's to come up
+                var known = false
+                let until = Date().addingTimeInterval(8)
+                while Date() < until {
+                    if cancelled() { return }
+                    if let now = currentSSID(timeout: 2) {
+                        known = true
+                        if now == ssid {
+                            log.detail(L.s("当前无线局域网：", "Current Wi-Fi: ") + now)
+                            return
+                        }
+                    }
+                    Thread.sleep(forTimeInterval: 1)
+                }
+                if !known { return }   // iOS does not say: the first request to the camera tells
+            }
+            log.add(L.s("第 \(attempt) 次加入照相机的无线局域网未成功", "Joining the camera's Wi-Fi did not work (attempt \(attempt))"))
+            NEHotspotConfigurationManager.shared.removeConfiguration(forSSID: ssid)
+            joined = nil
+            if attempt < 3 { Thread.sleep(forTimeInterval: 3) }
         }
-        joined = ssid
-        // Only a note: iOS reports success even when the network was not found; the first request tells.
-        let s2 = DispatchSemaphore(value: 0)
-        NEHotspotNetwork.fetchCurrent { n in
-            if let n = n { self.log.detail(L.s("当前无线局域网：", "Current Wi-Fi: ") + n.ssid) }
-            s2.signal()
-        }
-        _ = s2.wait(timeout: .now() + 3)
+        throw NetError(message: L.s("未能加入照相机的无线局域网", "Could not join the camera's Wi-Fi"), notJoined: true)
     }
 
     /// Leaves the camera's network (the phone goes back to its own Wi-Fi).

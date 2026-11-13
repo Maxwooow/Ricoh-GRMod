@@ -27,7 +27,7 @@ function Dialog() {
   const [progress, setProgress] = useState<{ sent: number; total: number }>();
   const [lines, setLines] = useState<Line[]>([]);
   const [showLog, setShowLog] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; log?: string }>();
+  const [result, setResult] = useState<{ ok: boolean; log?: string; uploaded?: boolean; started?: boolean }>();
   const logRef = useRef<HTMLPreElement>(null);
 
   const add = (c: Cam): void => {
@@ -60,7 +60,7 @@ function Dialog() {
       listen('log', (l: Line) => setLines((x) => [...x.slice(-1500), l])),
       listen('stage', (s: { id: string; text: string }) => setStage(s)),
       listen('progress', (p: { sent: number; total: number }) => setProgress(p)),
-      listen('finished', (r: { ok: boolean; log?: string }) => { setResult(r); setPhase('done'); }),
+      listen('finished', (r: { ok: boolean; log?: string; uploaded?: boolean; started?: boolean }) => { setResult(r); setPhase('done'); }),
     ];
     void scan();
     return () => { for (const stop of stops) stop(); };
@@ -82,6 +82,15 @@ function Dialog() {
       setPhase('done');
     }
   };
+
+  /** Again, after a push that stopped before any of the file was sent (after that, the camera's screen decides). */
+  const retry = (): void => {
+    setLines((x) => [...x, { text: '────────', detail: false }]);
+    setResult(undefined);
+    setProgress(undefined);
+    void start();
+  };
+  const canRetry = phase === 'done' && !!result && !result.ok && !result.uploaded && !result.started;
 
   // back closes the dialog unless a push is under way (it is never left half done)
   useBack(true, () => { if (phase !== 'run') closePush(); });
@@ -134,7 +143,8 @@ function Dialog() {
               {phase === 'done' && result?.log && <button type="button" className="btn" onClick={() => { void Gr.shareLog({ path: result.log }); }}>{t('pushShareLog')}</button>}
               <span className="grow" />
               {running && !updating && <button type="button" className="btn" onClick={() => { void Gr.cancel(); }}>{t('pushStop')}</button>}
-              {phase === 'done' && <button type="button" className="btn primary" onClick={closePush}>{t('pushClose')}</button>}
+              {phase === 'done' && <button type="button" className={`btn ${canRetry ? '' : 'primary'}`} onClick={closePush}>{t('pushClose')}</button>}
+              {canRetry && <button type="button" className="btn primary" onClick={retry}>{Ico.refresh}<span>{t('pushRetry')}</span></button>}
             </div>
           </>
         )}

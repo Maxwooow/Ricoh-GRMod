@@ -363,6 +363,7 @@ public final class PushSession implements Runnable {
             net.release();
             ble.close();
             put(result, "log", log.file == null ? null : log.file.getAbsolutePath());
+            put(result, "uploaded", uploaded);   // the page offers to try again only when nothing was sent
             log.close();
             ev.finished(result);
         }
