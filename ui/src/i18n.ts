@@ -75,7 +75,7 @@ const zh = {
   tOvWelcomeT: '欢迎使用 GR Mod', tOvWelcomeB: '本应用程序可为理光 GR IV 和 GR III / GR IIIx 增加影像控制预设、自定义长宽比和结束画面等功能。',
   tOvCardT: '存储卡', tOvCardB: '首次写入固件前，请先使用照相机格式化存储卡。',
   tOvFirmwareT: '固件', tOvFirmwareB: '可从理光官方网站获取固件。选择正确的机型和固件版本后，单击[在线下载]；也可将已下载的固件拖入窗口。新版（1.20）和旧版（1.11）固件均可使用。照相机安装新版固件后，无法恢复至旧版。',
-  tOvLangT: '照相机语言', tOvLangB: '选择照相机菜单的显示语言。影像控制中更改的名称将应用于此语言。',
+  tOvLangT: '界面语言', tOvLangB: '选择 GR Mod 的显示语言。影像控制中更改的名称将应用于照相机菜单的同一语言；跟随系统时，使用与系统相同的照相机语言。',
   tOvIcT: '影像控制', tOvIcB: '可将 .xmp / .cube（基于 sRGB / Rec.709）预设导入照相机，并更改名称和图标。可将自定义预设用于 Cinema (Yellow) / Cinema (Green) 槽位；未导入预设时，恢复为照相机对应槽位的原厂预设。',
   tOvRatioT: '长宽比', tOvRatioB: '可在四个原厂比例之外新增自定义遮幅比例。',
   tOvCombineT: '一并写入', tOvCombineB: '影像控制和长宽比页面中的更改可写入同一固件。分别完成更改后，在任一页面写入存储卡即可；此前的更改将保留。',
@@ -146,7 +146,17 @@ const zh = {
   lookOrderGr3Note: 'GR III：影片的影像控制列表原本不包含软单色和 HDR 色调。正在使用的风格被隐藏时，照相机将改用[标准]；自定义 1 / 2 中保存的风格不变。', lookOrderHiddenTag: '已隐藏', lookOrderMono: '单色', lookOrderCount: '{n} 个隐藏',
   icViews: '影像控制页面', icViewSlots: '影像控制', icViewOrder: '菜单顺序', lookOrderShown: '{n} 个显示', lookOrderMoved: '{name} 移至第 {n} 位', lookOrderDrag: '拖动以调整顺序',
   tIcViewsT: '槽位与菜单顺序', tIcViewsB: '[影像控制]用于设定各槽位；[菜单顺序]用于调整照相机影像控制菜单中 look 的顺序，也可隐藏不用的 look。',
-  tIcSoftT: '附加功能', tIcSoftB: '柔焦：开启后，可将[柔焦]添加至 ADJ 快捷菜单，提供关闭、弱、中、强四档。效果无法在实时显示中预览，可与 HDF 滤光镜同时使用；照相机固件 1.20 也可在[拍摄菜单] › [影像处理设定] › [柔焦]中设定。 \n 拍摄时间戳：在照片右下角打印日期（竖拍照片同样按观看时的右下角定位；关闭菜单中的[跟随照相机方向]后，按横向位置打印）。安装固件后默认为关闭，可在[拍摄辅助] › [拍摄时间戳]中开启，并选择两种样式。 \n 黑白风格：解锁 GR IV Monochrome 机型的 6 个黑白风格；照相机固件 1.20 还包括[中途曝光效果]。 \n 直闪模式：闪光灯以固定功率闪光时，照相机根据对焦距离和输入的闪光灯 GN 值设定曝光。 \n 曝光预览开关（固件 1.20）：在[拍摄菜单] › [曝光设定] › [曝光预览]或 ADJ 中，选择实时显示是否随曝光设定改变亮度（开启 / 直闪模式时关闭 / 始终关闭）。',
+  tIcSoftT: '附加功能', tIcSoftB: '以下是 GR Mod 为照相机新增的功能。开启的功能将与其他更改一并写入固件；接下来逐项介绍。',
+  tIcFSoftB: '开启后，可将[柔焦]添加至 ADJ 快捷菜单，提供关闭、弱、中、强四档。效果无法在实时显示中预览，可与 HDF 滤光镜同时使用；照相机固件 1.20 也可在[拍摄菜单] › [影像处理设定] › [柔焦]中设定。',
+  tIcFSoftBG3: '开启后，拍摄的照片直接获得柔光滤光镜效果。效果无法在实时显示中预览。',
+  tIcFDateB: '在照片右下角打印日期（竖拍照片同样按观看时的右下角定位；关闭菜单中的[跟随照相机方向]后，按横向位置打印）。安装固件后默认为关闭，可在[拍摄辅助] › [拍摄时间戳]中开启，并选择两种样式。',
+  tIcFMonoB: '解锁 GR IV Monochrome 机型的 6 个黑白风格；照相机固件 1.20 还包括[中途曝光效果]。',
+  tIcFFlashB: '闪光灯以固定功率闪光时，照相机根据对焦距离和输入的闪光灯 GN 值设定曝光。',
+  tIcFHdrB: '在 JPEG 中写入 HDR 增益图，在支持 HDR 的显示屏上查看时，高光部分更亮。可在[拍摄菜单] › [HDR]中开启或关闭。',
+  tIcFPreviewB: '照相机固件 1.20：在[拍摄菜单] › [曝光设定] › [曝光预览]或 ADJ 中，选择实时显示是否随曝光设定改变亮度（开启 / 直闪模式时关闭 / 始终关闭）。',
+  tIcFAdjB: '将 ADJ 拨杆的栏目增加至所选数量，并可在照相机的[自定义设定] › [ADJ 模式设定]中设定每个栏目的功能。',
+  tIcFBrightB: '照相机的户外显示设定为自动时，提高显示屏在室内光线下的亮度：[稍亮]适度提高，[最亮]进一步提高；最高亮度不变。',
+  followSystem: '跟随系统', uiLanguage: '界面语言',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -225,7 +235,7 @@ const en: typeof zh = {
   tOvWelcomeT: 'Welcome to GR Mod', tOvWelcomeB: 'This app brings owners of the Ricoh GR IV and GR III / GR IIIx more Image Control presets, adjustable aspect ratios and custom power-off images.',
   tOvCardT: 'Memory card', tOvCardB: 'Before writing firmware for the first time, format the card once in the camera.',
   tOvFirmwareT: 'Firmware', tOvFirmwareB: 'The firmware can be fetched from the official source: choose the right model and version and press Download. A firmware file you already downloaded can also be dropped on the window. Both the new (1.20) and the earlier firmware (1.11) can be used; a camera that installs the new one cannot go back to the earlier one.',
-  tOvLangT: 'Camera language', tOvLangB: 'The language of the camera menu. Names changed under Image Control are for this language.',
+  tOvLangT: 'App language', tOvLangB: 'The language of GR Mod. Names changed under Image Control are for the same language of the camera menu; following the system, for the camera language matching the system\'s.',
   tOvIcT: 'Image Control', tOvIcB: 'Import .xmp / .cube presets (sRGB / Rec.709) into the camera; names and icons can be changed. (Your presets can replace the camera\'s Cinema (Yellow) / Cinema (Green) slots; a slot left without a preset goes back to the camera\'s own preset for it.)',
   tOvRatioT: 'Aspect ratio', tOvRatioB: 'Add custom aspect ratios next to the four factory ones.',
   tOvCombineT: 'Written together', tOvCombineB: 'What you set on the Image Control and Aspect ratio pages is written together: make the changes on each page, then write to the card from either page. Earlier changes are kept.',
@@ -296,10 +306,33 @@ const en: typeof zh = {
   lookOrderGr3Note: 'GR III: the movie Image Control list has no Soft Monotone and HDR Tone of its own. A hidden look in use becomes Standard; Custom 1 / 2 keep theirs.', lookOrderHiddenTag: 'hidden', lookOrderMono: 'mono', lookOrderCount: '{n} hidden',
   icViews: 'Image Control views', icViewSlots: 'Image Control', icViewOrder: 'Menu order', lookOrderShown: '{n} shown', lookOrderMoved: '{name} moved to position {n}', lookOrderDrag: 'Drag to reorder',
   tIcViewsT: 'Slots and menu order', tIcViewsB: '"Image Control" sets up the slots; "Menu order" arranges the looks of the camera\'s Image Control menu and hides the ones you do not use.',
-  tIcSoftT: 'Additions', tIcSoftB: 'Soft focus: adds "Soft Focus" to the ADJ lever, with off, low, medium and high. The effect cannot be seen in live view; it can be used together with the HDF filter. On camera firmware 1.20 it is also under Shooting › Image Process Settings › Soft Focus. \n Date imprint: prints the date in the bottom right corner of the photo (as it is viewed, also when shot upright; with "Follow Orientation" off in its menu, as stored). Off after flashing; turn it on under Shooting Assist › Date Imprint, two styles. \n B&W looks: unlocks the 6 black-and-white looks of the GR IV Monochrome, and on camera firmware 1.20 its Solarized Effect as well. \n Direct Flash: when the flash fires at a fixed power, Direct Flash sets the exposure from the focus distance and the flash\'s guide number you enter. \n Exposure preview switch (firmware 1.20): choose under Shooting › Exposure Settings › Exposure Preview or on the ADJ lever whether the live view gets brighter and darker with the exposure set (On / Off in Direct Flash / Always Off).',
+  tIcSoftT: 'Additions', tIcSoftB: 'Features GR Mod adds to the camera. Those switched on go into the firmware with the other changes; each one is introduced next.',
+  tIcFSoftB: 'Adds "Soft Focus" to the ADJ lever, with off, low, medium and high. The effect cannot be seen in live view; it can be used together with the HDF filter. On camera firmware 1.20 it is also under Shooting › Image Process Settings › Soft Focus.',
+  tIcFSoftBG3: 'Gives the photos a soft-focus filter look straight out of camera. The effect cannot be seen in live view.',
+  tIcFDateB: 'Prints the date in the bottom right corner of the photo (as it is viewed, also when shot upright; with "Follow Orientation" off in its menu, as stored). Off after flashing; turn it on under Shooting Assist › Date Imprint, two styles.',
+  tIcFMonoB: 'Unlocks the 6 black-and-white looks of the GR IV Monochrome, and on camera firmware 1.20 its Solarized Effect as well.',
+  tIcFFlashB: 'When the flash fires at a fixed power, Direct Flash sets the exposure from the focus distance and the flash\'s guide number you enter.',
+  tIcFHdrB: 'Writes an HDR gain map into the JPEGs, so the highlights show brighter on HDR screens. Switched on and off in the camera under Shooting › HDR.',
+  tIcFPreviewB: 'Camera firmware 1.20: choose under Shooting › Exposure Settings › Exposure Preview or on the ADJ lever whether the live view gets brighter and darker with the exposure set (On / Off in Direct Flash / Always Off).',
+  tIcFAdjB: 'Raises the number of items on the ADJ lever to the number chosen; what each one does is set in the camera under Customize Settings › ADJ Mode Setting.',
+  tIcFBrightB: 'With the camera\'s Outdoor View Setting on Auto, the screen is brighter in indoor light: Brighter a little, Brightest more; the highest brightness stays as it is.',
+  followSystem: 'Follow system', uiLanguage: 'App language',
 };
 export type Key = keyof typeof zh;
-const dict = (navigator.language || 'zh').toLowerCase().startsWith('zh') ? zh : en;
+/** The interface language the user picked ('' = as the system), kept in the web view's storage. */
+const UI_LANG_KEY = 'grmod.uiLang';
+export function uiLangPref(): '' | 'zh' | 'en' {
+  try { const v = localStorage.getItem(UI_LANG_KEY); return v === 'zh' || v === 'en' ? v : ''; } catch { return ''; }
+}
+/** Changes the interface language; the page reloads in it unless `reload` is false (store.ts setAppLanguage saves the work first). */
+export function setUiLangPref(v: '' | 'zh' | 'en', reload = true): void {
+  try { if (v) localStorage.setItem(UI_LANG_KEY, v); else localStorage.removeItem(UI_LANG_KEY); } catch { /* not kept */ }
+  if (reload) window.setTimeout(() => window.location.reload(), 120);
+}
+const systemZh = (navigator.language || 'zh').toLowerCase().startsWith('zh');
+/** The interface language in use. */
+export const UI_LANG: 'zh' | 'en' = uiLangPref() || (systemZh ? 'zh' : 'en');
+const dict = UI_LANG === 'zh' ? zh : en;
 export function t(key: Key, vars?: Record<string, string | number>): string {
   let s: string = dict[key] ?? key;
   if (vars) for (const k of Object.keys(vars)) s = s.split(`{${k}}`).join(String(vars[k]));

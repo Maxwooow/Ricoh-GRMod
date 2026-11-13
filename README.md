@@ -4,6 +4,11 @@ A small desktop tool for the Ricoh GR IV / GR IV HDF (firmware 1.20 or 1.11), th
 (firmware 1.10, the same file as GR IV 1.20), the GR III / GR III HDF (firmware 2.20 or 2.10) and the
 GR IIIx / GR IIIx HDF (firmware 1.70 or 1.60). Not a Ricoh product.
 
+0.8.13: one language setting. The camera language is no longer chosen on its own: it follows the app
+language (简体中文 → Simplified Chinese, English → English; following the system, the system's language
+where the camera has it), and the names changed under Image Control are for that language. The guide to
+Image Control now introduces the additions as a whole, then each one on its own step.
+
 0.8.12: fixes and a shorter check. Power-off pictures on GR IV 1.20: when the menus are widened (the
 date imprint's menu with exposure preview or soft focus's menu line), the camera reads the wide copy
 of the Setup menu, and its End Screen line now gets the Picture item too (it had none:

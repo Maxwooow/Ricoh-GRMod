@@ -654,9 +654,9 @@ function HalationProp({ k }: { k: SlotKey }) {
 }
 
 /** One switch of the firmware additions: icon, name, one line of detail. */
-function FeatureRow({ icon, title, sub, on, onChange }: { icon: ReactNode; title: string; sub: string; on: boolean; onChange: (v: boolean) => void }) {
+function FeatureRow({ icon, title, sub, on, onChange, tour }: { icon: ReactNode; title: string; sub: string; on: boolean; onChange: (v: boolean) => void; tour?: string }) {
   return (
-    <div className={`soft-switch ${on ? 'on' : ''}`}>
+    <div className={`soft-switch ${on ? 'on' : ''}`} data-tour={tour}>
       <span className="page-icon soft-ico">{icon}</span>
       <div className="soft-text">
         <b>{title}</b>
@@ -672,7 +672,7 @@ function AdjSlotsRow({ max }: { max: number }) {
   const n = useStore((s) => adjSlotsOf(s));
   const options = Array.from({ length: max - 4 }, (_, i) => ({ value: String(5 + i), label: String(5 + i) }));
   return (
-    <div className={`soft-switch ${n > 5 ? 'on' : ''}`}>
+    <div className={`soft-switch ${n > 5 ? 'on' : ''}`} data-tour="ic-f-adj">
       <span className="page-icon soft-ico">{Ico.adj}</span>
       <div className="soft-text">
         <b>{t('navAdjSlots')}</b>
@@ -717,14 +717,14 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
   }, [from]);
   return (
     <div className="card extras" data-tour="ic-soft" ref={(el) => { own.current = el; boxRef?.(el); }}>
-      <FeatureRow icon={Ico.soft} title={t('navSoft')} sub={t(gr3x ? 'gr3xSoftSub' : 'softAdjSub')} on={soft} onChange={setSoft} />
-      {(!gr3x || dateOk) && <FeatureRow icon={Ico.date} title={t('navDate')} sub={t('dateSub')} on={date} onChange={setDateStamp} />}
-      {!mono && !gr3x && <FeatureRow icon={Ico.mono} title={t(gr3x ? 'gr3xReplicaTitle' : 'navMono')} sub={t(gr3x ? 'gr3xReplicaSub' : 'monoSub')} on={looks} onChange={setMonoUnlock} />}
-      {flashOk && <FeatureRow icon={Ico.flash} title={t('navFlash')} sub={t('flashSub')} on={flash} onChange={setDirectFlash} />}
-      {hdrOk && <FeatureRow icon={Ico.hdr} title={t('navHdr')} sub={t('hdrSub')} on={hdr} onChange={setHdr} />}
-      {previewOk && <FeatureRow icon={Ico.preview} title={t('navPreview')} sub={t('previewSub')} on={preview} onChange={setExposurePreview} />}
+      <FeatureRow icon={Ico.soft} title={t('navSoft')} sub={t(gr3x ? 'gr3xSoftSub' : 'softAdjSub')} on={soft} onChange={setSoft} tour="ic-f-soft" />
+      {(!gr3x || dateOk) && <FeatureRow icon={Ico.date} title={t('navDate')} sub={t('dateSub')} on={date} onChange={setDateStamp} tour="ic-f-date" />}
+      {!mono && !gr3x && <FeatureRow icon={Ico.mono} title={t(gr3x ? 'gr3xReplicaTitle' : 'navMono')} sub={t(gr3x ? 'gr3xReplicaSub' : 'monoSub')} on={looks} onChange={setMonoUnlock} tour="ic-f-mono" />}
+      {flashOk && <FeatureRow icon={Ico.flash} title={t('navFlash')} sub={t('flashSub')} on={flash} onChange={setDirectFlash} tour="ic-f-flash" />}
+      {hdrOk && <FeatureRow icon={Ico.hdr} title={t('navHdr')} sub={t('hdrSub')} on={hdr} onChange={setHdr} tour="ic-f-hdr" />}
+      {previewOk && <FeatureRow icon={Ico.preview} title={t('navPreview')} sub={t('previewSub')} on={preview} onChange={setExposurePreview} tour="ic-f-preview" />}
       {adjMax > 5 && <AdjSlotsRow max={adjMax} />}
-      {brightAutoOk && <div className="soft-switch"><Select value={brightAuto || 'off'} options={[{ value: 'off', label: t('brightAutoOff') }, { value: 'balanced', label: t('brightAutoBalanced') }, { value: 'bright', label: t('brightAutoBright') }]} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')} label={t('navBrightAuto')} variant="row" /></div>}
+      {brightAutoOk && <div className="soft-switch" data-tour="ic-f-bright"><Select value={brightAuto || 'off'} options={[{ value: 'off', label: t('brightAutoOff') }, { value: 'balanced', label: t('brightAutoBalanced') }, { value: 'bright', label: t('brightAutoBright') }]} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')} label={t('navBrightAuto')} variant="row" /></div>}
     </div>
   );
 }

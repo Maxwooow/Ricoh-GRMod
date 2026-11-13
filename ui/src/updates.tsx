@@ -211,7 +211,7 @@ async function loadNotes(): Promise<void> {
 
 /** Show what changed: this version's release text, earlier ones a click away. `from`: just updated from it. */
 export function openWhatsNew(from?: string): void {
-  const current = host.info?.version || '';
+  const current = host.info?.notes || host.info?.version || '';
   wnPut({ open: true, from, pick: current });
   if (!wn.releases.length && !wn.loading) void loadNotes();
 }
@@ -227,7 +227,7 @@ function WhatsNewDialog() {
     return () => window.removeEventListener('keydown', key);
   }, [s.open]);
   if (!s.open) return null;
-  const current = host.info?.version || '';
+  const current = host.info?.notes || host.info?.version || '';
   const close = (): void => wnPut({ open: false });
   // The releases up to this version (a newer one is shown by the update dialog).
   const list = s.releases.filter((r) => r.version === current || !Newer(r.version, current));
