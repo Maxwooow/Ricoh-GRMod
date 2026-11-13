@@ -51,6 +51,16 @@ jobs:
       - name: Xcode
         run: xcodebuild -version
 
+      - name: Which App Store Connect secrets are set
+        env:
+          A: ${{ secrets.ASC_KEY_P8 != '' }}
+          B: ${{ secrets.ASC_KEY_ID != '' }}
+          C: ${{ secrets.ASC_ISSUER_ID != '' }}
+          D: ${{ secrets.APPLE_TEAM_ID != '' }}
+        run: |
+          echo "ASC_KEY_P8=$A ASC_KEY_ID=$B ASC_ISSUER_ID=$C APPLE_TEAM_ID=$D"
+          [ "$HAS_ASC" = true ] && echo "Signing and uploading." || echo "Not all four are set: unsigned build only."
+
       - name: Build (unsigned)
         if: env.HAS_ASC != 'true'
         run: |
