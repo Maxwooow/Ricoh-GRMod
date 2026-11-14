@@ -23,6 +23,17 @@ Customize your Ricoh GR with your own Image Control presets, aspect ratios, and 
 
 See [Releases](https://github.com/Maxwooow/Ricoh-GRMod/releases) for the latest version and release notes.
 
+## Supported cameras and firmware
+
+| Camera | Supported firmware |
+| --- | --- |
+| GR IV / GR IV HDF | 1.20 or 1.11 |
+| GR IV Monochrome | 1.10 (uses the same file as GR IV 1.20) |
+| GR III / GR III HDF | 2.20 or 2.10 |
+| GR IIIx / GR IIIx HDF | 1.70 or 1.60 |
+
+Use only firmware intended for your camera model and a base version listed above.
+
 ## Features
 
 - **Image Control presets:** add your own looks from `.cube` LUTs or `.xmp` profiles, adjust their parameters, and reorder or hide looks in the camera menu.
@@ -37,17 +48,6 @@ See [Releases](https://github.com/Maxwooow/Ricoh-GRMod/releases) for the latest 
 - **Exposure preview and display options:** access additional preview and automatic screen-brightness settings on supported GR IV firmware.
 
 Features vary by camera model and firmware version. The app only offers options supported by the selected firmware.
-
-## Supported cameras and firmware
-
-| Camera | Supported firmware |
-| --- | --- |
-| GR IV / GR IV HDF | 1.20 or 1.11 |
-| GR IV Monochrome | 1.10 (uses the same file as GR IV 1.20) |
-| GR III / GR III HDF | 2.20 or 2.10 |
-| GR IIIx / GR IIIx HDF | 1.70 or 1.60 |
-
-Use only firmware intended for your camera model and a base version listed above.
 
 ## Quick start
 
