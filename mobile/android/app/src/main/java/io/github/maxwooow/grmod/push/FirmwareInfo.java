@@ -28,6 +28,7 @@ public final class FirmwareInfo {
 
     /** The official files we know, by SHA-256. */
     public static String knownOfficial(String sha) {
+        if ("bf4d6c35f6da1c16ed5f2943af570eab8fef326f7501a2b3ce5413fa55ec5c99".equals(sha)) return L.s("GR IV 官方 1.21", "GR IV official 1.21");
         if ("7563d7e462f0c53b6ab2fbab7cdfbbb57151a41192ee82f4f3a2108f9d77650d".equals(sha)) return L.s("GR IV 官方 1.20", "GR IV official 1.20");
         return null;
     }

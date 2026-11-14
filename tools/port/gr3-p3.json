@@ -1,0 +1,98 @@
+{
+  "about": "GR III 2.21 / GR IIIx 1.71 (one program, as 2.20 / 1.70) from the 2.20 / 1.70 port",
+  "map": "tools/port/gr3-p3-map.json",
+  "patch": "tools/port/gr3-p3.patch",
+  "copies": [
+    [
+      "core/src/fw/gr3x170",
+      "core/src/fw/gr3x171"
+    ],
+    [
+      "tools/gr3x170",
+      "tools/gr3x171"
+    ]
+  ],
+  "exclude": [
+    "__pycache__",
+    "fixtures"
+  ],
+  "rename": [
+    [
+      "fw/gr3x170/",
+      "fw/gr3x171/"
+    ],
+    [
+      "tools/gr3x170/",
+      "tools/gr3x171/"
+    ],
+    [
+      "GR3X_170",
+      "GR3X_171"
+    ],
+    [
+      "GR3_220",
+      "GR3_221"
+    ],
+    [
+      "/fw/gr3x170/",
+      "/fw/gr3x171/"
+    ]
+  ],
+  "generated": [
+    "-native\\.ts$"
+  ],
+  "post": [
+    [
+      "python3",
+      "tools/gr3x171/compile_slots.py",
+      "slots"
+    ],
+    [
+      "python3",
+      "tools/gr3x171/compile_slots.py",
+      "slots2"
+    ],
+    [
+      "python3",
+      "tools/gr3x171/compile_slots.py",
+      "slots3"
+    ],
+    [
+      "python3",
+      "tools/gr3x171/compile_slots.py",
+      "slots4"
+    ],
+    [
+      "python3",
+      "tools/gr3x171/compile_slots.py",
+      "endscreen"
+    ],
+    [
+      "python3",
+      "tools/gr3x171/compile_slots.py",
+      "endscreen2"
+    ],
+    [
+      "python3",
+      "tools/gr3x171/gen_films.py"
+    ],
+    [
+      "python3",
+      "tools/port/native_scan.py",
+      "tools/port/gr3-p3-map.json",
+      "core/src/fw/gr3x171/endscreen-native.ts",
+      "core/src/fw/gr3x171/endscreen2-native.ts",
+      "core/src/fw/gr3x171/films-native.ts",
+      "core/src/fw/gr3x171/map-native.ts",
+      "core/src/fw/gr3x171/slots-native.ts",
+      "core/src/fw/gr3x171/slots2-native.ts",
+      "core/src/fw/gr3x171/slots3-native.ts",
+      "core/src/fw/gr3x171/slots4-native.ts"
+    ]
+  ],
+  "lenient": true,
+  "old_marker": "2.20",
+  "preserve": [
+    "tools/gr3x171/fixtures"
+  ]
+}

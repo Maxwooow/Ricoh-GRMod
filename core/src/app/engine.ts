@@ -17,6 +17,7 @@ import {
 } from '../fw';
 import * as Gr4Program111 from '../fw';
 import * as Gr4Program120 from '../fw/gr4v120';
+import * as Gr4Program121 from '../fw/gr4v121';
 import type { BuildResult, BuiltRatio, ClarityChange, ClarityEdit, ExtensionFeatures, ExtraSlotSpec, LookLayout, ShutdownPictureSpec, SoftFocusLevel, SoftFocusStrength, FactoryEntry, LangCode, Layout, NameValidation, Range, RatioSpec, SlotEdit, SlotId as NativeSlotId } from '../fw';
 import { BRIDGE_SHA256, BRIDGE_SIZE, isBridgeFirmware, makeBridgeFirmware, officialFromBridge } from '../fw/bridge';
 import { convertCube, convertXmp, hueCopy0, hueFromQ10, HUE_BLOCK_BYTES, quantizeSlot } from '../color';
@@ -27,6 +28,7 @@ import { MODEL_INFO, rotationScript } from '../wallpaper';
 import { requireGr3xPort } from '../fw/gr3x/profile';
 import * as Gr3Program210 from '../fw/gr3x/program';
 import * as Gr3Program220 from '../fw/gr3x170/program';
+import * as Gr3Program221 from '../fw/gr3x171/program';
 import { planGr3xRatio } from '../fw/gr3x/geometry';
 import { GR3X_MAX_CUSTOM_RATIOS, GR3X_T4_MENU, gr3xCustoms, planGr3xMenu } from '../fw/gr3x/geometry';
 import type { Gr3xMenuRatio } from '../fw/gr3x/geometry';
@@ -345,7 +347,7 @@ function boxBlur(rgb: Uint8Array, w: number, h: number, radius: number): Uint8Ar
  * 1.70 / GR III 2.20 (fw/gr3x170, experimental). Every firmware address lives in one of them; an
  * engine keeps the program of the file it opened and never mixes the two.
  */
-const GR3_PROGRAMS = [Gr3Program210, Gr3Program220] as const;
+const GR3_PROGRAMS = [Gr3Program210, Gr3Program220, Gr3Program221] as const;
 /** Development: the patch manifest of each GR III / IIIx build (tools/port/compare_builds.mts compares the programs' builds). */
 export const gr3BuildManifests = new Map<string, unknown>();
 type Gr3Program = typeof GR3_PROGRAMS[number];
@@ -355,14 +357,14 @@ async function gr3ProgramOf(raw: Uint8Array): Promise<Gr3Program | null> {
 }
 
 /**
- * The GR IV programs: firmware 1.11 (fw/) and its generated port to 1.20 (fw/gr4v120, experimental;
- * GR IV Monochrome 1.10 is the same file). Every firmware address lives in one of them; an engine
+ * The GR IV programs: firmware 1.11 (fw/), its generated port to 1.20 (fw/gr4v120; GR IV Monochrome
+ * 1.10 is the same file) and the port of that to 1.21 (fw/gr4v121; Monochrome 1.11 is the same file). Every firmware address lives in one of them; an engine
  * keeps the program of the file it opened (GR III / IIIx engines keep 1.11's, which their own
  * program does not use for anything firmware-specific).
  */
 type Gr4Program = typeof Gr4Program111;
 // The port has the same API (generated from the same sources); only constant values differ.
-const GR4_PROGRAMS: readonly Gr4Program[] = [Gr4Program111, Gr4Program120 as unknown as Gr4Program];
+const GR4_PROGRAMS: readonly Gr4Program[] = [Gr4Program111, Gr4Program120 as unknown as Gr4Program, Gr4Program121 as unknown as Gr4Program];
 async function gr4ProgramOf(raw: Uint8Array): Promise<Gr4Program | null> {
   for (const program of GR4_PROGRAMS) if (raw.length === program.OFFICIAL_SIZE && (await sha256Hex(raw)) === program.OFFICIAL_SHA256) return program;
   return null;

@@ -139,7 +139,7 @@ for (const [k, film] of (round7 ? films : []).entries()) {
   const post = film.preset?.postQ9 && !Array.from(film.preset.postQ9).every((v, i) => v === [512,0,0,0,512,0,0,0,512][i]) ? film.preset.postQ9 : undefined;
   // As the build: the film's quantized curves when it has a preset (image-control.ts), else Standard's.
   const look = result.manifest.addedLooks[k];
-  halateYcc(Y, C, W, H, level, look.quantizedCurves ? halationLight(look.quantizedCurves, look.postQ9) : halationLight(), white ? 'white' : 'red');
+  halateYcc(Y, C, W, H, level, look.quantizedCurves ? halationLight(look.quantizedCurves, look.postQ9) : halationLight(), white ? 'white' : 'red', 'classic'); // GR III / IIIx keep the 0.8.9 module (white = the 0.8.2 glow)
   void post;
   const head = new Uint8Array(4); new DataView(head.buffer).setUint32(0, (32 + k) | level << 8 | (white ? 0x20000 : 0), true);
   parts.push(head, Y, C);

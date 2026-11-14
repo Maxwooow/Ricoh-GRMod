@@ -150,12 +150,12 @@ function ask(title: string, lines: string[], ok: string, warn?: string, reset = 
   return new Promise((resolve) => set({ confirm: { title, warn, lines, ok, resolve, ...(reset ? { reset } : {}) } }));
 }
 /**
- * The warning for a firmware made from (or being) one of the cameras' current releases (GR IV 1.20,
- * GR III 2.20, GR IIIx 1.70): a camera that installs it cannot go back to the earlier release.
+ * The warning for a firmware made from (or being) one of the cameras' newer releases (GR IV 1.20 / 1.21,
+ * GR III 2.20 / 2.21, GR IIIx 1.70 / 1.71): a camera that installs it cannot go back to an earlier release.
  */
 function newFirmwareWarning(info: FirmwareInfo | undefined): string | null {
   if (!info) return null;
-  const newer = info.family === 'gr4' ? ['1.20'] : ['2.20', '1.70'];
+  const newer = info.family === 'gr4' ? ['1.20', '1.21'] : ['2.20', '1.70', '2.21', '1.71'];
   return newer.includes(info.version) ? t('newFwWriteLine') : null;
 }
 /**

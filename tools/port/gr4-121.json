@@ -1,0 +1,97 @@
+{
+  "about": "GR IV 1.21 (also GR IV Monochrome 1.11, the same file) from the 1.20 port",
+  "map": "tools/port/gr4-121-map.json",
+  "patch": "tools/port/gr4-121.patch",
+  "lenient": true,
+  "relink": true,
+  "copies": [
+    [
+      "core/src/fw/gr4v120",
+      "core/src/fw/gr4v121"
+    ],
+    [
+      "tools/gr4v120",
+      "tools/gr4v121"
+    ]
+  ],
+  "exclude": [
+    "__pycache__",
+    ".refdata",
+    "out"
+  ],
+  "rename": [
+    [
+      "fw/gr4v120/",
+      "fw/gr4v121/"
+    ],
+    [
+      "tools/gr4v120/",
+      "tools/gr4v121/"
+    ],
+    [
+      "gr4v120",
+      "gr4v121"
+    ],
+    [
+      "official120.bin",
+      "official121.bin"
+    ],
+    [
+      "GRMOD_OFFICIAL_120",
+      "GRMOD_OFFICIAL_121"
+    ]
+  ],
+  "generated": [
+    "-code\\.ts$",
+    "-native\\.ts$",
+    "/native\\.ts$"
+  ],
+  "post": [
+    [
+      "python3",
+      "tools/gr4v121/aspect/gen_native.py"
+    ],
+    [
+      "python3",
+      "tools/gr4v121/datestamp/gen.py"
+    ],
+    [
+      "python3",
+      "tools/gr4v121/directflash/gen.py"
+    ],
+    [
+      "python3",
+      "tools/gr4v121/halation/gen.py"
+    ],
+    [
+      "python3",
+      "tools/gr4v121/shutdown/gen.py"
+    ],
+    [
+      "python3",
+      "tools/gr4v121/slotparams/gen_slotparams.py"
+    ],
+    [
+      "python3",
+      "tools/gr4v121/hdrgain/gen.py"
+    ],
+    [
+      "python3",
+      "tools/gr4v121/adjslots/gen.py"
+    ],
+    [
+      "python3",
+      "tools/port/native_scan.py",
+      "tools/port/gr4-121-map.json",
+      "core/src/fw/gr4v121/aspect/native.ts",
+      "core/src/fw/gr4v121/aspect/datestamp-code.ts",
+      "core/src/fw/gr4v121/aspect/directflash-code.ts",
+      "core/src/fw/gr4v121/aspect/halation-code.ts",
+      "core/src/fw/gr4v121/aspect/shutdown-code.ts",
+      "core/src/fw/gr4v121/aspect/slotparams-native.ts",
+      "core/src/fw/gr4v121/aspect/hdrgain-code.ts",
+      "core/src/fw/gr4v121/aspect/adjslots-code.ts"
+    ]
+  ],
+  "old_marker": "1.20"
+}

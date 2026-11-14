@@ -13,7 +13,11 @@ struct FirmwareInfo {
 
     /// The official files we know, by SHA-256.
     static func knownOfficial(_ sha: String) -> String? {
-        sha == "7563d7e462f0c53b6ab2fbab7cdfbbb57151a41192ee82f4f3a2108f9d77650d" ? L.s("GR IV 官方 1.20", "GR IV official 1.20") : nil
+        switch sha {
+        case "bf4d6c35f6da1c16ed5f2943af570eab8fef326f7501a2b3ce5413fa55ec5c99": return L.s("GR IV 官方 1.21", "GR IV official 1.21")
+        case "7563d7e462f0c53b6ab2fbab7cdfbbb57151a41192ee82f4f3a2108f9d77650d": return L.s("GR IV 官方 1.20", "GR IV official 1.20")
+        default: return nil
+        }
     }
 
     struct Model {

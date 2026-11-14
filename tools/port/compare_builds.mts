@@ -133,6 +133,9 @@ const configs: Record<string, Parameters<InstanceType<typeof Engine>['buildFirmw
   nofilms: [[], two, [], { dateStamp: true, shutdownPictures: pics(1) }],
   ratios: [[], seven, [], {}],
   films9: [films(9), two, [], { filmCount: 9, adjSoftFocus: true }],
+  r6: [films(20), two, [], { filmCount: 20, adjSoftFocus: true, dateStamp: true, guard: false }],
+  legacy: [films(9), two, [], { adjSoftFocus: true }],
+  mono: [[], two, [], { monoUnlock: true, dateStamp: true }],
 };
 let failures = 0;
 for (const name of wanted.length ? wanted : Object.keys(configs)) {
@@ -164,6 +167,7 @@ for (const name of wanted.length ? wanted : Object.keys(configs)) {
   }
   const rtosOf = (file: Uint8Array) => { const d = new Firmware(file).decoded; const r = sectionsOf(d).find((x: any) => x.name === 'RTOS')!; return Buffer.from(d.subarray(r.offset, r.offset + r.size)); };
   const patOld = rtosOf(bo.file), patNew = rtosOf(bn.file);
+  if (process.env.DUMP) { const { writeFileSync } = await import('node:fs'); writeFileSync(`${process.env.DUMP}/${name}-old.rtos`, patOld); writeFileSync(`${process.env.DUMP}/${name}-new.rtos`, patNew); }
   const siteNew = new Map<number, any>(mn.sites.map((s: any) => [s.address, s]));
   const used = new Set<number>();
   for (const s of mo.sites) {
@@ -172,19 +176,72 @@ for (const name of wanted.length ? wanted : Object.keys(configs)) {
     if (!n) { problems.push(`site ${s.address.toString(16)} (${s.reason}): no site at ${t?.toString(16)}`); continue; }
     used.add(t!);
     if (n.reason !== s.reason) problems.push(`site ${s.address.toString(16)}: reason "${s.reason}" vs "${n.reason}"`);
-    const win = (img: Uint8Array, at: number) => Array.from({ length: 14 }, (_, k) => img.readUInt32LE(at - 0x18 + 4 * k - BASE));
+    const win = (img: Uint8Array, at: number) => Array.from({ length: 16 }, (_, k) => img.readUInt32LE(at - 0x18 + 4 * k - BASE));
     problems.push(...compareWords(`site ${s.address.toString(16)} (original code)`, win(origOld, s.address), win(origNew, t!), s.address - 0x18, t! - 0x18)
       .filter(x => /\+(1[4-9a-f]|18|1c)\b|\+(18|1c):/.test(x) || true).slice(0, 2));
     problems.push(...compareWords(`site ${s.address.toString(16)} (patched)`, win(patOld, s.address), win(patNew, t!), s.address - 0x18, t! - 0x18).slice(0, 2));
   }
   for (const s of mn.sites) if (!used.has(s.address)) problems.push(`new site ${s.address.toString(16)} (${s.reason}) without an old one`);
   if (mo.iconAddition.bytes !== mn.iconAddition.bytes) problems.push(`icon additions differ (${mo.iconAddition.bytes.length / 2} vs ${mn.iconAddition.bytes.length / 2} bytes)`);
+  // The language rows of the text catalog (TEXT_ROWS=low,high: the old program's movw/movt of the
+  // language directory): copies of the official rows, which a release may renumber (GR III 2.21: 7
+  // texts inserted at 669), with GR Mod's texts after them. They are checked by
+  // tools/port/gr3_text_rows.mts; their words are left out here.
+  if (process.env.TEXT_ROWS) {
+    const [low, high] = process.env.TEXT_ROWS.split(',').map((x) => parseInt(x, 16));
+    const at = (b: Buffer, a: number) => b.readUInt32LE(a - BASE);
+    const dir = ((imm16(at(patOld, high)) << 16) | imm16(at(patOld, low))) >>> 0;
+    const roots = Array.from({ length: 21 }, (_, l) => at(patOld, dir + 4 * l)).sort((a, b) => a - b);
+    const len = roots[1] - roots[0];
+    // the rows, a word after each (where the longer new rows go on), and the directory of the 21
+    const inRows = (off: number) => roots.some((r) => off >= r - appendOld && off <= r - appendOld + len) || (off >= dir - appendOld && off < dir - appendOld + 84);
+    const before = problems.length;
+    for (let k = problems.length - 1; k >= 0; k--) {
+      const m = /appended \+([0-9a-f]+)(?: \+([0-9a-f]+))?/.exec(problems[k]) ?? /appended block: old \+([0-9a-f]+) /.exec(problems[k]);
+      if (m && inRows(parseInt(m[1], 16) + (m[2] ? parseInt(m[2], 16) : 0))) problems.splice(k, 1);
+    }
+    // Earlier rows of the same build (an addition that extends the rows again leaves the first ones
+    // in place): words that are text records of both releases, and the rows' longer ends.
+    // TEXT_RECORDS=directory,old count,new count: the official text records of each release.
+    const [tdir, tOld, tNew] = (process.env.TEXT_RECORDS ?? '').split(',').map((x, i) => parseInt(x, i ? 10 : 16));
+    const records = (img: Buffer, count: number) => {
+      const ram = R.ram, src = img === origOld ? ram.oldSource : ram.newSource;
+      const rd = (a: number) => img.readUInt32LE((a >= ram.base && a < 0x56000000 ? src + a - ram.base : a) - BASE);
+      const set = new Set<number>();
+      for (let l = 0; l < 21; l++) { const row = rd(tdir + 4 * l); for (let i = 0; i < count; i++) set.add(rd(row + 4 * i)); }
+      return set;
+    };
+    const recOld = tdir ? records(origOld, tOld) : new Set<number>(), recNew = tdir ? records(origNew, tNew) : new Set<number>();
+    // Every copy of the 21 rows in the old build's appended block (each begins with the official row).
+    if (tdir) {
+      const ab = Buffer.from(mo.append.bytes, 'hex');
+      const ram = R.ram, rd = (a: number) => origOld.readUInt32LE((a >= ram.base && a < 0x56000000 ? ram.oldSource + a - ram.base : a) - BASE);
+      const sig = (l: number) => { const row = rd(tdir + 4 * l); const b = Buffer.alloc(64); for (let i = 0; i < 16; i++) b.writeUInt32LE(rd(row + 4 * i), 4 * i); return b; };
+      const s0 = sig(0), s1 = sig(1);
+      const ranges: [number, number][] = [];
+      for (let at = ab.indexOf(s0); at >= 0; at = ab.indexOf(s0, at + 4)) {
+        const next = ab.indexOf(s1, at + 4); if (next < 0) continue;
+        ranges.push([at, at + 21 * (next - at) + 4]);
+      }
+      const inCopy = (off: number) => ranges.some(([a, b]) => off >= a && off <= b);
+      for (let k = problems.length - 1; k >= 0; k--) {
+        const m = /appended \+([0-9a-f]+)(?: \+([0-9a-f]+))?/.exec(problems[k]) ?? /appended block: old \+([0-9a-f]+) /.exec(problems[k]);
+        if (m && inCopy(parseInt(m[1], 16) + (m[2] ? parseInt(m[2], 16) : 0))) problems.splice(k, 1);
+      }
+    }
+    if (tdir) for (let k = problems.length - 1; k >= 0; k--) {
+      const m = /address ([0-9a-f]+) -> ([0-9a-f]+)/.exec(problems[k]);
+      if (m && recOld.has(parseInt(m[1], 16)) && recNew.has(parseInt(m[2], 16))) problems.splice(k, 1);
+      else if (/appended block: old \+[0-9a-f]+ \(0 words\) \/ new \+[0-9a-f]+ \(7 words\) differ/.test(problems[k])) problems.splice(k, 1);
+    }
+    console.log(`   (${before - problems.length} differences inside the 21 text rows left out)`);
+  }
   // Identical words that a mapping would have changed: data that looks like code or addresses (text,
   // glyphs, pixels), unless an address was not carried over; listed for review, not counted.
   const same = problems.filter(p => p.startsWith('SAME '));
   const real = problems.filter(p => !same.includes(p));
   console.log(`== ${name}: ${mo.sites.length} / ${mn.sites.length} sites, appended ${appendLength} bytes; ${real.length} differences, ${same.length} identical words to review`);
-  for (const p of real.slice(0, 120)) console.log('   ' + p);
+  for (const p of real.slice(0, +(process.env.LIMIT ?? 120))) console.log('   ' + p);
   if (process.env.SHOW_SAME) for (const p of same) console.log('   (same) ' + p);
   failures += real.length;
 }
