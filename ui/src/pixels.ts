@@ -1,4 +1,5 @@
 // Canvas helpers: icon rendering, picture loading, cropping to the power-off image size.
+import { isMobile, pictureAsJpeg } from './host-android';
 import { fw, ICON_W, ICON_H, SHUTDOWN_W, SHUTDOWN_H } from '@grmod/core';
 
 export const ICON_FONT = '"Barlow Condensed"';
@@ -106,7 +107,13 @@ export function cropToRgb(img: CanvasImageSource, crop: Crop): Uint8Array {
 }
 
 export async function loadBitmap(blob: Blob): Promise<ImageBitmap> {
-  return createImageBitmap(blob, { imageOrientation: 'from-image' });
+  try {
+    return await createImageBitmap(blob, { imageOrientation: 'from-image' });
+  } catch (e) {
+    // Android: HEIC / HEIF (what phone cameras save) is not decoded by the WebView; the app converts it
+    if (!isMobile) throw e;
+    return createImageBitmap(await pictureAsJpeg(blob), { imageOrientation: 'from-image' });
+  }
 }
 
 /** A working copy of a picture, at most `max` pixels on the long side, as JPEG bytes. */

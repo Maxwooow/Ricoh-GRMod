@@ -7,15 +7,19 @@ Package "GR Mod.app" as a compressed disk image (.dmg) on Linux, without a Mac.
 The image holds the app and a link to /Applications, opens as a 560x360 icon
 window with the app on the left and the link on the right (drag to install).
 
-Needs on PATH (or in $MKFS_HFSPLUS / $HFSPLUS / $DMG):
+Needs the Python packages ds_store and mac_alias (for the window layout). Uses these tools when
+they are on PATH (or in $MKFS_HFSPLUS / $HFSPLUS / $DMG):
   mkfs.hfsplus   (Debian/Ubuntu package hfsprogs)
   hfsplus, dmg   (built from https://github.com/mozilla/libdmg-hfsplus)
-and the Python packages ds_store and mac_alias (for the window layout).
+and otherwise writes the volume and the image itself (hfsdmg.py, 0.8.11). --python forces that.
 """
 import argparse, os, shutil, stat, subprocess, sys, tempfile
 
+def find(env, name):
+    return os.environ.get(env) or shutil.which(name)
+
 def tool(env, name):
-    p = os.environ.get(env) or shutil.which(name)
+    p = find(env, name)
     if not p:
         sys.exit(f'mkdmg: {name} not found (set ${env})')
     return p
@@ -62,7 +66,10 @@ def mark_clean(img):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('app'); ap.add_argument('out'); ap.add_argument('--volname', default='GR Mod')
+    ap.add_argument('--python', action='store_true', help='write the image with hfsdmg.py even when the tools are there')
     a = ap.parse_args()
+    if a.python or not (find('HFSPLUS', 'hfsplus') and find('DMG', 'dmg')):
+        return main_python(a)
     mkfs, hfsplus, dmg = tool('MKFS_HFSPLUS', 'mkfs.hfsplus'), tool('HFSPLUS', 'hfsplus'), tool('DMG', 'dmg')
     app_name = os.path.basename(os.path.normpath(a.app))
     with tempfile.TemporaryDirectory() as tmp:
@@ -88,6 +95,21 @@ def main():
         if os.path.exists(a.out):
             os.remove(a.out)
         subprocess.run([dmg, 'build', img, a.out], check=True, stdout=subprocess.DEVNULL)
+    print(a.out, os.path.getsize(a.out))
+
+def main_python(a):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from hfsdmg import build_hfs, write_udif
+    app_name = os.path.basename(os.path.normpath(a.app))
+    with tempfile.TemporaryDirectory() as tmp:
+        stage = os.path.join(tmp, 'stage'); os.mkdir(stage)
+        shutil.copytree(a.app, os.path.join(stage, app_name), symlinks=True)
+        write_ds_store(os.path.join(stage, '.DS_Store'), app_name)
+        os.symlink('/Applications', os.path.join(stage, 'Applications'))
+        volume = build_hfs(stage, a.volname)
+        if os.path.exists(a.out):
+            os.remove(a.out)
+        write_udif(volume, a.out)
     print(a.out, os.path.getsize(a.out))
 
 if __name__ == '__main__':

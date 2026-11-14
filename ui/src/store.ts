@@ -2,9 +2,10 @@ import { useSyncExternalStore } from 'react';
 import { FACTORY_LOOK_IDS, card, GR3X_FILM_IDS, GR3X_MAX_CUSTOM_RATIOS, GR3X_T4_CUSTOM, LANGS, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_MAX_PICTURES, SHUTDOWN_NAME_MAX, validateExtraSlotName, validateGr3xRatioName, validateRatioName, validateShutdownName } from '@grmod/core';
 import type { CameraModel, ClarityChange, ExtraSlotSpec, FirmwareInfo, FirmwareSummary, LangCode, LookLayout, PresetResult, RatioPreview, RatioSpec, ShutdownPictureSpec, SlotId, SlotRequest, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
 import { engine, EngineError } from './engine';
-import { host, HostError, sha256Hex } from './host';
+import { host, HostError, isMobile, sha256Hex } from './host';
+import { upload } from './host-android';
 import type { ParkedEntry, Volume } from './host';
-import { t } from './i18n';
+import { setUiLangPref, t, uiLangPref } from './i18n';
 import type { Key } from './i18n';
 import { cropToRgb, defaultCrop, ensureIconFont, imageIcon, loadBitmap, textIcon, workingCopy } from './pixels';
 import type { Crop } from './pixels';
@@ -59,6 +60,8 @@ export interface State {
   ready: boolean; page: Page;
   fwName?: string; fwBusy: boolean; info?: FirmwareInfo; raw?: Uint8Array;
   model: CameraModel; lang: LangCode;
+  /** The camera language follows the system's (lang is then systemCameraLang()): the app language is "follow system". */
+  langAuto: boolean;
   slots: Record<SlotId, SlotState>;
   wall: WallItem[];
   ratios: RatioItem[]; activeRatio?: string; ratioBackdrop: RatioBackdrop;
@@ -91,6 +94,8 @@ export interface State {
   /** Why the download dialog is open, when it says so: a 1.12 bridge firmware file is open. */
   onlineReason?: 'bridge-loaded';
   tour?: TourState; toursSeen: TourId[];
+  /** Android: a firmware file on its way to the camera over Wi-Fi (camera.tsx shows the dialog while it is set). */
+  push?: { file: Uint8Array; label: string; stock: boolean };
 }
 
 const SLOT_IDS: readonly SlotId[] = GR3X_FILM_IDS;
@@ -104,7 +109,7 @@ const availableSlots = (s: State = state): SlotId[] => s.info ? shownSlots(s).ma
 const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '', style: 'film' } });
 const emptySlots = (): Record<SlotId, SlotState> => Object.fromEntries(SLOT_IDS.map(id => [id, emptySlot()])) as Record<SlotId, SlotState>;
 let state: State = {
-  ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: 'zh-CN',
+  ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: cameraLang(), langAuto: uiLangPref() === '',
   slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hdr: false, exposurePreview: false, adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [],
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
@@ -340,7 +345,7 @@ async function saveProject(): Promise<void> {
   familyDocs[familyOf(s.model)] = currentFamilyDoc();
   const doc = {
     ...(familyDocs.gr4 ?? {}),
-    v: 1, page: s.page, model: s.model, lang: s.lang, fwName: s.fwName, showAll: s.showAll, previewMode: s.previewMode, ratioBackdrop: s.ratioBackdrop,
+    v: 1, page: s.page, model: s.model, lang: s.lang, langAuto: s.langAuto, uiLang: uiLangPref(), fwName: s.fwName, showAll: s.showAll, previewMode: s.previewMode, ratioBackdrop: s.ratioBackdrop,
     tours: s.toursSeen, toursV: 2,
   };
   try {
@@ -350,7 +355,7 @@ async function saveProject(): Promise<void> {
 }
 export async function init(): Promise<void> {
   if (!host.available) { set({ ready: true }); return; }
-  void engine.heartbeat(host.info!.token);
+  if (!isMobile) void engine.heartbeat(host.info!.token);
   void ensureIconFont();
   void loadPreviewPhoto();
   void loadBuilds();
@@ -367,7 +372,7 @@ export async function init(): Promise<void> {
       const fam = familyOf(model), work = familyDocs[fam];
       set({ ...parseFamily(work), model,
         page: doc.page === 'wall' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : doc.page === 'script' ? 'wall' : 'ic',
-        lang: (LANGS as readonly string[]).includes(doc.lang) ? doc.lang : 'zh-CN', fwName: doc.fwName, showAll: !!doc.showAll,
+        ...langOf(doc), fwName: doc.fwName, showAll: !!doc.showAll,
         previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo',
         // GR Mod 0.8 changed the power-off page: its tour (which now says where the pictures are chosen) shows once more
         toursSeen: TOUR_IDS.filter((id) => Array.isArray(doc.tours) && doc.tours.includes(id) && (id !== 'wall' || doc.toursV >= 2)) });
@@ -383,8 +388,10 @@ export async function init(): Promise<void> {
   set({ ready: true });
   // A GR III project found in project.json goes to its own file at once.
   if (gr3Legacy) scheduleSave();
-  void refreshVolumes();
-  setInterval(() => { if (!document.hidden && !state.busy) void refreshVolumes(); }, 2500);
+  if (!isMobile) {
+    void refreshVolumes();
+    setInterval(() => { if (!document.hidden && !state.busy) void refreshVolumes(); }, 2500);
+  }
   for (const id of allSlotKeys()) void renderIcon(id);
 }
 
@@ -417,7 +424,45 @@ export function setPage(page: Page): void {
   if (page === 'wall' && isGr3(state.model) && state.info && !state.info.capabilities.menuPictures) return; // power-off pictures: GR III / IIIx with the End Screen menu
   set({ page }); scheduleSave(); if (page === 'copies') void refreshCopies();
 }
-export function setLang(lang: LangCode): void { set({ lang }); scheduleSave(); }
+/**
+ * The camera language (whose names Image Control changes) follows the app language: 简体中文 → zh-CN, English → en,
+ * following the system → the system's language where the camera has it (else English).
+ */
+export function cameraLang(): LangCode {
+  const ui = uiLangPref();
+  return ui === 'zh' ? 'zh-CN' as LangCode : ui === 'en' ? 'en' as LangCode : systemCameraLang();
+}
+/** The camera language closest to the phone's own: its first language GR IV has, else English. */
+export function systemCameraLang(): LangCode {
+  const have = LANGS as readonly string[];
+  for (const raw of navigator.languages?.length ? navigator.languages : [navigator.language || 'en']) {
+    const l = raw.toLowerCase();
+    if (l.startsWith('zh')) return (/-(tw|hk|mo)|hant/.test(l) ? 'zh-TW' : 'zh-CN') as LangCode;
+    const base = l.split('-')[0];
+    if (have.includes(base)) return base as LangCode;
+  }
+  return 'en' as LangCode;
+}
+/** The app language (and with it the camera language): kept, the work saved with it, then the page reloads in it. */
+export async function setAppLanguage(v: '' | 'zh' | 'en'): Promise<void> {
+  if (v === uiLangPref()) return;
+  setUiLangPref(v, false);
+  try { sessionStorage.setItem('grmod.uiLangAdopted', v); } catch { /* none */ }
+  clearTimeout(saveTimer);
+  if (host.available && state.ready) await saveProject();
+  window.setTimeout(() => window.location.reload(), 60);
+}
+function langOf(doc: { uiLang?: string }): { lang: LangCode; langAuto: boolean } {
+  // The app language is kept by the page (localStorage) and in the saved work: the desktop page's storage goes with
+  // its port, so a saved choice the page has lost is taken back (once: the page reloads in it).
+  const saved = doc.uiLang === 'zh' || doc.uiLang === 'en' || doc.uiLang === '' ? doc.uiLang : undefined;
+  if (saved !== undefined && saved !== uiLangPref()) {
+    let reloadOnce = false;
+    try { reloadOnce = sessionStorage.getItem('grmod.uiLangAdopted') !== saved; sessionStorage.setItem('grmod.uiLangAdopted', saved); } catch { /* no storage: no reload */ }
+    if (reloadOnce) setUiLangPref(saved);
+  }
+  return { lang: cameraLang(), langAuto: uiLangPref() === '' };
+}
 export function setModel(model: CameraModel): void {
   if (state.busy || state.fwBusy || model === state.model) return;
   const differentFamily = familyOf(state.model) !== familyOf(model);
@@ -902,7 +947,7 @@ export const wallMax = (): number => SHUTDOWN_MAX_PICTURES;
 export async function addWallFiles(files: File[]): Promise<void> {
   for (const f of files) {
     if (state.wall.length >= wallMax()) { toast(t('wallMax', { n: wallMax() }), 'info'); break; }
-    if (!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|bmp|gif|avif)$/i.test(f.name)) continue;
+    if (!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|bmp|gif|avif|heic|heif)$/i.test(f.name)) continue;
     try {
       const bmp = await loadBitmap(f);
       const wc = await workingCopy(bmp);
@@ -1261,8 +1306,10 @@ async function runPlan(root: string, steps: card.PlanStep[]): Promise<number> {
   }
   return moved;
 }
-type Dest = { kind: 'card' } | { kind: 'folder' };
+type Dest = { kind: 'card' } | { kind: 'folder' } | { kind: 'camera' } | { kind: 'phone' };
 async function destination(dest: Dest): Promise<{ root: string; volume?: Volume } | null> {
+  // The phone app: to the camera over Wi-Fi, or into the phone's own files.
+  if (dest.kind === 'camera' || dest.kind === 'phone') return { root: '' };
   if (dest.kind === 'card') {
     const v = state.volumes.find((x) => x.id === state.volumeId);
     if (!v) { toast(t('noCard'), 'error'); return null; }
@@ -1319,24 +1366,30 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && !directFlash && !hdr && !exposurePreview && !brightAuto && adjSlots === 5 && extras.length === 0 && pictures.length === 0 && films === 0 && !lookLayout) { toast(t('nothingToDo'), 'info'); return; }
   const fresh = newFirmwareWarning(sourceInfo);
   // The cannot-go-back warning is a paragraph (the dialog's lines are cut to one line each).
-  if (stock && !(await askOfficial([t('copyOfficial')], fresh && dest.kind === 'card' ? fresh : undefined))) return;
-  if (dest.kind === 'card' && !stock) {
-    const lines = changes.map((c) => `${state.info?.family === 'gr3x' ? (state.slots[c.id].names[state.lang] || state.info.slots.find(s => s.id === c.id)?.defaultName || c.id) : t(('slot' + c.id) as Key)}  ·  ${c.labels.join(' / ')}`);
-    if (ratios.length) lines.push(t('ratioLine', { n: ratios.length, l: ratios.map((r) => r.name).join(' / ') }));
-    if (soft) lines.push(sourceInfo.features.softFocus === 'clarity' ? t('softLine', { l: softText(GR3X_SOFT_FOCUS) }) : t(sourceInfo.features.exposurePreview ? 'softAdjMenuLine' : 'softAdjLine'));
-    // As GR IV's added slots: every film has Halation.
-    if (films) lines.push(t('extraLine', { n: films, l: (state.info?.slots ?? []).slice(0, films).map((sl) => `${state.slots[sl.id]?.names[state.lang] || sl.defaultName} (${t('halation')})`).join(' / ') }));
-    if (dateStamp) lines.push(t('dateLine'));
-    if (monoUnlock) lines.push(t(state.info?.family === 'gr3x' ? 'gr3xReplicaLine' : 'monoLine'));
-    if (brightAuto) lines.push(t(brightAuto === 'balanced' ? 'brightAutoBalanced' : 'brightAutoBright'));
-    if (directFlash) lines.push(t('flashLine'));
-    if (hdr) lines.push(t('hdrLine'));
-    if (exposurePreview) lines.push(t(directFlash ? 'previewLine' : 'previewLineNoFlash'));
-    if (adjSlots > 5) lines.push(t('adjSlotsLine', { n: adjSlots }));
-    if (extras.length) lines.push(t('extraLine', { n: extras.length, l: extras.map((x) => (x.halation ? `${x.name} (${t('halation')})` : x.name)).join(' / ') }));
-    if (lookLayout) lines.push(t('lookOrderLine', { n: lookLayout.hidden.length }));
-    if (pictures.length) lines.push(t('wallMenuLine', { n: pictures.length, l: pictures.map((p) => p.name).join(' / ') }));
-    if (!(await ask(t('confirmTitle'), lines, t('confirmOk'), fresh ?? undefined))) return;
+  // GR III / IIIx cannot take a firmware over Wi-Fi (only the GR IV's camera has that interface).
+  if (dest.kind === 'camera' && sourceInfo.family !== 'gr4') { toast(t('pushOnlyGr4'), 'info'); return; }
+  // everything that leaves for a camera (also a file saved on the phone for it) is confirmed first
+  const toCamera = dest.kind === 'card' || dest.kind === 'camera' || dest.kind === 'phone';
+  if (stock && !(await askOfficial([t('copyOfficial')], fresh && toCamera ? fresh : undefined))) return;
+  if (toCamera && !stock) {
+    // The check before writing: only what changes, by name; with a count where one item holds several.
+    const named = (name: string, n: number, unit: Key = 'chkCount'): string => (n > 1 ? `${name}  ·  ${t(unit, { n })}` : name);
+    const lines = changes.map((c) => named(state.info?.family === 'gr3x' ? (state.slots[c.id].names[state.lang] || state.info.slots.find(s => s.id === c.id)?.defaultName || c.id) : t(('slot' + c.id) as Key), c.labels.length, 'chkChanges'));
+    if (ratios.length) lines.push(named(t('chkRatios'), ratios.length));
+    if (soft) lines.push(t('navSoft'));
+    if (films) lines.push(named(t('extraTitle'), films));
+    if (dateStamp) lines.push(t('navDate'));
+    if (monoUnlock) lines.push(t(state.info?.family === 'gr3x' ? 'gr3xReplicaTitle' : 'navMono'));
+    if (brightAuto) lines.push(t('navBrightAuto'));
+    if (directFlash) lines.push(t('navFlash'));
+    if (hdr) lines.push(t('navHdr'));
+    if (exposurePreview) lines.push(t('navPreview'));
+    if (adjSlots > 5) lines.push(`${t('navAdjSlots')}  ·  ${t('chkCount', { n: adjSlots })}`);
+    if (extras.length) lines.push(named(t('extraTitle'), extras.length));
+    if (lookLayout) lines.push(lookLayout.hidden.length ? `${t('icViewOrder')}  ·  ${t('chkHidden', { n: lookLayout.hidden.length })}` : t('icViewOrder'));
+    if (pictures.length) lines.push(named(t('navWall'), pictures.length, 'chkPictures'));
+    const [title, ok] = dest.kind === 'camera' ? [t('pushTitle'), t('pushStart')] : dest.kind === 'phone' ? [t('saveTitle'), t('saveStart')] : [t('confirmTitle'), t('confirmOk')];
+    if (!(await ask(title, lines, ok, fresh ?? undefined))) return;
   }
   const target = await destination(dest);
   if (!target || state.info !== sourceInfo || state.raw !== sourceRaw || state.model !== sourceModel || state.fwBusy) return;
@@ -1353,6 +1406,15 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
       file = built.file;
       void recordBuild(file, changes);
     }
+    if (dest.kind === 'camera') { set({ busy: undefined, push: { file, label: firmwareFilename(), stock } }); return; }
+    if (dest.kind === 'phone') {
+      set({ busy: t('writing') });
+      // Android: Download/GR Mod/…; iOS: wherever the user puts it in the Files app (or nowhere: cancelled)
+      const r = await upload(file, { to: 'download', name: firmwareFilename() }) as { path?: string; cancelled?: boolean };
+      set({ busy: undefined });
+      if (!r.cancelled) toast(t('savedTo', { p: r.path ?? '' }), 'ok');
+      return;
+    }
     set({ busy: t('writing') });
     let moved = 0;
     if (target.volume) moved = await firmwareToCard(target.volume, file);
@@ -1365,6 +1427,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
 
 
 export function wallReady(s: State = state): boolean { return menuReady(s); }
+export function closePush(): void { set({ push: undefined }); }
 
 // ------------------------------------------------------------------ copies moved aside on the card, and their backups
 const BUILDS_KEY = 'builds.json';

@@ -1,0 +1,10 @@
+{
+  "name": "grmod-camera",
+  "version": "0.0.0",
+  "private": true,
+  "license": "GPL-2.0-only",
+  "description": "GR Mod's native side on iOS (CoreBluetooth, the camera's Wi-Fi, Ricoh downloads); the Android side lives in ../android/app",
+  "capacitor": {
+    "ios": { "src": "ios" }
+  }
+}

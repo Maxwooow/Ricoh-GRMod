@@ -70,3 +70,29 @@ describe.skipIf(!have120)('exposure preview and soft focus line: GR IV 1.20', ()
     await expect(eng.buildFirmware([], [], [], { exposurePreview: true })).rejects.toThrow();
   });
 });
+
+describe.skipIf(!have120)('power-off pictures with the wide menus: GR IV 1.20', () => {
+  // Found on the camera 2026-11-12: with exposure preview and the date imprint the menus are wide
+  // (`menuwide.ts`) and the camera reads the wide copies of the other tabs' descriptors, so the End
+  // Screen line has to open the power-off pictures' submenu there too.
+  it("Setup's End Screen line opens the submenu in the wide copy the camera reads", async () => {
+    const eng = await Engine.open(new Uint8Array(readFileSync(file120!)), { newFirmware: true });
+    const rgb = new Uint8Array(720 * 480 * 3).map((_, i) => (i * 7) & 255);
+    const jpeg = eng.encodeMenuPicture(rgb);
+    const b = await eng.buildFirmware([], [], [], { adjSoftFocus: true, dateStamp: true, exposurePreview: true, shutdownPictures: [{ id: 0x101, name: 'One', jpeg }] });
+    expect(Object.values(b.checks).every((v) => v === true)).toBe(true);
+    const rtos = rtosOf(b.file);
+    const official = rtosOf(new Uint8Array(readFileSync(file120!)));
+    const SETUP = 0x53dc7110 - 0x53000000;
+    const head = official.subarray(SETUP, SETUP + 0x8c);
+    const W_ID = 0x8c + 42 * 8;
+    const copies: number[] = [];
+    for (let i = official.length; i + 0x8c <= rtos.length; i += 4) {
+      if (rtos[i] === head[0] && rtos.subarray(i, i + 0x8c).every((v, k) => v === head[k])) copies.push(i);
+    }
+    expect(copies.length).toBe(1);
+    const dv = new DataView(rtos.buffer, rtos.byteOffset);
+    expect(dv.getUint32(copies[0] + W_ID + 10 * 4, true)).toBe(0x020001a3);
+    expect(dv.getUint32(SETUP + 0x1bc + 10 * 4, true)).toBe(0x020001a3);
+  }, 120000);
+});

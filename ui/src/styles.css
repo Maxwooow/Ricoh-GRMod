@@ -549,3 +549,322 @@ html.look-grabbing, html.look-grabbing * { cursor: grabbing !important; }
 .look-order-reset { align-self: flex-start; margin-left: 44px; }
 .look-order-reset svg { width: 14px; height: 14px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* ---------------------------------------------------------------- Android: phone layout (app.tsx MobileApp)
+   The same pages and parts as on the desktop, stacked for a narrow, tall, touch screen: a title bar, the page
+   scrolling under it, the output buttons and the page tabs at the bottom. Drawn edge to edge (viewport-fit=cover):
+   the bars pad themselves by the system bars (Capacitor's --safe-area-inset-*). */
+html.mobile-app { touch-action: manipulation; }
+html.mobile-app body { background: var(--side); font-size: 15px; }
+.app.mobile { flex-direction: column; background: var(--side); }
+.m-top { flex: none; display: flex; align-items: center; gap: 6px; padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 6px) 8px 6px 16px; min-height: 52px; background: var(--side); }
+.m-title { font-size: 21px; line-height: 1.2; font-weight: 700; margin: 0; letter-spacing: -0.01em; white-space: nowrap; }
+.m-fw { display: flex; align-items: center; gap: 7px; min-width: 0; max-width: 58%; height: 32px; padding: 0 12px; border: 0; border-radius: 999px; background: var(--chip); font-size: 12.5px; color: var(--text); }
+.m-fw span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-icon { width: 40px; height: 40px; }
+.m-icon svg { width: 21px; height: 21px; }
+.app.mobile .main { border: 0; border-top: 1px solid var(--line); border-radius: 0; }
+.app.mobile .stage { display: block; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.app.mobile .page { min-height: 100%; padding: 12px 16px 24px; }
+.app.mobile .page-head { height: auto; min-height: 32px; margin-bottom: 12px; }
+.app.mobile .page-head h1, .app.mobile .page-head .page-icon { display: none; }
+.app.mobile .head-right { margin-left: auto; flex: none; justify-content: flex-end; }
+/* the output buttons and the page tabs float over the page (app.tsx MobileActions, MobileTabs; glass.tsx) */
+.app.mobile { --dock-b: calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 10px); --dock-h: 64px; --act-h: 48px; }
+.app.mobile .page { padding-bottom: calc(var(--dock-b) + var(--dock-h) + var(--act-h) + 34px); }
+.glass-defs { position: absolute; width: 0; height: 0; overflow: hidden; pointer-events: none; }
+/* the glass: the page behind, blurred a little, bent at the rim (the SVG filter) and lit along the top edge */
+.app.mobile { --glass-tint: rgba(255, 255, 255, 0.62); --glass-rim: rgba(255, 255, 255, 0.75); --glass-shade: rgba(0, 0, 0, 0.06); --glass-shadow: 0 8px 28px rgba(0, 0, 0, 0.14), 0 1px 3px rgba(0, 0, 0, 0.08); }
+@media (prefers-color-scheme: dark) { .app.mobile { --glass-tint: rgba(44, 44, 46, 0.52); --glass-rim: rgba(255, 255, 255, 0.22); --glass-shade: rgba(0, 0, 0, 0.3); --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4); } }
+.glass { background: var(--glass-tint); -webkit-backdrop-filter: blur(3px) saturate(1.7); backdrop-filter: blur(5px) url(#lg-bar) saturate(1.7);
+  box-shadow: inset 0 1px 0.5px var(--glass-rim), inset 0 -1px 1px var(--glass-shade), inset 0 0 0 0.5px var(--glass-rim), var(--glass-shadow); }
+.m-actions { position: fixed; z-index: 20; left: 16px; right: 16px; bottom: calc(var(--dock-b) + var(--dock-h) + 12px); display: flex; gap: 10px; pointer-events: none; }
+.m-actions .btn { pointer-events: auto; flex: 1; height: var(--act-h); justify-content: center; font-size: 15px; border-radius: 24px; border: 0; }
+.m-actions .btn svg { width: 20px; height: 20px; }
+.m-actions .btn.glass { backdrop-filter: blur(5px) url(#lg-save) saturate(1.7); color: var(--text); }
+.m-actions .btn.glass:disabled { opacity: 1; color: var(--faint); }
+/* "send to camera": the same glass, tinted blue */
+.m-actions .btn.glass.tint { color: #fff; background: color-mix(in srgb, var(--blue) 60%, transparent); backdrop-filter: blur(5px) url(#lg-send) saturate(1.8);
+  box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.5), inset 0 -1px 1px rgba(0, 0, 0, 0.12), inset 0 0 0 0.5px rgba(255, 255, 255, 0.3), var(--glass-shadow); }
+.m-actions .btn.glass.tint:disabled { color: rgba(255, 255, 255, 0.6); background: color-mix(in srgb, var(--blue) 26%, transparent); box-shadow: inset 0 1px 0.5px rgba(255, 255, 255, 0.3), inset 0 0 0 0.5px rgba(255, 255, 255, 0.18), var(--glass-shadow); }
+.m-dock { position: fixed; z-index: 21; left: 16px; right: 16px; bottom: var(--dock-b); height: var(--dock-h); }
+.m-tabs { position: absolute; inset: 0; display: flex; padding: 4px; border-radius: 999px; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent; }
+.m-tab { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 0; background: none; color: var(--muted); font-size: 11px; font-weight: 600; transition: color 0.2s; -webkit-tap-highlight-color: transparent; }
+.m-tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; font-size: clamp(9.5px, 2.85vw, 11px); letter-spacing: -0.1px; }
+.m-tab svg { width: 24px; height: 24px; }
+.m-tab.on { color: var(--blue); }
+/* the lens over the current tab: a lighter pill at rest; held, it swells past the bar and magnifies what is under it */
+.m-tabs-hot { position: absolute; inset: 0; display: flex; padding: 4px; pointer-events: none; clip-path: inset(50%); }
+/* the lens: its place and size are set by script (a spring); here its glass, light and shade, stronger while pressed */
+.m-lens { position: absolute; left: 0; top: 0; border-radius: 999px; pointer-events: none; will-change: translate, scale; background: color-mix(in srgb, var(--text) 6%, transparent);
+  backdrop-filter: url(#lg-lens) saturate(1.3);
+  box-shadow: inset 0 1px 0.5px var(--glass-rim), inset 0 0 0 0.5px color-mix(in srgb, var(--glass-rim) 60%, transparent);
+  transition: background-color 220ms ease, box-shadow 260ms ease; }
+.m-lens.held { background: color-mix(in srgb, var(--bg) 6%, transparent); backdrop-filter: url(#lg-lens-held) saturate(1.45) brightness(1.06);
+  box-shadow: inset 0 1.5px 1px var(--glass-rim), inset 0 -2px 3px var(--glass-shade), inset 0 0 0 0.75px var(--glass-rim), inset 0 0 14px -6px var(--glass-shade),
+    inset 4px 0 7px -5px rgba(120, 180, 255, 0.45), inset -4px 0 7px -5px rgba(255, 150, 120, 0.45), 0 10px 26px rgba(0, 0, 0, 0.2); }
+/* iOS: WebKit has no SVG filters in backdrop-filter (the refraction above), so its glass is frosted only */
+html.ios .glass, html.ios .m-actions .btn.glass { -webkit-backdrop-filter: blur(12px) saturate(1.8); backdrop-filter: blur(12px) saturate(1.8); }
+html.ios .m-actions .btn.glass.tint { -webkit-backdrop-filter: blur(12px) saturate(1.9); backdrop-filter: blur(12px) saturate(1.9); }
+html.ios .m-lens { -webkit-backdrop-filter: saturate(1.3); backdrop-filter: saturate(1.3); }
+html.ios .m-lens.held { -webkit-backdrop-filter: saturate(1.45) brightness(1.06); backdrop-filter: saturate(1.45) brightness(1.06); }
+/* settings: a sheet from the bottom with the sidebar's rows */
+.m-sheet-wrap { align-items: end; place-items: end stretch; }
+.m-sheet { width: 100%; background: var(--bg); border-radius: 20px 20px 0 0; box-shadow: var(--shadow); padding: 8px 14px calc(14px + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); animation: m-up 0.36s cubic-bezier(0.2, 0.9, 0.25, 1); }
+@keyframes m-up { from { transform: translateY(100%); } }
+.m-sheet-grip { display: grid; place-items: center; height: 26px; margin: -8px -14px 4px; touch-action: none; cursor: grab; }
+.m-sheet-grip i { width: 38px; height: 4px; border-radius: 2px; background: var(--line2); }
+.m-sheet { transition: transform 340ms cubic-bezier(0.2, 0.9, 0.25, 1); will-change: transform; }
+.m-sheet.pulling { transition: none; }
+.m-sheet-wrap.closing .m-sheet { animation: m-down 0.22s cubic-bezier(0.4, 0, 1, 1) forwards; }
+@keyframes m-fade-out { to { background-color: transparent; } }
+@keyframes m-down { to { transform: translateY(100%); } }
+.m-props { border-top: 0; padding: 0; gap: 4px; }
+.m-props .sel-btn { min-height: 46px; font-size: 15px; }
+.m-sheet-foot { display: flex; align-items: center; gap: 8px; padding-top: 12px; margin-top: 8px; border-top: 1px solid var(--line); }
+/* dialogs fill the width of a phone */
+.app.mobile .dialog { width: calc(100% - 24px); max-width: 520px; max-height: calc(100% - 48px); overflow-y: auto; padding: 18px 16px 14px; }
+.app.mobile .dialog-actions .btn { min-height: 42px; }
+/* confirm lines on the phone: slide sideways when too long (SwipeLine); a soft fade marks the hidden side */
+.app.mobile .dialog-lines li.swipe-line { overflow: hidden; text-overflow: clip; touch-action: pan-y; position: relative;
+  -webkit-mask-image: linear-gradient(90deg, var(--ml, #000) 0, #000 18px, #000 calc(100% - 22px), var(--mr, #000) 100%);
+  mask-image: linear-gradient(90deg, var(--ml, #000) 0, #000 18px, #000 calc(100% - 22px), var(--mr, #000) 100%); }
+.app.mobile .dialog-lines li.swipe-line.more-l { --ml: transparent; }
+.app.mobile .dialog-lines li.swipe-line.more-r { --mr: transparent; }
+.swipe-line-text { display: inline-block; white-space: nowrap; will-change: transform; }
+/* sending to the camera (camera.tsx) */
+.dialog.push h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.push-file { font-size: 12.5px; font-weight: 400; color: var(--muted); }
+.push-hint { font-size: 13px; margin: 0 0 10px; }
+.push-cams { display: grid; gap: 6px; margin-bottom: 12px; }
+.push-cam { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 8px 12px; border: 1px solid var(--line2); border-radius: 10px; background: none; text-align: left; }
+.push-cam.on { border-color: var(--blue); background: var(--blue-bg); }
+.push-cam.idle { border-style: dashed; justify-content: center; gap: 8px; font-size: 13.5px; }
+.push-cam-ico { color: var(--muted); display: grid; }
+.push-cam-text { flex: 1; min-width: 0; display: grid; }
+.push-cam-text small { color: var(--muted); font-size: 12px; }
+.push-cam-check { color: var(--blue); display: grid; }
+.push-warn { margin: 0 0 14px; padding: 9px 12px 9px 28px; border-radius: 8px; background: var(--amber-bg); color: var(--amber); font-size: 13px; display: grid; gap: 3px; }
+.push-stage { display: flex; align-items: center; gap: 10px; margin: 4px 0 12px; font-size: 15px; font-weight: 600; }
+.push-stage.ok { color: var(--green); }
+.push-stage.bad { color: var(--red); }
+.push-bar { height: 6px; border-radius: 3px; background: var(--chip); overflow: hidden; margin-bottom: 12px; }
+.push-bar i { display: block; height: 100%; background: var(--blue); transition: width 0.2s; }
+.push-log-toggle { display: inline-flex; align-items: center; gap: 4px; border: 0; background: none; color: var(--muted); font-size: 13px; padding: 4px 0; }
+.push-log { margin: 4px 0 12px; max-height: 92px; overflow: auto; font: 11.5px/1.5 ui-monospace, Menlo, monospace; color: var(--muted); white-space: pre-wrap; word-break: break-all; background: var(--chip); border-radius: 8px; padding: 8px 10px; user-select: text; }
+.push-log.open { max-height: 42vh; }
+.push-log:empty { display: none; }
+/* the pages: one column, the preview first */
+.app.mobile .ic, .app.mobile .ratio { display: flex; flex-direction: column; gap: 16px; flex: none; }
+.app.mobile .cards, .app.mobile .ratio-list { overflow: visible; padding-right: 0; min-height: auto; }
+.app.mobile .ic > .pane, .app.mobile .ratio > .pane { order: -1; flex: none; }
+.app.mobile .ic > .pane { container-type: inline-size; }
+.app.mobile .ic > .pane .pane-body { flex: none; height: calc(100cqw / 1.5 + 4px); }
+/* the phone has no hover to read the rest: the descriptions of the switches are shown whole */
+.app.mobile .soft-switch .soft-text .ellipsis { display: block; -webkit-line-clamp: unset; overflow: visible; }
+.app.mobile .ratio-body { flex: none; height: auto; container-type: inline-size; }
+.app.mobile .ratio-frame { width: 100%; }
+/* the four sizes two by two, then the factory ratios lined up with them, the same gaps as between the rows below */
+.app.mobile .ratio-out { margin-top: 10px; width: 100%; }
+.app.mobile .ratio-out:empty { display: none; }
+.app.mobile .ratio-out.sizes { grid-template-columns: 1fr 1fr; gap: 6px; width: 100%; }
+.app.mobile .ratio-out.sizes .chip { height: 30px; padding: 0 10px; font-size: 13px; gap: 6px; }
+.app.mobile .ratio-list { gap: 6px; }
+.app.mobile .ratio-factory { height: auto; min-height: 30px; padding: 0 2px; margin: 0 0 4px; flex-wrap: wrap; row-gap: 6px; }
+.app.mobile .ratio-factory .chip { height: 26px; padding: 0 9px; }
+/* download dialog: the model tabs scroll sideways under one track; a fade shows there are more */
+.app.mobile .online-models .seg { width: max-content; min-width: 100%; }
+.app.mobile .online-models { -webkit-mask-image: linear-gradient(90deg, var(--ml, #000), #000 16px, #000 calc(100% - 16px), var(--mr, #000)); mask-image: linear-gradient(90deg, var(--ml, #000), #000 16px, #000 calc(100% - 16px), var(--mr, #000)); }
+.app.mobile .online-models.more-l { --ml: transparent; }
+.app.mobile .online-models.more-r { --mr: transparent; }
+.app.mobile .fw-text { flex: 1; min-width: 0; }
+.app.mobile .fw-text b { display: flex; align-items: center; gap: 6px; white-space: nowrap; min-width: 0; }
+.app.mobile .fw-text small { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.app.mobile .fw-text small .chip { height: 20px; font-size: 11.5px; }
+.app.mobile .fw-text b .chip.tiny, .app.mobile .fw-ver { margin-left: 0; }
+.app.mobile .pane-head { flex-wrap: nowrap; }
+.app.mobile .ratio-x, .app.mobile .wall-actions, .app.mobile .compare-swap { opacity: 1; }
+.app.mobile .wall-fit { overflow: visible; }
+.app.mobile .wall-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px; }
+.app.mobile .hero-drop { flex: none; height: 240px; }
+.app.mobile .page-head .head-right > .chip.ok, .app.mobile .page-head .head-right > .chip.warn { display: none; }
+.app.mobile .toasts { z-index: 80; bottom: calc(var(--dock-b) + var(--dock-h) + var(--act-h) + 24px); left: 12px; right: 12px; transform: none; }
+/* touch feedback: no grey box from the WebView; whatever is pressed gives a little under the finger, in its own
+   shape, and springs back. The floating buttons swell instead, like the glass of the tabs. */
+html.mobile-app, html.mobile-app * { -webkit-tap-highlight-color: transparent; }
+.app.mobile .btn, .app.mobile .m-fw, .app.mobile .seg button, .app.mobile .sel-btn, .app.mobile .push-cam, .app.mobile .about-link, .app.mobile .pop-item {
+  transition: transform 420ms cubic-bezier(0.3, 1.5, 0.5, 1), background-color 160ms ease, color 160ms ease, box-shadow 200ms ease, opacity 160ms ease; }
+.app.mobile .btn:active:not(:disabled), .app.mobile .m-fw:active, .app.mobile .seg button:active, .app.mobile .sel-btn:active, .app.mobile .push-cam:active, .app.mobile .about-link:active {
+  transform: scale(0.95); transition-duration: 120ms; }
+.app.mobile .m-fw:active { background: var(--active); }
+.app.mobile .m-actions .btn:active:not(:disabled) { transform: none; }
+/* the floating buttons, pressed: they swell and light up like the glass of the tabs (usePressed in app.tsx) */
+.app.mobile .m-actions .btn { transition: transform 460ms cubic-bezier(0.3, 1.6, 0.45, 1), background-color 200ms ease, box-shadow 220ms ease, filter 200ms ease; }
+.app.mobile .m-actions .btn.pressed:not(:disabled) { transform: scale(1.06); transition-duration: 160ms, 120ms, 120ms, 120ms; filter: brightness(1.12);
+  box-shadow: inset 0 1.5px 1px var(--glass-rim), inset 0 0 0 1px var(--glass-rim), inset 0 0 18px -4px color-mix(in srgb, #fff 35%, transparent), var(--glass-shadow); }
+.app.mobile .m-actions .btn.glass.pressed:not(:disabled) { background: color-mix(in srgb, var(--glass-tint) 60%, var(--text) 12%); }
+.app.mobile .m-actions .btn.glass.tint.pressed:not(:disabled) { background: color-mix(in srgb, var(--blue) 78%, transparent); }
+/* while typing (the keyboard is up) the floating buttons and tabs step aside */
+.app.mobile .m-actions, .app.mobile .m-dock { transition: opacity 200ms ease, translate 260ms cubic-bezier(0.2, 0.9, 0.25, 1); }
+.app.mobile.typing .m-actions, .app.mobile.typing .m-dock { opacity: 0; translate: 0 24px; pointer-events: none; }
+.app.mobile.typing .m-actions .btn { pointer-events: none; }
+/* a look's name: plain text until the pencil opens it */
+.name-edit { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.name-edit .title-input { flex: 1; min-width: 0; }
+.name-edit:not(.on) .title-input { pointer-events: none; caret-color: transparent; }
+.name-edit.on .title-input { border-bottom: 2px solid var(--blue); }
+.name-pen { flex: none; width: 34px; height: 34px; border-radius: 17px; color: var(--muted); }
+.name-pen svg { width: 18px; height: 18px; }
+.name-edit.on .name-pen { color: var(--blue); background: var(--blue-bg); }
+.app.mobile .switch { transition: background-color 200ms ease; }
+.app.mobile .switch i { transition: transform 420ms cubic-bezier(0.3, 1.5, 0.5, 1); }
+.app.mobile .toast { animation: m-toast 0.42s cubic-bezier(0.3, 1.4, 0.5, 1); }
+@keyframes m-toast { from { opacity: 0; transform: translateY(14px) scale(0.94); } }
+.app.mobile .dialog { animation: m-pop 0.34s cubic-bezier(0.3, 1.3, 0.5, 1); }
+@keyframes m-pop { from { opacity: 0; transform: scale(0.94); } }
+/* choices in a sheet (components.tsx Select on Android) */
+.m-sheet-title { font-size: 15px; font-weight: 600; padding: 0 6px 8px; }
+.m-choice-list { display: grid; gap: 2px; max-height: 60vh; overflow-y: auto; overscroll-behavior: contain; margin-bottom: 4px; }
+.m-choice { display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 0 12px; border: 0; border-radius: 12px; background: none; font-size: 15.5px; text-align: left; color: var(--text);
+  transition: transform 420ms cubic-bezier(0.3, 1.5, 0.5, 1), background-color 160ms ease; }
+.m-choice .ellipsis { flex: 1; }
+.m-choice-ico { display: grid; color: var(--muted); }
+.m-choice-ico svg { width: 20px; height: 20px; color: inherit; }
+.m-choice:disabled { opacity: 0.4; }
+/* sheets stay under dialogs opened from them; the page behind them is blurred */
+.overlay.m-sheet-wrap { z-index: 45; background: rgba(0, 0, 0, 0.22); -webkit-backdrop-filter: blur(14px) saturate(1.2); backdrop-filter: blur(14px) saturate(1.2); }
+@media (prefers-color-scheme: dark) { .overlay.m-sheet-wrap { background: rgba(0, 0, 0, 0.36); } }
+.m-sheet-wrap.closing { animation: m-unblur 0.24s ease-in forwards; }
+@keyframes m-unblur { to { background-color: transparent; -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); } }
+.m-sheet-wrap { animation: m-blur 0.28s ease-out; }
+@keyframes m-blur { from { background-color: transparent; -webkit-backdrop-filter: blur(0); backdrop-filter: blur(0); } }
+/* settings: a panel from the right */
+.m-drawer-wrap { place-items: stretch end; }
+.m-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(86vw, 400px); display: flex; flex-direction: column; background: var(--bg); box-shadow: -12px 0 40px rgba(0, 0, 0, 0.22);
+  border-radius: 22px 0 0 22px; padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 10px) 14px calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 14px);
+  touch-action: pan-y; animation: m-in-right 0.38s cubic-bezier(0.2, 0.9, 0.25, 1); transition: transform 340ms cubic-bezier(0.2, 0.9, 0.25, 1); will-change: transform; }
+.m-drawer.pulling { transition: none; }
+.m-drawer-wrap.closing .m-drawer { animation: m-out-right 0.26s cubic-bezier(0.4, 0, 1, 1) forwards; }
+@keyframes m-in-right { from { transform: translateX(100%); } }
+@keyframes m-out-right { to { transform: translateX(100%); } }
+.m-drawer-head { display: flex; align-items: center; justify-content: space-between; min-height: 44px; padding: 0 0 8px 4px; font-size: 18px; }
+.m-drawer-head .btn.icon-only { width: 38px; height: 38px; border-radius: 19px; }
+.m-drawer .m-props { flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; justify-content: flex-start; align-content: start; }
+.m-drawer .m-props > * { flex: none; }
+.m-drawer .m-props.m-help { flex: none; overflow: visible; border-top: 1px solid var(--line); padding-top: 6px; margin-top: 4px; }
+.m-row { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; padding: 0 10px; border: 0; border-radius: 10px; background: none; color: var(--text); font-size: 15px; text-align: left; }
+.m-row svg { width: 20px; height: 20px; color: var(--muted); flex: none; }
+.m-row:active { background: var(--hover); }
+/* the guides on the phone: the card as wide as the screen allows, buttons a finger can hit */
+html.mobile-app .tour-card { width: min(380px, calc(100vw - 24px)); padding: 16px 16px 12px; border-radius: 16px; }
+html.mobile-app .tour-text b { font-size: 16px; }
+html.mobile-app .tour-text p { font-size: 14.5px; }
+html.mobile-app .tour-foot .btn.small { min-height: 38px; padding: 0 14px; font-size: 14px; }
+html.mobile-app .tour-hole { border-radius: 14px; }
+.m-drawer .m-sheet-foot { margin-top: auto; }
+.m-choice svg { width: 18px; height: 18px; color: var(--blue); flex: none; }
+.m-choice.on { background: var(--blue-bg); color: var(--blue); font-weight: 600; }
+.m-choice:active { transform: scale(0.97); background: var(--active); transition-duration: 120ms; }
+.m-choice.action { color: var(--muted); }
+.m-crash { position: fixed; inset: 0; display: flex; flex-direction: column; gap: 14px; padding: calc(var(--safe-area-inset-top, 0px) + 40px) 20px 20px; background: var(--bg); color: var(--text); }
+.m-crash pre { margin: 0; padding: 12px; border-radius: 10px; background: var(--chip); font: 12px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; word-break: break-all; user-select: text; overflow: auto; }
+.m-crash .btn { height: 46px; justify-content: center; border-radius: 23px; }
+/* what's new: the version chips keep their height in the narrow dialog */
+.wn-versions { flex: none; }
+.app.mobile .wn-versions button { height: 30px; padding: 0 12px; font-size: 13px; line-height: 1; }
+.app.mobile .wn-cur { font-size: 11px; }
+/* what's new: the thanks are a card of their own that visibly scrolls (its title stays, the bottom fades while there is more) */
+.app.mobile .wn-credits { max-height: 34vh; margin: 10px 0 4px; padding: 0 14px 6px; border-radius: 12px; background: var(--chip); overscroll-behavior: contain; scrollbar-width: thin; }
+.app.mobile .wn-credits.more { -webkit-mask-image: linear-gradient(#000 calc(100% - 36px), transparent); mask-image: linear-gradient(#000 calc(100% - 36px), transparent); }
+.app.mobile .wn-credits-title { position: sticky; top: 0; z-index: 1; margin: 0 -14px 6px; padding: 10px 14px 8px; background: var(--chip); border-bottom: 1px solid var(--line); font-size: 13px; }
+.app.mobile .wn-credits .wn-about { margin: 0 0 8px; }
+/* the before / after picture: the page scrolls over it; only the divider (a finger wide) is dragged */
+.app.mobile .compare { touch-action: pan-y; cursor: default; }
+.app.mobile .compare-line { touch-action: none; }
+.app.mobile .compare-line::before { content: ""; position: absolute; top: 0; bottom: 0; left: -22px; right: -22px; }
+.app.mobile .compare-knob { width: 36px; height: 36px; margin: -18px 0 0 -18px; }
+.app.mobile .compare.glide .compare-line { transition: left 300ms cubic-bezier(0.3, 1.3, 0.5, 1); }
+.app.mobile .compare.glide .compare-img { transition: clip-path 300ms cubic-bezier(0.3, 1.3, 0.5, 1); }
+/* the brightness row (a choice, not a switch): the three levels go under the title when they do not fit beside it */
+.app.mobile .bright-row { flex-wrap: wrap; row-gap: 8px; }
+.app.mobile .bright-row .soft-text { flex: 1 1 140px; }
+.app.mobile .bright-row > .seg { margin-left: auto; }
+.app.mobile .extras .soft-switch > .sel.box { flex: none; }
+.app.mobile .extras .soft-switch > .sel.box .sel-btn { height: 32px; gap: 8px; }
+/* the looks above the preview: the full width, scrolled sideways (faded where more are out of view); the photo /
+   swatches choice as two icons */
+.app.mobile .ic .pane-head .seg-arrow { display: none; }
+.app.mobile .ic .pane-head .seg-scroll { flex: 1 1 auto; --fl: 0px; --fr: 0px; -webkit-mask-image: linear-gradient(90deg, transparent, #000 var(--fl), #000 calc(100% - var(--fr)), transparent); mask-image: linear-gradient(90deg, transparent, #000 var(--fl), #000 calc(100% - var(--fr)), transparent); }
+.app.mobile .ic .pane-head .seg-scroll.more-l { --fl: 22px; }
+.app.mobile .ic .pane-head .seg-scroll.more-r { --fr: 22px; }
+.app.mobile .ic .pane-head > .grow { display: none; }
+.seg.seg-icons button { padding: 0 9px; display: grid; place-items: center; }
+.seg.seg-icons svg { width: 17px; height: 17px; }
+/* the two views of Image Control: the page is as long as the one shown (the other folds away once the turn is over) */
+.app.mobile .ic-track { align-items: flex-start; }
+.app.mobile .ic-track:not(.moving) > .ic-view[inert] { height: 0; overflow: hidden; }
+/* the menu order: what it does first, then the list at the full width, rows tall enough for a finger */
+.app.mobile .looks { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
+.app.mobile .look-info { order: -1; }
+.app.mobile .look-card { max-height: none; overflow: visible; }
+.app.mobile .look-list { overflow: visible; padding: 4px 6px; }
+.app.mobile .look-row { height: auto; min-height: 46px; }
+/* the firmware pill: only the version where the title needs the room */
+@media (max-width: 380px) { .m-fw-file { display: none; } }
+.app.mobile .look-name { white-space: normal; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.app.mobile .look-row:hover:not(.lifted) { background: none; }
+.app.mobile .look-grip { width: 30px; height: 40px; color: var(--muted); }
+.app.mobile .look-btns { gap: 2px; }
+.app.mobile .look-btns .btn.icon-only { width: 36px; height: 36px; }
+.app.mobile .look-btns .btn.icon-only svg { width: 18px; height: 18px; }
+
+/* ---- larger screens: an iPad, a tablet ----
+   600-739px (an iPad in split view, a small tablet): the phone layout in a column of a readable width.
+   From 740px: the pages and the settings in a sidebar, as on the desktop (app.tsx MobileSide); from 1100px the cards
+   and the preview side by side, the preview staying in view while the cards scroll. */
+@media (min-width: 600px) {
+  .app.mobile:not(.wide) .page { max-width: 712px; margin: 0 auto; }
+  .app.mobile:not(.wide) .m-top { padding-left: max(16px, calc(50% - 340px)); padding-right: max(8px, calc(50% - 348px)); }
+  .app.mobile:not(.wide) .m-actions, .app.mobile:not(.wide) .m-dock { left: max(16px, calc(50% - 340px)); right: max(16px, calc(50% - 340px)); }
+  .app.mobile:not(.wide) .toasts { left: max(12px, calc(50% - 340px)); right: max(12px, calc(50% - 340px)); }
+  .app.mobile .wall-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important; gap: 14px; }
+  /* a sheet of choices: a card floating above the bottom edge, not the whole width */
+  .m-sheet-wrap:not(.m-drawer-wrap) { place-items: end center; }
+  .m-sheet-wrap:not(.m-drawer-wrap) .m-sheet { width: min(520px, calc(100% - 32px)); border-radius: 20px; padding-bottom: 14px; margin-bottom: calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 16px); animation-name: m-up-card; }
+  .m-sheet-wrap.closing:not(.m-drawer-wrap) .m-sheet { animation-name: m-down-card; }
+}
+@keyframes m-up-card { from { transform: translateY(calc(100% + 60px)); } }
+@keyframes m-down-card { to { transform: translateY(calc(100% + 60px)); } }
+.app.mobile.wide { flex-direction: row; --side-w: 280px; }
+.m-side { width: calc(var(--side-w) + var(--safe-area-inset-left, env(safe-area-inset-left, 0px))); flex: none; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: calc(var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) + 6px) 12px calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 10px) calc(var(--safe-area-inset-left, env(safe-area-inset-left, 0px)) + 12px); }
+.m-side-title { display: flex; align-items: center; min-height: 40px; padding: 0 10px; margin-bottom: 10px; font-size: 21px; font-weight: 700; letter-spacing: -0.01em; }
+.m-side-nav { display: grid; gap: 2px; }
+.m-nav { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px; padding: 0 12px; border: 0; border-radius: 12px; background: none; color: var(--text); font-size: 16px; font-weight: 500; text-align: left; transition: background-color 0.15s, color 0.15s; }
+.m-nav svg { width: 22px; height: 22px; flex: none; color: var(--muted); transition: color 0.15s; }
+.m-nav span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m-nav.on { background: var(--blue-bg); color: var(--blue); font-weight: 600; }
+.m-nav.on svg { color: var(--blue); }
+.m-nav:active:not(.on) { background: var(--hover); }
+.m-side-settings { display: flex; flex-direction: column; margin-top: 16px; }
+.m-side-settings .m-props.m-help { border-top: 1px solid var(--line); padding-top: 6px; margin-top: 4px; }
+.m-side-settings .m-sheet-foot { padding-top: 10px; margin-top: 4px; }
+.app.mobile.wide .m-body { position: relative; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.app.mobile.wide .m-top { padding-left: 24px; padding-right: calc(var(--safe-area-inset-right, env(safe-area-inset-right, 0px)) + 16px); }
+.app.mobile.wide .main { border-top: 1px solid var(--line); border-left: 1px solid var(--line); border-top-left-radius: 14px; }
+.app.mobile.wide .page { padding: 16px calc(var(--safe-area-inset-right, env(safe-area-inset-right, 0px)) + 24px) calc(var(--dock-b) + var(--act-h) + 34px) 24px; max-width: 840px; margin: 0 auto; }
+/* the output buttons float over the bottom of the page, centred on it */
+.app.mobile.wide .m-actions { position: absolute; left: max(24px, calc(50% - 280px)); right: max(24px, calc(50% - 280px)); bottom: var(--dock-b); }
+.app.mobile.wide .toasts { bottom: calc(var(--dock-b) + var(--act-h) + 18px); left: calc(var(--side-w) + 24px); right: 24px; }
+@media (min-width: 1100px) {
+  .app.mobile.wide .page { max-width: 1240px; }
+  .app.mobile.wide .ic, .app.mobile.wide .ratio { display: grid; grid-template-columns: minmax(340px, 1fr) minmax(0, 1.15fr); align-items: start; gap: 28px; }
+  .app.mobile.wide .ic > .pane, .app.mobile.wide .ratio > .pane { order: 0; position: sticky; top: 4px; }
+}
+.m-version { cursor: default; color: var(--faint); }
+.app.mobile .m-version:active, .m-version:hover { transform: none; background: none; color: var(--faint); }
+
+/* the Android app's update dialog (update-dialog.tsx) */
+.dialog.upd .upd-notes { white-space: pre-line; margin: 2px 0 10px; line-height: 1.5; }
+.dialog.upd .upd-hint { font-size: 12.5px; margin: 0 0 6px; }
+.dialog.upd h3 .push-file { margin-left: 10px; }

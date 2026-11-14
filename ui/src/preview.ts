@@ -1,13 +1,14 @@
 // Before / after preview of a slot on a photograph. The picture is assumed to be what the camera's
 // Standard preset produced (sRGB); the slot model is applied to it with lookup tables.
 import { color } from '@grmod/core';
+import { loadBitmap } from './pixels';
 
 export const PREVIEW_MAX = 1280;
 
 /** Decode a picture and scale it to at most PREVIEW_MAX pixels on the long side. */
 export async function decodePreview(bytes: Uint8Array | Blob): Promise<ImageData> {
   const blob = bytes instanceof Blob ? bytes : new Blob([bytes as unknown as BlobPart]);
-  const bmp = await createImageBitmap(blob, { imageOrientation: 'from-image' });
+  const bmp = await loadBitmap(blob);
   try {
     const scale = Math.min(1, PREVIEW_MAX / Math.max(bmp.width, bmp.height));
     const w = Math.max(1, Math.round(bmp.width * scale)); const h = Math.max(1, Math.round(bmp.height * scale));

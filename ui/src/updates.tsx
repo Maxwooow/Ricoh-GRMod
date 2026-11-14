@@ -1,7 +1,7 @@
 // Updates of GR Mod itself: an optional check at start, "Check for updates" in the ? menu, and a
 // dialog that downloads the new version, has the shell verify it against the signed manifest and
 // then replace and restart the program (see shell/internal/update).
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Ico, Switch } from './components';
 import { host, HostError } from './host';
 import type { ReleaseNote, UpdateInfo } from './host';
@@ -211,7 +211,7 @@ async function loadNotes(): Promise<void> {
 
 /** Show what changed: this version's release text, earlier ones a click away. `from`: just updated from it. */
 export function openWhatsNew(from?: string): void {
-  const current = host.info?.version || '';
+  const current = host.info?.notes || host.info?.version || '';
   wnPut({ open: true, from, pick: current });
   if (!wn.releases.length && !wn.loading) void loadNotes();
 }
@@ -227,7 +227,7 @@ function WhatsNewDialog() {
     return () => window.removeEventListener('keydown', key);
   }, [s.open]);
   if (!s.open) return null;
-  const current = host.info?.version || '';
+  const current = host.info?.notes || host.info?.version || '';
   const close = (): void => wnPut({ open: false });
   // The releases up to this version (a newer one is shown by the update dialog).
   const list = s.releases.filter((r) => r.version === current || !Newer(r.version, current));
@@ -325,10 +325,14 @@ function pick(m: Record<string, string> | undefined): string {
 function Credits() {
   const c = useSyncExternalStore((f) => { creditSubs.add(f); return () => creditSubs.delete(f); }, () => credits);
   useEffect(() => { void loadCredits(); }, []);
+  // "more below": the list fades out at the bottom while it can still be scrolled
+  const box = useRef<HTMLDivElement>(null);
+  const edge = (): void => { const el = box.current; if (el) el.classList.toggle('more', el.scrollTop + el.clientHeight < el.scrollHeight - 2); };
+  useEffect(edge, [c]);
   if (!c) return null;
   const sep = lang === 'zh' ? '；' : '; ';
   return (
-    <div className="wn-credits">
+    <div className="wn-credits" ref={box} onScroll={edge}>
       <div className="small wn-credits-title">{t('creditsTitle')}</div>
       {c.sections.map((s, i) => (
         <p key={i} className="muted small wn-about">

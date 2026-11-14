@@ -1,8 +1,27 @@
 # GR Mod
 
-A small desktop tool for the Ricoh GR IV / GR IV HDF (firmware 1.20 or 1.11), the GR IV Monochrome
+A small tool (Windows, macOS, Android, iPhone and iPad) for the Ricoh GR IV / GR IV HDF (firmware 1.20 or 1.11), the GR IV Monochrome
 (firmware 1.10, the same file as GR IV 1.20), the GR III / GR III HDF (firmware 2.20 or 2.10) and the
 GR IIIx / GR IIIx HDF (firmware 1.70 or 1.60). Not a Ricoh product.
+
+Downloads: the desktop app (Windows, macOS) and the Android app (APK) are on the
+[releases page](https://github.com/Maxwooow/Ricoh-GRMod/releases); the iPhone and iPad app is on the
+[App Store](https://apps.apple.com/app/id6834232648) as "GR Mod - For Ricoh GR IV/III". The phone and tablet app
+(`mobile/`, see `mobile/README.md`) has the same pages as the desktop app; instead of writing a memory card it
+saves the firmware to the device, or sends it to a GR IV over Bluetooth and Wi-Fi as GR WORLD does.
+
+0.8.13: one language setting. The camera language is no longer chosen on its own: it follows the app
+language (简体中文 → Simplified Chinese, English → English; following the system, the system's language
+where the camera has it), and the names changed under Image Control are for that language. The guide to
+Image Control now introduces the additions as a whole, then each one on its own step.
+
+0.8.12: fixes and a shorter check. Power-off pictures on GR IV 1.20: when the menus are widened (the
+date imprint's menu with exposure preview or soft focus's menu line), the camera reads the wide copy
+of the Setup menu, and its End Screen line now gets the Picture item too (it had none:
+`menuItemWords` in `core/src/fw/gr4v120/aspect/menuwide.ts`, found on the camera). The Image Control
+icon is a true aperture. The check before writing lists only what changes, by name, with a count
+where one item holds several; the switches' descriptions are shorter, and the Auto screen
+brightness choices read stock / slightly brighter / brightest.
 
 0.8.11: GR IV, firmware 1.20 (issue #17). Exposure preview is a camera setting: On (the camera's
 own live view), Off in Direct Flash (only while Direct Flash is the Flash Mode) and Always Off, where
@@ -167,7 +186,7 @@ On a Mac: unzip `GRMod-mac.zip` and move `GR Mod.app` to Applications. The app i
 On Linux: start `shell/dist/grmod`. The UI opens in an app window of Chrome, Chromium, Edge, Brave or Vivaldi when one is in `PATH`, otherwise in the default browser; GR Mod quits when that window is closed. The card is offered once the desktop has mounted it (as the file manager does, below `/run/media/<user>` or `/media/<user>`), and Eject unmounts it with `udisksctl`. The folder dialog needs `kdialog` or `zenity`. There is no Linux release package, so this build does not update itself.
 Test: `npm -w core test` (the byte-identity tests need the official firmware in `core/testdata/private/`, which is not distributed), `cd shell && go test ./... && go test -tags desktop ./...`.
 
-An Android build would reuse `core/` and `ui/` unchanged and replace `shell/` with a WebView wrapper implementing the same host interface (volumes via the Storage Access Framework).
+The phone and tablet app (`mobile/`, Capacitor for Android and iOS) uses `core/` and `ui/` unchanged and replaces `shell/` with a native plugin implementing the same host interface (`ui/src/host-android.ts`): build with `npm -w ui run build:android`, then see `mobile/README.md`.
 
 No firmware file is included here. The user picks the official 1.11 file, or lets the program fetch it: the shell reads Ricoh's own download pages for the chosen model and downloads the current update from there, or, when that is not 1.11, the 1.11 archive that is still on Ricoh's site at a fixed address, checked against its SHA-256 (`shell/internal/ricoh`; Ricoh's page says that downloading means accepting its software licence agreement, and the dialog says so too and links to it). The before/after preview and the frame of an added aspect ratio are drawn on a sample picture, `ui/src/assets/preview.jpg`: DPReview's studio test scene, included with DPReview's permission (it is not covered by the licences of the code). The user can replace it in the UI, or by keeping a `preview.jpg` next to the program (on macOS: next to `GR Mod.app`; served by `GET /api/sidecar/preview.jpg`). `core/src/color/data.ts` holds measurements (the camera's base tone curve and paired calibration colours). The power-off image method builds on the public research in radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion.
 

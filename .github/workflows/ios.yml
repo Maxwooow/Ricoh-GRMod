@@ -1,0 +1,130 @@
+# The iOS app (mobile/ios, mobile/ios-plugin): built on GitHub's Mac machines, since Xcode only runs on macOS.
+# Without the App Store Connect secrets it only builds unsigned, to see that it compiles. With them it also
+# signs (automatic signing through the API key; Apple keeps the certificate) and uploads the build to App Store
+# Connect, where it shows in TestFlight after Apple's processing (about 10-30 minutes).
+#
+# Secrets (Settings > Secrets and variables > Actions):
+#   ASC_KEY_P8      the .p8 key file's text, pasted as it is (open it in Notepad), or base64 of it
+#   ASC_KEY_ID      its Key ID
+#   ASC_ISSUER_ID   the Issuer ID shown above the keys list
+#   APPLE_TEAM_ID   the 10-character Team ID (developer.apple.com > Account > Membership details)
+name: iOS
+
+on:
+  push:
+    branches: [ios]
+    paths: ['mobile/**', 'ui/**', 'core/**', 'package.json', 'package-lock.json', '.github/workflows/ios.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      HAS_ASC: ${{ secrets.ASC_KEY_P8 != '' && secrets.ASC_KEY_ID != '' && secrets.ASC_ISSUER_ID != '' && secrets.APPLE_TEAM_ID != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            mobile/package-lock.json
+
+      - name: Install
+        run: |
+          npm ci
+          cd mobile && npm ci
+
+      - name: Build the page and copy it into the Xcode project
+        run: cd mobile && npm run sync:ios
+
+      - name: Xcode
+        run: xcodebuild -version
+
+      - name: Which App Store Connect secrets are set
+        env:
+          A: ${{ secrets.ASC_KEY_P8 != '' }}
+          B: ${{ secrets.ASC_KEY_ID != '' }}
+          C: ${{ secrets.ASC_ISSUER_ID != '' }}
+          D: ${{ secrets.APPLE_TEAM_ID != '' }}
+        run: |
+          echo "ASC_KEY_P8=$A ASC_KEY_ID=$B ASC_ISSUER_ID=$C APPLE_TEAM_ID=$D"
+          [ "$HAS_ASC" = true ] && echo "Signing and uploading." || echo "Not all four are set: unsigned build only."
+
+      - name: Build (unsigned)
+        if: env.HAS_ASC != 'true'
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project mobile/ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            2>&1 | tee xcodebuild.log | grep -E "error:|warning: .*GrCamera|BUILD (SUCCEEDED|FAILED)|\*\*" || true
+          grep -q "BUILD SUCCEEDED" xcodebuild.log
+
+      - name: Archive (signed)
+        if: env.HAS_ASC == 'true'
+        env:
+          ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -o pipefail
+          KEY="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
+          # The secret may hold the .p8 file as it is (-----BEGIN PRIVATE KEY----- ...) or base64 of it.
+          case "$ASC_KEY_P8" in
+            *"BEGIN PRIVATE KEY"*) printf '%s\n' "$ASC_KEY_P8" > "$KEY" ;;
+            *) printf '%s' "$ASC_KEY_P8" | base64 --decode > "$KEY" ;;
+          esac
+          chmod 600 "$KEY"
+          AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+          xcodebuild archive \
+            -project mobile/ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath build -archivePath build/App.xcarchive \
+            DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION=${{ github.run_number }} \
+            "${AUTH[@]}" \
+            2>&1 | tee xcodebuild.log | grep -E "error:|warning: .*GrCamera|ARCHIVE (SUCCEEDED|FAILED)|\*\*" || true
+          grep -q "ARCHIVE SUCCEEDED" xcodebuild.log
+
+      - name: Upload to App Store Connect (TestFlight)
+        if: env.HAS_ASC == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -o pipefail
+          KEY="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8"
+          cp mobile/ios/ExportOptions.plist "$RUNNER_TEMP/ExportOptions.plist"
+          plutil -replace teamID -string "$TEAM" "$RUNNER_TEMP/ExportOptions.plist"
+          xcodebuild -exportArchive \
+            -archivePath build/App.xcarchive -exportPath build/export \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates -authenticationKeyPath "$KEY" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            2>&1 | tee -a xcodebuild.log | grep -E "error|Upload|EXPORT (SUCCEEDED|FAILED)|\*\*" || true
+          grep -q "EXPORT SUCCEEDED" xcodebuild.log
+
+      - name: Remove the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP"/AuthKey_*.p8
+
+      - name: Keep the build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log
+          if-no-files-found: ignore

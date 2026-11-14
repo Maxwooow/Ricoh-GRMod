@@ -1,0 +1,8 @@
+{
+  "appId": "io.github.maxwooow.grmod",
+  "appName": "GR Mod",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  }
+}

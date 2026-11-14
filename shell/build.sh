@@ -233,15 +233,15 @@ build_mac() {
   if command -v sha256sum >/dev/null 2>&1; then
     echo "sha256:  $(sha256sum dist/GRMod-mac.zip | cut -d' ' -f1)"
   fi
-  # Disk image: needs mkfs.hfsplus (hfsprogs), hfsplus and dmg (mozilla/libdmg-hfsplus) and the
-  # Python packages ds_store and mac_alias; see tools/mkdmg/mkdmg.py. Skipped when they are missing.
+  # Disk image: needs python3 with the packages ds_store and mac_alias (see tools/mkdmg/mkdmg.py,
+  # which uses libdmg-hfsplus when it is installed and its own writer otherwise). Skipped without them.
   local dmg="dist/GRMod-${version}-mac.dmg"
-  if { [ -n "${HFSPLUS:-}" ] || command -v hfsplus >/dev/null 2>&1; } && { [ -n "${DMG:-}" ] || command -v dmg >/dev/null 2>&1; }; then
+  if command -v python3 >/dev/null 2>&1 && python3 -c 'import ds_store, mac_alias' >/dev/null 2>&1; then
     python3 tools/mkdmg/mkdmg.py "$app" "$dmg" --volname "GR Mod ${version}" >/dev/null
     echo "built:   $dmg ($(wc -c < "$dmg" | tr -d ' ') bytes)"
     if command -v sha256sum >/dev/null 2>&1; then echo "sha256:  $(sha256sum "$dmg" | cut -d' ' -f1)"; fi
   else
-    echo "dmg:     skipped (hfsplus / dmg not found, see tools/mkdmg/mkdmg.py)"
+    echo "dmg:     skipped (python3 with ds_store and mac_alias not found, see tools/mkdmg/mkdmg.py)"
   fi
 }
 

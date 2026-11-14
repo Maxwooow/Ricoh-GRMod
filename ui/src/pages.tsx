@@ -3,6 +3,7 @@ import { color, EXTRA_NAME_MAX, GR3X_RATIO_NAME_MAX, halateRgba, halationLight, 
 import type { SlotId } from '@grmod/core';
 import type { ReactNode } from 'react';
 import { DropZone, FileButton, Ico, IconCanvas, Menu, Prop, RatioIcon, RgbCanvas, Segmented, Select, Switch } from './components';
+import { isMobile } from './host';
 import { FirmwareHero } from './firmware';
 import { t } from './i18n';
 import type { Key } from './i18n';
@@ -25,7 +26,7 @@ import type { ExtraSlot, RatioItem, SlotKey, WallItem } from './store';
 
 const isPreset = (f: File): boolean => /\.(xmp|cube)$/i.test(f.name);
 const isFirmware = (f: File): boolean => /\.bin$/i.test(f.name);
-const isImage = (f: File): boolean => /^image\//.test(f.type) || /\.(jpe?g|png|webp|bmp|gif|avif)$/i.test(f.name);
+const isImage = (f: File): boolean => /^image\//.test(f.type) || /\.(jpe?g|png|webp|bmp|gif|avif|heic|heif)$/i.test(f.name);
 
 // 24 reference patches (sRGB), shown before / after a preset
 const CC24 = [[115, 82, 68], [194, 150, 130], [98, 122, 157], [87, 108, 67], [133, 128, 177], [103, 189, 170], [214, 126, 44], [80, 91, 166], [193, 90, 99], [94, 60, 108], [157, 188, 64], [224, 163, 46],
@@ -106,9 +107,15 @@ function Compare({ photo, after, label }: { photo: ImageData | null; after: Imag
   return (
     <div
       ref={boxRef} className={`compare ${after ? '' : 'plain'}`} style={{ '--ar': String(photo.width / photo.height) } as React.CSSProperties}
-      onPointerDown={(e) => { if (!after || (e.target as HTMLElement).closest('button')) return; e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); dragging.current = true; at(e.clientX); }}
+      onPointerDown={(e) => {
+        if (!after || (e.target as HTMLElement).closest('button')) return;
+        // on a phone only the divider is dragged; the rest of the picture scrolls the page (a tap moves the divider)
+        if (isMobile && !(e.target as HTMLElement).closest('.compare-line')) return;
+        e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); dragging.current = true; if (!isMobile) at(e.clientX);
+      }}
       onPointerMove={(e) => { if (dragging.current) at(e.clientX); }}
       onPointerUp={() => { dragging.current = false; }} onPointerCancel={() => { dragging.current = false; }}
+      onClick={isMobile ? (e) => { if (after && !(e.target as HTMLElement).closest('.compare-line, button')) { boxRef.current?.classList.add('glide'); at(e.clientX); window.setTimeout(() => boxRef.current?.classList.remove('glide'), 320); } } : undefined}
       onDoubleClick={() => setPos(0.5)}
     >
       {after && <canvas ref={afterRef} className="compare-img" />}
@@ -151,18 +158,35 @@ function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number
   const tabs = gr3x ? slotOptions.map((x) => ({ value: x.id, label: slots[x.id].names[lang] || x.names[lang]?.text || x.defaultName }))
     : [{ value: 'CY', label: t('slotCY') }, { value: 'CG', label: t('slotCG') }, ...extras.map((x, i) => ({ value: x.key, label: extraLabels.split('\u0000')[i] }))];
   const tabsRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { tabsRef.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }, [active]);
+  // Bring the current tab into view by scrolling the tab strip only (scrollIntoView would also scroll the page,
+  // which on a phone jumps back up to the tabs whenever a card below is touched).
+  useEffect(() => {
+    const box = tabsRef.current;
+    const el = box?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!box || !el) return;
+    const b = box.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const k = b.width / (box.clientWidth || 1) || 1; // window px per CSS px (the interface may be zoomed)
+    const d = r.left < b.left ? r.left - b.left - 16 * k : r.right > b.right ? r.right - b.right + 16 * k : 0;
+    if (d) box.scrollBy({ left: d / k, behavior: 'smooth' });
+  }, [active]);
   // With many added slots in a narrow window the tabs do not all fit: arrows step through them.
   const [overflow, setOverflow] = useState(false);
   useEffect(() => {
     const el = tabsRef.current;
     if (!el) return;
-    const check = (): void => setOverflow(el.scrollWidth > el.clientWidth + 1);
+    // the edges fade where more tabs are scrolled out of view (on a phone, where there are no arrows)
+    const edges = (): void => {
+      el.classList.toggle('more-l', el.scrollLeft > 1);
+      el.classList.toggle('more-r', el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    };
+    const check = (): void => { setOverflow(el.scrollWidth > el.clientWidth + 1); edges(); };
     check();
     const ro = new ResizeObserver(check);
     ro.observe(el);
     if (el.firstElementChild) ro.observe(el.firstElementChild);
-    return () => ro.disconnect();
+    el.addEventListener('scroll', edges, { passive: true });
+    return () => { ro.disconnect(); el.removeEventListener('scroll', edges); };
   }, [tabs.length]);
   const at = Math.max(0, tabs.findIndex((x) => x.value === active));
   const step = (d: number): void => { const n = tabs[at + d]; if (n) setActiveSlot(n.value); };
@@ -176,7 +200,10 @@ function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number
         {overflow && <button className="btn ghost icon-only seg-arrow" title={t('nextSlot')} aria-label={t('nextSlot')} disabled={at === tabs.length - 1} onClick={() => step(1)}>{Ico.right}</button>}
         </>}
         <span className="grow" />
-        <Segmented tour="ic-mode" value={mode} onChange={setPreviewMode} options={[{ value: 'photo', label: t('previewPhoto') }, { value: 'swatch', label: t('previewSwatch') }]} />
+        {/* on a phone the looks need the width: the two views as icons */}
+        <Segmented tour="ic-mode" className={isMobile ? 'seg-icons' : undefined} value={mode} onChange={setPreviewMode} options={isMobile
+          ? [{ value: 'photo', label: Ico.image, title: t('previewPhoto') }, { value: 'swatch', label: Ico.swatch, title: t('previewSwatch') }]
+          : [{ value: 'photo', label: t('previewPhoto') }, { value: 'swatch', label: t('previewSwatch') }]} />
       </div>
       <div className="pane-body" style={{ '--below': below ? `${belowH + 10}px` : '0px' } as React.CSSProperties}>
         <div className="pane-fit" data-tour="ic-preview" data-tour-fit="">{mode === 'photo' ? <PhotoCompare params={params} /> : <Swatches params={params} />}</div>
@@ -202,11 +229,11 @@ function SlotCard({ id }: { id: SlotId }) {
   const first = id === 'CY'; // the one the tour points at
   return (
     <DropZone className={`card ${active ? 'on' : ''}`} tour={first ? 'ic-slot' : undefined} accept={isPreset} onFiles={(f) => { void loadPresetFile(id, f[0]); }}>
-      <div className="card-in" onPointerDownCapture={() => setActiveSlot(id)} onFocusCapture={() => setActiveSlot(id)}>
+      <div className="card-in" {...pick(() => setActiveSlot(id))}>
         <div className="card-head">
           <IconCanvas pixels={slot.icon.mode !== 'keep' && slot.icon.pixels ? slot.icon.pixels : off.icon} />
           <div className="card-title" data-tour={first ? 'ic-name' : undefined}>
-            <input className={`title-input ${problem ? 'bad' : ''}`} value={name} placeholder={off.names[lang].text} spellCheck={false} aria-label={t('name')} onChange={(e) => setName(id, lang, e.target.value)} />
+            <NameInput className={`title-input ${problem ? 'bad' : ''}`} value={name} placeholder={off.names[lang].text} onChange={(v) => setName(id, lang, v)} />
             <div className="sub">
               <span className="ellipsis">{gr3x ? off.defaultName : t(('slot' + id) as Key)}</span>
               <span className={`count ${problem ? 'bad' : ''}`}>{problem || `${name.length || off.names[lang].text.length}/${cap}`}</span>
@@ -557,6 +584,41 @@ function LookOrderView() {
   );
 }
 
+/**
+ * A look's name. On the desktop a field that is always editable; on a phone the name is plain text and a pencil
+ * beside it opens it for editing (a touch near the name while scrolling must not bring up the keyboard).
+ */
+function NameInput({ className, value, placeholder, maxLength, onChange }: { className: string; value: string; placeholder: string; maxLength?: number; onChange: (v: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+  const field = (
+    <input
+      ref={ref} className={className} value={value} placeholder={placeholder} maxLength={maxLength} spellCheck={false} aria-label={t('name')}
+      readOnly={isMobile && !editing} tabIndex={isMobile && !editing ? -1 : undefined} enterKeyHint="done"
+      onChange={(e) => onChange(e.target.value)} onBlur={() => setEditing(false)} onKeyDown={(e) => { if (isMobile && e.key === 'Enter') e.currentTarget.blur(); }}
+    />
+  );
+  if (!isMobile) return field;
+  const edit = (): void => {
+    setEditing(true);
+    requestAnimationFrame(() => { const el = ref.current; if (el) { el.focus(); const n = el.value.length; el.setSelectionRange(n, n); } });
+  };
+  return (
+    <div className={`name-edit ${editing ? 'on' : ''}`}>
+      {field}
+      <button type="button" className="btn ghost icon-only name-pen" aria-label={t('rename')} onPointerDown={(e) => { if (editing) e.preventDefault(); }} onClick={() => (editing ? ref.current?.blur() : edit())}>{editing ? Ico.check : Ico.pen}</button>
+    </div>
+  );
+}
+
+/**
+ * Makes a card the current one when it is used. On the desktop as soon as it is pressed; on a phone only on a
+ * tap or when one of its fields takes the focus, so that scrolling the page over the cards does not pick one.
+ */
+function pick(run: () => void): React.HTMLAttributes<HTMLDivElement> {
+  return isMobile ? { onClickCapture: run, onFocusCapture: run } : { onPointerDownCapture: run, onFocusCapture: run };
+}
+
 /** An added slot: one name for every language (ASCII), a preset, an icon. */
 function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
   const active = useStore((s) => s.activeSlot === x.key);
@@ -568,11 +630,11 @@ function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
   const k = x.key;
   return (
     <DropZone className={`card ${active ? 'on' : ''}`} accept={isPreset} onFiles={(f) => { void loadPresetFile(k, f[0]); }}>
-      <div className="card-in" onPointerDownCapture={() => setActiveSlot(k)} onFocusCapture={() => setActiveSlot(k)}>
+      <div className="card-in" {...pick(() => setActiveSlot(k))}>
         <div className="card-head">
           <IconCanvas pixels={x.icon.pixels ?? tile} />
           <div className="card-title">
-            <input className={`title-input ${nameBad ? 'bad' : ''}`} value={x.name} placeholder={name} maxLength={40} spellCheck={false} aria-label={t('name')} onChange={(e) => setExtraName(k, e.target.value)} />
+            <NameInput className={`title-input ${nameBad ? 'bad' : ''}`} value={x.name} placeholder={name} maxLength={40} onChange={(v) => setExtraName(k, v)} />
             <div className="sub">
               <span className="ellipsis">{t('extraSlot', { n: index + 1 })}</span>
               <span className={`count ${nameBad ? 'bad' : ''}`}>{nameBad || `${name.length}/${EXTRA_NAME_MAX}`}</span>
@@ -654,9 +716,9 @@ function HalationProp({ k }: { k: SlotKey }) {
 }
 
 /** One switch of the firmware additions: icon, name, one line of detail. */
-function FeatureRow({ icon, title, sub, on, onChange }: { icon: ReactNode; title: string; sub: string; on: boolean; onChange: (v: boolean) => void }) {
+function FeatureRow({ icon, title, sub, on, onChange, tour }: { icon: ReactNode; title: string; sub: string; on: boolean; onChange: (v: boolean) => void; tour?: string }) {
   return (
-    <div className={`soft-switch ${on ? 'on' : ''}`}>
+    <div className={`soft-switch ${on ? 'on' : ''}`} data-tour={tour}>
       <span className="page-icon soft-ico">{icon}</span>
       <div className="soft-text">
         <b>{title}</b>
@@ -672,7 +734,7 @@ function AdjSlotsRow({ max }: { max: number }) {
   const n = useStore((s) => adjSlotsOf(s));
   const options = Array.from({ length: max - 4 }, (_, i) => ({ value: String(5 + i), label: String(5 + i) }));
   return (
-    <div className={`soft-switch ${n > 5 ? 'on' : ''}`}>
+    <div className={`soft-switch ${n > 5 ? 'on' : ''}`} data-tour="ic-f-adj">
       <span className="page-icon soft-ico">{Ico.adj}</span>
       <div className="soft-text">
         <b>{t('navAdjSlots')}</b>
@@ -717,14 +779,25 @@ function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?: (el: 
   }, [from]);
   return (
     <div className="card extras" data-tour="ic-soft" ref={(el) => { own.current = el; boxRef?.(el); }}>
-      <FeatureRow icon={Ico.soft} title={t('navSoft')} sub={t(gr3x ? 'gr3xSoftSub' : 'softAdjSub')} on={soft} onChange={setSoft} />
-      {(!gr3x || dateOk) && <FeatureRow icon={Ico.date} title={t('navDate')} sub={t('dateSub')} on={date} onChange={setDateStamp} />}
-      {!mono && !gr3x && <FeatureRow icon={Ico.mono} title={t(gr3x ? 'gr3xReplicaTitle' : 'navMono')} sub={t(gr3x ? 'gr3xReplicaSub' : 'monoSub')} on={looks} onChange={setMonoUnlock} />}
-      {flashOk && <FeatureRow icon={Ico.flash} title={t('navFlash')} sub={t('flashSub')} on={flash} onChange={setDirectFlash} />}
-      {hdrOk && <FeatureRow icon={Ico.hdr} title={t('navHdr')} sub={t('hdrSub')} on={hdr} onChange={setHdr} />}
-      {previewOk && <FeatureRow icon={Ico.preview} title={t('navPreview')} sub={t('previewSub')} on={preview} onChange={setExposurePreview} />}
+      <FeatureRow icon={Ico.soft} title={t('navSoft')} sub={t(gr3x ? 'gr3xSoftSub' : 'softAdjSub')} on={soft} onChange={setSoft} tour="ic-f-soft" />
+      {(!gr3x || dateOk) && <FeatureRow icon={Ico.date} title={t('navDate')} sub={t('dateSub')} on={date} onChange={setDateStamp} tour="ic-f-date" />}
+      {!mono && !gr3x && <FeatureRow icon={Ico.mono} title={t(gr3x ? 'gr3xReplicaTitle' : 'navMono')} sub={t(gr3x ? 'gr3xReplicaSub' : 'monoSub')} on={looks} onChange={setMonoUnlock} tour="ic-f-mono" />}
+      {flashOk && <FeatureRow icon={Ico.flash} title={t('navFlash')} sub={t('flashSub')} on={flash} onChange={setDirectFlash} tour="ic-f-flash" />}
+      {hdrOk && <FeatureRow icon={Ico.hdr} title={t('navHdr')} sub={t('hdrSub')} on={hdr} onChange={setHdr} tour="ic-f-hdr" />}
+      {previewOk && <FeatureRow icon={Ico.preview} title={t('navPreview')} sub={t('previewSub')} on={preview} onChange={setExposurePreview} tour="ic-f-preview" />}
       {adjMax > 5 && <AdjSlotsRow max={adjMax} />}
-      {brightAutoOk && <div className="soft-switch"><Select value={brightAuto || 'off'} options={[{ value: 'off', label: t('brightAutoOff') }, { value: 'balanced', label: t('brightAutoBalanced') }, { value: 'bright', label: t('brightAutoBright') }]} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')} label={t('navBrightAuto')} variant="row" /></div>}
+      {brightAutoOk && !isMobile && <div className="soft-switch" data-tour="ic-f-bright"><Select value={brightAuto || 'off'} options={[{ value: 'off', label: t('brightAutoOff') }, { value: 'balanced', label: t('brightAutoBalanced') }, { value: 'bright', label: t('brightAutoBright') }]} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')} label={t('navBrightAuto')} variant="row" /></div>}
+      {/* on a phone: a row like the others, the three levels side by side (as the ADJ items) */}
+      {brightAutoOk && isMobile && (
+        <div className={`soft-switch bright-row ${brightAuto ? 'on' : ''}`} data-tour="ic-f-bright">
+          <span className="page-icon soft-ico">{Ico.bright}</span>
+          <div className="soft-text"><b>{t('navBrightAuto')}</b></div>
+          <Segmented
+            value={brightAuto || 'off'} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')}
+            options={([['off', 'brightAutoOff'], ['balanced', 'brightAutoBalanced'], ['bright', 'brightAutoBright']] as const).map(([value, key]) => ({ value, label: ((x) => x.charAt(0).toUpperCase() + x.slice(1))(t(key).split(' · ').pop()!) }))}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -761,7 +834,9 @@ function IcBody() {
       const kids = [...cards!.children].filter((c) => c !== box) as HTMLElement[];
       kids.forEach((k) => ro.observe(k));
       const used = kids.reduce((a, k) => a + k.offsetHeight, 0) + gap * Math.max(0, kids.length - 1);
-      const want: Place = used + gap + boxH.current <= cards!.clientHeight + 0.5 ? 'left' : 'right';
+      // The phone has one column: the switches always follow the cards (under the preview there is no room kept
+      // for them, and a height measured in one language overlaps the cards in another).
+      const want: Place = isMobile || used + gap + boxH.current <= cards!.clientHeight + 0.5 ? 'left' : 'right';
       if (want !== placeRef.current) {
         from.current = first || !box ? null : box.getBoundingClientRect();
         placeRef.current = want;
@@ -899,7 +974,10 @@ export function ImageControlPage() {
             {info.bridge
               ? <span className="chip warn">{Ico.bridge}<span className="ellipsis">{fwName || info.filename} · {t('fwBridgeValue')}</span></span>
               : <span className="chip ok">{Ico.check}<span className="ellipsis">{fwName || info.filename} · {info.version}</span></span>}
-            <Menu items={[
+            <Menu items={isMobile ? [
+              ...(info.family === 'gr4' ? [{ label: t('pushStock'), run: () => { void outputFirmware({ kind: 'camera' }, true); } }] : []),
+              { label: t('saveStock'), run: () => { void outputFirmware({ kind: 'phone' }, true); } },
+            ] : [
               { label: t('writeStock'), run: () => { void outputFirmware({ kind: 'card' }, true); } },
               { label: t('exportStock'), run: () => { void outputFirmware({ kind: 'folder' }, true); } },
             ]}>{Ico.more}</Menu>
@@ -927,7 +1005,7 @@ function RatioRow({ r, active, tour }: { r: RatioItem; active: boolean; tour?: s
   const problem = portrait ? null : ratioProblem(r);
   const busy = !!r.ratio.trim() && !p;
   return (
-    <div className={`ratio-row ${active ? 'on' : ''}`} data-tour={tour} onPointerDownCapture={() => setActiveRatio(r.id)} onFocusCapture={() => setActiveRatio(r.id)}>
+    <div className={`ratio-row ${active ? 'on' : ''}`} data-tour={tour} {...pick(() => setActiveRatio(r.id))}>
       <RatioIcon pixels={p?.icon} width={48} />
       <input
         className={`input ratio-in ${p?.problem ? 'bad' : ''}`} title={portrait ? ratioProblem(r) ?? undefined : undefined} value={r.ratio} maxLength={16} spellCheck={false} placeholder={t('ratioPlaceholder')} aria-label={t('navRatio')}

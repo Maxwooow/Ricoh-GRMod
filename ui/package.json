@@ -7,11 +7,13 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit -p . && vite build",
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "build:android": "tsc --noEmit -p . && vite build --mode android"
   },
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.1.0",
     "@grmod/core": "0.1.0",
+    "@noble/ed25519": "3.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
