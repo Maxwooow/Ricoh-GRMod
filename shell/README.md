@@ -86,8 +86,8 @@ All endpoints are under `/api/`. Request and response bodies are JSON unless not
 | `GET /api/store/KEY` | | raw bytes, or 404 |
 | `PUT /api/store/KEY` | raw bytes | `{"ok":true,"size":N}` |
 | `DELETE /api/store/KEY` | | `{"ok":true}` (also when the key did not exist) |
-| `GET /api/firmware/latest?model=M` | `M` is `STANDARD`, `HDF` or `MONO` | `{"model":"HDF","name":"GR IV","applies":"RICOH GR IV / RICOH GR IV HDF","version":"1.11","date":"2026/02/13","page":"https://…/gr4_s.html","file":"gr4_v111.zip","size":34478368}`. When Ricoh offers another version (1.20 since 2026-10-21), the answer is that release with the supported one (`ricoh.Supported`, still on Ricoh's site at a fixed address) under `"fallback"`; when Ricoh lists nothing for a model the supported release covers, it is the answer itself. 404 when there is neither |
-| `POST /api/firmware/download` | `{"model":"HDF"}`, or `{"model":"HDF","version":"1.11"}` for the fallback | the firmware file itself (the fallback's archive must match its SHA-256, else 502 `checksum`) (`application/octet-stream`), its name and version in `X-GRMod-Firmware-Name` / `X-GRMod-Firmware-Version` |
+| `GET /api/firmware/latest?model=M` | Camera model ID, e.g. `HDF` | Returns the listed release with its version, file, size and licence page. Follow each optional `fallback` to see the other supported releases. For GR IV and GR IV HDF, a listed 1.21 links to 1.20, then 1.11. If the model is absent from the index, the newest available pin comes first. Returns 404 if no release is available. |
+| `POST /api/firmware/download` | `{"model":"HDF","version":"1.11"}` (omit `version` for the first release) | Returns the selected firmware as `application/octet-stream` with `X-GRMod-Firmware-Name` and `X-GRMod-Firmware-Version`. A pinned archive with an incorrect SHA-256 returns 502 `checksum`. |
 | `GET /api/firmware/progress` | | `{"active":true,"received":N,"total":N}` of the running (or last) download |
 | `POST /api/firmware/page` | `{"model":"HDF"}` | `{"page":"…"}` after showing the model's download page (with Ricoh's licence terms) in the default browser |
 

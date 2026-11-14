@@ -199,34 +199,9 @@ func (c *Client) earlier() *Archive {
 	return &Earlier
 }
 
-// EarlierFor is the release before Supported that the program builds on, for
-// a model the release is for, resolved against the site like Supported; nil
-// for any other model. page, when not empty, replaces the archive's own page
-// (the site's page for the model, which carries the licence).
-func (c *Client) EarlierFor(model, page string) (*Release, error) {
-	a := c.earlier()
-	if a == nil {
-		return nil, nil
-	}
-	covered := false
-	for _, m := range a.Models {
-		covered = covered || m == model
-	}
-	if !covered {
-		return nil, nil
-	}
-	base, err := c.base()
-	if err != nil {
-		return nil, err
-	}
-	fileURL := base.ResolveReference(&url.URL{Path: a.Path})
-	if page == "" {
-		page = base.ResolveReference(&url.URL{Path: a.Page}).String()
-	}
-	return &Release{
-		Model: model, Name: baseModelFor(model), Applies: a.Applies, Version: a.Version, Date: a.Date,
-		Page: page, File: path.Base(a.Path), Size: a.Size, URL: fileURL.String(), SHA256: a.SHA256,
-	}, nil
+// EarlierFor resolves the previous supported GR IV archive when it differs from latest.
+func (c *Client) EarlierFor(model string, latest *Release) (*Release, error) {
+	return c.archiveFor(c.earlier(), model, latest)
 }
 
 func (c *Client) base() (*url.URL, error) {
@@ -506,7 +481,13 @@ func (c *Client) current(ctx context.Context, base *url.URL, model, name string)
 // another version, or offers nothing (latest == nil); nil when the model is
 // not one the supported release is for, or when latest is that release.
 func (c *Client) Fallback(model string, latest *Release) (*Release, error) {
-	a := c.pinned()
+	return c.archiveFor(c.pinned(), model, latest)
+}
+
+func (c *Client) archiveFor(a *Archive, model string, latest *Release) (*Release, error) {
+	if a == nil {
+		return nil, nil
+	}
 	covered := false
 	for _, m := range a.Models {
 		covered = covered || m == model

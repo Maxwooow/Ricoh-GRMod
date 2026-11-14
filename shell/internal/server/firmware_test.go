@@ -313,34 +313,37 @@ func TestFirmwareFallback(t *testing.T) {
 func TestFirmwareLatestNewerThanKnown(t *testing.T) {
 	site := newFakeSite(t)
 	site.version = "1.21"
-	sum := site.sum()
-	e := newEnv(t, site.option, site.pin(sum), func(o *Options) {
-		o.FirmwareArchive = &ricoh.Archive{
-			Version: "1.20", Date: "2026/10/21", Path: "/resources/FIRMWARE/gr4_v120.zip", Size: 34702809,
-			SHA256: sum, Models: []string{"STANDARD", "HDF"},
-			Applies: "RICOH GR IV / RICOH GR IV HDF", Page: "/english/support/digital/gr4_s.html",
-		}
-		o.FirmwareEarlier = &ricoh.Archive{
-			Version: "1.11", Date: "2026/02/13", Path: "/resources/FIRMWARE/gr4_v111.zip", Size: int64(len(site.archive)),
-			SHA256: sum, Models: []string{"STANDARD", "HDF"},
-			Applies: "RICOH GR IV / RICOH GR IV HDF", Page: "/english/support/digital/gr4_s.html",
-		}
+	e := newEnv(t, site.option, site.pin(site.sum()), func(o *Options) {
+		o.FirmwareEarlier = o.FirmwareArchive
+		newer := *o.FirmwareEarlier
+		newer.Version = "1.20"
+		newer.Path = "/resources/FIRMWARE/gr4_v120.zip"
+		o.FirmwareArchive = &newer
 	})
-	rec := e.do("GET", "/api/firmware/latest?model=STANDARD", nil)
-	var got firmwareLatest
-	if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil || rec.Code != 200 {
-		t.Fatalf("%d %s", rec.Code, rec.Body)
-	}
-	if got.Version != "1.21" {
-		t.Fatalf("the site's release is reported first: %s", rec.Body)
-	}
-	if got.Fallback == nil || got.Fallback.Version != "1.20" {
-		t.Fatalf("1.20 must stay reachable next to a newer release: %s", rec.Body)
-	}
-	// Asking for the intermediate release downloads it at its own address.
-	rec = e.do("POST", "/api/firmware/download", map[string]string{"model": "STANDARD", "version": "1.20"})
-	if rec.Code != 200 || rec.Header().Get(HeaderFirmwareVersion) != "1.20" {
-		t.Errorf("1.20 download: %d %v %s", rec.Code, rec.Header(), rec.Body)
+	for _, model := range []string{"STANDARD", "HDF"} {
+		t.Run(model, func(t *testing.T) {
+			rec := e.do("GET", "/api/firmware/latest?model="+model, nil)
+			var got firmwareLatest
+			if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil || rec.Code != 200 {
+				t.Fatalf("%d %s", rec.Code, rec.Body)
+			}
+			rel := &got
+			for _, version := range []string{"1.21", "1.20", "1.11"} {
+				if rel == nil || rel.Version != version {
+					t.Fatalf("expected %s in release list: %s", version, rec.Body)
+				}
+				rel = rel.Fallback
+			}
+			if rel != nil {
+				t.Fatalf("unexpected extra release: %s", rec.Body)
+			}
+			for _, version := range []string{"1.20", "1.11"} {
+				rec = e.do("POST", "/api/firmware/download", map[string]string{"model": model, "version": version})
+				if rec.Code != 200 || rec.Header().Get(HeaderFirmwareVersion) != version || !bytes.Equal(rec.Body.Bytes(), site.firmware) {
+					t.Errorf("download %s: status %d, headers %v", version, rec.Code, rec.Header())
+				}
+			}
+		})
 	}
 }
 

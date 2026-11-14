@@ -12,7 +12,7 @@ export interface ParkedFailure { path: string; error: string }
 /** The firmware update Ricoh's site currently offers for a model. `page` is the model's download page there. */
 export interface FirmwareRelease {
   model: string; name: string; applies: string; version: string; date: string; page: string; file: string; size: number;
-  /** The release this program supports, when the site offers another version (still on Ricoh's site). */
+  /** Next supported alternative. Older hosts provide at most one. */
   fallback?: FirmwareRelease;
 }
 
