@@ -128,3 +128,7 @@ GR Mod is free software licensed under [GNU GPL version 2 only](LICENSE) (`GPL-2
 - The power-off image method builds on public research from [radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion](https://github.com/radium-wang/ricoh-gr4-firmware-analysis-and-feature-expansion).
 
 The sample image `ui/src/assets/preview.jpg` and Ricoh firmware are not covered by the project's software licence.
+
+## Star History
+
+[![Ricoh-GRMod stars over time](https://api.star-history.com/chart?repos=Maxwooow%2FRicoh-GRMod&type=date&format=svg)](https://www.star-history.com/?repos=Maxwooow%2FRicoh-GRMod&type=date)
