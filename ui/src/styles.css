@@ -867,3 +867,4 @@ html.mobile-app .tour-hole { border-radius: 14px; }
 /* the Android app's update dialog (update-dialog.tsx) */
 .dialog.upd .upd-notes { white-space: pre-line; margin: 2px 0 10px; line-height: 1.5; }
 .dialog.upd .upd-hint { font-size: 12.5px; margin: 0 0 6px; }
+.dialog.upd h3 .push-file { margin-left: 10px; }

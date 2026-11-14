@@ -43,7 +43,13 @@ export function AndroidUpdate() {
   useEffect(() => {
     if (!isAndroid) return undefined;
     show = setS;
-    const timer = window.setTimeout(() => { void checkUpdates(false); }, 4000);
+    // by itself a few seconds after the start, and not while a guide is on the screen
+    let timer = 0;
+    const attempt = (): void => {
+      if (document.querySelector('.tour')) { timer = window.setTimeout(attempt, 5000); return; }
+      void checkUpdates(false);
+    };
+    timer = window.setTimeout(attempt, 4000);
     const stops = [
       listen('updateProgress', (p: { received: number; total: number }) => setS((x) => (x && x.kind === 'down' ? { ...x, got: p.received, total: p.total } : x))),
       listen('updateStatus', (r: { status: number; message: string }) => setS((x) => {
