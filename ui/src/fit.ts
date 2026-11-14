@@ -1,6 +1,8 @@
 // The window is the page: nothing scrolls and nothing can be zoomed. Below the size the layout
 // was designed for, the whole interface is scaled down uniformly instead of being cut off.
-import { host } from './host';
+import { host, isMobile } from './host';
+import { isIOS } from './host-android';
+import { installBounce } from './bounce';
 
 export const DESIGN_W = 1040;
 export const DESIGN_H = 680;
@@ -13,6 +15,8 @@ const listeners = new Set<() => void>();
 export function onUiScale(f: () => void): () => void { listeners.add(f); return () => { listeners.delete(f); }; }
 
 function apply(): void {
+  // The phone app has a layout of its own (styles.css, .app.mobile): nothing is scaled there.
+  if (isMobile) { document.documentElement.classList.add('mobile-app', isIOS ? 'ios' : 'android'); return; }
   const s = Math.min(1, window.innerWidth / DESIGN_W, window.innerHeight / DESIGN_H);
   const next = Math.max(0.5, Math.round(s * 1000) / 1000);
   const root = document.getElementById('root');
@@ -27,6 +31,8 @@ function apply(): void {
 const CHROME = { light: { caption: '#f7f7f5', text: '#37352f' }, dark: { caption: '#202020', text: '#d6d6d6' } };
 
 export function installWindowBehaviour(): void {
+  // Android: the rubber band at the ends of the scrolling panes (iOS has its own)
+  if (isMobile && !isIOS) installBounce();
   // no browser zoom: Ctrl+wheel (which is also what a touchpad pinch sends) and Ctrl +/-/0
   window.addEventListener('wheel', (e) => { if (e.ctrlKey || e.metaKey) e.preventDefault(); }, { passive: false, capture: true });
   window.addEventListener('keydown', (e) => {

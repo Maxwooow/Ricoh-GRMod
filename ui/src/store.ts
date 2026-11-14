@@ -2,7 +2,8 @@ import { useSyncExternalStore } from 'react';
 import { FACTORY_LOOK_IDS, card, GR3X_FILM_IDS, GR3X_MAX_CUSTOM_RATIOS, GR3X_T4_CUSTOM, LANGS, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_MAX_PICTURES, SHUTDOWN_NAME_MAX, validateExtraSlotName, validateGr3xRatioName, validateRatioName, validateShutdownName } from '@grmod/core';
 import type { CameraModel, ClarityChange, ExtraSlotSpec, FirmwareInfo, FirmwareSummary, LangCode, LookLayout, PresetResult, RatioPreview, RatioSpec, ShutdownPictureSpec, SlotId, SlotRequest, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
 import { engine, EngineError } from './engine';
-import { host, HostError, sha256Hex } from './host';
+import { host, HostError, isMobile, sha256Hex } from './host';
+import { upload } from './host-android';
 import type { ParkedEntry, Volume } from './host';
 import { setUiLangPref, t, uiLangPref } from './i18n';
 import type { Key } from './i18n';
@@ -93,6 +94,8 @@ export interface State {
   /** Why the download dialog is open, when it says so: a 1.12 bridge firmware file is open. */
   onlineReason?: 'bridge-loaded';
   tour?: TourState; toursSeen: TourId[];
+  /** Android: a firmware file on its way to the camera over Wi-Fi (camera.tsx shows the dialog while it is set). */
+  push?: { file: Uint8Array; label: string; stock: boolean };
 }
 
 const SLOT_IDS: readonly SlotId[] = GR3X_FILM_IDS;
@@ -352,7 +355,7 @@ async function saveProject(): Promise<void> {
 }
 export async function init(): Promise<void> {
   if (!host.available) { set({ ready: true }); return; }
-  void engine.heartbeat(host.info!.token);
+  if (!isMobile) void engine.heartbeat(host.info!.token);
   void ensureIconFont();
   void loadPreviewPhoto();
   void loadBuilds();
@@ -385,8 +388,10 @@ export async function init(): Promise<void> {
   set({ ready: true });
   // A GR III project found in project.json goes to its own file at once.
   if (gr3Legacy) scheduleSave();
-  void refreshVolumes();
-  setInterval(() => { if (!document.hidden && !state.busy) void refreshVolumes(); }, 2500);
+  if (!isMobile) {
+    void refreshVolumes();
+    setInterval(() => { if (!document.hidden && !state.busy) void refreshVolumes(); }, 2500);
+  }
   for (const id of allSlotKeys()) void renderIcon(id);
 }
 
@@ -942,7 +947,7 @@ export const wallMax = (): number => SHUTDOWN_MAX_PICTURES;
 export async function addWallFiles(files: File[]): Promise<void> {
   for (const f of files) {
     if (state.wall.length >= wallMax()) { toast(t('wallMax', { n: wallMax() }), 'info'); break; }
-    if (!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|bmp|gif|avif)$/i.test(f.name)) continue;
+    if (!/^image\//.test(f.type) && !/\.(jpe?g|png|webp|bmp|gif|avif|heic|heif)$/i.test(f.name)) continue;
     try {
       const bmp = await loadBitmap(f);
       const wc = await workingCopy(bmp);
@@ -1301,8 +1306,10 @@ async function runPlan(root: string, steps: card.PlanStep[]): Promise<number> {
   }
   return moved;
 }
-type Dest = { kind: 'card' } | { kind: 'folder' };
+type Dest = { kind: 'card' } | { kind: 'folder' } | { kind: 'camera' } | { kind: 'phone' };
 async function destination(dest: Dest): Promise<{ root: string; volume?: Volume } | null> {
+  // The phone app: to the camera over Wi-Fi, or into the phone's own files.
+  if (dest.kind === 'camera' || dest.kind === 'phone') return { root: '' };
   if (dest.kind === 'card') {
     const v = state.volumes.find((x) => x.id === state.volumeId);
     if (!v) { toast(t('noCard'), 'error'); return null; }
@@ -1359,8 +1366,12 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && !directFlash && !hdr && !exposurePreview && !brightAuto && adjSlots === 5 && extras.length === 0 && pictures.length === 0 && films === 0 && !lookLayout) { toast(t('nothingToDo'), 'info'); return; }
   const fresh = newFirmwareWarning(sourceInfo);
   // The cannot-go-back warning is a paragraph (the dialog's lines are cut to one line each).
-  if (stock && !(await askOfficial([t('copyOfficial')], fresh && dest.kind === 'card' ? fresh : undefined))) return;
-  if (dest.kind === 'card' && !stock) {
+  // GR III / IIIx cannot take a firmware over Wi-Fi (only the GR IV's camera has that interface).
+  if (dest.kind === 'camera' && sourceInfo.family !== 'gr4') { toast(t('pushOnlyGr4'), 'info'); return; }
+  // everything that leaves for a camera (also a file saved on the phone for it) is confirmed first
+  const toCamera = dest.kind === 'card' || dest.kind === 'camera' || dest.kind === 'phone';
+  if (stock && !(await askOfficial([t('copyOfficial')], fresh && toCamera ? fresh : undefined))) return;
+  if (toCamera && !stock) {
     // The check before writing: only what changes, by name; with a count where one item holds several.
     const named = (name: string, n: number, unit: Key = 'chkCount'): string => (n > 1 ? `${name}  ·  ${t(unit, { n })}` : name);
     const lines = changes.map((c) => named(state.info?.family === 'gr3x' ? (state.slots[c.id].names[state.lang] || state.info.slots.find(s => s.id === c.id)?.defaultName || c.id) : t(('slot' + c.id) as Key), c.labels.length, 'chkChanges'));
@@ -1377,7 +1388,8 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (extras.length) lines.push(named(t('extraTitle'), extras.length));
     if (lookLayout) lines.push(lookLayout.hidden.length ? `${t('icViewOrder')}  ·  ${t('chkHidden', { n: lookLayout.hidden.length })}` : t('icViewOrder'));
     if (pictures.length) lines.push(named(t('navWall'), pictures.length, 'chkPictures'));
-    if (!(await ask(t('confirmTitle'), lines, t('confirmOk'), fresh ?? undefined))) return;
+    const [title, ok] = dest.kind === 'camera' ? [t('pushTitle'), t('pushStart')] : dest.kind === 'phone' ? [t('saveTitle'), t('saveStart')] : [t('confirmTitle'), t('confirmOk')];
+    if (!(await ask(title, lines, ok, fresh ?? undefined))) return;
   }
   const target = await destination(dest);
   if (!target || state.info !== sourceInfo || state.raw !== sourceRaw || state.model !== sourceModel || state.fwBusy) return;
@@ -1394,6 +1406,15 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
       file = built.file;
       void recordBuild(file, changes);
     }
+    if (dest.kind === 'camera') { set({ busy: undefined, push: { file, label: firmwareFilename(), stock } }); return; }
+    if (dest.kind === 'phone') {
+      set({ busy: t('writing') });
+      // Android: Download/GR Mod/…; iOS: wherever the user puts it in the Files app (or nowhere: cancelled)
+      const r = await upload(file, { to: 'download', name: firmwareFilename() }) as { path?: string; cancelled?: boolean };
+      set({ busy: undefined });
+      if (!r.cancelled) toast(t('savedTo', { p: r.path ?? '' }), 'ok');
+      return;
+    }
     set({ busy: t('writing') });
     let moved = 0;
     if (target.volume) moved = await firmwareToCard(target.volume, file);
@@ -1406,6 +1427,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
 
 
 export function wallReady(s: State = state): boolean { return menuReady(s); }
+export function closePush(): void { set({ push: undefined }); }
 
 // ------------------------------------------------------------------ copies moved aside on the card, and their backups
 const BUILDS_KEY = 'builds.json';

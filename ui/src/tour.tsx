@@ -4,6 +4,7 @@
 // help button in the sidebar shows the current page's tour again, with a skip button.
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { isMobile } from './host-android';
 import { t } from './i18n';
 import type { Key } from './i18n';
 import { endTour, getState, isGr3, resetTours, startTour, tourStep, useStore } from './store';
@@ -84,9 +85,59 @@ export const TOURS: Record<TourId, Step[]> = {
   ],
 };
 
-/** A step's target is brought into view first: the column that holds it scrolls just enough to show it. */
+/**
+ * The phone app: its own overview (the firmware, the model and the language are in the settings there; it saves to
+ * the phone or sends to the camera instead of writing a card). The pages' tours are the desktop's, over the same
+ * page content; "write" there is the "send to camera" button, "export" the "save to phone" one. Texts that differ
+ * on the phone are the keys + 'M' (i18n.ts).
+ */
+const MOBILE_OVERVIEW: Step[] = [
+  step(undefined, 'OvWelcome'),
+  step('m-fw', 'OvFirmware', 'bottom'),
+  step('m-settings', 'MSettings', 'bottom'),
+  step('nav-ic', 'OvIc', 'top'),
+  step('nav-ratio', 'OvRatio', 'top'),
+  step(['nav-ic', 'nav-ratio'], 'OvCombine', 'top'),
+  step('nav-wall', 'OvWall', 'top'),
+  step('export', 'OvExport', 'top'),
+  step('write', 'OvWrite', 'top'),
+  step('m-settings', 'OvHelp', 'bottom'),
+];
+/** The same on a wide screen (an iPad, a tablet), where the pages and the settings are in a sidebar. */
+const WIDE_OVERVIEW: Step[] = [
+  step(undefined, 'OvWelcome'),
+  { target: ['firmware', 'model'], title: 'tOvFirmwareT', body: 'tOvFirmwareBW', side: 'right' },
+  step('m-settings', 'MSettings', 'right'),
+  step('nav-ic', 'OvIc', 'right'),
+  step('nav-ratio', 'OvRatio', 'right'),
+  step(['nav-ic', 'nav-ratio'], 'OvCombine', 'right'),
+  step('nav-wall', 'OvWall', 'right'),
+  step('export', 'OvExport', 'top'),
+  step('write', 'OvWrite', 'top'),
+  { target: 'm-help', title: 'tOvHelpT', body: 'tOvHelpBW', side: 'right' },
+];
+/** Which overview: chosen when it starts, so that the steps stay the same while it runs. */
+let mobileOverview = MOBILE_OVERVIEW;
+const tours = (id: TourId): Step[] => (isMobile && id === 'overview' ? mobileOverview : TOURS[id]);
+
+/**
+ * The phone: the page scrolls, and the floating buttons and tabs cover its lower part. A step's target is brought
+ * into the free middle of the page first (smoothly), unless it already is there.
+ */
 function bringIntoView(el: HTMLElement): void {
-  el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+  // the desktop: the column that holds it scrolls just enough to show it
+  if (!isMobile) { el.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' }); return; }
+  let box: HTMLElement | null = el.parentElement;
+  while (box && !(box.scrollHeight > box.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(box).overflowY))) box = box.parentElement;
+  if (!box) return;
+  const b = box.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+  const covered = document.querySelector('.app.mobile.wide') ? 110 : 190; // the floating buttons (and tabs)
+  const top = b.top + 8, bottom = Math.min(b.bottom, window.innerHeight - covered);
+  if (r.top >= top && r.bottom <= bottom) return;
+  const room = bottom - top;
+  const want = r.height < room ? r.top - top - (room - r.height) / 2 : r.top - top;
+  box.scrollTo({ top: box.scrollTop + want, behavior: 'smooth' });
 }
 
 function find(name: string): HTMLElement | null {
@@ -103,9 +154,11 @@ function find(name: string): HTMLElement | null {
  */
 export function beginTour(id: TourId, replay: boolean): boolean {
   if (getState().tour) return false;
+  if (document.querySelector('.m-sheet-wrap')) return false; // a sheet of the phone app is open
   if (id !== 'overview' && !document.querySelector(`.app [data-tour-page="${id}"]`)) return false;
+  if (id === 'overview') mobileOverview = document.querySelector('.app.mobile.wide') ? WIDE_OVERVIEW : MOBILE_OVERVIEW;
   const steps: number[] = [];
-  TOURS[id].forEach((st, i) => { if (names(st.target).every((n) => find(n))) steps.push(i); });
+  tours(id).forEach((st, i) => { if (names(st.target).every((n) => find(n))) steps.push(i); });
   if (steps.length === 0) return false;
   if (id === 'copies') document.querySelector('.app .copies-list')?.scrollTo(0, 0);
   startTour(id, steps, replay);
@@ -165,8 +218,10 @@ export function Tour() {
     if (tour || wait) return;
     const id: TourId | null = !seen.includes('overview') ? 'overview' : !seen.includes(page) ? page : null;
     if (!id) return;
-    // a moment for the page to lay itself out
-    const timer = setTimeout(() => { beginTour(id, false); }, 450);
+    // a moment for the page to lay itself out; on the phone, tried again while a sheet is still open over it
+    let timer = 0;
+    const attempt = (): void => { if (!beginTour(id, false) && document.querySelector('.m-sheet-wrap')) timer = window.setTimeout(attempt, 600); };
+    timer = window.setTimeout(attempt, 450);
     return () => clearTimeout(timer);
   }, [tour, wait, page, seen, hasFirmware, model]);
   const root = document.getElementById('root');
@@ -182,7 +237,7 @@ function TourLayer() {
   const card = useRef<HTMLDivElement>(null);
   const next = useRef<HTMLButtonElement>(null);
   const id = tour?.id; const index = tour?.index ?? 0;
-  const current = tour ? TOURS[tour.id][tour.steps[tour.index]] : undefined;
+  const current = tour ? tours(tour.id)[tour.steps[tour.index]] : undefined;
 
   // nothing behind the tour takes input or focus while it runs
   useEffect(() => {

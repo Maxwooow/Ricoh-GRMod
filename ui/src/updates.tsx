@@ -1,7 +1,7 @@
 // Updates of GR Mod itself: an optional check at start, "Check for updates" in the ? menu, and a
 // dialog that downloads the new version, has the shell verify it against the signed manifest and
 // then replace and restart the program (see shell/internal/update).
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Ico, Switch } from './components';
 import { host, HostError } from './host';
 import type { ReleaseNote, UpdateInfo } from './host';
@@ -325,10 +325,14 @@ function pick(m: Record<string, string> | undefined): string {
 function Credits() {
   const c = useSyncExternalStore((f) => { creditSubs.add(f); return () => creditSubs.delete(f); }, () => credits);
   useEffect(() => { void loadCredits(); }, []);
+  // "more below": the list fades out at the bottom while it can still be scrolled
+  const box = useRef<HTMLDivElement>(null);
+  const edge = (): void => { const el = box.current; if (el) el.classList.toggle('more', el.scrollTop + el.clientHeight < el.scrollHeight - 2); };
+  useEffect(edge, [c]);
   if (!c) return null;
   const sep = lang === 'zh' ? '；' : '; ';
   return (
-    <div className="wn-credits">
+    <div className="wn-credits" ref={box} onScroll={edge}>
       <div className="small wn-credits-title">{t('creditsTitle')}</div>
       {c.sections.map((s, i) => (
         <p key={i} className="muted small wn-about">

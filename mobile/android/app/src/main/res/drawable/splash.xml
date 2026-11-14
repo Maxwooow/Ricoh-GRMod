@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launch screen: the app's background colour (light or dark, as the system) with the icon in the middle. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/splash_background" />
+    <item android:width="96dp" android:height="96dp" android:gravity="center" android:drawable="@drawable/splash_icon" />
+</layer-list>

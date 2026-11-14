@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Joining the camera's Wi-Fi (NEHotspotConfiguration): turn on "Hotspot" for the App ID in the developer account. -->
+	<key>com.apple.developer.networking.HotspotConfiguration</key>
+	<true/>
+	<!-- Which network the device is on (NEHotspotNetwork.fetchCurrent), to see whether joining the camera's worked:
+	     "Access Wi-Fi Information" for the App ID. -->
+	<key>com.apple.developer.networking.wifi-info</key>
+	<true/>
+</dict>
+</plist>

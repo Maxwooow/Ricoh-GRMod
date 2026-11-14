@@ -156,7 +156,41 @@ const zh = {
   tIcFPreviewB: '照相机固件 1.20：在[拍摄菜单] › [曝光设定] › [曝光预览]或 ADJ 中，选择实时显示是否随曝光设定改变亮度（开启 / 直闪模式时关闭 / 始终关闭）。',
   tIcFAdjB: '将 ADJ 拨杆的栏目增加至所选数量，并可在照相机的[自定义设定] › [ADJ 模式设定]中设定每个栏目的功能。',
   tIcFBrightB: '照相机的户外显示设定为自动时，提高显示屏在室内光线下的亮度：[稍亮]适度提高，[最亮]进一步提高；最高亮度不变。',
-  followSystem: '跟随系统', uiLanguage: '界面语言',
+  // Android
+  pushCamera: '推送至照相机', saveToPhone: '存储到设备', pushStock: '将原厂固件推送至照相机', saveStock: '将原厂固件存储到设备', savedTo: '已存储至 {p}',
+  pushTitle: '推送至照相机', pushFind: '查找照相机', pushFinding: '正在查找照相机…', pushRescan: '重新查找',
+  pushNoCam: '未找到照相机。请确认照相机已开启、此设备的 Bluetooth® 已开启，并已退出 GR WORLD。', pushPaired: '已配对', pushUnpaired: '未配对。请将照相机设为配对状态。',
+  pushFirstPair: '首次连接此设备时，请先将照相机设为 Bluetooth® 配对状态（与首次配对 GR WORLD 时相同）。',
+  pushWarn1: '照相机接收固件后将立即开始更新，并在完成后自动重启。', pushWarn2: '更新期间，请勿关闭照相机电源或取出电池。请保持 GR Mod 运行，并避免设备锁屏。',
+  pushWarn3: '仅可推送与照相机当前基础版本相同的固件（例如 1.20 → 1.20）。照相机电池电量应高于 50%。',
+  pushStart: '开始推送', pushStop: '停止', pushClose: '关闭', pushShareLog: '发送日志', pushRetry: '重试', pushDetails: '日志', pushPreparing: '正在准备文件…',
+  pushOnlyGr4: '无线推送仅支持 GR IV 系列。使用 GR III / IIIx 时，请存储到设备，再通过读卡器写入存储卡。',
+  pushVpn: '设备正在使用 VPN。推送前请关闭 VPN，或在 VPN 设定中允许 GR Mod 绕过 VPN。', pushPerm: '需要 Bluetooth® 和附近设备权限，才能查找照相机。',
+  pushBtOff: '设备 Bluetooth® 未开启', mSettings: '设定', saveTitle: '存储到设备', rename: '重命名', saveStart: '存储', mWhatsNew: '更新内容', followSystem: '跟随系统', uiLanguage: '界面语言',
+  // the phone app: where it differs from the desktop wording, the key + 'M' (t() picks it on the phone)
+  wallEmptyM: '添加图片', dropFirmwareSubM: '轻触以选择设备中的文件', dropPresetM: '选择 .xmp / .cube 文件', dropFirmwareM: '导入官方固件 .bin 文件',
+  tOvFirmwareBM: '轻触此处打开设定。选择正确的机型后，可从理光官方网站下载固件；也可导入设备中已下载的固件。新版（1.20）和旧版（1.11）固件均可使用。照相机安装新版固件后，无法恢复至旧版。',
+  tOvFirmwareBG3M: '轻触此处打开设定。选择正确的机型后，可从理光官方网站下载固件；也可导入设备中已下载的固件。新版（GR III 2.20 / GR IIIx 1.70）和旧版（2.10 / 1.60）固件均可使用。照相机安装新版固件后，无法恢复至旧版。',
+  tOvFirmwareBW: '选择正确的机型后，轻触此处可从理光官方网站下载固件，也可导入设备中已下载的固件。新版（1.20）和旧版（1.11）固件均可使用。照相机安装新版固件后，无法恢复至旧版。',
+  tOvFirmwareBWG3: '选择正确的机型后，轻触此处可从理光官方网站下载固件，也可导入设备中已下载的固件。新版（GR III 2.20 / GR IIIx 1.70）和旧版（2.10 / 1.60）固件均可使用。照相机安装新版固件后，无法恢复至旧版。',
+  tOvHelpBW: '如需再次查看操作方法，可轻触此处回顾本页指南，或重新显示全部指南。',
+  tMSettingsT: '设定', tMSettingsB: '可在此处设定机型和界面语言，也可回顾使用指南。',
+  tOvCombineBM: '影像控制和长宽比页面中的更改可写入同一固件。分别完成更改后，在任一页面保存或推送即可；此前的更改将保留。',
+  tOvExportTM: '存储到设备', tOvExportBM: '生成固件并存储到所选位置，再通过读卡器写入存储卡。所有机型均可使用。',
+  tOvWriteTM: '推送至照相机', tOvWriteBM: '通过 Bluetooth® 和无线局域网将固件直接推送至照相机并执行更新，无需使用存储卡。仅支持 GR IV 系列，且仅可推送与照相机当前基础版本相同的固件（例如 1.20 → 1.20）。',
+  tOvHelpBM: '如需再次查看操作方法，可在设定中回顾本页指南，或重新显示全部指南。',
+  tIcStockBM: '可通过[⋯]菜单将原厂固件推送至照相机或存储到设备。',
+  tIcSlotBM: '轻触可自定义的预设槽位，在上方预览其效果。', tIcSlotBG3M: '可自定义的预设槽位，点击可选中当前槽位并在上方预览效果',
+  tIcPresetBM: '轻触并选择 .xmp / .cube（基于 sRGB / Rec.709）文件后导入。',
+  tIcTabsBM: '切换上方预览的槽位，效果与轻触下方卡片相同。',
+  tIcPreviewBM: '可左右对比预览效果。拖动中间的分割线调整显示范围，或轻触画面将分割线移至该处；也可导入自己的照片。',
+  tIcWriteTM: '推送至照相机', tIcWriteBM: '生成固件并推送至照相机，照相机接收后自动更新；也可存储到设备，再通过读卡器写入存储卡。所有更改（包括结束画面）均写入同一固件。',
+  tRatioFrameBM: '此处显示取景范围示例。可轻触右上角按钮，更换为自己的照片。',
+  tWallMenuBM: '图片将写入固件。更新后，请在照相机的[设定] › [显示设定] › [结束画面] › [图片]中选择，无需开启工厂菜单。', tWallMenuBG3M: '图片将写入固件。更新后，请在照相机的[设定] › [显示] › [结束画面] › [图片]中选择。',
+  tWallAddBM: '轻触添加图片，最多可添加 8 张。',
+  tWallCardBM: '右上角可裁切或移除图片；下方名称显示在照相机菜单中（仅可使用英文字母、数字和符号）。',
+  tWallWriteTM: '推送至照相机', tWallWriteBM: '图片与其他页面的更改一并写入固件。推送至照相机，或存储到设备后更新。',
+ mCrashed: '界面发生错误。请将以下内容截图并发送给开发者。', mReload: '重新加载',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -316,10 +350,43 @@ const en: typeof zh = {
   tIcFPreviewB: 'Camera firmware 1.20: choose under Shooting › Exposure Settings › Exposure Preview or on the ADJ lever whether the live view gets brighter and darker with the exposure set (On / Off in Direct Flash / Always Off).',
   tIcFAdjB: 'Raises the number of items on the ADJ lever to the number chosen; what each one does is set in the camera under Customize Settings › ADJ Mode Setting.',
   tIcFBrightB: 'With the camera\'s Outdoor View Setting on Auto, the screen is brighter in indoor light: Brighter a little, Brightest more; the highest brightness stays as it is.',
-  followSystem: 'Follow system', uiLanguage: 'App language',
+  // Android
+  pushCamera: 'Send to camera', saveToPhone: 'Save to device', pushStock: 'Send factory firmware to camera', saveStock: 'Save factory firmware to device', savedTo: 'Saved to {p}',
+  pushTitle: 'Send to camera', pushFind: 'Find cameras', pushFinding: 'Looking for cameras…', pushRescan: 'Search again',
+  pushNoCam: 'No camera found. Is it on? Is Bluetooth on? Is GR WORLD closed?', pushPaired: 'Paired', pushUnpaired: 'Not paired: put the camera in pairing mode',
+  pushFirstPair: 'The first time with this device, put the camera in Bluetooth pairing mode (as when pairing GR WORLD).',
+  pushWarn1: 'Once the camera takes the file it updates at once and restarts by itself.', pushWarn2: 'Do not switch the camera off or take the battery out; keep GR Mod open and the device unlocked.',
+  pushWarn3: 'Only a firmware of the camera\'s own base version can be sent (e.g. 1.20 to 1.20), with the battery above 50%.',
+  pushStart: 'Send', pushStop: 'Stop', pushClose: 'Close', pushShareLog: 'Send log', pushRetry: 'Retry', pushDetails: 'Log', pushPreparing: 'Preparing the file…',
+  pushOnlyGr4: 'Only the GR IV family takes firmware over Wi-Fi. For a GR III / IIIx, save it to the device and copy it to a card.',
+  pushVpn: 'A VPN is on: switch it off, or let GR Mod bypass it, before sending.', pushPerm: 'Bluetooth and nearby-devices permissions are needed to find the camera',
+  pushBtOff: 'Bluetooth is off', mSettings: 'Settings', saveTitle: 'Save to device', rename: 'Rename', saveStart: 'Save', mWhatsNew: 'What\'s new', followSystem: 'Follow system', uiLanguage: 'App language',
+  wallEmptyM: 'Add images', dropFirmwareSubM: 'Tap to choose a file on the device', dropPresetM: 'Choose .xmp / .cube', dropFirmwareM: 'Import an official firmware .bin',
+  tOvFirmwareBM: 'Tap here to open the settings: choose the right model and download the firmware from the official source, or import a firmware file already on this device. Both the new (1.20) and the earlier firmware (1.11) can be used; a camera that installs the new one cannot go back to the earlier one.',
+  tOvFirmwareBG3M: 'Tap here to open the settings: choose the right model and download the firmware from the official source, or import a firmware file already on this device. Both the new (GR III 2.20 / GR IIIx 1.70) and the earlier firmware (2.10 / 1.60) can be used; a camera that installs the new one cannot go back to the earlier one.',
+  tOvFirmwareBW: 'Choose the right model, then tap here to download the firmware from the official source, or to import a firmware file already on this device. Both the new (1.20) and the earlier firmware (1.11) can be used; a camera that installs the new one cannot go back to the earlier one.',
+  tOvFirmwareBWG3: 'Choose the right model, then tap here to download the firmware from the official source, or to import a firmware file already on this device. Both the new (GR III 2.20 / GR IIIx 1.70) and the earlier firmware (2.10 / 1.60) can be used; a camera that installs the new one cannot go back to the earlier one.',
+  tOvHelpBW: 'If you forget how something works at any point, tap here to go through this guide again, or to start all guides from the beginning.',
+  tMSettingsT: 'Settings', tMSettingsB: 'The model and the app language are set here; here you also find the guides.',
+  tOvCombineBM: 'What you set on the Image Control and Aspect ratio pages goes into one firmware: make the changes on each page, then save or send from either page. Earlier changes are kept.',
+  tOvExportTM: 'Save to device', tOvExportBM: 'Builds the firmware and saves it where you choose, to copy to the card with a card reader. Works for every model.',
+  tOvWriteTM: 'Send to camera', tOvWriteBM: 'Sends the firmware straight to the camera over Bluetooth and Wi-Fi and starts the update, no card needed. GR IV family only, and only a firmware of the camera\'s own base version (e.g. 1.20 to 1.20).',
+  tOvHelpBM: 'If you forget how something works at any point, go through this guide again from the settings, or start all guides from the beginning there.',
+  tIcStockBM: 'The "⋯" menu sends the factory firmware to the camera or saves it to the device.',
+  tIcSlotBM: 'Preset slots that can be customised. Tap one to select it and see its effect in the preview above.', tIcSlotBG3M: 'Preset slots that can be customised. Tap one to select it and see its effect in the preview above.',
+  tIcPresetBM: 'Tap to choose an .xmp / .cube file (sRGB / Rec.709) to import it.',
+  tIcTabsBM: 'Switches the slot shown in the preview above, like tapping a card.',
+  tIcPreviewBM: 'A side-by-side comparison: drag the line in the middle, or tap the picture to move the line there. You can use your own photo.',
+  tIcWriteTM: 'Send to camera', tIcWriteBM: 'Builds the firmware and sends it to the camera, which then updates by itself; or save it to the device and write it to the card with a card reader. Everything (power-off images included) goes into this one firmware.',
+  tRatioFrameBM: 'An example of what the frame covers; the button at the top right puts your own photo here.',
+  tWallMenuBM: 'The pictures go into the firmware. After the update, choose one in the camera under Setup › Display › End Screen › Picture. The factory menu is not needed.', tWallMenuBG3M: 'The pictures go into the firmware. After the update, choose one in the camera under Setup › Display › End Screen › Picture.',
+  tWallAddBM: 'Tap to add pictures, 8 at most.',
+  tWallCardBM: 'Crop or remove at the top right; the name below is shown in the camera menu (letters, digits and symbols).',
+  tWallWriteTM: 'Send to camera', tWallWriteBM: 'The pictures go into the firmware together with the changes on the other pages; send it to the camera, or save it to the device, to update.',
+ mCrashed: 'Something went wrong in the interface. Please send a screenshot of this to the developer.', mReload: 'Reload',
 };
 export type Key = keyof typeof zh;
-/** The interface language the user picked ('' = as the system), kept in the web view's storage. */
+/** The interface language the user picked in the phone app ('' = as the system), kept in the web view's storage. */
 const UI_LANG_KEY = 'grmod.uiLang';
 export function uiLangPref(): '' | 'zh' | 'en' {
   try { const v = localStorage.getItem(UI_LANG_KEY); return v === 'zh' || v === 'en' ? v : ''; } catch { return ''; }
@@ -333,8 +400,12 @@ const systemZh = (navigator.language || 'zh').toLowerCase().startsWith('zh');
 /** The interface language in use. */
 export const UI_LANG: 'zh' | 'en' = uiLangPref() || (systemZh ? 'zh' : 'en');
 const dict = UI_LANG === 'zh' ? zh : en;
+/** The phone app (Android, iOS): its own wording where the desktop's would be wrong (no dragging, no card). */
+const capx = (globalThis as unknown as { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string } }).Capacitor;
+const PHONE = !!capx?.isNativePlatform?.() && ['android', 'ios'].includes(capx.getPlatform?.() ?? '');
 export function t(key: Key, vars?: Record<string, string | number>): string {
-  let s: string = dict[key] ?? key;
+  const own = PHONE ? (dict as Record<string, string>)[`${key}M`] : undefined;
+  let s: string = own ?? dict[key] ?? key;
   if (vars) for (const k of Object.keys(vars)) s = s.split(`{${k}}`).join(String(vars[k]));
   return s;
 }

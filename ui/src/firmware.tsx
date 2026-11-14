@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { FIRMWARE_VERSION, FIRMWARE_VERSION_120, GR3_210, GR3_220, GR3X_160, GR3X_170 } from '@grmod/core';
 import type { CameraModel } from '@grmod/core';
-import { FileButton, Ico, Segmented, useDismiss } from './components';
+import { ChoiceSheet, FileButton, Ico, Segmented, useDismiss } from './components';
+import { isMobile } from './host-android';
 import { host, HostError } from './host';
 import type { FirmwareRelease } from './host';
 import { t } from './i18n';
@@ -20,14 +21,20 @@ export function FirmwareRow() {
   const wrap = useRef<HTMLDivElement>(null);
   const file = useRef<HTMLInputElement>(null);
   const close = (): void => setOpen(false);
-  useDismiss(open, wrap, close);
+  useDismiss(open && !isMobile, wrap, close);
   return (
     <div className={`sel row ${open ? 'open' : ''}`} ref={wrap} data-tour="firmware">
       <button type="button" className="sel-btn" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
         <span className="side-label">{t('firmware')}</span>
         <span className={`sel-value ${info ? '' : 'muted'}`}>{info ? (info.bridge ? t('fwBridgeValue') : info.version) : t('noFirmware')}<i className={`dot ${info ? (info.bridge ? 'warn' : 'ok') : ''}`} /></span>
       </button>
-      {open && (
+      {open && isMobile && (
+        <ChoiceSheet label={t('firmware')} onClose={close} items={[
+          { label: t('fwPick'), icon: Ico.folder, run: () => file.current?.click() },
+          { label: t('fwOnline'), icon: Ico.download, run: () => setOnlineOpen(true) },
+        ]} />
+      )}
+      {open && !isMobile && (
         <div className="pop up" role="menu">
           <button type="button" role="menuitem" className="pop-item" onClick={() => { close(); file.current?.click(); }}><span className="pop-ico">{Ico.folder}</span><span>{t('fwPick')}</span></button>
           <button type="button" role="menuitem" className="pop-item" onClick={() => { close(); setOnlineOpen(true); }}><span className="pop-ico">{Ico.download}</span><span>{t('fwOnline')}</span></button>
@@ -92,6 +99,25 @@ function OnlineDialog() {
     return () => { window.removeEventListener('keydown', key); abort.current?.abort(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // The phone: the model tabs scroll sideways; the chosen one is brought into view, and fades mark hidden tabs.
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState({ l: false, r: false });
+  const edges = (): void => {
+    const el = tabsRef.current;
+    if (!el) return;
+    const l = el.scrollLeft > 2, r = el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
+    setMore((o) => (o.l === l && o.r === r ? o : { l, r }));
+  };
+  useEffect(() => {
+    const el = tabsRef.current;
+    const on = el?.querySelector<HTMLElement>('button.on');
+    if (el && on && isMobile) {
+      const want = on.offsetLeft - (el.clientWidth - on.offsetWidth) / 2;
+      el.scrollTo({ left: Math.max(0, want), behavior: 'smooth' });
+    }
+    edges();
+  }, [model]);
+
   const latest = look.state === 'ready' ? look.rel : null;
   // Both releases are offered: the site's current one and, while Ricoh still serves it, the earlier
   // one this program also builds on. A release the program does not know (a newer one) is shown
@@ -129,7 +155,7 @@ function OnlineDialog() {
       <div className="dialog online" role="dialog" aria-modal="true" aria-label={t('fwOnlineTitle')}>
         <h3>{t('fwOnlineTitle')}</h3>
         {reason && <p className="dialog-warn">{t('bridgeNeedOfficial')}</p>}
-        <div className={`online-models ${progress ? 'off' : ''}`}>
+        <div className={`online-models ${progress ? 'off' : ''} ${more.l ? 'more-l' : ''} ${more.r ? 'more-r' : ''}`} ref={tabsRef} onScroll={edges}>
           <Segmented<CameraModel> value={model} onChange={(m) => { if (!progress) setModel(m); }} options={MODELS.map((m) => ({ value: m, label: modelLabel(m) }))} />
         </div>
         {look.state === 'loading' && <div className="fw-rel idle"><span className="spinner small" /><span className="muted">{t('fwLooking')}</span></div>}
@@ -148,9 +174,9 @@ function OnlineDialog() {
                     <b>{modelLabel(model)}<span className="fw-ver">{rel.version}</span>{ok && known.length > 1 && <span className={`chip tiny ${rel.version === newest ? 'ok' : 'muted'}`}>{t(rel.version === newest ? 'fwNewVersion' : 'fwOldVersion')}</span>}</b>
                     <small>{busy && progress
                       ? `${t('fwDownloading')}${progress.received > 0 ? `  ${fmtSize(progress.received)}${progress.total > 0 ? ` / ${fmtSize(progress.total)}` : ''}` : ''}`
-                      : [rel.date, rel.size > 0 ? fmtSize(rel.size) : ''].filter(Boolean).join('  ·  ')}</small>
+                      : [rel.date, rel.size > 0 ? fmtSize(rel.size) : ''].filter(Boolean).join('  ·  ')}{!ok && isMobile && <span className="chip warn">{t('fwUnsupported')}</span>}</small>
                   </span>
-                  {!ok ? <span className="chip warn">{t('fwUnsupported')}</span> : busy ? <span className="spinner small" /> : <span className="fw-go">{Ico.download}</span>}
+                  {!ok ? (isMobile ? null : <span className="chip warn">{t('fwUnsupported')}</span>) : busy ? <span className="spinner small" /> : <span className="fw-go">{Ico.download}</span>}
                   {busy && <i className="fw-bar" style={{ width: `${percent}%` }} />}
                 </button>
               );

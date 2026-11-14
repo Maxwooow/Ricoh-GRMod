@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { isMobile, useBack } from './host-android';
 import { ICON_H, ICON_W, RATIO_ICON_H, RATIO_ICON_W } from '@grmod/core';
 import { uiScale } from './fit';
 import { rgbToCanvas, rgbaToCanvas } from './pixels';
@@ -8,7 +10,14 @@ import { t } from './i18n';
 
 const P = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round' } as const;
 export const Ico = {
+  camera: <svg viewBox="0 0 20 20" {...P}><rect x="2.6" y="5.6" width="14.8" height="10" rx="2" /><circle cx="10" cy="10.6" r="2.8" /><path d="M5.2 5.6l1-2h3l1 2" /></svg>,
+  send: <svg viewBox="0 0 20 20" {...P}><path d="M10 15.5V5M5.8 9.2L10 5l4.2 4.2" /><path d="M4 16.5h12" /></svg>,
+  sliders: <svg viewBox="0 0 20 20" {...P}><path d="M3.5 6h8M15 6h1.5M3.5 14h1.5M8.5 14h8" /><circle cx="13" cy="6" r="1.8" /><circle cx="6.8" cy="14" r="1.8" /></svg>,
+  save: <svg viewBox="0 0 20 20" {...P}><path d="M10 3.5V13M6 9.2l4 4 4-4" /><path d="M4 16.5h12" /></svg>,
   aperture: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="7.2" /><path d="M7.66 8.65L14.73 4.57M10.00 7.30L17.07 11.38M12.34 8.65L12.34 16.81M12.34 11.35L5.27 15.43M10.00 12.70L2.93 8.62M7.66 11.35L7.66 3.19" /></svg>,
+  bright: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="3.4" /><path d="M10 6.6a3.4 3.4 0 0 1 0 6.8z" fill="currentColor" /><path d="M10 2.6v1.6M10 15.8v1.6M2.6 10h1.6M15.8 10h1.6M4.8 4.8l1.1 1.1M14.1 14.1l1.1 1.1M4.8 15.2l1.1-1.1M14.1 5.9l1.1-1.1" /></svg>,
+  pen: <svg viewBox="0 0 20 20" {...P}><path d="M12.6 4.4l3 3L7.4 15.6 3.6 16.4l.8-3.8z" /><path d="M11.1 5.9l3 3" /></svg>,
+  swatch: <svg viewBox="0 0 20 20" {...P}><rect x="3" y="3" width="6" height="6" rx="1.4" /><rect x="11" y="3" width="6" height="6" rx="1.4" /><rect x="3" y="11" width="6" height="6" rx="1.4" /><rect x="11" y="11" width="6" height="6" rx="1.4" /></svg>,
   image: <svg viewBox="0 0 20 20" {...P}><rect x="2.8" y="4" width="14.4" height="12" rx="2" /><circle cx="7.3" cy="8.2" r="1.3" /><path d="M3.2 14l4-3.6 3 2.6 2.6-2.2 4 3.4" /></svg>,
   card: <svg viewBox="0 0 20 20" {...P}><path d="M5.5 2.8h6.2l3.3 3.3v9.6a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 4 15.7V4.3a1.5 1.5 0 0 1 1.5-1.5z" /><path d="M7.4 5.6v2.2M9.8 5.6v2.2M12.2 6.6v1.2" /></svg>,
   folder: <svg viewBox="0 0 20 20" {...P}><path d="M2.8 6a1.5 1.5 0 0 1 1.5-1.5h3.3l1.6 1.8h6.5a1.5 1.5 0 0 1 1.5 1.5v6.4a1.5 1.5 0 0 1-1.5 1.5H4.3a1.5 1.5 0 0 1-1.5-1.5z" /></svg>,
@@ -51,11 +60,11 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
   return <button type="button" role="switch" aria-checked={checked} aria-label={label} className={`switch ${checked ? 'on' : ''}`} onClick={() => onChange(!checked)}><i /></button>;
 }
 
-export function Segmented<T extends string>({ value, options, onChange, tour }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; tour?: string }) {
+export function Segmented<T extends string>({ value, options, onChange, tour, className }: { value: T; options: { value: T; label: ReactNode; title?: string }[]; onChange: (v: T) => void; tour?: string; className?: string }) {
   return (
-    <div className="seg" role="tablist" data-tour={tour}>
+    <div className={className ? `seg ${className}` : 'seg'} role="tablist" data-tour={tour}>
       {options.map((o) => (
-        <button key={o.value} role="tab" aria-selected={o.value === value} className={o.value === value ? 'on' : ''} onClick={() => onChange(o.value)}>{o.label}</button>
+        <button key={o.value} role="tab" aria-selected={o.value === value} title={o.title} aria-label={o.title} className={o.value === value ? 'on' : ''} onClick={() => onChange(o.value)}>{o.label}</button>
       ))}
     </div>
   );
@@ -132,6 +141,14 @@ export function Menu({ items, children }: { items: { label: string; run: () => v
     window.addEventListener('mousedown', close);
     return () => window.removeEventListener('mousedown', close);
   }, [open]);
+  if (isMobile) {
+    return (
+      <div className="menu-wrap" ref={ref}>
+        <button className="btn ghost icon-only" onClick={() => setOpen(true)} aria-haspopup="dialog" aria-expanded={open}>{children}</button>
+        {open && <ChoiceSheet label="" onClose={() => setOpen(false)} items={items} />}
+      </div>
+    );
+  }
   return (
     <div className="menu-wrap" ref={ref}>
       <button className="btn ghost icon-only" onClick={() => setOpen((v) => !v)} aria-haspopup="menu" aria-expanded={open}>{children}</button>
@@ -169,6 +186,97 @@ export function popPlace(el: HTMLElement, want: number): { up: boolean; max: num
   return { up, max: Math.max(96, Math.min(want, up ? above : below)) };
 }
 
+/** Scrolls `box` (only) so that `el`, one of its rows, is in view. */
+function scrollWithin(box: HTMLElement | null, el: Element | null | undefined): void {
+  if (!box || !(el instanceof HTMLElement)) return;
+  if (el.offsetTop < box.scrollTop) box.scrollTop = el.offsetTop;
+  else if (el.offsetTop + el.offsetHeight > box.scrollTop + box.clientHeight) box.scrollTop = el.offsetTop + el.offsetHeight - box.clientHeight;
+}
+
+/**
+ * Android: a sheet over everything (outside the page, so nothing in the page clips or moves it), from the bottom
+ * or, with side "right", a panel from the right. The page behind is blurred. It slides away on close, can be pulled
+ * away (down, or to the right), and closes with the back button. `children` gets the closing function, so a choice
+ * can slide the sheet away before it acts.
+ */
+export function MobileSheet({ label, onClose, children, className, side = 'bottom' }: { label: string; onClose: () => void; children: (close: () => void) => ReactNode; className?: string; side?: 'bottom' | 'right' }) {
+  const [closing, setClosing] = useState(false);
+  const [pull, setPull] = useState(0);
+  const [pulling, setPulling] = useState(false);
+  const drag = useRef<{ id: number; x0: number; y0: number; t0: number; on: boolean | null } | null>(null);
+  const done = useRef(false);
+  const right = side === 'right';
+  const close = (): void => { if (done.current) return; done.current = true; setClosing(true); window.setTimeout(onClose, right ? 260 : 220); };
+  useBack(true, close);
+  const down = (e: React.PointerEvent<HTMLElement>): void => {
+    if (drag.current) return;
+    drag.current = { id: e.pointerId, x0: e.clientX, y0: e.clientY, t0: e.timeStamp, on: right ? null : true };
+    if (!right) { e.currentTarget.setPointerCapture(e.pointerId); setPulling(true); }
+  };
+  const move = (e: React.PointerEvent<HTMLElement>): void => {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    const dx = e.clientX - d.x0;
+    const dy = e.clientY - d.y0;
+    if (d.on === null) {
+      // the panel: a sideways pull to the right takes it; anything else is left to scrolling
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      d.on = dx > 0 && Math.abs(dx) > Math.abs(dy) * 1.2;
+      if (!d.on) { drag.current = null; return; }
+      e.currentTarget.setPointerCapture(e.pointerId);
+      setPulling(true);
+    }
+    setPull(Math.max(0, right ? dx : dy));
+  };
+  const up = (e: React.PointerEvent<HTMLElement>): void => {
+    const d = drag.current;
+    if (!d || d.id !== e.pointerId) return;
+    drag.current = null;
+    if (!d.on) return;
+    setPulling(false);
+    const dist = Math.max(0, right ? e.clientX - d.x0 : e.clientY - d.y0);
+    if (dist > 90 || (dist / Math.max(1, e.timeStamp - d.t0) > 0.5 && dist > 24)) close(); else setPull(0);
+  };
+  const pullStyle = pull && !closing ? { transform: right ? `translateX(${pull}px)` : `translateY(${pull}px)` } : undefined;
+  return createPortal(
+    <div className={`overlay m-sheet-wrap ${right ? 'm-drawer-wrap' : ''} ${closing ? 'closing' : ''}`} onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
+      {right ? (
+        <div className={`m-drawer ${className || ''} ${pulling ? 'pulling' : ''}`} role="dialog" aria-modal="true" aria-label={label} style={pullStyle}
+          onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}>
+          <div className="m-drawer-head"><b>{label}</b><button type="button" className="btn ghost icon-only" aria-label={t('pushClose')} onClick={close}>{Ico.x}</button></div>
+          {children(close)}
+        </div>
+      ) : (
+        <div className={`m-sheet ${className || ''} ${pulling ? 'pulling' : ''}`} role="dialog" aria-modal="true" aria-label={label} style={pullStyle}>
+          <div className="m-sheet-grip" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}><i /></div>
+          {children(close)}
+        </div>
+      )}
+    </div>,
+    document.querySelector('.app') ?? document.body,
+  );
+}
+
+/** Android: a few commands in a sheet (in place of a drop-down menu). */
+export function ChoiceSheet({ label, onClose, items }: { label: string; onClose: () => void; items: { label: string; run: () => void; disabled?: boolean; icon?: ReactNode }[] }) {
+  return (
+    <MobileSheet label={label} onClose={onClose} className="m-choices">
+      {(shut) => (
+        <>
+          {label && <div className="m-sheet-title">{label}</div>}
+          <div className="m-choice-list" role="menu">
+            {items.map((it) => (
+              <button key={it.label} type="button" role="menuitem" className="m-choice" disabled={it.disabled} onClick={() => { shut(); window.setTimeout(it.run, 120); }}>
+                {it.icon && <span className="m-choice-ico">{it.icon}</span>}<span className="ellipsis">{it.label}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </MobileSheet>
+  );
+}
+
 export interface SelectOption<T extends string> { value: T; label: string }
 /**
  * A chooser in the style of the rest of the interface (the system's own list does not follow it).
@@ -189,7 +297,7 @@ export function Select<T extends string>({ value, options, onChange, label, vari
   const count = options.length + extra.length;
   const current = options.find((o) => o.value === value);
   const close = (): void => { if (list.current?.contains(document.activeElement)) button.current?.focus(); setOpen(false); };
-  useDismiss(open, wrap, close);
+  useDismiss(open && !isMobile, wrap, close);
   const show = (): void => {
     setPlace(popPlace(wrap.current!, Math.min(320, count * 28 + (extra.length ? 9 : 0) + 8)));
     setActive(options.findIndex((o) => o.value === value));
@@ -198,7 +306,7 @@ export function Select<T extends string>({ value, options, onChange, label, vari
   useEffect(() => {
     if (!open) return;
     list.current?.focus();
-    list.current?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
+    scrollWithin(list.current, list.current?.querySelector('[aria-selected="true"]'));
   }, [open]);
   const run = (i: number): void => {
     close();
@@ -208,7 +316,7 @@ export function Select<T extends string>({ value, options, onChange, label, vari
     if (count === 0) return;
     const i = Math.max(0, Math.min(count - 1, to));
     setActive(i);
-    list.current?.children[i + (i >= options.length && extra.length ? 1 : 0)]?.scrollIntoView({ block: 'nearest' });
+    scrollWithin(list.current, list.current?.children[i + (i >= options.length && extra.length ? 1 : 0)]);
   };
   const onKey = (e: React.KeyboardEvent): void => {
     if (e.key === 'ArrowDown') move(active + 1);
@@ -220,6 +328,38 @@ export function Select<T extends string>({ value, options, onChange, label, vari
     else return;
     e.preventDefault();
   };
+  if (isMobile) {
+    // a phone: the choices in a sheet from the bottom
+    return (
+      <div className={`sel ${variant} ${open ? 'open' : ''}`} ref={wrap} data-tour={tour}>
+        <button type="button" className="sel-btn" aria-haspopup="dialog" aria-expanded={open} aria-label={label} onClick={() => setOpen(true)}>
+          {lead}
+          <span className={`sel-value ${current ? '' : 'muted'}`}><span className="ellipsis">{current ? current.label : placeholder || ''}</span>{Ico.updown}</span>
+        </button>
+        {open && (
+          <MobileSheet label={label} onClose={() => setOpen(false)} className="m-choices">
+            {(shut) => (
+              <>
+                <div className="m-sheet-title">{label}</div>
+                <div className="m-choice-list" role="listbox" aria-label={label}>
+                  {options.map((o) => (
+                    <button key={o.value} type="button" role="option" aria-selected={o.value === value} className={`m-choice ${o.value === value ? 'on' : ''}`}
+                      onClick={() => { shut(); if (o.value !== value) window.setTimeout(() => onChange(o.value), 120); }}>
+                      <span className="ellipsis">{o.label}</span>{o.value === value && Ico.check}
+                    </button>
+                  ))}
+                  {extra.length > 0 && <div className="pop-sep" role="separator" />}
+                  {extra.map((a) => (
+                    <button key={a.label} type="button" className="m-choice action" onClick={() => { shut(); window.setTimeout(a.run, 120); }}><span className="ellipsis">{a.label}</span></button>
+                  ))}
+                </div>
+              </>
+            )}
+          </MobileSheet>
+        )}
+      </div>
+    );
+  }
   return (
     <div className={`sel ${variant} ${open ? 'open' : ''}`} ref={wrap} data-tour={tour}>
       <button
@@ -273,6 +413,107 @@ export function Toasts() {
   );
 }
 
+/**
+ * The phone app: a line too long for its row slides sideways under the finger, keeps going a little when let go
+ * and, past either end, gives way like rubber and springs back. Vertical drags still scroll the dialog.
+ */
+export function SwipeLine({ text }: { text: string }) {
+  const box = useRef<HTMLLIElement>(null);
+  const inner = useRef<HTMLSpanElement>(null);
+  const m = useRef({ x: 0, v: 0, min: 0, raf: 0, drag: false, id: -1, sx: 0, sy: 0, x0: 0, lt: 0, lx: 0, axis: '' as '' | 'x' | 'y' });
+  const [more, setMore] = useState({ l: false, r: false });
+
+  const draw = (): void => {
+    const s = m.current;
+    if (inner.current) inner.current.style.transform = `translate3d(${s.x}px,0,0)`;
+    const l = s.x < -1, r = s.x > s.min + 1;
+    setMore((o) => (o.l === l && o.r === r ? o : { l, r }));
+  };
+  const measure = (): void => {
+    const b = box.current, i = inner.current;
+    if (!b || !i) return;
+    const pad = 20;
+    m.current.min = Math.min(0, b.clientWidth - pad - i.scrollWidth);
+    m.current.x = Math.max(m.current.min, Math.min(0, m.current.x));
+    draw();
+  };
+  useLayoutEffect(() => {
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (box.current) ro.observe(box.current);
+    return () => { ro.disconnect(); cancelAnimationFrame(m.current.raf); };
+  }, [text]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // past an end the row gives way less and less (rubber), as iOS lists do
+  const rubber = (over: number): number => { const d = 120; return (over * d) / (d + Math.abs(over)) * 0.9; };
+  const settle = (): void => {
+    const s = m.current;
+    let last = performance.now();
+    const step = (now: number): void => {
+      const dt = Math.min(32, now - last) / 16.67;
+      last = now;
+      const lo = s.min, hi = 0;
+      if (s.x > hi || s.x < lo) {
+        // a spring back to the end, a little underdamped: it overshoots a hair and settles (the bounce)
+        const target = s.x > hi ? hi : lo;
+        const k = 0.085, c = 0.42;
+        s.v += (k * (target - s.x) - c * s.v) * dt;
+        const before = s.x - target;
+        s.x += s.v * dt;
+        // back at the end: it rests there (it does not drift on into the row)
+        if (Math.sign(s.x - target) !== Math.sign(before)) { s.x = target; s.v = 0; draw(); return; }
+      } else {
+        s.v *= Math.pow(0.95, dt);
+        s.x += s.v * dt;
+        if (s.x > hi || s.x < lo) s.v *= 0.6; // crossing an end with speed: it runs past, then springs back
+      }
+      draw();
+      const inside = s.x <= hi + 0.3 && s.x >= lo - 0.3;
+      if (Math.abs(s.v) < 0.03 && inside) { s.x = Math.max(lo, Math.min(hi, s.x)); s.v = 0; draw(); return; }
+      s.raf = requestAnimationFrame(step);
+    };
+    cancelAnimationFrame(s.raf);
+    s.raf = requestAnimationFrame(step);
+  };
+
+  return (
+    <li
+      ref={box}
+      className={`swipe-line ${more.l ? 'more-l' : ''} ${more.r ? 'more-r' : ''}`}
+      onPointerDown={(e) => {
+        const s = m.current;
+        if (s.min === 0) return; // it fits
+        cancelAnimationFrame(s.raf);
+        s.drag = true; s.id = e.pointerId; s.sx = e.clientX; s.sy = e.clientY; s.x0 = s.x; s.v = 0; s.axis = '';
+        s.lt = performance.now(); s.lx = e.clientX;
+      }}
+      onPointerMove={(e) => {
+        const s = m.current;
+        if (!s.drag || e.pointerId !== s.id) return;
+        const dx = e.clientX - s.sx, dy = e.clientY - s.sy;
+        if (!s.axis) {
+          if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+          s.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+          if (s.axis === 'x') (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        }
+        if (s.axis !== 'x') return;
+        let x = s.x0 + dx;
+        if (x > 0) x = rubber(x); else if (x < s.min) x = s.min + rubber(x - s.min);
+        const now = performance.now();
+        const dt = Math.max(1, now - s.lt) / 16.67;
+        s.v = 0.6 * s.v + 0.4 * ((e.clientX - s.lx) / dt);
+        s.lt = now; s.lx = e.clientX;
+        s.x = x;
+        draw();
+      }}
+      onPointerUp={(e) => { const s = m.current; if (!s.drag || e.pointerId !== s.id) return; s.drag = false; if (s.axis === 'x') settle(); }}
+      onPointerCancel={() => { const s = m.current; s.drag = false; settle(); }}
+    >
+      <span ref={inner} className="swipe-line-text">{text}</span>
+    </li>
+  );
+}
+
 export function ConfirmDialog() {
   const c = useStore((s) => s.confirm);
   useEffect(() => {
@@ -286,7 +527,7 @@ export function ConfirmDialog() {
     <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) answerConfirm(false); }}>
       <div className="dialog" role="alertdialog" aria-modal="true">
         <h3>{c.title}</h3>
-        {c.lines.length > 0 && <ul className={`dialog-lines ${c.warn ? '' : 'last'}`}>{c.lines.map((l) => <li key={l}>{l}</li>)}</ul>}
+        {c.lines.length > 0 && <ul className={`dialog-lines ${c.warn ? '' : 'last'}`}>{c.lines.map((l) => (isMobile ? <SwipeLine key={l} text={l} /> : <li key={l}>{l}</li>))}</ul>}
         {c.warn && <p className="dialog-warn">{c.warn}</p>}
         {c.reset && (
           <div className="dialog-reset" role="note">

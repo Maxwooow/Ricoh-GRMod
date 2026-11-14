@@ -16,3 +16,6 @@ examples/gr3x/T6/sources/
 
 # Update signing keys never go into the repository
 *.key
+
+# Built by `npm run build:android` in ui/ (the GR Mod UI for the Android app)
+mobile/www/
