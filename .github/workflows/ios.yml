@@ -15,6 +15,11 @@ on:
     branches: [ios]
     paths: ['mobile/**', 'ui/**', 'core/**', 'package.json', 'package-lock.json', '.github/workflows/ios.yml']
   workflow_dispatch:
+    inputs:
+      unsigned:
+        description: 'Unsigned build only (checks that it compiles; no TestFlight upload)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -28,7 +33,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 60
     env:
-      HAS_ASC: ${{ secrets.ASC_KEY_P8 != '' && secrets.ASC_KEY_ID != '' && secrets.ASC_ISSUER_ID != '' && secrets.APPLE_TEAM_ID != '' }}
+      HAS_ASC: ${{ inputs.unsigned != true && secrets.ASC_KEY_P8 != '' && secrets.ASC_KEY_ID != '' && secrets.ASC_ISSUER_ID != '' && secrets.APPLE_TEAM_ID != '' }}
     steps:
       - uses: actions/checkout@v4
 
