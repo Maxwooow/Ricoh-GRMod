@@ -165,6 +165,31 @@ var Earlier = Archive{
 	Page:    "/english/support/digital/gr4_s.html",
 }
 
+// Others are the remaining releases this program builds on that the site's pages no longer list
+// once Ricoh publishes a newer one (2026/11/10: GR IV Monochrome 1.11, GR III 2.21, GR IIIx 1.71),
+// still served at fixed addresses. Checked 2026-11-14 (archive size and SHA-256; the files inside
+// are the ones the engine accepts: fwdc248b.bin 7563d7e4…650d, fwdc239b.bin 5c53760b…793e,
+// fwdc243b.bin aa8e3ae1…1592). The same archives the mobile app pins.
+var Others = []Archive{
+	{
+		Version: "1.10", Path: "/resources/japan/support/download/digital/FIRMWARE/gr4_mono_v110.zip",
+		Size: 34702809, SHA256: "bde05b3bf56a29c272284556d6795cb772eaccbbd0091d433fd52368d4d8af12",
+		Models: []string{"MONO"}, Applies: "RICOH GR IV Monochrome", Page: "/english/support/digital/gr-4-mono_s.html",
+	},
+	{
+		Version: "2.20", Path: "/resources/japan/support/download/digital/FIRMWARE/gr3_v220.zip",
+		Size: 28599247, SHA256: "7b19f9c03f2448c2b674fb919f6a86d22d6d83801521a9c1226a0e20cf0b5a2f",
+		Models:  []string{"GR3", "GR3_HDF"},
+		Applies: "RICOH GR III / GR III Street Edition / GR III Diary Edition / GR III HDF", Page: "/english/support/digital/gr3_s.html",
+	},
+	{
+		Version: "1.70", Path: "/resources/japan/support/download/digital/FIRMWARE/gr3x_v170.zip",
+		Size: 28599250, SHA256: "6a028e90b4f23c9e9af968b03bca5032b71f460be85fd2c49f4078366a71dc6d",
+		Models:  []string{"GR3X", "GR3X_HDF"},
+		Applies: "RICOH GR IIIx / GR IIIx Urban Edition / GR IIIx HDF", Page: "/english/support/digital/gr3x_s.html",
+	},
+}
+
 // Client talks to the site.
 type Client struct {
 	// Base replaces Site (tests).
@@ -176,6 +201,53 @@ type Client struct {
 	Pinned *Archive
 	// PinnedEarlier replaces Earlier (tests).
 	PinnedEarlier *Archive
+	// PinnedOthers replaces Others (tests); a Pinned or PinnedEarlier of their own suppresses
+	// Others so that the existing fixtures keep their pinned releases.
+	PinnedOthers []Archive
+}
+
+func (c *Client) others() []Archive {
+	if c.PinnedOthers != nil {
+		return c.PinnedOthers
+	}
+	if c.Pinned != nil || c.PinnedEarlier != nil {
+		return nil
+	}
+	return Others
+}
+
+// OthersFor resolves the releases of Others that are for the model, except latest's version.
+func (c *Client) OthersFor(model string, latest *Release) ([]*Release, error) {
+	var out []*Release
+	for i := range c.others() {
+		a := c.others()[i]
+		rel, err := c.archiveFor(&a, model, latest)
+		if err != nil {
+			return nil, err
+		}
+		if rel != nil {
+			out = append(out, rel)
+		}
+	}
+	return out, nil
+}
+
+// VersionLess orders release versions numerically ("1.9" < "1.20").
+func VersionLess(a, b string) bool {
+	x, y := strings.Split(a, "."), strings.Split(b, ".")
+	for i := 0; i < len(x) || i < len(y); i++ {
+		var p, q int
+		if i < len(x) {
+			p, _ = strconv.Atoi(x[i])
+		}
+		if i < len(y) {
+			q, _ = strconv.Atoi(y[i])
+		}
+		if p != q {
+			return p < q
+		}
+	}
+	return false
 }
 
 func (c *Client) pinned() *Archive {
@@ -502,6 +574,9 @@ func (c *Client) archiveFor(a *Archive, model string, latest *Release) (*Release
 	fileURL := base.ResolveReference(&url.URL{Path: a.Path})
 	page := base.ResolveReference(&url.URL{Path: a.Page}).String()
 	name := baseModelFor(model)
+	if model == "MONO" {
+		name = Models[model]
+	}
 	if latest != nil {
 		page = latest.Page
 	}

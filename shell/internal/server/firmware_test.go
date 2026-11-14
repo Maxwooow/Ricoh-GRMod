@@ -447,3 +447,80 @@ func TestFirmwareLatestPinnedNewer(t *testing.T) {
 		srv.Close()
 	}
 }
+
+// Ricoh's newer releases of 2026/11/10 (GR III 2.21, GR IV Monochrome 1.11) are listed and shown;
+// the pinned releases this program builds on stay offered after them, newest first, each
+// downloaded from its own address and checked against its SHA-256.
+func TestFirmwareOthers(t *testing.T) {
+	site := newFakeSite(t)
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	w, _ := zw.Create("fwdc239b.bin")
+	w.Write(site.firmware)
+	zw.Close()
+	archive := buf.Bytes()
+	sum := sha256.Sum256(archive)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/english/support/download_digital.html", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `<table><tr><td>GR III</td><td><a href="digital/gr3_s.html">Windows / Mac OS</a></td><td>2.21</td></tr>
+			<tr><td>GR IV Monochrome</td><td><a href="digital/gr-4-mono_s.html">Windows / Mac OS</a></td><td>1.11</td></tr></table>`)
+	})
+	mux.HandleFunc("/english/support/digital/gr3_s.html", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `<table><tr><th>Applied product</th><td>RICOH GR III / RICOH GR III HDF</td></tr><tr><th>Release date</th><td>2026/11/10</td></tr></table>
+			<a href="/resources/FIRMWARE/gr3_v221.zip">Download</a>`)
+	})
+	mux.HandleFunc("/english/support/digital/gr-4-mono_s.html", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `<table><tr><th>Applied product</th><td>RICOH GR IV Monochrome</td></tr><tr><th>Release date</th><td>2026/11/10</td></tr></table>
+			<a href="/resources/FIRMWARE/gr4_mono_v111.zip">Download</a>`)
+	})
+	serve := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", fmt.Sprint(len(archive)))
+		if r.Method != http.MethodHead {
+			w.Write(archive)
+		}
+	}
+	for _, p := range []string{"gr3_v221.zip", "gr3_v220.zip", "gr3_v210.zip", "gr4_mono_v111.zip", "gr4_mono_v110.zip"} {
+		mux.HandleFunc("/resources/FIRMWARE/"+p, serve)
+	}
+	mux.HandleFunc("/resources/japan/support/download/digital/FIRMWARE/gr3_v210.zip", serve)
+	srv := httptest.NewServer(mux)
+	t.Cleanup(srv.Close)
+	e := newEnv(t, func(o *Options) {
+		o.FirmwareSite = srv.URL
+		o.FirmwareOthers = []ricoh.Archive{
+			{Version: "1.10", Path: "/resources/FIRMWARE/gr4_mono_v110.zip", Size: int64(len(archive)), SHA256: hex.EncodeToString(sum[:]),
+				Models: []string{"MONO"}, Applies: "RICOH GR IV Monochrome", Page: "/english/support/digital/gr-4-mono_s.html"},
+			{Version: "2.20", Path: "/resources/FIRMWARE/gr3_v220.zip", Size: int64(len(archive)), SHA256: hex.EncodeToString(sum[:]),
+				Models: []string{"GR3", "GR3_HDF"}, Applies: "RICOH GR III", Page: "/english/support/digital/gr3_s.html"},
+		}
+	})
+	for model, want := range map[string][]string{"GR3": {"2.21", "2.20", "2.10"}, "GR3_HDF": {"2.21", "2.20", "2.10"}, "MONO": {"1.11", "1.10"}} {
+		rec := e.do("GET", "/api/firmware/latest?model="+model, nil)
+		var got firmwareLatest
+		if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil || rec.Code != 200 {
+			t.Fatalf("%s: %d %s", model, rec.Code, rec.Body)
+		}
+		var versions []string
+		for rel := &got; rel != nil; rel = rel.Fallback {
+			versions = append(versions, rel.Version)
+		}
+		if strings.Join(versions, " ") != strings.Join(want, " ") {
+			t.Errorf("%s: releases %v, want %v", model, versions, want)
+		}
+		for _, v := range want[1:] {
+			rec = e.do("POST", "/api/firmware/download", map[string]string{"model": model, "version": v})
+			if rec.Code != 200 || rec.Header().Get(HeaderFirmwareVersion) != v || !bytes.Equal(rec.Body.Bytes(), site.firmware) {
+				t.Errorf("%s %s: status %d %s", model, v, rec.Code, rec.Header())
+			}
+		}
+	}
+	if rec := e.do("GET", "/api/firmware/latest?model=MONO", nil); !strings.Contains(rec.Body.String(), `"name":"GR IV Monochrome"`) {
+		t.Errorf("MONO name: %s", rec.Body)
+	}
+}
+
+func TestVersionOrder(t *testing.T) {
+	if !ricoh.VersionLess("1.9", "1.20") || !ricoh.VersionLess("1.11", "1.20") || ricoh.VersionLess("2.21", "2.20") || ricoh.VersionLess("1.20", "1.20") {
+		t.Error("VersionLess")
+	}
+}
