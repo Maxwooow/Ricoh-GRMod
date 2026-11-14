@@ -119,11 +119,13 @@ function OnlineDialog() {
   }, [model]);
 
   const latest = look.state === 'ready' ? look.rel : null;
-  // Both releases are offered: the site's current one and, while Ricoh still serves it, the earlier
-  // one this program also builds on. A release the program does not know (a newer one) is shown
-  // without a download.
   const known = SUPPORTED[model];
-  const releases = latest ? [latest, ...(latest.fallback && latest.fallback.version !== latest.version ? [latest.fallback] : [])] : [];
+  const releases: FirmwareRelease[] = [];
+  for (let rel: FirmwareRelease | undefined = latest ?? undefined; rel; rel = rel.fallback) {
+    const version = rel.version;
+    if (releases.some((item) => item.version === version)) break;
+    releases.push(rel);
+  }
   const newerUnknown = !!latest && !known.includes(latest.version) && releases.some((r) => known.includes(r.version));
   // The newer of the two known releases is the "new" one.
   const newest = releases.filter((r) => known.includes(r.version)).map((r) => r.version).sort((x, y) => known.indexOf(x) - known.indexOf(y))[0];

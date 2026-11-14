@@ -135,10 +135,26 @@ type Archive struct {
 	Page string
 }
 
-// Supported is the release this program builds on: GR IV / GR IV HDF 1.11
-// (2026/02/13). Checked 2026-10-21: still served at this address, whose
-// archive holds the fwdc248b.bin with SHA-256 a2f664df…655f.
+// Supported is the newest GR IV / GR IV HDF release this program builds on,
+// 1.20. Checked 2026-11-14: still served at this address, whose archive holds
+// the fwdc248b.bin with SHA-256 7563d7e4…650d.
 var Supported = Archive{
+	Version: "1.20",
+	Date:    "2026/10/21",
+	Path:    "/resources/japan/support/download/digital/FIRMWARE/gr4_v120.zip",
+	Size:    34702809,
+	SHA256:  "dcc1b6fb004f0d855bb46b30a529da894c7b717501276fec2d198b3d7eb76a59",
+	Models:  []string{"STANDARD", "HDF"},
+	Applies: "RICOH GR IV / RICOH GR IV HDF",
+	Page:    "/english/support/digital/gr4_s.html",
+}
+
+// Earlier is the release before Supported, which this program builds on as
+// well and which Ricoh still serves at a fixed address; it is offered as the
+// fallback next to Supported. It is what the program built on before 1.20 was
+// added here, so a camera still on 1.11 stays reachable. 1.11 (2026/02/13)
+// still serves the fwdc248b.bin with SHA-256 a2f664df…655f.
+var Earlier = Archive{
 	Version: "1.11",
 	Date:    "2026/02/13",
 	Path:    "/resources/japan/support/download/digital/FIRMWARE/gr4_v111.zip",
@@ -158,6 +174,8 @@ type Client struct {
 	HTTP *http.Client
 	// Pinned replaces Supported (tests).
 	Pinned *Archive
+	// PinnedEarlier replaces Earlier (tests).
+	PinnedEarlier *Archive
 }
 
 func (c *Client) pinned() *Archive {
@@ -165,6 +183,25 @@ func (c *Client) pinned() *Archive {
 		return c.Pinned
 	}
 	return &Supported
+}
+
+// earlier is the release offered as the fallback; nil when it is not for the
+// model or when there is none. Tests replace it with PinnedEarlier, and a
+// Pinned of their own suppresses it so that the existing fixtures keep one
+// pinned release.
+func (c *Client) earlier() *Archive {
+	if c.PinnedEarlier != nil {
+		return c.PinnedEarlier
+	}
+	if c.Pinned != nil {
+		return nil
+	}
+	return &Earlier
+}
+
+// EarlierFor resolves the previous supported GR IV archive when it differs from latest.
+func (c *Client) EarlierFor(model string, latest *Release) (*Release, error) {
+	return c.archiveFor(c.earlier(), model, latest)
 }
 
 func (c *Client) base() (*url.URL, error) {
@@ -444,7 +481,13 @@ func (c *Client) current(ctx context.Context, base *url.URL, model, name string)
 // another version, or offers nothing (latest == nil); nil when the model is
 // not one the supported release is for, or when latest is that release.
 func (c *Client) Fallback(model string, latest *Release) (*Release, error) {
-	a := c.pinned()
+	return c.archiveFor(c.pinned(), model, latest)
+}
+
+func (c *Client) archiveFor(a *Archive, model string, latest *Release) (*Release, error) {
+	if a == nil {
+		return nil, nil
+	}
 	covered := false
 	for _, m := range a.Models {
 		covered = covered || m == model

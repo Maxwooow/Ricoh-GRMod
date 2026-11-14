@@ -62,6 +62,12 @@ func newFakeSite(t *testing.T) *fakeSite {
 		fmt.Fprint(w, `<table><tr><th>Applied product</th><td>RICOH GR IV / RICOH GR IV HDF</td></tr><tr><th>Release date</th><td>2026/02/13</td></tr></table>
 			<a href="/resources/FIRMWARE/gr4_v111.zip">Download</a>`)
 	})
+	mux.HandleFunc("/resources/FIRMWARE/gr4_v120.zip", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Length", fmt.Sprint(len(archive)))
+		if r.Method != http.MethodHead {
+			w.Write(archive)
+		}
+	})
 	mux.HandleFunc("/resources/FIRMWARE/gr4_v111.zip", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Length", fmt.Sprint(len(archive)))
 		if r.Method == http.MethodHead {
@@ -299,6 +305,45 @@ func TestFirmwareFallback(t *testing.T) {
 	e = newEnv(t, site.option, site.pin(site.sum()))
 	if rec := e.do("GET", "/api/firmware/latest?model=HDF", nil); strings.Contains(rec.Body.String(), "fallback") {
 		t.Errorf("fallback with the supported release on the site: %s", rec.Body)
+	}
+}
+
+// The site lists a release newer than the program knows (1.21): the supported 1.20 is offered
+// with 1.11 as the fallback, so a camera still on 1.11 stays reachable.
+func TestFirmwareLatestNewerThanKnown(t *testing.T) {
+	site := newFakeSite(t)
+	site.version = "1.21"
+	e := newEnv(t, site.option, site.pin(site.sum()), func(o *Options) {
+		o.FirmwareEarlier = o.FirmwareArchive
+		newer := *o.FirmwareEarlier
+		newer.Version = "1.20"
+		newer.Path = "/resources/FIRMWARE/gr4_v120.zip"
+		o.FirmwareArchive = &newer
+	})
+	for _, model := range []string{"STANDARD", "HDF"} {
+		t.Run(model, func(t *testing.T) {
+			rec := e.do("GET", "/api/firmware/latest?model="+model, nil)
+			var got firmwareLatest
+			if err := json.Unmarshal(rec.Body.Bytes(), &got); err != nil || rec.Code != 200 {
+				t.Fatalf("%d %s", rec.Code, rec.Body)
+			}
+			rel := &got
+			for _, version := range []string{"1.21", "1.20", "1.11"} {
+				if rel == nil || rel.Version != version {
+					t.Fatalf("expected %s in release list: %s", version, rec.Body)
+				}
+				rel = rel.Fallback
+			}
+			if rel != nil {
+				t.Fatalf("unexpected extra release: %s", rec.Body)
+			}
+			for _, version := range []string{"1.20", "1.11"} {
+				rec = e.do("POST", "/api/firmware/download", map[string]string{"model": model, "version": version})
+				if rec.Code != 200 || rec.Header().Get(HeaderFirmwareVersion) != version || !bytes.Equal(rec.Body.Bytes(), site.firmware) {
+					t.Errorf("download %s: status %d, headers %v", version, rec.Code, rec.Header())
+				}
+			}
+		})
 	}
 }
 
