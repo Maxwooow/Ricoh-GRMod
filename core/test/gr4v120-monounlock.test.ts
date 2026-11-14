@@ -9,10 +9,11 @@
  */
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Firmware, monoUnlockWords } from '../src/fw/gr4v120';
 import { RTOS_OFFSET } from '../src/fw/gr4v120/profile';
 
-const path = process.env.GRMOD_GR4_120_FIRMWARE ?? new URL('../testdata/private/official120.bin', import.meta.url).pathname;
+const path = process.env.GRMOD_GR4_120_FIRMWARE ?? fileURLToPath(new URL('../testdata/private/official120.bin', import.meta.url));
 const TABLE = 0x53de9cc4;
 const CHECK = 0x533de144;
 const off = (va: number): number => RTOS_OFFSET + va - 0x53000000;

@@ -1,10 +1,11 @@
 import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { ORDER_COUNT, buildFirmware, foff, openOfficial } from '../src/fw';
 import { Engine } from '../src/app';
 import { COLOR_HIDDEN, COLOR_VIS_TABLE, MONO_HIDDEN, MONO_VIS_TABLE, ORDER_TABLE } from '../src/fw/aspect';
 
-const OFFICIAL = process.env.GRMOD_OFFICIAL ?? new URL('../testdata/private/official.bin', import.meta.url).pathname;
+const OFFICIAL = process.env.GRMOD_OFFICIAL ?? fileURLToPath(new URL('../testdata/private/official.bin', import.meta.url));
 const have = existsSync(OFFICIAL);
 const read = (): Uint8Array => new Uint8Array(readFileSync(OFFICIAL));
 const FACTORY = [11, 12, 13, 14, 15, 16, 24, 17, 18, 19, 23, 20, 21, 22, 25, 29, 26, 27, 28, 30];

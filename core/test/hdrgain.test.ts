@@ -8,6 +8,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
 const sha = async (b: Uint8Array): Promise<string> => createHash('sha256').update(b).digest('hex');
 import { Engine, fw } from '../src';
@@ -19,7 +20,7 @@ import { WRITER_VTABLE as WRITER_VTABLE_120 } from '../src/fw/gr4v120/aspect/hdr
 import { HDRGAIN_SOURCE_SHA256 as HDRGAIN_SOURCE_SHA256_120 } from '../src/fw/gr4v120/aspect/hdrgain-code';
 import type { ExtraSlotSpec } from '../src';
 
-const P = new URL('../testdata/private/', import.meta.url).pathname;
+const P = fileURLToPath(new URL('../testdata/private/', import.meta.url));
 const have = existsSync(P + 'official.bin');
 /** GR IV 1.20 (= GR IV Monochrome 1.10), for the port (fw/gr4v120). */
 const file120 = process.env.GRMOD_GR4_120_FIRMWARE;

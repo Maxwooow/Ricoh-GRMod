@@ -10,13 +10,14 @@
  */
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Engine } from '../src/app/engine';
 
 const files: Record<string, string | undefined> = {
   '1.20': process.env.GRMOD_GR4_120_FIRMWARE, '2.20': process.env.GRMOD_GR3_220_FIRMWARE, '1.70': process.env.GRMOD_GR3X_170_FIRMWARE,
   '1.21': process.env.GRMOD_GR4_121_FIRMWARE, '2.21': process.env.GRMOD_GR3_221_FIRMWARE, '1.71': process.env.GRMOD_GR3X_171_FIRMWARE,
 };
-const official = new URL('../testdata/private/official.bin', import.meta.url).pathname;
+const official = fileURLToPath(new URL('../testdata/private/official.bin', import.meta.url));
 
 describe('new firmware line', () => {
   for (const [version, path] of Object.entries(files)) {

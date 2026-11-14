@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import { Engine, fw } from '../src';
 import * as aspect from '../src/fw/aspect';
 import { HALATION, halateYcc, halationGains, halationLight, halationModule, scatterParams, scatterTables } from '../src/fw/aspect/halation';
@@ -16,7 +17,7 @@ import { HALATION_CODE_089_LENGTH, HALATION_SOURCE_089_SHA256 } from '../src/fw/
 import { Patch } from '../src/fw/aspect/build';
 import type { ExtraSlotSpec } from '../src';
 
-const P = new URL('../testdata/private/', import.meta.url).pathname;
+const P = fileURLToPath(new URL('../testdata/private/', import.meta.url));
 const have = existsSync(P + 'official.bin');
 const sha = (b: Uint8Array | string): string => createHash('sha256').update(b).digest('hex');
 

@@ -7,6 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Engine, fw } from '../src';
 import { EXPOSURE_PREVIEW_BYTE, EP_LIST_ID, SOFT_FOCUS_LIST_ID } from '../src/fw/gr4v120/aspect/exposure';
 import { readExtensionFeatures } from '../src/fw/gr4v120/aspect/package';
@@ -63,7 +64,7 @@ describe.skipIf(!have120)('exposure preview and soft focus line: GR IV 1.20', ()
     expect(count(plain, SOFT_FOCUS_LIST_ID)).toBe(0);
   }, 300_000);
   it('not on 1.11 files', async () => {
-    const p = new URL('../testdata/private/official.bin', import.meta.url).pathname;
+    const p = fileURLToPath(new URL('../testdata/private/official.bin', import.meta.url));
     if (!existsSync(p)) return;
     const eng = await Engine.open(new Uint8Array(readFileSync(p)));
     expect(eng.info.features.exposurePreview).toBeUndefined();
