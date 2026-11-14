@@ -10,6 +10,11 @@ Downloads: the desktop app (Windows, macOS) and the Android app (APK) are on the
 (`mobile/`, see `mobile/README.md`) has the same pages as the desktop app; instead of writing a memory card it
 saves the firmware to the device, or sends it to a GR IV over Bluetooth and Wi-Fi as GR WORLD does.
 
+<p align="center">
+  <img src="docs/images/mobile-overview-zh.jpg" width="48%" alt="GR Mod on iPhone, iPad and Android">
+  <img src="docs/images/download-guide-zh.jpg" width="48%" alt="Download GR Mod for desktop and Android from GitHub, or for iPhone and iPad from the App Store">
+</p>
+
 0.8.13: one language setting. The camera language is no longer chosen on its own: it follows the app
 language (简体中文 → Simplified Chinese, English → English; following the system, the system's language
 where the camera has it), and the names changed under Image Control are for that language. The guide to
