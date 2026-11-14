@@ -1027,6 +1027,8 @@ function RatioRow({ r, active, tour }: { r: RatioItem; active: boolean; tour?: s
 function RatioPane({ r }: { r?: RatioItem }) {
   const rev = useStore((s) => s.photoRev);
   const backdrop = useStore((s) => s.ratioBackdrop);
+  // The GR IV's live view of an added ratio is black outside the photo area; the preview shows it so.
+  const gr4 = useStore((s) => s.info?.family === 'gr4');
   const photo = useMemo(() => previewPhoto(), [rev]); // eslint-disable-line react-hooks/exhaustive-deps
   const ref = useRef<HTMLCanvasElement>(null);
   const showPhoto = backdrop === 'photo' && !!photo;
@@ -1047,7 +1049,7 @@ function RatioPane({ r }: { r?: RatioItem }) {
         <Segmented tour="ratio-backdrop" value={backdrop} onChange={setRatioBackdrop} options={[{ value: 'photo', label: t('previewPhoto') }, { value: 'gray', label: t('ratioGray') }]} />
       </div>
       <div className="ratio-body" data-tour="ratio-frame" data-tour-fit="">
-        <div className={`ratio-frame ${showPhoto ? '' : 'gray'}`}>
+        <div className={`ratio-frame ${showPhoto ? '' : 'gray'} ${gr4 ? 'camera-black' : ''}`}>
           {showPhoto && <canvas ref={ref} className="ratio-photo" />}
           {sc && (
             <>
