@@ -392,8 +392,15 @@ func TestFallback(t *testing.T) {
 
 func TestSupported(t *testing.T) {
 	a := Supported
-	if a.Version != "1.11" || len(a.SHA256) != 64 || a.Size <= 0 || !strings.HasSuffix(a.Path, "/gr4_v111.zip") || !strings.HasPrefix(a.Path, "/") {
+	if a.Version != "1.20" || len(a.SHA256) != 64 || a.Size <= 0 || !strings.HasSuffix(a.Path, "/gr4_v120.zip") || !strings.HasPrefix(a.Path, "/") {
 		t.Errorf("%+v", a)
+	}
+	b := Earlier
+	if b.Version != "1.11" || len(b.SHA256) != 64 || b.Size <= 0 || !strings.HasSuffix(b.Path, "/gr4_v111.zip") || !strings.HasPrefix(b.Path, "/") {
+		t.Errorf("earlier: %+v", b)
+	}
+	if a.Models == nil || b.Models == nil || strings.Join(a.Models, ",") != strings.Join(b.Models, ",") {
+		t.Errorf("Supported and Earlier must be for the same models: %v %v", a.Models, b.Models)
 	}
 	for _, m := range a.Models {
 		if _, ok := Models[m]; !ok {

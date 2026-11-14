@@ -86,7 +86,7 @@ func outgoingClient(opt Options) *http.Client {
 
 func newFirmwareSource(opt Options) *firmwareSource {
 	return &firmwareSource{
-		client: ricoh.Client{Base: opt.FirmwareSite, HTTP: outgoingClient(opt), Pinned: opt.FirmwareArchive},
+		client: ricoh.Client{Base: opt.FirmwareSite, HTTP: outgoingClient(opt), Pinned: opt.FirmwareArchive, PinnedEarlier: opt.FirmwareEarlier},
 		cached: map[string]cachedRelease{},
 	}
 }
@@ -112,6 +112,23 @@ func (f *firmwareSource) release(ctx context.Context, model string, now time.Tim
 	if fallback, err = f.client.Fallback(model, rel); err != nil {
 		return nil, nil, err
 	}
+	// GR IV: 1.20 is the release the program builds on and 1.11 the one before it; a site that
+	// lists neither (1.21, from November 2026, is newer than this program knows) would otherwise
+	// hide 1.20 behind the 1.11 fallback, so the match is made here as well.
+	earlier, err := f.client.EarlierFor(model, "")
+	if err != nil {
+		return nil, nil, err
+	}
+	if earlier != nil {
+		if rel == nil {
+			rel = earlier
+		}
+		if fallback == nil && rel.Version != earlier.Version {
+			if fallback, err = f.client.EarlierFor(model, rel.Page); err != nil {
+				return nil, nil, err
+			}
+		}
+	}
 	// GR III / IIIx: the earlier release this program builds on is fetched by name; when the
 	// site lists a newer one, that is the release with the pinned one as the fallback, as for
 	// GR IV. A failed look at the pages leaves the pinned release alone.
@@ -132,7 +149,10 @@ func (f *firmwareSource) release(ctx context.Context, model string, now time.Tim
 // chosen is the release to download: the supported one when the page asks
 // for its version, else what the site offers.
 func chosen(rel, fallback *ricoh.Release, version string) *ricoh.Release {
-	if fallback != nil && (rel == nil || (version != "" && version == fallback.Version)) {
+	if version != "" && fallback != nil && version == fallback.Version {
+		return fallback
+	}
+	if rel == nil {
 		return fallback
 	}
 	return rel

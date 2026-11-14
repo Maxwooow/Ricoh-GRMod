@@ -53,6 +53,9 @@ type Options struct {
 	// FirmwareArchive replaces ricoh.Supported, the release offered when the
 	// site offers another version (tests).
 	FirmwareArchive *ricoh.Archive
+	// FirmwareEarlier replaces ricoh.Earlier, the release before the supported
+	// one offered as the fallback (tests).
+	FirmwareEarlier *ricoh.Archive
 
 	// Credits are the addresses of the acknowledgements file (credits.json),
 	// tried in order; empty disables /api/credits.

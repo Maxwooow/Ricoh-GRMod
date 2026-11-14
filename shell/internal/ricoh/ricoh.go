@@ -135,10 +135,26 @@ type Archive struct {
 	Page string
 }
 
-// Supported is the release this program builds on: GR IV / GR IV HDF 1.11
-// (2026/02/13). Checked 2026-10-21: still served at this address, whose
-// archive holds the fwdc248b.bin with SHA-256 a2f664df…655f.
+// Supported is the newest GR IV / GR IV HDF release this program builds on,
+// 1.20. Checked 2026-11-14: still served at this address, whose archive holds
+// the fwdc248b.bin with SHA-256 7563d7e4…650d.
 var Supported = Archive{
+	Version: "1.20",
+	Date:    "2026/10/21",
+	Path:    "/resources/japan/support/download/digital/FIRMWARE/gr4_v120.zip",
+	Size:    34702809,
+	SHA256:  "dcc1b6fb004f0d855bb46b30a529da894c7b717501276fec2d198b3d7eb76a59",
+	Models:  []string{"STANDARD", "HDF"},
+	Applies: "RICOH GR IV / RICOH GR IV HDF",
+	Page:    "/english/support/digital/gr4_s.html",
+}
+
+// Earlier is the release before Supported, which this program builds on as
+// well and which Ricoh still serves at a fixed address; it is offered as the
+// fallback next to Supported. It is what the program built on before 1.20 was
+// added here, so a camera still on 1.11 stays reachable. 1.11 (2026/02/13)
+// still serves the fwdc248b.bin with SHA-256 a2f664df…655f.
+var Earlier = Archive{
 	Version: "1.11",
 	Date:    "2026/02/13",
 	Path:    "/resources/japan/support/download/digital/FIRMWARE/gr4_v111.zip",
@@ -158,6 +174,8 @@ type Client struct {
 	HTTP *http.Client
 	// Pinned replaces Supported (tests).
 	Pinned *Archive
+	// PinnedEarlier replaces Earlier (tests).
+	PinnedEarlier *Archive
 }
 
 func (c *Client) pinned() *Archive {
@@ -165,6 +183,50 @@ func (c *Client) pinned() *Archive {
 		return c.Pinned
 	}
 	return &Supported
+}
+
+// earlier is the release offered as the fallback; nil when it is not for the
+// model or when there is none. Tests replace it with PinnedEarlier, and a
+// Pinned of their own suppresses it so that the existing fixtures keep one
+// pinned release.
+func (c *Client) earlier() *Archive {
+	if c.PinnedEarlier != nil {
+		return c.PinnedEarlier
+	}
+	if c.Pinned != nil {
+		return nil
+	}
+	return &Earlier
+}
+
+// EarlierFor is the release before Supported that the program builds on, for
+// a model the release is for, resolved against the site like Supported; nil
+// for any other model. page, when not empty, replaces the archive's own page
+// (the site's page for the model, which carries the licence).
+func (c *Client) EarlierFor(model, page string) (*Release, error) {
+	a := c.earlier()
+	if a == nil {
+		return nil, nil
+	}
+	covered := false
+	for _, m := range a.Models {
+		covered = covered || m == model
+	}
+	if !covered {
+		return nil, nil
+	}
+	base, err := c.base()
+	if err != nil {
+		return nil, err
+	}
+	fileURL := base.ResolveReference(&url.URL{Path: a.Path})
+	if page == "" {
+		page = base.ResolveReference(&url.URL{Path: a.Page}).String()
+	}
+	return &Release{
+		Model: model, Name: baseModelFor(model), Applies: a.Applies, Version: a.Version, Date: a.Date,
+		Page: page, File: path.Base(a.Path), Size: a.Size, URL: fileURL.String(), SHA256: a.SHA256,
+	}, nil
 }
 
 func (c *Client) base() (*url.URL, error) {
