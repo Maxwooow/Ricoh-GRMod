@@ -40,6 +40,8 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- GR Mod's own updates: the APK from the releases page, handed to the system's installer -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- Bluetooth to the camera: pairing, turning its Wi-Fi on, "start update" -->
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />

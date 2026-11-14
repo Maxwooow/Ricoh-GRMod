@@ -442,6 +442,71 @@ public class GrCameraPlugin extends Plugin {
         try { open(call.getString("url")); call.resolve(); } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
     }
 
+    // ------------------------------------------------------------------ GR Mod's own updates (Updater)
+
+    private Updater updater;
+    private Updater updater() { if (updater == null) updater = new Updater(getContext()); return updater; }
+
+    /** A small text file from GitHub (update-android.json, its signature): the page checks the signature. */
+    @PluginMethod
+    public void updateFetch(final PluginCall call) {
+        final String url = call.getString("url", "");
+        new Thread(() -> {
+            try { JSObject o = new JSObject(); o.put("text", updater().fetchText(url)); call.resolve(o); }
+            catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+        }, "update-fetch").start();
+    }
+
+    /** The APK of a signed manifest, kept only with that size and SHA-256. Events: "updateProgress". */
+    @PluginMethod
+    public void updateDownload(final PluginCall call) {
+        final String url = call.getString("url", "");
+        final long size = call.getData().optLong("size", 0);
+        final String sha = call.getString("sha256", "");
+        new Thread(() -> {
+            try {
+                updater().download(url, size, sha, (got, total) -> {
+                    JSObject o = new JSObject();
+                    o.put("received", got);
+                    o.put("total", total);
+                    notifyListeners("updateProgress", o);
+                });
+                call.resolve();
+            } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+        }, "update-download").start();
+    }
+
+    @PluginMethod
+    public void updateCancel(PluginCall call) { updater().cancel(); call.resolve(); }
+
+    /** {ok}: may GR Mod install apps; with open: true, the system page where the user allows it is opened. */
+    @PluginMethod
+    public void updateCanInstall(PluginCall call) {
+        boolean ok = updater().canInstall();
+        if (!ok && call.getBoolean("open", false)) {
+            try { getContext().startActivity(updater().permissionIntent()); } catch (Exception ignored) { /* no such page */ }
+        }
+        JSObject o = new JSObject();
+        o.put("ok", ok);
+        call.resolve(o);
+    }
+
+    /** Hands the downloaded APK to the system's installer. Events: "updateStatus" {status, message}. */
+    @PluginMethod
+    public void updateInstall(final PluginCall call) {
+        new Thread(() -> {
+            try {
+                updater().install(updater().apkFile(), (status, message) -> {
+                    JSObject o = new JSObject();
+                    o.put("status", status);
+                    o.put("message", message);
+                    notifyListeners("updateStatus", o);
+                });
+                call.resolve();
+            } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
+        }, "update-install").start();
+    }
+
     /** The system back button: the page decides (see ui/src/host-android.ts). False when no page is listening. */
     public boolean back() {
         if (!hasListeners("back")) return false;

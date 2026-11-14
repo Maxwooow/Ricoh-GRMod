@@ -19,3 +19,10 @@ examples/gr3x/T6/sources/
 
 # Built by `npm run build:android` in ui/ (the GR Mod UI for the Android app)
 mobile/www/
+
+# signing keys never go into the repository
+*.jks
+*.keystore
+*.p12
+*.p8
+*-private.key

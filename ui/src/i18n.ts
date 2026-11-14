@@ -190,6 +190,12 @@ const zh = {
   tWallAddBM: '轻触添加图片，最多可添加 8 张。',
   tWallCardBM: '右上角可裁切或移除图片；下方名称显示在照相机菜单中（仅可使用英文字母、数字和符号）。',
   tWallWriteTM: '推送至照相机', tWallWriteBM: '图片与其他页面的更改一并写入固件。推送至照相机，或存储到设备后更新。',
+  // Android: GR Mod's own updates (update-dialog.tsx)
+  aUpdTitle: 'GR Mod {v} 可用', aUpdCurrent: '当前 {v}', aUpdErrorTitle: '更新', aUpdHint: '将从 GitHub 下载安装包，校验后交给系统安装。',
+  aUpdLater: '以后再说', aUpdNow: '更新', aUpdDownloading: '正在下载… {a} / {b} MB', aUpdInstalling: '正在安装。请在系统画面中轻触[更新]。',
+  aUpdPermission: '需要允许 GR Mod 安装应用。请在系统设定中打开[允许来自此来源的应用]，然后返回并轻触[继续]。',
+  aUpdOpenSettings: '打开设定', aUpdContinue: '继续', aUpdLatest: '已是最新版本（{v}）', aUpdFailed: '无法检查或下载更新：{e}',
+  aUpdChecksum: '下载的文件校验不符，已删除。请稍后重试。', aUpdInstallFailed: '无法安装更新：{e}',
  mCrashed: '界面发生错误。请将以下内容截图并发送给开发者。', mReload: '重新加载',
 };
 const en: typeof zh = {
@@ -383,6 +389,11 @@ const en: typeof zh = {
   tWallAddBM: 'Tap to add pictures, 8 at most.',
   tWallCardBM: 'Crop or remove at the top right; the name below is shown in the camera menu (letters, digits and symbols).',
   tWallWriteTM: 'Send to camera', tWallWriteBM: 'The pictures go into the firmware together with the changes on the other pages; send it to the camera, or save it to the device, to update.',
+  aUpdTitle: 'GR Mod {v} is available', aUpdCurrent: 'now {v}', aUpdErrorTitle: 'Update', aUpdHint: 'The installer is downloaded from GitHub, checked, and handed to the system to install.',
+  aUpdLater: 'Later', aUpdNow: 'Update', aUpdDownloading: 'Downloading… {a} / {b} MB', aUpdInstalling: 'Installing: tap Update on the system\'s screen.',
+  aUpdPermission: 'GR Mod needs your permission to install apps: turn on "Allow from this source" in the system settings, then come back and tap Continue.',
+  aUpdOpenSettings: 'Open settings', aUpdContinue: 'Continue', aUpdLatest: 'GR Mod is up to date ({v})', aUpdFailed: 'Could not check or download the update: {e}',
+  aUpdChecksum: 'The downloaded file did not match and was deleted. Please try again later.', aUpdInstallFailed: 'Could not install the update: {e}',
  mCrashed: 'Something went wrong in the interface. Please send a screenshot of this to the developer.', mReload: 'Reload',
 };
 export type Key = keyof typeof zh;

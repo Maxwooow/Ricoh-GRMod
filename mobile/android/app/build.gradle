@@ -7,8 +7,8 @@ android {
         applicationId "io.github.maxwooow.grmod"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 20
-        versionName "0.3.7"
+        versionCode 21
+        versionName "0.3.8"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +16,23 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Release builds are signed with GR Mod's own key, which is not part of the source: the keystore's path and
+    // password come from the environment (GRMOD_KEYSTORE, GRMOD_KEYSTORE_PASSWORD; GRMOD_KEY_ALIAS default
+    // "grmod", GRMOD_KEY_PASSWORD default the keystore's). Without them a release build is left unsigned.
+    signingConfigs {
+        release {
+            def ks = System.getenv('GRMOD_KEYSTORE')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('GRMOD_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('GRMOD_KEY_ALIAS') ?: 'grmod'
+                keyPassword System.getenv('GRMOD_KEY_PASSWORD') ?: System.getenv('GRMOD_KEYSTORE_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
+            if (System.getenv('GRMOD_KEYSTORE')) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

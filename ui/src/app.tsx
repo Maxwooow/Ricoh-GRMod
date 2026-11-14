@@ -5,6 +5,7 @@ import { GlassDefs, GlassFilter, useGlass, useSize } from './glass';
 import { Busy, ConfirmDialog, Hint, Ico, MobileSheet, Select, Toasts, useDismiss } from './components';
 import { host, isMobile } from './host';
 import { PushDialog } from './camera';
+import { AndroidUpdate, checkUpdates, isAndroid } from './update-dialog';
 import { haptic, setBackFallback } from './host-android';
 import { t, uiLangPref } from './i18n';
 import type { Key } from './i18n';
@@ -213,6 +214,7 @@ function SettingsBody({ close }: { close?: () => void }) {
       <div className="side-props m-props m-help" data-tour="m-help">
         <button type="button" className="m-row" onClick={() => then(replayTour, 480)}>{Ico.help}<span>{t('tourReplay')}</span></button>
         <button type="button" className="m-row" onClick={() => then(restartTours, 480)}>{Ico.refresh}<span>{t('tourRestart')}</span></button>
+        {isAndroid && <button type="button" className="m-row" onClick={() => then(() => { void checkUpdates(true); }, 300)}>{Ico.download}<span>{t('updCheck')}</span></button>}
       </div>
       <div className="m-sheet-foot">
         <span className="about-link m-version">GR Mod v{host.info?.version || ''}</span>
@@ -506,6 +508,7 @@ function MobileApp() {
       <CropEditor />
       <FirmwareOnline />
       <PushDialog />
+      <AndroidUpdate />
       <ConfirmDialog />
       <Tour />
       <Busy />
