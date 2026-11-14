@@ -351,16 +351,16 @@ public final class Ricoh {
         return c;
     }
 
-    private final Map<String, Release[]> cache = new HashMap<>();
+    private final Map<String, List<Release>> cache = new HashMap<>();
     private final Map<String, Long> cachedAt = new HashMap<>();
 
     /**
-     * [release, fallback]: what the site's pages offer now and, beside it, a release GR Mod builds on. When the
-     * site's release is one of those, the fallback is the next older one (as the desktop: 1.20 with 1.11); when it
-     * is newer than GR Mod knows (GR IV 1.21, Nov 2026), the fallback is the newest one GR Mod builds on.
-     * Cached for 10 minutes.
+     * What the site's pages offer now (first, when the site answers) and every other release GR Mod builds on,
+     * newest first, as the desktop: with GR IV 1.21 on the site (Nov 2026), 1.21, 1.20 and 1.11; with GR III 2.21,
+     * 2.21, 2.20 and 2.10. A release the site lists that GR Mod builds on gets its pinned SHA-256. Cached for
+     * 10 minutes.
      */
-    public synchronized Release[] release(String model) throws IOException {
+    public synchronized List<Release> release(String model) throws IOException {
         Long at = cachedAt.get(model);
         if (at != null && System.currentTimeMillis() - at < 10 * 60_000) return cache.get(model);
         String name = MODELS.get(model);
@@ -369,41 +369,41 @@ public final class Ricoh {
         Release cur;
         try { cur = current(model, name); }
         catch (IOException e) { if (sup == null || sup.isEmpty()) throw e; cur = null; }
-        Release rel = cur, fb = null;
+        List<Release> out = new ArrayList<>();
+        if (cur != null) out.add(cur);
         if (sup != null) {
-            int i = -1;
-            for (int k = 0; cur != null && k < sup.size(); k++) if (sup.get(k).version.equals(cur.version)) i = k;
-            if (i >= 0) {
-                if (cur.url.endsWith("/" + sup.get(i).file)) cur.sha256 = sup.get(i).sha256;
-                if (i + 1 < sup.size()) fb = supported(model, sup.get(i + 1));
-            } else if (!sup.isEmpty()) {
-                fb = supported(model, sup.get(0));
+            for (Release s : sup) {
+                if (cur != null && s.version.equals(cur.version)) {
+                    if (cur.url.endsWith("/" + s.file)) cur.sha256 = s.sha256;
+                    continue;
+                }
+                out.add(supported(model, s));
             }
         }
-        if (rel == null && fb == null) throw new NoRelease();
-        Release[] out = {rel, fb};
+        if (out.isEmpty()) throw new NoRelease();
         cache.put(model, out);
         cachedAt.put(model, System.currentTimeMillis());
         return out;
     }
 
-    /** The JSON of GET /api/firmware/latest. */
+    /** The JSON of GET /api/firmware/latest: the first release, each next one under "fallback". */
     public JSONObject latestJson(String model) throws IOException {
-        Release[] r = release(model);
-        JSONObject o;
-        if (r[0] == null) o = r[1].json();
-        else {
-            o = r[0].json();
-            if (r[1] != null) try { o.put("fallback", r[1].json()); } catch (JSONException ignored) { }
+        List<Release> r = release(model);
+        JSONObject o = null;
+        for (int i = r.size() - 1; i >= 0; i--) {
+            JSONObject x = r.get(i).json();
+            if (o != null) try { x.put("fallback", o); } catch (JSONException ignored) { }
+            o = x;
         }
         return o;
     }
 
+    /** The release of that version, or the first one when version is empty. */
     public Release chosen(String model, String version) throws IOException {
-        Release[] r = release(model);
-        Release rel = r[1] != null && (r[0] == null || (version != null && !version.isEmpty() && version.equals(r[1].version))) ? r[1] : r[0];
-        if (version != null && !version.isEmpty() && !rel.version.equals(version)) throw new NoRelease();
-        return rel;
+        for (Release rel : release(model)) {
+            if (version == null || version.isEmpty() || rel.version.equals(version)) return rel;
+        }
+        throw new NoRelease();
     }
 
     static final Pattern FIRMWARE_NAME = Pattern.compile("(?i)^fwdc[0-9a-z]{2,8}\\.bin$");

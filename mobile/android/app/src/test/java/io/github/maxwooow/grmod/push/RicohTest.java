@@ -30,18 +30,21 @@ public class RicohTest {
     /** Against the live site, when it can be reached (Nov 2026: GR IV 1.21, Monochrome 1.11, GR III 2.21, GR IIIx 1.71). */
     @Test public void liveReleases() throws Exception {
         Ricoh r = new Ricoh(null);
-        String[][] cases = {{"HDF", "1.20"}, {"STANDARD", "1.20"}, {"MONO", "1.10"}, {"GR3", "2.20"}, {"GR3X_HDF", "1.70"}};
+        // every release GR Mod builds on is offered, beside what the site lists now
+        String[][] cases = {{"HDF", "1.20", "1.11"}, {"STANDARD", "1.20", "1.11"}, {"MONO", "1.10"}, {"GR3", "2.20", "2.10"}, {"GR3X_HDF", "1.70", "1.60"}};
         for (String[] c : cases) {
             JSONObject o;
             try { o = r.latestJson(c[0]); }
             catch (java.io.IOException e) { assumeTrue("site not reachable: " + e, false); return; }
             System.out.println(c[0] + " " + o);
-            String v = o.getString("version");
-            JSONObject fb = o.optJSONObject("fallback");
-            assertTrue(c[0] + ": " + o, v.equals(c[1]) || (fb != null && fb.getString("version").equals(c[1])));
-            Ricoh.Release ch = r.chosen(c[0], c[1]);
-            assertEquals(c[1], ch.version);
-            assertTrue(ch.size > 20_000_000);
+            java.util.Set<String> seen = new java.util.HashSet<>();
+            for (JSONObject x = o; x != null; x = x.optJSONObject("fallback")) seen.add(x.getString("version"));
+            for (int k = 1; k < c.length; k++) {
+                assertTrue(c[0] + " lacks " + c[k] + ": " + o, seen.contains(c[k]));
+                Ricoh.Release ch = r.chosen(c[0], c[k]);
+                assertEquals(c[k], ch.version);
+                assertTrue(ch.size > 20_000_000);
+            }
         }
     }
 }

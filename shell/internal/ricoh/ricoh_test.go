@@ -408,3 +408,23 @@ func TestSupported(t *testing.T) {
 		}
 	}
 }
+
+func TestOthers(t *testing.T) {
+	seen := map[string]string{}
+	for _, a := range Others {
+		if len(a.SHA256) != 64 || a.Size <= 0 || !strings.HasPrefix(a.Path, "/") || a.Page == "" {
+			t.Errorf("%+v", a)
+		}
+		for _, m := range a.Models {
+			if _, ok := Models[m]; !ok {
+				t.Errorf("unknown model %q", m)
+			}
+			seen[m] = a.Version
+		}
+	}
+	for m, v := range map[string]string{"MONO": "1.10", "GR3": "2.20", "GR3_HDF": "2.20", "GR3X": "1.70", "GR3X_HDF": "1.70"} {
+		if seen[m] != v {
+			t.Errorf("%s: pinned %q, want %s", m, seen[m], v)
+		}
+	}
+}

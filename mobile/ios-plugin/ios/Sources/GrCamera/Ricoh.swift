@@ -316,52 +316,51 @@ final class Ricoh: NSObject, URLSessionDataDelegate {
         return c
     }
 
-    private var cache: [String: (at: Date, release: Release?, fallback: Release?)] = [:]
+    private var cache: [String: (at: Date, releases: [Release])] = [:]
     private let cacheLock = NSLock()
 
-    /// (release, fallback): what the site offers now and, beside it, a release GR Mod builds on (see Ricoh.java).
-    /// Cached for 10 minutes.
-    func release(_ model: String) throws -> (Release?, Release?) {
+    /// What the site offers now (first, when the site answers) and every other release GR Mod builds on, newest
+    /// first (see Ricoh.java): with GR IV 1.21 on the site, 1.21, 1.20 and 1.11. Cached for 10 minutes.
+    func release(_ model: String) throws -> [Release] {
         cacheLock.lock()
-        if let c = cache[model], Date().timeIntervalSince(c.at) < 600 { cacheLock.unlock(); return (c.release, c.fallback) }
+        if let c = cache[model], Date().timeIntervalSince(c.at) < 600 { cacheLock.unlock(); return c.releases }
         cacheLock.unlock()
         lock.lock(); cancelled = false; lock.unlock()
         guard let name = Ricoh.models[model] else { throw RicohError(kind: .network, message: "unknown model") }
         let sup = Ricoh.supported[model] ?? []
         var cur: Release?
         do { cur = try current(model, name) } catch { if sup.isEmpty { throw error }; cur = nil }
-        var fb: Release?
-        if !sup.isEmpty {
-            var i = -1
-            if let c = cur { for (k, s) in sup.enumerated() where s.version == c.version { i = k } }
-            if i >= 0 {
-                if cur!.url.hasSuffix("/" + sup[i].file) { cur!.sha256 = sup[i].sha256 }
-                if i + 1 < sup.count { fb = supportedRelease(model, sup[i + 1]) }
-            } else {
-                fb = supportedRelease(model, sup[0])
+        var out: [Release] = []
+        for s in sup {
+            if var c = cur, s.version == c.version {
+                if c.url.hasSuffix("/" + s.file) { c.sha256 = s.sha256; cur = c }
+                continue
             }
+            out.append(supportedRelease(model, s))
         }
-        if cur == nil && fb == nil { throw RicohError.noRelease }
-        cacheLock.lock(); cache[model] = (Date(), cur, fb); cacheLock.unlock()
-        return (cur, fb)
+        if let c = cur { out.insert(c, at: 0) }
+        if out.isEmpty { throw RicohError.noRelease }
+        cacheLock.lock(); cache[model] = (Date(), out); cacheLock.unlock()
+        return out
     }
 
-    /// The JSON of GET /api/firmware/latest.
+    /// The JSON of GET /api/firmware/latest: the first release, each next one under "fallback".
     func latestJson(_ model: String) throws -> [String: Any] {
-        let (rel, fb) = try release(model)
-        guard let r = rel else { return fb!.json() }
-        var o = r.json()
-        if let f = fb { o["fallback"] = f.json() }
-        return o
+        var o: [String: Any]?
+        for r in try release(model).reversed() {
+            var x = r.json()
+            if let next = o { x["fallback"] = next }
+            o = x
+        }
+        guard let first = o else { throw RicohError.noRelease }
+        return first
     }
 
+    /// The release of that version, or the first one when version is empty.
     func chosen(_ model: String, _ version: String?) throws -> Release {
-        let (rel, fb) = try release(model)
         let v = version ?? ""
-        let pick: Release
-        if let f = fb, rel == nil || (!v.isEmpty && v == f.version) { pick = f } else { pick = rel! }
-        if !v.isEmpty && pick.version != v { throw RicohError.noRelease }
-        return pick
+        for r in try release(model) where v.isEmpty || r.version == v { return r }
+        throw RicohError.noRelease
     }
 
     // MARK: the download

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"grmod/shell/internal/ricoh"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -139,6 +140,8 @@ func newEnv(t *testing.T, mod ...func(*Options)) *env {
 		Web:     testWeb,
 		DataDir: e.data,
 		Host:    e.host,
+		// No pinned releases beyond ricoh.Supported / Earlier unless a test asks for them.
+		FirmwareOthers: []ricoh.Archive{},
 	}
 	for _, m := range mod {
 		m(&opt)

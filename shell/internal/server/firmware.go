@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"sync"
 	"sync/atomic"
@@ -85,7 +86,7 @@ func outgoingClient(opt Options) *http.Client {
 
 func newFirmwareSource(opt Options) *firmwareSource {
 	return &firmwareSource{
-		client: ricoh.Client{Base: opt.FirmwareSite, HTTP: outgoingClient(opt), Pinned: opt.FirmwareArchive, PinnedEarlier: opt.FirmwareEarlier},
+		client: ricoh.Client{Base: opt.FirmwareSite, HTTP: outgoingClient(opt), Pinned: opt.FirmwareArchive, PinnedEarlier: opt.FirmwareEarlier, PinnedOthers: opt.FirmwareOthers},
 		cached: map[string]cachedRelease{},
 	}
 }
@@ -113,15 +114,31 @@ func (f *firmwareSource) releases(ctx context.Context, model string, now time.Ti
 	if err != nil {
 		return nil, err
 	}
-	// For GR III / IIIx, Latest looks up the pinned archive by name.
+	// GR III / IIIx: Latest is the earlier release fetched by name, and the site's pages list the
+	// current one. Without the site's answer every known release is still offered.
+	site := latest
+	var pins []*ricoh.Release
 	if latest != nil && ricoh.IsPinned(model) {
-		if cur, err := f.client.Current(ctx, model); err == nil && cur != nil && cur.Version != latest.Version {
-			latest, supported = cur, latest
+		pins, site = append(pins, latest), nil
+		if cur, err := f.client.Current(ctx, model); err == nil && cur != nil {
+			site = cur
 		}
 	}
+	others, err := f.client.OthersFor(model, site)
+	if err != nil {
+		return nil, err
+	}
+	pins = append(append(pins, supported, earlier), others...)
+	// The site's release first, then the pinned ones, newest first, each version once.
 	var releases []*ricoh.Release
-	for _, rel := range []*ricoh.Release{latest, supported, earlier} {
-		if rel != nil {
+	if site != nil {
+		releases = append(releases, site)
+	}
+	sort.SliceStable(pins, func(i, j int) bool {
+		return pins[i] != nil && (pins[j] == nil || ricoh.VersionLess(pins[j].Version, pins[i].Version))
+	})
+	for _, rel := range pins {
+		if rel != nil && chosen(releases, rel.Version) == nil {
 			releases = append(releases, rel)
 		}
 	}
