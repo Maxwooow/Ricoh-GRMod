@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
-import { FACTORY_LOOK_IDS, card, GR3X_FILM_IDS, GR3X_MAX_CUSTOM_RATIOS, GR3X_T4_CUSTOM, LANGS, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_MAX_PICTURES, SHUTDOWN_NAME_MAX, validateExtraSlotName, validateGr3xRatioName, validateRatioName, validateShutdownName } from '@grmod/core';
-import type { CameraModel, ClarityChange, ExtraSlotSpec, FirmwareInfo, FirmwareSummary, LangCode, LookLayout, PresetResult, RatioPreview, RatioSpec, ShutdownPictureSpec, SlotId, SlotRequest, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
+import { CAMERA_GRID, FACTORY_LOOK_IDS, card, GR3X_FILM_IDS, GRID_LINE_COUNT, isCameraGrid, GR3X_MAX_CUSTOM_RATIOS, GR3X_T4_CUSTOM, LANGS, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_MAX_PICTURES, SHUTDOWN_NAME_MAX, validateExtraSlotName, validateGr3xRatioName, validateRatioName, validateShutdownName } from '@grmod/core';
+import type { CameraModel, ClarityChange, CustomGrid, ExtraSlotSpec, FirmwareInfo, FirmwareSummary, LangCode, LookLayout, PresetResult, RatioPreview, RatioSpec, ShutdownPictureSpec, SlotId, SlotRequest, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
 import { engine, EngineError } from './engine';
 import { host, HostError, isMobile, sha256Hex } from './host';
 import { upload } from './host-android';
@@ -12,7 +12,16 @@ import type { Crop } from './pixels';
 import { decodePreview } from './preview';
 import defaultPhotoUrl from './assets/preview.jpg';
 
-export type Page = 'ic' | 'ratio' | 'wall' | 'copies';
+export type Page = 'ic' | 'ratio' | 'grid' | 'wall' | 'copies';
+/** The camera's own grids, as custom grid lines (a fresh copy to edit). */
+const cameraGrid = (): CustomGrid => ({ g3: [...CAMERA_GRID.g3], g4: [...CAMERA_GRID.g4] });
+/** Grid lines as saved in the project: eight booleans per style, else the camera's own. */
+function savedGridLines(v: unknown): CustomGrid {
+  const ok = (x: unknown): x is boolean[] => Array.isArray(x) && x.length === GRID_LINE_COUNT && x.every((b) => typeof b === 'boolean');
+  const g = v as Partial<CustomGrid> | undefined;
+  const base = cameraGrid();
+  return { g3: ok(g?.g3) ? [...g!.g3] : base.g3, g4: ok(g?.g4) ? [...g!.g4] : base.g4 };
+}
 /** One added aspect ratio as typed; `preview` is what the camera would make of it (absent while that is worked out). */
 export interface RatioItem { id: string; ratio: string; name: string; preview?: RatioPreview }
 export interface PresetState { fileName: string; kind: 'xmp' | 'cube'; text: string; busy: boolean; result?: PresetResult; error?: string }
@@ -51,7 +60,7 @@ export interface BuildRecord { sha256: string; time: number; slots: { id: SlotId
 /** `warn` is an optional caution shown under the lines (used where something is deleted for good). */
 /** A guided tour: `overview` is the one of the first start, the others belong to a page. */
 export type TourId = 'overview' | Page;
-export const TOUR_IDS: readonly TourId[] = ['overview', 'ic', 'ratio', 'wall', 'copies'];
+export const TOUR_IDS: readonly TourId[] = ['overview', 'ic', 'ratio', 'grid', 'wall', 'copies'];
 /** The tour being shown: `steps` are the indices of its steps that have something to point at; a replay can be skipped. */
 export interface TourState { id: TourId; steps: number[]; index: number; replay: boolean }
 /** `reset`: the firmware written is the official one; the dialog asks in red whether the camera's settings were reset first. */
@@ -74,6 +83,10 @@ export interface State {
   hdr: boolean;
   /** GR IV 1.20: exposure preview as a camera setting (Shooting › Exposure Settings, ADJ lever). */
   exposurePreview: boolean;
+  /** GR IV 1.11: custom grid lines (`gridLines`) instead of the camera's own grids. */
+  customGrid: boolean;
+  /** Which lines the camera's 3x3 and 4x4 grids draw with `customGrid` on (core: CustomGrid). */
+  gridLines: CustomGrid;
   /** ADJ lever slots in the build: 5 (the camera's) to 8 (GR IV). */
   adjSlots: number;
   /** GR IV, experimental: .cube presets of added slots get hue sectors of their own (core color/hue.ts). */
@@ -110,7 +123,7 @@ const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '',
 const emptySlots = (): Record<SlotId, SlotState> => Object.fromEntries(SLOT_IDS.map(id => [id, emptySlot()])) as Record<SlotId, SlotState>;
 let state: State = {
   ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: cameraLang(), langAuto: uiLangPref() === '',
-  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hdr: false, exposurePreview: false, adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [],
+  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hdr: false, exposurePreview: false, customGrid: false, gridLines: cameraGrid(), adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [],
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
@@ -230,7 +243,7 @@ function familyData(s: State): FamilyDoc {
     lookOrder: s.lookOrder, lookHidden: s.lookHidden, lookOrder3: s.lookOrder3, lookHidden3: s.lookHidden3,
     wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: 'image', width: w.width, height: w.height, crop: w.crop, ...(w.menuName !== undefined ? { menuName: w.menuName } : {}), ...(w.menuId ? { menuId: w.menuId } : {}) })),
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
-    brightAuto: s.brightAuto, soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock, directFlash: s.directFlash, hdr: s.hdr, exposurePreview: s.exposurePreview, adjSlots: s.adjSlots, filmCount: s.filmCount,
+    brightAuto: s.brightAuto, soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock, directFlash: s.directFlash, hdr: s.hdr, exposurePreview: s.exposurePreview, customGrid: s.customGrid, gridLines: s.gridLines, adjSlots: s.adjSlots, filmCount: s.filmCount,
   };
 }
 
@@ -259,7 +272,7 @@ function parseFamily(doc: FamilyDoc | null): Partial<State> {
     lookOrder3: gr3SavedKeys(doc?.lookOrder3), lookHidden3: gr3SavedKeys(doc?.lookHidden3).filter((k) => k !== 'g11'),
     brightAuto: doc?.brightAuto === 'balanced' ? 'balanced' : doc?.brightAuto === true || doc?.brightAuto === 'bright' ? 'bright' : false,
     soft: doc?.soft === true || (!!doc?.softFocus && typeof doc.softFocus === 'object' && Object.keys(doc.softFocus).length > 0),
-    dateStamp: doc?.dateStamp === true, monoUnlock: doc?.monoUnlock === true, directFlash: doc?.directFlash === true, hdr: doc?.hdr === true, exposurePreview: doc?.exposurePreview === true, adjSlots: typeof doc?.adjSlots === 'number' && Number.isInteger(doc.adjSlots) && doc.adjSlots >= 5 && doc.adjSlots <= 8 ? doc.adjSlots : 5,
+    dateStamp: doc?.dateStamp === true, monoUnlock: doc?.monoUnlock === true, directFlash: doc?.directFlash === true, hdr: doc?.hdr === true, exposurePreview: doc?.exposurePreview === true, customGrid: doc?.customGrid === true, gridLines: savedGridLines(doc?.gridLines), adjSlots: typeof doc?.adjSlots === 'number' && Number.isInteger(doc.adjSlots) && doc.adjSlots >= 5 && doc.adjSlots <= 8 ? doc.adjSlots : 5,
     filmCount: Number.isInteger(doc?.filmCount) && doc!.filmCount >= 0 && doc!.filmCount <= GR3X_FILM_IDS.length ? doc!.filmCount : doc && doc.filmCount === undefined && doc.slots ? 9 : 0,
   };
 }
@@ -371,7 +384,7 @@ export async function init(): Promise<void> {
       else familyDocs.gr4 = doc;
       const fam = familyOf(model), work = familyDocs[fam];
       set({ ...parseFamily(work), model,
-        page: doc.page === 'wall' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'ic' ? doc.page : doc.page === 'script' ? 'wall' : 'ic',
+        page: doc.page === 'wall' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'grid' || doc.page === 'ic' ? doc.page : doc.page === 'script' ? 'wall' : 'ic',
         ...langOf(doc), fwName: doc.fwName, showAll: !!doc.showAll,
         previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo',
         // GR Mod 0.8 changed the power-off page: its tour (which now says where the pictures are chosen) shows once more
@@ -420,8 +433,15 @@ export function endTour(): void {
 }
 
 // ------------------------------------------------------------------ settings
+/** Pages of additions that only some firmware has: offered when the open firmware has the addition, or, with none open yet, for the GR IV. */
+export function pageOffered(page: Page, s: State = state): boolean {
+  if (page === 'grid') return s.info ? !!s.info.features.customGrid : !isGr3(s.model);
+  return true;
+}
+
 export function setPage(page: Page): void {
   if (page === 'wall' && isGr3(state.model) && state.info && !state.info.capabilities.menuPictures) return; // power-off pictures: GR III / IIIx with the End Screen menu
+  if (!pageOffered(page)) return;
   set({ page }); scheduleSave(); if (page === 'copies') void refreshCopies();
 }
 /**
@@ -476,6 +496,7 @@ export function setModel(model: CameraModel): void {
       copyInfo: {}, copySel: [], ratios: state.ratios.map(({ preview, ...r }) => r) });
   }
   set({ model });
+  if (!pageOffered(state.page)) set({ page: 'ic' });
   // The other camera's work comes back (its pictures are encoded again once read).
   if (differentFamily) enterFamily(familyOf(model));
   else for (const w of state.wall) void encodeWall(w.id);
@@ -511,6 +532,7 @@ async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Pr
     const sameFamily = familyOf(state.model) === familyOf(model);
     if (!sameFamily) leaveFamily();
     set({ info, raw, model, fwName: info.filename, fwBusy: false, copyInfo: {}, copySel: [], });
+    if (!pageOffered(state.page)) set({ page: 'ic' });
     // Opening the other camera's firmware brings back that camera's work.
     if (!sameFamily) enterFamily(familyOf(model));
     if (info.family === 'gr3x') set((s) => ({ dateStamp: s.dateStamp && info.features.dateStamp, monoUnlock: s.monoUnlock && info.features.monoUnlock }));
@@ -1057,6 +1079,27 @@ export function setExposurePreview(exposurePreview: boolean): void {
   set({ exposurePreview }); scheduleSave();
 }
 export function exposurePreviewOn(s: State = state): boolean { return !!s.exposurePreview && !!s.info?.features.exposurePreview; }
+export function setCustomGrid(customGrid: boolean): void {
+  if (customGrid && !state.info?.features.customGrid) return;
+  set({ customGrid }); scheduleSave();
+}
+/** Line `index` of the 3x3 ('g3') or 4x4 ('g4') grid on or off. */
+export function setGridLine(style: 'g3' | 'g4', index: number, on: boolean): void {
+  if (!(Number.isInteger(index) && index >= 0 && index < GRID_LINE_COUNT)) return;
+  const lines = [...state.gridLines[style]];
+  lines[index] = on;
+  set({ gridLines: { ...state.gridLines, [style]: lines } }); scheduleSave();
+}
+/** The grid lines a build gets: none when the switch is off, the firmware cannot have them, or they are the camera's own. */
+export function customGridOf(s: State = state): CustomGrid | undefined {
+  return s.customGrid && s.info?.features.customGrid && !isCameraGrid(s.gridLines) ? s.gridLines : undefined;
+}
+/** How many lines a style of a custom grid draws, for the summaries. */
+export function gridText(g: CustomGrid, style: 'g3' | 'g4'): string {
+  if (g[style].every((v, i) => v === CAMERA_GRID[style][i])) return t('gridCameraLines');
+  const n = g[style].filter(Boolean).length;
+  return n === 0 ? t('gridNoLines') : t('gridLinesN', { n });
+}
 /** ADJ lever slots (5..8): the camera's five unless the firmware can have more. */
 export function setAdjSlots(adjSlots: number): void {
   if (!(Number.isInteger(adjSlots) && adjSlots >= 5 && adjSlots <= (state.info?.features.maxAdjSlots ?? 5))) return;
@@ -1065,7 +1108,7 @@ export function setAdjSlots(adjSlots: number): void {
 /** The ADJ lever slots the build gets (5: none added). */
 export function adjSlotsOf(s: State = state): number { const max = s.info?.features.maxAdjSlots ?? 5; return s.adjSlots > 5 && s.adjSlots <= max ? s.adjSlots : 5; }
 /** Any addition that is not a slot or a ratio. */
-export function extrasOn(s: State = state): boolean { return !!brightAutoOf(s) || exposurePreviewOn(s) || softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hasLookLayout(s) || directFlashOn(s) || adjSlotsOf(s) > 5 || hdrOn(s); }
+export function extrasOn(s: State = state): boolean { return !!brightAutoOf(s) || exposurePreviewOn(s) || softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hasLookLayout(s) || directFlashOn(s) || adjSlotsOf(s) > 5 || hdrOn(s) || !!customGridOf(s); }
 const MINUS = '\u2212';
 const strengthLabel = (st: SoftFocusStrength | 'custom'): string => t(st === 'weak' ? 'softWeak' : st === 'medium' ? 'softMedium' : st === 'strong' ? 'softStrong' : 'softCustom');
 /** "−2 weak / −3 medium" (−1 first), for confirmations and the copies page. */
@@ -1351,6 +1394,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const directFlash = !stock && directFlashOn();
   const hdr = !stock && hdrOn();
   const exposurePreview = !stock && exposurePreviewOn();
+  const customGrid = stock ? undefined : customGridOf();
   const brightAuto = stock ? false : brightAutoOf();
   const adjSlots = stock ? 5 : adjSlotsOf();
   if (!stock && (hasNameErrors() || hasRatioErrors())) return;
@@ -1363,7 +1407,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const pictures = noPictures ? [] : menuPictures();
   const films = filmCountChoosable() ? state.filmCount : 0;
   const lookLayout = stock ? undefined : lookLayoutSpec();
-  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && !directFlash && !hdr && !exposurePreview && !brightAuto && adjSlots === 5 && extras.length === 0 && pictures.length === 0 && films === 0 && !lookLayout) { toast(t('nothingToDo'), 'info'); return; }
+  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && !directFlash && !hdr && !exposurePreview && !customGrid && !brightAuto && adjSlots === 5 && extras.length === 0 && pictures.length === 0 && films === 0 && !lookLayout) { toast(t('nothingToDo'), 'info'); return; }
   const fresh = newFirmwareWarning(sourceInfo);
   // The cannot-go-back warning is a paragraph (the dialog's lines are cut to one line each).
   // GR III / IIIx cannot take a firmware over Wi-Fi (only the GR IV's camera has that interface).
@@ -1384,6 +1428,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (directFlash) lines.push(t('navFlash'));
     if (hdr) lines.push(t('navHdr'));
     if (exposurePreview) lines.push(t('navPreview'));
+    if (customGrid) lines.push(t('navGrid'));
     if (adjSlots > 5) lines.push(`${t('navAdjSlots')}  ·  ${t('chkCount', { n: adjSlots })}`);
     if (extras.length) lines.push(named(t('extraTitle'), extras.length));
     if (lookLayout) lines.push(lookLayout.hidden.length ? `${t('icViewOrder')}  ·  ${t('chkHidden', { n: lookLayout.hidden.length })}` : t('icViewOrder'));
@@ -1400,7 +1445,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
       set({ busy: t('building') });
       const clarity = soft && sourceInfo.features.softFocus === 'clarity' ? [...GR3X_SOFT_FOCUS] : [];
       const built = await engine.build(changes.map((c) => c.request), ratios, clarity,
-        { ...(brightAuto ? { brightAuto } : {}), adjSoftFocus: soft && sourceInfo.features.softFocus === 'adj', dateStamp, monoUnlock, ...(directFlash ? { directFlash } : {}), ...(hdr ? { hdrGainMap: true } : {}), ...(exposurePreview ? { exposurePreview: true } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}),
+        { ...(brightAuto ? { brightAuto } : {}), adjSoftFocus: soft && sourceInfo.features.softFocus === 'adj', dateStamp, monoUnlock, ...(directFlash ? { directFlash } : {}), ...(hdr ? { hdrGainMap: true } : {}), ...(exposurePreview ? { exposurePreview: true } : {}), ...(customGrid ? { customGrid } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}),
           ...(films ? { filmCount: films } : {}), ...(lookLayout ? { lookLayout } : {}) });
       if (!Object.values(built.checks).every((v) => v === true)) throw new EngineError('selfcheck-failed', 'self-check');
       file = built.file;
@@ -1584,6 +1629,7 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
   if (summary.hdrGainMap) lines.push(t('hdrLine'));
   if (summary.exposurePreview) lines.push(t(summary.directFlash ? 'previewLine' : 'previewLineNoFlash'));
   if (summary.adjSlots) lines.push(t('adjSlotsLine', { n: summary.adjSlots }));
+  if (summary.customGrid) lines.push(t('gridLine', { a: gridText(summary.customGrid, 'g3'), b: gridText(summary.customGrid, 'g4') }));
   if (summary.extraSlots?.length) lines.push(t('extraLine', { n: summary.extraSlots.length, l: summary.extraSlots.map((x) => x.name).join(' / ') }));
   if (summary.lookLayout) lines.push(t('lookOrderLine', { n: summary.lookLayout.hidden.length }));
   if (summary.shutdownPictures?.length) lines.push(t('wallMenuLine', { n: summary.shutdownPictures.length, l: summary.shutdownPictures.map((p) => p.name).join(' / ') }));

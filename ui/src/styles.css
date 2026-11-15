@@ -293,6 +293,22 @@ svg { width: 18px; height: 18px; flex: none; }
 
 /* soft focus switch (Image Control page) */
 .soft-switch { display: flex; align-items: center; gap: 12px; padding: 10px 14px; }
+/* Custom grid lines: under their switch, a preview (click a line) and a button per line. */
+.grid-edit { display: grid; gap: 10px; padding: 0 14px 12px 58px; }
+.grid-edit .seg { justify-self: start; }
+.grid-edit-body { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+.grid-edit-preview { width: 180px; height: auto; flex: none; border-radius: 4px; display: block; }
+.grid-edit-hit { cursor: pointer; }
+.grid-edit-lines { display: grid; gap: 6px; min-width: 0; }
+.grid-edit-group { display: grid; gap: 3px; }
+.grid-edit .btn.small[aria-pressed='true'] { background: var(--blue-bg); border-color: var(--blue); color: var(--blue); }
+.grid-edit .btn.small[aria-pressed='false'] { border-style: dashed; color: var(--muted); }
+.grid-edit p { margin: 0; }
+/* Custom grid page: the switch, then the editor, dimmed while the switch is off. */
+.grid-page { display: flex; flex-direction: column; gap: 14px; max-width: 900px; }
+.grid-page .grid-edit { padding: 0; }
+.grid-page .grid-edit-preview { width: min(100%, 520px); }
+.grid-page.off .grid-edit { opacity: 0.45; pointer-events: none; }
 .soft-switch .soft-ico { width: 32px; height: 32px; flex: none; }
 .soft-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .soft-text b { font-weight: 600; }

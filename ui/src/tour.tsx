@@ -71,6 +71,9 @@ export const TOURS: Record<TourId, Step[]> = {
     step('ratio-frame', 'RatioFrame', 'left'),
     step('write', 'IcWrite', 'top'),
   ],
+  grid: [
+    { target: 'grid-switch', title: 'navGrid', body: 'tGridB', side: 'bottom' },
+  ],
   wall: [
     step(undefined, 'WallMenu'),
     step('wall-add', 'WallAdd'),
