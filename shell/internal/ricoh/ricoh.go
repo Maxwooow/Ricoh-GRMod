@@ -63,8 +63,8 @@ func baseModelFor(model string) string {
 }
 
 // pinned are the earlier releases GR Mod's GR III / IIIx support is built on (GR III 2.10,
-// GR IIIx 1.60). The site's pages list only the current one (GR III 2.20, GR IIIx 1.70, October
-// 2026, which GR Mod supports as well), so these older archives are fetched by name; the server
+// GR IIIx 1.60). The site's pages list only the current one (GR III 2.21, GR IIIx 1.71, November
+// 2026, which GR Mod supports as well, as 2.20 / 1.70 in Others), so these older archives are fetched by name; the server
 // offers them as the fallback next to the current release (the engine checks the SHA-256 of the
 // file inside).
 var pinned = map[string]Release{
@@ -136,23 +136,22 @@ type Archive struct {
 }
 
 // Supported is the newest GR IV / GR IV HDF release this program builds on,
-// 1.20. Checked 2026-11-14: still served at this address, whose archive holds
-// the fwdc248b.bin with SHA-256 7563d7e4…650d.
+// 1.21. Checked 2026-11-14: served at this address, whose archive holds
+// the fwdc248b.bin with SHA-256 bf4d6c35…5c99.
 var Supported = Archive{
-	Version: "1.20",
-	Date:    "2026/10/21",
-	Path:    "/resources/japan/support/download/digital/FIRMWARE/gr4_v120.zip",
-	Size:    34702809,
-	SHA256:  "dcc1b6fb004f0d855bb46b30a529da894c7b717501276fec2d198b3d7eb76a59",
+	Version: "1.21",
+	Date:    "2026/11/10",
+	Path:    "/resources/japan/support/download/digital/FIRMWARE/gr4_v121.zip",
+	Size:    34697047,
+	SHA256:  "ace9fc65f6e4fa3b1096d590ba4bddad4f4814e075a4d85a973cb943f166da73",
 	Models:  []string{"STANDARD", "HDF"},
 	Applies: "RICOH GR IV / RICOH GR IV HDF",
 	Page:    "/english/support/digital/gr4_s.html",
 }
 
-// Earlier is the release before Supported, which this program builds on as
-// well and which Ricoh still serves at a fixed address; it is offered as the
-// fallback next to Supported. It is what the program built on before 1.20 was
-// added here, so a camera still on 1.11 stays reachable. 1.11 (2026/02/13)
+// Earlier is the oldest GR IV release this program builds on, which Ricoh still serves at a
+// fixed address; it is offered next to Supported and 1.20 (in Others). It is what the program
+// built on before 1.20 was added here, so a camera still on 1.11 stays reachable. 1.11 (2026/02/13)
 // still serves the fwdc248b.bin with SHA-256 a2f664df…655f.
 var Earlier = Archive{
 	Version: "1.11",
@@ -165,22 +164,48 @@ var Earlier = Archive{
 	Page:    "/english/support/digital/gr4_s.html",
 }
 
-// Others are the remaining releases this program builds on that the site's pages no longer list
-// once Ricoh publishes a newer one (2026/11/10: GR IV Monochrome 1.11, GR III 2.21, GR IIIx 1.71),
-// still served at fixed addresses. Checked 2026-11-14 (archive size and SHA-256; the files inside
-// are the ones the engine accepts: fwdc248b.bin 7563d7e4…650d, fwdc239b.bin 5c53760b…793e,
-// fwdc243b.bin aa8e3ae1…1592). The same archives the mobile app pins.
+// Others are the remaining releases this program builds on, still served at fixed addresses
+// once the site's pages list a newer one. Checked 2026-11-14 (archive size and SHA-256; the files
+// inside are the ones the engine accepts):
+//   - GR IV 1.20 and GR IV Monochrome 1.10 (fwdc248b.bin 7563d7e4…650d);
+//   - GR IV Monochrome 1.11 (2026/11/10, the same fwdc248b.bin as GR IV 1.21, bf4d6c35…5c99);
+//   - GR III 2.21 (2026/11/10, fwdc239b.bin 7522c36b…4bd9) and 2.20 (5c53760b…793e);
+//   - GR IIIx 1.71 (2026/11/10, fwdc243b.bin 7d7e9d81…edc9) and 1.70 (aa8e3ae1…1592).
+//
+// The same archives the mobile app pins.
 var Others = []Archive{
+	{
+		Version: "1.20", Date: "2026/10/21", Path: "/resources/japan/support/download/digital/FIRMWARE/gr4_v120.zip",
+		Size: 34702809, SHA256: "dcc1b6fb004f0d855bb46b30a529da894c7b717501276fec2d198b3d7eb76a59",
+		Models: []string{"STANDARD", "HDF"}, Applies: "RICOH GR IV / RICOH GR IV HDF", Page: "/english/support/digital/gr4_s.html",
+	},
+	{
+		Version: "1.11", Date: "2026/11/10", Path: "/resources/japan/support/download/digital/FIRMWARE/gr4_mono_v111.zip",
+		Size: 34697047, SHA256: "8f9aa64711384e5dcf12ce0fd1174f51c06aaee43b3651bbbe3a793703b71b44",
+		Models: []string{"MONO"}, Applies: "RICOH GR IV Monochrome", Page: "/english/support/digital/gr-4-mono_s.html",
+	},
 	{
 		Version: "1.10", Path: "/resources/japan/support/download/digital/FIRMWARE/gr4_mono_v110.zip",
 		Size: 34702809, SHA256: "bde05b3bf56a29c272284556d6795cb772eaccbbd0091d433fd52368d4d8af12",
 		Models: []string{"MONO"}, Applies: "RICOH GR IV Monochrome", Page: "/english/support/digital/gr-4-mono_s.html",
 	},
 	{
+		Version: "2.21", Date: "2026/11/10", Path: "/resources/japan/support/download/digital/FIRMWARE/gr3_v221.zip",
+		Size: 28611788, SHA256: "39fff62978cbd2e98d93b9adf1c9e44c98cf9501dc977819ca05d6e78dda3ca4",
+		Models:  []string{"GR3", "GR3_HDF"},
+		Applies: "RICOH GR III / GR III Street Edition / GR III Diary Edition / GR III HDF", Page: "/english/support/digital/gr3_s.html",
+	},
+	{
 		Version: "2.20", Path: "/resources/japan/support/download/digital/FIRMWARE/gr3_v220.zip",
 		Size: 28599247, SHA256: "7b19f9c03f2448c2b674fb919f6a86d22d6d83801521a9c1226a0e20cf0b5a2f",
 		Models:  []string{"GR3", "GR3_HDF"},
 		Applies: "RICOH GR III / GR III Street Edition / GR III Diary Edition / GR III HDF", Page: "/english/support/digital/gr3_s.html",
+	},
+	{
+		Version: "1.71", Date: "2026/11/10", Path: "/resources/japan/support/download/digital/FIRMWARE/gr3x_v171.zip",
+		Size: 28611733, SHA256: "f379a37e19cc2bf5c390c857564a80bf80773c71b6da0c77de0a2d8b1f350011",
+		Models:  []string{"GR3X", "GR3X_HDF"},
+		Applies: "RICOH GR IIIx / GR IIIx Urban Edition / GR IIIx HDF", Page: "/english/support/digital/gr3x_s.html",
 	},
 	{
 		Version: "1.70", Path: "/resources/japan/support/download/digital/FIRMWARE/gr3x_v170.zip",

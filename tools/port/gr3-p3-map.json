@@ -1,0 +1,8509 @@
+{
+ "coverage": 0.9938663444819474,
+ "old": "/tmp/claude-0/-home-claude/9140891e-471c-59ff-96be-b8aaad06e0b1/scratchpad/port/gr3_old.rtos",
+ "new": "/tmp/claude-0/-home-claude/9140891e-471c-59ff-96be-b8aaad06e0b1/scratchpad/port/gr3_new.rtos",
+ "addresses": {
+  "0x53000000": {
+   "new": "0x53000000",
+   "how": "override",
+   "ok": true,
+   "why": "RTOS load address",
+   "files": [
+    "core/src/fw/gr3x170/look-resources.ts",
+    "core/src/fw/gr3x170/profile.ts",
+    "core/src/fw/gr3x170/research-package.ts",
+    "tools/gr3x170/clarity_probe.py",
+    "tools/gr3x170/compare_firmware.py",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/disasm.py",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/halation_screen_probe.py",
+    "tools/gr3x170/native_probe.py",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x530003ac": {
+   "new": "0x530003ac",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "core/src/fw/gr3x170/round10.ts",
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x530003c8": {
+   "new": "0x530003c8",
+   "how": "aligned + refs 0x530003c8x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x53000460": {
+   "new": "0x53000460",
+   "how": "override",
+   "ok": true,
+   "why": "start-up zero fill: the literal of its end, same place (its value is 0x55803ef4 in 2.21)",
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "core/src/fw/gr3x170/round10.ts"
+   ]
+  },
+  "0x53002030": {
+   "new": "0x53002030",
+   "how": "override",
+   "ok": true,
+   "why": "version block: project word, same place and value",
+   "files": [
+    "core/src/fw/gr3x170/factory.ts"
+   ]
+  },
+  "0x53002034": {
+   "new": "0x53002034",
+   "how": "override",
+   "ok": true,
+   "why": "version block: product word, same place and value",
+   "files": [
+    "core/src/fw/gr3x170/factory.ts"
+   ]
+  },
+  "0x5304f744": {
+   "new": "0x530506c8",
+   "how": "aligned + refs 0x530506c8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/round10.ts"
+   ]
+  },
+  "0x5313d8e0": {
+   "new": "0x5313e860",
+   "how": "aligned + refs 0x5313e860x761",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/experimental.ts",
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x5313dbe4": {
+   "new": "0x5313eb64",
+   "how": "aligned + refs 0x5313eb64x311",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/experimental.ts",
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x5313fe40": {
+   "new": "0x53140dc0",
+   "how": "aligned + refs 0x53140dc0x1453",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/guard.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/guard_probe.py"
+   ]
+  },
+  "0x53147b98": {
+   "new": "0x53148b18",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/round10.ts"
+   ]
+  },
+  "0x5316f478": {
+   "new": "0x53170474",
+   "how": "aligned + refs 0x53170474x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x53170048": {
+   "new": "0x531710c4",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation",
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts"
+   ]
+  },
+  "0x53170060": {
+   "new": "0x531710dc",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [4, 5, 6, 8] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts"
+   ]
+  },
+  "0x5318df60": {
+   "new": "0x5318eca0",
+   "how": "aligned + refs 0x5318eca0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x531967a4": {
+   "new": "0x531974dc",
+   "how": "aligned + refs 0x531974dcx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x531967c8": {
+   "new": "0x53197500",
+   "how": "aligned + refs 0x53197500x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x53198888": {
+   "new": "0x531995c0",
+   "how": "aligned + refs 0x531995c0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "core/src/fw/gr3x170/shutdown.ts"
+   ]
+  },
+  "0x531988ac": {
+   "new": "0x531995e4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts"
+   ]
+  },
+  "0x531988b8": {
+   "new": "0x531995f0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts"
+   ]
+  },
+  "0x5319a838": {
+   "new": "0x5319b570",
+   "how": "aligned + refs 0x5319b570x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "core/src/fw/gr3x170/shutdown.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x5319f240": {
+   "new": "0x531a01a0",
+   "how": "aligned + refs 0x531a01a0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shutdown.ts",
+    "tools/gr3x170/native/endscreen.c",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x5319f2c0": {
+   "new": "0x531a0220",
+   "how": "aligned + refs 0x531a0220x7",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shutdown.ts"
+   ]
+  },
+  "0x5319f2d0": {
+   "new": "0x531a0230",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "core/src/fw/gr3x170/shutdown.ts",
+    "tools/gr3x170/native/endscreen.c"
+   ]
+  },
+  "0x5319ff54": {
+   "new": "0x531a0eac",
+   "how": "aligned + refs 0x531a0eacx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x5319ff5c": {
+   "new": "0x531a0eb4",
+   "how": "aligned + refs 0x531a0eb4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x5319ff74": {
+   "new": "0x531a0ecc",
+   "how": "aligned + refs 0x531a0eccx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "core/src/fw/gr3x170/profile.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x5319ff7c": {
+   "new": "0x531a0ed4",
+   "how": "aligned + refs 0x531a0ed4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x5319ffb0": {
+   "new": "0x531a0f08",
+   "how": "aligned + refs 0x531a0f08x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x5319ffc0": {
+   "new": "0x531a0f18",
+   "how": "aligned + refs 0x531a0f18x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x531a0228": {
+   "new": "0x531a1180",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-layout.ts"
+   ]
+  },
+  "0x531a051c": {
+   "new": "0x531a1474",
+   "how": "aligned + refs 0x531a1474x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x531a0764": {
+   "new": "0x531a16bc",
+   "how": "aligned + refs 0x531a16bcx1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/look_icons_verify.py"
+   ]
+  },
+  "0x531a0eac": {
+   "new": "0x531a1e04",
+   "how": "aligned + refs 0x531a1e04x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py",
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x531a0ec4": {
+   "new": "0x531a1e1c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x531a0edc": {
+   "new": "0x531a1e34",
+   "how": "aligned + refs 0x531a1e34x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x531a0f50": {
+   "new": "0x531a1ea8",
+   "how": "aligned + refs 0x531a1ea8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x531a0fb4": {
+   "new": "0x531a1f0c",
+   "how": "aligned + refs 0x531a1f0cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x531a12ec": {
+   "new": "0x531a2244",
+   "how": "aligned + refs 0x531a2244x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x531a1308": {
+   "new": "0x531a2260",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x531a1324": {
+   "new": "0x531a227c",
+   "how": "aligned + refs 0x531a227cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x531a14ec": {
+   "new": "0x531a2444",
+   "how": "aligned + refs 0x531a2444x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x531a1564": {
+   "new": "0x531a24bc",
+   "how": "aligned + refs 0x531a24bcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x531a1f08": {
+   "new": "0x531a2e60",
+   "how": "aligned + refs 0x531a2e60x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531a1f8c": {
+   "new": "0x531a2ee4",
+   "how": "aligned + refs 0x531a2ee4x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531a1f90": {
+   "new": "0x531a2ee8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531a31d8": {
+   "new": "0x531a4130",
+   "how": "aligned + refs 0x531a4130x3",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531a3284": {
+   "new": "0x531a41dc",
+   "how": "aligned + refs 0x531a41dcx23",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_probe.py",
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531a34e0": {
+   "new": "0x531a4438",
+   "how": "aligned + refs 0x531a4438x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x531a3510": {
+   "new": "0x531a4468",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x531a3540": {
+   "new": "0x531a4498",
+   "how": "aligned + refs 0x531a4498x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x531a3618": {
+   "new": "0x531a4570",
+   "how": "aligned + refs 0x531a4570x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x531a3710": {
+   "new": "0x531a4668",
+   "how": "aligned + refs 0x531a4668x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x531a3a10": {
+   "new": "0x531a4968",
+   "how": "aligned + refs 0x531a4968x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531a3adc": {
+   "new": "0x531a4a34",
+   "how": "aligned + refs 0x531a4a34x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531a3e6c": {
+   "new": "0x531a4dc4",
+   "how": "aligned + refs 0x531a4dc4x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531a4134": {
+   "new": "0x531a508c",
+   "how": "aligned + refs 0x531a508cx1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531a4e40": {
+   "new": "0x531a5d98",
+   "how": "aligned + refs 0x531a5d98x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x531a4e4c": {
+   "new": "0x531a5da4",
+   "how": "aligned + refs 0x531a5da4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x531ab5ac": {
+   "new": "0x531ac504",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-layout.ts"
+   ]
+  },
+  "0x531ab8bc": {
+   "new": "0x531ac814",
+   "how": "aligned + refs 0x531ac814x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/look_icons_verify.py"
+   ]
+  },
+  "0x531abd24": {
+   "new": "0x531acc7c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/look_icons_verify.py"
+   ]
+  },
+  "0x531ac72c": {
+   "new": "0x531ad684",
+   "how": "aligned + refs 0x531ad684x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x531ac7c8": {
+   "new": "0x531ad720",
+   "how": "aligned + refs 0x531ad720x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "tools/gr3x170/halation_rows_probe.py"
+   ]
+  },
+  "0x531ac940": {
+   "new": "0x531ad898",
+   "how": "aligned + refs 0x531ad898x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "tools/gr3x170/halation_rows_probe.py"
+   ]
+  },
+  "0x531acb70": {
+   "new": "0x531adac8",
+   "how": "aligned + refs 0x531adac8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531acbf8": {
+   "new": "0x531adb50",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531acbfc": {
+   "new": "0x531adb54",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts"
+   ]
+  },
+  "0x531acc34": {
+   "new": "0x531adb8c",
+   "how": "aligned + refs 0x531adb8cx12",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts"
+   ]
+  },
+  "0x531acc94": {
+   "new": "0x531adbec",
+   "how": "aligned + refs 0x531adbecx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts"
+   ]
+  },
+  "0x531acdec": {
+   "new": "0x531add44",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-screen.ts"
+   ]
+  },
+  "0x531ace2c": {
+   "new": "0x531add84",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-layout.ts"
+   ]
+  },
+  "0x531add44": {
+   "new": "0x531aec9c",
+   "how": "aligned + refs 0x531aec9cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts"
+   ]
+  },
+  "0x531add78": {
+   "new": "0x531aecd0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531add94": {
+   "new": "0x531aecec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531addb8": {
+   "new": "0x531aed10",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "tools/gr3x170/halation_rows_probe.py"
+   ]
+  },
+  "0x531ae8f0": {
+   "new": "0x531af848",
+   "how": "aligned + refs 0x531af848x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts"
+   ]
+  },
+  "0x531ae924": {
+   "new": "0x531af87c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "tools/gr3x170/halation_rows_probe.py"
+   ]
+  },
+  "0x531af56c": {
+   "new": "0x531b04c4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531af580": {
+   "new": "0x531b04d8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531af784": {
+   "new": "0x531b06dc",
+   "how": "aligned + refs 0x531b06dcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts"
+   ]
+  },
+  "0x531af7c4": {
+   "new": "0x531b071c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "tools/gr3x170/halation_rows_probe.py"
+   ]
+  },
+  "0x531af7d8": {
+   "new": "0x531b0730",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "tools/gr3x170/halation_rows_probe.py"
+   ]
+  },
+  "0x531afae8": {
+   "new": "0x531b0a40",
+   "how": "aligned + refs 0x531b0a40x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531afaf8": {
+   "new": "0x531b0a50",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531afafc": {
+   "new": "0x531b0a54",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531afb90": {
+   "new": "0x531b0ae8",
+   "how": "aligned + refs 0x531b0ae8x5",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531afb94": {
+   "new": "0x531b0aec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531afba4": {
+   "new": "0x531b0afc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531b0078": {
+   "new": "0x531b0fd0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531b0080": {
+   "new": "0x531b0fd8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531b02a8": {
+   "new": "0x531b1200",
+   "how": "aligned + refs 0x531b1200x8",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531b02cc": {
+   "new": "0x531b1224",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531b02d0": {
+   "new": "0x531b1228",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531b032c": {
+   "new": "0x531b1284",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531b05ec": {
+   "new": "0x531b1544",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned + refs 0x531b1544x1); +-8 words equal up to relocation",
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531b063c": {
+   "new": "0x531b1594",
+   "how": "aligned + refs 0x531b1594x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "tools/gr3x170/halation_rows_probe.py"
+   ]
+  },
+  "0x531b0c08": {
+   "new": "0x531b1b60",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-screen.ts"
+   ]
+  },
+  "0x531b0c94": {
+   "new": "0x531b1bec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts"
+   ]
+  },
+  "0x531b0c9c": {
+   "new": "0x531b1bf4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts"
+   ]
+  },
+  "0x531b0df4": {
+   "new": "0x531b1d4c",
+   "how": "aligned + refs 0x531b1d4cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts"
+   ]
+  },
+  "0x531b0e00": {
+   "new": "0x531b1d58",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "tools/gr3x170/halation_rows_probe.py"
+   ]
+  },
+  "0x531b0e64": {
+   "new": "0x531b1dbc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x531b1138": {
+   "new": "0x531b2090",
+   "how": "aligned + refs 0x531b2090x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-screen.ts"
+   ]
+  },
+  "0x531b11a0": {
+   "new": "0x531b20f8",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned + refs 0x531b2120x1, 0x531b20f8x1); +-8 words equal up to relocation",
+   "files": [
+    "core/src/fw/gr3x170/halation-screen.ts"
+   ]
+  },
+  "0x531b3b84": {
+   "new": "0x531b4ad8",
+   "how": "aligned + refs 0x531b4ad8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "core/src/fw/gr3x170/profile.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x531b3bdc": {
+   "new": "0x531b4b30",
+   "how": "aligned + refs 0x531b4b30x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x531b4ec4": {
+   "new": "0x531b5e18",
+   "how": "aligned + refs 0x531b5e18x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x531b4ee0": {
+   "new": "0x531b5e34",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x531b53e8": {
+   "new": "0x531b633c",
+   "how": "aligned + refs 0x531b633cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x531b5660": {
+   "new": "0x531b65b4",
+   "how": "aligned + refs 0x531b65b4x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531b56bc": {
+   "new": "0x531b6610",
+   "how": "aligned + refs 0x531b6610x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531b5718": {
+   "new": "0x531b666c",
+   "how": "aligned + refs 0x531b666cx1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531b5774": {
+   "new": "0x531b66c8",
+   "how": "aligned + refs 0x531b66c8x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531b57d0": {
+   "new": "0x531b6724",
+   "how": "aligned + refs 0x531b6724x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531b6c90": {
+   "new": "0x531b7be4",
+   "how": "aligned + refs 0x531b7be4x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x531b6ca8": {
+   "new": "0x531b7bfc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x531b6ebc": {
+   "new": "0x531b7e10",
+   "how": "aligned + refs 0x531b7e10x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x531b728c": {
+   "new": "0x531b81e0",
+   "how": "aligned + refs 0x531b81e0x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531b72bc": {
+   "new": "0x531b8210",
+   "how": "aligned + refs 0x531b8210x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531b72ec": {
+   "new": "0x531b8240",
+   "how": "aligned + refs 0x531b8240x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531b731c": {
+   "new": "0x531b8270",
+   "how": "aligned + refs 0x531b8270x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531b734c": {
+   "new": "0x531b82a0",
+   "how": "aligned + refs 0x531b82a0x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531b83c8": {
+   "new": "0x531b931c",
+   "how": "aligned + refs 0x531b931cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x531b83d0": {
+   "new": "0x531b9324",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x531b861c": {
+   "new": "0x531b9570",
+   "how": "aligned + refs 0x531b9570x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x531b8a2c": {
+   "new": "0x531b9980",
+   "how": "aligned + refs 0x531b9980x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531b8a60": {
+   "new": "0x531b99b4",
+   "how": "aligned + refs 0x531b99b4x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531b8a94": {
+   "new": "0x531b99e8",
+   "how": "aligned + refs 0x531b99e8x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531b8ac8": {
+   "new": "0x531b9a1c",
+   "how": "aligned + refs 0x531b9a1cx1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531b8afc": {
+   "new": "0x531b9a50",
+   "how": "aligned + refs 0x531b9a50x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x531b9718": {
+   "new": "0x531ba66c",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned + refs 0x531ba66cx1); +-8 words equal up to relocation except at [6] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x531ba0b4": {
+   "new": "0x531bb020",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba0c0": {
+   "new": "0x531bb02c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba22c": {
+   "new": "0x531bb198",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba230": {
+   "new": "0x531bb19c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba274": {
+   "new": "0x531bb1e0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba27c": {
+   "new": "0x531bb1e8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba324": {
+   "new": "0x531bb290",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba328": {
+   "new": "0x531bb294",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba388": {
+   "new": "0x531bb2f4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba38c": {
+   "new": "0x531bb2f8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba598": {
+   "new": "0x531bb504",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba59c": {
+   "new": "0x531bb508",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba5f8": {
+   "new": "0x531bb564",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba5fc": {
+   "new": "0x531bb568",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba60c": {
+   "new": "0x531bb578",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x531ba720": {
+   "new": "0x531bb68c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba724": {
+   "new": "0x531bb690",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba8d8": {
+   "new": "0x531bb844",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531ba8dc": {
+   "new": "0x531bb848",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531baa78": {
+   "new": "0x531bb9e4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531baa80": {
+   "new": "0x531bb9ec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531bab38": {
+   "new": "0x531bbaa4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531bab40": {
+   "new": "0x531bbaac",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531bac14": {
+   "new": "0x531bbb80",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531bac1c": {
+   "new": "0x531bbb88",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531be09c": {
+   "new": "0x531bf008",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531be0a0": {
+   "new": "0x531bf00c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531be15c": {
+   "new": "0x531bf0c8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531be164": {
+   "new": "0x531bf0d0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531be4d8": {
+   "new": "0x531bf444",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531be4dc": {
+   "new": "0x531bf448",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x531be89c": {
+   "new": "0x531bf808",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x531c5a28": {
+   "new": "0x531c698c",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned + refs 0x531c698cx1); +-8 words equal up to relocation except at [6] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x531c5df0": {
+   "new": "0x531c6d78",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x531c5df8": {
+   "new": "0x531c6d80",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x531c5e58": {
+   "new": "0x531c6de0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x531c5e60": {
+   "new": "0x531c6de8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x531c61c0": {
+   "new": "0x531c7148",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x531c61cc": {
+   "new": "0x531c7154",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x531c63f0": {
+   "new": "0x531c7378",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x531c63f4": {
+   "new": "0x531c737c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x531c64bc": {
+   "new": "0x531c7444",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x531c64c8": {
+   "new": "0x531c7450",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x531c6784": {
+   "new": "0x531c770c",
+   "how": "override",
+   "ok": true,
+   "why": "submenu constructor: `mov r2,#0x12` in 2.21 (18 submenu records; 2.20: 0x11), the rest of the window equal up to relocation",
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x5320066c": {
+   "new": "0x532015b8",
+   "how": "aligned + refs 0x532015b8x174",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/rear_dial_probe.py"
+   ]
+  },
+  "0x53204598": {
+   "new": "0x532054dc",
+   "how": "aligned + refs 0x532054dcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x5320459c": {
+   "new": "0x532054e0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts"
+   ]
+  },
+  "0x532045cc": {
+   "new": "0x53205510",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts"
+   ]
+  },
+  "0x532045e0": {
+   "new": "0x53205524",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x53204894": {
+   "new": "0x532057d8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts"
+   ]
+  },
+  "0x532048ac": {
+   "new": "0x532057f0",
+   "how": "aligned + refs 0x532057f0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts"
+   ]
+  },
+  "0x5320490c": {
+   "new": "0x53205850",
+   "how": "aligned + refs 0x53205850x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x53204950": {
+   "new": "0x53205894",
+   "how": "aligned + refs 0x53205894x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x5320499c": {
+   "new": "0x532058e0",
+   "how": "aligned + refs 0x532058e0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x53204ad4": {
+   "new": "0x53205a18",
+   "how": "aligned + refs 0x53205a18x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x53204b88": {
+   "new": "0x53205acc",
+   "how": "aligned + refs 0x53205accx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x5320a090": {
+   "new": "0x5320c390",
+   "how": "aligned + refs 0x5320c390x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py",
+    "tools/gr3x170/adj_softfocus_probe.py",
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/look_icons_verify.py"
+   ]
+  },
+  "0x5320a0a4": {
+   "new": "0x5320c3a4",
+   "how": "aligned + refs 0x5320c3a4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x5320a0a8": {
+   "new": "0x5320c3a8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x5320a0c4": {
+   "new": "0x5320c3c4",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned + refs 0x5320b044x1, 0x5320c3c4x1); +-8 words equal up to relocation",
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py",
+    "tools/gr3x170/adj_softfocus_probe.py",
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/look_icons_verify.py"
+   ]
+  },
+  "0x5320a0d8": {
+   "new": "0x5320c3d8",
+   "how": "aligned + refs 0x5320c3d8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x5320a0dc": {
+   "new": "0x5320c3dc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x5320a0f8": {
+   "new": "0x5320c3f8",
+   "how": "aligned + refs 0x5320c3f8x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_probe.py",
+    "tools/gr3x170/look_icons_verify.py"
+   ]
+  },
+  "0x5320a8a4": {
+   "new": "0x5320cba4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x5320a8dc": {
+   "new": "0x5320cbdc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x5320a8e0": {
+   "new": "0x5320cbe0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x5320ae60": {
+   "new": "0x5320d160",
+   "how": "aligned + refs 0x5320d160x14730",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "core/src/fw/gr3x170/endscreen.ts",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/rear_dial_probe.py"
+   ]
+  },
+  "0x5320af14": {
+   "new": "0x5320d214",
+   "how": "aligned + refs 0x5320d214x59",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/rear_dial_probe.py"
+   ]
+  },
+  "0x5320afd4": {
+   "new": "0x5320d2d4",
+   "how": "aligned + refs 0x5320d2d4x1850",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/rear_dial_probe.py"
+   ]
+  },
+  "0x5320b154": {
+   "new": "0x5320d454",
+   "how": "aligned + refs 0x5320d454x169",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x5320b214": {
+   "new": "0x5320d514",
+   "how": "aligned + refs 0x5320d514x116",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x5320b274": {
+   "new": "0x5320d574",
+   "how": "aligned + refs 0x5320d574x198",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/rear_dial_probe.py"
+   ]
+  },
+  "0x5320b3f4": {
+   "new": "0x5320d6f4",
+   "how": "aligned + refs 0x5320d6f4x10158",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "core/src/fw/gr3x170/round10.ts",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/rear_dial_probe.py"
+   ]
+  },
+  "0x5320b6f4": {
+   "new": "0x5320d9f4",
+   "how": "aligned + refs 0x5320d9f4x96",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/rear_dial_probe.py"
+   ]
+  },
+  "0x5320b754": {
+   "new": "0x5320da54",
+   "how": "aligned + refs 0x5320da54x521",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "tools/gr3x170/adj_probe.py",
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x5320b814": {
+   "new": "0x5320db14",
+   "how": "aligned + refs 0x5320db14x112",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/rear_dial_probe.py"
+   ]
+  },
+  "0x5320b8d4": {
+   "new": "0x5320dbd4",
+   "how": "aligned + refs 0x5320dbd4x113",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_probe.py",
+    "tools/gr3x170/adj_softfocus_probe.py",
+    "tools/gr3x170/look_layout_probe.py"
+   ]
+  },
+  "0x5320bb74": {
+   "new": "0x5320de74",
+   "how": "aligned + refs 0x5320de74x95",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/look_icons_verify.py"
+   ]
+  },
+  "0x5320c174": {
+   "new": "0x5320e474",
+   "how": "aligned + refs 0x5320e474x16",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x53221b24": {
+   "new": "0x532240dc",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [1, 6] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x532271ec": {
+   "new": "0x53229830",
+   "how": "aligned + refs 0x53229830x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "core/src/fw/gr3x170/profile.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x5322721c": {
+   "new": "0x53229860",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x53227224": {
+   "new": "0x53229868",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x53227244": {
+   "new": "0x53229888",
+   "how": "aligned + refs 0x53229888x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts"
+   ]
+  },
+  "0x53228988": {
+   "new": "0x5322afd0",
+   "how": "aligned + refs 0x5322afd0x1614",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/rear_dial_probe.py"
+   ]
+  },
+  "0x53228d24": {
+   "new": "0x5322b36c",
+   "how": "aligned + refs 0x5322b36cx44",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x5322b180": {
+   "new": "0x5322d7f8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/guard.ts",
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "tools/gr3x170/guard_probe.py",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x5322e580": {
+   "new": "0x53230bf4",
+   "how": "aligned + refs 0x53230bf4x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shutdown.ts",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x5322e58c": {
+   "new": "0x53230c00",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shutdown.ts",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x5322e594": {
+   "new": "0x53230c08",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shutdown.ts",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x53234088": {
+   "new": "0x532366fc",
+   "how": "aligned + refs 0x532366fcx11",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x5323518c": {
+   "new": "0x53237800",
+   "how": "aligned + refs 0x53237800x6",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/rear_dial_probe.py"
+   ]
+  },
+  "0x5323f34c": {
+   "new": "0x532419fc",
+   "how": "aligned + refs 0x532419fcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "core/src/fw/gr3x170/round10.ts",
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/guard_probe.py",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x53243ae0": {
+   "new": "0x53246190",
+   "how": "aligned + refs 0x53246190x3",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/native/endscreen.c"
+   ]
+  },
+  "0x53245338": {
+   "new": "0x532479e8",
+   "how": "aligned + refs 0x532479e8x9",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/experimental.ts",
+    "core/src/fw/gr3x170/guard.ts",
+    "core/src/fw/gr3x170/profile.ts"
+   ]
+  },
+  "0x53246414": {
+   "new": "0x53248ac4",
+   "how": "aligned + refs 0x53248ac4x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts",
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x53246420": {
+   "new": "0x53248ad0",
+   "how": "aligned + refs 0x53248ad0x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts",
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x5324642c": {
+   "new": "0x53248adc",
+   "how": "aligned + refs 0x53248adcx6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts",
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x53246438": {
+   "new": "0x53248ae8",
+   "how": "aligned + refs 0x53248ae8x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts",
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x53246444": {
+   "new": "0x53248af4",
+   "how": "aligned + refs 0x53248af4x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts",
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x53246c60": {
+   "new": "0x53249310",
+   "how": "aligned + refs 0x53249310x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts"
+   ]
+  },
+  "0x53248ab4": {
+   "new": "0x5324b164",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x53248ac4": {
+   "new": "0x5324b174",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x5324b35c": {
+   "new": "0x5324da0c",
+   "how": "aligned + refs 0x5324da0cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "core/src/fw/gr3x170/round10.ts",
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/guard_probe.py",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x5324b82c": {
+   "new": "0x5324dedc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/guard.ts",
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "tools/gr3x170/guard_probe.py",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x5325267c": {
+   "new": "0x53254d2c",
+   "how": "aligned + refs 0x53254d2cx6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/experimental.ts",
+    "core/src/fw/gr3x170/profile.ts",
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x5325bac8": {
+   "new": "0x5325e178",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325bc0c": {
+   "new": "0x5325e2bc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325bd50": {
+   "new": "0x5325e400",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325be94": {
+   "new": "0x5325e544",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325bfd8": {
+   "new": "0x5325e688",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325c2cc": {
+   "new": "0x5325e97c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325c3a4": {
+   "new": "0x5325ea54",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325c698": {
+   "new": "0x5325ed48",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325c770": {
+   "new": "0x5325ee20",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325ca64": {
+   "new": "0x5325f114",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325cb3c": {
+   "new": "0x5325f1ec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325ce30": {
+   "new": "0x5325f4e0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325cf08": {
+   "new": "0x5325f5b8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325d1fc": {
+   "new": "0x5325f8ac",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325d484": {
+   "new": "0x5325fb34",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325d4a4": {
+   "new": "0x5325fb54",
+   "how": "aligned + refs 0x5325fb54x4",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/native/films.c"
+   ]
+  },
+  "0x5325d5c8": {
+   "new": "0x5325fc78",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325d8bc": {
+   "new": "0x5325ff6c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325d994": {
+   "new": "0x53260044",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325dc1c": {
+   "new": "0x532602cc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325df24": {
+   "new": "0x532605d4",
+   "how": "aligned + refs 0x532605d4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325e074": {
+   "new": "0x53260724",
+   "how": "aligned + refs 0x53260724x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325e1c4": {
+   "new": "0x53260874",
+   "how": "aligned + refs 0x53260874x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325e314": {
+   "new": "0x532609c4",
+   "how": "aligned + refs 0x532609c4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325e464": {
+   "new": "0x53260b14",
+   "how": "aligned + refs 0x53260b14x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325e774": {
+   "new": "0x53260e24",
+   "how": "aligned + refs 0x53260e24x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325e854": {
+   "new": "0x53260f04",
+   "how": "aligned + refs 0x53260f04x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325eb64": {
+   "new": "0x53261214",
+   "how": "aligned + refs 0x53261214x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325ec44": {
+   "new": "0x532612f4",
+   "how": "aligned + refs 0x532612f4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325ef54": {
+   "new": "0x53261604",
+   "how": "aligned + refs 0x53261604x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325f034": {
+   "new": "0x532616e4",
+   "how": "aligned + refs 0x532616e4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325f344": {
+   "new": "0x532619f4",
+   "how": "aligned + refs 0x532619f4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325f424": {
+   "new": "0x53261ad4",
+   "how": "aligned + refs 0x53261ad4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325f734": {
+   "new": "0x53261de4",
+   "how": "aligned + refs 0x53261de4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325f9d4": {
+   "new": "0x53262084",
+   "how": "aligned + refs 0x53262084x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325f9e4": {
+   "new": "0x53262094",
+   "how": "aligned + refs 0x53262094x4",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/native/films.c"
+   ]
+  },
+  "0x5325fb24": {
+   "new": "0x532621d4",
+   "how": "aligned + refs 0x532621d4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5325fe34": {
+   "new": "0x532624e4",
+   "how": "aligned + refs 0x532624e4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5325ff14": {
+   "new": "0x532625c4",
+   "how": "aligned + refs 0x532625c4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532601b4": {
+   "new": "0x53262864",
+   "how": "aligned + refs 0x53262864x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x532604c4": {
+   "new": "0x53262b74",
+   "how": "aligned + refs 0x53262b74x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x53260614": {
+   "new": "0x53262cc4",
+   "how": "aligned + refs 0x53262cc4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53260764": {
+   "new": "0x53262e14",
+   "how": "aligned + refs 0x53262e14x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532608b4": {
+   "new": "0x53262f64",
+   "how": "aligned + refs 0x53262f64x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53260a04": {
+   "new": "0x532630b4",
+   "how": "aligned + refs 0x532630b4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x53260d14": {
+   "new": "0x532633c4",
+   "how": "aligned + refs 0x532633c4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53260df4": {
+   "new": "0x532634a4",
+   "how": "aligned + refs 0x532634a4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x53261104": {
+   "new": "0x532637b4",
+   "how": "aligned + refs 0x532637b4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x532611e4": {
+   "new": "0x53263894",
+   "how": "aligned + refs 0x53263894x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532614f4": {
+   "new": "0x53263ba4",
+   "how": "aligned + refs 0x53263ba4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x532615d4": {
+   "new": "0x53263c84",
+   "how": "aligned + refs 0x53263c84x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532618e4": {
+   "new": "0x53263f94",
+   "how": "aligned + refs 0x53263f94x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x532619c4": {
+   "new": "0x53264074",
+   "how": "aligned + refs 0x53264074x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x53261cd4": {
+   "new": "0x53264384",
+   "how": "aligned + refs 0x53264384x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53261f74": {
+   "new": "0x53264624",
+   "how": "aligned + refs 0x53264624x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53261f84": {
+   "new": "0x53264634",
+   "how": "aligned + refs 0x53264634x4",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/native/films.c"
+   ]
+  },
+  "0x532620c4": {
+   "new": "0x53264774",
+   "how": "aligned + refs 0x53264774x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532623d4": {
+   "new": "0x53264a84",
+   "how": "aligned + refs 0x53264a84x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x532624b4": {
+   "new": "0x53264b64",
+   "how": "aligned + refs 0x53264b64x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x53262754": {
+   "new": "0x53264e04",
+   "how": "aligned + refs 0x53264e04x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53262cac": {
+   "new": "0x5326535c",
+   "how": "aligned + refs 0x5326535cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53262f40": {
+   "new": "0x532655f0",
+   "how": "aligned + refs 0x532655f0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53263360": {
+   "new": "0x53265a10",
+   "how": "aligned + refs 0x53265a10x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53263780": {
+   "new": "0x53265e30",
+   "how": "aligned + refs 0x53265e30x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53263ba0": {
+   "new": "0x53266250",
+   "how": "aligned + refs 0x53266250x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53263fc0": {
+   "new": "0x53266670",
+   "how": "aligned + refs 0x53266670x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x532643e0": {
+   "new": "0x53266a90",
+   "how": "aligned + refs 0x53266a90x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53264674": {
+   "new": "0x53266d24",
+   "how": "aligned + refs 0x53266d24x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53264a94": {
+   "new": "0x53267144",
+   "how": "aligned + refs 0x53267144x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53264d40": {
+   "new": "0x532673f0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53264fe8": {
+   "new": "0x53267698",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53265428": {
+   "new": "0x53267ad8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53265868": {
+   "new": "0x53267f18",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53265ca8": {
+   "new": "0x53268358",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x532660e8": {
+   "new": "0x53268798",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53266528": {
+   "new": "0x53268bd8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x532667d0": {
+   "new": "0x53268e80",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53266c10": {
+   "new": "0x532692c0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53266eb8": {
+   "new": "0x53269568",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53267160": {
+   "new": "0x53269810",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x532675a0": {
+   "new": "0x53269c50",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x532679e0": {
+   "new": "0x5326a090",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53267e20": {
+   "new": "0x5326a4d0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53268260": {
+   "new": "0x5326a910",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x532686a0": {
+   "new": "0x5326ad50",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53268948": {
+   "new": "0x5326aff8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53268d88": {
+   "new": "0x5326b438",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5326c2a4": {
+   "new": "0x5326e954",
+   "how": "aligned + refs 0x5326e954x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x5326c304": {
+   "new": "0x5326e9b4",
+   "how": "aligned + refs 0x5326e9b4x25",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5326c310": {
+   "new": "0x5326e9c0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5326c458": {
+   "new": "0x5326eb08",
+   "how": "aligned + refs 0x5326eb08x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x5326c4b8": {
+   "new": "0x5326eb68",
+   "how": "aligned + refs 0x5326eb68x25",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5326c4c4": {
+   "new": "0x5326eb74",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x532751d0": {
+   "new": "0x53277880",
+   "how": "aligned + refs 0x53277880x29",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/guard.ts",
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/native/films.c",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x53279ae0": {
+   "new": "0x5327c190",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x53279ae4": {
+   "new": "0x5327c194",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x5327a0c4": {
+   "new": "0x5327c774",
+   "how": "aligned + refs 0x5327c774x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/guard_probe.py"
+   ]
+  },
+  "0x5327a0dc": {
+   "new": "0x5327c78c",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation",
+   "files": [
+    "core/src/fw/gr3x170/guard.ts",
+    "tools/gr3x170/guard_probe.py",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x5327a0e0": {
+   "new": "0x5327c790",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation",
+   "files": [
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/guard_probe.py"
+   ]
+  },
+  "0x5327a0f0": {
+   "new": "0x5327c7a0",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [6] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "core/src/fw/gr3x170/guard.ts"
+   ]
+  },
+  "0x5327b46c": {
+   "new": "0x5327db1c",
+   "how": "aligned + refs 0x5327db1cx14",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/native/films.c",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x5327b48c": {
+   "new": "0x5327db3c",
+   "how": "aligned + refs 0x5327db3cx14",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x5327b4ac": {
+   "new": "0x5327db5c",
+   "how": "aligned + refs 0x5327db5cx14",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x5327b624": {
+   "new": "0x5327dcd4",
+   "how": "aligned + refs 0x5327dcd4x12",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/native/films.c"
+   ]
+  },
+  "0x5327b65c": {
+   "new": "0x5327dd0c",
+   "how": "aligned + refs 0x5327dd0cx12",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_probe.py"
+   ]
+  },
+  "0x5327b694": {
+   "new": "0x5327dd44",
+   "how": "aligned + refs 0x5327dd44x12",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_probe.py"
+   ]
+  },
+  "0x5327f1e8": {
+   "new": "0x53281898",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-layout.ts"
+   ]
+  },
+  "0x532833e4": {
+   "new": "0x53285a94",
+   "how": "aligned + refs 0x53285a94x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/raw-development.ts",
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x53283430": {
+   "new": "0x53285ae0",
+   "how": "aligned + refs 0x53285ae0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x53283494": {
+   "new": "0x53285b44",
+   "how": "aligned + refs 0x53285b44x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532834bc": {
+   "new": "0x53285b6c",
+   "how": "aligned + refs 0x53285b6cx4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/raw-development.ts",
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x532834d8": {
+   "new": "0x53285b88",
+   "how": "aligned + refs 0x53285b88x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532835a8": {
+   "new": "0x53285c58",
+   "how": "aligned + refs 0x53285c58x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532835c8": {
+   "new": "0x53285c78",
+   "how": "aligned + refs 0x53285c78x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x53283ce0": {
+   "new": "0x53286390",
+   "how": "aligned + refs 0x53286390x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-layout.ts",
+    "tools/gr3x170/look_layout_probe.py"
+   ]
+  },
+  "0x53284678": {
+   "new": "0x53286d28",
+   "how": "aligned + refs 0x53286d28x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x532847c0": {
+   "new": "0x53286e70",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53288e34": {
+   "new": "0x5328b4e4",
+   "how": "aligned + refs 0x5328b4e4x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x53288e38": {
+   "new": "0x5328b4e8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x53288f18": {
+   "new": "0x5328b5c8",
+   "how": "aligned + refs 0x5328b5c8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x532890d8": {
+   "new": "0x5328b788",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x53289130": {
+   "new": "0x5328b7e0",
+   "how": "aligned + refs 0x5328b7e0x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532891e8": {
+   "new": "0x5328b898",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x53289318": {
+   "new": "0x5328b9c8",
+   "how": "aligned + refs 0x5328b9c8x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53289a8c": {
+   "new": "0x5328c13c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53289ae0": {
+   "new": "0x5328c190",
+   "how": "aligned + refs 0x5328c190x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x53289aec": {
+   "new": "0x5328c19c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53289bcc": {
+   "new": "0x5328c27c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/raw-development.ts"
+   ]
+  },
+  "0x53289bd0": {
+   "new": "0x5328c280",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/raw-development.ts"
+   ]
+  },
+  "0x53289bec": {
+   "new": "0x5328c29c",
+   "how": "aligned + refs 0x5328c29cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/raw-development.ts"
+   ]
+  },
+  "0x53289c98": {
+   "new": "0x5328c348",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x53289f64": {
+   "new": "0x5328c614",
+   "how": "aligned + refs 0x5328c614x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/raw-development.ts",
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x53289f68": {
+   "new": "0x5328c618",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/raw-development.ts"
+   ]
+  },
+  "0x53289fd4": {
+   "new": "0x5328c684",
+   "how": "aligned + refs 0x5328c684x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x5328a010": {
+   "new": "0x5328c6c0",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned + refs 0x5328c6c0x2); +-8 words equal up to relocation except at [5] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x5328a0d8": {
+   "new": "0x5328c788",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/raw-development.ts"
+   ]
+  },
+  "0x5328a0dc": {
+   "new": "0x5328c78c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/raw-development.ts"
+   ]
+  },
+  "0x5328a0e4": {
+   "new": "0x5328c794",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/raw-development.ts"
+   ]
+  },
+  "0x5328a0f4": {
+   "new": "0x5328c7a4",
+   "how": "aligned + refs 0x5328c7a4x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x5328a0fc": {
+   "new": "0x5328c7ac",
+   "how": "aligned + refs 0x5328c7acx1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x532923a8": {
+   "new": "0x53294a58",
+   "how": "aligned + refs 0x53294a58x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control-research.ts",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x53292638": {
+   "new": "0x53294ce8",
+   "how": "aligned + refs 0x53294ce8x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x53292904": {
+   "new": "0x53294fb4",
+   "how": "aligned + refs 0x53294fb4x6",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x532929ac": {
+   "new": "0x5329505c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x532929f4": {
+   "new": "0x532950a4",
+   "how": "aligned + refs 0x532950a4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x53293258": {
+   "new": "0x53295908",
+   "how": "aligned + refs 0x53295908x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x532936d0": {
+   "new": "0x53295d80",
+   "how": "aligned + refs 0x53295d80x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control-research.ts",
+    "tools/gr3x170/look_icons_verify.py"
+   ]
+  },
+  "0x532938f4": {
+   "new": "0x53295fa4",
+   "how": "aligned + refs 0x53295fa4x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x53293b24": {
+   "new": "0x532961d4",
+   "how": "aligned + refs 0x532961d4x11",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x53293bc4": {
+   "new": "0x53296274",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x53293c14": {
+   "new": "0x532962c4",
+   "how": "aligned + refs 0x532962c4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x53295e94": {
+   "new": "0x53298544",
+   "how": "aligned + refs 0x53298544x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/profile.ts",
+    "tools/gr3x170/rear_dial_probe.py"
+   ]
+  },
+  "0x532960bc": {
+   "new": "0x5329876c",
+   "how": "aligned + refs 0x5329876cx1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/rear_dial_probe.py"
+   ]
+  },
+  "0x53296100": {
+   "new": "0x532987b0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/rear_dial_probe.py"
+   ]
+  },
+  "0x532961c8": {
+   "new": "0x53298878",
+   "how": "aligned + refs 0x53298878x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/rear_dial_probe.py"
+   ]
+  },
+  "0x5329620c": {
+   "new": "0x532988bc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/rear_dial_probe.py"
+   ]
+  },
+  "0x532a9950": {
+   "new": "0x532ac008",
+   "how": "aligned + refs 0x532ac008x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "core/src/fw/gr3x170/image-control-research.ts",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532a9a7c": {
+   "new": "0x532ac134",
+   "how": "aligned + refs 0x532ac134x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control-research.ts",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/image_controls_verify.py",
+    "tools/gr3x170/look_icons_verify.py"
+   ]
+  },
+  "0x532a9c1c": {
+   "new": "0x532ac2d4",
+   "how": "aligned + refs 0x532ac2d4x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/look_icons_verify.py"
+   ]
+  },
+  "0x532a9c20": {
+   "new": "0x532ac2d8",
+   "how": "aligned + refs 0x532ac2d8x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/look_icons_verify.py"
+   ]
+  },
+  "0x532acb58": {
+   "new": "0x532af210",
+   "how": "aligned + refs 0x532af210x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x532acf58": {
+   "new": "0x532af610",
+   "how": "aligned + refs 0x532af610x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "tools/gr3x170/halation_rows_probe.py"
+   ]
+  },
+  "0x532afca4": {
+   "new": "0x532b235c",
+   "how": "aligned + refs 0x532b235cx2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/pipeline_probe.py"
+   ]
+  },
+  "0x532afce0": {
+   "new": "0x532b2398",
+   "how": "aligned + refs 0x532b2398x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x532afcfc": {
+   "new": "0x532b23b4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x532afe38": {
+   "new": "0x532b24f0",
+   "how": "aligned + refs 0x532b24f0x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/pipeline_probe.py"
+   ]
+  },
+  "0x532afec8": {
+   "new": "0x532b2580",
+   "how": "aligned + refs 0x532b2580x9",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x532aff34": {
+   "new": "0x532b25ec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x532aff64": {
+   "new": "0x532b261c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x532b45ac": {
+   "new": "0x532b6c5c",
+   "how": "aligned + refs 0x532b6c5cx2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532b45cc": {
+   "new": "0x532b6c7c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x532b702c": {
+   "new": "0x532b96dc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532b7044": {
+   "new": "0x532b96f4",
+   "how": "aligned + refs 0x532b96f4x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532b7e00": {
+   "new": "0x532ba4b0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532bd7a4": {
+   "new": "0x532bfe54",
+   "how": "aligned + refs 0x532bfe54x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-screen.ts"
+   ]
+  },
+  "0x532bd7c4": {
+   "new": "0x532bfe74",
+   "how": "aligned + refs 0x532bfe74x54",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/look_layout_probe.py"
+   ]
+  },
+  "0x532bd874": {
+   "new": "0x532bff24",
+   "how": "aligned + refs 0x532bff24x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532bd894": {
+   "new": "0x532bff44",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532bddc8": {
+   "new": "0x532c0478",
+   "how": "aligned + refs 0x532c0478x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532bdde8": {
+   "new": "0x532c0498",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532be31c": {
+   "new": "0x532c09cc",
+   "how": "aligned + refs 0x532c09ccx2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532be33c": {
+   "new": "0x532c09ec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532be990": {
+   "new": "0x532c1040",
+   "how": "aligned + refs 0x532c1040x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532be9b0": {
+   "new": "0x532c1060",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532bf004": {
+   "new": "0x532c16b4",
+   "how": "aligned + refs 0x532c16b4x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532bf024": {
+   "new": "0x532c16d4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532bf678": {
+   "new": "0x532c1d28",
+   "how": "aligned + refs 0x532c1d28x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532bf698": {
+   "new": "0x532c1d48",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532bfcec": {
+   "new": "0x532c239c",
+   "how": "aligned + refs 0x532c239cx2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532bfd0c": {
+   "new": "0x532c23bc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532c0360": {
+   "new": "0x532c2a10",
+   "how": "aligned + refs 0x532c2a10x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532c0380": {
+   "new": "0x532c2a30",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532c065c": {
+   "new": "0x532c2d0c",
+   "how": "aligned + refs 0x532c2d0cx2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532c067c": {
+   "new": "0x532c2d2c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "tools/gr3x170/halation_rows_probe.py"
+   ]
+  },
+  "0x532c07f0": {
+   "new": "0x532c2ea0",
+   "how": "aligned + refs 0x532c2ea0x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532c0810": {
+   "new": "0x532c2ec0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532c0984": {
+   "new": "0x532c3034",
+   "how": "aligned + refs 0x532c3034x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/halation_screen_probe.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532c09a4": {
+   "new": "0x532c3054",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532c0a98": {
+   "new": "0x532c3148",
+   "how": "aligned + refs 0x532c3148x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532c0ab8": {
+   "new": "0x532c3168",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532c0c2c": {
+   "new": "0x532c32dc",
+   "how": "aligned + refs 0x532c32dcx2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532c0c4c": {
+   "new": "0x532c32fc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532c0e98": {
+   "new": "0x532c3548",
+   "how": "aligned + refs 0x532c3548x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532c0eb8": {
+   "new": "0x532c3568",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532c150c": {
+   "new": "0x532c3bbc",
+   "how": "aligned + refs 0x532c3bbcx2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532c152c": {
+   "new": "0x532c3bdc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532c1870": {
+   "new": "0x532c3f20",
+   "how": "aligned + refs 0x532c3f20x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532c1890": {
+   "new": "0x532c3f40",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532c1acc": {
+   "new": "0x532c417c",
+   "how": "aligned + refs 0x532c417cx2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532c1aec": {
+   "new": "0x532c419c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x532c1de4": {
+   "new": "0x532c4494",
+   "how": "aligned + refs 0x532c4494x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532c2128": {
+   "new": "0x532c47d8",
+   "how": "aligned + refs 0x532c47d8x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532c246c": {
+   "new": "0x532c4b1c",
+   "how": "aligned + refs 0x532c4b1cx2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532c27b0": {
+   "new": "0x532c4e60",
+   "how": "aligned + refs 0x532c4e60x5",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x532c2a6c": {
+   "new": "0x532c511c",
+   "how": "aligned + refs 0x532c511cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x532c2b4c": {
+   "new": "0x532c51fc",
+   "how": "aligned + refs 0x532c51fcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "tools/gr3x170/halation_rows_probe.py"
+   ]
+  },
+  "0x532c2b8c": {
+   "new": "0x532c523c",
+   "how": "aligned + refs 0x532c523cx13",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control-research.ts",
+    "core/src/fw/gr3x170/look-layout.ts",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/image_controls_verify.py",
+    "tools/gr3x170/look_icons_verify.py",
+    "tools/gr3x170/look_layout_probe.py"
+   ]
+  },
+  "0x532c2bbc": {
+   "new": "0x532c526c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control-research.ts",
+    "core/src/fw/gr3x170/look-layout.ts"
+   ]
+  },
+  "0x532c2bc0": {
+   "new": "0x532c5270",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control-research.ts"
+   ]
+  },
+  "0x532c2bc4": {
+   "new": "0x532c5274",
+   "how": "aligned + refs 0x532c5274x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control-research.ts"
+   ]
+  },
+  "0x532c2bd0": {
+   "new": "0x532c5280",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-layout.ts"
+   ]
+  },
+  "0x532c2c6c": {
+   "new": "0x532c531c",
+   "how": "aligned + refs 0x532c531cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control-research.ts",
+    "core/src/fw/gr3x170/look-layout.ts",
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/look_icons_verify.py",
+    "tools/gr3x170/look_layout_probe.py"
+   ]
+  },
+  "0x532c2d70": {
+   "new": "0x532c5420",
+   "how": "aligned + refs 0x532c5420x10",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control-research.ts",
+    "core/src/fw/gr3x170/look-layout.ts",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/image_controls_verify.py",
+    "tools/gr3x170/look_icons_verify.py",
+    "tools/gr3x170/look_layout_probe.py"
+   ]
+  },
+  "0x532c2ff8": {
+   "new": "0x532c56a8",
+   "how": "aligned + refs 0x532c56a8x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control-research.ts",
+    "core/src/fw/gr3x170/look-layout.ts",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/image_controls_verify.py",
+    "tools/gr3x170/look_layout_probe.py"
+   ]
+  },
+  "0x532c334c": {
+   "new": "0x532c59fc",
+   "how": "aligned + refs 0x532c59fcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x532c346c": {
+   "new": "0x532c5b1c",
+   "how": "aligned + refs 0x532c5b1cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/halation_screen_probe.py",
+    "tools/gr3x170/native/slots2.c"
+   ]
+  },
+  "0x532c34b8": {
+   "new": "0x532c5b68",
+   "how": "aligned + refs 0x532c5b68x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x532c3598": {
+   "new": "0x532c5c48",
+   "how": "aligned + refs 0x532c5c48x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/halation_screen_probe.py",
+    "tools/gr3x170/native/slots2.c"
+   ]
+  },
+  "0x532c35d8": {
+   "new": "0x532c5c88",
+   "how": "aligned + refs 0x532c5c88x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c3c44": {
+   "new": "0x532c62f4",
+   "how": "aligned + refs 0x532c62f4x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c42b0": {
+   "new": "0x532c6960",
+   "how": "aligned + refs 0x532c6960x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c4a3c": {
+   "new": "0x532c70ec",
+   "how": "aligned + refs 0x532c70ecx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c51c8": {
+   "new": "0x532c7878",
+   "how": "aligned + refs 0x532c7878x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c5954": {
+   "new": "0x532c8004",
+   "how": "aligned + refs 0x532c8004x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c60e0": {
+   "new": "0x532c8790",
+   "how": "aligned + refs 0x532c8790x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c686c": {
+   "new": "0x532c8f1c",
+   "how": "aligned + refs 0x532c8f1cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c6c84": {
+   "new": "0x532c9334",
+   "how": "aligned + refs 0x532c9334x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c6f28": {
+   "new": "0x532c95d8",
+   "how": "aligned + refs 0x532c95d8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c71d4": {
+   "new": "0x532c9884",
+   "how": "aligned + refs 0x532c9884x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x532c7360": {
+   "new": "0x532c9a10",
+   "how": "aligned + refs 0x532c9a10x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c7610": {
+   "new": "0x532c9cc0",
+   "how": "aligned + refs 0x532c9cc0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c7998": {
+   "new": "0x532ca048",
+   "how": "aligned + refs 0x532ca048x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c7ffc": {
+   "new": "0x532ca6ac",
+   "how": "aligned + refs 0x532ca6acx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c8660": {
+   "new": "0x532cad10",
+   "how": "aligned + refs 0x532cad10x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c8cc4": {
+   "new": "0x532cb374",
+   "how": "aligned + refs 0x532cb374x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c9450": {
+   "new": "0x532cbb00",
+   "how": "aligned + refs 0x532cbb00x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532c9834": {
+   "new": "0x532cbee4",
+   "how": "aligned + refs 0x532cbee4x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/halation_rows_probe.py"
+   ]
+  },
+  "0x532c9b10": {
+   "new": "0x532cc1c0",
+   "how": "aligned + refs 0x532cc1c0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x532dbfd8": {
+   "new": "0x532de688",
+   "how": "aligned + refs 0x532de688x8",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x53394700": {
+   "new": "0x53397040",
+   "how": "aligned + refs 0x53397040x38",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x53394848": {
+   "new": "0x53397188",
+   "how": "aligned + refs 0x53397188x170",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts",
+    "tools/gr3x170/adj_probe.py",
+    "tools/gr3x170/adj_softfocus_probe.py",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/look_icons_verify.py",
+    "tools/gr3x170/native/endscreen.c"
+   ]
+  },
+  "0x533948e0": {
+   "new": "0x53397220",
+   "how": "aligned + refs 0x53397220x10",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x53394910": {
+   "new": "0x53397250",
+   "how": "aligned + refs 0x53397250x145",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/halation_screen_probe.py",
+    "tools/gr3x170/native/endscreen.c"
+   ]
+  },
+  "0x53394f7c": {
+   "new": "0x533978bc",
+   "how": "aligned + refs 0x533978bcx17",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x53395314": {
+   "new": "0x53397c54",
+   "how": "aligned + refs 0x53397c54x14",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x53395350": {
+   "new": "0x53397c90",
+   "how": "aligned + refs 0x53397c90x94",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/native/endscreen.c"
+   ]
+  },
+  "0x53395520": {
+   "new": "0x53397e60",
+   "how": "aligned + refs 0x53397e60x34",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/native/endscreen.c"
+   ]
+  },
+  "0x533967c4": {
+   "new": "0x53399108",
+   "how": "override",
+   "ok": true,
+   "why": "ADJ text lookup bound: 2.21 compares with an immediate (`cmpls r7,#0x318`, 793 texts) instead of `movw r3,#0x311`; adj.ts patches that compare",
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x533967d8": {
+   "new": "0x53399114",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [-8, -7, -6, -5, -4, -3, -2] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x533967e0": {
+   "new": "0x5339911c",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [-8, -7, -6, -5, -4] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x53396b18": {
+   "new": "0x53399454",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x53397070": {
+   "new": "0x533999ac",
+   "how": "aligned + refs 0x533999acx130",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x533971dc": {
+   "new": "0x53399b18",
+   "how": "override",
+   "ok": true,
+   "why": "ADJ text lookup bound (second reader): `cmp r7,#0x318` in 2.21 (2.20 `movw r3,#0x311`)",
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x533971ec": {
+   "new": "0x53399b24",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [-8, -7, -6, -4, -3] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x533971f0": {
+   "new": "0x53399b28",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [-8, -7, -5, -4] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x5339aa90": {
+   "new": "0x5339d3dc",
+   "how": "aligned + refs 0x5339d3dcx316",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/native/endscreen.c"
+   ]
+  },
+  "0x5339dd60": {
+   "new": "0x533a06ac",
+   "how": "aligned + refs 0x533a06acx124",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "core/src/fw/gr3x170/shutdown.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x5339df10": {
+   "new": "0x533a085c",
+   "how": "aligned + refs 0x533a085cx83",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x5339df5c": {
+   "new": "0x533a08a8",
+   "how": "aligned + refs 0x533a08a8x31",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shutdown.ts",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x5339dff8": {
+   "new": "0x533a0944",
+   "how": "aligned + refs 0x533a0944x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x5339e60c": {
+   "new": "0x533a0f58",
+   "how": "aligned + refs 0x533a0f58x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/list_width_probe.py"
+   ]
+  },
+  "0x5339e824": {
+   "new": "0x533a1170",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x5339e828": {
+   "new": "0x533a1174",
+   "how": "aligned + refs 0x533a1174x10",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/native/endscreen.c"
+   ]
+  },
+  "0x5339e890": {
+   "new": "0x533a11dc",
+   "how": "aligned + refs 0x533a11dcx51",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_probe.py",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/native/endscreen.c"
+   ]
+  },
+  "0x5339e9a0": {
+   "new": "0x533a12ec",
+   "how": "aligned + refs 0x533a12ecx63",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "core/src/fw/gr3x170/shutdown.ts",
+    "tools/gr3x170/adj_softfocus_probe.py",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/list_width_probe.py",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x533a1824": {
+   "new": "0x533a4170",
+   "how": "aligned + refs 0x533a4170x33",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_probe.py",
+    "tools/gr3x170/adj_softfocus_probe.py",
+    "tools/gr3x170/look_icons_verify.py"
+   ]
+  },
+  "0x533a18f8": {
+   "new": "0x533a4244",
+   "how": "aligned + refs 0x533a4244x8",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts",
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x533a1aa4": {
+   "new": "0x533a43f0",
+   "how": "aligned + refs 0x533a43f0x6",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x533a2c90": {
+   "new": "0x533a55dc",
+   "how": "aligned + refs 0x533a55dcx29",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x533a6b60": {
+   "new": "0x533a94ac",
+   "how": "aligned + refs 0x533a94acx19",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x533a6bc0": {
+   "new": "0x533a950c",
+   "how": "aligned + refs 0x533a950cx20",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/native/endscreen.c"
+   ]
+  },
+  "0x533ab638": {
+   "new": "0x533adf84",
+   "how": "aligned + refs 0x533adf84x60",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x533ad4b0": {
+   "new": "0x533afdfc",
+   "how": "aligned + refs 0x533afdfcx1263",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "tools/gr3x170/adj_softfocus_probe.py",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/native/endscreen.c"
+   ]
+  },
+  "0x534000f0": {
+   "new": "0x53402a40",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/gen_films.py"
+   ]
+  },
+  "0x534323c8": {
+   "new": "0x53434d18",
+   "how": "aligned + refs 0x53434d18x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp8_probe.py"
+   ]
+  },
+  "0x534344c0": {
+   "new": "0x53436e10",
+   "how": "aligned + refs 0x53436e10x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/display_descriptor_probe.py"
+   ]
+  },
+  "0x534345a0": {
+   "new": "0x53436ef0",
+   "how": "aligned + refs 0x53436ef0x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/development_bounds_probe.py"
+   ]
+  },
+  "0x534372b8": {
+   "new": "0x53439c08",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x534372bc": {
+   "new": "0x53439c0c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x534372dc": {
+   "new": "0x53439c2c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53437300": {
+   "new": "0x53439c50",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53437304": {
+   "new": "0x53439c54",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x5343730c": {
+   "new": "0x53439c5c",
+   "how": "aligned + refs 0x53439c5cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53445164": {
+   "new": "0x53447ab4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53445170": {
+   "new": "0x53447ac0",
+   "how": "aligned + refs 0x53447ac0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53445f40": {
+   "new": "0x53448890",
+   "how": "aligned + refs 0x53448890x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x534462a8": {
+   "new": "0x53448bf8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53446ed8": {
+   "new": "0x53449828",
+   "how": "aligned + refs 0x53449828x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53447074": {
+   "new": "0x534499c4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53447698": {
+   "new": "0x53449fe8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x534476ac": {
+   "new": "0x53449ffc",
+   "how": "aligned + refs 0x53449ffcx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53447fec": {
+   "new": "0x5344a93c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53447ff8": {
+   "new": "0x5344a948",
+   "how": "aligned + refs 0x5344a948x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53450458": {
+   "new": "0x53452da8",
+   "how": "aligned + refs 0x53452da8x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53450674": {
+   "new": "0x53452fc4",
+   "how": "aligned + refs 0x53452fc4x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/capture_resume_probe.py"
+   ]
+  },
+  "0x53450758": {
+   "new": "0x534530a8",
+   "how": "aligned + refs 0x534530a8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts",
+    "tools/gr3x170/capture_resume_probe.py"
+   ]
+  },
+  "0x5345075c": {
+   "new": "0x534530ac",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x534507a8": {
+   "new": "0x534530f8",
+   "how": "aligned + refs 0x534530f8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53450880": {
+   "new": "0x534531d0",
+   "how": "aligned + refs 0x534531d0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53457ef0": {
+   "new": "0x5345a840",
+   "how": "aligned + refs 0x5345a840x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts",
+    "tools/gr3x170/development_bounds_probe.py",
+    "tools/gr3x170/display_descriptor_probe.py"
+   ]
+  },
+  "0x534587b8": {
+   "new": "0x5345b108",
+   "how": "aligned + refs 0x5345b108x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/display_descriptor_probe.py"
+   ]
+  },
+  "0x53459318": {
+   "new": "0x5345bc68",
+   "how": "aligned + refs 0x5345bc68x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/display_descriptor_probe.py"
+   ]
+  },
+  "0x5345951c": {
+   "new": "0x5345be6c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53459534": {
+   "new": "0x5345be84",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53459548": {
+   "new": "0x5345be98",
+   "how": "aligned + refs 0x5345be98x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts",
+    "tools/gr3x170/liveview_probe.py"
+   ]
+  },
+  "0x5345954c": {
+   "new": "0x5345be9c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x5345959c": {
+   "new": "0x5345beec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x534595c4": {
+   "new": "0x5345bf14",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53459cc4": {
+   "new": "0x5345c614",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts",
+    "tools/gr3x170/liveview_probe.py"
+   ]
+  },
+  "0x53459cc8": {
+   "new": "0x5345c618",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53459cf0": {
+   "new": "0x5345c640",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53459d14": {
+   "new": "0x5345c664",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x5345a4b8": {
+   "new": "0x5345ce08",
+   "how": "aligned + refs 0x5345ce08x5",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/development_bounds_probe.py"
+   ]
+  },
+  "0x534a2d04": {
+   "new": "0x534a5654",
+   "how": "aligned + refs 0x534a5654x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x534aabcc": {
+   "new": "0x534ad51c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x534c2120": {
+   "new": "0x534c4a70",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts",
+    "tools/gr3x170/pipeline_probe.py"
+   ]
+  },
+  "0x534c2124": {
+   "new": "0x534c4a74",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x534c2140": {
+   "new": "0x534c4a90",
+   "how": "aligned + refs 0x534c4a90x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts",
+    "tools/gr3x170/pipeline_probe.py"
+   ]
+  },
+  "0x534d2a44": {
+   "new": "0x534d5394",
+   "how": "aligned + refs 0x534d5394x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts",
+    "tools/gr3x170/pipeline_probe.py"
+   ]
+  },
+  "0x534d2a58": {
+   "new": "0x534d53a8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x534d2a5c": {
+   "new": "0x534d53ac",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x534d2a78": {
+   "new": "0x534d53c8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x534d5a98": {
+   "new": "0x534d83e8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts",
+    "tools/gr3x170/pipeline_probe.py"
+   ]
+  },
+  "0x534d5a9c": {
+   "new": "0x534d83ec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/pipeline_probe.py"
+   ]
+  },
+  "0x534d5f04": {
+   "new": "0x534d8854",
+   "how": "aligned + refs 0x534d8854x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts",
+    "tools/gr3x170/pipeline_probe.py"
+   ]
+  },
+  "0x534d60d4": {
+   "new": "0x534d8a24",
+   "how": "aligned + refs 0x534d8a24x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts",
+    "tools/gr3x170/pipeline_probe.py"
+   ]
+  },
+  "0x535002a0": {
+   "new": "0x53502bf0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/metering.ts",
+    "tools/gr3x170/metering_probe.py"
+   ]
+  },
+  "0x535003d4": {
+   "new": "0x53502d24",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/metering.ts",
+    "tools/gr3x170/metering_probe.py"
+   ]
+  },
+  "0x53501c80": {
+   "new": "0x535045d0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/metering.ts",
+    "tools/gr3x170/metering_probe.py"
+   ]
+  },
+  "0x5350313c": {
+   "new": "0x53505a8c",
+   "how": "aligned + refs 0x53505a8cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts",
+    "tools/gr3x170/adj_softfocus_probe.py",
+    "tools/gr3x170/pipeline_probe.py"
+   ]
+  },
+  "0x535031c4": {
+   "new": "0x53505b14",
+   "how": "aligned + refs 0x53505b14x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x535031d0": {
+   "new": "0x53505b20",
+   "how": "aligned + refs 0x53505b20x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x53503208": {
+   "new": "0x53505b58",
+   "how": "aligned + refs 0x53505b58x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x5350320c": {
+   "new": "0x53505b5c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x53503274": {
+   "new": "0x53505bc4",
+   "how": "aligned + refs 0x53505bc4x9",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x535038b4": {
+   "new": "0x53506204",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts",
+    "tools/gr3x170/pipeline_probe.py"
+   ]
+  },
+  "0x535038b8": {
+   "new": "0x53506208",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x535039e4": {
+   "new": "0x53506334",
+   "how": "aligned + refs 0x53506334x7",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts",
+    "tools/gr3x170/pipeline_probe.py"
+   ]
+  },
+  "0x535048c4": {
+   "new": "0x53507214",
+   "how": "aligned + refs 0x53507214x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "core/src/fw/gr3x170/jpeg-stage.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x53504ac8": {
+   "new": "0x53507418",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/jpeg-stage.ts"
+   ]
+  },
+  "0x535072cc": {
+   "new": "0x53509c1c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/metering.ts",
+    "tools/gr3x170/metering_probe.py"
+   ]
+  },
+  "0x5350a33c": {
+   "new": "0x5350cc8c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/metering.ts",
+    "tools/gr3x170/metering_probe.py"
+   ]
+  },
+  "0x5350a544": {
+   "new": "0x5350ce94",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/metering.ts",
+    "tools/gr3x170/metering_probe.py"
+   ]
+  },
+  "0x5350cb3c": {
+   "new": "0x5350f48c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/metering.ts",
+    "tools/gr3x170/metering_probe.py"
+   ]
+  },
+  "0x5350cc78": {
+   "new": "0x5350f5c8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/metering.ts",
+    "tools/gr3x170/metering_probe.py"
+   ]
+  },
+  "0x5351098c": {
+   "new": "0x535132dc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/raw-full-frame.ts"
+   ]
+  },
+  "0x535132b0": {
+   "new": "0x53515c00",
+   "how": "aligned + refs 0x53515c00x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts",
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "tools/gr3x170/adj_softfocus_probe.py",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x53513308": {
+   "new": "0x53515c58",
+   "how": "aligned + refs 0x53515c58x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x53513330": {
+   "new": "0x53515c80",
+   "how": "aligned + refs 0x53515c80x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x53525888": {
+   "new": "0x535281d8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/metering.ts",
+    "tools/gr3x170/metering_probe.py"
+   ]
+  },
+  "0x53525e4c": {
+   "new": "0x5352879c",
+   "how": "aligned + refs 0x5352879cx2099",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/native/endscreen.c",
+    "tools/gr3x170/rear_dial_probe.py",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x53525e6c": {
+   "new": "0x535287bc",
+   "how": "aligned + refs 0x535287bcx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x53525e70": {
+   "new": "0x535287c0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x53533fac": {
+   "new": "0x535368fc",
+   "how": "aligned + refs 0x535368fcx20",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/factory_probe.py"
+   ]
+  },
+  "0x535366f8": {
+   "new": "0x53539048",
+   "how": "aligned + refs 0x53539048x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/factory_probe.py"
+   ]
+  },
+  "0x53542490": {
+   "new": "0x53544f08",
+   "how": "aligned + refs 0x53544f08x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x5354249c": {
+   "new": "0x53544f14",
+   "how": "aligned + refs 0x53544f14x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x535480e4": {
+   "new": "0x5354ab5c",
+   "how": "aligned + refs 0x5354ab5cx8",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x5354810c": {
+   "new": "0x5354ab84",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x53549fd8": {
+   "new": "0x5354ca50",
+   "how": "aligned + refs 0x5354ca50x21",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/halation_rows_probe.py"
+   ]
+  },
+  "0x5354a23c": {
+   "new": "0x5354ccb4",
+   "how": "aligned + refs 0x5354ccb4x9",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/halation_rows_probe.py"
+   ]
+  },
+  "0x5354a868": {
+   "new": "0x5354d2e0",
+   "how": "aligned + refs 0x5354d2e0x6",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x5354b654": {
+   "new": "0x5354e0cc",
+   "how": "aligned + refs 0x5354e0ccx233",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/adj_probe.py",
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x53550f58": {
+   "new": "0x535539d0",
+   "how": "aligned + refs 0x535539d0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x53550f5c": {
+   "new": "0x535539d4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x535517dc": {
+   "new": "0x53554254",
+   "how": "aligned + refs 0x53554254x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x53553bc4": {
+   "new": "0x5355663c",
+   "how": "aligned + refs 0x5355663cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x53553bc8": {
+   "new": "0x53556640",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x5355454c": {
+   "new": "0x53556fc4",
+   "how": "aligned + refs 0x53556fc4x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/raw-development.ts",
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x53554550": {
+   "new": "0x53556fc8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/raw-development.ts"
+   ]
+  },
+  "0x53554574": {
+   "new": "0x53556fec",
+   "how": "aligned + refs 0x53556fecx4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/raw-development.ts"
+   ]
+  },
+  "0x5357ac14": {
+   "new": "0x5357d68c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x535be108": {
+   "new": "0x535c0b80",
+   "how": "aligned + refs 0x535c0b80x143",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x535be158": {
+   "new": "0x535c0bd0",
+   "how": "aligned + refs 0x535c0bd0x198",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x535bf898": {
+   "new": "0x535c2310",
+   "how": "aligned + refs 0x535c2310x3",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x535bf8b4": {
+   "new": "0x535c232c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x535c0df4": {
+   "new": "0x535c386c",
+   "how": "aligned + refs 0x535c386cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x535c25dc": {
+   "new": "0x535c5054",
+   "how": "aligned + refs 0x535c5054x3",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x535c25f8": {
+   "new": "0x535c5070",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x535c3fc8": {
+   "new": "0x535c6a40",
+   "how": "aligned + refs 0x535c6a40x17",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x535c4290": {
+   "new": "0x535c6d08",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c4430": {
+   "new": "0x535c6ea8",
+   "how": "aligned + refs 0x535c6ea8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c448c": {
+   "new": "0x535c6f04",
+   "how": "aligned + refs 0x535c6f04x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c44a4": {
+   "new": "0x535c6f1c",
+   "how": "aligned + refs 0x535c6f1cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c4530": {
+   "new": "0x535c6fa8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c46d0": {
+   "new": "0x535c7148",
+   "how": "aligned + refs 0x535c7148x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c472c": {
+   "new": "0x535c71a4",
+   "how": "aligned + refs 0x535c71a4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c4744": {
+   "new": "0x535c71bc",
+   "how": "aligned + refs 0x535c71bcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c47d0": {
+   "new": "0x535c7248",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c4970": {
+   "new": "0x535c73e8",
+   "how": "aligned + refs 0x535c73e8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c49cc": {
+   "new": "0x535c7444",
+   "how": "aligned + refs 0x535c7444x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c49e4": {
+   "new": "0x535c745c",
+   "how": "aligned + refs 0x535c745cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c4a70": {
+   "new": "0x535c74e8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c4c10": {
+   "new": "0x535c7688",
+   "how": "aligned + refs 0x535c7688x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c4c6c": {
+   "new": "0x535c76e4",
+   "how": "aligned + refs 0x535c76e4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c4c84": {
+   "new": "0x535c76fc",
+   "how": "aligned + refs 0x535c76fcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c4d10": {
+   "new": "0x535c7788",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c4eb0": {
+   "new": "0x535c7928",
+   "how": "aligned + refs 0x535c7928x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c4f0c": {
+   "new": "0x535c7984",
+   "how": "aligned + refs 0x535c7984x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c4f24": {
+   "new": "0x535c799c",
+   "how": "aligned + refs 0x535c799cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c4fb0": {
+   "new": "0x535c7a28",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c5150": {
+   "new": "0x535c7bc8",
+   "how": "aligned + refs 0x535c7bc8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c51ac": {
+   "new": "0x535c7c24",
+   "how": "aligned + refs 0x535c7c24x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c51c4": {
+   "new": "0x535c7c3c",
+   "how": "aligned + refs 0x535c7c3cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c5250": {
+   "new": "0x535c7cc8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c53f0": {
+   "new": "0x535c7e68",
+   "how": "aligned + refs 0x535c7e68x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c544c": {
+   "new": "0x535c7ec4",
+   "how": "aligned + refs 0x535c7ec4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c5464": {
+   "new": "0x535c7edc",
+   "how": "aligned + refs 0x535c7edcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c54fc": {
+   "new": "0x535c7f74",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c569c": {
+   "new": "0x535c8114",
+   "how": "aligned + refs 0x535c8114x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c56f8": {
+   "new": "0x535c8170",
+   "how": "aligned + refs 0x535c8170x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c5710": {
+   "new": "0x535c8188",
+   "how": "aligned + refs 0x535c8188x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c579c": {
+   "new": "0x535c8214",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c5958": {
+   "new": "0x535c83d0",
+   "how": "aligned + refs 0x535c83d0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c596c": {
+   "new": "0x535c83e4",
+   "how": "aligned + refs 0x535c83e4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c5984": {
+   "new": "0x535c83fc",
+   "how": "aligned + refs 0x535c83fcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c5a1c": {
+   "new": "0x535c8494",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c5bbc": {
+   "new": "0x535c8634",
+   "how": "aligned + refs 0x535c8634x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c5c18": {
+   "new": "0x535c8690",
+   "how": "aligned + refs 0x535c8690x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c5c30": {
+   "new": "0x535c86a8",
+   "how": "aligned + refs 0x535c86a8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c5ccc": {
+   "new": "0x535c8744",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c5e80": {
+   "new": "0x535c88f8",
+   "how": "aligned + refs 0x535c88f8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c5e94": {
+   "new": "0x535c890c",
+   "how": "aligned + refs 0x535c890cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c5eac": {
+   "new": "0x535c8924",
+   "how": "aligned + refs 0x535c8924x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c5f24": {
+   "new": "0x535c899c",
+   "how": "aligned + refs 0x535c899cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x535c5f44": {
+   "new": "0x535c89bc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c60fc": {
+   "new": "0x535c8b74",
+   "how": "aligned + refs 0x535c8b74x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c6110": {
+   "new": "0x535c8b88",
+   "how": "aligned + refs 0x535c8b88x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c6128": {
+   "new": "0x535c8ba0",
+   "how": "aligned + refs 0x535c8ba0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c61c0": {
+   "new": "0x535c8c38",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c6378": {
+   "new": "0x535c8df0",
+   "how": "aligned + refs 0x535c8df0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c638c": {
+   "new": "0x535c8e04",
+   "how": "aligned + refs 0x535c8e04x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c63a4": {
+   "new": "0x535c8e1c",
+   "how": "aligned + refs 0x535c8e1cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c643c": {
+   "new": "0x535c8eb4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c65f4": {
+   "new": "0x535c906c",
+   "how": "aligned + refs 0x535c906cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c6608": {
+   "new": "0x535c9080",
+   "how": "aligned + refs 0x535c9080x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c6620": {
+   "new": "0x535c9098",
+   "how": "aligned + refs 0x535c9098x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c66e0": {
+   "new": "0x535c9158",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c67e4": {
+   "new": "0x535c925c",
+   "how": "aligned + refs 0x535c925cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c6884": {
+   "new": "0x535c92fc",
+   "how": "aligned + refs 0x535c92fcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c68a0": {
+   "new": "0x535c9318",
+   "how": "aligned + refs 0x535c9318x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c690c": {
+   "new": "0x535c9384",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c6a10": {
+   "new": "0x535c9488",
+   "how": "aligned + refs 0x535c9488x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c6b34": {
+   "new": "0x535c95ac",
+   "how": "aligned + refs 0x535c95acx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c6b50": {
+   "new": "0x535c95c8",
+   "how": "aligned + refs 0x535c95c8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c6bec": {
+   "new": "0x535c9664",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c6da0": {
+   "new": "0x535c9818",
+   "how": "aligned + refs 0x535c9818x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c6db4": {
+   "new": "0x535c982c",
+   "how": "aligned + refs 0x535c982cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c6dcc": {
+   "new": "0x535c9844",
+   "how": "aligned + refs 0x535c9844x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c78fc": {
+   "new": "0x535ca374",
+   "how": "aligned + refs 0x535ca374x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x535c7924": {
+   "new": "0x535ca39c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c7a04": {
+   "new": "0x535ca47c",
+   "how": "aligned + refs 0x535ca47cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c7a3c": {
+   "new": "0x535ca4b4",
+   "how": "aligned + refs 0x535ca4b4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535c7a44": {
+   "new": "0x535ca4bc",
+   "how": "aligned + refs 0x535ca4bcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535ca140": {
+   "new": "0x535ccbb8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x535ca400": {
+   "new": "0x535cce78",
+   "how": "aligned + refs 0x535cce78x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x535d03a4": {
+   "new": "0x535d2e1c",
+   "how": "aligned + refs 0x535d2e1cx140",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x535d03b8": {
+   "new": "0x535d2e30",
+   "how": "aligned + refs 0x535d2e30x165",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x535d05ac": {
+   "new": "0x535d3024",
+   "how": "aligned + refs 0x535d3024x186",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x535d05c4": {
+   "new": "0x535d303c",
+   "how": "aligned + refs 0x535d303cx136",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x535ed528": {
+   "new": "0x535effa0",
+   "how": "aligned + refs 0x535effa0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts",
+    "core/src/fw/gr3x170/profile.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x535ed548": {
+   "new": "0x535effc0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x535ed54c": {
+   "new": "0x535effc4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x535ed570": {
+   "new": "0x535effe8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x535ee980": {
+   "new": "0x535f13f8",
+   "how": "aligned + refs 0x535f13f8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts",
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x535ee984": {
+   "new": "0x535f13fc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x535f48f8": {
+   "new": "0x535f7370",
+   "how": "aligned + refs 0x535f7370x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x535f6458": {
+   "new": "0x535f8ed0",
+   "how": "aligned + refs 0x535f8ed0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x535f64c0": {
+   "new": "0x535f8f38",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x535f682c": {
+   "new": "0x535f92a4",
+   "how": "aligned + refs 0x535f92a4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x535fc46c": {
+   "new": "0x535feee4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x535fc48c": {
+   "new": "0x535fef04",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x53604b34": {
+   "new": "0x536075ac",
+   "how": "aligned + refs 0x536075acx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts",
+    "core/src/fw/gr3x170/profile.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x53604b50": {
+   "new": "0x536075c8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x53604b54": {
+   "new": "0x536075cc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x53604b70": {
+   "new": "0x536075e8",
+   "how": "aligned + refs 0x536075e8x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x536285d0": {
+   "new": "0x5362b010",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/profile.ts",
+    "tools/gr3x170/loader_probe.py"
+   ]
+  },
+  "0x5362a440": {
+   "new": "0x5362d22c",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [-3] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "core/src/fw/gr3x170/shutdown.ts"
+   ]
+  },
+  "0x5362a5b0": {
+   "new": "0x5362d37c",
+   "how": "aligned + refs 0x5362d37cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shutdown.ts",
+    "tools/gr3x170/package_probe.py"
+   ]
+  },
+  "0x5362c7b8": {
+   "new": "0x5362f7d8",
+   "how": "aligned + refs 0x5362f7d8x3",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/loader_probe.py"
+   ]
+  },
+  "0x5362c91c": {
+   "new": "0x5362f93c",
+   "how": "aligned + refs 0x5362f93cx2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/loader_probe.py"
+   ]
+  },
+  "0x5362c97c": {
+   "new": "0x5362f99c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/research-package.ts"
+   ]
+  },
+  "0x53654240": {
+   "new": "0x53657728",
+   "how": "aligned + refs 0x53657728x149",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/liveview_probe.py"
+   ]
+  },
+  "0x53654310": {
+   "new": "0x536577f8",
+   "how": "aligned + refs 0x536577f8x160",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/liveview_probe.py"
+   ]
+  },
+  "0x5365d844": {
+   "new": "0x53660d2c",
+   "how": "aligned + refs 0x53660d2cx4",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/metering_probe.py"
+   ]
+  },
+  "0x5365d9f0": {
+   "new": "0x53660ed8",
+   "how": "aligned + refs 0x53660ed8x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/metering_probe.py",
+    "tools/gr3x170/native/map.c"
+   ]
+  },
+  "0x5365daf0": {
+   "new": "0x53660fd8",
+   "how": "aligned + refs 0x53660fd8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/metering.ts"
+   ]
+  },
+  "0x5365daf4": {
+   "new": "0x53660fdc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/metering.ts"
+   ]
+  },
+  "0x5365e3cc": {
+   "new": "0x536618b4",
+   "how": "aligned + refs 0x536618b4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/metering.ts",
+    "tools/gr3x170/metering_probe.py"
+   ]
+  },
+  "0x5365e3d0": {
+   "new": "0x536618b8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/metering.ts"
+   ]
+  },
+  "0x5365fd30": {
+   "new": "0x53663218",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/native/map.c"
+   ]
+  },
+  "0x5365fe14": {
+   "new": "0x536632fc",
+   "how": "aligned + refs 0x536632fcx1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/native/map.c"
+   ]
+  },
+  "0x53661144": {
+   "new": "0x5366462c",
+   "how": "aligned + refs 0x5366462cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/profile.ts",
+    "tools/gr3x170/native_probe.py"
+   ]
+  },
+  "0x536611d0": {
+   "new": "0x536646b8",
+   "how": "aligned + refs 0x536646b8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/raw-full-frame.ts"
+   ]
+  },
+  "0x5366154c": {
+   "new": "0x53664a34",
+   "how": "aligned + refs 0x53664a34x11",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/display_descriptor_probe.py"
+   ]
+  },
+  "0x53665a9c": {
+   "new": "0x53668f84",
+   "how": "aligned + refs 0x53668f84x44",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/development_bounds_probe.py"
+   ]
+  },
+  "0x53665d1c": {
+   "new": "0x53669204",
+   "how": "aligned + refs 0x53669204x8",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/experimental.ts"
+   ]
+  },
+  "0x5366641c": {
+   "new": "0x53669904",
+   "how": "aligned + refs 0x53669904x7",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/experimental.ts",
+    "core/src/fw/gr3x170/profile.ts",
+    "tools/gr3x170/native_probe.py"
+   ]
+  },
+  "0x5366643c": {
+   "new": "0x53669924",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/experimental.ts",
+    "tools/gr3x170/experiment_probe.py"
+   ]
+  },
+  "0x536665f0": {
+   "new": "0x53669ad8",
+   "how": "aligned + refs 0x53669ad8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/experimental.ts",
+    "tools/gr3x170/experiment_probe.py"
+   ]
+  },
+  "0x53668864": {
+   "new": "0x5366bd4c",
+   "how": "aligned + refs 0x5366bd4cx10",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts",
+    "tools/gr3x170/liveview_probe.py"
+   ]
+  },
+  "0x53668cd4": {
+   "new": "0x5366c1bc",
+   "how": "aligned + refs 0x5366c1bcx9",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts",
+    "tools/gr3x170/liveview_probe.py"
+   ]
+  },
+  "0x53669514": {
+   "new": "0x5366c9fc",
+   "how": "aligned + refs 0x5366c9fcx5",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/liveview_probe.py"
+   ]
+  },
+  "0x53669534": {
+   "new": "0x5366ca1c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53669538": {
+   "new": "0x5366ca20",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53669550": {
+   "new": "0x5366ca38",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53669580": {
+   "new": "0x5366ca68",
+   "how": "aligned + refs 0x5366ca68x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x536696e8": {
+   "new": "0x5366cbd0",
+   "how": "aligned + refs 0x5366cbd0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53669880": {
+   "new": "0x5366cd68",
+   "how": "aligned + refs 0x5366cd68x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53669a68": {
+   "new": "0x5366cf50",
+   "how": "aligned + refs 0x5366cf50x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53669ab4": {
+   "new": "0x5366cf9c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53669ab8": {
+   "new": "0x5366cfa0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53669ac0": {
+   "new": "0x5366cfa8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/liveview.ts"
+   ]
+  },
+  "0x53669ba4": {
+   "new": "0x5366d08c",
+   "how": "aligned + refs 0x5366d08cx1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/development_bounds_probe.py"
+   ]
+  },
+  "0x53669cc0": {
+   "new": "0x5366d1a8",
+   "how": "aligned + refs 0x5366d1a8x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/development_bounds_probe.py"
+   ]
+  },
+  "0x5367c248": {
+   "new": "0x5367f730",
+   "how": "aligned + refs 0x5367f730x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/clarity_probe.py"
+   ]
+  },
+  "0x5367c27c": {
+   "new": "0x5367f764",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/clarity.ts"
+   ]
+  },
+  "0x5367c29c": {
+   "new": "0x5367f784",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/clarity.ts",
+    "tools/gr3x170/clarity_probe.py"
+   ]
+  },
+  "0x5367c2a0": {
+   "new": "0x5367f788",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x5367c2a4": {
+   "new": "0x5367f78c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/clarity_probe.py"
+   ]
+  },
+  "0x5367c428": {
+   "new": "0x5367f910",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/clarity.ts"
+   ]
+  },
+  "0x5367c8cc": {
+   "new": "0x5367fdb4",
+   "how": "aligned + refs 0x5367fdb4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/clarity.ts",
+    "tools/gr3x170/clarity_probe.py"
+   ]
+  },
+  "0x5367c8d4": {
+   "new": "0x5367fdbc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts",
+    "core/src/fw/gr3x170/clarity.ts"
+   ]
+  },
+  "0x5367c8d8": {
+   "new": "0x5367fdc0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/clarity_probe.py"
+   ]
+  },
+  "0x536a2b20": {
+   "new": "0x536a6008",
+   "how": "aligned + refs 0x536a6008x15",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/experimental.ts",
+    "core/src/fw/gr3x170/profile.ts",
+    "tools/gr3x170/native_probe.py"
+   ]
+  },
+  "0x536a2b24": {
+   "new": "0x536a600c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/experiment_probe.py"
+   ]
+  },
+  "0x536a3040": {
+   "new": "0x536a6528",
+   "how": "aligned + refs 0x536a6528x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts",
+    "tools/gr3x170/pipeline_probe.py"
+   ]
+  },
+  "0x536a30f8": {
+   "new": "0x536a65e0",
+   "how": "aligned + refs 0x536a65e0x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts",
+    "tools/gr3x170/pipeline_probe.py"
+   ]
+  },
+  "0x536a32f0": {
+   "new": "0x536a67d8",
+   "how": "aligned + refs 0x536a67d8x9",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/metering.ts"
+   ]
+  },
+  "0x536a32f4": {
+   "new": "0x536a67dc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/metering.ts"
+   ]
+  },
+  "0x536ae80c": {
+   "new": "0x536b1cf4",
+   "how": "aligned + refs 0x536b1cf4x2150",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/native_probe.py"
+   ]
+  },
+  "0x536ae960": {
+   "new": "0x536b1e48",
+   "how": "aligned + refs 0x536b1e48x3239",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/native_probe.py"
+   ]
+  },
+  "0x536af0f0": {
+   "new": "0x536b25d8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x536af398": {
+   "new": "0x536b2880",
+   "how": "aligned + refs 0x536b2880x3568",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/jpeg-stage.ts",
+    "core/src/fw/gr3x170/round10.ts",
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/list_width_probe.py",
+    "tools/gr3x170/metering_probe.py",
+    "tools/gr3x170/native/slots.c",
+    "tools/gr3x170/native/slots2.c",
+    "tools/gr3x170/native/slots3.c",
+    "tools/gr3x170/picture_stage_probe.py",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x536af3d4": {
+   "new": "0x536b28bc",
+   "how": "aligned + refs 0x536b28bcx3484",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/jpeg-stage.ts",
+    "tools/gr3x170/list_width_probe.py",
+    "tools/gr3x170/metering_probe.py",
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x536af40c": {
+   "new": "0x536b28f4",
+   "how": "aligned + refs 0x536b28f4x446",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/list_width_probe.py"
+   ]
+  },
+  "0x536af448": {
+   "new": "0x536b2930",
+   "how": "aligned + refs 0x536b2930x493",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/list_width_probe.py"
+   ]
+  },
+  "0x536b4334": {
+   "new": "0x536b781c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/factory_probe.py"
+   ]
+  },
+  "0x536b436c": {
+   "new": "0x536b7854",
+   "how": "aligned + refs 0x536b7854x6",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/factory_probe.py"
+   ]
+  },
+  "0x536b54d0": {
+   "new": "0x536b89b8",
+   "how": "aligned + refs 0x536b89b8x328",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x536b54d8": {
+   "new": "0x536b89c0",
+   "how": "aligned + refs 0x536b89c0x710",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x536b5e0c": {
+   "new": "0x536b92f4",
+   "how": "aligned + refs 0x536b92f4x641",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x536b5e10": {
+   "new": "0x536b92f8",
+   "how": "aligned + refs 0x536b92f8x36",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-pipeline.ts"
+   ]
+  },
+  "0x536b6600": {
+   "new": "0x536b9ae8",
+   "how": "aligned + refs 0x536b9ae8x35",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "core/src/fw/gr3x170/jpeg-stage.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x536b83c4": {
+   "new": "0x536bb94c",
+   "how": "aligned + refs 0x536bb94cx3566",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/loader_probe.py"
+   ]
+  },
+  "0x536b94c0": {
+   "new": "0x536bca48",
+   "how": "aligned + refs 0x536bca48x7654",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/native_probe.py"
+   ]
+  },
+  "0x536bbd20": {
+   "new": "0x536bf2a8",
+   "how": "aligned + refs 0x536bf2a8x271",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "core/src/fw/gr3x170/jpeg-stage.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x536bbd9c": {
+   "new": "0x536bf324",
+   "how": "aligned + refs 0x536bf324x18",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "core/src/fw/gr3x170/jpeg-stage.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x536bbdb0": {
+   "new": "0x536bf338",
+   "how": "aligned + refs 0x536bf338x37",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "core/src/fw/gr3x170/jpeg-stage.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x536bd928": {
+   "new": "0x536c0f2c",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned + refs 0x536c0f2cx103); +-8 words equal up to relocation except at [-8, -7, -6, -5, -4] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "core/src/fw/gr3x170/jpeg-stage.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x536bde70": {
+   "new": "0x536c14cc",
+   "how": "aligned + refs 0x536c14ccx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/factory.ts",
+    "tools/gr3x170/factory_probe.py"
+   ]
+  },
+  "0x536bdf50": {
+   "new": "0x536c15ac",
+   "how": "aligned + refs 0x536c15acx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/factory.ts"
+   ]
+  },
+  "0x536bdf64": {
+   "new": "0x536c15c0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/factory.ts"
+   ]
+  },
+  "0x536bdf68": {
+   "new": "0x536c15c4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/factory.ts"
+   ]
+  },
+  "0x536be0f0": {
+   "new": "0x536c174c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x536bf728": {
+   "new": "0x536c2cec",
+   "how": "aligned + refs 0x536c2cecx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/factory.ts",
+    "tools/gr3x170/factory_probe.py"
+   ]
+  },
+  "0x536c3f74": {
+   "new": "0x536c81e0",
+   "how": "aligned + refs 0x536c81e0x101",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/display_descriptor_probe.py"
+   ]
+  },
+  "0x536c9788": {
+   "new": "0x536cd9f4",
+   "how": "aligned + refs 0x536cd9f4x88",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/display_descriptor_probe.py"
+   ]
+  },
+  "0x536daf3c": {
+   "new": "0x536df1a8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/live_refresh_probe.py"
+   ]
+  },
+  "0x536db7b0": {
+   "new": "0x536dfa18",
+   "how": "aligned + refs 0x536dfa18x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts",
+    "core/src/fw/gr3x170/jpeg-stage.ts"
+   ]
+  },
+  "0x536db7d0": {
+   "new": "0x536dfa38",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "core/src/fw/gr3x170/jpeg-stage.ts",
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x536db7d4": {
+   "new": "0x536dfa3c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x536dbd20": {
+   "new": "0x536dff88",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x536dc0cc": {
+   "new": "0x536e0334",
+   "how": "aligned + refs 0x536e0334x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/image_controls_verify.py",
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x536dc0fc": {
+   "new": "0x536e0364",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x536dc244": {
+   "new": "0x536e04ac",
+   "how": "aligned + refs 0x536e04acx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x536dc264": {
+   "new": "0x536e04cc",
+   "how": "aligned + refs 0x536e04ccx4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x536dc268": {
+   "new": "0x536e04d0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x536dc26c": {
+   "new": "0x536e04d4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x536dc270": {
+   "new": "0x536e04d8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x536dc278": {
+   "new": "0x536e04e0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x536dc27c": {
+   "new": "0x536e04e4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x536dc280": {
+   "new": "0x536e04e8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x536dc288": {
+   "new": "0x536e04f0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x536dc294": {
+   "new": "0x536e04fc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x536dc494": {
+   "new": "0x536e06fc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x536dc668": {
+   "new": "0x536e08d0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x536dc838": {
+   "new": "0x536e0aa0",
+   "how": "aligned + refs 0x536e0aa0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts",
+    "tools/gr3x170/live_refresh_probe.py"
+   ]
+  },
+  "0x536dc85c": {
+   "new": "0x536e0ac4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/live_refresh_probe.py"
+   ]
+  },
+  "0x536dc970": {
+   "new": "0x536e0bd8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts",
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x536dc978": {
+   "new": "0x536e0be0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x536dcb3c": {
+   "new": "0x536e0da4",
+   "how": "aligned + refs 0x536e0da4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x536dcb44": {
+   "new": "0x536e0dac",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x536dcb58": {
+   "new": "0x536e0dc0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x536dcdcc": {
+   "new": "0x536e1034",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x536dcdd4": {
+   "new": "0x536e103c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x536dd08c": {
+   "new": "0x536e12f4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x536dd3b8": {
+   "new": "0x536e1620",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x536de0cc": {
+   "new": "0x536e2334",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/live_refresh_probe.py"
+   ]
+  },
+  "0x536decc0": {
+   "new": "0x536e2f28",
+   "how": "aligned + refs 0x536e2f28x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x536ded48": {
+   "new": "0x536e2fb0",
+   "how": "aligned + refs 0x536e2fb0x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x536deea4": {
+   "new": "0x536e310c",
+   "how": "aligned + refs 0x536e310cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/jpeg-stage.ts",
+    "tools/gr3x170/image_controls_verify.py",
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x536df114": {
+   "new": "0x536e337c",
+   "how": "aligned + refs 0x536e337cx1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x536df3ac": {
+   "new": "0x536e3614",
+   "how": "aligned + refs 0x536e3614x4",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x536df3c0": {
+   "new": "0x536e3628",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts",
+    "core/src/fw/gr3x170/jpeg-stage.ts"
+   ]
+  },
+  "0x536e84a0": {
+   "new": "0x536ec708",
+   "how": "aligned + refs 0x536ec708x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x536e8bb8": {
+   "new": "0x536ece20",
+   "how": "aligned + refs 0x536ece20x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/color_curve_probe.py"
+   ]
+  },
+  "0x536eb0bc": {
+   "new": "0x536ef324",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x536ef270": {
+   "new": "0x536f34d8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x536ef2b0": {
+   "new": "0x536f3518",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x536ef2fc": {
+   "new": "0x536f3564",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x536ef33c": {
+   "new": "0x536f35a4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x536ef3c8": {
+   "new": "0x536f3630",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x536ef558": {
+   "new": "0x536f37c0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x536efb8c": {
+   "new": "0x536f3df4",
+   "how": "aligned + refs 0x536f3df4x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/shading_probe.py"
+   ]
+  },
+  "0x536efc04": {
+   "new": "0x536f3e6c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shading.ts"
+   ]
+  },
+  "0x536efc90": {
+   "new": "0x536f3ef8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shading.ts"
+   ]
+  },
+  "0x536eff0c": {
+   "new": "0x536f4174",
+   "how": "aligned + refs 0x536f4174x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x536f009c": {
+   "new": "0x536f4304",
+   "how": "aligned + refs 0x536f4304x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x536f0264": {
+   "new": "0x536f44cc",
+   "how": "aligned + refs 0x536f44ccx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x536f0268": {
+   "new": "0x536f44d0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/image-control.ts"
+   ]
+  },
+  "0x536f0280": {
+   "new": "0x536f44e8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x53700510": {
+   "new": "0x53704778",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x53700568": {
+   "new": "0x537047d0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts"
+   ]
+  },
+  "0x5370348c": {
+   "new": "0x537076f4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/jpeg-stage.ts"
+   ]
+  },
+  "0x5370a5b4": {
+   "new": "0x5370e81c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/gen_films.py"
+   ]
+  },
+  "0x537fb0e4": {
+   "new": "0x537ff350",
+   "how": "aligned + refs 0x537ff350x6",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/loader_probe.py"
+   ]
+  },
+  "0x5381fe24": {
+   "new": "0x53824214",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned + refs 0x53824214x4); +-8 words equal up to relocation except at [8] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "core/src/fw/gr3x170/factory.ts",
+    "tools/gr3x170/factory_probe.py"
+   ]
+  },
+  "0x5381fe74": {
+   "new": "0x53824264",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned + refs 0x53824264x2); +-8 words equal up to relocation except at [-8, -2] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "core/src/fw/gr3x170/factory.ts",
+    "tools/gr3x170/factory_probe.py"
+   ]
+  },
+  "0x53820480": {
+   "new": "0x53824870",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts"
+   ]
+  },
+  "0x53821a14": {
+   "new": "0x53825e04",
+   "how": "aligned + refs 0x53825e04x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "core/src/fw/gr3x170/shutdown.ts"
+   ]
+  },
+  "0x53828028": {
+   "new": "0x5382c418",
+   "how": "aligned + refs 0x5382c418x50",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/native/endscreen.c",
+    "tools/gr3x170/native/slots.c",
+    "tools/gr3x170/native/slots2.c",
+    "tools/gr3x170/native/slots3.c",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x53829a1c": {
+   "new": "0x5382ddd8",
+   "how": "aligned + refs 0x5382ddd8x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/native/endscreen.c",
+    "tools/gr3x170/native/slots.c",
+    "tools/gr3x170/native/slots2.c",
+    "tools/gr3x170/native/slots3.c",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x53829e64": {
+   "new": "0x5382e220",
+   "how": "aligned + refs 0x5382e220x8",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/native/endscreen.c",
+    "tools/gr3x170/native/slots.c",
+    "tools/gr3x170/native/slots2.c",
+    "tools/gr3x170/native/slots3.c",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x53829fe0": {
+   "new": "0x5382e39c",
+   "how": "aligned + refs 0x5382e39cx5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/native/endscreen.c",
+    "tools/gr3x170/native/slots.c",
+    "tools/gr3x170/native/slots2.c",
+    "tools/gr3x170/native/slots3.c",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x53852348": {
+   "new": "0x53856750",
+   "how": "aligned + refs 0x53856750x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/round10.ts"
+   ]
+  },
+  "0x538f1fe4": {
+   "new": "0x538f6ce4",
+   "how": "aligned + refs 0x538f6ce4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/clarity.ts",
+    "tools/gr3x170/clarity_probe.py"
+   ]
+  },
+  "0x538f2d94": {
+   "new": "0x538f7a94",
+   "how": "aligned + refs 0x538f7a94x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/factory.ts"
+   ]
+  },
+  "0x53b341b4": {
+   "new": "0x53b38f14",
+   "how": "aligned + refs 0x53b38f14x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/halation-rows.ts",
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x53b34500": {
+   "new": "0x53b39260",
+   "how": "aligned + refs 0x53b39260x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/halation_screen_probe.py"
+   ]
+  },
+  "0x53b3637c": {
+   "new": "0x53b3b0dc",
+   "how": "aligned + refs 0x53b3b0dcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "core/src/fw/gr3x170/shutdown.ts",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x53b36714": {
+   "new": "0x53b3b474",
+   "how": "aligned + refs 0x53b3b474x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x53b3933c": {
+   "new": "0x53b3e0cc",
+   "how": "aligned + refs 0x53b3e0ccx18",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x53b395a0": {
+   "new": "0x53b3e330",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation",
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x53b3bfe8": {
+   "new": "0x53b40d78",
+   "how": "aligned + refs 0x53b40d78x15",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x53b3f438": {
+   "new": "0x53b441c8",
+   "how": "aligned + refs 0x53b441c8x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  },
+  "0x53b4cb70": {
+   "new": "0x53b51960",
+   "how": "aligned + refs 0x53b51960x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "core/src/fw/gr3x170/shutdown.ts"
+   ]
+  },
+  "0x53b4e4c8": {
+   "new": "0x53b536f8",
+   "how": "aligned + refs 0x53b536f8x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x53b588d8": {
+   "new": "0x53b5db08",
+   "how": "aligned + refs 0x53b5db08x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x53b588f4": {
+   "new": "0x53b5db24",
+   "how": "aligned + refs 0x53b5db24x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-layout.ts"
+   ]
+  },
+  "0x53b58ac4": {
+   "new": "0x53b5dcf4",
+   "how": "aligned + refs 0x53b5dcf4x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-layout.ts"
+   ]
+  },
+  "0x53b58af0": {
+   "new": "0x53b5dd20",
+   "how": "aligned + refs 0x53b5dd20x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-layout.ts"
+   ]
+  },
+  "0x53b58b4c": {
+   "new": "0x53b5dd7c",
+   "how": "aligned + refs 0x53b5dd7cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-layout.ts"
+   ]
+  },
+  "0x53b58b5c": {
+   "new": "0x53b5dd8c",
+   "how": "aligned + refs 0x53b5dd8cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-layout.ts"
+   ]
+  },
+  "0x53b58c94": {
+   "new": "0x53b5dec4",
+   "how": "aligned + refs 0x53b5dec4x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-layout.ts"
+   ]
+  },
+  "0x53b59d2c": {
+   "new": "0x53b5ef5c",
+   "how": "aligned + refs 0x53b5ef5cx3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x53b59d58": {
+   "new": "0x53b5ef88",
+   "how": "aligned + refs 0x53b5ef88x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x53b59ddc": {
+   "new": "0x53b5f00c",
+   "how": "aligned + refs 0x53b5f00cx3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts"
+   ]
+  },
+  "0x53b59e48": {
+   "new": "0x53b5f078",
+   "how": "aligned + refs 0x53b5f078x7",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts"
+   ]
+  },
+  "0x53b5b950": {
+   "new": "0x53b60b80",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation",
+   "files": [
+    "tools/gr3x170/rear_dial_probe.py"
+   ]
+  },
+  "0x53c09cb8": {
+   "new": "0x53c121d0",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned + refs 0x53c121d0x3); +-8 words equal up to relocation",
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/list_width_probe.py"
+   ]
+  },
+  "0x53c0a3e0": {
+   "new": "0x53c128f8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/list_width_probe.py"
+   ]
+  },
+  "0x53c0a6e8": {
+   "new": "0x53c12c00",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned + refs 0x53c12c00x2); +-8 words equal up to relocation",
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/list_width_probe.py"
+   ]
+  },
+  "0x53c62328": {
+   "new": "0x53c6a838",
+   "how": "aligned + refs 0x53c6a838x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/jpeg-stage.ts"
+   ]
+  },
+  "0x53d2fb68": {
+   "new": "0x53d380b8",
+   "how": "aligned + refs 0x53d380b8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x53d2fb70": {
+   "new": "0x53d380c0",
+   "how": "aligned + refs 0x53d380c0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x53d60fb8": {
+   "new": "0x53d6989c",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned + refs 0x53d6989cx2); +-8 words equal up to relocation except at [-8, -7, -6, -5, -4, -3, -2, -1] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "core/src/fw/gr3x170/factory.ts"
+   ]
+  },
+  "0x53d61b04": {
+   "new": "0x53d6a57c",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned + refs 0x53d6a57cx1); +-8 words equal up to relocation except at [-8, -7, -6, -5, -4, -3, -2, -1] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "tools/gr3x170/factory_probe.py"
+   ]
+  },
+  "0x53d62278": {
+   "new": "0x53d6ace0",
+   "how": "aligned + refs 0x53d6ace0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/factory.ts"
+   ]
+  },
+  "0x53d629d8": {
+   "new": "0x53d6b440",
+   "how": "aligned + refs 0x53d6b440x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/factory.ts"
+   ]
+  },
+  "0x53dbd2e8": {
+   "new": "0x53dc5da8",
+   "how": "aligned + refs 0x53dc5da8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x53dc1538": {
+   "new": "0x53dc9ff8",
+   "how": "aligned + refs 0x53dc9ff8x1",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/image_controls_verify.py"
+   ]
+  },
+  "0x53dc28dc": {
+   "new": "0x53dcb39c",
+   "how": "aligned + refs 0x53dcb39cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x53dc2cd8": {
+   "new": "0x53dcb798",
+   "how": "aligned + refs 0x53dcb798x30",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/image_control_probe.py"
+   ]
+  },
+  "0x5407b640": {
+   "new": "0x54084640",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned + refs 0x54084640x1, 0x54084608x1); +-8 words equal up to relocation except at [-8, -7, -6, -5, -4, -3, -2, -1] (neighbouring code Ricoh changed; checked side by side)",
+   "files": [
+    "core/src/fw/gr3x170/look-resources.ts",
+    "core/src/fw/gr3x170/profile.ts",
+    "tools/gr3x170/native_probe.py"
+   ]
+  },
+  "0x5407d508": {
+   "new": "0x54086508",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation",
+   "files": [
+    "core/src/fw/gr3x170/shutdown.ts",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x5407e1b8": {
+   "new": "0x540871b8",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation",
+   "files": [
+    "core/src/fw/gr3x170/shutdown.ts",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x540928f0": {
+   "new": "0x5409bb3c",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation",
+   "files": [
+    "tools/gr3x170/image_control_probe.py"
+   ]
+  },
+  "0x54093138": {
+   "new": "0x5409c384",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 2.21 (aligned); +-8 words equal up to relocation",
+   "files": [
+    "tools/gr3x170/image_control_probe.py"
+   ]
+  },
+  "0x54100000": {
+   "new": "0x54100000",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x543f0000": {
+   "new": "0x543f0000",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/compile_diag.py"
+   ]
+  },
+  "0x543fc1d0": {
+   "new": "0x543fc1d0",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/gen_films.py"
+   ]
+  },
+  "0x54400000": {
+   "new": "0x54400000",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/gen_films.py"
+   ]
+  },
+  "0x55000000": {
+   "new": "0x55000000",
+   "how": "refs 0x55000000x22",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-resources.ts",
+    "core/src/fw/gr3x170/profile.ts",
+    "core/src/fw/gr3x170/research-package.ts",
+    "tools/gr3x170/adj_probe.py",
+    "tools/gr3x170/loader_probe.py",
+    "tools/gr3x170/native_probe.py"
+   ]
+  },
+  "0x55001eb8": {
+   "new": "0x55001eb8",
+   "how": "RAM image aligned + refs 0x55001eb8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x55001ec8": {
+   "new": "0x55001ec8",
+   "how": "override",
+   "ok": true,
+   "why": "initialised RAM (RAM image aligned)",
+   "files": [
+    "core/src/fw/gr3x170/shutdown.ts",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x550020fc": {
+   "new": "0x550020fc",
+   "how": "refs 0x550020fcx3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "core/src/fw/gr3x170/look-resources.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x55002b78": {
+   "new": "0x55002b78",
+   "how": "override",
+   "ok": true,
+   "why": "initialised RAM (RAM image aligned + refs 0x55002b78x1)",
+   "files": [
+    "core/src/fw/gr3x170/shutdown.ts",
+    "tools/gr3x170/shutdown_probe.py"
+   ]
+  },
+  "0x55002bb4": {
+   "new": "0x55002bb4",
+   "how": "refs 0x55002bb4x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/adj.ts",
+    "core/src/fw/gr3x170/look-resources.ts",
+    "tools/gr3x170/adj_probe.py"
+   ]
+  },
+  "0x55018cf8": {
+   "new": "0x55018f48",
+   "how": "override",
+   "ok": true,
+   "why": "initialised RAM (RAM image aligned + refs 0x55018f48x1)",
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x55018d9c": {
+   "new": "0x55018fec",
+   "how": "override",
+   "ok": true,
+   "why": "initialised RAM (RAM image aligned + refs 0x55018fecx1)",
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "core/src/fw/gr3x170/look-resources.ts",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/image_control_probe.py"
+   ]
+  },
+  "0x55018e54": {
+   "new": "0x550190a4",
+   "how": "override",
+   "ok": true,
+   "why": "initialised RAM (RAM image aligned + refs 0x550190a4x1)",
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts"
+   ]
+  },
+  "0x5503b000": {
+   "new": "0x5503b000",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/adj_probe.py",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/look_layout_probe.py"
+   ]
+  },
+  "0x55060000": {
+   "new": "0x55060000",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/adj_softfocus_probe.py"
+   ]
+  },
+  "0x55063f30": {
+   "new": "0x55064200",
+   "how": "refs 0x55064200x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/guard.ts",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/halation_rows_probe.py",
+    "tools/gr3x170/native/films.c"
+   ]
+  },
+  "0x55063f34": {
+   "new": "0x55064204",
+   "how": "override",
+   "ok": true,
+   "why": "user settings object pointer: the settings object 0x55063f30 is 0x55064200 at every reference in 2.21 (3 of 3)",
+   "files": [
+    "core/src/fw/gr3x170/adj-softfocus.ts",
+    "core/src/fw/gr3x170/datestamp.ts",
+    "core/src/fw/gr3x170/shutdown.ts",
+    "tools/gr3x170/adj_probe.py",
+    "tools/gr3x170/adj_softfocus_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/halation_screen_probe.py",
+    "tools/gr3x170/native/endscreen.c",
+    "tools/gr3x170/native/slots2.c",
+    "tools/gr3x170/native/slots3.c",
+    "tools/gr3x170/picture_stage_probe.py",
+    "tools/gr3x170/shutdown_probe.py",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x553458b0": {
+   "new": "0x55345b80",
+   "how": "refs 0x55345b80x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/datestamp.ts",
+    "tools/gr3x170/datestamp8_probe.py"
+   ]
+  },
+  "0x55357000": {
+   "new": "0x55357000",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x55357d40": {
+   "new": "0x55358010",
+   "how": "refs 0x55358010x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x55357e24": {
+   "new": "0x553580f4",
+   "how": "refs 0x553580f4x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x55357e78": {
+   "new": "0x55358148",
+   "how": "refs 0x55358148x2",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/raw_state_probe.py"
+   ]
+  },
+  "0x5536d000": {
+   "new": "0x5536d000",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/factory_probe.py",
+    "tools/gr3x170/image_control_probe.py"
+   ]
+  },
+  "0x5536d054": {
+   "new": "0x5536d324",
+   "how": "refs 0x5536d324x10",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/factory_probe.py"
+   ]
+  },
+  "0x5536d1b4": {
+   "new": "0x5536d484",
+   "how": "override",
+   "ok": true,
+   "why": "zero-initialised RAM: the 2.21 references name 0x5536d484",
+   "files": [
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x5536d4b8": {
+   "new": "0x5536d78c",
+   "how": "override",
+   "ok": true,
+   "why": "zero-initialised RAM: the 2.21 references name 0x5536d78c",
+   "files": [
+    "tools/gr3x170/image_control_probe.py"
+   ]
+  },
+  "0x5536d4bc": {
+   "new": "0x5536d790",
+   "how": "refs 0x5536d790x3",
+   "ok": true,
+   "files": [
+    "tools/gr3x170/image_control_probe.py"
+   ]
+  },
+  "0x55550000": {
+   "new": "0x55550000",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x55800000": {
+   "new": "0x55800000",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/adj_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/guard_probe.py",
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/look_layout_probe.py",
+    "tools/gr3x170/picture_stage_probe.py",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x55803c34": {
+   "new": "0x55803ef4",
+   "how": "override",
+   "ok": true,
+   "why": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout",
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "core/src/fw/gr3x170/round10.ts",
+    "tools/gr3x170/films_probe.py",
+    "tools/gr3x170/guard_probe.py",
+    "tools/gr3x170/image_control_probe.py",
+    "tools/gr3x170/native/slots.c",
+    "tools/gr3x170/native/slots2.c",
+    "tools/gr3x170/native/slots3.c",
+    "tools/gr3x170/picture_stage_probe.py",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x55803c38": {
+   "new": "0x55803ef8",
+   "how": "override",
+   "ok": true,
+   "why": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout",
+   "files": [
+    "core/src/fw/gr3x170/jpeg-stage.ts",
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "core/src/fw/gr3x170/round10.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x55803c3c": {
+   "new": "0x55803efc",
+   "how": "override",
+   "ok": true,
+   "why": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout",
+   "files": [
+    "core/src/fw/gr3x170/endscreen.ts",
+    "core/src/fw/gr3x170/image-control.ts",
+    "core/src/fw/gr3x170/jpeg-stage.ts",
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "core/src/fw/gr3x170/round10.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/endscreen_probe.py",
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x55803c3d": {
+   "new": "0x55803efd",
+   "how": "override",
+   "ok": true,
+   "why": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout",
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "tools/gr3x170/datestamp8_probe.py"
+   ]
+  },
+  "0x55803c3e": {
+   "new": "0x55803efe",
+   "how": "override",
+   "ok": true,
+   "why": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout",
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "tools/gr3x170/datestamp8_probe.py"
+   ]
+  },
+  "0x55803c40": {
+   "new": "0x55803f00",
+   "how": "refs 0x55803f00x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/look-addresses.ts",
+    "core/src/fw/gr3x170/round10.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/films_r10_verify.py",
+    "tools/gr3x170/native/slots.c",
+    "tools/gr3x170/native/slots2.c",
+    "tools/gr3x170/native/slots3.c",
+    "tools/gr3x170/slots_probe.py"
+   ]
+  },
+  "0x55803c44": {
+   "new": "0x55803f04",
+   "how": "override",
+   "ok": true,
+   "why": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout",
+   "files": [
+    "core/src/fw/gr3x170/round10.ts",
+    "tools/gr3x170/datestamp8_probe.py",
+    "tools/gr3x170/films_r10_verify.py"
+   ]
+  },
+  "0x55803c48": {
+   "new": "0x55803f08",
+   "how": "override",
+   "ok": true,
+   "why": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout",
+   "files": [
+    "core/src/fw/gr3x170/round10.ts"
+   ]
+  },
+  "0x55803c80": {
+   "new": "0x55803f40",
+   "how": "refs 0x55803f40x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/round10.ts",
+    "tools/gr3x170/films_probe.py"
+   ]
+  },
+  "0x55880000": {
+   "new": "0x55880000",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x55890000": {
+   "new": "0x55890000",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x558c0000": {
+   "new": "0x558c0000",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x558c0100": {
+   "new": "0x558c0100",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x558c0200": {
+   "new": "0x558c0200",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/datestamp_probe.py",
+    "tools/gr3x170/picture_stage_probe.py"
+   ]
+  },
+  "0x558c0f00": {
+   "new": "0x558c0f00",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/datestamp_probe.py"
+   ]
+  },
+  "0x55900000": {
+   "new": "0x55900000",
+   "how": "override",
+   "ok": true,
+   "why": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address",
+   "files": [
+    "tools/gr3x170/endscreen_probe.py"
+   ]
+  }
+ }
+}

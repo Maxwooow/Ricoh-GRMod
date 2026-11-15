@@ -392,7 +392,7 @@ func TestFallback(t *testing.T) {
 
 func TestSupported(t *testing.T) {
 	a := Supported
-	if a.Version != "1.20" || len(a.SHA256) != 64 || a.Size <= 0 || !strings.HasSuffix(a.Path, "/gr4_v120.zip") || !strings.HasPrefix(a.Path, "/") {
+	if a.Version != "1.21" || len(a.SHA256) != 64 || a.Size <= 0 || !strings.HasSuffix(a.Path, "/gr4_v121.zip") || !strings.HasPrefix(a.Path, "/") {
 		t.Errorf("%+v", a)
 	}
 	b := Earlier
@@ -411,6 +411,7 @@ func TestSupported(t *testing.T) {
 
 func TestOthers(t *testing.T) {
 	seen := map[string]string{}
+	pins := map[string][]string{}
 	for _, a := range Others {
 		if len(a.SHA256) != 64 || a.Size <= 0 || !strings.HasPrefix(a.Path, "/") || a.Page == "" {
 			t.Errorf("%+v", a)
@@ -420,11 +421,12 @@ func TestOthers(t *testing.T) {
 				t.Errorf("unknown model %q", m)
 			}
 			seen[m] = a.Version
+			pins[m] = append(pins[m], a.Version)
 		}
 	}
-	for m, v := range map[string]string{"MONO": "1.10", "GR3": "2.20", "GR3_HDF": "2.20", "GR3X": "1.70", "GR3X_HDF": "1.70"} {
-		if seen[m] != v {
-			t.Errorf("%s: pinned %q, want %s", m, seen[m], v)
+	for m, v := range map[string]string{"STANDARD": "1.20", "HDF": "1.20", "MONO": "1.11,1.10", "GR3": "2.21,2.20", "GR3_HDF": "2.21,2.20", "GR3X": "1.71,1.70", "GR3X_HDF": "1.71,1.70"} {
+		if got := strings.Join(pins[m], ","); got != v {
+			t.Errorf("%s: pinned %q, want %s", m, got, v)
 		}
 	}
 }

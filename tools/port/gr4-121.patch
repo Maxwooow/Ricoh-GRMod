@@ -1,0 +1,501 @@
+diff --git a/core/src/fw/gr4v121/aspect/adjslots.ts b/core/src/fw/gr4v121/aspect/adjslots.ts
+--- a/core/src/fw/gr4v121/aspect/adjslots.ts
++++ b/core/src/fw/gr4v121/aspect/adjslots.ts
+@@ -146,19 +146,19 @@
+ 
+ /** Official words of every place changed, checked first. */
+ const OFFICIAL: readonly (readonly [number, number])[] = [
+-  [0x53187c40, 0xe3a00fa5], [0x531c201c, 0xe2840c02], [0x531c2020, 0xe3a02078], [0x531c2068, 0xebff0a70],
++  [0x53187c40, 0xe3a00fa5], [0x531c201c, 0xe2840c02], [0x531c2020, 0xe3a02078], [0x531c2068, 0xebff08ee],
+   [0x531bdb98, 0xe2862c02], [0x531bdb9c, 0xe2863f8f], [0x531bdbc4, 0xe2860f9e], [0x531be8ac, 0xe3a0203c], [0x531be8c4, 0xe5c4220a],
+   [0x531c0b98, 0xe3a0303c], [0x531c0bb0, 0xe283cf82], [0x531c0bb4, 0xe5d3220a], [0x531c0c5c, 0xe3a0303c], [0x531c0c78, 0xe2822f82],
+   [0x531c0c80, 0xe2811f81], [0x531c0c98, 0xe5c6220a], [0x531c0ca8, 0xe5931204],
+   [0x531c0f7c, 0xe3a0403c], [0x531c0f88, 0xe5d4320a], [0x531c0f9c, 0xe3550005], [0x531c0fb4, 0xe5d43200], [0x531c0fbc, 0x15c40200],
+   [0x531c0fc0, 0x15c4720a], [0x531c0fd8, 0xe3a0403c], [0x531c0ff0, 0xe2804f82], [0x531c1058, 0xe3550005],
+   [0x531c1090, 0xe3a0c03c], [0x531c10a8, 0xe2832f82], [0x531c10b0, 0xe2811f81], [0x531bf0ec, 0xea00002f], [0x53dcb444, 0x531bebec],
+-  [0x531c157c, 0xe1a0c00d], [0x531c1580, 0xe30c3484], [0x531bf1fc, 0xe1a0c00d], [0x531bf200, 0xe92ddff0], [0x531bd684, 0xe1a0c00d],
++  [0x531c157c, 0xe1a0c00d], [0x531c1580, 0xe30d3c74], [0x531bf1fc, 0xe1a0c00d], [0x531bf200, 0xe92ddff0], [0x531bd684, 0xe1a0c00d],
+   [0x531bd688, 0xe3a02000], [0x531c1218, 0xe3a05005], [0x531c121c, 0xe3540004], [0x531c12d4, 0xe3a05005], [0x531c12e4, 0x03a04004],
+-  [0x531c0940, 0xe3a06005], [0x531c0948, 0xe3540004], [0x531c09c4, 0xeb03806c], [0x531c0a0c, 0xeb05fb37], [0x531c0aa0, 0xea05fb12],
++  [0x531c0940, 0xe3a06005], [0x531c0948, 0xe3540004], [0x531c09c4, 0xeb0380fe], [0x531c0a0c, 0xeb05fbc9], [0x531c0aa0, 0xea05fba4],
+   [0x531c0f28, 0xe30031a9], [0x531c0f30, 0xe3a0103c],
+   // the functions the module and the stubs call or go back into
+-  [0x531bf1b0, 0xe30a3a24], [0x531bf1a8, 0xe24bd018], [0x531bf1ac, 0xe89da870], [0x531c148c, MOV_IP_SP], [0x532a0dc4, 0xe5d0091e], [0x5333f938, MOV_IP_SP], [0x53184428, MOV_IP_SP],
++  [0x531bf1b0, 0xe30c30bc], [0x531bf1a8, 0xe24bd018], [0x531bf1ac, 0xe89da870], [0x531c148c, MOV_IP_SP], [0x532a0dc4, 0xe5d0091e], [0x5333f938, MOV_IP_SP], [0x53184428, MOV_IP_SP],
+   [0x531be840, MOV_IP_SP], [0x531bf0c0, MOV_IP_SP], [0x535ac19c, MOV_IP_SP], [0x53909154, MOV_IP_SP],
+ ];
+ 
+@@ -325,7 +325,7 @@
+  */
+ function moduleWithTable(code: Uint8Array, table: number): void {
+   const v = new DataView(code.buffer, code.byteOffset, code.byteLength);
+-  const sites: readonly (readonly [number, number])[] = [[68, 0xe3540014], [172, 0xe3091e38], [176, 0xe34513dc], [416, 0xe3091e38], [420, 0xe34513dc]];
++  const sites: readonly (readonly [number, number])[] = [[68, 0xe3540014], [172, 0xe30b14d0], [176, 0xe34513dc], [416, 0xe30b14d0], [420, 0xe34513dc]]; // movw/movt r1, FUNCTION_TABLE + 0x3c (1.20: 0x53dc9e38)
+   for (const [at, word] of sites) if (v.getUint32(at, true) !== word) fail('internal', 'ADJ slots: the module is not the one expected');
+   const member = table + 0x3c;
+   v.setUint32(68, 0xe3540015, true);
+diff --git a/core/src/fw/gr4v121/aspect/build.ts b/core/src/fw/gr4v121/aspect/build.ts
+--- a/core/src/fw/gr4v121/aspect/build.ts
++++ b/core/src/fw/gr4v121/aspect/build.ts
+@@ -50,7 +50,7 @@
+ import type { ShutdownPictureSpec } from './shutdown';
+ 
+ export const BASE = 0x53000000;
+-export const OFFICIAL_RTOS_LENGTH = 0x140b600;
++export const OFFICIAL_RTOS_LENGTH = 0x140ce00;
+ export const OFFICIAL_ICONBIN_LENGTH = 0xf0f0e0;
+ /** The appended area must stay below the address where the firmware's RAM starts. */
+ export const APPEND_LIMIT = 0x55000000;
+@@ -924,7 +924,7 @@
+ function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
+   const priorSave = branchTarget(0x533f3f9c, patch.word(0x533f3f9c));
+   const priorLoad = branchTarget(0x533f3b7c, patch.word(0x533f3b7c));
+-  expectWord(patch, 0x532ae72c, 0xebfe49f0); // bl 0x53240cac
++  expectWord(patch, 0x532ae72c, 0xebfe495e); // bl 0x53240cac
+   expectWord(patch, 0x5381e56c, 0xe1a0c00d);
+   // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
+   const rects: Uint8Array[] = [];
+diff --git a/core/src/fw/gr4v121/aspect/datestamp.ts b/core/src/fw/gr4v121/aspect/datestamp.ts
+--- a/core/src/fw/gr4v121/aspect/datestamp.ts
++++ b/core/src/fw/gr4v121/aspect/datestamp.ts
+@@ -204,7 +204,7 @@
+   expectWord(patch, JPEG_EXECUTE, 0xe1a0c00d); // mov ip, sp
+   expectWord(patch, JPEG_EXECUTE + 4, 0xe92ddff0); // push {r4-r12, lr, pc}
+   expectWord(patch, JPEG_EXECUTE + 0x18, 0xe5914008); // ldr r4, [r1, #8]  (the configuration)
+-  expectWord(patch, CACHE, 0xe30206c4); // movw r0, #0x26c4 (the cache object; 1.11 0x553a09c4)
++  expectWord(patch, CACHE, 0xe30206cc); // movw r0, #0x26c4 (the cache object; 1.11 0x553a09c4)
+   expectWord(patch, CACHE_CLEAN, 0xe1a00001);
+   expectWord(patch, CACHE_FLUSH_FOR_READ, 0xe1a0c00d);
+   expectWord(patch, GET_TIME, 0xe5d03014); // ldrb r3, [r0, #0x14]
+@@ -250,7 +250,7 @@
+   expectWord(patch, 0x53782538, 0xe5903000); // ldr r3, [r0]
+   expectWord(patch, 0x5378253c, 0xe5d300d8); // ldrb r0, [r3, #0xd8]
+   expectWord(patch, 0x5377be68, 0xe5950518); // ldr r0, [r5, #0x518]
+-  expectWord(patch, 0x53750a78, 0xe30b029c); // movw r0, #0xb29c (the singleton the direction is read through)
++  expectWord(patch, 0x53750a78, 0xe30b02a4); // movw r0, #0xb29c (the singleton the direction is read through)
+   const stub = patch.append((at) => assembleWords(
+     `push {r0, r1}
+      movw r0, #${lo(LOOK_STASH)}; movt r0, #${hi(LOOK_STASH)}; ldr r0, [r0]
+diff --git a/core/src/fw/gr4v121/aspect/guard.ts b/core/src/fw/gr4v121/aspect/guard.ts
+--- a/core/src/fw/gr4v121/aspect/guard.ts
++++ b/core/src/fw/gr4v121/aspect/guard.ts
+@@ -149,7 +149,7 @@
+   const recallWord = p.word(RECALL);
+   if (recallWord >>> 24 !== 0xeb) fail('unexpected-layout', 'user-mode recall is not a call');
+   const priorRecall = branchTarget(RECALL, recallWord);
+-  if (priorRecall === RECALL_NATIVE) expectWord(p, RECALL, 0xebfe49f0); // bl 0x53240CAC
++  if (priorRecall === RECALL_NATIVE) expectWord(p, RECALL, 0xebfe495e); // bl 0x53240CAC
+ 
+   const fix = p.append((a) => assembleWords(fixSource(o), a), 16);
+   // fix_mode(mode): the ten snapshots at mode + 4.
+diff --git a/core/src/fw/gr4v121/aspect/halation-ui.ts b/core/src/fw/gr4v121/aspect/halation-ui.ts
+--- a/core/src/fw/gr4v121/aspect/halation-ui.ts
++++ b/core/src/fw/gr4v121/aspect/halation-ui.ts
+@@ -170,17 +170,17 @@
+   // Slider: Grain Effect's Off / On slider (0x531CA638; its default, Grain off, is Off).
+   hook(p, 0x531c9654, 0xe1a0c00d, `ldrb r1,[r0,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;bne #0x531ca638;mov ip,sp;b #0x531c9658`, 'halation: Off / On slider');
+   // Current slider position (r5 the controller): Off / On.
+-  hook(p, 0x531cc87c, 0xeb080003,
++  hook(p, 0x531cc87c, 0xeb08009b,
+     `bl #${SHOOT_CUR};push {r0,r1};ldrb r1,[r5,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;pop {r0,r1};beq tone
+      mov r1,#0;bl #${field};mov r4,r0;b #0x531cc7a4
+      tone:bl #0x531c825c;mov r4,r0;b #0x531cc7a4`, 'halation: slider position Off / On');
+   // The row's value text (r7 the controller, r0 object, r1 buffer): Off / On as Grain Effect's.
+-  hook(p, 0x531cb43c, 0xeb077df6,
++  hook(p, 0x531cb43c, 0xeb077ea0,
+     `push {r0,r1};ldrb r1,[r7,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;pop {r0,r1};beq tone
+      push {r0,r1};bl #${SHOOT_CUR};mov r1,#0;bl #${field};mov r2,r0;pop {r0,r1};bl #${ON_OFF_TEXT};b #0x531cb440
+      tone:bl #0x533aaec4;b #0x531cb440`, 'halation: row text Off / On');
+   // Setter (r4 controller, r6 slider position, r0 settings): switch on / off, keep the rest.
+-  hook(p, 0x531cd22c, 0xe3053524,
++  hook(p, 0x531cd22c, 0xe3063bc4,
+     `push {r0,r1};ldrb r1,[r4,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;pop {r0,r1};beq tone
+      push {r0,r1};bl #${SHOOT_CUR};mov r1,#0;mov r2,r6;bl #${put};mov r1,r0;pop {r0,r2};bl #${SHOOT_SET};b #0x531cd23c
+      tone:${addr('r3', 0x53de6bc4)};ldrb r1,[r3,r6];bl #${SHOOT_SET};b #0x531cd23c`, 'halation: switch on / off');
+@@ -215,32 +215,32 @@
+   // ---------------------------------------------------------------- shooting: the submenu
+   submenu(p, o, field, put, {
+     title: 0x531cdb80, subtitle: 0x531ce2d0,
+-    icon0: 0x531ce31c, text0: [0x531ce334, 0xeb077458], icon1: 0x531ce3a8, text1: [0x531ce3c0, 0xeb077463],
+-    default0: [0x531cdef8, 0xeb083b9e], scale0: 0x531cdf14, default1: [0x531ce044, 0xeb083d32], scale1: 0x531ce060, positions1: 0x531ce084,
+-    current0: [0x531ce284, 0xeb08041d, 0x531ce288], current1: [0x531ce268, 0xeb08056e, 0x531ce26c],
+-    setter0: [0x531ce5dc, 0xeb07e4b0, 0x531ce5e0], setter1: [0x531ce5bc, 0xeb07e4cc, 0x531ce5c0],
++    icon0: 0x531ce31c, text0: [0x531ce334, 0xeb077502], icon1: 0x531ce3a8, text1: [0x531ce3c0, 0xeb07750d],
++    default0: [0x531cdef8, 0xeb083c36], scale0: 0x531cdf14, default1: [0x531ce044, 0xeb083dca], scale1: 0x531ce060, positions1: 0x531ce084,
++    current0: [0x531ce284, 0xeb0804b5, 0x531ce288], current1: [0x531ce268, 0xeb080606, 0x531ce26c],
++    setter0: [0x531ce5dc, 0xeb07e548, 0x531ce5e0], setter1: [0x531ce5bc, 0xeb07e564, 0x531ce5c0],
+     cur: `bl #${SHOOT_CUR}`, set: SHOOT_SET, setterRegs: 'r0',
+   });
+   // Backup on entry (after Grain Effect's own) and the restore on cancel.
+-  hook(p, 0x531ce504, 0xeb080933,
++  hook(p, 0x531ce504, 0xeb0809cb,
+     `bl #0x533d0c38;${flagTest};beq done;bl #${SHOOT_CUR};${addr('r1', HAL_SAVE)};str r0,[r1];done:b #0x531ce508`, 'halation: keep the setting for cancel');
+-  hook(p, 0x531cd8d0, 0xeb080c9a,
++  hook(p, 0x531cd8d0, 0xeb080d32,
+     `bl #0x533d0da0;${flagTest};beq done;bl #0x53240cac;bl #0x53241b54;${addr('r1', HAL_SAVE)};ldr r1,[r1];bl #${SHOOT_SET};done:b #0x531cd8d4`, 'halation: cancel puts the setting back');
+ 
+   // ---------------------------------------------------------------- RAW development: the main row
+   // Slider (entry, r0 controller): Grain Effect's Off / On slider 0x531A91A4.
+   hook(p, 0x531a819c, 0xe1a0c00d, `push {r0-r3,ip,lr};${RAW_LOOK_CALLS};${lookup('ip', 'r0', 'r1', o.raws)};cmp ip,#0;pop {r0-r3,ip,lr};bne #0x531a91a4;mov ip,sp;b #0x531a81a0`, 'halation: Off / On slider (RAW development)');
+   // Current slider position (r0 the model; r5 is set from r0 after).
+-  hook(p, 0x531ab1fc, 0xeb073eed,
++  hook(p, 0x531ab1fc, 0xeb07401f,
+     `${rawHal};mov r5,ip;bl #${RAW_GET};cmp r5,#0;beq tone;mov r1,#0;bl #${field};b #0x531ab204
+      tone:bl #0x531a69c4;b #0x531ab204`, 'halation: slider position Off / On (RAW development)');
+   // Row text (r0 object, r1 buffer, r2 value).
+-  hook(p, 0x531aa140, 0xeb080201,
++  hook(p, 0x531aa140, 0xeb080334,
+     `${rawHal};cmp ip,#0;beq tone
+      push {r0,r1};mov r0,r2;mov r1,#0;bl #${field};mov r2,r0;pop {r0,r1};bl #${ON_OFF_TEXT};b #0x531aa144
+      tone:bl #0x533aae18;b #0x531aa144`, 'halation: row text Off / On (RAW development)');
+   // Setter (r6 model, r5 slider position).
+-  hook(p, 0x531ab6b8, 0xe3053524,
++  hook(p, 0x531ab6b8, 0xe3063bc4,
+     `${rawHal};cmp ip,#0;beq tone
+      mov r0,r6;bl #${RAW_GET};mov r1,#0;mov r2,r5;bl #${put};mov r1,r0;mov r0,r6;bl #${RAW_SET};b #0x531ab6cc
+      tone:${addr('r3', 0x53de6bc4)};mov r0,r6;ldrb r1,[r3,r5];bl #${RAW_SET};b #0x531ab6cc`, 'halation: switch on / off (RAW development)');
+@@ -261,15 +261,15 @@
+   // ---------------------------------------------------------------- RAW development: the submenu
+   submenu(p, o, field, put, {
+     title: 0x531ac388, subtitle: 0x531acb10,
+-    icon0: 0x531acb5c, text0: null, icon1: 0x531acbfc, text1: [0x531acc28, 0xeb07f9a0],
+-    default0: [0x531ac738, 0xeb073d86], scale0: 0x531ac754, default1: [0x531ac880, 0xeb073d3e], scale1: 0x531ac89c, positions1: 0x531ac8c0,
+-    current0: [0x531acac4, 0xeb073a0b, 0x531acac8], current1: [0x531acaa0, 0xeb073a30, 0x531acaa4],
+-    setter0: [0x531ace0c, 0xeb0753a9, 0x531ace10], setter1: [0x531acdec, 0xeb075402, 0x531acdf0],
++    icon0: 0x531acb5c, text0: null, icon1: 0x531acbfc, text1: [0x531acc28, 0xeb07fad3],
++    default0: [0x531ac738, 0xeb073eb8], scale0: 0x531ac754, default1: [0x531ac880, 0xeb073e70], scale1: 0x531ac89c, positions1: 0x531ac8c0,
++    current0: [0x531acac4, 0xeb073b3d, 0x531acac8], current1: [0x531acaa0, 0xeb073b62, 0x531acaa4],
++    setter0: [0x531ace0c, 0xeb0754db, 0x531ace10], setter1: [0x531acdec, 0xeb075534, 0x531acdf0],
+     cur: `bl #${RAW_GET}`, set: RAW_SET, setterRegs: 'r0',
+-    rowValue0: [0x531acb70, 0xeb0739e0, 0x531acb74], rowValue1: [0x531acc10, 0xeb0739d4, 0x531acc14],
++    rowValue0: [0x531acb70, 0xeb073b12, 0x531acb74], rowValue1: [0x531acc10, 0xeb073b06, 0x531acc14],
+   });
+   // Cancel: Grain Effect's restore, then the halation setting kept at Fn.
+-  hook(p, 0x531ac1b4, 0xeb075734,
++  hook(p, 0x531ac1b4, 0xeb075866,
+     `bl #0x53382354;${flagTest};beq done;${RAW_MODEL};${addr('r1', HAL_SAVE)};ldr r1,[r1];bl #${RAW_SET};done:b #0x531ac1b8`, 'halation: cancel puts the setting back (RAW development)');
+ }
+ 
+@@ -360,6 +360,6 @@
+   hook(p, 0x531c825c, 0xe1a0c00d, 'cmp r0,#2;movhi r0,#0;mov ip,sp;b #0x531c8260', 'halation: Toning slider position 0..2');
+   hook(p, 0x531a69c4, 0xe1a0c00d, 'cmp r0,#2;movhi r0,#0;mov ip,sp;b #0x531a69c8', 'halation: Toning slider position 0..2 (RAW development)');
+   hook(p, 0x533aae18, 0xe3520001, 'cmp r2,#2;movhi r2,#0;cmp r2,#1;b #0x533aae1c', 'halation: Toning text 0..2');
+-  hook(p, 0x53804d44, 0xe3003e10, 'ldrb r0,[r1,#0x7a6];cmp r0,#3;blo native;cmp r0,#11;addls r0,r0,#1;popls {r4,pc};native:movw r3,#0xe10;b #0x53804d48', 'halation: maker note Toning 3..11 as codes 4..12');
++  hook(p, 0x53804d44, 0xe3003e18, 'ldrb r0,[r1,#0x7a6];cmp r0,#3;blo native;cmp r0,#11;addls r0,r0,#1;popls {r4,pc};native:movw r3,#0xe10;b #0x53804d48', 'halation: maker note Toning 3..11 as codes 4..12');
+   hook(p, 0x537fe804, 0xe3a03000, 'sub r3,r1,#1;cmp r3,#3;blo zero;cmp r3,#11;bls keep;zero:mov r3,#0;keep:b #0x537fe808', 'halation: maker note codes 4..12 as Toning 3..11');
+ }
+diff --git a/core/src/fw/gr4v121/aspect/shutdown.ts b/core/src/fw/gr4v121/aspect/shutdown.ts
+--- a/core/src/fw/gr4v121/aspect/shutdown.ts
++++ b/core/src/fw/gr4v121/aspect/shutdown.ts
+@@ -310,7 +310,7 @@
+   expectWord(p, MENU_TYPES_AT, 0xe54b3034); // strb r3, [fp, #-0x34]
+   expectWord(p, APDATA_BOUND_AT, 0xe58d9000);
+   // The factory's End Screen case: one object, cached at +0x180.
+-  for (const [at, w] of [[0x531885f0, 0xe5940180], [0x531885fc, 0xe3a00f5b], [0x53188600, 0xeb1dff4e], [0x53188608, 0xeb027476]] as const) expectWord(p, at, w);
++  for (const [at, w] of [[0x531885f0, 0xe5940180], [0x531885fc, 0xe3a00f5b], [0x53188600, 0xeb1e02d3], [0x53188608, 0xeb027657]] as const) expectWord(p, at, w);
+   expectWord(p, 0x53225f54, movWord(1, END_SCREEN_TITLE)); // its constructor's title
+   for (const f of [LIST_SHOWN, TITLE_SET, APP, 0x532415a0, 0x53241240, SUBMENU_LINE_TEXT, LINE_VALUE_ICON, LINE_TITLE]) expectWord(p, f, 0xe1a0c00d);
+   expectWord(p, 0x532a0e6c, 0xe5d00988); // ldrb r0, [r0, #0x988]
+diff --git a/core/src/fw/gr4v121/aspect/slots.ts b/core/src/fw/gr4v121/aspect/slots.ts
+--- a/core/src/fw/gr4v121/aspect/slots.ts
++++ b/core/src/fw/gr4v121/aspect/slots.ts
+@@ -787,7 +787,7 @@
+ function installPictureInfo(p: Patch, count: number): void {
+   const n = count - 1;
+   // Writer: r1 the maker note, r2 the frame record; tail-calls 0x5380EB40(note, 0, code).
+-  hook(p, 0x53805c70, 0xe3003e64, `ldrb ip,[r2,#0x79c];sub ip,ip,#${EXTRA_FIRST_STYLE};cmp ip,#${n};bhi native;mov r0,r1;mov r1,#0;movw r2,#${EXTRA_TONE_CODE};add r2,r2,ip;b #0x5380eb40;native:movw r3,#0xe64;b #0x53805c74`, 'added slots: maker note look');
++  hook(p, 0x53805c70, 0xe3003e6c, `ldrb ip,[r2,#0x79c];sub ip,ip,#${EXTRA_FIRST_STYLE};cmp ip,#${n};bhi native;mov r0,r1;mov r1,#0;movw r2,#${EXTRA_TONE_CODE};add r2,r2,ip;b #0x5380eb40;native:movw r3,#0xe64;b #0x53805c74`, 'added slots: maker note look');
+   // Parameter lists: the ones with Cinema Yellow get the added styles appended (new copies).
+   const calls: number[] = [];
+   for (let at = PARAM_LISTS[0]; at < PARAM_LISTS[1]; at += 4) if (p.word(at) === branchWord(at, LIST_ASSIGN, 14, true) || p.word(at) === branchWord(at, LIST_ASSIGN)) calls.push(at);
+diff --git a/core/src/fw/gr4v121/names.ts b/core/src/fw/gr4v121/names.ts
+--- a/core/src/fw/gr4v121/names.ts
++++ b/core/src/fw/gr4v121/names.ts
+@@ -1,5 +1,5 @@
+ /**
+- * UI strings of firmware 1.20 (texts renumbered from 1.11: 44 more).
++ * UI strings of firmware 1.21 (as 1.20: texts renumbered from 1.11, 44 more; the tables 0x1800 further, with the RAM image).
+  *
+  * There are 21 language tables in the RAM image, each 880 u32 pointers (1.11: 836). Each pointer is the VA of
+  * an 8-byte descriptor `{u32 count, u32 strVA}`; the string is UTF-16LE at strVA followed by a
+@@ -28,9 +28,9 @@
+ 
+ /** Start of each language's pointer table as an offset inside the RTOS section, in `LANGS` order. */
+ export const NAME_TABLE_RTOS_OFFSETS: readonly number[] = [
+-  0x13b5270, 0x13b6034, 0x13b6df8, 0x13b7bbc, 0x13b8980, 0x13b9744, 0x13ba508,
+-  0x13bb2cc, 0x13bc090, 0x13bce54, 0x13bdc18, 0x13be9dc, 0x13bf7a0, 0x13c0564,
+-  0x13c1328, 0x13c20ec, 0x13c2eb0, 0x13c3c74, 0x13c4a38, 0x13c57fc, 0x13c65c0,
++  0x13b6a70, 0x13b7834, 0x13b85f8, 0x13b93bc, 0x13ba180, 0x13baf44, 0x13bbd08,
++  0x13bcacc, 0x13bd890, 0x13be654, 0x13bf418, 0x13c01dc, 0x13c0fa0, 0x13c1d64,
++  0x13c2b28, 0x13c38ec, 0x13c46b0, 0x13c5474, 0x13c6238, 0x13c6ffc, 0x13c7dc0,
+ ];
+ export const NAME_TABLE_ENTRIES = 880;
+ 
+diff --git a/core/src/fw/gr4v121/profile.ts b/core/src/fw/gr4v121/profile.ts
+--- a/core/src/fw/gr4v121/profile.ts
++++ b/core/src/fw/gr4v121/profile.ts
+@@ -1,5 +1,5 @@
+ /**
+- * Everything that is specific to GR IV firmware 1.20 (fwdc248b.bin; GR IV Monochrome 1.10 is the same file): hashes, section offsets,
++ * Everything that is specific to GR IV firmware 1.21 (fwdc248b.bin; GR IV Monochrome 1.11 is the same file): hashes, section offsets,
+  * table addresses and the expected resolved addresses of the two editable Image Control slots.
+  *
+  * Addresses ("VA") are the run-time addresses used by the RTOS image; `foff()` maps them to
+@@ -7,15 +7,15 @@
+  */
+ import { Firmware, FirmwareError, sha256Hex } from '../container';
+ 
+-export const FIRMWARE_VERSION = '1.20';
+-export const OFFICIAL_SHA256 = '7563d7e462f0c53b6ab2fbab7cdfbbb57151a41192ee82f4f3a2108f9d77650d';
+-export const DECODED_SHA256 = 'f5cf55a48f65d55f4ebbd40bcd1d64d1ceca3c88432a2a4ceaa93fe1cad5fc3a';
+-export const OFFICIAL_SIZE = 38919904;
+-export const DECODED_SIZE = 69632740;
++export const FIRMWARE_VERSION = '1.21';
++export const OFFICIAL_SHA256 = 'bf4d6c35f6da1c16ed5f2943af570eab8fef326f7501a2b3ce5413fa55ec5c99';
++export const DECODED_SHA256 = '38352e38a626e14f599cb3df740b115b515a05a3c6bf45de55fb70b06bdd0bdf';
++export const OFFICIAL_SIZE = 38917288;
++export const DECODED_SIZE = 69638884;
+ 
+ /** RTOS section: data offset in the decoded payload, length, load address. */
+ export const RTOS_OFFSET = 0x17d28;
+-export const RTOS_LENGTH = 0x140b600;
++export const RTOS_LENGTH = 0x140ce00;
+ export const RTOS_VA = 0x53000000;
+ /** Initialised RAM: lives at RAM_VA at run time, stored in the RTOS image at RAM_IMAGE_VA. */
+ export const RAM_VA = 0x55000000;
+@@ -23,7 +23,7 @@
+ export const RAM_LENGTH = 0x58500;
+ 
+ /** ICONBIN section: data offset in the decoded payload and length. */
+-export const ICONBIN_OFFSET = 0x2eec088;
++export const ICONBIN_OFFSET = 0x2eed888;
+ export const ICONBIN_LENGTH = 0xf0f0e0;
+ 
+ /** Per-style pointer tables (38 entries x 3 variants; styles 34..37 are new in 1.20), all in the RAM image. */
+@@ -63,11 +63,11 @@
+ 
+ /** Checksum compensation word: 4 bytes inside the assert-only text "MakeParameter". */
+ export const COMP_VA = 0x5408183c;
+-export const COMP_OFFSET = 0x1097d74;
++export const COMP_OFFSET = 0x1099564;
+ const COMP_GUARD = 'MakeParameter\0';
+ 
+ /** 40x40 RGBA icon used only as a drawing template ("Nega": film frame with sprocket holes). */
+-export const NEGA_ICON_OFFSET = 0x301b288;
++export const NEGA_ICON_OFFSET = 0x301ca88;
+ export const ICON_BYTES = 40 * 40 * 4;
+ 
+ export type SlotId = 'CY' | 'CG';
+@@ -83,8 +83,8 @@
+ }
+ 
+ export const SLOTS: readonly SlotDef[] = [
+-  { id: 'CY', toneId: 0x12, nameIndex: 318, iconOffset: 0x30efa88, defaultName: 'Cinema (Yellow)' },
+-  { id: 'CG', toneId: 0x13, nameIndex: 319, iconOffset: 0x30f1388, defaultName: 'Cinema (Green)' },
++  { id: 'CY', toneId: 0x12, nameIndex: 318, iconOffset: 0x30f1288, defaultName: 'Cinema (Yellow)' },
++  { id: 'CG', toneId: 0x13, nameIndex: 319, iconOffset: 0x30f2b88, defaultName: 'Cinema (Green)' },
+ ];
+ 
+ export function slotDef(id: SlotId): SlotDef {
+@@ -200,16 +200,16 @@
+ }
+ 
+ /**
+- * Accept only the official 1.20 file. Throws `FirmwareError('unsupported-firmware')` unless the
++ * Accept only the official 1.21 file. Throws `FirmwareError('unsupported-firmware')` unless the
+  * file's SHA-256 is `OFFICIAL_SHA256`; then parses it and also asserts the decoded SHA-256.
+  */
+ export async function openOfficial(raw: Uint8Array): Promise<{ fw: Firmware; decoded: Uint8Array }> {
+   if (raw.length !== OFFICIAL_SIZE || (await sha256Hex(raw)) !== OFFICIAL_SHA256) {
+-    throw new FirmwareError('unsupported-firmware', 'this is not the official GR IV firmware 1.20 file (fwdc248b.bin)');
++    throw new FirmwareError('unsupported-firmware', 'this is not the official GR IV firmware 1.21 file (fwdc248b.bin)');
+   }
+   const fw = new Firmware(raw);
+   if (fw.decoded.length !== DECODED_SIZE || (await sha256Hex(fw.decoded)) !== DECODED_SHA256) {
+-    throw new FirmwareError('unsupported-firmware', 'decoded payload does not match firmware 1.20');
++    throw new FirmwareError('unsupported-firmware', 'decoded payload does not match firmware 1.21');
+   }
+   return { fw, decoded: fw.decoded };
+ }
+diff --git a/tools/gr4v121/adjslots/check.py b/tools/gr4v121/adjslots/check.py
+--- a/tools/gr4v121/adjslots/check.py
++++ b/tools/gr4v121/adjslots/check.py
+@@ -878,7 +878,7 @@
+     # each is a function the firmware itself calls (a bl to it exists in the official image)
+     off = dm.Image(d / 'official.rtos')
+     called = set()
+-    for o in range(0, len(off.R) // 4 * 4, 4):   # the official RTOS (1.20: 0x140b600 bytes)
++    for o in range(0, len(off.R) // 4 * 4, 4):   # the official RTOS (1.20: 0x140ce00 bytes)
+         x = struct.unpack_from('<I', off.R, o)[0]
+         if (x >> 24) in (0xeb, 0xea):
+             called.add(0x53000000 + o + 8 + (((x & 0xffffff) ^ 0x800000) - 0x800000) * 4)
+diff --git a/tools/gr4v121/aspect/boot_checks.py b/tools/gr4v121/aspect/boot_checks.py
+--- a/tools/gr4v121/aspect/boot_checks.py
++++ b/tools/gr4v121/aspect/boot_checks.py
+@@ -25,7 +25,7 @@
+ from unicorn import arm_const as reg
+ 
+ BASE = 0x53000000
+-OFFICIAL_LEN = 0x140B600
++OFFICIAL_LEN = 0x140CE00
+ RAM, RAM_SRC, RAM_LEN = 0x55000000, 0x543B4900, 0x58500
+ # Fake data regions. Their addresses are chosen so that no byte, half-word or word of a pointer
+ # into them can be mistaken for an added ratio's identity (7..14) or a small enum.
+diff --git a/tools/gr4v121/aspect/common.py b/tools/gr4v121/aspect/common.py
+--- a/tools/gr4v121/aspect/common.py
++++ b/tools/gr4v121/aspect/common.py
+@@ -7,7 +7,11 @@
+ (b) expected results for the tests. They need:
+ 
+   GR_CUSTOM_TOOL_120  path of a gr-custom-tool checkout able to read 1.20 (commit 258d745)
+-  GRMOD_OFFICIAL_121  path of the official fwdc248b.bin (1.20)
++  GRMOD_OFFICIAL_121  path of the official fwdc248b.bin (1.21)
++  GRMOD_OFFICIAL_121_SECTIONS  prefix of the official file's decoded RTOS and ICONBIN (PREFIX.rtos,
++                      PREFIX.icon): the reference (258d745) cannot read 1.21, so the checks that only
++                      need the official image take it from there; what needs the reference itself
++                      (its planner, its builds) is 1.20's only
+   clang / ld.lld / llvm-objcopy / llvm-nm with ARM support, Python packages unicorn and Pillow
+ """
+ import os
+@@ -31,13 +35,18 @@
+ 
+ def image():
+     if 'image' not in _cache:
+-        _cache['image'] = load_image(OFFICIAL)
+-        _cache['crops'] = read_crops(_cache['image'].rtos)
++        prefix = os.environ.get('GRMOD_OFFICIAL_121_SECTIONS')
++        if prefix:
++            from types import SimpleNamespace
++            _cache['image'] = SimpleNamespace(rtos=open(prefix + '.rtos', 'rb').read(), icon_bytes=open(prefix + '.icon', 'rb').read())
++        else:
++            _cache['image'] = load_image(OFFICIAL)
+     return _cache['image']
+ 
+ 
+ def official_crops():
+-    image()
++    if 'crops' not in _cache:
++        _cache['crops'] = read_crops(image().rtos)
+     return _cache['crops']
+ 
+ 
+diff --git a/tools/gr4v121/aspect/gen_oracle.py b/tools/gr4v121/aspect/gen_oracle.py
+--- a/tools/gr4v121/aspect/gen_oracle.py
++++ b/tools/gr4v121/aspect/gen_oracle.py
+@@ -24,7 +24,7 @@
+ import common
+ 
+ OUT = Path(__file__).resolve().parent / 'out'
+-OFFICIAL_RTOS = 0x140B600
++OFFICIAL_RTOS = 0x140CE00
+ 
+ 
+ def screens():
+diff --git a/tools/gr4v121/aspect/playback_check.py b/tools/gr4v121/aspect/playback_check.py
+--- a/tools/gr4v121/aspect/playback_check.py
++++ b/tools/gr4v121/aspect/playback_check.py
+@@ -28,7 +28,7 @@
+ from gr4_editor.crops import read_crops
+ 
+ BASE = 0x53000000
+-OFFICIAL_LENGTH = 0x140B600
++OFFICIAL_LENGTH = 0x140CE00
+ DATA = (0x543B4900, 0x55000000, 0x58500)   # start-up copy: source, destination, length
+ STACK_TOP = 0x7FF00000
+ HEAP = 0x60000000
+diff --git a/tools/gr4v121/datestamp/menu_check.py b/tools/gr4v121/datestamp/menu_check.py
+--- a/tools/gr4v121/datestamp/menu_check.py
++++ b/tools/gr4v121/datestamp/menu_check.py
+@@ -41,7 +41,7 @@
+                                UC_ARM_REG_LR, UC_ARM_REG_PC, UC_ARM_REG_C1_C0_2, UC_ARM_REG_FPEXC)
+ 
+ BASE = 0x53000000
+-OFFICIAL_LEN = 0x140b600
++OFFICIAL_LEN = 0x140ce00
+ RAMVA, RAMIMG, RAMLEN = 0x55000000, 0x543b4900, 0x58500
+ B = 0x550832a8 + 4 + 0x94b
+ NEW_MENU, NEW_SWITCH, NEW_STYLE, NEW_ORIENT = 0x020001a0, 0x020001a1, 0x020001a2, 0x020001a5
+diff --git a/tools/gr4v121/directflash/check.py b/tools/gr4v121/directflash/check.py
+--- a/tools/gr4v121/directflash/check.py
++++ b/tools/gr4v121/directflash/check.py
+@@ -354,7 +354,7 @@
+ def check_exposure(img, gnb=0, high=0, keep=None, comp=None, tvb=0):
+     """gnb: byte 0x99A; high: bits 1..7 of byte 0x99B, ORed into every situation's byte; tvb: byte 0x109 (test 062)."""
+     wrapper = img.branch(CALL_SITE)
+-    check(wrapper != FLASH_PROGRAM and wrapper >= BASE + 0x140b600, 'the flash program call does not go to the wrapper')
++    check(wrapper != FLASH_PROGRAM and wrapper >= BASE + 0x140ce00, 'the flash program call does not go to the wrapper')
+     # The wrapper: push; mov r4,r0; bl flash program; mov r0,r4; movw/movt r1,ctx; pop; b module.
+     check(img.branch(wrapper + 8) == FLASH_PROGRAM, 'the wrapper does not call the flash program first')
+     ctx = img.movw_movt(wrapper + 16)
+@@ -530,9 +530,9 @@
+             if struct.unpack_from('<4I', img.R, at) == (0x10000, 0x84, 0, struct.unpack_from('<I', img.R, at + 12)[0]):
+                 draw = struct.unpack_from('<I', img.R, at + 0x14)[0]
+                 count = struct.unpack_from('<I', img.R, at + 0x0c)[0]
+-                if count >= BASE + 0x140b600 and img.u32(count) == 0xe3a00000 | L['fixed'] and img.u32(count + 4) == 0xe2800001:
++                if count >= BASE + 0x140ce00 and img.u32(count) == 0xe3a00000 | L['fixed'] and img.u32(count + 4) == 0xe2800001:
+                     found = BASE + at
+-                    if at >= 0x140b600:
++                    if at >= 0x140ce00:
+                         break
+         out.append(found)
+     return out
+@@ -551,7 +551,7 @@
+     for name, rec, h in sets:
+         for slot, off in h['slots'].items():
+             got = img.u32(rec + off)
+-            check(got != h['official'][slot] and got >= BASE + 0x140b600, f'{name}: {slot} handler not replaced')
++            check(got != h['official'][slot] and got >= BASE + 0x140ce00, f'{name}: {slot} handler not replaced')
+             e.stubs[h['official'][slot]] = (f'official {slot}', 0x55)
+         handler = {slot: img.u32(rec + off) for slot, off in h['slots'].items()}
+         this = 0x70004000
+diff --git a/tools/gr4v121/directflash/settings_check.py b/tools/gr4v121/directflash/settings_check.py
+--- a/tools/gr4v121/directflash/settings_check.py
++++ b/tools/gr4v121/directflash/settings_check.py
+@@ -41,7 +41,7 @@
+ failures = dm.failures
+ check = dm.check
+ BASE = 0x53000000
+-OFFICIAL_LEN = 0x140b600
++OFFICIAL_LEN = 0x140ce00
+ CURRENT = 0x550832a8
+ BYTE = CURRENT + 4 + 0x99b
+ GN_BYTE = CURRENT + 4 + 0x99a
+diff --git a/tools/gr4v121/softfocus/check.py b/tools/gr4v121/softfocus/check.py
+--- a/tools/gr4v121/softfocus/check.py
++++ b/tools/gr4v121/softfocus/check.py
+@@ -16,7 +16,7 @@
+ import re as _re
+ from capstone import *
+ BASE=0x53000000
+-R=open(sys.argv[1],'rb').read()[:0x140b600]
++R=open(sys.argv[1],'rb').read()[:0x140ce00]
+ RAMVA=0x55000000; RAMIMG=0x543b4900; RAMLEN=0x58500
+ RAM=R[RAMIMG-BASE:RAMIMG-BASE+RAMLEN]
+ md=Cs(CS_ARCH_ARM, CS_MODE_ARM); md.detail=False
+@@ -105,7 +105,7 @@
+         out.append(s)
+         if len(out)>=n: break
+     return '\n'.join(out)
+-LANGT=BASE+0x13b5270
++LANGT=BASE+0x13b6a70
+ def lang_str(t,i):
+     p=u32(LANGT+t*0xdc4+i*4)
+     if p is None or rd(p,8) is None: return None
+@@ -141,7 +141,7 @@
+ 
+ # ---- checks
+ RT=open(sys.argv[1] if len(sys.argv)>1 else 'sf_rtos.bin','rb').read()
+-OFF=RT[:0x140b600]
++OFF=RT[:0x140ce00]
+ OFFICIAL=open(sys.argv[2] if len(sys.argv)>2 else 'rtos.bin','rb').read()
+ def mk():
+     mu=make(RT)
+@@ -221,7 +221,7 @@
+ _rt=bytearray(RT[tbl-BASE:tbl+21*0x5c-BASE])
+ for o in (0x10,0x18,0x20,0x28,0x30):
+     at=0x09*0x5c+o
+-    if struct.unpack_from('<I',_rt,at)[0]>=0x53000000+0x140b600: _rt[at:at+4]=OFFICIAL[tbl-BASE+at:tbl-BASE+at+4]
++    if struct.unpack_from('<I',_rt,at)[0]>=0x53000000+0x140ce00: _rt[at:at+4]=OFFICIAL[tbl-BASE+at:tbl-BASE+at+4]
+ _rt=bytes(_rt); _off=(0x0a*0x5c,0x0b*0x5c)
+ check('the other 20 records unchanged', _rt[:_off[0]]+_rt[_off[1]:]==OFFICIAL[tbl-BASE:rec-BASE]+OFFICIAL[rec+0x5c-BASE:tbl+21*0x5c-BASE], True)
+ for v in range(4):

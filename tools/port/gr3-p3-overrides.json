@@ -1,0 +1,282 @@
+{
+ "0x53000000": {
+  "new": "0x53000000",
+  "reason": "RTOS load address"
+ },
+ "0x53000460": {
+  "new": "0x53000460",
+  "reason": "start-up zero fill: the literal of its end, same place (its value is 0x55803ef4 in 2.21)"
+ },
+ "0x53002030": {
+  "new": "0x53002030",
+  "reason": "version block: project word, same place and value"
+ },
+ "0x53002034": {
+  "new": "0x53002034",
+  "reason": "version block: product word, same place and value"
+ },
+ "0x53170048": {
+  "new": "0x531710c4",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation"
+ },
+ "0x53170060": {
+  "new": "0x531710dc",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [4, 5, 6, 8] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x531b05ec": {
+  "new": "0x531b1544",
+  "reason": "aligned in 2.21 (aligned + refs 0x531b1544x1); +-8 words equal up to relocation"
+ },
+ "0x531b11a0": {
+  "new": "0x531b20f8",
+  "reason": "aligned in 2.21 (aligned + refs 0x531b2120x1, 0x531b20f8x1); +-8 words equal up to relocation"
+ },
+ "0x531b9718": {
+  "new": "0x531ba66c",
+  "reason": "aligned in 2.21 (aligned + refs 0x531ba66cx1); +-8 words equal up to relocation except at [6] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x531c5a28": {
+  "new": "0x531c698c",
+  "reason": "aligned in 2.21 (aligned + refs 0x531c698cx1); +-8 words equal up to relocation except at [6] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x531c6784": {
+  "new": "0x531c770c",
+  "reason": "submenu constructor: `mov r2,#0x12` in 2.21 (18 submenu records; 2.20: 0x11), the rest of the window equal up to relocation"
+ },
+ "0x5320a0c4": {
+  "new": "0x5320c3c4",
+  "reason": "aligned in 2.21 (aligned + refs 0x5320b044x1, 0x5320c3c4x1); +-8 words equal up to relocation"
+ },
+ "0x53221b24": {
+  "new": "0x532240dc",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [1, 6] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x5327a0dc": {
+  "new": "0x5327c78c",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation"
+ },
+ "0x5327a0e0": {
+  "new": "0x5327c790",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation"
+ },
+ "0x5327a0f0": {
+  "new": "0x5327c7a0",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [6] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x5328a010": {
+  "new": "0x5328c6c0",
+  "reason": "aligned in 2.21 (aligned + refs 0x5328c6c0x2); +-8 words equal up to relocation except at [5] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x533967c4": {
+  "new": "0x53399108",
+  "reason": "ADJ text lookup bound: 2.21 compares with an immediate (`cmpls r7,#0x318`, 793 texts) instead of `movw r3,#0x311`; adj.ts patches that compare"
+ },
+ "0x533967d8": {
+  "new": "0x53399114",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [-8, -7, -6, -5, -4, -3, -2] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x533967e0": {
+  "new": "0x5339911c",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [-8, -7, -6, -5, -4] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x533971dc": {
+  "new": "0x53399b18",
+  "reason": "ADJ text lookup bound (second reader): `cmp r7,#0x318` in 2.21 (2.20 `movw r3,#0x311`)"
+ },
+ "0x533971ec": {
+  "new": "0x53399b24",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [-8, -7, -6, -4, -3] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x533971f0": {
+  "new": "0x53399b28",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [-8, -7, -5, -4] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x5362a440": {
+  "new": "0x5362d22c",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [-3] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x536bd928": {
+  "new": "0x536c0f2c",
+  "reason": "aligned in 2.21 (aligned + refs 0x536c0f2cx103); +-8 words equal up to relocation except at [-8, -7, -6, -5, -4] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x5381fe24": {
+  "new": "0x53824214",
+  "reason": "aligned in 2.21 (aligned + refs 0x53824214x4); +-8 words equal up to relocation except at [8] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x5381fe74": {
+  "new": "0x53824264",
+  "reason": "aligned in 2.21 (aligned + refs 0x53824264x2); +-8 words equal up to relocation except at [-8, -2] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x53b395a0": {
+  "new": "0x53b3e330",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation"
+ },
+ "0x53b5b950": {
+  "new": "0x53b60b80",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation"
+ },
+ "0x53c09cb8": {
+  "new": "0x53c121d0",
+  "reason": "aligned in 2.21 (aligned + refs 0x53c121d0x3); +-8 words equal up to relocation"
+ },
+ "0x53c0a6e8": {
+  "new": "0x53c12c00",
+  "reason": "aligned in 2.21 (aligned + refs 0x53c12c00x2); +-8 words equal up to relocation"
+ },
+ "0x53d60fb8": {
+  "new": "0x53d6989c",
+  "reason": "aligned in 2.21 (aligned + refs 0x53d6989cx2); +-8 words equal up to relocation except at [-8, -7, -6, -5, -4, -3, -2, -1] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x53d61b04": {
+  "new": "0x53d6a57c",
+  "reason": "aligned in 2.21 (aligned + refs 0x53d6a57cx1); +-8 words equal up to relocation except at [-8, -7, -6, -5, -4, -3, -2, -1] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x5407b640": {
+  "new": "0x54084640",
+  "reason": "aligned in 2.21 (aligned + refs 0x54084640x1, 0x54084608x1); +-8 words equal up to relocation except at [-8, -7, -6, -5, -4, -3, -2, -1] (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x5407d508": {
+  "new": "0x54086508",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation"
+ },
+ "0x5407e1b8": {
+  "new": "0x540871b8",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation"
+ },
+ "0x540928f0": {
+  "new": "0x5409bb3c",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation"
+ },
+ "0x54093138": {
+  "new": "0x5409c384",
+  "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation"
+ },
+ "0x54100000": {
+  "new": "0x54100000",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ },
+ "0x543f0000": {
+  "new": "0x543f0000",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ },
+ "0x543fc1d0": {
+  "new": "0x543fc1d0",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ },
+ "0x54400000": {
+  "new": "0x54400000",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ },
+ "0x55001ec8": {
+  "new": "0x55001ec8",
+  "reason": "initialised RAM (RAM image aligned)"
+ },
+ "0x55002b78": {
+  "new": "0x55002b78",
+  "reason": "initialised RAM (RAM image aligned + refs 0x55002b78x1)"
+ },
+ "0x55018cf8": {
+  "new": "0x55018f48",
+  "reason": "initialised RAM (RAM image aligned + refs 0x55018f48x1)"
+ },
+ "0x55018d9c": {
+  "new": "0x55018fec",
+  "reason": "initialised RAM (RAM image aligned + refs 0x55018fecx1)"
+ },
+ "0x55018e54": {
+  "new": "0x550190a4",
+  "reason": "initialised RAM (RAM image aligned + refs 0x550190a4x1)"
+ },
+ "0x5503b000": {
+  "new": "0x5503b000",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ },
+ "0x55060000": {
+  "new": "0x55060000",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ },
+ "0x55063f34": {
+  "new": "0x55064204",
+  "reason": "user settings object pointer: the settings object 0x55063f30 is 0x55064200 at every reference in 2.21 (3 of 3)"
+ },
+ "0x55357000": {
+  "new": "0x55357000",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ },
+ "0x5536d000": {
+  "new": "0x5536d000",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ },
+ "0x5536d1b4": {
+  "new": "0x5536d484",
+  "reason": "zero-initialised RAM: the 2.21 references name 0x5536d484"
+ },
+ "0x5536d4b8": {
+  "new": "0x5536d78c",
+  "reason": "zero-initialised RAM: the 2.21 references name 0x5536d78c"
+ },
+ "0x55550000": {
+  "new": "0x55550000",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ },
+ "0x55800000": {
+  "new": "0x55800000",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ },
+ "0x55803c34": {
+  "new": "0x55803ef4",
+  "reason": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout"
+ },
+ "0x55803c38": {
+  "new": "0x55803ef8",
+  "reason": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout"
+ },
+ "0x55803c3c": {
+  "new": "0x55803efc",
+  "reason": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout"
+ },
+ "0x55803c3d": {
+  "new": "0x55803efd",
+  "reason": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout"
+ },
+ "0x55803c3e": {
+  "new": "0x55803efe",
+  "reason": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout"
+ },
+ "0x55803c44": {
+  "new": "0x55803f04",
+  "reason": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout"
+ },
+ "0x55803c48": {
+  "new": "0x55803f08",
+  "reason": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout"
+ },
+ "0x55880000": {
+  "new": "0x55880000",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ },
+ "0x55890000": {
+  "new": "0x55890000",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ },
+ "0x558c0000": {
+  "new": "0x558c0000",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ },
+ "0x558c0100": {
+  "new": "0x558c0100",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ },
+ "0x558c0200": {
+  "new": "0x558c0200",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ },
+ "0x558c0f00": {
+  "new": "0x558c0f00",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ },
+ "0x55900000": {
+  "new": "0x55900000",
+  "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"
+ }
+}

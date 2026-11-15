@@ -1,7 +1,7 @@
 // Where the firmware comes from: a file the user picks, or the current official update fetched
 // from Ricoh's site. The program itself carries no firmware.
 import { useEffect, useRef, useState } from 'react';
-import { FIRMWARE_VERSION, FIRMWARE_VERSION_120, GR3_210, GR3_220, GR3X_160, GR3X_170 } from '@grmod/core';
+import { FIRMWARE_VERSION, FIRMWARE_VERSION_120, FIRMWARE_VERSION_121, GR3_210, GR3_220, GR3_221, GR3X_160, GR3X_170, GR3X_171 } from '@grmod/core';
 import type { CameraModel } from '@grmod/core';
 import { ChoiceSheet, FileButton, Ico, Segmented, useDismiss } from './components';
 import { isMobile } from './host-android';
@@ -61,13 +61,15 @@ export function FirmwareHero() {
 type Look = { state: 'loading' | 'none' | 'error' } | { state: 'ready'; rel: FirmwareRelease };
 
 /**
- * The official releases this program builds on, per model, newest first: each camera's current
- * one and the earlier one. The GR IV Monochrome's 1.10 is the GR IV 1.20 file (the same SHA-256).
+ * The official releases this program builds on, per model, newest first. The GR IV Monochrome's 1.11
+ * and 1.10 are the GR IV 1.21 and 1.20 files (the same SHA-256).
  */
+const GR4_RELEASES = [FIRMWARE_VERSION_121, FIRMWARE_VERSION_120, FIRMWARE_VERSION];
+const GR3_RELEASES = [GR3_221.version, GR3_220.version, GR3_210.version];
+const GR3X_RELEASES = [GR3X_171.version, GR3X_170.version, GR3X_160.version];
 const SUPPORTED: Record<CameraModel, readonly string[]> = {
-  STANDARD: [FIRMWARE_VERSION_120, FIRMWARE_VERSION], HDF: [FIRMWARE_VERSION_120, FIRMWARE_VERSION], MONO: ['1.10'],
-  GR3: [GR3_220.version, GR3_210.version], GR3_HDF: [GR3_220.version, GR3_210.version],
-  GR3X: [GR3X_170.version, GR3X_160.version], GR3X_HDF: [GR3X_170.version, GR3X_160.version],
+  STANDARD: GR4_RELEASES, HDF: GR4_RELEASES, MONO: ['1.11', '1.10'],
+  GR3: GR3_RELEASES, GR3_HDF: GR3_RELEASES, GR3X: GR3X_RELEASES, GR3X_HDF: GR3X_RELEASES,
 };
 
 /** The current official firmware of the chosen model on Ricoh's site; a press downloads and opens it. */
@@ -127,7 +129,7 @@ function OnlineDialog() {
     releases.push(rel);
   }
   const newerUnknown = !!latest && !known.includes(latest.version) && releases.some((r) => known.includes(r.version));
-  // The newer of the two known releases is the "new" one.
+  // The newest of the known releases is the "new" one.
   const newest = releases.filter((r) => known.includes(r.version)).map((r) => r.version).sort((x, y) => known.indexOf(x) - known.indexOf(y))[0];
   const start = async (rel: FirmwareRelease): Promise<void> => {
     if (!known.includes(rel.version) || progress) return;

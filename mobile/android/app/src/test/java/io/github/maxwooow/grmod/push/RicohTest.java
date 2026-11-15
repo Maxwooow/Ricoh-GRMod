@@ -31,7 +31,7 @@ public class RicohTest {
     @Test public void liveReleases() throws Exception {
         Ricoh r = new Ricoh(null);
         // every release GR Mod builds on is offered, beside what the site lists now
-        String[][] cases = {{"HDF", "1.20", "1.11"}, {"STANDARD", "1.20", "1.11"}, {"MONO", "1.10"}, {"GR3", "2.20", "2.10"}, {"GR3X_HDF", "1.70", "1.60"}};
+        String[][] cases = {{"HDF", "1.21", "1.20", "1.11"}, {"STANDARD", "1.21", "1.20", "1.11"}, {"MONO", "1.11", "1.10"}, {"GR3", "2.21", "2.20", "2.10"}, {"GR3X_HDF", "1.71", "1.70", "1.60"}};
         for (String[] c : cases) {
             JSONObject o;
             try { o = r.latestJson(c[0]); }

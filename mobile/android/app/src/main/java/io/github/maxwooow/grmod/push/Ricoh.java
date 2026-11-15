@@ -28,7 +28,8 @@ import java.util.zip.ZipInputStream;
  * The official firmware on RICOH IMAGING's site: a port of the desktop shell's package ricoh
  * (shell/internal/ricoh/ricoh.go) and of its /api/firmware/latest and /download (server/firmware.go).
  * The release is read from the site's pages every time; the releases GR Mod also builds on that are no longer
- * listed (GR IV 1.11, GR III 2.10, GR IIIx 1.60) are fetched by their fixed addresses. Every request stays on
+ * listed (GR IV 1.20 / 1.11, GR IV Monochrome 1.10, GR III 2.20 / 2.10, GR IIIx 1.70 / 1.60) are fetched by their
+ * fixed addresses. Every request stays on
  * the site's host.
  */
 public final class Ricoh {
@@ -77,7 +78,10 @@ public final class Ricoh {
         MODELS.put("MONO", "GR IV Monochrome");
         String gr4Page = "/english/support/digital/gr4_s.html", gr4Applies = "RICOH GR IV / RICOH GR IV HDF";
         List<Release> gr4 = new ArrayList<>();
-        // SHA-256 of the archives checked 2026-11-11 (the 1.20 archive holds fwdc248b.bin 7563d7e4…650d).
+        // SHA-256 of the archives checked 2026-11-14 (1.21 holds fwdc248b.bin bf4d6c35…5c99, the same file as
+        // GR IV Monochrome 1.11; 1.20 holds 7563d7e4…650d, the same file as Monochrome 1.10).
+        gr4.add(pin("GR IV", gr4Applies, "1.21", "2026/11/10", "gr4_v121.zip", 34697047L,
+                "ace9fc65f6e4fa3b1096d590ba4bddad4f4814e075a4d85a973cb943f166da73", gr4Page));
         gr4.add(pin("GR IV", gr4Applies, "1.20", "", "gr4_v120.zip", 34702809L,
                 "dcc1b6fb004f0d855bb46b30a529da894c7b717501276fec2d198b3d7eb76a59", gr4Page));
         gr4.add(pin("GR IV", gr4Applies, "1.11", "2026/02/13", "gr4_v111.zip", 34478368L,
@@ -85,11 +89,16 @@ public final class Ricoh {
         SUPPORTED.put("STANDARD", gr4);
         SUPPORTED.put("HDF", gr4);
         List<Release> mono = new ArrayList<>();
+        mono.add(pin("GR IV Monochrome", "RICOH GR IV Monochrome", "1.11", "2026/11/10", "gr4_mono_v111.zip", 34697047L,
+                "8f9aa64711384e5dcf12ce0fd1174f51c06aaee43b3651bbbe3a793703b71b44", "/english/support/digital/gr-4-mono_s.html"));
         mono.add(pin("GR IV Monochrome", "RICOH GR IV Monochrome", "1.10", "", "gr4_mono_v110.zip", 34702809L,
                 "bde05b3bf56a29c272284556d6795cb772eaccbbd0091d433fd52368d4d8af12", "/english/support/digital/gr-4-mono_s.html"));
         SUPPORTED.put("MONO", mono);
         String gr3Applies = "RICOH GR III / GR III Street Edition / GR III Diary Edition / GR III HDF", gr3Page = "/english/support/digital/gr3_s.html";
         List<Release> gr3 = new ArrayList<>();
+        // 2.21 holds fwdc239b.bin 7522c36b…4bd9, GR IIIx 1.71 fwdc243b.bin 7d7e9d81…edc9 (checked 2026-11-14).
+        gr3.add(pin("GR III", gr3Applies, "2.21", "2026/11/10", "gr3_v221.zip", 28611788L,
+                "39fff62978cbd2e98d93b9adf1c9e44c98cf9501dc977819ca05d6e78dda3ca4", gr3Page));
         gr3.add(pin("GR III", gr3Applies, "2.20", "", "gr3_v220.zip", 28599247L,
                 "7b19f9c03f2448c2b674fb919f6a86d22d6d83801521a9c1226a0e20cf0b5a2f", gr3Page));
         gr3.add(pin("GR III", gr3Applies, "2.10", "2025/10/23", "gr3_v210.zip", 0, null, gr3Page));
@@ -97,6 +106,8 @@ public final class Ricoh {
         SUPPORTED.put("GR3_HDF", gr3);
         String gr3xApplies = "RICOH GR IIIx / GR IIIx Urban Edition / GR IIIx HDF", gr3xPage = "/english/support/digital/gr3x_s.html";
         List<Release> gr3x = new ArrayList<>();
+        gr3x.add(pin("GR IIIx", gr3xApplies, "1.71", "2026/11/10", "gr3x_v171.zip", 28611733L,
+                "f379a37e19cc2bf5c390c857564a80bf80773c71b6da0c77de0a2d8b1f350011", gr3xPage));
         gr3x.add(pin("GR IIIx", gr3xApplies, "1.70", "", "gr3x_v170.zip", 28599250L,
                 "6a028e90b4f23c9e9af968b03bca5032b71f460be85fd2c49f4078366a71dc6d", gr3xPage));
         gr3x.add(pin("GR IIIx", gr3xApplies, "1.60", "2025/10/23", "gr3x_v160.zip", 0, null, gr3xPage));

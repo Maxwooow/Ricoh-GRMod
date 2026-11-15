@@ -4,9 +4,9 @@
 
 ## Original README archive
 
-A small tool (Windows, macOS, Android, iPhone and iPad) for the Ricoh GR IV / GR IV HDF (firmware 1.20 or 1.11), the GR IV Monochrome
-(firmware 1.10, the same file as GR IV 1.20), the GR III / GR III HDF (firmware 2.20 or 2.10) and the
-GR IIIx / GR IIIx HDF (firmware 1.70 or 1.60). Not a Ricoh product.
+A small tool (Windows, macOS, Android, iPhone and iPad) for the Ricoh GR IV / GR IV HDF (firmware 1.21, 1.20 or 1.11),
+the GR IV Monochrome (firmware 1.11 or 1.10, the same files as GR IV 1.21 and 1.20), the GR III / GR III HDF
+(firmware 2.21, 2.20 or 2.10) and the GR IIIx / GR IIIx HDF (firmware 1.71, 1.70 or 1.60). Not a Ricoh product.
 
 Downloads: the desktop app (Windows, macOS) and the Android app (APK) are on the
 [releases page](https://github.com/Maxwooow/Ricoh-GRMod/releases); the iPhone and iPad app is on the
@@ -18,6 +18,23 @@ saves the firmware to the device, or sends it to a GR IV over Bluetooth and Wi-F
   <img src="docs/images/mobile-overview-zh.jpg" width="48%" alt="GR Mod on iPhone, iPad and Android">
   <img src="docs/images/download-guide-zh.jpg" width="48%" alt="Download GR Mod for desktop and Android from GitHub, or for iPhone and iPad from the App Store">
 </p>
+
+0.8.15: Ricoh's November firmware (2026/11/10): GR IV 1.21 (GR IV Monochrome 1.11 is the same file),
+GR III 2.21 and GR IIIx 1.71, with every feature, beside the earlier releases. Both are generated ports
+(`tools/port/gr4-121.json`, `gr3-p3.json`, with their address maps, overrides and hand patches) of the
+1.20 / 2.20 programs to `core/src/fw/gr4v121` and `core/src/fw/gr3x171`.
+GR IV 1.21 is a stability release: the code moves by 0x1800 and screen ids from 0x04000012 up by one;
+texts, icons and the controller ids GR Mod uses are unchanged.
+GR III 2.21 and GR IIIx 1.71 (again one program) add Reset Settings by item: 7 texts at 669 (GR Mod's
+texts, appended after the official ones, move from 786.. to 793..), a submenu record (17) and controller
+ids from 0x125 up by 6 (the factory root compare is now 0x141, the HDF's 0x145). The text rows' bound
+is now a compare with an immediate, so the rows are padded to the next value an ARM immediate can
+hold (`gr3xTextBound`). BOOT differs only in one compare (#2000 to #16000).
+Checked by building the same recipes on both releases and comparing word by word up to the
+relocation (`tools/port/compare_gr4.mts`, `compare_builds.mts`, 10 GR III / IIIx recipes), the
+21 text rows record by record, the full GR III emulator validation (T6, 26 checks) and the GR IV
+emulator checks, which give the same results as on 1.20; test firmware 081 on the cameras.
+The download lists pin 1.21 / Monochrome 1.11 / 2.21 / 1.71 as well (archives checked 2026-11-14).
 
 0.8.13: one language setting. The camera language is no longer chosen on its own: it follows the app
 language (简体中文 → Simplified Chinese, English → English; following the system, the system's language

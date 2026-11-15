@@ -1,0 +1,266 @@
+{
+ "0x53000000": {
+  "new": "0x53000000",
+  "reason": "RTOS load address"
+ },
+ "0x53187c88": {
+  "new": "0x53187c40",
+  "reason": "aligned in 1.21 (aligned); +-8 words equal up to relocation except at [-6] words (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x53188530": {
+  "new": "0x53188890",
+  "reason": "aligned in 1.21 (aligned); +-8 words equal up to relocation except at [7] words (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x5318876c": {
+  "new": "0x531885f0",
+  "reason": "aligned in 1.21 (aligned + refs 0x531885f0x1); +-8 words equal up to relocation except at [-8, -7, -6, -5, -4, -3, -2] words (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x53188778": {
+  "new": "0x531885fc",
+  "reason": "aligned in 1.21 (aligned); +-8 words equal up to relocation except at [-8, -7, -6, -5, 7] words (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x5318877c": {
+  "new": "0x53188600",
+  "reason": "aligned in 1.21 (aligned); +-8 words equal up to relocation except at [-8, -7, -6, 6] words (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x53188784": {
+  "new": "0x53188608",
+  "reason": "aligned in 1.21 (aligned); +-8 words equal up to relocation except at [-8, 4, 7] words (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x531aae18": {
+  "new": "0x531ab1fc",
+  "reason": "aligned in 1.21 (aligned + refs 0x531ab1fcx1); +-8 words equal up to relocation"
+ },
+ "0x531aae20": {
+  "new": "0x531ab204",
+  "reason": "aligned in 1.21 (aligned); +-8 words equal up to relocation"
+ },
+ "0x531ab758": {
+  "new": "0x531abb3c",
+  "reason": "aligned in 1.21 (aligned); +-8 words equal up to relocation except at [7] words (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x531ab760": {
+  "new": "0x531abb44",
+  "reason": "aligned in 1.21 (aligned); +-8 words equal up to relocation except at [5] words (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x531ab76c": {
+  "new": "0x531abb50",
+  "reason": "aligned in 1.21 (aligned); +-8 words equal up to relocation except at [2] words (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x531cc274": {
+  "new": "0x531cc87c",
+  "reason": "aligned in 1.21 (aligned + refs 0x531cc87cx1); +-8 words equal up to relocation"
+ },
+ "0x532406a4": {
+  "new": "0x53240cac",
+  "reason": "aligned in 1.21 (aligned + refs 0x53240cacx23826, 0x53190b2cx1); +-8 words equal up to relocation"
+ },
+ "0x532560d0": {
+  "new": "0x532568c0",
+  "reason": "aligned in 1.21 (aligned + refs 0x532568c0x1); +-8 words equal up to relocation except at [8] words (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x532560ec": {
+  "new": "0x532568dc",
+  "reason": "aligned in 1.21 (aligned); +-8 words equal up to relocation except at [1, 4, 5, 6, 7, 8] words (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x53262324": {
+  "new": "0x53262b74",
+  "reason": "aligned in 1.21 (aligned + refs 0x53262b74x4); +-8 words equal up to relocation except at [-2] words (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x5326232c": {
+  "new": "0x53262b7c",
+  "reason": "aligned in 1.21 (aligned + refs 0x53262b7cx1); +-8 words equal up to relocation except at [-4] words (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x5337a1b8": {
+  "new": "0x5337aa64",
+  "reason": "aligned in 1.21 (aligned + refs 0x5337aa64x4, 0x5337aa5cx1); +-8 words equal up to relocation"
+ },
+ "0x533c666c": {
+  "new": "0x533c6ed4",
+  "reason": "aligned in 1.21 (aligned + refs 0x533c6ed4x2, 0x533c7c34x1); +-8 words equal up to relocation"
+ },
+ "0x53807d7c": {
+  "new": "0x53808ab4",
+  "reason": "aligned in 1.21 (aligned + refs 0x53808ab4x2); +-8 words equal up to relocation except at [5, 6, 7, 8] words (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x53938ef8": {
+  "new": "0x5393a4c0",
+  "reason": "aligned in 1.21 (aligned + refs 0x5393a4c0x2); +-8 words equal up to relocation except at [-8, -7, -6, -5, -4, -3, -2, -1] words (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x53dc9dac": {
+  "new": "0x53dcb444",
+  "reason": "aligned in 1.21 (aligned); +-8 words equal up to relocation"
+ },
+ "0x53dcb09c": {
+  "new": "0x53dcc734",
+  "reason": "aligned in 1.21 (aligned); +-8 words equal up to relocation"
+ },
+ "0x53de8374": {
+  "new": "0x53de9a0c",
+  "reason": "aligned in 1.21 (aligned + refs 0x53de9a0cx1); +-8 words equal up to relocation except at [7, 8] words (neighbouring code Ricoh changed; checked side by side)"
+ },
+ "0x53ece708": {
+  "new": "0x53ecfda0",
+  "reason": "aligned in 1.21 (aligned + refs 0x53ecfda0x3); +-8 words equal up to relocation"
+ },
+ "0x53ecf140": {
+  "new": "0x53ed07d8",
+  "reason": "aligned in 1.21 (aligned + refs 0x53ed07d8x2); +-8 words equal up to relocation"
+ },
+ "0x5401bdd4": {
+  "new": "0x5401d5c4",
+  "reason": "aligned in 1.21 (aligned + refs 0x5401d5c4x2); +-8 words equal up to relocation"
+ },
+ "0x5401be84": {
+  "new": "0x5401d674",
+  "reason": "aligned in 1.21 (aligned + refs 0x5401d674x1); +-8 words equal up to relocation"
+ },
+ "0x5401bf24": {
+  "new": "0x5401d714",
+  "reason": "aligned in 1.21 (aligned + refs 0x5401d714x1); +-8 words equal up to relocation"
+ },
+ "0x543b3100": {
+  "new": "0x543b4900",
+  "reason": "aligned in 1.21 (aligned + refs 0x543b4900x1); +-8 words equal up to relocation"
+ },
+ "0x543b5270": {
+  "new": "0x543b6a70",
+  "reason": "aligned in 1.21 (aligned); +-8 words equal up to relocation"
+ },
+ "0x5440c5c0": {
+  "new": "0x5440ddc0",
+  "reason": "appended area at a fixed distance from the end of the official RTOS: 1.21 RTOS is 0x1800 longer (0x140ce00)"
+ },
+ "0x5440c5c4": {
+  "new": "0x5440ddc4",
+  "reason": "appended area at a fixed distance from the end of the official RTOS: 1.21 RTOS is 0x1800 longer (0x140ce00)"
+ },
+ "0x5440c5e0": {
+  "new": "0x5440dde0",
+  "reason": "appended area at a fixed distance from the end of the official RTOS: 1.21 RTOS is 0x1800 longer (0x140ce00)"
+ },
+ "0x5440c5e4": {
+  "new": "0x5440dde4",
+  "reason": "appended area at a fixed distance from the end of the official RTOS: 1.21 RTOS is 0x1800 longer (0x140ce00)"
+ },
+ "0x5440c600": {
+  "new": "0x5440de00",
+  "reason": "appended area at a fixed distance from the end of the official RTOS: 1.21 RTOS is 0x1800 longer (0x140ce00)"
+ },
+ "0x5440da00": {
+  "new": "0x5440f200",
+  "reason": "appended area at a fixed distance from the end of the official RTOS: 1.21 RTOS is 0x1800 longer (0x140ce00)"
+ },
+ "0x54430000": {
+  "new": "0x54430000",
+  "reason": "reference link address of a relocatable pre-compiled module (native-link.ts places it): not a firmware address"
+ },
+ "0x5443c1d0": {
+  "new": "0x5443c1d0",
+  "reason": "reference link address of a relocatable pre-compiled module (native-link.ts places it): not a firmware address"
+ },
+ "0x54440000": {
+  "new": "0x54440000",
+  "reason": "reference link address of a relocatable pre-compiled module (native-link.ts places it): not a firmware address"
+ },
+ "0x5450584c": {
+  "new": "0x5450584c",
+  "reason": "not an address: four byte offsets packed in one constant (hdrgain.c)"
+ },
+ "0x54540000": {
+  "new": "0x54540000",
+  "reason": "emulator hook range end (check.py): above any image"
+ },
+ "0x55001e88": {
+  "new": "0x55001e88",
+  "reason": "initialised RAM, same place (1.21 RAM image same length 0x58500, word-for-word equal up to relocation here; RAM image aligned)"
+ },
+ "0x55013e70": {
+  "new": "0x55013e70",
+  "reason": "initialised RAM, same place (1.21 RAM image same length 0x58500, word-for-word equal up to relocation here; RAM image aligned)"
+ },
+ "0x55014280": {
+  "new": "0x55014280",
+  "reason": "initialised RAM, same place (1.21 RAM image same length 0x58500, word-for-word equal up to relocation here; RAM image aligned + refs 0x55014280x1)"
+ },
+ "0x55014d98": {
+  "new": "0x55014d98",
+  "reason": "initialised RAM, same place (1.21 RAM image same length 0x58500, word-for-word equal up to relocation here; RAM image aligned + refs 0x55014d98x1)"
+ },
+ "0x55053ce4": {
+  "new": "0x55053ce4",
+  "reason": "initialised RAM, same place (1.21 RAM image same length 0x58500, word-for-word equal up to relocation here; RAM image aligned + refs 0x55053ce4x1)"
+ },
+ "0x55054158": {
+  "new": "0x55054158",
+  "reason": "initialised RAM, same place (1.21 RAM image same length 0x58500, word-for-word equal up to relocation here; RAM image aligned + refs 0x55054158x1)"
+ },
+ "0x55054554": {
+  "new": "0x55054554",
+  "reason": "initialised RAM, same place (1.21 RAM image same length 0x58500, word-for-word equal up to relocation here; RAM image aligned + refs 0x55054554x1)"
+ },
+ "0x55054800": {
+  "new": "0x55054800",
+  "reason": "initialised RAM, same place (1.21 RAM image same length 0x58500, word-for-word equal up to relocation here; RAM image aligned + refs 0x55054800x1)"
+ },
+ "0x5508307c": {
+  "new": "0x5508307c",
+  "reason": "zero-initialised RAM: the 1.21 code that referenced it in 1.20 references the same address (RAM; refs 0x5508307cx1)"
+ },
+ "0x55083194": {
+  "new": "0x55083194",
+  "reason": "zero-initialised RAM: the 1.21 code that referenced it in 1.20 references the same address (RAM; refs 0x55083194x1)"
+ },
+ "0x55083244": {
+  "new": "0x55083244",
+  "reason": "zero-initialised RAM: the 1.21 code that referenced it in 1.20 references the same address (RAM; refs 0x55083244x1)"
+ },
+ "0x553a09c4": {
+  "new": "0x553a09c4",
+  "reason": "1.11 address quoted in a comment"
+ },
+ "0x553a26c4": {
+  "new": "0x553a26cc",
+  "reason": "date imprint cache object: the movw/movt that named it in 1.20 name 0x553a26cc in 1.21 (RAM refs 0x553a26cc)"
+ },
+ "0x55839014": {
+  "new": "0x55839014",
+  "reason": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged"
+ },
+ "0x5583901c": {
+  "new": "0x5583901c",
+  "reason": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged"
+ },
+ "0x55839020": {
+  "new": "0x55839020",
+  "reason": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged"
+ },
+ "0x55839024": {
+  "new": "0x55839024",
+  "reason": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged"
+ },
+ "0x55839028": {
+  "new": "0x55839028",
+  "reason": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged"
+ },
+ "0x5583902c": {
+  "new": "0x5583902c",
+  "reason": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged"
+ },
+ "0x55839030": {
+  "new": "0x55839030",
+  "reason": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged"
+ },
+ "0x55839034": {
+  "new": "0x55839034",
+  "reason": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged"
+ },
+ "0x55839038": {
+  "new": "0x55839038",
+  "reason": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged"
+ },
+ "0x5583903c": {
+  "new": "0x5583903c",
+  "reason": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged"
+ }
+}

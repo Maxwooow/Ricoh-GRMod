@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * The experimental ports to the cameras' current firmware (GR IV 1.20, GR III 2.20, GR IIIx 1.70) are
+ * The ports to the cameras' newer firmware (GR IV 1.20 / 1.21, GR III 2.20 / 2.21, GR IIIx 1.70 / 1.71) are
  * only opened when asked for (`OpenOptions.newFirmware`, which the released app never sets), each file
  * by the program made for it, and the 1.11 / 2.10 / 1.60 files exactly as before either way.
  *
- * Needs GRMOD_GR4_120_FIRMWARE (fwdc248b.bin 1.20), GRMOD_GR3_220_FIRMWARE, GRMOD_GR3X_170_FIRMWARE and the
+ * Needs GRMOD_GR4_120_FIRMWARE (fwdc248b.bin 1.20), GRMOD_GR3_220_FIRMWARE, GRMOD_GR3X_170_FIRMWARE, their
+ * 1.21 / 2.21 / 1.71 counterparts (GRMOD_GR4_121_FIRMWARE, GRMOD_GR3_221_FIRMWARE, GRMOD_GR3X_171_FIRMWARE) and the
  * official 1.11 file at testdata/private/official.bin; each case is skipped when its file is missing.
  */
 import { describe, expect, it } from 'vitest';
@@ -13,6 +14,7 @@ import { Engine } from '../src/app/engine';
 
 const files: Record<string, string | undefined> = {
   '1.20': process.env.GRMOD_GR4_120_FIRMWARE, '2.20': process.env.GRMOD_GR3_220_FIRMWARE, '1.70': process.env.GRMOD_GR3X_170_FIRMWARE,
+  '1.21': process.env.GRMOD_GR4_121_FIRMWARE, '2.21': process.env.GRMOD_GR3_221_FIRMWARE, '1.71': process.env.GRMOD_GR3X_171_FIRMWARE,
 };
 const official = new URL('../testdata/private/official.bin', import.meta.url).pathname;
 
@@ -24,7 +26,7 @@ describe('new firmware line', () => {
       const eng = await Engine.open(raw, { newFirmware: true });
       expect(eng.info.version).toBe(version);
       expect(eng.info.capabilities.bridge).toBe(false);
-      if (version === '1.20') await expect(eng.bridgeFirmware()).rejects.toMatchObject({ code: 'unsupported-firmware' });
+      if (version === '1.20' || version === '1.21') await expect(eng.bridgeFirmware()).rejects.toMatchObject({ code: 'unsupported-firmware' });
       const same = await eng.inspect(raw);
       expect(same.kind).toBe('official');
     }, 120_000);
