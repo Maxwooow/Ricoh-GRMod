@@ -411,6 +411,11 @@ export function tourStep(delta: 1 | -1): void {
 }
 /** Forget which tours were seen (and stop the one running): they start by themselves again. */
 export function resetTours(): void { set({ tour: undefined, toursSeen: [] }); scheduleSave(); }
+/** "Skip guides" on a guide that started by itself: it ends, and no guide starts by itself again (until resetTours). */
+export function skipTours(): void {
+  set({ tour: undefined, toursSeen: [...TOUR_IDS] });
+  scheduleSave();
+}
 /** Finished or skipped: either way it is not started by itself again. */
 export function endTour(): void {
   const tr = state.tour;

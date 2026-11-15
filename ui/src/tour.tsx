@@ -7,7 +7,7 @@ import { createPortal } from 'react-dom';
 import { isMobile } from './host-android';
 import { t } from './i18n';
 import type { Key } from './i18n';
-import { endTour, getState, isGr3, resetTours, startTour, tourStep, useStore } from './store';
+import { endTour, getState, isGr3, resetTours, skipTours, startTour, tourStep, useStore } from './store';
 import type { TourId } from './store';
 
 type Side = 'right' | 'left' | 'top' | 'bottom';
@@ -164,7 +164,7 @@ export function beginTour(id: TourId, replay: boolean): boolean {
   startTour(id, steps, replay);
   return true;
 }
-/** Every guide again as on first use: the overview now, each page's guide on its next visit (not skippable). */
+/** Every guide again as on first use: the overview now, each page's guide on its next visit ("Skip guides" ends them all). */
 export function restartTours(): void { resetTours(); }
 /** The help button: the current page's tour again, or the overview while the page has nothing on it. */
 export function replayTour(): void {
@@ -308,6 +308,7 @@ function TourLayer() {
           <span className="tour-count">{tour.index + 1} / {tour.steps.length}</span>
           <span className="grow" />
           {tour.replay && !last && <button type="button" className="btn ghost small" onClick={() => endTour()}>{t('tourSkip')}</button>}
+          {!tour.replay && !last && <button type="button" className="btn ghost small" title={t('tourSkipAllTip')} onClick={() => skipTours()}>{t('tourSkipAll')}</button>}
           {tour.index > 0 && <button type="button" className="btn small" onClick={() => tourStep(-1)}>{t('tourBack')}</button>}
           <button type="button" className="btn primary small" ref={next} onClick={() => tourStep(1)}>{last ? t('tourDone') : t('tourNext')}</button>
         </div>
