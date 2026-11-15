@@ -83,6 +83,8 @@ export interface FirmwareInfo {
     hdrGainMap?: boolean;
     /** 0.8.11: exposure preview as a camera setting, and soft focus's still-menu line (GR IV 1.20). */
     exposurePreview?: boolean;
+    /** The battery icon can show the charge in steps of 10 % (GR IV 1.11, `BuildOptions.batteryPercent`). */
+    batteryPercent?: boolean;
     /** GR III / IIIx: the most films a build can have (9; 20 on GR III 2.10, where
      * the number is chosen with BuildOptions.filmCount and Halation is set in the camera). */
     maxFilms?: number };
@@ -218,6 +220,8 @@ export interface FirmwareSummary {
   exposurePreview?: boolean;
   /** ADJ lever slots (6..8) when the file has more than the camera's five. */
   adjSlots?: number;
+  /** True when the file's battery icon shows the charge in steps of 10 %. */
+  batteryPercent?: boolean;
 }
 
 /** Additions besides the slots and the ratios. */
@@ -260,6 +264,13 @@ export interface BuildOptions {
   hdrDiag?: boolean;
   /** Test builds only (GR IV 1.20): exposure preview always off (issue #17). */
   exposurePreviewOff?: boolean;
+  /**
+   * GR IV 1.11 (`features.batteryPercent`): the battery icon shows the charge in steps of 10 % (a
+   * number inside the battery) instead of the bars (see `aspect/battery.ts`).
+   */
+  batteryPercent?: boolean;
+  /** Test builds only: the battery percentage shows "?" (no usable report) and "!" (disagrees with the bars) instead of the camera's icon. */
+  batteryDiag?: boolean;
   /**
    * 0.8.11 (GR IV 1.20, `features.exposurePreview`): exposure preview as a camera setting (On / Off
    * with Direct Flash / Always Off; still menu and ADJ lever). A 1.20 build with soft focus on the ADJ
@@ -516,7 +527,7 @@ export class Engine {
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
       // The 1.12 bridge firmware goes back to 1.11 only: no bridge for 1.20.
       capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, bridge: !bridge && g4 === Gr4Program111, menuPictures: true, lookLayout: true },
-      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}) },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : { batteryPercent: true }) },
       version: g4.FIRMWARE_VERSION,
       looks: { factory: [...g4.aspect.FACTORY_LOOK_IDS], extraFirst: g4.aspect.EXTRA_FIRST_STYLE, monoOnly: g4.aspect.FACTORY_LOOK_IDS.filter((n) => n >= 25) },
       sha256: await sha256Hex(raw),
@@ -741,6 +752,7 @@ export class Engine {
       ...(features.hdrGainMap ? { hdrGainMap: true } : {}),
       ...(features.adjSlots ? { adjSlots: features.adjSlots } : {}),
       ...(features.exposurePreview ? { exposurePreview: true } : {}),
+      ...(features.batteryPercent ? { batteryPercent: true } : {}),
     });
     if (!specs) return modified(false, [], aligned);
     let ratios: BuiltRatio[] = [];
@@ -1046,20 +1058,26 @@ export class Engine {
     if (exposurePreview && !on120) throw new FirmwareError('bad-edit', 'exposure preview needs GR IV firmware 1.20');
     if (exposurePreview && clarity.length > 0) throw new FirmwareError('bad-clarity', 'exposure preview cannot be combined with the clarity-table soft focus of 0.4.x');
     const softFocusMenu = adjSoftFocus && on120;
+    const batteryPercent = !!(options && options.batteryPercent);
+    if (batteryPercent && !this.info.features.batteryPercent) throw new FirmwareError('bad-edit', 'the battery percentage needs GR IV firmware 1.11');
+    if (batteryPercent && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the battery percentage cannot be combined with the clarity-table soft focus of 0.4.x');
+    // Its shown-step byte is where the HDR gain map's test builds keep their counters (aspect/battery.ts BATTERY_SHOWN).
+    if (batteryPercent && hdrGainMap && options.hdrDiag) throw new FirmwareError('bad-edit', 'the battery percentage cannot be combined with the HDR gain map\u2019s test counters');
     if (hdrGainMap && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the HDR gain map cannot be combined with the clarity-table soft focus of 0.4.x');
     if (directFlash && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Direct Flash cannot be combined with the clarity-table soft focus of 0.4.x');
     if (pictures.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'power-off pictures cannot be combined with the clarity-table soft focus of 0.4.x');
     if (adjSoftFocus && clarity.length > 0) throw new FirmwareError('bad-clarity', 'soft focus on the ADJ lever and on the clarity table cannot be combined');
     if (dateStamp && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the date imprint cannot be combined with the clarity-table soft focus of 0.4.x');
     if (extraSlots.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'added slots cannot be combined with the clarity-table soft focus of 0.4.x');
-    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash && adjSlots === 5 && !hdrGainMap && !exposurePreview && !options.brightAuto) throw new FirmwareError('bad-edit', 'nothing to change');
+    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash && adjSlots === 5 && !hdrGainMap && !exposurePreview && !options.brightAuto && !batteryPercent) throw new FirmwareError('bad-edit', 'nothing to change');
     if (Object.keys(cinemaHalation).length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'halation cannot be combined with the clarity-table soft focus of 0.4.x');
-    const features = { ...(options.brightAuto ? { brightAuto: options.brightAuto } : {}), adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(hdrGainMap ? { hdrGainMap } : {}), ...(exposurePreview ? { exposurePreview } : {}), ...(softFocusMenu ? { softFocusMenu } : {}) };
+    const features = { ...(options.brightAuto ? { brightAuto: options.brightAuto } : {}), adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(hdrGainMap ? { hdrGainMap } : {}), ...(exposurePreview ? { exposurePreview } : {}), ...(softFocusMenu ? { softFocusMenu } : {}), ...(batteryPercent ? { batteryPercent } : {}) };
     const test = {
       ...(options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {}),
       ...(options && options.halationDiag ? { halationDiag: true } : {}),
       ...(options && options.hdrDiag ? { hdrDiag: true } : {}),
       ...(options && options.exposurePreviewOff ? { exposurePreviewOff: true } : {}),
+      ...(batteryPercent && options.batteryDiag ? { batteryDiag: true } : {}),
     };
     const { decoded: _decoded, ...rest } = await this.g4.buildFirmware(this.raw, edits, ratios, clarity, features, test);
     return rest;

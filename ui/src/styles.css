@@ -266,6 +266,12 @@ svg { width: 18px; height: 18px; flex: none; }
 .ratio-row.on { border-color: var(--line2); background: var(--side); }
 .ratio-icon { border-radius: 5px; overflow: hidden; }
 .ratio-icon canvas { display: block; }
+/* Battery percentage page: the switch, then the icons the camera will show. */
+.battery-page { display: flex; flex-direction: column; gap: 12px; max-width: 560px; }
+.battery-page p { margin: 0; line-height: 1.5; }
+.battery-look { display: grid; gap: 8px; }
+.battery-icons { display: flex; flex-wrap: wrap; gap: 8px; }
+.battery-icons canvas { image-rendering: pixelated; }
 .ratio-in { width: 78px; flex: none; font-variant-numeric: tabular-nums; font-weight: 600; }
 .ratio-in::placeholder { font-weight: 400; color: var(--faint); }
 .ratio-name { flex: 1; min-width: 56px; width: 0; }

@@ -44,6 +44,7 @@ import type { ExtraSlotSpec } from './slots';
 import { installShutdownMenu } from './shutdown';
 import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
 import { installAdjSlots } from './adjslots';
+import { installBatteryPercent } from './battery';
 import { LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
 import type { ShutdownPictureSpec } from './shutdown';
 
@@ -154,6 +155,8 @@ export interface ExtensionFeatures {
   exposurePreview?: boolean;
   /** 0.8.11, GR IV 1.20 only (not built on 1.11): soft focus (with `adjSoftFocus`) also a line of the still menu. */
   softFocusMenu?: boolean;
+  /** The battery icon shows the charge in steps of 10 % instead of the bars (see `battery.ts`). */
+  batteryPercent?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -165,6 +168,8 @@ export interface TestOptions {
   directFlashDiag?: boolean;
   /** HDR gain map: an APP15 segment with the module's counters in every JPEG. */
   hdrDiag?: boolean;
+  /** Battery percentage: "?" and "!" instead of the camera's icon when the report is missing or disagrees with the bars. */
+  batteryDiag?: boolean;
 }
 
 export interface AspectResult {
@@ -508,7 +513,7 @@ function installMenu(patch: Patch, ratios: readonly RatioEntry[], iconIds: Reado
 // --------------------------------------------------------------------------------------------
 // crop_geometry.py
 
-class Program {
+export class Program {
   /** The image as it was when the program was created (displaced instructions are read from it). */
   private readonly source: Uint8Array;
   cursor: number;
@@ -1040,7 +1045,7 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
   const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
   const adjSlots = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
-  const extra = !!features.brightAuto || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap;
+  const extra = !!features.brightAuto || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent;
   if (extra) revision = 3;
   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
@@ -1115,7 +1120,10 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   // Last: wraps every other settings save/load and user-mode recall hook.
   if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}) });
   if (features.brightAuto) installBrightAuto(patch, features.brightAuto === 'balanced' ? 'balanced' : 'bright');
+  // The HDR gain map's test counters (`HDR_COUNTERS`) use the byte the battery percentage keeps.
+  if (features.batteryPercent && features.hdrGainMap && test.hdrDiag) fail('internal', 'the battery percentage cannot be combined with the HDR gain map\u2019s test counters');
+  if (features.batteryPercent) icons = installBatteryPercent(patch, icons, !!test.batteryDiag);
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}) } };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}) } };
 }

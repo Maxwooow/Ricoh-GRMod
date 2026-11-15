@@ -45,6 +45,7 @@ Use only firmware intended for your camera model and a base version listed above
 - **Direct Flash:** use guide-number-based flash exposure on supported GR IV firmware.
 - **HDR gain maps:** create JPEGs with brighter highlights on compatible HDR displays.
 - **More ADJ options:** add ADJ lever slots on supported GR IV firmware.
+- **Battery percentage:** show the charge as a number in steps of 10 % instead of bars, on GR IV firmware 1.11.
 - **Exposure preview and display options:** access additional preview and automatic screen-brightness settings on supported GR IV firmware.
 
 Features vary by camera model and firmware version. The app only offers options supported by the selected firmware.

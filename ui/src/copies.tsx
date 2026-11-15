@@ -56,6 +56,7 @@ function FirmwareLine({ info, builds, lang, name }: { info: CopyInfo | undefined
           {s.adjSlots && <span className="chip tiny" title={t('adjSlotsLine', { n: s.adjSlots })}><b>ADJ {s.adjSlots}</b></span>}
           {s.hdrGainMap && <span className="chip tiny" title={t('hdrLine')}><b>HDR</b></span>}
           {s.exposurePreview && <span className="chip tiny" title={t('previewLine')}><b>{t('navPreview')}</b></span>}
+          {s.batteryPercent && <span className="chip tiny" title={t('batteryLine')}><b>{t('batteryChip')}</b></span>}
         </div>
       </div>
     </>
