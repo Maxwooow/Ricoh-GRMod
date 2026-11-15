@@ -285,6 +285,12 @@ svg { width: 18px; height: 18px; flex: none; }
 .ratio-frame:hover .compare-swap { opacity: 1; }
 .ratio-photo { position: absolute; inset: 0; width: 100%; height: 100%; display: block; object-fit: cover; }
 .ratio-shade { position: absolute; background: rgba(0, 0, 0, 0.72); pointer-events: none; }
+/* The live-view shade as the camera draws it: black at 50 %, or grey at 25 %. */
+.ratio-frame.live-shade .ratio-shade { background: rgba(0, 0, 0, 0.5); }
+.ratio-frame.live-shade.tone-light .ratio-shade { background: rgba(85, 85, 85, 0.25); }
+.ratio-live { flex: none; display: grid; gap: 6px; margin-top: 10px; padding: 8px 8px 0; border-top: 1px solid var(--line); }
+.ratio-live .seg { justify-self: start; }
+.ratio-live p { margin: 0; }
 .ratio-window { position: absolute; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.92); pointer-events: none; }
 .ratio-out { flex: none; min-height: 24px; margin-top: 12px; }
 .ratio-out.sizes { display: grid; grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); width: min(100cqw, 520px); }

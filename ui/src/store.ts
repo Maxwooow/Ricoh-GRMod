@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { FACTORY_LOOK_IDS, card, GR3X_FILM_IDS, GR3X_MAX_CUSTOM_RATIOS, GR3X_T4_CUSTOM, LANGS, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_MAX_PICTURES, SHUTDOWN_NAME_MAX, validateExtraSlotName, validateGr3xRatioName, validateRatioName, validateShutdownName } from '@grmod/core';
-import type { CameraModel, ClarityChange, ExtraSlotSpec, FirmwareInfo, FirmwareSummary, LangCode, LookLayout, PresetResult, RatioPreview, RatioSpec, ShutdownPictureSpec, SlotId, SlotRequest, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
+import type { CameraModel, ClarityChange, ExtraSlotSpec, FirmwareInfo, FirmwareSummary, LangCode, LookLayout, PresetResult, RatioPreview, RatioSpec, ShadeTone, ShutdownPictureSpec, SlotId, SlotRequest, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
 import { engine, EngineError } from './engine';
 import { host, HostError, isMobile, sha256Hex } from './host';
 import { upload } from './host-android';
@@ -11,6 +11,9 @@ import { cropToRgb, defaultCrop, ensureIconFont, imageIcon, loadBitmap, textIcon
 import type { Crop } from './pixels';
 import { decodePreview } from './preview';
 import defaultPhotoUrl from './assets/preview.jpg';
+
+/** How dark the live-view shade is: black at 50 % or grey at 25 % (core's ShadeTone). */
+export type { ShadeTone };
 
 export type Page = 'ic' | 'ratio' | 'wall' | 'copies';
 /** One added aspect ratio as typed; `preview` is what the camera would make of it (absent while that is worked out). */
@@ -74,6 +77,10 @@ export interface State {
   hdr: boolean;
   /** GR IV 1.20: exposure preview as a camera setting (Shooting › Exposure Settings, ADJ lever). */
   exposurePreview: boolean;
+  /** GR IV 1.11: live view of the added ratios shows the whole frame with the part outside darkened, instead of the photo area only. */
+  ratioShade: boolean;
+  /** How dark the live-view shade is (UI palette black 50 % / grey 25 %). */
+  ratioShadeTone: ShadeTone;
   /** ADJ lever slots in the build: 5 (the camera's) to 8 (GR IV). */
   adjSlots: number;
   /** GR IV, experimental: .cube presets of added slots get hue sectors of their own (core color/hue.ts). */
@@ -110,7 +117,7 @@ const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '',
 const emptySlots = (): Record<SlotId, SlotState> => Object.fromEntries(SLOT_IDS.map(id => [id, emptySlot()])) as Record<SlotId, SlotState>;
 let state: State = {
   ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: cameraLang(), langAuto: uiLangPref() === '',
-  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hdr: false, exposurePreview: false, adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [],
+  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hdr: false, exposurePreview: false, ratioShade: false, ratioShadeTone: 'dark', adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [],
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
@@ -230,7 +237,7 @@ function familyData(s: State): FamilyDoc {
     lookOrder: s.lookOrder, lookHidden: s.lookHidden, lookOrder3: s.lookOrder3, lookHidden3: s.lookHidden3,
     wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: 'image', width: w.width, height: w.height, crop: w.crop, ...(w.menuName !== undefined ? { menuName: w.menuName } : {}), ...(w.menuId ? { menuId: w.menuId } : {}) })),
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
-    brightAuto: s.brightAuto, soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock, directFlash: s.directFlash, hdr: s.hdr, exposurePreview: s.exposurePreview, adjSlots: s.adjSlots, filmCount: s.filmCount,
+    brightAuto: s.brightAuto, soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock, directFlash: s.directFlash, hdr: s.hdr, exposurePreview: s.exposurePreview, ratioShade: s.ratioShade, ratioShadeTone: s.ratioShadeTone, adjSlots: s.adjSlots, filmCount: s.filmCount,
   };
 }
 
@@ -259,7 +266,7 @@ function parseFamily(doc: FamilyDoc | null): Partial<State> {
     lookOrder3: gr3SavedKeys(doc?.lookOrder3), lookHidden3: gr3SavedKeys(doc?.lookHidden3).filter((k) => k !== 'g11'),
     brightAuto: doc?.brightAuto === 'balanced' ? 'balanced' : doc?.brightAuto === true || doc?.brightAuto === 'bright' ? 'bright' : false,
     soft: doc?.soft === true || (!!doc?.softFocus && typeof doc.softFocus === 'object' && Object.keys(doc.softFocus).length > 0),
-    dateStamp: doc?.dateStamp === true, monoUnlock: doc?.monoUnlock === true, directFlash: doc?.directFlash === true, hdr: doc?.hdr === true, exposurePreview: doc?.exposurePreview === true, adjSlots: typeof doc?.adjSlots === 'number' && Number.isInteger(doc.adjSlots) && doc.adjSlots >= 5 && doc.adjSlots <= 8 ? doc.adjSlots : 5,
+    dateStamp: doc?.dateStamp === true, monoUnlock: doc?.monoUnlock === true, directFlash: doc?.directFlash === true, hdr: doc?.hdr === true, exposurePreview: doc?.exposurePreview === true, ratioShade: doc?.ratioShade === true, ratioShadeTone: doc?.ratioShadeTone === 'light' ? 'light' : 'dark', adjSlots: typeof doc?.adjSlots === 'number' && Number.isInteger(doc.adjSlots) && doc.adjSlots >= 5 && doc.adjSlots <= 8 ? doc.adjSlots : 5,
     filmCount: Number.isInteger(doc?.filmCount) && doc!.filmCount >= 0 && doc!.filmCount <= GR3X_FILM_IDS.length ? doc!.filmCount : doc && doc.filmCount === undefined && doc.slots ? 9 : 0,
   };
 }
@@ -1057,6 +1064,22 @@ export function setExposurePreview(exposurePreview: boolean): void {
   set({ exposurePreview }); scheduleSave();
 }
 export function exposurePreviewOn(s: State = state): boolean { return !!s.exposurePreview && !!s.info?.features.exposurePreview; }
+export function setRatioShade(ratioShade: boolean): void {
+  if (ratioShade && !state.info?.features.ratioShade) return;
+  set({ ratioShade }); scheduleSave();
+}
+/** The live view's one choice: the photo area only ('100'), or the whole frame with the outside darkened ('50' / '25'). */
+export type LiveView = '100' | '50' | '25';
+export function liveViewOf(s: State = state): LiveView { return !s.ratioShade ? '100' : s.ratioShadeTone === 'light' ? '25' : '50'; }
+export function setLiveView(v: LiveView): void {
+  if (v === '100') { setRatioShade(false); return; }
+  if (!state.info?.features.ratioShade) return;
+  set({ ratioShade: true, ratioShadeTone: v === '25' ? 'light' : 'dark' }); scheduleSave();
+}
+/** How dark the outside of the photo is, for the summaries. */
+export function toneLabel(tone: ShadeTone): string { return tone === 'light' ? '25%' : '50%'; }
+/** The live-view shade goes into a build: chosen, offered by the open firmware, and there is an added ratio. */
+export function ratioShadeOn(s: State = state, ratios = ratioSpecs(s)): boolean { return !!s.ratioShade && !!s.info?.features.ratioShade && ratios.length > 0; }
 /** ADJ lever slots (5..8): the camera's five unless the firmware can have more. */
 export function setAdjSlots(adjSlots: number): void {
   if (!(Number.isInteger(adjSlots) && adjSlots >= 5 && adjSlots <= (state.info?.features.maxAdjSlots ?? 5))) return;
@@ -1351,6 +1374,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const directFlash = !stock && directFlashOn();
   const hdr = !stock && hdrOn();
   const exposurePreview = !stock && exposurePreviewOn();
+  const ratioShade = !stock && ratioShadeOn(state, ratios);
   const brightAuto = stock ? false : brightAutoOf();
   const adjSlots = stock ? 5 : adjSlotsOf();
   if (!stock && (hasNameErrors() || hasRatioErrors())) return;
@@ -1376,6 +1400,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     const named = (name: string, n: number, unit: Key = 'chkCount'): string => (n > 1 ? `${name}  ·  ${t(unit, { n })}` : name);
     const lines = changes.map((c) => named(state.info?.family === 'gr3x' ? (state.slots[c.id].names[state.lang] || state.info.slots.find(s => s.id === c.id)?.defaultName || c.id) : t(('slot' + c.id) as Key), c.labels.length, 'chkChanges'));
     if (ratios.length) lines.push(named(t('chkRatios'), ratios.length));
+    if (ratioShade) lines.push(`${t('ratioLive')}  ·  ${toneLabel(state.ratioShadeTone)}`);
     if (soft) lines.push(t('navSoft'));
     if (films) lines.push(named(t('extraTitle'), films));
     if (dateStamp) lines.push(t('navDate'));
@@ -1400,7 +1425,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
       set({ busy: t('building') });
       const clarity = soft && sourceInfo.features.softFocus === 'clarity' ? [...GR3X_SOFT_FOCUS] : [];
       const built = await engine.build(changes.map((c) => c.request), ratios, clarity,
-        { ...(brightAuto ? { brightAuto } : {}), adjSoftFocus: soft && sourceInfo.features.softFocus === 'adj', dateStamp, monoUnlock, ...(directFlash ? { directFlash } : {}), ...(hdr ? { hdrGainMap: true } : {}), ...(exposurePreview ? { exposurePreview: true } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}),
+        { ...(brightAuto ? { brightAuto } : {}), adjSoftFocus: soft && sourceInfo.features.softFocus === 'adj', dateStamp, monoUnlock, ...(directFlash ? { directFlash } : {}), ...(ratioShade ? { ratioShade, ratioShadeTone: state.ratioShadeTone } : {}), ...(hdr ? { hdrGainMap: true } : {}), ...(exposurePreview ? { exposurePreview: true } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}),
           ...(films ? { filmCount: films } : {}), ...(lookLayout ? { lookLayout } : {}) });
       if (!Object.values(built.checks).every((v) => v === true)) throw new EngineError('selfcheck-failed', 'self-check');
       file = built.file;
@@ -1576,6 +1601,7 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
     return `${sl.names[s.lang]}  ·  ${parts.join(' / ') || t('original')}`;
   });
   if (summary.ratios.length) lines.push(t('ratioLine', { n: summary.ratios.length, l: summary.ratios.map((r) => r.name).join(' / ') }));
+  if (summary.ratioShade) lines.push(t('ratioShadeLine', { p: toneLabel(summary.ratioShadeTone ?? 'dark') }));
   if (summary.adjSoftFocus) lines.push(t('softAdjLine'));
   if (summary.brightAuto) lines.push(t(summary.brightAuto === 'balanced' ? 'brightAutoBalanced' : 'brightAutoBright'));
   if (summary.dateStamp) lines.push(t('dateLine'));

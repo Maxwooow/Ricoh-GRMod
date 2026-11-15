@@ -6,7 +6,7 @@ import { Ico, IconCanvas, Segmented } from './components';
 import type { ParkedEntry } from './host';
 import { t } from './i18n';
 import type { Key } from './i18n';
-import { copyKey, copyList, fmtSize, setCopySource, softText, toggleCopies, useStore } from './store';
+import { copyKey, copyList, fmtSize, setCopySource, softText, toggleCopies, toneLabel, useStore } from './store';
 import type { BuildRecord, CopyInfo, CopySource } from './store';
 
 const folderOf = (p: string): string => p.slice(0, p.indexOf('/'));
@@ -56,6 +56,7 @@ function FirmwareLine({ info, builds, lang, name }: { info: CopyInfo | undefined
           {s.adjSlots && <span className="chip tiny" title={t('adjSlotsLine', { n: s.adjSlots })}><b>ADJ {s.adjSlots}</b></span>}
           {s.hdrGainMap && <span className="chip tiny" title={t('hdrLine')}><b>HDR</b></span>}
           {s.exposurePreview && <span className="chip tiny" title={t('previewLine')}><b>{t('navPreview')}</b></span>}
+          {s.ratioShade && <span className="chip tiny" title={t('ratioShadeLine', { p: toneLabel(s.ratioShadeTone ?? 'dark') })}><b>{t('ratioLiveChip')}</b><span className="ellipsis">{toneLabel(s.ratioShadeTone ?? 'dark')}</span></span>}
         </div>
       </div>
     </>
