@@ -95,6 +95,8 @@ jobs:
           esac
           chmod 600 "$KEY"
           AUTH=(-allowProvisioningUpdates -authenticationKeyPath "$KEY" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+          # The account's certificates before Xcode creates this run's development certificate (revoked at the end).
+          ASC_KEY_PATH="$KEY" python3 .github/scripts/asc-certs.py snapshot "$RUNNER_TEMP/certs-before.json"
           xcodebuild archive \
             -project mobile/ios/App/App.xcodeproj -scheme App -configuration Release \
             -destination 'generic/platform=iOS' -derivedDataPath build -archivePath build/App.xcarchive \
@@ -121,6 +123,15 @@ jobs:
             -allowProvisioningUpdates -authenticationKeyPath "$KEY" -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             2>&1 | tee -a xcodebuild.log | grep -E "error|Upload|EXPORT (SUCCEEDED|FAILED)|\*\*" || true
           grep -q "EXPORT SUCCEEDED" xcodebuild.log
+
+      - name: Revoke the development certificate this run created
+        # Each run signs on a fresh Mac, where Xcode makes a new Apple Development certificate; without this the
+        # account reaches its limit after a few runs. Certificates from before the run are kept.
+        if: always() && env.HAS_ASC == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: ASC_KEY_PATH="$RUNNER_TEMP/AuthKey_$ASC_KEY_ID.p8" python3 .github/scripts/asc-certs.py revoke-new "$RUNNER_TEMP/certs-before.json"
 
       - name: Remove the key
         if: always()
