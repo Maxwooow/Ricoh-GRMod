@@ -2064,7 +2064,7 @@ diff --git a/core/src/fw/gr4v120/aspect/menuwide.ts b/core/src/fw/gr4v120/aspect
 new file mode 100644
 --- /dev/null
 +++ b/core/src/fw/gr4v120/aspect/menuwide.ts
-@@ -0,0 +1,222 @@
+@@ -0,0 +1,241 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * Camera menus of more than 38 lines (firmware 1.20; test 080): the still shooting menu gets room
@@ -2146,6 +2146,24 @@ new file mode 100644
 +  throw new FirmwareError(code, message);
 +}
 +
++/**
++ * The wide copies made in a build: official descriptor -> its appended wide copy. A later addition that
++ * changes an item of one of the other tabs (the power-off pictures: Setup's End Screen line) must
++ * change the copy, which is what the camera reads once the menus are wide.
++ */
++const wideCopies = new WeakMap<Patch, Map<number, number>>();
++
++/**
++ * Where an item of a menu descriptor is read from: its draw function and its controller id. The
++ * official arrays always; with the wide layout installed, also the wide copy's (the one in use).
++ */
++export function menuItemWords(patch: Patch, descriptor: number, item: number): { draw: number; id: number }[] {
++  const out = [{ draw: descriptor + D_DRAW + item * 8, id: descriptor + D_ID + item * 4 }];
++  const copy = wideCopies.get(patch)?.get(descriptor);
++  if (copy !== undefined) out.push({ draw: copy + W_DRAW + item * 8, id: copy + W_ID + item * 4 });
++  return out;
++}
++
 +/** A descriptor (official layout) in the wide layout. */
 +export function widen(official: Uint8Array): Uint8Array {
 +  if (official.length !== DESCRIPTOR) fail('internal', 'menu descriptor: not the official size');
@@ -2202,6 +2220,7 @@ new file mode 100644
 +
 +  // --- Descriptors of the other four tabs, wide.
 +  const others = OTHER_TABS.map((d) => patch.append(widen(patch.read(d, DESCRIPTOR)), 16));
++  wideCopies.set(patch, new Map(OTHER_TABS.map((d, k) => [d, others[k]])));
 +
 +  // --- Builder: all five descriptors, the still menu's for the model.
 +  const lo = (v: number): number => v & 0xffff;
@@ -2419,7 +2438,15 @@ diff --git a/core/src/fw/gr4v120/aspect/shutdown.ts b/core/src/fw/gr4v120/aspect
   *  - 520x200 thumbnails (as the native ones of the menu, icons 17 and 18) of the four factory
   *    pictures and of the added ones, icons SHUTDOWN_ICON_ID..;
   *  - texts from SHUTDOWN_TEXT_ID: the two line names in all 21 languages (every glyph is in the
-@@ -60,7 +70,7 @@
+@@ -46,6 +56,7 @@
+  * The approach (pictures in RES, the extended JPEG table, the record) is that of gr-custom-tool's
+  * End Screen list (Copyright (C) 2026 DoYitNow, GPL-2.0-only); the code is GR Mod's own.
+  */
++import { menuItemWords } from './menuwide';
+ import { decodeBaselineJpeg } from '../../../jpeg/decoder';
+ import { encodeCoefficients, forwardTransform, makeLayout } from '../../../jpeg/encoder';
+ import { qualityTables } from '../../../jpeg/tables';
+@@ -60,7 +71,7 @@
  /** Longest picture name (printable ASCII: the same in every camera language and font). */
  export const SHUTDOWN_NAME_MAX = 20;
  /** First text: the submenu's line names "Type" and "Picture", the factory row, the pictures' names. */
@@ -2428,7 +2455,7 @@ diff --git a/core/src/fw/gr4v120/aspect/shutdown.ts b/core/src/fw/gr4v120/aspect
  export const SHUTDOWN_TYPE_TEXT = SHUTDOWN_TEXT_ID;
  export const SHUTDOWN_PICTURE_TEXT = SHUTDOWN_TEXT_ID + 1;
  export const SHUTDOWN_FACTORY_TEXT = SHUTDOWN_TEXT_ID + 2;
-@@ -98,8 +108,9 @@
+@@ -98,8 +109,9 @@
  }
  
  const JPEG_TABLE = 0x55014d98;
@@ -2440,7 +2467,7 @@ diff --git a/core/src/fw/gr4v120/aspect/shutdown.ts b/core/src/fw/gr4v120/aspect
  const BACKGROUND = 0x531baa50;
  const BACKGROUND_BODY = 0x531baa54;
  const SETTINGS_SAVE = 0x533f3674;
-@@ -108,7 +119,7 @@
+@@ -108,7 +120,7 @@
  const MENU_TYPES_AT = 0x53225684;
  const ROW_TYPE = 0x15;
  const END_SCREEN_ID = 0x020000c4;
@@ -2449,7 +2476,7 @@ diff --git a/core/src/fw/gr4v120/aspect/shutdown.ts b/core/src/fw/gr4v120/aspect
  /** List widget: rows shown (0x535944AC, at most those built); title view: text (0x535A257C). */
  const LIST_SHOWN = 0x535944ac;
  const TITLE_SET = 0x535a257c;
-@@ -117,10 +128,10 @@
+@@ -117,10 +129,10 @@
  const SETUP_MENU_ENTRY = 0x55001e88;
  const SETUP_ITEM = 10;
  const SETUP_ITEM_DRAW = 0x531b32a0;
@@ -2462,7 +2489,7 @@ diff --git a/core/src/fw/gr4v120/aspect/shutdown.ts b/core/src/fw/gr4v120/aspect
  const APP = 0x532406a4;
  const SUBMENU_LINE_TEXT = 0x535a64b4;
  /** The start-up zero fill's end (literal) and the 44 bytes before the heap. */
-@@ -128,7 +139,7 @@
+@@ -128,7 +140,7 @@
  /**
   * The key mapper (hardware keys to a screen's commands) reads the current controller id at these
   * two calls of the getter (0x5325E674): 0x53257648 tells whether the screen has a key map of its
@@ -2471,7 +2498,7 @@ diff --git a/core/src/fw/gr4v120/aspect/shutdown.ts b/core/src/fw/gr4v120/aspect
   * every key (on the camera: no key worked in the picture list, touch did).
   */
  const KEY_MAP_ID_READS = [0x5325765c, 0x532560ec] as const;
-@@ -298,7 +309,7 @@
+@@ -298,7 +310,7 @@
    expectWord(p, MENU_TYPES_AT, 0xe54b3034); // strb r3, [fp, #-0x34]
    expectWord(p, APDATA_BOUND_AT, 0xe58d9000);
    // The factory's End Screen case: one object, cached at +0x180.
@@ -2480,6 +2507,24 @@ diff --git a/core/src/fw/gr4v120/aspect/shutdown.ts b/core/src/fw/gr4v120/aspect
    expectWord(p, 0x5322594c, movWord(1, END_SCREEN_TITLE)); // its constructor's title
    for (const f of [LIST_SHOWN, TITLE_SET, APP, 0x53240f98, 0x53240c38, SUBMENU_LINE_TEXT, LINE_VALUE_ICON, LINE_TITLE]) expectWord(p, f, 0xe1a0c00d);
    expectWord(p, 0x532a061c, 0xe5d00988); // ldrb r0, [r0, #0x988]
+@@ -433,8 +445,15 @@
+      mov r0, r4; movw r1, #${END_SCREEN_TITLE}
+      pop {r4, lr}
+      b #${LINE_TITLE}`, a), 16);
+-  p.setWord(SETUP_MENU + 0x8c + SETUP_ITEM * 8, setupLine, 'Setup > End Screen: line of a submenu');
+-  p.setWord(SETUP_MENU + 0x1bc + SETUP_ITEM * 4, SHUTDOWN_MENU_ID, 'Setup > End Screen: opens the submenu');
++  // The official descriptor and, when the menus are wide (exposure preview / soft focus lines, see
++  // `menuwide.ts`, installed before this), the wide copy the camera reads: without it the End Screen
++  // line kept opening the camera's own list (found on the camera 2026-11-12, GR Mod 0.8.11 builds
++  // with exposure preview and the date imprint).
++  for (const at of menuItemWords(p, SETUP_MENU, SETUP_ITEM)) {
++    if (p.word(at.id) !== END_SCREEN_ID || p.word(at.draw) !== SETUP_ITEM_DRAW) fail('unexpected-layout', 'Setup > End Screen line is not the official one');
++    p.setWord(at.draw, setupLine, 'Setup > End Screen: line of a submenu');
++    p.setWord(at.id, SHUTDOWN_MENU_ID, 'Setup > End Screen: opens the submenu');
++  }
+ 
+   // The settings store APData with room for the choice's record.
+   // movw r3,#records; str r3,[sp] (the count argument); continue after the original `str sb,[sp]`.
 diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/slots.ts
 --- a/core/src/fw/gr4v120/aspect/slots.ts
 +++ b/core/src/fw/gr4v120/aspect/slots.ts
