@@ -10,6 +10,7 @@ import type { Key } from './i18n';
 import { cropToRgb, defaultCrop, ensureIconFont, imageIcon, loadBitmap, textIcon, workingCopy } from './pixels';
 import type { Crop } from './pixels';
 import { decodePreview } from './preview';
+import { SUPPORTED_LINES } from './releases.gen';
 import defaultPhotoUrl from './assets/preview.jpg';
 
 export type Page = 'ic' | 'ratio' | 'wall' | 'copies';
@@ -166,6 +167,8 @@ function askOfficial(lines: string[], warn?: string): Promise<boolean> {
   return ask(t('resetConfirmTitle'), lines, t('resetConfirmOk'), warn, true);
 }
 export function answerConfirm(v: boolean): void { const c = state.confirm; set({ confirm: undefined }); c?.resolve(v); }
+/** The official releases a firmware file can be, for the message an unusable file gets. */
+function supportedList(): string { return SUPPORTED_LINES.map((l) => `${l.name} ${l.versions.join(' / ')}`).join(t('listSep')); }
 function fail(e: unknown): void {
   const code = e instanceof HostError || e instanceof EngineError ? e.code : '';
   const msg = e instanceof Error ? e.message : String(e);
@@ -526,13 +529,13 @@ async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Pr
   } catch (e) {
     set({ fwBusy: false, info: undefined, raw: undefined, fwName: undefined });
     scheduleSave();
-    if (e instanceof EngineError && (e.code === 'unsupported-firmware' || e.code.startsWith('bad-') || e.code === 'too-short')) toast(t('badFirmware'), 'error');
+    if (e instanceof EngineError && (e.code === 'unsupported-firmware' || e.code.startsWith('bad-') || e.code === 'too-short')) toast(t('badFirmware', { list: supportedList() }), 'error');
     else fail(e);
     return false;
   }
 }
 export async function loadFirmwareFile(file: File): Promise<void> {
-  if (file.size < 1_000_000 || file.size > 200_000_000) { toast(t('badFirmware'), 'error'); return; }
+  if (file.size < 1_000_000 || file.size > 200_000_000) { toast(t('badFirmware', { list: supportedList() }), 'error'); return; }
   await openFirmware(new Uint8Array(await file.arrayBuffer()), file.name, true);
 }
 /** The dialog that fetches the official firmware from Ricoh's site. */

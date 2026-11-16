@@ -1,7 +1,7 @@
 // Where the firmware comes from: a file the user picks, or the current official update fetched
 // from Ricoh's site. The program itself carries no firmware.
 import { useEffect, useRef, useState } from 'react';
-import { FIRMWARE_VERSION, FIRMWARE_VERSION_120, FIRMWARE_VERSION_121, GR3_210, GR3_220, GR3_221, GR3X_160, GR3X_170, GR3X_171 } from '@grmod/core';
+import { SUPPORTED_RELEASES } from './releases.gen';
 import type { CameraModel } from '@grmod/core';
 import { ChoiceSheet, FileButton, Ico, Segmented, pickerAccept, useDismiss } from './components';
 import { isMobile } from './host-android';
@@ -60,17 +60,8 @@ export function FirmwareHero() {
 
 type Look = { state: 'loading' | 'none' | 'error' } | { state: 'ready'; rel: FirmwareRelease };
 
-/**
- * The official releases this program builds on, per model, newest first. The GR IV Monochrome's 1.11
- * and 1.10 are the GR IV 1.21 and 1.20 files (the same SHA-256).
- */
-const GR4_RELEASES = [FIRMWARE_VERSION_121, FIRMWARE_VERSION_120, FIRMWARE_VERSION];
-const GR3_RELEASES = [GR3_221.version, GR3_220.version, GR3_210.version];
-const GR3X_RELEASES = [GR3X_171.version, GR3X_170.version, GR3X_160.version];
-const SUPPORTED: Record<CameraModel, readonly string[]> = {
-  STANDARD: GR4_RELEASES, HDF: GR4_RELEASES, MONO: ['1.11', '1.10'],
-  GR3: GR3_RELEASES, GR3_HDF: GR3_RELEASES, GR3X: GR3X_RELEASES, GR3X_HDF: GR3X_RELEASES,
-};
+/** The official releases this program builds on, per model, newest first (from releases.json). */
+const SUPPORTED: Record<CameraModel, readonly string[]> = SUPPORTED_RELEASES;
 
 /** The current official firmware of the chosen model on Ricoh's site; a press downloads and opens it. */
 export function FirmwareOnline() {

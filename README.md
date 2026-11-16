@@ -25,12 +25,16 @@ See [Releases](https://github.com/Maxwooow/Ricoh-GRMod/releases) for the latest 
 
 ## Supported cameras and firmware
 
+<!-- BEGIN releases (written by tools/releases/generate.mjs from releases.json) -->
+
 | Camera | Supported firmware |
 | --- | --- |
 | GR IV / GR IV HDF | 1.21, 1.20 or 1.11 |
 | GR IV Monochrome | 1.11 or 1.10 (the same files as GR IV 1.21 and 1.20) |
 | GR III / GR III HDF | 2.21, 2.20 or 2.10 |
 | GR IIIx / GR IIIx HDF | 1.71, 1.70 or 1.60 |
+
+<!-- END releases -->
 
 Use only firmware intended for your camera model and a base version listed above.
 
