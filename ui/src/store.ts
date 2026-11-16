@@ -15,7 +15,8 @@ import defaultPhotoUrl from './assets/preview.jpg';
 export type Page = 'ic' | 'ratio' | 'wall' | 'copies';
 /** One added aspect ratio as typed; `preview` is what the camera would make of it (absent while that is worked out). */
 export interface RatioItem { id: string; ratio: string; name: string; preview?: RatioPreview }
-export interface PresetState { fileName: string; kind: 'xmp' | 'cube'; text: string; busy: boolean; result?: PresetResult; error?: string }
+/** `photoFit`: a GR IV .cube imported with the photo-weighted fit (core color/photo-fit.ts); kept with the project. */
+export interface PresetState { fileName: string; kind: 'xmp' | 'cube'; text: string; busy: boolean; result?: PresetResult; error?: string; photoFit?: boolean }
 export interface IconState { mode: 'keep' | 'text' | 'image'; text: string; style: 'film' | 'plain'; image?: string; pixels?: Uint8Array }
 /** `halation`: Cinema Yellow / Green with a preset (0.8.2); their Toning becomes the Halation slider. */
 export interface SlotState { preset?: PresetState; names: Partial<Record<LangCode, string>>; icon: IconState; halation?: HalationState }
@@ -72,6 +73,8 @@ export interface State {
   directFlash: boolean;
   /** An HDR gain map in the JPEGs (switched in the camera: Shooting menu › HDR). */
   hdr: boolean;
+  /** GR IV: .cube presets imported from now on also fit with real picture colours (core color/photo-fit.ts); on by default. Presets already imported keep how they were fitted. */
+  photoFit: boolean;
   /** GR IV 1.20: exposure preview as a camera setting (Shooting › Exposure Settings, ADJ lever). */
   exposurePreview: boolean;
   /** ADJ lever slots in the build: 5 (the camera's) to 8 (GR IV). */
@@ -110,7 +113,7 @@ const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '',
 const emptySlots = (): Record<SlotId, SlotState> => Object.fromEntries(SLOT_IDS.map(id => [id, emptySlot()])) as Record<SlotId, SlotState>;
 let state: State = {
   ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: cameraLang(), langAuto: uiLangPref() === '',
-  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hdr: false, exposurePreview: false, adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [],
+  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hdr: false, photoFit: true, exposurePreview: false, adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [],
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
@@ -221,16 +224,16 @@ let familyLoading = false;
 function familyData(s: State): FamilyDoc {
   return {
     slots: Object.fromEntries(SLOT_IDS.map((id) => [id, {
-      preset: s.slots[id].preset ? { fileName: s.slots[id].preset!.fileName, kind: s.slots[id].preset!.kind } : null,
+      preset: s.slots[id].preset ? { fileName: s.slots[id].preset!.fileName, kind: s.slots[id].preset!.kind, ...(s.slots[id].preset!.photoFit ? { photoFit: true } : {}) } : null,
       names: s.slots[id].names,
       icon: { mode: s.slots[id].icon.mode, text: s.slots[id].icon.text, style: s.slots[id].icon.style, image: s.slots[id].icon.image },
       ...(s.slots[id].halation ? { halation: s.slots[id].halation } : {}),
     }])),
-    extras: s.extras.map((x) => ({ key: x.key, name: x.name, preset: x.preset ? { fileName: x.preset.fileName, kind: x.preset.kind } : null, icon: { mode: x.icon.mode, text: x.icon.text, style: x.icon.style, image: x.icon.image }, ...(x.halation ? { halation: x.halation } : {}) })),
+    extras: s.extras.map((x) => ({ key: x.key, name: x.name, preset: x.preset ? { fileName: x.preset.fileName, kind: x.preset.kind, ...(x.preset.photoFit ? { photoFit: true } : {}) } : null, icon: { mode: x.icon.mode, text: x.icon.text, style: x.icon.style, image: x.icon.image }, ...(x.halation ? { halation: x.halation } : {}) })),
     lookOrder: s.lookOrder, lookHidden: s.lookHidden, lookOrder3: s.lookOrder3, lookHidden3: s.lookHidden3,
     wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: 'image', width: w.width, height: w.height, crop: w.crop, ...(w.menuName !== undefined ? { menuName: w.menuName } : {}), ...(w.menuId ? { menuId: w.menuId } : {}) })),
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
-    brightAuto: s.brightAuto, soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock, directFlash: s.directFlash, hdr: s.hdr, exposurePreview: s.exposurePreview, adjSlots: s.adjSlots, filmCount: s.filmCount,
+    brightAuto: s.brightAuto, soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock, directFlash: s.directFlash, hdr: s.hdr, photoFit: s.photoFit, exposurePreview: s.exposurePreview, adjSlots: s.adjSlots, filmCount: s.filmCount,
   };
 }
 
@@ -259,7 +262,7 @@ function parseFamily(doc: FamilyDoc | null): Partial<State> {
     lookOrder3: gr3SavedKeys(doc?.lookOrder3), lookHidden3: gr3SavedKeys(doc?.lookHidden3).filter((k) => k !== 'g11'),
     brightAuto: doc?.brightAuto === 'balanced' ? 'balanced' : doc?.brightAuto === true || doc?.brightAuto === 'bright' ? 'bright' : false,
     soft: doc?.soft === true || (!!doc?.softFocus && typeof doc.softFocus === 'object' && Object.keys(doc.softFocus).length > 0),
-    dateStamp: doc?.dateStamp === true, monoUnlock: doc?.monoUnlock === true, directFlash: doc?.directFlash === true, hdr: doc?.hdr === true, exposurePreview: doc?.exposurePreview === true, adjSlots: typeof doc?.adjSlots === 'number' && Number.isInteger(doc.adjSlots) && doc.adjSlots >= 5 && doc.adjSlots <= 8 ? doc.adjSlots : 5,
+    dateStamp: doc?.dateStamp === true, monoUnlock: doc?.monoUnlock === true, directFlash: doc?.directFlash === true, hdr: doc?.hdr === true, photoFit: doc?.photoFit !== false, exposurePreview: doc?.exposurePreview === true, adjSlots: typeof doc?.adjSlots === 'number' && Number.isInteger(doc.adjSlots) && doc.adjSlots >= 5 && doc.adjSlots <= 8 ? doc.adjSlots : 5,
     filmCount: Number.isInteger(doc?.filmCount) && doc!.filmCount >= 0 && doc!.filmCount <= GR3X_FILM_IDS.length ? doc!.filmCount : doc && doc.filmCount === undefined && doc.slots ? 9 : 0,
   };
 }
@@ -282,14 +285,14 @@ async function loadFamilyFiles(doc: FamilyDoc | null, fam: Family, gen: number):
     if (!p) continue;
     const text = await read(presetKey(id, fam));
     if (gen !== familyGen) return;
-    if (text) void runPreset(id, p.fileName, p.kind, new TextDecoder().decode(text));
+    if (text) void runPreset(id, p.fileName, p.kind, new TextDecoder().decode(text), p.photoFit === true);
   }
   for (const x of state.extras) {
-    const p = (Array.isArray(doc.extras) ? doc.extras as { key: string; preset?: { fileName: string; kind: 'xmp' | 'cube' } | null }[] : []).find((d) => d.key === x.key)?.preset;
+    const p = (Array.isArray(doc.extras) ? doc.extras as { key: string; preset?: { fileName: string; kind: 'xmp' | 'cube'; photoFit?: boolean } | null }[] : []).find((d) => d.key === x.key)?.preset;
     if (!p) continue;
     const text = await read(presetKey(x.key, fam));
     if (gen !== familyGen) return;
-    if (text) void runPreset(x.key, p.fileName, p.kind === 'xmp' ? 'xmp' : 'cube', new TextDecoder().decode(text));
+    if (text) void runPreset(x.key, p.fileName, p.kind === 'xmp' ? 'xmp' : 'cube', new TextDecoder().decode(text), p.photoFit === true);
   }
   const wall: WallItem[] = [];
   for (const w of doc.wall || []) {
@@ -520,7 +523,7 @@ async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Pr
     for (const id of info.capabilities.presets ? allSlotKeys() : []) {
       void renderIcon(id);
       const p = slotOf(id)?.preset;
-      if (p && !p.result && !p.busy) void runPreset(id, p.fileName, p.kind, p.text);
+      if (p && !p.result && !p.busy) void runPreset(id, p.fileName, p.kind, p.text, p.photoFit === true);
     }
     // Encoded again for every firmware: GR IV and GR III store the pictures differently (4:2:2 / 4:2:0).
     if (info.capabilities.wallpaper || info.capabilities.menuPictures) for (const w of state.wall) void encodeWall(w.id);
@@ -561,21 +564,43 @@ const PRESET_ERRORS: Record<string, Key> = {
 /** The newest conversion of each slot: an older one that finishes later is dropped. */
 const presetRuns = new Map<SlotKey, number>();
 let presetRun = 0;
-async function runPreset(id: SlotKey, fileName: string, kind: 'xmp' | 'cube', text: string): Promise<void> {
-  patchSlot(id, { preset: { fileName, kind, text, busy: !!state.info?.capabilities.presets } });
+/** Bumped when the photo-weighted fit changes, so saved results of an older fit are not used. */
+const FIT_CACHE_VERSION = 1;
+/** A photo-weighted fit takes seconds (several fits): its result is saved, keyed by the LUT, the options and the firmware. */
+async function fitCacheKey(text: string, kind: string, hue: boolean): Promise<string | null> {
+  if (!host.available || !state.info) return null;
+  try { return 'fit-' + await sha256Hex(new TextEncoder().encode(JSON.stringify([FIT_CACHE_VERSION, state.info.sha256, kind, hue, text]))); } catch { return null; }
+}
+function resultToJson(r: PresetResult): string {
+  return JSON.stringify({ ...r, params: { ...r.params, ck: r.params.ck.map((c) => Array.from(c)) }, matrixQ13: Array.from(r.matrixQ13), curves: r.curves.map((c) => Array.from(c)), ...(r.postQ9 ? { postQ9: Array.from(r.postQ9) } : {}) });
+}
+function resultFromJson(s: string): PresetResult | null {
+  try {
+    const j = JSON.parse(s);
+    if (!j || !j.params || !Array.isArray(j.params.ck) || !Array.isArray(j.matrixQ13) || !Array.isArray(j.curves) || j.curves.length !== 3) return null;
+    return { ...j, params: { ...j.params, ck: j.params.ck.map((c: number[]) => Float64Array.from(c)) }, matrixQ13: Int16Array.from(j.matrixQ13), curves: j.curves.map((c: number[]) => Uint16Array.from(c)) as PresetResult['curves'], ...(j.postQ9 ? { postQ9: Int16Array.from(j.postQ9) } : {}) };
+  } catch { return null; }
+}
+async function runPreset(id: SlotKey, fileName: string, kind: 'xmp' | 'cube', text: string, photoFitFlag = false): Promise<void> {
+  const photoFit = photoFitFlag && kind === 'cube';
+  patchSlot(id, { preset: { fileName, kind, text, busy: !!state.info?.capabilities.presets, ...(photoFit ? { photoFit } : {}) } });
   if (!state.info?.capabilities.presets) return;
   const run = ++presetRun;
   presetRuns.set(id, run);
   // GR IV added slots also try hue sectors; the conversion keeps them only when they come out closer.
   const hue = isExtra(id) && state.info.family !== 'gr3x';
+  const usePhoto = photoFit && state.info.family === 'gr4';
   try {
-    const result = await engine.convert(kind, text, hue ? { hue: true } : {});
+    const cacheKey = usePhoto ? await fitCacheKey(text, kind, hue) : null;
+    const cached = cacheKey ? await host.storeGet(cacheKey).then((b) => (b ? resultFromJson(new TextDecoder().decode(b)) : null), () => null) : null;
+    const result = cached ?? await engine.convert(kind, text, { ...(hue ? { hue: true } : {}), ...(usePhoto ? { photoFit: true } : {}) });
+    if (cacheKey && !cached) void host.storeSet(cacheKey, resultToJson(result)).catch(() => undefined);
     if (presetRuns.get(id) !== run || slotOf(id)?.preset?.text !== text) return; // replaced, removed or converted again meanwhile
-    patchSlot(id, { preset: { fileName, kind, text, busy: false, result } });
+    patchSlot(id, { preset: { fileName, kind, text, busy: false, result, ...(photoFit ? { photoFit } : {}) } });
   } catch (e) {
     if (presetRuns.get(id) !== run || slotOf(id)?.preset?.text !== text) return;
     const code = e instanceof EngineError ? e.code : '';
-    patchSlot(id, { preset: { fileName, kind, text, busy: false, error: PRESET_ERRORS[code] ? t(PRESET_ERRORS[code]) : t('errNotXmp') } });
+    patchSlot(id, { preset: { fileName, kind, text, busy: false, error: PRESET_ERRORS[code] ? t(PRESET_ERRORS[code]) : t('errNotXmp'), ...(photoFit ? { photoFit } : {}) } });
   }
 }
 /** Text of a preset file whatever its encoding: UTF-8, UTF-16 (with or without BOM) or GB18030. */
@@ -596,7 +621,7 @@ export async function loadPresetFile(id: SlotKey, file: File): Promise<void> {
   const kind: 'xmp' | 'cube' = lower.endsWith('.cube') ? 'cube' : lower.endsWith('.xmp') ? 'xmp' : /LUT_(3D|1D)_SIZE/i.test(text) ? 'cube' : 'xmp';
   setActiveSlot(id);
   if (host.available) await host.storeSet(presetKey(id), text).catch(() => undefined);
-  await runPreset(id, file.name, kind, text);
+  await runPreset(id, file.name, kind, text, state.photoFit && state.info?.family === 'gr4');
   scheduleSave();
 }
 export function removePreset(id: SlotKey): void {
@@ -1047,6 +1072,11 @@ export function setBrightAuto(brightAuto: State['brightAuto']): void {
   set({ brightAuto }); scheduleSave();
 }
 export function brightAutoOf(s: State = state): State['brightAuto'] { return s.info?.features.brightAuto ? s.brightAuto : false; }
+/** GR IV: whether .cube presets imported from now on also fit with real picture colours. Presets already imported keep how they were fitted; importing one again uses this. */
+export function setPhotoFit(value: boolean): void {
+  if (state.info?.family !== 'gr4') return;
+  set({ photoFit: value }); scheduleSave();
+}
 export function setHdr(hdr: boolean): void {
   if (hdr && !state.info?.features.hdrGainMap) return;
   set({ hdr }); scheduleSave();

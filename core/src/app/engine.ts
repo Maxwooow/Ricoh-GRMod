@@ -897,9 +897,11 @@ export class Engine {
   /**
    * Fit a preset to a slot: matrix, curves and (unless `post` is false) the post-curve matrix.
    * Without it the result is what GR Mod 0.6.1 and earlier made. `refine` (.cube only, default
-   * off) adds the guarded CIEDE2000 refinement. GR III / IIIx take .xmp and .cube too.
+   * off) adds the guarded CIEDE2000 refinement. `photoFit` (GR IV .cube only, default off) also fits
+   * with real picture colours and keeps that fit only when it comes out closer (color/photo-fit.ts).
+   * GR III / IIIx take .xmp and .cube too.
    */
-  convertPreset(kind: 'xmp' | 'cube', text: string, onProgress?: (f: number) => void, options: { post?: boolean; refine?: boolean; hue?: boolean; legacyFit?: boolean } = {}): PresetResult {
+  convertPreset(kind: 'xmp' | 'cube', text: string, onProgress?: (f: number) => void, options: { post?: boolean; refine?: boolean; hue?: boolean; legacyFit?: boolean; photoFit?: boolean } = {}): PresetResult {
     if (this.info.family === 'gr3x') {
       // The second (post-curve) matrix, as on GR IV: GR III's matrix module has the stage (films only).
       const post = options.post !== false;
@@ -916,7 +918,7 @@ export class Engine {
     const post = options.post !== false;
     // Hue sectors (experimental, added slots only): fitted against Standard's own block of this firmware.
     const hueStd = options.hue === true && post ? this.standardHue() : undefined;
-    const c = kind === 'xmp' ? convertXmp(text, { onProgress, post, ...(hueStd ? { hueStd } : {}) }) : convertCube(text, { onProgress, post, refine: options.refine === true, ...(hueStd ? { hueStd } : {}) });
+    const c = kind === 'xmp' ? convertXmp(text, { onProgress, post, ...(hueStd ? { hueStd } : {}) }) : convertCube(text, { onProgress, post, refine: options.refine === true, ...(options.photoFit === true ? { photoFit: true } : {}), ...(hueStd ? { hueStd } : {}) });
     const q = quantizeSlot(c.params, this.mStdQ13);
     return { kind: c.kind, title: c.title, meanDE: c.meanDE, p95DE: c.p95DE, meanDE2000: c.meanDE2000, p95DE2000: c.p95DE2000, warnings: c.warnings, unsupported: c.unsupported, params: c.params, matrixQ13: q.matrixQ13, curves: q.curves, ...(q.postQ9 ? { postQ9: q.postQ9 } : {}), ...(c.hueQ10 ? { hueQ10: c.hueQ10 } : {}) };
   }

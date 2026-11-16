@@ -10,6 +10,7 @@ import { hueToQ10 } from './hue';
 import { FullLook } from './look';
 import { deltaE, deltaE2000Lab, lab, linToSrgb, mean, percentile, srgbToLin } from './math';
 import { parseXmp } from './xmp';
+import { PHOTO_WEIGHTINGS, photoCheckSamples, photoFitSet, skyCheckSamples } from './photo-fit';
 
 export type { SlotParams } from './camera';
 
@@ -30,6 +31,8 @@ export interface Conversion {
   p95DE2000: number;
   /** .cube with `refine`: whether the CIEDE2000 refinement was kept (false: the guard rejected it). */
   refined?: boolean;
+  /** .cube with `photoFit`: whether a photo-weighted fit was kept (false: the default fit stayed). */
+  photoFitted?: boolean;
   /** .cube with `hueStd`: the slot's own hue sectors (copy 0, Q10, 12 x 9) when they were kept. */
   hueQ10?: number[];
   warnings: string[];
@@ -52,6 +55,12 @@ export interface ConvertOptions {
    * clearly closer while greys and skin get at most a little worse (`huePasses`). Off unless given.
    */
   hueStd?: number[][];
+  /**
+   * .cube only: fit with real picture colours as well (photo-fit.ts): photo pixels, sky, greys,
+   * skin. A few weightings are tried and the one closest to the LUT on held-out colours is kept,
+   * only if it beats the default fit there without greys, skin or sky getting worse (default false).
+   */
+  photoFit?: boolean;
 }
 
 /** Mean / p95 of CIE76 and CIEDE2000 between two buffers. */
@@ -459,8 +468,16 @@ export function convertCube(text: string, opts?: ConvertOptions): Conversion {
   opts?.onProgress?.(0.1);
   const refine = opts?.refine === true;
   const hueStd = opts?.hueStd;
-  const fit = fitSlot(P, target, { onProgress: subProgress(opts, 0.1, refine || hueStd ? 0.55 : 1), post: opts?.post !== false });
+  const fitEnd = refine || hueStd ? 0.55 : 1;
+  const photo = opts?.photoFit === true;
+  const fit = fitSlot(P, target, { onProgress: subProgress(opts, 0.1, photo ? 0.1 + (fitEnd - 0.1) / (PHOTO_WEIGHTINGS.length + 1) : fitEnd), post: opts?.post !== false });
   let params: SlotParams = fit.P2 ? { M1: fit.M1, ck: fit.ck, P2: fit.P2 } : { M1: fit.M1, ck: fit.ck };
+  let photoFitted: boolean | undefined;
+  if (photo) {
+    const r = photoWeightedFit(cube, P, params, opts?.post !== false, subProgress(opts, 0.1 + (fitEnd - 0.1) / (PHOTO_WEIGHTINGS.length + 1), fitEnd));
+    photoFitted = r !== null;
+    if (r) params = r;
+  }
   let refined: boolean | undefined;
   if (refine) {
     const r = guardedRefine(cube, params, subProgress(opts, 0.55, hueStd ? 0.7 : 0.98));
@@ -482,10 +499,46 @@ export function convertCube(text: string, opts?: ConvertOptions): Conversion {
     params,
     ...rep,
     ...(refined !== undefined ? { refined } : {}),
+    ...(photoFitted !== undefined ? { photoFitted } : {}),
     ...(hueQ10 ? { hueQ10 } : {}),
     warnings: [],
     unsupported: [],
   };
+}
+
+/** How much closer (mean CIEDE2000 on the choosing colours) a photo fit must come to replace the default fit. */
+const PHOTO_MIN_GAIN = 0.02;
+/** Weight of the sky set in the choosing score (the photo pixels count 1). */
+const PHOTO_SKY_WEIGHT = 0.25;
+
+/**
+ * The photo-weighted fit (photo-fit.ts): each of `PHOTO_WEIGHTINGS` is fitted on the default
+ * colours plus real picture colours; the closest on held-out picture pixels and sky is returned if
+ * it beats `start` (the default fit) by `PHOTO_MIN_GAIN` while the grey ramp and skin get at most
+ * 0.05 / 0.1 and the sky set at most 0.05 mean CIEDE2000 worse. Null when the default fit stays.
+ */
+export function photoWeightedFit(cube: ReturnType<typeof parseCube>, base: Float64Array, start: SlotParams, post: boolean, onProgress?: (f: number) => void): SlotParams | null {
+  const { grey, skin } = guardSets();
+  const check = photoCheckSamples(), sky = skyCheckSamples();
+  const T = { check: lab(applyCube(cube, check)), sky: lab(applyCube(cube, sky)), grey: lab(applyCube(cube, grey)), skin: lab(applyCube(cube, skin)) };
+  const score = (p: SlotParams) => {
+    const sk = meanMax00(p, sky, T.sky)[0];
+    return { s: meanMax00(p, check, T.check)[0] + PHOTO_SKY_WEIGHT * sk, sky: sk, grey: meanMax00(p, grey, T.grey)[0], skin: meanMax00(p, skin, T.skin)[0] };
+  };
+  const s0 = score(start);
+  let best: { params: SlotParams; s: number } | null = null;
+  PHOTO_WEIGHTINGS.forEach((w, i) => {
+    const P = photoFitSet(base, w, grey, skin);
+    const f = fitSlot(P, applyCube(cube, P), {
+      post,
+      ...(onProgress ? { onProgress: (x: number) => onProgress((i + x) / PHOTO_WEIGHTINGS.length) } : {}),
+    });
+    const p: SlotParams = f.P2 ? { M1: f.M1, ck: f.ck, P2: f.P2 } : { M1: f.M1, ck: f.ck };
+    const s = score(p);
+    if (s.grey > s0.grey + 0.05 || s.skin > s0.skin + 0.1 || s.sky > s0.sky + 0.05) return;
+    if (s.s <= s0.s - PHOTO_MIN_GAIN && (!best || s.s < best.s)) best = { params: p, s: s.s };
+  });
+  return best ? (best as { params: SlotParams }).params : null;
 }
 
 /** What the camera would output with these slot parameters for colours it renders as `rgb` in Standard. */
