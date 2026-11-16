@@ -84,7 +84,7 @@ npm ci
 npm -w core run typecheck
 npm -w ui run typecheck
 GRMOD_GR3X_FIRMWARE=/path/to/official/fwdc243b.bin npm -w core test
-npm -w core exec vitest run test/gr3x-ui.test.mjs
+npm -w ui exec vitest run test/store-gr3.test.mjs
 npm -w ui run build
 (cd shell && ./build.sh dev && go test ./...)
 # Optional Windows compilation check:

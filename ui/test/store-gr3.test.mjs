@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Exercise the real UI state/actions with an in-memory host. No camera or disk writes.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LANGS } from '../src/fw/names';
+import { LANGS } from '@grmod/core';
 
 const mocks = vi.hoisted(() => ({
   engine: { open: vi.fn(), reset: vi.fn(), build: vi.fn(), ratio: vi.fn(), script: vi.fn(), heartbeat: vi.fn() },
@@ -11,10 +11,10 @@ const mocks = vi.hoisted(() => ({
     volumes: vi.fn(), sidecar: vi.fn(), join: (...p) => p.join('/'),
   },
 }));
-vi.mock('../../ui/src/engine', () => ({ engine: mocks.engine, EngineError: class extends Error {} }));
-vi.mock('../../ui/src/host', () => ({ host: mocks.host, HostError: class extends Error {}, sha256Hex: async () => 'test-hash', isAndroid: false, isMobile: false }));
-vi.mock('../../ui/src/pixels', () => ({ ensureIconFont: vi.fn() }));
-vi.mock('../../ui/src/preview', () => ({ decodePreview: vi.fn() }));
+vi.mock('../src/engine', () => ({ engine: mocks.engine, EngineError: class extends Error {} }));
+vi.mock('../src/host', () => ({ host: mocks.host, HostError: class extends Error {}, sha256Hex: async () => 'test-hash', isAndroid: false, isMobile: false }));
+vi.mock('../src/pixels', () => ({ ensureIconFont: vi.fn() }));
+vi.mock('../src/preview', () => ({ decodePreview: vi.fn() }));
 
 const info = () => ({
   family: 'gr3x', version: '1.60', filename: 'fwdc243b.bin', models: ['GR3X_HDF'],
@@ -36,7 +36,7 @@ beforeEach(async () => {
   mocks.host.write.mockImplementation(async (_p, data) => ({ size: data.length, sha256: 'test-hash' }));
   mocks.host.volumes.mockResolvedValue([]);
   vi.stubGlobal('document', { hidden: true });
-  store = await import('../../ui/src/store');
+  store = await import('../src/store');
 });
 afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
@@ -171,7 +171,7 @@ describe('GR IIIx UI family isolation', () => {
     expect(p3).toMatchObject({ slots: { CY: { names: { en: 'Film III' }, preset: { fileName: 'iii.cube' } } } });
     // Restart on GR III, then switch to GR IV: each gets its own back.
     vi.resetModules();
-    const restarted = await import('../../ui/src/store');
+    const restarted = await import('../src/store');
     await restarted.init();
     await vi.advanceTimersByTimeAsync(1);
     expect(restarted.getState()).toMatchObject({ model: 'GR3_HDF' });
@@ -276,7 +276,7 @@ describe('GR IIIx UI family isolation', () => {
     mocks.host.storeGet.mockImplementation(async key => files.get(key) ?? null);
     mocks.host.storeSet.mockImplementation(async (key, value) => { files.set(key, value); });
     mocks.host.storeDel = vi.fn(async key => { files.delete(key); });
-    const restarted = await import('../../ui/src/store');
+    const restarted = await import('../src/store');
     await restarted.init();
     expect(restarted.getState().model).toBe('HDF');
     expect(restarted.getState().info).toBeUndefined();

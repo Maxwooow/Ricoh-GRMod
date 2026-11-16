@@ -6,7 +6,9 @@
   "type": "module",
   "workspaces": ["core", "ui"],
   "scripts": {
-    "test": "npm -w core test",
+    "test": "npm -w core test && npm -w ui test",
+    "typecheck": "npm -w core run typecheck && npm -w ui run typecheck",
+    "check": "node tools/releases/generate.mjs --check && node tools/version.mjs --check && python3 tools/port/check.py",
     "build": "npm -w ui run build"
   }
 }

@@ -389,6 +389,8 @@ const en: typeof zh = {
  mCrashed: 'Something went wrong in the interface. Please send a screenshot of this to the developer.', mReload: 'Reload',
 };
 export type Key = keyof typeof zh;
+/** Both dictionaries (tests compare them). */
+export const DICTS = { zh, en };
 /** The interface language the user picked in the phone app ('' = as the system), kept in the web view's storage. */
 const UI_LANG_KEY = 'grmod.uiLang';
 export function uiLangPref(): '' | 'zh' | 'en' {
