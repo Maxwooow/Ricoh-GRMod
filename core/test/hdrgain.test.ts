@@ -195,7 +195,7 @@ describe.skipIf(!have120)('HDR gain map: GR IV 1.20 (port)', () => {
   };
   const word = (rtos: Uint8Array, a: number): number => new DataView(rtos.buffer, rtos.byteOffset).getUint32(a - 0x53000000, true);
   it('builds with the common additions and halation, verifies, reads back; plain builds keep the writer', async () => {
-    const eng = await Engine.open(new Uint8Array(readFileSync(file120!)), { newFirmware: true });
+    const eng = await Engine.open(new Uint8Array(readFileSync(file120!)));
     expect(eng.info.version).toBe('1.20');
     expect(WRITER_VTABLE_120).toBe(0x53fdde18);
     const opts = { adjSoftFocus: true, dateStamp: true, monoUnlock: true, extraSlots: [haloSlot(eng)] };

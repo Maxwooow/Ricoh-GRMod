@@ -91,8 +91,6 @@ export interface State {
   volumes: Volume[]; showAll: boolean; volumeId?: string; role?: card.CardRole;
   copySource: CopySource; parked: ParkedEntry[]; backups: ParkedEntry[]; copySel: string[]; copyInfo: Record<string, CopyInfo>; builds: BuildRecord[];
   busy?: string; toasts: Toast[]; confirm?: Confirm; cropId?: string; onlineOpen: boolean;
-  /** Why the download dialog is open, when it says so: a 1.12 bridge firmware file is open. */
-  onlineReason?: 'bridge-loaded';
   tour?: TourState; toursSeen: TourId[];
   /** Android: a firmware file on its way to the camera over Wi-Fi (camera.tsx shows the dialog while it is set). */
   push?: { file: Uint8Array; label: string; stock: boolean };
@@ -515,7 +513,6 @@ async function openFirmware(raw: Uint8Array, name: string, persist: boolean): Pr
     if (!sameFamily) enterFamily(familyOf(model));
     if (info.family === 'gr3x') set((s) => ({ dateStamp: s.dateStamp && info.features.dateStamp, monoUnlock: s.monoUnlock && info.features.monoUnlock }));
     if (info.family === 'gr3x') ratiosChanged(true);
-    if (info.bridge && persist) toast(t('bridgeOpened'), 'info');
     if (persist) { await host.storeSet(fwKey(fwGroupOf(model)), raw); scheduleSave(); }
     for (const id of info.capabilities.presets ? allSlotKeys() : []) {
       void renderIcon(id);
@@ -539,19 +536,13 @@ export async function loadFirmwareFile(file: File): Promise<void> {
   await openFirmware(new Uint8Array(await file.arrayBuffer()), file.name, true);
 }
 /** The dialog that fetches the official firmware from Ricoh's site. */
-export function setOnlineOpen(onlineOpen: boolean, reason?: State['onlineReason']): void {
-  set({ onlineOpen, onlineReason: onlineOpen ? reason : undefined });
-}
+export function setOnlineOpen(onlineOpen: boolean): void { set({ onlineOpen }); }
 /** Take over a firmware file the shell downloaded; true when it is now the open firmware. */
 export async function adoptFirmware(name: string, version: string, data: Uint8Array): Promise<boolean> {
   const ok = await openFirmware(data, name, true);
   if (ok) toast(t('fwDownloaded', { v: version || state.info?.version || '' }), 'ok');
   return ok;
 }
-/** True while the open firmware is the 1.12 bridge firmware: nothing is written until the official one is open. */
-export const bridgeLoaded = (s: State = state): boolean => !!s.info?.bridge;
-/** What a write or export does while the bridge firmware is open: offer the official download instead. */
-export function askForOfficial(): void { setOnlineOpen(true, 'bridge-loaded'); }
 
 // ------------------------------------------------------------------ presets
 const PRESET_ERRORS: Record<string, Key> = {
@@ -1340,7 +1331,6 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   if (!state.info?.models.includes(state.model)) return;
   if (!stock && !state.info.capabilities.build) { toast(t('fwCannotBuild'), 'info'); return; }
   if (state.busy || state.fwBusy || !state.info || !state.raw) return;
-  if (bridgeLoaded()) { askForOfficial(); return; }
   const sourceInfo = state.info, sourceRaw = state.raw, sourceModel = state.model;
   const changes = stock ? [] : pendingChanges();
   const ratios = stock ? [] : ratioSpecs();
@@ -1568,7 +1558,6 @@ export function writableCopy(s: State = state): { entry: ParkedEntry; summary: F
 /** A one-line description of a firmware copy, for the confirmation. */
 export function describeCopy(summary: FirmwareSummary, s: State = state): string[] {
   if (summary.kind === 'official') return [t('copyOfficial')];
-  if (summary.kind === 'bridge') return [t('copyBridge')];
   const build = s.builds.find((b) => b.sha256 === summary.sha256);
   const lines = summary.slots.map((sl) => {
     const preset = build?.slots.find((x) => x.id === sl.id)?.preset;
@@ -1597,7 +1586,6 @@ export async function writeCopy(): Promise<void> {
   const pick = writableCopy(); const source = state.copySource;
   const v = state.volumes.find((x) => x.id === state.volumeId);
   if (state.busy || state.fwBusy || !state.info) return;
-  if (bridgeLoaded()) { askForOfficial(); return; }
   if (!pick) return;
   if (!v) { toast(t('noCard'), 'error'); return; }
   const official = pick.summary.kind === 'official';

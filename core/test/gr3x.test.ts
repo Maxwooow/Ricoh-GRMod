@@ -73,7 +73,7 @@ describe.skipIf(!input)('GR IIIx official 1.60 integration', () => {
     expect(engine.info).toMatchObject({ family: 'gr3x', version: '1.60', filename: 'fwdc243b.bin', models: ['GR3X_HDF', 'GR3X'], factoryRatios: ['3:2', '1:1'] });
     expect(engine.info.slots.map(s => s.defaultName)).toEqual(Array.from({ length: 20 }, (_, i) => `Film ${i + 1}`));
     // Power-off images and the factory entry needed a start-up script on the card; GR Mod 0.8 dropped that route.
-    expect(engine.info.capabilities).toEqual({ build: true, presets: true, wallpaper: false, factoryEntry: false, bridge: false, menuPictures: true, lookLayout: true });
+    expect(engine.info.capabilities).toEqual({ build: true, presets: true, wallpaper: false, factoryEntry: false, menuPictures: true, lookLayout: true });
   });
   it('round-trips the unmodified official container byte for byte', async () => {
     const fw = new Firmware(raw);
@@ -90,7 +90,6 @@ describe.skipIf(!input)('GR IIIx official 1.60 integration', () => {
   });
   it('blocks every unported mutation even when invoked directly, without the UI', async () => {
     await expect(engine.buildFirmware([], [{ name: '65:24', ratio: '65:24' }], [], { extraSlots: [{} as never] })).rejects.toMatchObject({ code: 'gr3x-unsupported' });
-    await expect(engine.bridgeFirmware()).rejects.toMatchObject({ code: 'gr3x-port-incomplete' });
     expect(() => engine.convertPreset('cube', '')).toThrow('LUT_3D_SIZE');
     expect(() => engine.convertPreset('xmp', '')).toThrow('not an XML document');
     expect(() => engine.encodeShutdownImage(new Uint8Array(), 'GR3X_HDF')).toThrow('power-off images is not ported');

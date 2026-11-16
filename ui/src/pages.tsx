@@ -11,7 +11,7 @@ import type { Crop } from './pixels';
 import { onUiScale, uiScale } from './fit';
 import { applySlot } from './preview';
 import {
-  addRatio, addWallFiles, askForOfficial, bridgeLoaded, loadFirmwareFile, loadIconImage, loadPresetFile, loadPreviewFile, moveWall, nameProblem, openCrop, outputFirmware, previewPhoto, removePreset, removeWall,
+  addRatio, addWallFiles, loadFirmwareFile, loadIconImage, loadPresetFile, loadPreviewFile, moveWall, nameProblem, openCrop, outputFirmware, previewPhoto, removePreset, removeWall,
   maxRatios, ratioName, ratioProblem, removeRatio, setActiveRatio, setActiveSlot, setCrop, setIcon, setName, setPreviewMode, setRatio, setRatioBackdrop, useStore, wallBitmap,
   setSoft,
   setDateStamp,
@@ -971,9 +971,7 @@ export function ImageControlPage() {
         {views && orderView && <ViewTabs value={view} onChange={setView} />}
         {info && (
           <div className="head-right" data-tour="ic-stock">
-            {info.bridge
-              ? <span className="chip warn">{Ico.bridge}<span className="ellipsis">{fwName || info.filename} · {t('fwBridgeValue')}</span></span>
-              : <span className="chip ok">{Ico.check}<span className="ellipsis">{fwName || info.filename} · {info.version}</span></span>}
+            <span className="chip ok">{Ico.check}<span className="ellipsis">{fwName || info.filename} · {info.version}</span></span>
             <Menu items={isMobile ? [
               ...(info.family === 'gr4' ? [{ label: t('pushStock'), run: () => { void outputFirmware({ kind: 'camera' }, true); } }] : []),
               { label: t('saveStock'), run: () => { void outputFirmware({ kind: 'phone' }, true); } },

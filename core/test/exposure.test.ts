@@ -29,7 +29,7 @@ const word = (rtos: Uint8Array, a: number): number => new DataView(rtos.buffer, 
 
 describe.skipIf(!have120)('exposure preview and soft focus line: GR IV 1.20', () => {
   it('builds, verifies and reads back; soft focus alone gets its line, nothing else changes', async () => {
-    const eng = await Engine.open(new Uint8Array(readFileSync(file120!)), { newFirmware: true });
+    const eng = await Engine.open(new Uint8Array(readFileSync(file120!)));
     expect(eng.info.features.exposurePreview).toBe(true);
     expect(EXPOSURE_PREVIEW_BYTE).toBe(0x550832a8 + 4 + 0x10b);
     const opts = { adjSoftFocus: true, dateStamp: true, monoUnlock: true, directFlash: true, hdrGainMap: true, adjSlots: 8 };
@@ -76,7 +76,7 @@ describe.skipIf(!have120)('power-off pictures with the wide menus: GR IV 1.20', 
   // (`menuwide.ts`) and the camera reads the wide copies of the other tabs' descriptors, so the End
   // Screen line has to open the power-off pictures' submenu there too.
   it("Setup's End Screen line opens the submenu in the wide copy the camera reads", async () => {
-    const eng = await Engine.open(new Uint8Array(readFileSync(file120!)), { newFirmware: true });
+    const eng = await Engine.open(new Uint8Array(readFileSync(file120!)));
     const rgb = new Uint8Array(720 * 480 * 3).map((_, i) => (i * 7) & 255);
     const jpeg = eng.encodeMenuPicture(rgb);
     const b = await eng.buildFirmware([], [], [], { adjSoftFocus: true, dateStamp: true, exposurePreview: true, shutdownPictures: [{ id: 0x101, name: 'One', jpeg }] });

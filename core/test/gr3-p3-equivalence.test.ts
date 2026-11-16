@@ -215,7 +215,7 @@ describe.skipIf(!xPath || !iiiPath)('GR III 2.21 is the IIIx 1.71 program', () =
   it('opens GR III as its own camera and recognises only its own builds', async () => {
     const e3 = await Engine.open(raw3), eX = await Engine.open(rawX);
     expect(e3.info).toMatchObject({ family: 'gr3x', filename: 'fwdc239b.bin', models: ['GR3_HDF', 'GR3'], version: '2.21',
-      capabilities: { build: true, presets: true, wallpaper: false, factoryEntry: false, bridge: false, menuPictures: true, lookLayout: true },
+      capabilities: { build: true, presets: true, wallpaper: false, factoryEntry: false, menuPictures: true, lookLayout: true },
       features: { dateStamp: true, maxFilms: 20 } });
     expect(e3.info).not.toHaveProperty('experimental');
     expect(eX.info).toMatchObject({ filename: 'fwdc243b.bin', models: ['GR3X_HDF', 'GR3X'], version: '1.71',

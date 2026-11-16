@@ -10,7 +10,7 @@ export { JpegError } from './jpeg';
 export type { LangCode, NameValidation } from './fw';
 export type { CameraModel } from './wallpaper';
 export type { Sampling } from './jpeg';
-export { BRIDGE_VERSION, FIRMWARE_VERSION, LANGS, SLOTS, ICON_W, ICON_H, OFFICIAL_CLARITY, SOFT_FOCUS_GAINS, SOFT_FOCUS_LEVELS, SOFT_FOCUS_STRENGTHS } from './fw';
+export { FIRMWARE_VERSION, LANGS, SLOTS, ICON_W, ICON_H, OFFICIAL_CLARITY, SOFT_FOCUS_GAINS, SOFT_FOCUS_LEVELS, SOFT_FOCUS_STRENGTHS } from './fw';
 export type { ClarityChange, SoftFocusLevel, SoftFocusStrength } from './fw';
 export type { BuiltRatio, RatioSpec } from './fw';
 export { FACTORY_LOOK_IDS, ORDER_COUNT, MAX_CUSTOM_RATIOS, MAX_NAME_LENGTH, validateLookLayout, validateRatioName, EXTRA_NAME_MAX, MAX_EXTRA_SLOTS, validateExtraSlotName, SHUTDOWN_MAX_PICTURES, SHUTDOWN_NAME_MAX, encodeShutdownPicture, validateShutdownName } from './fw';
@@ -21,7 +21,7 @@ export type { RatioPreview } from './app';
 
 export { GR3X_160, GR3_210, GR3_PROFILES, GR3X_SYMBOLS, GR3X_BLOCKERS, gr3ProfileOf, gr3xOffset, openGr3xOfficial } from './fw/gr3x/profile';
 export type { Gr3Profile } from './fw/gr3x/profile';
-/** The experimental ports to the cameras' current firmware (see `OpenOptions.newFirmware`). */
+/** The ports to the cameras' later firmware (generated copies, see tools/port). */
 export { GR3X_170, GR3_220 } from './fw/gr3x170/profile';
 export { GR3X_171, GR3_221 } from './fw/gr3x171/profile';
 export { FIRMWARE_VERSION as FIRMWARE_VERSION_120 } from './fw/gr4v120/profile';

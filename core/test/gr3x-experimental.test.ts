@@ -22,7 +22,7 @@ describe.skipIf(!input)('GR IIIx isolated ARM experiments', () => {
     expect(manifest.rearDialPatched).toBe(false);
     const engine = await Engine.open(raw);
     // Power-off images and the factory entry needed a start-up script on the card; GR Mod 0.8 dropped that route.
-    expect(engine.info.capabilities).toEqual({ build: true, presets: true, wallpaper: false, factoryEntry: false, bridge: false, menuPictures: true, lookLayout: true });
+    expect(engine.info.capabilities).toEqual({ build: true, presets: true, wallpaper: false, factoryEntry: false, menuPictures: true, lookLayout: true });
     await expect(engine.buildFirmware([], [{ name: '65:24', ratio: '65:24' }], [], { extraSlots: [{} as never] }))
       .rejects.toMatchObject({ code: 'gr3x-unsupported' });
     await expect(engine.buildFirmware([], [{ name: '65:24', ratio: '65:24' }], [], { shutdownPictures: [{} as never] })).rejects.toThrow();

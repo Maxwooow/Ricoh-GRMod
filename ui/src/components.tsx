@@ -41,7 +41,6 @@ export const Ico = {
   grip: <svg viewBox="0 0 20 20" fill="currentColor"><circle cx="7.4" cy="5.2" r="1.25" /><circle cx="12.6" cy="5.2" r="1.25" /><circle cx="7.4" cy="10" r="1.25" /><circle cx="12.6" cy="10" r="1.25" /><circle cx="7.4" cy="14.8" r="1.25" /><circle cx="12.6" cy="14.8" r="1.25" /></svg>,
   eye: <svg viewBox="0 0 20 20" {...P}><path d="M2.6 10S5.3 5 10 5s7.4 5 7.4 5-2.7 5-7.4 5-7.4-5-7.4-5z" /><circle cx="10" cy="10" r="2.2" /></svg>,
   eyeOff: <svg viewBox="0 0 20 20" {...P}><path d="M8.3 5.2A7.4 7.4 0 0 1 10 5c4.7 0 7.4 5 7.4 5a12.4 12.4 0 0 1-2 2.6M12.3 14.6A6.8 6.8 0 0 1 10 15c-4.7 0-7.4-5-7.4-5a12.6 12.6 0 0 1 3.1-3.6M8.5 8.5a2.2 2.2 0 0 0 3 3M3.6 3.6l12.8 12.8" /></svg>,
-  bridge: <svg viewBox="0 0 20 20" {...P}><path d="M2.5 7.5h15M2.5 13.5h15M4.5 7.5v6M15.5 7.5v6M4.5 7.5c1.6 2.6 3.4 3.9 5.5 3.9s3.9-1.3 5.5-3.9" /></svg>,
   download: <svg viewBox="0 0 20 20" {...P}><path d="M10 3.2v9.6M6 9.2l4 3.8 4-3.8M4 16.2h12" /></svg>,
   info: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="7.2" /><path d="M10 9.2v4.4" /><circle cx="10" cy="6.4" r="0.6" fill="currentColor" /></svg>,
   soft: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="3.3" /><circle cx="10" cy="10" r="7.2" strokeDasharray="1.4 2.35" /></svg>,
