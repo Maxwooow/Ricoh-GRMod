@@ -86,6 +86,8 @@ You can restore the official firmware from the Image Control page or the firmwar
 - [Mobile app guide](mobile/README.md)
 - [Desktop shell guide](shell/README.md)
 - [Automatic screen brightness](docs/bright-auto.md)
+- [Development guide](docs/development.md)—tests, the generated files, adding a firmware release
+- [Releasing](docs/releasing.md)—version numbers, packages, signing, publishing
 - [Technical notes and release archive](docs/technical-notes.md)—implementation details, emulator checks, firmware research, and earlier release notes
 
 GR Mod does not include Ricoh firmware. It reads a firmware file supplied by the user or downloads one from Ricoh's official website under Ricoh's licence terms.
@@ -113,13 +115,16 @@ On macOS and Linux, GR Mod opens in a supported Chromium-based browser when avai
 ### Run tests
 
 ```sh
-npm -w core test
+npm run check        # generated lists, version numbers and firmware ports are in step
+npm run typecheck
+npm test             # core (engine) and ui
 cd shell
+./build.sh dev && ./smoke.sh
 go test ./...
 go test -tags desktop ./...
 ```
 
-Some byte-identity tests require official firmware files in `core/testdata/private/`. Those files are not distributed with this repository.
+The same checks run on GitHub for every push and pull request (`.github/workflows/test.yml`). Some byte-identity tests require official firmware files, which are not distributed with this repository; see the [development guide](docs/development.md).
 
 See the [mobile guide](mobile/README.md) for Android and iOS build instructions.
 
