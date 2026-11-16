@@ -14,6 +14,9 @@ function fixSum(d: Uint8Array): Uint8Array {
   return d;
 }
 const have = existsSync(P + 'official.bin');
+// The fixtures besides the official file (hand-made test firmware A / B / C of 0.1, two XMP presets, the
+// decoded payload): a test that reads them is skipped when they are not there.
+const fixtures = (...names: string[]): boolean => names.every((n) => existsSync(P + n));
 const OUT = '/tmp/claude-0/-home-claude/88a14fdf-ef79-5caf-8cde-fe4ab6536e46/scratchpad/e2e/';
 
 describe.skipIf(!have)('engine end to end', () => {
@@ -31,12 +34,12 @@ describe.skipIf(!have)('engine end to end', () => {
     expect(info.allowed['zh-CN']).toContain('全');
     expect(info.tiles.film.length).toBe(6400);
   });
-  it('rejects anything that is not the official file', async () => {
+  it.skipIf(!fixtures('B.bin'))('rejects anything that is not the official file', async () => {
     const bad = new Uint8Array(readFileSync(P + 'B.bin'));
     await expect(Engine.open(bad)).rejects.toMatchObject({ code: 'unsupported-firmware' });
     await expect(Engine.open(new Uint8Array(1000))).rejects.toBeInstanceOf(fw.FirmwareError);
   });
-  it('converts presets, builds a firmware with names and icons, and the result passes the self-check', async () => {
+  it.skipIf(!fixtures('q400.xmp', 'c200.xmp'))('converts presets, builds a firmware with names and icons, and the result passes the self-check', async () => {
     const a = eng.convertPreset('xmp', readFileSync(P + 'q400.xmp', 'utf8'));
     const b = eng.convertPreset('xmp', readFileSync(P + 'c200.xmp', 'utf8'));
     expect(a.meanDE).toBeLessThan(2.7);
@@ -89,7 +92,7 @@ describe.skipIf(!have)('engine end to end', () => {
     mkdirSync(OUT, { recursive: true });
     writeFileSync(OUT + 'flat_hdf.jpg', eng.encodeShutdownImage(flat, 'HDF').data);
   });
-  it('describes firmware files found on a card', async () => {
+  it.skipIf(!fixtures('A.bin', 'B.bin', 'C.bin', 'q400.xmp', 'official.decoded'))('describes firmware files found on a card', async () => {
     const official = await eng.inspect(new Uint8Array(readFileSync(P + 'official.bin')));
     expect(official.kind).toBe('official');
     expect(official.changedBytes).toBe(0);
