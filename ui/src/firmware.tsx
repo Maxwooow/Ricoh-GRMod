@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { FIRMWARE_VERSION, FIRMWARE_VERSION_120, FIRMWARE_VERSION_121, GR3_210, GR3_220, GR3_221, GR3X_160, GR3X_170, GR3X_171 } from '@grmod/core';
 import type { CameraModel } from '@grmod/core';
-import { ChoiceSheet, FileButton, Ico, Segmented, useDismiss } from './components';
+import { ChoiceSheet, FileButton, Ico, Segmented, pickerAccept, useDismiss } from './components';
 import { isMobile } from './host-android';
 import { host, HostError } from './host';
 import type { FirmwareRelease } from './host';
@@ -40,7 +40,7 @@ export function FirmwareRow() {
           <button type="button" role="menuitem" className="pop-item" onClick={() => { close(); setOnlineOpen(true); }}><span className="pop-ico">{Ico.download}</span><span>{t('fwOnline')}</span></button>
         </div>
       )}
-      <input ref={file} type="file" accept=".bin" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void loadFirmwareFile(f); }} />
+      <input ref={file} type="file" accept={pickerAccept('.bin')} hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void loadFirmwareFile(f); }} />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { isMobile, useBack } from './host-android';
+import { isIOS, isMobile, useBack } from './host-android';
 import { ICON_H, ICON_W, RATIO_ICON_H, RATIO_ICON_W } from '@grmod/core';
 import { uiScale } from './fit';
 import { rgbToCanvas, rgbaToCanvas } from './pixels';
@@ -79,12 +79,20 @@ export function Prop({ label, children, tour }: { label: string; children: React
   );
 }
 
+/**
+ * The `accept` of a file input. iOS turns each file extension into a system file type and greys out every file
+ * whose type it cannot match; it knows no type for .cube (nor reliably for .xmp and .bin), so those files could not
+ * be chosen at all. There, a list with extensions accepts any file: the loaders tell the files apart themselves.
+ */
+export const pickerAccept = (accept?: string): string | undefined =>
+  isIOS && accept && accept.split(',').some((x) => x.trim().startsWith('.')) ? undefined : accept;
+
 export function FileButton({ accept, multiple, onFiles, children, className, title }: { accept?: string; multiple?: boolean; onFiles: (f: File[]) => void; children: ReactNode; className?: string; title?: string }) {
   const ref = useRef<HTMLInputElement>(null);
   return (
     <>
       <button className={className || 'btn'} title={title} onClick={() => ref.current?.click()}>{children}</button>
-      <input ref={ref} type="file" accept={accept} multiple={multiple} hidden onChange={(e) => { const f = Array.from(e.target.files || []); e.target.value = ''; if (f.length) onFiles(f); }} />
+      <input ref={ref} type="file" accept={pickerAccept(accept)} multiple={multiple} hidden onChange={(e) => { const f = Array.from(e.target.files || []); e.target.value = ''; if (f.length) onFiles(f); }} />
     </>
   );
 }
