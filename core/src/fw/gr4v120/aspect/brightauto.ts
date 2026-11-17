@@ -15,11 +15,12 @@
  * 1.20 file. The balanced curve is used daily by the owner on GR IV HDF 1.11 and 1.20.
  */
 import { Patch, expectWord } from './build';
+import { adr } from '../target';
 
-export const CURVE_X = 0x53de4968;
-const CURVE_Y = 0x53de496c;
-const CLAMP = 0x53269ffc;
-const TOP = 0x5326a01c;
+export const CURVE_X = adr(0x53de4968);
+const CURVE_Y = adr(0x53de496c);
+const CLAMP = adr(0x53269ffc);
+const TOP = adr(0x5326a01c);
 
 /** x values of the table (powers of two). */
 export const BRIGHT_AUTO_X = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072];

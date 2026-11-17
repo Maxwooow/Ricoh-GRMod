@@ -39,9 +39,10 @@ import { ICON_OFF, ICON_ON, LIST_CONTROLLER_ID, LIST_SET_ITEM, StillLine, TEXT_O
 import { DIRECT_FLASH_BYTE, DIRECT_FLASH_ICON_ID, LIVE_FLASH_MODE } from './directflash';
 import { installExposurePreviewOff } from './lvpreview';
 import { SOFT_FOCUS_BYTE, SOFT_FOCUS_TEXT_ID } from './softfocus';
+import { adr } from '../target';
 
 /** The setting byte: 0 On, 1 Off with Direct Flash, 2 Always Off. */
-export const EXPOSURE_PREVIEW_BYTE = 0x550832a8 + 4 + 0x10b;
+export const EXPOSURE_PREVIEW_BYTE = adr(0x550832a8) + 4 + 0x10b;
 /** The same byte as the settings guard sees it (the settings object, CURRENT()). */
 export const EXPOSURE_PREVIEW_GUARD = 0x10f;
 export const ADJ_EXPOSURE_PREVIEW = 0x15;
@@ -55,12 +56,12 @@ export const EP_LIST_ID = 0x020001d2;
 export const IMAGE_CONTROL_ID = 0x02000015;
 export const LINK_AE_AF_ID = 0x02000081;
 
-const TOP_SET_ICON = 0x5359d6f4; // (menu line, icon)
-const LIST_ITEM = 0x53593d64; // (list, index) -> item (the ADJ controller's list view)
-const ITEM_SET_TEXT = 0x535a1138; // (item, text number)
+const TOP_SET_ICON = adr(0x5359d6f4); // (menu line, icon)
+const LIST_ITEM = adr(0x53593d64); // (list, index) -> item (the ADJ controller's list view)
+const ITEM_SET_TEXT = adr(0x535a1138); // (item, text number)
 const SOFT_TEXTS = [TEXT_OFF, 10, 11, 12] as const; // Off, Low, Medium, High
 
-const ADJ_TABLE = 0x53dc9dfc;
+const ADJ_TABLE = adr(0x53dc9dfc);
 const ADJ_RECORD = 0x5c;
 const ADJ_FUNCTIONS = 21;
 const CROP = 0x13;
@@ -70,20 +71,20 @@ const H_SET = 0x28;
 const H_COUNT = 0x30;
 /** Every MOVW / MOVT pair that loads the table's address: [movw, movt, register]. */
 const ADJ_TABLE_SITES: readonly (readonly [number, number, number])[] = [
-  [0x531bd4c4, 0x531bd4d4, 4], [0x531bee8c, 0x531bee94, 2], [0x531bf028, 0x531bf030, 3], [0x531bf0c4, 0x531bf0cc, 2],
-  [0x531bf5c0, 0x531bf5c8, 2], [0x531bffd4, 0x531bffdc, 2], [0x531c0030, 0x531c0038, 2], [0x531c0128, 0x531c0130, 2],
-  [0x531c01b4, 0x531c01bc, 2], [0x531c0240, 0x531c0248, 2], [0x531c02e8, 0x531c02f0, 7], [0x531c0434, 0x531c043c, 2],
-  [0x531c05d4, 0x531c05dc, 2], [0x531c06d0, 0x531c06e8, 4], [0x531c09dc, 0x531c09e4, 6], [0x531c0ae8, 0x531c0af0, 2],
-  [0x531c0b94, 0x531c0b9c, 2], [0x531c0bfc, 0x531c0c0c, 7], [0x531c0cb8, 0x531c0cc8, 7], [0x531c0e9c, 0x531c0ea4, 2],
-  [0x531c1060, 0x531c1064, 3], [0x531c1220, 0x531c1228, 2],
+  [adr(0x531bd4c4), adr(0x531bd4d4), 4], [adr(0x531bee8c), adr(0x531bee94), 2], [adr(0x531bf028), adr(0x531bf030), 3], [adr(0x531bf0c4), adr(0x531bf0cc), 2],
+  [adr(0x531bf5c0), adr(0x531bf5c8), 2], [adr(0x531bffd4), adr(0x531bffdc), 2], [adr(0x531c0030), adr(0x531c0038), 2], [adr(0x531c0128), adr(0x531c0130), 2],
+  [adr(0x531c01b4), adr(0x531c01bc), 2], [adr(0x531c0240), adr(0x531c0248), 2], [adr(0x531c02e8), adr(0x531c02f0), 7], [adr(0x531c0434), adr(0x531c043c), 2],
+  [adr(0x531c05d4), adr(0x531c05dc), 2], [adr(0x531c06d0), adr(0x531c06e8), 4], [adr(0x531c09dc), adr(0x531c09e4), 6], [adr(0x531c0ae8), adr(0x531c0af0), 2],
+  [adr(0x531c0b94), adr(0x531c0b9c), 2], [adr(0x531c0bfc), adr(0x531c0c0c), 7], [adr(0x531c0cb8), adr(0x531c0cc8), 7], [adr(0x531c0e9c), adr(0x531c0ea4), 2],
+  [adr(0x531c1060), adr(0x531c1064), 3], [adr(0x531c1220), adr(0x531c1228), 2],
 ];
 /** The initialiser's end of the table (a literal word). */
-const ADJ_TABLE_END = 0x531bd600;
-const NAME_OF = 0x5338f484; // (resources, function) -> text: cmp r1, #0 first
-const ICON_OF = 0x53390e40; // (resources, function, variant) -> icon: cmp r1, #0 first
-const FUNCTION_LIST_LOW = 0x531dc834; // movw r4, #lo(list)
-const FUNCTION_LIST_HIGH = 0x531dc844; // movt r4, #hi(list)
-const FUNCTION_LIST_LENGTH = 0x531dc860; // add r6, r4, #length
+const ADJ_TABLE_END = adr(0x531bd600);
+const NAME_OF = adr(0x5338f484); // (resources, function) -> text: cmp r1, #0 first
+const ICON_OF = adr(0x53390e40); // (resources, function, variant) -> icon: cmp r1, #0 first
+const FUNCTION_LIST_LOW = adr(0x531dc834); // movw r4, #lo(list)
+const FUNCTION_LIST_HIGH = adr(0x531dc844); // movt r4, #hi(list)
+const FUNCTION_LIST_LENGTH = adr(0x531dc860); // add r6, r4, #length
 const ADJ_SOFT_FOCUS = 0x0a;
 const ADJ_IMAGE_CONTROL = 0x0f;
 
@@ -377,7 +378,7 @@ export function installExposurePreviewAdj(patch: Patch, o: ExposurePreviewOption
   expectWord(patch, ICON_OF + 4, 0x1a000003); // bne 0x53390E58
   const crop = patch.read(ADJ_TABLE + CROP * ADJ_RECORD, ADJ_RECORD);
   const cv = new DataView(crop.buffer);
-  if (cv.getUint32(0x10, true) !== 0x531bb654 || cv.getUint32(0x38, true) !== 0 || cv.getUint32(0x3c, true) !== 0x531bdf1c || cv.getUint32(0x40, true) !== 0) fail('unexpected-layout', 'Crop record of the ADJ table is not as expected');
+  if (cv.getUint32(0x10, true) !== adr(0x531bb654) || cv.getUint32(0x38, true) !== 0 || cv.getUint32(0x3c, true) !== adr(0x531bdf1c) || cv.getUint32(0x40, true) !== 0) fail('unexpected-layout', 'Crop record of the ADJ table is not as expected');
   for (const off of [H_DRAW, H_IS_CURRENT, H_SET, H_COUNT]) if (cv.getUint32(off, true) === 0 || cv.getUint32(off + 4, true) !== 0) fail('unexpected-layout', 'Crop record of the ADJ table is not as expected');
 
   const values = exposurePreviewValues(o.directFlash);

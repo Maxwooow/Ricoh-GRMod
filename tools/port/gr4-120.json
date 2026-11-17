@@ -6,6 +6,10 @@
   "relink": true,
   "files": [
     [
+      "core/src/fw/target.ts",
+      "core/src/fw/gr4v120/target.ts"
+    ],
+    [
       "core/src/fw/profile.ts",
       "core/src/fw/gr4v120/profile.ts"
     ],

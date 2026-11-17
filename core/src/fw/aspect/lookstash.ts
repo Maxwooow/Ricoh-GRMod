@@ -28,15 +28,16 @@
 import { assembleWords } from './arm';
 import { Patch, expectWord } from './build';
 import { T_GAM, T_REC } from '../profile';
+import { adr } from '../target';
 
-export const LOOK_STASH = 0x558372e4;
+export const LOOK_STASH = adr(0x558372e4);
 /**
  * The orientation of the picture being made (0.8.3, for the date imprint): `value | ORIENT_VALID`,
  * value 0 as stored, 1 / 2 / 3 = EXIF Orientation 8 / 3 / 6. Written at the start of each still
  * exposure from the camera's direction (see datestamp.ts) and, in RAW development, by the
  * development step from the record being developed. In the 44 zero-filled bytes before the heap.
  */
-export const ORIENT_WORD = 0x558372f4;
+export const ORIENT_WORD = adr(0x558372f4);
 export const ORIENT_VALID = 0x100;
 /**
  * The look of the picture being made (0.8.4, for the date imprint's look name), LOOK_STASH's word
@@ -45,14 +46,14 @@ export const ORIENT_VALID = 0x100;
  * developed. Unlike LOOK_STASH it does not follow a look chosen while the picture is being
  * processed. In the 44 zero-filled bytes before the heap.
  */
-export const FRAME_LOOK = 0x558372f8;
+export const FRAME_LOOK = adr(0x558372f8);
 /** The development step's read of the look (the hook site). */
-export const LOOK_SITE = 0x539113f8;
+export const LOOK_SITE = adr(0x539113f8);
 const LOOK_SITE_WORD = 0xe5d3279c; // ldrb r2, [r3, #0x79c]
 /** Literal: end of the start-up zero fill; 44 unused bytes up to the heap (0x55837300) follow it. */
-const ZERO_FILL_END = 0x53000460;
+const ZERO_FILL_END = adr(0x53000460);
 /** GR IV Monochrome check (1 on that model). */
-export const MONO_MODEL = 0x533ef000;
+export const MONO_MODEL = adr(0x533ef000);
 
 /** The camera's own black-and-white looks. */
 export const MONO_LOOKS = [13, 14, 15, 16, 25, 26, 27, 28, 29, 30];
@@ -83,9 +84,9 @@ export const STASH_WHITE = 0x20000;
 
 export function extendZeroFill(p: Patch): void {
   const w = p.word(ZERO_FILL_END);
-  if (w === 0x55837300) return;
-  expectWord(p, ZERO_FILL_END, 0x558372d4);
-  p.setWord(ZERO_FILL_END, 0x55837300, 'start-up zero fill also clears the 44 unused bytes before the heap');
+  if (w === adr(0x55837300)) return;
+  expectWord(p, ZERO_FILL_END, adr(0x558372d4));
+  p.setWord(ZERO_FILL_END, adr(0x55837300), 'start-up zero fill also clears the 44 unused bytes before the heap');
 }
 
 /** The hook on its own (no added slots: `slots.ts` puts the same code in its hook of the site). */

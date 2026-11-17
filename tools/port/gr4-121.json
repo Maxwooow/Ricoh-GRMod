@@ -1,14 +1,10 @@
 {
-  "about": "GR IV 1.21 (also GR IV Monochrome 1.11, the same file) from the 1.20 port",
+  "about": "GR IV 1.21 (also GR IV Monochrome 1.11, the same file): the development tools, from the 1.20 port's. The program itself is fw/gr4v120 with fw/gr4v121's target (core/src/fw/release.ts)",
   "map": "tools/port/gr4-121-map.json",
   "patch": "tools/port/gr4-121.patch",
   "lenient": true,
   "relink": true,
   "copies": [
-    [
-      "core/src/fw/gr4v120",
-      "core/src/fw/gr4v121"
-    ],
     [
       "tools/gr4v120",
       "tools/gr4v121"

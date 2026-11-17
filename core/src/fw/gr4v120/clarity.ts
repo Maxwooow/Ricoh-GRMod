@@ -15,9 +15,10 @@
  */
 import { RTOS_OFFSET, RTOS_VA } from './profile';
 import { FirmwareError } from '../types';
+import { adr } from './target';
 
 /** Address of the table in the camera. */
-export const CLARITY_VA = 0x53b754c0;
+export const CLARITY_VA = adr(0x53b754c0);
 /** Offset of the table in the decoded payload. */
 export const CLARITY_OFFSET = RTOS_OFFSET + (CLARITY_VA - RTOS_VA);
 export const CLARITY_ROWS = 9;

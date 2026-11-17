@@ -34,18 +34,19 @@
 import { assembleWords, branchTarget, branchWord } from './arm';
 import { FirmwareError } from '../../types';
 import { Patch, expectWord } from './build';
+import { adr, byRelease } from '../target';
 
 function fail(code: string, message: string): never {
   throw new FirmwareError(code, message);
 }
 
 /** CURRENT(): the live user settings. */
-const CURRENT = 0x53240c38;
-const SETTINGS_SAVE = 0x533f3674;
-const SETTINGS_LOAD = 0x533f3254;
+const CURRENT = adr(0x53240c38);
+const SETTINGS_SAVE = adr(0x533f3674);
+const SETTINGS_LOAD = adr(0x533f3254);
 /** User-mode recall: `bl 0x532406A4` with the settings in r4 (see build.ts, installState). */
-const RECALL = 0x532adedc;
-const RECALL_NATIVE = 0x532406a4;
+const RECALL = adr(0x532adedc);
+const RECALL_NATIVE = adr(0x532406a4);
 
 const LOOKS = [0x153, 0x154, 0x155, 0x156, 0x515, 0x516, 0x517, 0x518];
 const RATIO = 0x49f;
@@ -149,7 +150,7 @@ export function installSettingsGuard(p: Patch, o: GuardOptions): { fix: number; 
   const recallWord = p.word(RECALL);
   if (recallWord >>> 24 !== 0xeb) fail('unexpected-layout', 'user-mode recall is not a call');
   const priorRecall = branchTarget(RECALL, recallWord);
-  if (priorRecall === RECALL_NATIVE) expectWord(p, RECALL, 0xebfe49f0); // bl 0x532406A4
+  if (priorRecall === RECALL_NATIVE) expectWord(p, RECALL, byRelease({ '1.20': 0xebfe49f0, '1.21': 0xebfe495e })); // bl 0x532406A4
 
   const fix = p.append((a) => assembleWords(fixSource(o), a), 16);
   // fix_mode(mode): the ten snapshots at mode + 4.

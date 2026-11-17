@@ -69,6 +69,7 @@ import { FirmwareError } from '../../types';
 import { assembleWords, branchWord, movImmediate, movWord } from './arm';
 import { ICON_CATALOG, LANGUAGES, LOOKUP_BOUNDS, NATIVE_TEXT_ROOTS, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z } from './build';
 import { DIRECTFLASH_CODE, DIRECTFLASH_DIAG_CODE, DIRECTFLASH_DIAG_ENTRY, DIRECTFLASH_ENTRY } from './directflash-code';
+import { adr } from '../target';
 
 export const DIRECT_FLASH_TEXT_ID = 926; // 1.11: 882 (+ TEXT_SHIFT)
 export const DIRECT_FLASH_ICON_ID = 733;
@@ -76,24 +77,24 @@ export const DIRECT_FLASH_ICON_ID = 733;
  * The setting byte (0 on every camera): bit 0 Direct Flash (with Flash Mode 0); bits 1..4 and 5..7
  * the background and the slowest shutter speed chosen in the camera menu (`directflash-menu.ts`).
  */
-export const DIRECT_FLASH_BYTE = 0x550832a8 + 4 + 0x99b;
+export const DIRECT_FLASH_BYTE = adr(0x550832a8) + 4 + 0x99b;
 /** The guide number chosen in the camera menu (`directflash-menu.ts`); 0 on every camera: DIRECT_FLASH_GN_DEFAULT. */
-export const DIRECT_FLASH_GN_BYTE = 0x550832a8 + 4 + 0x99a;
+export const DIRECT_FLASH_GN_BYTE = adr(0x550832a8) + 4 + 0x99a;
 /**
  * Test 062: the fastest shutter speed chosen in the camera menu (`directflash-menu.ts`), bits 0..2;
  * 0 on every camera: the camera's own flash-sync limit. Byte 0x109 of the user settings: alignment padding between a byte
  * field (0x108) and a word (0x10C) that UserDataInitValue (run in the emulator, all 30 records)
  * never writes; inside the 0xB44 bytes the settings save keeps (0x533F3674; 1.11: 0xAE9).
  */
-export const DIRECT_FLASH_TV_BYTE = 0x550832a8 + 4 + 0x109;
+export const DIRECT_FLASH_TV_BYTE = adr(0x550832a8) + 4 + 0x109;
 /**
  * Test builds only: the RAM word that holds the planner's diagnostic buffer (allocated by the module
  * on its first call), the last of the 44 bytes before the heap that the start-up zero fill clears
  * once it is extended (see slots.ts / lookstash.ts). The date imprint's diagnostic build prints it.
  */
-export const DIRECT_FLASH_DIAG_SLOT = 0x5583903c;
-const HEAP_ALLOC = 0x539084bc;
-const ZERO_FILL_END = 0x53000460;
+export const DIRECT_FLASH_DIAG_SLOT = adr(0x5583903c);
+const HEAP_ALLOC = adr(0x539084bc);
+const ZERO_FILL_END = adr(0x53000460);
 /** The guide number (ISO 100, metres) while none is chosen: the GF-2's (9.8 ft / 3 m). */
 export const DIRECT_FLASH_GN_DEFAULT = 3;
 
@@ -104,25 +105,25 @@ export const DIRECT_FLASH_NAMES: readonly string[] = [
   'Прямая вспышка', '直闪模式', 'Flash directo', 'Direktblixt', 'แฟลชตรง', '直閃模式', 'Doğrudan flaş',
 ];
 
-const CURRENT = 0x550832a8;
+const CURRENT = adr(0x550832a8);
 export const LIVE_FLASH_MODE = CURRENT + 0xc50; // 1.11: + 0xbf8
 const FLASH_OUTPUT = CURRENT + 0x114;
 
 // Camera functions (checked below by their first instructions or their callers).
-const APP = 0x532406a4;
-const SETTINGS = 0x53240c38;
-const GET_FLASH_MODE = 0x5329b514;
-const SET_FLASH_MODE = 0x532b6ee0;
-const FLASH_ICON = 0x53390328;
-const SYNC_TV = 0x5369da5c;
-const LIST_ITEM = 0x53593d64; // (list, index) -> item
-const ITEM_SET_ICON = 0x535a1064; // (item, icon)
-const LABEL_SET_TEXT = 0x53596654; // (label, text, 0)
-const ROW_SET = 0x5359e1bc; // (row, icon, text)
+const APP = adr(0x532406a4);
+const SETTINGS = adr(0x53240c38);
+const GET_FLASH_MODE = adr(0x5329b514);
+const SET_FLASH_MODE = adr(0x532b6ee0);
+const FLASH_ICON = adr(0x53390328);
+const SYNC_TV = adr(0x5369da5c);
+const LIST_ITEM = adr(0x53593d64); // (list, index) -> item
+const ITEM_SET_ICON = adr(0x535a1064); // (item, icon)
+const LABEL_SET_TEXT = adr(0x53596654); // (label, text, 0)
+const ROW_SET = adr(0x5359e1bc); // (row, icon, text)
 
 // The still exposure's call of the flash program.
-const FLASH_PROGRAM = 0x5369ef30;
-const FLASH_PROGRAM_CALL = 0x5369f224;
+const FLASH_PROGRAM = adr(0x5369ef30);
+const FLASH_PROGRAM_CALL = adr(0x5369f224);
 
 /** A handler set: table, slot offsets and the camera's own handlers there. */
 interface Handlers {
@@ -132,31 +133,31 @@ interface Handlers {
   slots: Record<string, readonly [number, number]>;
 }
 
-const ADJ_RECORD = 0x53dc9dfc + 0x09 * 0x5c;
-const FN_RECORD = 0x53dcb09c;
-const LIST_RECORDS = [0x53dcd470 + 11 * 0x4c, 0x53dcd470 + 12 * 0x4c] as const;
+const ADJ_RECORD = adr(0x53dc9dfc) + 0x09 * 0x5c;
+const FN_RECORD = adr(0x53dcb09c);
+const LIST_RECORDS = [adr(0x53dcd470) + 11 * 0x4c, adr(0x53dcd470) + 12 * 0x4c] as const;
 
 const ADJ: Handlers = {
   what: 'ADJ lever',
   values: { flag: 0x282 },
-  slots: { text: [0x10, 0x531bb990], icon: [0x18, 0x531bf8f0], current: [0x20, 0x531bc948], set: [0x28, 0x531bc50c], count: [0x30, 0x531bb6a4] },
+  slots: { text: [0x10, adr(0x531bb990)], icon: [0x18, adr(0x531bf8f0)], current: [0x20, adr(0x531bc948)], set: [0x28, adr(0x531bc50c)], count: [0x30, adr(0x531bb6a4)] },
 };
 const FN: Handlers = {
   what: 'Fn list',
   values: { flag: 0x197 },
-  slots: { text: [0x04, 0x531c2194], icon: [0x0c, 0x531c3820], current: [0x14, 0x531c27fc], set: [0x1c, 0x531c2448], count: [0x24, 0x531c1d7c] },
+  slots: { text: [0x04, adr(0x531c2194)], icon: [0x0c, adr(0x531c3820)], current: [0x14, adr(0x531c27fc)], set: [0x1c, adr(0x531c2448)], count: [0x24, adr(0x531c1d7c)] },
 };
 const LISTS: readonly Handlers[] = [
-  { what: 'menu list (with slow sync)', values: { fixed: 4 }, slots: { count: [0x0c, 0x531d09bc], draw: [0x14, 0x531d1ba0], set: [0x24, 0x531d43ec], current: [0x2c, 0x531d5cf4] } },
-  { what: 'menu list', values: { fixed: 2 }, slots: { count: [0x0c, 0x531d09c4], draw: [0x14, 0x531d1c04], set: [0x24, 0x531d441c], current: [0x2c, 0x531d5d28] } },
+  { what: 'menu list (with slow sync)', values: { fixed: 4 }, slots: { count: [0x0c, adr(0x531d09bc)], draw: [0x14, adr(0x531d1ba0)], set: [0x24, adr(0x531d43ec)], current: [0x2c, adr(0x531d5cf4)] } },
+  { what: 'menu list', values: { fixed: 2 }, slots: { count: [0x0c, adr(0x531d09c4)], draw: [0x14, adr(0x531d1c04)], set: [0x24, adr(0x531d441c)], current: [0x2c, adr(0x531d5d28)] } },
 ];
 /** Text / icon list objects of the ADJ and Fn controllers. */
 const VIEW = { adj: { text: 0x164, icons: 0x1f8 }, fn: { text: 0x160, icons: 0x178 } } as const;
 /** Calls of the Flash Mode icon function for the current value: [site, bl (true) or b]. */
-const CURRENT_ICON_SITES: readonly (readonly [number, boolean])[] = [[0x531b1d70, true], [0x531e2770, true], [0x533a6f30, false]];
+const CURRENT_ICON_SITES: readonly (readonly [number, boolean])[] = [[adr(0x531b1d70), true], [adr(0x531e2770), true], [adr(0x533a6f30), false]];
 
 /** First language table (in `LANGS` order) as the program sees it in RAM; tables are 0xDC4 apart (see softfocus.ts). */
-const FIRST_TABLE_RAM = 0x55000000 + (0x543b5270 - 0x543b3100);
+const FIRST_TABLE_RAM = adr(0x55000000) + (adr(0x543b5270) - adr(0x543b3100));
 const TABLE_STRIDE = 0xdc4;
 
 export const DIRECT_FLASH_ICON_W = 40;
@@ -335,9 +336,9 @@ function branchTo(at: number, target: number, link: boolean): number {
 
 /** Install Direct Flash. Returns the new ICONBIN data. `diag`: test builds only (see DIRECT_FLASH_DIAG_SLOT). */
 export function installDirectFlash(patch: Patch, iconbin: Uint8Array, diag = false): Uint8Array {
-  if (diag && patch.word(ZERO_FILL_END) !== 0x55839040) {
-    expectWord(patch, ZERO_FILL_END, 0x55839014);
-    patch.setWord(ZERO_FILL_END, 0x55839040, 'start-up zero fill also clears the 44 unused bytes before the heap');
+  if (diag && patch.word(ZERO_FILL_END) !== adr(0x55839040)) {
+    expectWord(patch, ZERO_FILL_END, adr(0x55839014));
+    patch.setWord(ZERO_FILL_END, adr(0x55839040), 'start-up zero fill also clears the 44 unused bytes before the heap');
   }
 
   // --- Checks of the official code this relies on.
@@ -348,23 +349,23 @@ export function installDirectFlash(patch: Patch, iconbin: Uint8Array, diag = fal
     checkSlots(patch, LIST_RECORDS[k], h);
     expectWord(patch, LIST_RECORDS[k] + 4, 0x84); // title: Flash Mode (text 132; 1.11: 127)
   });
-  expectWord(patch, 0x531bb6a4, 0xe5d03282); // ldrb r3, [r0, #0x282]  (ADJ count)
-  expectWord(patch, 0x531c1d7c, 0xe5d03197); // ldrb r3, [r0, #0x197]  (Fn count)
-  expectWord(patch, 0x531d09bc, 0xe3a00004); // mov r0, #4
-  expectWord(patch, 0x531d09c4, 0xe3a00002); // mov r0, #2
+  expectWord(patch, adr(0x531bb6a4), 0xe5d03282); // ldrb r3, [r0, #0x282]  (ADJ count)
+  expectWord(patch, adr(0x531c1d7c), 0xe5d03197); // ldrb r3, [r0, #0x197]  (Fn count)
+  expectWord(patch, adr(0x531d09bc), 0xe3a00004); // mov r0, #4
+  expectWord(patch, adr(0x531d09c4), 0xe3a00002); // mov r0, #2
   expectWord(patch, GET_FLASH_MODE, 0xe5d00c50); // ldrb r0, [r0, #0xc50] (1.11: #0xbf8)
-  expectWord(patch, 0x532a032c, 0xe5d00114); // ldrb r0, [r0, #0x114]  (Flash Output)
-  expectWord(patch, 0x531bc548, branchWord(0x531bc548, SET_FLASH_MODE)); // the ADJ setter's tail call
-  expectWord(patch, 0x531bb9e4, branchWord(0x531bb9e4, LABEL_SET_TEXT));
-  expectWord(patch, 0x531bb9d8, 0xe5940164); // ldr r0, [r4, #0x164]
-  expectWord(patch, 0x531bf950, 0xe59501f8); // ldr r0, [r5, #0x1f8]
-  expectWord(patch, 0x531bf958, branchWord(0x531bf958, LIST_ITEM, 14, true));
-  expectWord(patch, 0x531bf968, branchWord(0x531bf968, ITEM_SET_ICON));
-  expectWord(patch, 0x531c21dc, 0xe5940160); // ldr r0, [r4, #0x160]
-  expectWord(patch, 0x531c3880, 0xe5950178); // ldr r0, [r5, #0x178]
-  expectWord(patch, 0x531d1c00, branchWord(0x531d1c00, ROW_SET));
-  expectWord(patch, 0x53240c58, movWord(0, lo(CURRENT))); // CURRENT() returns 0x550832A8
-  expectWord(patch, 0x53240c5c, movWord(0, hi(CURRENT), true));
+  expectWord(patch, adr(0x532a032c), 0xe5d00114); // ldrb r0, [r0, #0x114]  (Flash Output)
+  expectWord(patch, adr(0x531bc548), branchWord(adr(0x531bc548), SET_FLASH_MODE)); // the ADJ setter's tail call
+  expectWord(patch, adr(0x531bb9e4), branchWord(adr(0x531bb9e4), LABEL_SET_TEXT));
+  expectWord(patch, adr(0x531bb9d8), 0xe5940164); // ldr r0, [r4, #0x164]
+  expectWord(patch, adr(0x531bf950), 0xe59501f8); // ldr r0, [r5, #0x1f8]
+  expectWord(patch, adr(0x531bf958), branchWord(adr(0x531bf958), LIST_ITEM, 14, true));
+  expectWord(patch, adr(0x531bf968), branchWord(adr(0x531bf968), ITEM_SET_ICON));
+  expectWord(patch, adr(0x531c21dc), 0xe5940160); // ldr r0, [r4, #0x160]
+  expectWord(patch, adr(0x531c3880), 0xe5950178); // ldr r0, [r5, #0x178]
+  expectWord(patch, adr(0x531d1c00), branchWord(adr(0x531d1c00), ROW_SET));
+  expectWord(patch, adr(0x53240c58), movWord(0, lo(CURRENT))); // CURRENT() returns 0x550832A8
+  expectWord(patch, adr(0x53240c5c), movWord(0, hi(CURRENT), true));
   for (const [site, link] of CURRENT_ICON_SITES) expectWord(patch, site, branchWord(site, FLASH_ICON, 14, link));
   expectWord(patch, FLASH_PROGRAM_CALL, branchWord(FLASH_PROGRAM_CALL, FLASH_PROGRAM, 14, true));
   expectWord(patch, FLASH_PROGRAM, 0xe1a0c00d); // mov ip, sp

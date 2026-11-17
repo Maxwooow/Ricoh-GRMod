@@ -31,6 +31,7 @@ import { assembleWords, branchTarget, movImmediate } from './arm';
 import { Patch, concat, u16le, u32le } from './build';
 import { HALATION_CODE, HALATION_CODE_LENGTH, HALATION_STATUS_CODE } from './halation-code';
 import { HALATION_CODE_089, HALATION_CODE_089_LENGTH } from './halation-code-089';
+import { adr } from '../target';
 
 /**
  * The look of the glow, the same for every look that has it: fitted to CineStill 800T pictures
@@ -76,12 +77,12 @@ export type HalationColour = 'red' | 'white';
 
 
 /** JpegEncodeMacroProcess::Execute. */
-const JPEG_EXECUTE = 0x53727e10;
-const CACHE = 0x53918010;
-const CACHE_FLUSH_FOR_READ = 0x539180a0;
-const CACHE_CLEAN = 0x5391808c;
-const HEAP_ALLOC = 0x539084bc;
-const HEAP_FREE = 0x539084f8;
+const JPEG_EXECUTE = adr(0x53727e10);
+const CACHE = adr(0x53918010);
+const CACHE_FLUSH_FOR_READ = adr(0x539180a0);
+const CACHE_CLEAN = adr(0x5391808c);
+const HEAP_ALLOC = adr(0x539084bc);
+const HEAP_FREE = adr(0x539084f8);
 const LUT_N = 4096;
 const PARAM_BYTES = 16;
 const E_MAX = 16384;

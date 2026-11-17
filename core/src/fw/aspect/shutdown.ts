@@ -55,6 +55,7 @@ import { BASE, ICON_CATALOG, LOOKUP_BOUNDS, OFFICIAL_RTOS_LENGTH, Patch, TEXT_CA
 import { SHUTDOWN_CODE, SHUTDOWN_CODE_LENGTH, SHUTDOWN_EXPORTS } from './shutdown-code';
 import { readRes, resFile } from './res';
 import { SUBMENU_CONTROLLER_ID, addSubmenuRecord, hookControllerFactory, submenuTemplate } from './datestamp-menu';
+import { adr, adrHex } from '../target';
 
 export const SHUTDOWN_MAX_PICTURES = 8;
 /** Longest picture name (printable ASCII: the same in every camera language and font). */
@@ -97,46 +98,46 @@ export interface ShutdownPictureSpec {
   jpeg: Uint8Array;
 }
 
-const JPEG_TABLE = 0x55013e70;
+const JPEG_TABLE = adr(0x55013e70);
 const JPEG_TABLE_COUNT = 12;
-const TABLE_SITES = [[0x5326255c, 0x5326256c, 3], [0x53262324, 0x5326232c, 12]] as const;
-const BACKGROUND = 0x531b9488;
-const BACKGROUND_BODY = 0x531b948c;
-const SETTINGS_SAVE = 0x533e1c04;
-const MENU = { refresh: 0x532240e4, confirm: 0x53223fa4, left: 0x53223f14, right: 0x53223f58, footer: 0x5322419c } as const;
-const MENU_ROWS_AT = 0x53223ba4;
-const MENU_TYPES_AT = 0x53223bd4;
+const TABLE_SITES = [[adr(0x5326255c), adr(0x5326256c), 3], [adr(0x53262324), adr(0x5326232c), 12]] as const;
+const BACKGROUND = adr(0x531b9488);
+const BACKGROUND_BODY = adr(0x531b948c);
+const SETTINGS_SAVE = adr(0x533e1c04);
+const MENU = { refresh: adr(0x532240e4), confirm: adr(0x53223fa4), left: adr(0x53223f14), right: adr(0x53223f58), footer: adr(0x5322419c) } as const;
+const MENU_ROWS_AT = adr(0x53223ba4);
+const MENU_TYPES_AT = adr(0x53223bd4);
 const ROW_TYPE = 0x15;
 const END_SCREEN_ID = 0x020000c4;
 const END_SCREEN_TITLE = 701;
 /** List widget: rows shown (0x535711E4, at most those built); title view: text (0x5357F2B0). */
-const LIST_SHOWN = 0x535711e4;
-const TITLE_SET = 0x5357f2b0;
+const LIST_SHOWN = adr(0x535711e4);
+const TITLE_SET = adr(0x5357f2b0);
 /** Setup menu descriptor (menu table entry 4) and its End Screen item (10). */
-const SETUP_MENU = 0x53d9ca10;
-const SETUP_MENU_ENTRY = 0x55001e88;
+const SETUP_MENU = adr(0x53d9ca10);
+const SETUP_MENU_ENTRY = adr(0x55001e88);
 const SETUP_ITEM = 10;
-const SETUP_ITEM_DRAW = 0x531b1cd8;
+const SETUP_ITEM_DRAW = adr(0x531b1cd8);
 /** Line of a Setup submenu: no value (0x5357A428 with 0), then its title (0x5357A1C0). */
-const LINE_VALUE_ICON = 0x5357a428;
-const LINE_TITLE = 0x5357a1c0;
+const LINE_VALUE_ICON = adr(0x5357a428);
+const LINE_TITLE = adr(0x5357a1c0);
 /** The native End Screen line's value text: 0x53380874(0x5323F378(app) + 4, 0x5329C2D8(user data)). */
-const APP = 0x5323ea84;
-const SUBMENU_LINE_TEXT = 0x535831e8;
+const APP = adr(0x5323ea84);
+const SUBMENU_LINE_TEXT = adr(0x535831e8);
 /** The start-up zero fill's end (literal) and the 44 bytes before the heap. */
-const ZERO_FILL_END = 0x53000460;
+const ZERO_FILL_END = adr(0x53000460);
 /**
  * The key mapper (hardware keys to a screen's commands) reads the current controller id at these
  * two calls of the getter (0x5325CA14): 0x53255A0C tells whether the screen has a key map of its
  * own, 0x532544A4 picks it. Unknown ids get a generic map that, for the End Screen list, loses
  * every key (on the camera: no key worked in the picture list, touch did).
  */
-const KEY_MAP_ID_READS = [0x53255a20, 0x532544c0] as const;
-const CURRENT_ID = 0x5325ca14;
+const KEY_MAP_ID_READS = [adr(0x53255a20), adr(0x532544c0)] as const;
+const CURRENT_ID = adr(0x5325ca14);
 /** Nonzero while the End Screen list is the picture list (set by the controller factory). */
-const PICTURE_MODE = 0x558372f0;
-const APDATA_BOUND_AT = 0x53a80adc;
-const APDATA_BOUND_NEXT = 0x53a80ae0;
+const PICTURE_MODE = adr(0x558372f0);
+const APDATA_BOUND_AT = adr(0x53a80adc);
+const APDATA_BOUND_NEXT = adr(0x53a80ae0);
 const CTX_MAGIC = 0x31445347; // 'GSD1'
 const CTX_BYTES = 6 * 4 + 4 * 2 + SHUTDOWN_MAX_PICTURES * 2 + SHUTDOWN_MAX_PICTURES * 4 * 2;
 /** The factory row's text per row of the text catalog (0 Japanese, 18 / 19 Traditional / Simplified Chinese, others English; every glyph is in the camera's own texts of that language). */
@@ -298,12 +299,12 @@ export function installShutdownMenu(p: Patch, iconbin: Uint8Array, pictures: rea
   expectWord(p, MENU_TYPES_AT, 0xe54b3034); // strb r3, [fp, #-0x34]
   expectWord(p, APDATA_BOUND_AT, 0xe58d9000);
   // The factory's End Screen case: one object, cached at +0x180.
-  for (const [at, w] of [[0x53187784, 0xe5940180], [0x53187790, 0xe3a00f5b], [0x53187794, 0xeb1d6485], [0x5318779c, 0xeb0271c4]] as const) expectWord(p, at, w);
-  expectWord(p, 0x53223e9c, movWord(1, END_SCREEN_TITLE)); // its constructor's title
-  for (const f of [LIST_SHOWN, TITLE_SET, APP, 0x5323f378, 0x5323f018, SUBMENU_LINE_TEXT, LINE_VALUE_ICON, LINE_TITLE]) expectWord(p, f, 0xe1a0c00d);
-  expectWord(p, 0x5329c2d8, 0xe5d00988); // ldrb r0, [r0, #0x988]
-  expectWord(p, 0x53380874, 0xe3510000); // cmp r1, #0
-  expectWord(p, ZERO_FILL_END, p.word(ZERO_FILL_END) === 0x55837300 ? 0x55837300 : 0x558372d4);
+  for (const [at, w] of [[adr(0x53187784), 0xe5940180], [adr(0x53187790), 0xe3a00f5b], [adr(0x53187794), 0xeb1d6485], [adr(0x5318779c), 0xeb0271c4]] as const) expectWord(p, at, w);
+  expectWord(p, adr(0x53223e9c), movWord(1, END_SCREEN_TITLE)); // its constructor's title
+  for (const f of [LIST_SHOWN, TITLE_SET, APP, adr(0x5323f378), adr(0x5323f018), SUBMENU_LINE_TEXT, LINE_VALUE_ICON, LINE_TITLE]) expectWord(p, f, 0xe1a0c00d);
+  expectWord(p, adr(0x5329c2d8), 0xe5d00988); // ldrb r0, [r0, #0x988]
+  expectWord(p, adr(0x53380874), 0xe3510000); // cmp r1, #0
+  expectWord(p, ZERO_FILL_END, p.word(ZERO_FILL_END) === adr(0x55837300) ? adr(0x55837300) : adr(0x558372d4));
   const priorSave = branchTarget(SETTINGS_SAVE, p.word(SETTINGS_SAVE));
   if (priorSave < BASE + OFFICIAL_RTOS_LENGTH) fail('internal', 'the settings save/load scaffold is not installed');
   // Setup > Display > End Screen, as officially.
@@ -405,9 +406,9 @@ export function installShutdownMenu(p: Patch, iconbin: Uint8Array, pictures: rea
   const lineType = p.append((a) => assembleWords(
     `push {r4, r5, r6, lr}
      mov r4, r1
-     bl #${APP}; bl #0x5323f378; mov r5, r0
-     bl #${APP}; bl #0x5323f018; bl #0x5329c2d8
-     mov r1, r0; add r0, r5, #4; bl #0x53380874
+     bl #${APP}; bl #${adrHex(0x5323f378)}; mov r5, r0
+     bl #${APP}; bl #${adrHex(0x5323f018)}; bl #${adrHex(0x5329c2d8)}
+     mov r1, r0; add r0, r5, #4; bl #${adrHex(0x53380874)}
      mov r1, r0; mov r0, r4
      pop {r4, r5, r6, lr}
      b #${SUBMENU_LINE_TEXT}`, a), 16);
@@ -440,7 +441,7 @@ export function installShutdownMenu(p: Patch, iconbin: Uint8Array, pictures: rea
   // movw r3,#records; str r3,[sp] (the count argument); continue after the original `str sb,[sp]`.
   const bound = p.append((at) => [movWord(3, SHUTDOWN_RECORD + 1), 0xe58d3000, branchWord(at + 8, APDATA_BOUND_NEXT)], 16);
   p.setWord(APDATA_BOUND_AT, branchWord(APDATA_BOUND_AT, bound), 'settings store APData: room for the power-off picture record');
-  if (p.word(ZERO_FILL_END) !== 0x55837300) p.setWord(ZERO_FILL_END, 0x55837300, 'start-up zero fill also clears the 44 unused bytes before the heap');
+  if (p.word(ZERO_FILL_END) !== adr(0x55837300)) p.setWord(ZERO_FILL_END, adr(0x55837300), 'start-up zero fill also clears the 44 unused bytes before the heap');
   return concat(parts);
 }
 

@@ -63,11 +63,12 @@ import { assembleWords, branchTarget, branchWord } from './arm';
 import { LANGUAGES, Patch, TEXT_CATALOG, concat, expectWord, u32le, utf16z, widenTextRows } from './build';
 import { LIST_CONTROLLER_ID, SUBMENU_CONTROLLER_ID, SUB_RECORD, SUB_SET_ICON, addListRecords, addSubmenuRecord, hookControllerFactory, submenuTable } from './datestamp-menu';
 import { ADJSLOTS_CODE, ADJSLOTS_ENTRY } from './adjslots-code';
+import { adr } from '../target';
 
 export const ADJ_SLOTS_MIN = 5;
 export const ADJ_SLOTS_MAX = 8;
 /** Settings bytes of slots 6..8 (CURRENT() + 4 + 0x489..0x48B); in the user settings object 0x48D..0x48F. */
-export const ADJ_EXTRA_BYTE = 0x55084dd8 + 4 + 0x489;
+export const ADJ_EXTRA_BYTE = adr(0x55084dd8) + 4 + 0x489;
 export const ADJ_EXTRA_OBJECT_OFFSET = 0x48d;
 /** Controller ids (not used by the firmware): the record of lines 6..8 (never opened), then the lists of slots 6..8. */
 export const ADJ_MENU_ID = 0x020001c0;
@@ -120,45 +121,45 @@ export function adjFrameX(n: number, k: number): number {
 export const adjLayoutStride = (n: number): number => 12 * n;
 
 // --- Official addresses.
-const NEW_CONTROLLER = 0x53186a48; // mov r0, #0x294 (operator new)
-const CONSTRUCTOR_STATE = 0x531c04dc; // add r0, r4, #0x200 ; mov r2, #0x78 (memset)
-const CONSTRUCTOR_BIND = 0x531c0528; // bl BindViews
-const VIEW_TABLE = 0x53d9fef8;
+const NEW_CONTROLLER = adr(0x53186a48); // mov r0, #0x294 (operator new)
+const CONSTRUCTOR_STATE = adr(0x531c04dc); // add r0, r4, #0x200 ; mov r2, #0x78 (memset)
+const CONSTRUCTOR_BIND = adr(0x531c0528); // bl BindViews
+const VIEW_TABLE = adr(0x53d9fef8);
 const VIEW_ENTRY = 24;
 const OFFICIAL_VIEWS = 39;
-const VTABLE_CAN_OPEN = 0x53d9f6c4;
-const CAN_OPEN = 0x531bd0ac;
-const SLOT_FUNCTION_OUT = 0x531bd5ac; // b assertion
-const SLOT_FUNCTION_ASSERT = 0x531bd670;
+const VTABLE_CAN_OPEN = adr(0x53d9f6c4);
+const CAN_OPEN = adr(0x531bd0ac);
+const SLOT_FUNCTION_OUT = adr(0x531bd5ac); // b assertion
+const SLOT_FUNCTION_ASSERT = adr(0x531bd670);
 /** SlotFunction's return: sub sp, fp, #0x18; ldm sp, {r4, r5, r6, fp, sp, pc}. */
-const SLOT_FUNCTION_RETURN = 0x531bd668;
-const DRAW = 0x531bfa3c;
-const TOUCHABLE = 0x531bd6bc;
-const TAPS = 0x531bbb40;
-const TAP_SELECT = 0x531bf94c;
-const GET_STILL_POSITION = 0x5329c230;
-const SET_STILL_POSITION = 0x5333a114;
-const ENTER_GET = 0x531bee84;
-const ENTER_SET = 0x531beecc;
-const COMMIT_SET = 0x531bef60;
+const SLOT_FUNCTION_RETURN = adr(0x531bd668);
+const DRAW = adr(0x531bfa3c);
+const TOUCHABLE = adr(0x531bd6bc);
+const TAPS = adr(0x531bbb40);
+const TAP_SELECT = adr(0x531bf94c);
+const GET_STILL_POSITION = adr(0x5329c230);
+const SET_STILL_POSITION = adr(0x5333a114);
+const ENTER_GET = adr(0x531bee84);
+const ENTER_SET = adr(0x531beecc);
+const COMMIT_SET = adr(0x531bef60);
 const MOV_IP_SP = 0xe1a0c00d;
 
 /** Official words of every place changed, checked first. */
 const OFFICIAL: readonly (readonly [number, number])[] = [
-  [0x53186a48, 0xe3a00fa5], [0x531c04dc, 0xe2840c02], [0x531c04e0, 0xe3a02078], [0x531c0528, 0xebff0b2e],
-  [0x531bc054, 0xe2862c02], [0x531bc058, 0xe2863f8f], [0x531bc080, 0xe2860f9e], [0x531bcd6c, 0xe3a0203c], [0x531bcd84, 0xe5c4220a],
-  [0x531bf058, 0xe3a0303c], [0x531bf070, 0xe283cf82], [0x531bf074, 0xe5d3220a], [0x531bf11c, 0xe3a0303c], [0x531bf138, 0xe2822f82],
-  [0x531bf140, 0xe2811f81], [0x531bf158, 0xe5c6220a], [0x531bf168, 0xe5931204],
-  [0x531bf43c, 0xe3a0403c], [0x531bf448, 0xe5d4320a], [0x531bf45c, 0xe3550005], [0x531bf474, 0xe5d43200], [0x531bf47c, 0x15c40200],
-  [0x531bf480, 0x15c4720a], [0x531bf498, 0xe3a0403c], [0x531bf4b0, 0xe2804f82], [0x531bf518, 0xe3550005],
-  [0x531bf550, 0xe3a0c03c], [0x531bf568, 0xe2832f82], [0x531bf570, 0xe2811f81], [0x531bd5ac, 0xea00002f], [0x53d9f6c4, 0x531bd0ac],
-  [0x531bfa3c, 0xe1a0c00d], [0x531bfa40, 0xe30439bc], [0x531bd6bc, 0xe1a0c00d], [0x531bd6c0, 0xe92ddff0], [0x531bbb40, 0xe1a0c00d],
-  [0x531bbb44, 0xe3a02000], [0x531bf6d8, 0xe3a05005], [0x531bf6dc, 0xe3540004], [0x531bf794, 0xe3a05005], [0x531bf7a4, 0x03a04004],
-  [0x531bee00, 0xe3a06005], [0x531bee08, 0xe3540004], [0x531bee84, 0xeb0374e9], [0x531beecc, 0xeb05ec90], [0x531bef60, 0xea05ec6b],
-  [0x531bf3e8, 0xe30031a9], [0x531bf3f0, 0xe3a0103c],
+  [adr(0x53186a48), 0xe3a00fa5], [adr(0x531c04dc), 0xe2840c02], [adr(0x531c04e0), 0xe3a02078], [adr(0x531c0528), 0xebff0b2e],
+  [adr(0x531bc054), 0xe2862c02], [adr(0x531bc058), 0xe2863f8f], [adr(0x531bc080), 0xe2860f9e], [adr(0x531bcd6c), 0xe3a0203c], [adr(0x531bcd84), 0xe5c4220a],
+  [adr(0x531bf058), 0xe3a0303c], [adr(0x531bf070), 0xe283cf82], [adr(0x531bf074), 0xe5d3220a], [adr(0x531bf11c), 0xe3a0303c], [adr(0x531bf138), 0xe2822f82],
+  [adr(0x531bf140), 0xe2811f81], [adr(0x531bf158), 0xe5c6220a], [adr(0x531bf168), 0xe5931204],
+  [adr(0x531bf43c), 0xe3a0403c], [adr(0x531bf448), 0xe5d4320a], [adr(0x531bf45c), 0xe3550005], [adr(0x531bf474), 0xe5d43200], [adr(0x531bf47c), 0x15c40200],
+  [adr(0x531bf480), 0x15c4720a], [adr(0x531bf498), 0xe3a0403c], [adr(0x531bf4b0), 0xe2804f82], [adr(0x531bf518), 0xe3550005],
+  [adr(0x531bf550), 0xe3a0c03c], [adr(0x531bf568), 0xe2832f82], [adr(0x531bf570), 0xe2811f81], [adr(0x531bd5ac), 0xea00002f], [adr(0x53d9f6c4), adr(0x531bd0ac)],
+  [adr(0x531bfa3c), 0xe1a0c00d], [adr(0x531bfa40), 0xe30439bc], [adr(0x531bd6bc), 0xe1a0c00d], [adr(0x531bd6c0), 0xe92ddff0], [adr(0x531bbb40), 0xe1a0c00d],
+  [adr(0x531bbb44), 0xe3a02000], [adr(0x531bf6d8), 0xe3a05005], [adr(0x531bf6dc), 0xe3540004], [adr(0x531bf794), 0xe3a05005], [adr(0x531bf7a4), 0x03a04004],
+  [adr(0x531bee00), 0xe3a06005], [adr(0x531bee08), 0xe3540004], [adr(0x531bee84), 0xeb0374e9], [adr(0x531beecc), 0xeb05ec90], [adr(0x531bef60), 0xea05ec6b],
+  [adr(0x531bf3e8), 0xe30031a9], [adr(0x531bf3f0), 0xe3a0103c],
   // the functions the module and the stubs call or go back into
-  [0x531bd670, 0xe300333c], [0x531bd668, 0xe24bd018], [0x531bd66c, 0xe89da870], [0x531bf94c, MOV_IP_SP], [0x5329c230, 0xe5d0091e], [0x5333a114, MOV_IP_SP], [0x531831e8, MOV_IP_SP],
-  [0x531bcd00, MOV_IP_SP], [0x531bd580, MOV_IP_SP], [0x535885a4, MOV_IP_SP], [0x538e09b0, MOV_IP_SP],
+  [adr(0x531bd670), 0xe300333c], [adr(0x531bd668), 0xe24bd018], [adr(0x531bd66c), 0xe89da870], [adr(0x531bf94c), MOV_IP_SP], [adr(0x5329c230), 0xe5d0091e], [adr(0x5333a114), MOV_IP_SP], [adr(0x531831e8), MOV_IP_SP],
+  [adr(0x531bcd00), MOV_IP_SP], [adr(0x531bd580), MOV_IP_SP], [adr(0x535885a4), MOV_IP_SP], [adr(0x538e09b0), MOV_IP_SP],
 ];
 
 /** Per-slot state: [address, the instruction (with the official 0x200 / 0x3C / 5)] patched to the new place, stride, count. */
@@ -166,21 +167,21 @@ function stateSites(n: number): [number, string][] {
   const S = ADJ_STATE;
   const L = adjLayoutStride(n);
   return [
-    [0x531c04dc, `add r0, r4, #${S}`], [0x531c04e0, `mov r2, #${2 * L}`],
-    [0x531bc054, `add r2, r6, #${S}`], [0x531bc058, `add r3, r6, #${S + L}`], [0x531bc080, `add r0, r6, #${S + 2 * L}`],
-    [0x531bcd6c, `mov r2, #${L}`], [0x531bcd84, `strb r2, [r4, #${S + 10}]`],
-    [0x531bf058, `mov r3, #${L}`], [0x531bf070, `add ip, r3, #${S + 8}`], [0x531bf074, `ldrb r2, [r3, #${S + 10}]`],
-    [0x531bf11c, `mov r3, #${L}`], [0x531bf138, `add r2, r2, #${S + 8}`], [0x531bf140, `add r1, r1, #${S + 4}`],
-    [0x531bf158, `strb r2, [r6, #${S + 10}]`], [0x531bf168, `ldr r1, [r3, #${S + 4}]`],
-    [0x531bf43c, `mov r4, #${L}`], [0x531bf448, `ldrb r3, [r4, #${S + 10}]`], [0x531bf45c, `cmp r5, #${n}`],
-    [0x531bf474, `ldrb r3, [r4, #${S}]`], [0x531bf47c, `strbne r0, [r4, #${S}]`], [0x531bf480, `strbne r7, [r4, #${S + 10}]`],
-    [0x531bf498, `mov r4, #${L}`], [0x531bf4b0, `add r4, r0, #${S + 8}`], [0x531bf518, `cmp r5, #${n}`],
-    [0x531bf550, `mov ip, #${L}`], [0x531bf568, `add r2, r3, #${S + 8}`], [0x531bf570, `add r1, r1, #${S + 4}`],
+    [adr(0x531c04dc), `add r0, r4, #${S}`], [adr(0x531c04e0), `mov r2, #${2 * L}`],
+    [adr(0x531bc054), `add r2, r6, #${S}`], [adr(0x531bc058), `add r3, r6, #${S + L}`], [adr(0x531bc080), `add r0, r6, #${S + 2 * L}`],
+    [adr(0x531bcd6c), `mov r2, #${L}`], [adr(0x531bcd84), `strb r2, [r4, #${S + 10}]`],
+    [adr(0x531bf058), `mov r3, #${L}`], [adr(0x531bf070), `add ip, r3, #${S + 8}`], [adr(0x531bf074), `ldrb r2, [r3, #${S + 10}]`],
+    [adr(0x531bf11c), `mov r3, #${L}`], [adr(0x531bf138), `add r2, r2, #${S + 8}`], [adr(0x531bf140), `add r1, r1, #${S + 4}`],
+    [adr(0x531bf158), `strb r2, [r6, #${S + 10}]`], [adr(0x531bf168), `ldr r1, [r3, #${S + 4}]`],
+    [adr(0x531bf43c), `mov r4, #${L}`], [adr(0x531bf448), `ldrb r3, [r4, #${S + 10}]`], [adr(0x531bf45c), `cmp r5, #${n}`],
+    [adr(0x531bf474), `ldrb r3, [r4, #${S}]`], [adr(0x531bf47c), `strbne r0, [r4, #${S}]`], [adr(0x531bf480), `strbne r7, [r4, #${S + 10}]`],
+    [adr(0x531bf498), `mov r4, #${L}`], [adr(0x531bf4b0), `add r4, r0, #${S + 8}`], [adr(0x531bf518), `cmp r5, #${n}`],
+    [adr(0x531bf550), `mov ip, #${L}`], [adr(0x531bf568), `add r2, r3, #${S + 8}`], [adr(0x531bf570), `add r1, r1, #${S + 4}`],
     // next / previous slot and the first slot on entry: N tries, wrap at N - 1
-    [0x531bf6d8, `mov r5, #${n}`], [0x531bf6dc, `cmp r4, #${n - 1}`], [0x531bf794, `mov r5, #${n}`], [0x531bf7a4, `moveq r4, #${n - 1}`],
-    [0x531bee00, `mov r6, #${n}`], [0x531bee08, `cmp r4, #${n - 1}`],
+    [adr(0x531bf6d8), `mov r5, #${n}`], [adr(0x531bf6dc), `cmp r4, #${n - 1}`], [adr(0x531bf794), `mov r5, #${n}`], [adr(0x531bf7a4), `moveq r4, #${n - 1}`],
+    [adr(0x531bee00), `mov r6, #${n}`], [adr(0x531bee08), `cmp r4, #${n - 1}`],
     // the selection frame: x = x0 + pitch * slot
-    [0x531bf3e8, `movw r3, #${adjFrameX(n, 0)}`], [0x531bf3f0, `mov r1, #${adjPitch(n)}`],
+    [adr(0x531bf3e8), `movw r3, #${adjFrameX(n, 0)}`], [adr(0x531bf3f0), `mov r1, #${adjPitch(n)}`],
   ];
 }
 
@@ -277,37 +278,37 @@ function installTexts(patch: Patch, entries: readonly { id: number; make: (row: 
 // --- Settings: ADJ Mode Setting's submenu record and lists, SubMenuController's list.
 const ADJ_SUBMENU = 10;
 const ADJ_LIST_RECORD = 67;
-const SELECT_TABLE = 0x53da2d20;
+const SELECT_TABLE = adr(0x53da2d20);
 const SELECT_RECORD = 0x4c;
-const ADJ1_COUNT = 0x531cf398;
-const ADJ1_DRAW = 0x531d15c4;
-const ADJ1_SET = 0x531d35ec;
-const ADJ1_CURRENT = 0x531d4f88;
-const APP = 0x5323ea84;
-const RESOURCES = 0x5323f378;
-const ICON_OF = 0x533817f0;
+const ADJ1_COUNT = adr(0x531cf398);
+const ADJ1_DRAW = adr(0x531d15c4);
+const ADJ1_SET = adr(0x531d35ec);
+const ADJ1_CURRENT = adr(0x531d4f88);
+const APP = adr(0x5323ea84);
+const RESOURCES = adr(0x5323f378);
+const ICON_OF = adr(0x533817f0);
 const VALUE_X = 0x21c;
 const NOP = 0xe1a00000; // mov r0, r0
 /** SubMenuController (the controller of every submenu): its list's five rows, made once. */
-const SUB_ROWS = 0x531e23c0; // mov r2, #5
-const SUB_KIND_MOV = 0x531e23dc; // mov ip, #0x22
-const SUB_KIND = 0x531e23e8; // strb ip, [fp, #-0x20] .. (five bytes, with str lr, [fp, #-0x18] among them)
+const SUB_ROWS = adr(0x531e23c0); // mov r2, #5
+const SUB_KIND_MOV = adr(0x531e23dc); // mov ip, #0x22
+const SUB_KIND = adr(0x531e23e8); // strb ip, [fp, #-0x20] .. (five bytes, with str lr, [fp, #-0x18] among them)
 /** Its list builder: rows from the line count to row 4 hidden; a line's text, value icon x, value draw. */
-const SUB_HIDE_A = 0x531e2494; // cmp r7, #4
-const SUB_HIDE_B = 0x531e24b8; // cmp r4, #4
-const SUB_LINE_TEXT = 0x531e2584;
-const SUB_LINE_X = 0x531e259c;
-const SUB_LINE_DRAW = 0x531e25b8;
+const SUB_HIDE_A = adr(0x531e2494); // cmp r7, #4
+const SUB_HIDE_B = adr(0x531e24b8); // cmp r4, #4
+const SUB_LINE_TEXT = adr(0x531e2584);
+const SUB_LINE_X = adr(0x531e259c);
+const SUB_LINE_DRAW = adr(0x531e25b8);
 /** OK on a line: the line's controller id. */
-const SUB_OK_ID = 0x531e20e8; // ldr r5, [r2, #0x14]
+const SUB_OK_ID = adr(0x531e20e8); // ldr r5, [r2, #0x14]
 const SUBMENU_OFFICIAL: readonly (readonly [number, number])[] = [
-  [0x531e23c0, 0xe3a02005], [0x531e23dc, 0xe3a0c022], [0x531e23e8, 0xe54bc020], [0x531e23ec, 0xe24b1020], [0x531e23f0, 0xe54bc01f],
-  [0x531e23f4, 0xe50be018], [0x531e23f8, 0xe54bc01e], [0x531e23fc, 0xe54bc01d], [0x531e2400, 0xe54bc01c], [0x531e2494, 0xe3570004],
-  [0x531e24b8, 0xe3540004], [0x531e2584, 0xe5d53174], [0x531e2588, 0xe1a00009], [0x531e258c, 0xe023439a], [0x531e2590, 0xe0883083],
-  [0x531e2594, 0xe1d310b8], [0x531e259c, 0xe5d53174], [0x531e25a0, 0xe3a02019], [0x531e25a4, 0xe1a00009], [0x531e25a8, 0xe0234392],
-  [0x531e25ac, 0xe283300a], [0x531e25b0, 0xe7981103], [0x531e25b8, 0xe5d51174], [0x531e25bc, 0xe3a02064], [0x531e25c0, 0xe2843007],
-  [0x531e25c4, 0xe0020192], [0x531e25c8, 0xe0823183], [0x531e25cc, 0xe0883003], [0x531e25d0, 0xe5932004], [0x531e25d4, 0xe5930008],
-  [0x531e20e8, 0xe5925014],
+  [adr(0x531e23c0), 0xe3a02005], [adr(0x531e23dc), 0xe3a0c022], [adr(0x531e23e8), 0xe54bc020], [adr(0x531e23ec), 0xe24b1020], [adr(0x531e23f0), 0xe54bc01f],
+  [adr(0x531e23f4), 0xe50be018], [adr(0x531e23f8), 0xe54bc01e], [adr(0x531e23fc), 0xe54bc01d], [adr(0x531e2400), 0xe54bc01c], [adr(0x531e2494), 0xe3570004],
+  [adr(0x531e24b8), 0xe3540004], [adr(0x531e2584), 0xe5d53174], [adr(0x531e2588), 0xe1a00009], [adr(0x531e258c), 0xe023439a], [adr(0x531e2590), 0xe0883083],
+  [adr(0x531e2594), 0xe1d310b8], [adr(0x531e259c), 0xe5d53174], [adr(0x531e25a0), 0xe3a02019], [adr(0x531e25a4), 0xe1a00009], [adr(0x531e25a8), 0xe0234392],
+  [adr(0x531e25ac), 0xe283300a], [adr(0x531e25b0), 0xe7981103], [adr(0x531e25b8), 0xe5d51174], [adr(0x531e25bc), 0xe3a02064], [adr(0x531e25c0), 0xe2843007],
+  [adr(0x531e25c4), 0xe0020192], [adr(0x531e25c8), 0xe0823183], [adr(0x531e25cc), 0xe0883003], [adr(0x531e25d0), 0xe5932004], [adr(0x531e25d4), 0xe5930008],
+  [adr(0x531e20e8), 0xe5925014],
 ];
 
 /** r1 = the function of slot k (5..7) as kept (above 0x14: none); r2 its byte's address. */

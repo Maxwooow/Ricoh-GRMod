@@ -26,6 +26,7 @@ import { lookLayoutWords } from './aspect/looks';
 import type { LookLayout } from './aspect/looks';
 import { CLARITY_BYTES, CLARITY_OFFSET, clarityBytes, hasOfficialClarity } from './clarity';
 import type { ClarityEdit } from './clarity';
+import { adr } from './target';
 
 export type { Range } from './types';
 
@@ -246,7 +247,7 @@ export function monoUnlockWords(official: Uint8Array): { offset: number; bytes: 
   return [...last.entries()].sort((a, b) => a[0] - b[0]).map(([address, after]) => {
     const bytes = new Uint8Array(4);
     new DataView(bytes.buffer).setUint32(0, after, true);
-    return { offset: RTOS_OFFSET + (address - 0x53000000), bytes };
+    return { offset: RTOS_OFFSET + (address - adr(0x53000000)), bytes };
   });
 }
 
@@ -382,7 +383,7 @@ async function editPayload(officialRaw: Uint8Array, edits: SlotEdit[], clarity: 
   if (monoUnlock) {
     for (const w of monoUnlockWords(DEC)) {
       for (const r of ranges) if (r.offset < w.offset + 4 && w.offset < r.offset + r.length) bad('assert-failed', `monochrome looks overlap ${r.what}`);
-      write(`monochrome looks 0x${(w.offset - RTOS_OFFSET + 0x53000000).toString(16)}`, w.offset, w.bytes, 4);
+      write(`monochrome looks 0x${(w.offset - RTOS_OFFSET + adr(0x53000000)).toString(16)}`, w.offset, w.bytes, 4);
     }
     rtosTouched = true;
   }

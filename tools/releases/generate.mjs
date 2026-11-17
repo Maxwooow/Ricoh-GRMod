@@ -59,7 +59,8 @@ function walk(dir, out = []) {
 const engine = new Set();
 for (const f of walk(join(ROOT, 'core/src/fw'))) {
   const t = readFileSync(f, 'utf8');
-  for (const m of t.matchAll(/OFFICIAL_SHA256\s*=\s*'([0-9a-f]{64})'/g)) engine.add(m[1]);
+  // one hash, or byRelease({ '1.20': '...', '1.21': '...' }) for a program of several releases
+  for (const m of t.matchAll(/OFFICIAL_SHA256\s*=\s*(?:'[0-9a-f]{64}'|byRelease\(\{[^}]*\}\))/g)) for (const h of m[0].matchAll(/'([0-9a-f]{64})'/g)) engine.add(h[1]);
   for (const m of t.matchAll(/^\s*sha256:\s*'([0-9a-f]{64})'/gm)) engine.add(m[1]);
 }
 const listed = new Set(groups.flatMap((g) => g.releases.map((r) => r.firmwareSha256)));

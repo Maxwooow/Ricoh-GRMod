@@ -14,20 +14,21 @@
  */
 import { FirmwareError } from '../types';
 import { foff } from './profile';
+import { adr } from './target';
 
 /** 10 bytes compared with the content of the key file. */
-const KEY_VA = 0x5401c6b0;
+const KEY_VA = adr(0x5401c6b0);
 const KEY_LENGTH = 10;
 /** Key file name, 15 bytes XOR 0x29. */
-const KEY_NAME_VA = 0x53b7626c;
+const KEY_NAME_VA = adr(0x53b7626c);
 const KEY_NAME_XOR = 0x29;
 /** printf format of the mode-set file name. */
-const MODESET_FORMAT_VA = 0x5401aef8;
+const MODESET_FORMAT_VA = adr(0x5401aef8);
 const MODESET_FORMAT = 'C:\\%08ld.%03ld';
 /** Per-model configuration records: original project number at +0x10, original product number at +0x14. */
-const MODEL_RECORD_VAS = [0x5401bdd4, 0x5401be84, 0x5401bf24] as const;
+const MODEL_RECORD_VAS = [adr(0x5401bdd4), adr(0x5401be84), adr(0x5401bf24)] as const;
 /** Keyword table of the mode-set file (in initialised RAM). */
-const KEYWORD_TABLE_VA = 0x5501b3bc;
+const KEYWORD_TABLE_VA = adr(0x5501b3bc);
 const KEYWORD_RECORD = 0x21;
 const KEYWORD_MAX = 64;
 const OPEN_FACTORY_MENU = 'OPEN_FACTORY_DEBUG_MENU';
