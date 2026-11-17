@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Exercise the real UI state/actions with an in-memory host. No camera or disk writes.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { LANGS } from '../src/fw/names';
+import { LANGS } from '@grmod/core';
 
 const mocks = vi.hoisted(() => ({
-  engine: { open: vi.fn(), reset: vi.fn(), build: vi.fn(), ratio: vi.fn(), bridge: vi.fn(), script: vi.fn(), heartbeat: vi.fn() },
+  engine: { open: vi.fn(), reset: vi.fn(), build: vi.fn(), ratio: vi.fn(), script: vi.fn(), heartbeat: vi.fn() },
   host: {
     available: false, info: { token: 'test', kind: 'test' },
     storeGet: vi.fn(), storeSet: vi.fn(), pickDirectory: vi.fn(), write: vi.fn(),
     volumes: vi.fn(), sidecar: vi.fn(), join: (...p) => p.join('/'),
   },
 }));
-vi.mock('../../ui/src/engine', () => ({ engine: mocks.engine, EngineError: class extends Error {} }));
-vi.mock('../../ui/src/host', () => ({ host: mocks.host, HostError: class extends Error {}, sha256Hex: async () => 'test-hash', isAndroid: false, isMobile: false }));
-vi.mock('../../ui/src/pixels', () => ({ ensureIconFont: vi.fn() }));
-vi.mock('../../ui/src/preview', () => ({ decodePreview: vi.fn() }));
+vi.mock('../src/engine', () => ({ engine: mocks.engine, EngineError: class extends Error {} }));
+vi.mock('../src/host', () => ({ host: mocks.host, HostError: class extends Error {}, sha256Hex: async () => 'test-hash', isAndroid: false, isMobile: false }));
+vi.mock('../src/pixels', () => ({ ensureIconFont: vi.fn() }));
+vi.mock('../src/preview', () => ({ decodePreview: vi.fn() }));
 
 const info = () => ({
   family: 'gr3x', version: '1.60', filename: 'fwdc243b.bin', models: ['GR3X_HDF'],
-  capabilities: { build: true, presets: false, wallpaper: false, factoryEntry: false, bridge: false },
+  capabilities: { build: true, presets: false, wallpaper: false, factoryEntry: false },
   features: { softFocus: 'clarity', dateStamp: false, monoUnlock: false },
   slots: [], factoryRatios: ['3:2', '1:1'], factoryEntry: { files: [] },
 });
@@ -36,7 +36,7 @@ beforeEach(async () => {
   mocks.host.write.mockImplementation(async (_p, data) => ({ size: data.length, sha256: 'test-hash' }));
   mocks.host.volumes.mockResolvedValue([]);
   vi.stubGlobal('document', { hidden: true });
-  store = await import('../../ui/src/store');
+  store = await import('../src/store');
 });
 afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
@@ -55,12 +55,9 @@ describe('GR IIIx UI family isolation', () => {
   });
   it('blocks all unported output actions before a destination can be selected', async () => {
     await store.adoptFirmware('fwdc243b.bin', '1.60', new Uint8Array([1]));
-    await store.outputBridge({ kind: 'folder' });
     expect(store.outputEntry).toBeUndefined();
     expect(store.outputWallpaper).toBeUndefined();
-    store.setBridgeOpen(true);
-    expect(store.getState().bridgeOpen).toBe(false);
-    for (const fn of [mocks.host.pickDirectory, mocks.host.write, mocks.engine.build, mocks.engine.bridge, mocks.engine.script]) expect(fn).not.toHaveBeenCalled();
+    for (const fn of [mocks.host.pickDirectory, mocks.host.write, mocks.engine.build, mocks.engine.script]) expect(fn).not.toHaveBeenCalled();
   });
   it('exports exactly the ratios added through the real build action', async () => {
     await store.adoptFirmware('fwdc243b.bin', '1.60', new Uint8Array([1]));
@@ -174,7 +171,7 @@ describe('GR IIIx UI family isolation', () => {
     expect(p3).toMatchObject({ slots: { CY: { names: { en: 'Film III' }, preset: { fileName: 'iii.cube' } } } });
     // Restart on GR III, then switch to GR IV: each gets its own back.
     vi.resetModules();
-    const restarted = await import('../../ui/src/store');
+    const restarted = await import('../src/store');
     await restarted.init();
     await vi.advanceTimersByTimeAsync(1);
     expect(restarted.getState()).toMatchObject({ model: 'GR3_HDF' });
@@ -240,18 +237,6 @@ describe('GR IIIx UI family isolation', () => {
     await store.outputFirmware({ kind: 'folder' }, true); // nothing open: returns before asking
     expect(mocks.host.write).not.toHaveBeenCalled();
   });
-  it.each(['outputBridge'])('cancels GR IV %s when the user switches to IIIx in the folder picker', async action => {
-    const gr4 = { ...info(), family: 'gr4', models: ['HDF'], filename: 'fwdc248b.bin' };
-    gr4.capabilities = { ...gr4.capabilities, factoryEntry: true, bridge: true };
-    mocks.engine.open.mockResolvedValueOnce(gr4);
-    await store.adoptFirmware('fwdc248b.bin', '1.11', new Uint8Array([1]));
-    let finish;
-    mocks.host.pickDirectory.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
-    const pending = store[action]({ kind: 'folder' });
-    store.setModel('GR3X_HDF'); finish('/chosen'); await pending;
-    expect(mocks.host.write).not.toHaveBeenCalled();
-    expect(mocks.engine.bridge).not.toHaveBeenCalled();
-  });
   it('opens GR III 2.10 as its own model in the same family and writes fwdc239b.bin', async () => {
     mocks.engine.open.mockResolvedValue({ ...info(), version: '2.10', filename: 'fwdc239b.bin', models: ['GR3_HDF'], });
     expect(await store.adoptFirmware('fwdc239b.bin', '2.10', new Uint8Array([1]))).toBe(true);
@@ -266,9 +251,6 @@ describe('GR IIIx UI family isolation', () => {
       { adjSoftFocus: false, dateStamp: false, monoUnlock: false },
     ]);
     expect(mocks.host.write).toHaveBeenCalledWith('/chosen/fwdc239b.bin', new Uint8Array([9, 2]));
-    // no bridge firmware for this family
-    store.setBridgeOpen(true);
-    expect(store.getState().bridgeOpen).toBe(false);
   });
   it('switching between GR III and GR IIIx closes the other camera\'s firmware', async () => {
     mocks.engine.open.mockResolvedValue({ ...info(), version: '2.10', filename: 'fwdc239b.bin', models: ['GR3_HDF'], });
@@ -294,7 +276,7 @@ describe('GR IIIx UI family isolation', () => {
     mocks.host.storeGet.mockImplementation(async key => files.get(key) ?? null);
     mocks.host.storeSet.mockImplementation(async (key, value) => { files.set(key, value); });
     mocks.host.storeDel = vi.fn(async key => { files.delete(key); });
-    const restarted = await import('../../ui/src/store');
+    const restarted = await import('../src/store');
     await restarted.init();
     expect(restarted.getState().model).toBe('HDF');
     expect(restarted.getState().info).toBeUndefined();

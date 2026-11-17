@@ -144,8 +144,8 @@ every address is shared and the images differ only in identity bytes (name, proj
 version, build time, RTC epoch year). The IIIx port is therefore applied unchanged to GR III;
 `core/test/gr3-equivalence.test.ts` checks that every GR III build is the IIIx build of the same
 recipe with only the identity bytes swapped, and the native probes in `tools/gr3x` run on either
-RTOS. Newer releases (GR III 2.20, GR IIIx 1.70) are a different program and are not supported;
-the shell downloads the pinned 2.10 / 1.60 archives.
+RTOS. Newer releases (GR III 2.20 / 2.21, GR IIIx 1.70 / 1.71) are a different program: when this was
+written they were not supported; since 0.8.7 they are, through generated ports (`tools/port/README.md`).
 
 On a GR III (rounds 1..6, by the owner): custom ratio lists with full-frame RAW, up to 20 films
 (looks 64..83) with their own parameters and a second matrix, soft focus on the ADJ lever, the

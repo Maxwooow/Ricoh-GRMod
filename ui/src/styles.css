@@ -385,14 +385,9 @@ button.fw-rel:disabled { cursor: default; }
 /* what only shows under the pointer is shown while the tour points at it */
 [data-tour-on] .wall-actions, [data-tour-on] .ratio-x, [data-tour-on] .compare-swap { opacity: 1; }
 
-/* 1.12 bridge firmware */
+/* menus */
 .pop-sep { height: 1px; margin: 4px 6px; background: var(--line); }
 .pop-item:disabled { opacity: 0.45; }
-.bridge-banner { display: flex; align-items: center; gap: 10px; margin: 10px 14px 0; padding: 8px 10px 8px 12px; border-radius: 8px; background: var(--amber-bg); color: var(--amber); font-size: 13px; flex: none; }
-.bridge-banner-ico { display: grid; flex: none; }
-.bridge-banner-ico svg { width: 18px; height: 18px; }
-.bridge-banner-text { flex: 1; min-width: 0; }
-.bridge-banner .btn { flex: none; }
 
 /* added Image Control slots */
 .cards { overflow-y: auto; }

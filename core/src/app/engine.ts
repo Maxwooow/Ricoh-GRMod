@@ -19,7 +19,6 @@ import * as Gr4Program111 from '../fw';
 import * as Gr4Program120 from '../fw/gr4v120';
 import * as Gr4Program121 from '../fw/gr4v121';
 import type { BuildResult, BuiltRatio, ClarityChange, ClarityEdit, ExtensionFeatures, ExtraSlotSpec, LookLayout, ShutdownPictureSpec, SoftFocusLevel, SoftFocusStrength, FactoryEntry, LangCode, Layout, NameValidation, Range, RatioSpec, SlotEdit, SlotId as NativeSlotId } from '../fw';
-import { BRIDGE_SHA256, BRIDGE_SIZE, isBridgeFirmware, makeBridgeFirmware, officialFromBridge } from '../fw/bridge';
 import { convertCube, convertXmp, hueCopy0, hueFromQ10, HUE_BLOCK_BYTES, quantizeSlot } from '../color';
 import type { SlotParams } from '../color';
 import { JpegError, checkShutdownJpeg, decodeBaselineJpeg, encodeExactJpeg, inspectJpeg } from '../jpeg';
@@ -69,7 +68,7 @@ export interface FirmwareInfo {
   models: CameraModel[];
   factoryRatios: string[];
   /** `menuPictures`: power-off pictures chosen in the camera's menu (End Screen submenu on both; GR III builds of round 5 had a Setup line after End Screen). */
-  capabilities: { build: boolean; presets: boolean; wallpaper: boolean; factoryEntry: boolean; bridge: boolean; menuPictures: boolean;
+  capabilities: { build: boolean; presets: boolean; wallpaper: boolean; factoryEntry: boolean; menuPictures: boolean;
     /** The Image Control menu order and hidden looks (GR IV; GR III 2.10 from round 8). */
     lookLayout?: boolean };
   features: { softFocus: 'clarity' | 'adj'; dateStamp: boolean; monoUnlock: boolean;
@@ -102,12 +101,6 @@ export interface FirmwareInfo {
   shutdown: Partial<Record<CameraModel, ShutdownResource>>;
   /** Card files that open the camera's factory menu, as found in this firmware. */
   factoryEntry: FactoryEntry;
-  /**
-   * True when the file opened was the 1.12 bridge firmware (see `fw/bridge.ts`). Everything else
-   * describes the official 1.11 file recovered from it; builds are refused until the official file
-   * is opened.
-   */
-  bridge: boolean;
 }
 
 export interface PresetResult {
@@ -175,8 +168,8 @@ export interface FirmwareSummary {
   /** Rear LCD Auto curve; absent/false keeps stock, true selects bright. */
   brightAuto?: boolean | 'bright' | 'balanced';
   sha256: string;
-  /** `official`: the unmodified file; `modified`: a valid 1.11 container with changes; `bridge`: the 1.12 bridge firmware; `unknown`: anything else. */
-  kind: 'official' | 'modified' | 'bridge' | 'unknown';
+  /** `official`: the unmodified file; `modified`: a valid container of the open firmware's release with changes; `unknown`: anything else. */
+  kind: 'official' | 'modified' | 'unknown';
   /** Bytes of the decoded payload that differ from the official one. */
   changedBytes: number;
   /**
@@ -370,14 +363,6 @@ async function gr4ProgramOf(raw: Uint8Array): Promise<Gr4Program | null> {
   return null;
 }
 
-export interface OpenOptions {
-  /**
-   * Accept the official files of the cameras' current firmware (GR IV 1.20, GR III 2.20, GR IIIx
-   * 1.70), whose programs are generated ports (experimental). Default true; the app passes its line's choice.
-   */
-  newFirmware?: boolean;
-}
-
 export class Engine {
   readonly info: FirmwareInfo;
   private readonly raw: Uint8Array;
@@ -430,15 +415,11 @@ export class Engine {
   }
 
   /**
-   * Accepts the official 1.11 file, or the 1.12 bridge firmware (opened as the official file it
-   * was made from, with `info.bridge` set); throws `FirmwareError('unsupported-firmware')` otherwise.
+   * Accepts the official firmware files GR Mod builds on (see the README's table); throws `FirmwareError('unsupported-firmware')` otherwise.
    */
-  static async open(input: Uint8Array, options: OpenOptions = {}): Promise<Engine> {
-    // The ports to the cameras' current firmware (GR IV 1.20, GR III 2.20, GR IIIx 1.70) are
-    // experimental: refused unless asked for (the released program asks for none of them).
-    const newFirmware = options.newFirmware ?? true;
-    let gr3 = await gr3ProgramOf(input);
-    if (gr3 && gr3 !== Gr3Program210 && !newFirmware) gr3 = null;
+  static async open(input: Uint8Array): Promise<Engine> {
+    // Each official release is opened by the program made for it (chosen by the file's SHA-256).
+    const gr3 = await gr3ProgramOf(input);
     if (gr3) {
       const { decoded, profile } = await gr3.openGr3xOfficial(input);
       // The camera's own power-off picture (2.10 / 1.60: GoodBye on B:; 2.20 / 1.70: GB_30th on A:, variant 6).
@@ -462,9 +443,9 @@ export class Engine {
         // Power-off images and the factory-menu entry reached the camera through a start-up script.
         // GR Mod 0.8 dropped that route, and it was never tested on these cameras: not offered.
         // Power-off pictures, the date imprint, 20 films, the menu order: GR III 2.10 and GR IIIx 1.60 (one program).
-        capabilities: { build: true, presets: true, wallpaper: false, factoryEntry: false, bridge: false, menuPictures: profile.fullFeatures, lookLayout: profile.fullFeatures },
+        capabilities: { build: true, presets: true, wallpaper: false, factoryEntry: false, menuPictures: profile.fullFeatures, lookLayout: profile.fullFeatures },
         features: { softFocus: 'adj', dateStamp: profile.fullFeatures, monoUnlock: false, maxFilms: profile.fullFeatures ? GR3X_MAX_FILMS : 9 },
-        version: profile.version, sha256: profile.sha256, bridge: false,
+        version: profile.version, sha256: profile.sha256,
         slots: GR3X_FILM_IDS.slice(0, profile.fullFeatures ? GR3X_MAX_FILMS : 9).map((id, i) => ({
           id, defaultName: GR3X_FILM_NAMES[i], icon: lookResources.film.slice(),
           names: Object.fromEntries(LANGS.map(l => [l, { text: GR3X_FILM_NAMES[i], capacity: 24 }])) as SlotInfoView['names'],
@@ -474,12 +455,10 @@ export class Engine {
       };
       return new Engine(input.slice(), decoded, info, lookResources.matrix, null, gr3);
     }
-    const bridge = await isBridgeFirmware(input);
-    const raw = bridge ? await officialFromBridge(input) : input;
-    // The official 1.11 or 1.20 file; anything else is refused by 1.11's openOfficial as before.
-    const found = await gr4ProgramOf(raw);
-    const g4 = found && (found === Gr4Program111 || newFirmware) ? found : Gr4Program111;
-    const { decoded } = await g4.openOfficial(raw);
+    // An official GR IV file; anything else is refused by 1.11's openOfficial.
+    const found = await gr4ProgramOf(input);
+    const g4 = found ?? Gr4Program111;
+    const { decoded } = await g4.openOfficial(input);
     const layout = g4.resolveLayout(decoded);
     const mo = g4.foff(layout.standard.matrix);
     const mStd = new Int16Array(9);
@@ -514,21 +493,19 @@ export class Engine {
     const info: FirmwareInfo = {
       family: 'gr4', filename: 'fwdc248b.bin', models: ['STANDARD', 'HDF', 'MONO'],
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
-      // The 1.12 bridge firmware goes back to 1.11 only: no bridge for 1.20.
-      capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, bridge: !bridge && g4 === Gr4Program111, menuPictures: true, lookLayout: true },
+      capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, menuPictures: true, lookLayout: true },
       features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}) },
       version: g4.FIRMWARE_VERSION,
       looks: { factory: [...g4.aspect.FACTORY_LOOK_IDS], extraFirst: g4.aspect.EXTRA_FIRST_STYLE, monoOnly: g4.aspect.FACTORY_LOOK_IDS.filter((n) => n >= 25) },
-      sha256: await sha256Hex(raw),
+      sha256: await sha256Hex(input),
       slots,
       tiles: { film: g4.tileTemplate(decoded, 'film'), plain: g4.tileTemplate(decoded, 'plain') },
       contentArea: CONTENT_AREA,
       allowed,
       shutdown,
       factoryEntry: g4.readFactoryEntry(decoded),
-      bridge,
     };
-    return new Engine(raw, decoded, info, mStd, layout, null, g4);
+    return new Engine(input, decoded, info, mStd, layout, null, g4);
   }
 
   /** Set by `extendVerified` while it inspects a file: the additions to build on top of it. */
@@ -552,13 +529,6 @@ export class Engine {
     } finally {
       this.extendWith = null;
     }
-  }
-
-  /** The 1.12 bridge firmware, made from the official file this engine holds (see `fw/bridge.ts`). */
-  async bridgeFirmware(): Promise<Uint8Array> {
-    if (this.layout === null) requireGr3xPort('bridge firmware');
-    if (this.g4 !== Gr4Program111) throw new FirmwareError('unsupported-firmware', 'the bridge firmware is made from the official 1.11 file only');
-    return makeBridgeFirmware(this.raw);
   }
 
   /**
@@ -625,7 +595,6 @@ export class Engine {
         ...(matched && pictures.length ? { shutdownPictures: pictures.map((p, k) => ({ id: p.id ?? k + 1, name: p.name, jpeg: p.jpeg })) } : {}),
         ...(matched && lookLayout ? { lookLayout: { order: [...lookLayout.order], hidden: [...lookLayout.hidden] } } : {}) };
     }
-    if (raw.length === BRIDGE_SIZE && sha256 === BRIDGE_SHA256) return { sha256, kind: 'bridge', changedBytes: 0, verified: true, slots: [], ratios: [], softFocus: [], adjSoftFocus: false, dateStamp: false, monoUnlock: false, extraSlots: [] };
     const describe = (d: Uint8Array): FirmwareSummary['slots'] =>
       this.g4.SLOTS.map((s) => {
         const names = {} as Record<LangCode, string>;
@@ -1008,7 +977,6 @@ export class Engine {
       return { ...r, file: r.file.slice() };
     }
     if (this.layout === null || !this.info.capabilities.build) requireGr3xPort('custom firmware');
-    if (this.info.bridge) throw new FirmwareError('bridge-firmware', 'open the official firmware: the bridge firmware is not a base for builds');
     const edits: SlotEdit[] = [];
     const cinemaHalation: Partial<Record<'CY' | 'CG', true>> = {};
     for (const r of requests) {

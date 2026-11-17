@@ -1,7 +1,7 @@
 // The Android app's update manifest (ui/src/update-android.ts): signature, fields, versions.
 import { describe, expect, it } from 'vitest';
 import * as ed from '@noble/ed25519';
-import { compareVersions, findUpdate, verifyManifest } from '../../ui/src/update-android';
+import { compareVersions, findUpdate, verifyManifest } from '../src/update-android';
 
 const b64 = (u) => Buffer.from(u).toString('base64');
 const seed = new Uint8Array(32).map((_, i) => i * 7 + 1);

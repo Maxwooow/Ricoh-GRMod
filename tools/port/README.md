@@ -8,11 +8,27 @@ and never mixes the two. Nothing here is part of the program.
 | Port | From | Config | Copy |
 |---|---|---|---|
 | GR III 2.20 / GR IIIx 1.70 | 2.10 / 1.60 (`fw/gr3x`, `tools/gr3x`) | `gr3-p2.json` | `fw/gr3x170`, `tools/gr3x170` |
+| GR III 2.21 / GR IIIx 1.71 | 2.20 / 1.70 (`fw/gr3x170`, `tools/gr3x170`) | `gr3-p3.json` | `fw/gr3x171`, `tools/gr3x171` |
 | GR IV 1.20 (= GR IV Monochrome 1.10) | 1.11 (`fw/*.ts`, `fw/aspect`, `tools/{aspect,datestamp,...}`) | `gr4-120.json` | `fw/gr4v120`, `tools/gr4v120` |
+| GR IV 1.21 (= GR IV Monochrome 1.11) | 1.20 (`fw/gr4v120`, `tools/gr4v120`) | `gr4-121.json` | `fw/gr4v121`, `tools/gr4v121` |
 
-Both are **experimental**: the engine opens the new files only with `OpenOptions.newFirmware`, which
-only the experimental "new firmware" line of the app sets (a version containing `newfw` and `exp`,
-see `shell/updates.go`).
+All four are part of the released program since 0.8.7 (0.8.15 for 2.21 / 1.71 / 1.21): the engine opens each
+official file with the program made for it. A new release also goes into `releases.json` at the root
+(`node tools/releases/generate.mjs`), which the download lists and the README's table are written from.
+
+## Keeping the copies in step
+
+A copy is generated, so it is never edited on its own:
+
+- a fix in the original is generated into its copies (`generate.py X.json`, in the order of the table: a copy
+  can be the source of the next one);
+- a change that only the copy needs is made in the copy and then recorded in its patch
+  (`generate.py X.json --save-patch`).
+
+`python3 tools/port/check.py` (also `npm run check`, and part of the Tests workflow) generates every port into a
+temporary directory, applies its patch and compares the text files with the committed ones. It fails when a copy
+is no longer what its source, map and patch give, which is how a forgotten step shows. The compiled native
+modules (`generated` in the config) are not compared: they need the compilers of the post steps.
 
 ## How a port is made
 

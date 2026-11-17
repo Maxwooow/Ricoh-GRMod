@@ -173,6 +173,9 @@ final class Updater {
         }
     }
 
+    // Before Android 13 registerReceiver takes no exported flag (lint asks for one on every call). The broadcast is
+    // the installer's answer through a PendingIntent that names this package (setPackage), on every version.
+    @android.annotation.SuppressLint("UnspecifiedRegisterReceiverFlag")
     private synchronized void listen(Status status) {
         if (receiver != null) { try { context.unregisterReceiver(receiver); } catch (Exception ignored) { /* not registered */ } }
         receiver = new BroadcastReceiver() {

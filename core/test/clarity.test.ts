@@ -1,9 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { Engine, color, fw } from '../src';
 
 const P = new URL('../testdata/private/', import.meta.url).pathname;
 const have = existsSync(P + 'official.bin');
+// The decoded official payload is a fixture of its own: the two tests that read it are skipped without it.
+const haveDecoded = existsSync(P + 'official.decoded');
 
 describe('clarity table data', () => {
   it('builds the table bytes and reads them back', () => {
@@ -78,14 +80,14 @@ describe('clarity model', () => {
 describe.skipIf(!have)('soft focus in a firmware', () => {
   let eng: Engine;
   const soft = [{ level: -2, strength: 'weak' }, { level: -3, strength: 'medium' }, { level: -4, strength: 'strong' }] as const;
-  it('finds the official table where it is expected', async () => {
-    eng = await Engine.open(new Uint8Array(readFileSync(P + 'official.bin')));
+  beforeAll(async () => { eng = await Engine.open(new Uint8Array(readFileSync(P + 'official.bin'))); });
+  it.skipIf(!haveDecoded)('finds the official table where it is expected', async () => {
     const dec = new Uint8Array(readFileSync(P + 'official.decoded'));
     expect(fw.readClarity(dec)).toEqual(fw.OFFICIAL_CLARITY.map((r) => [...r]));
     expect(fw.CLARITY_OFFSET).toBe(0xb64570);
     expect(fw.hasOfficialClarity(dec)).toBe(true);
   });
-  it('changes the table and the compensation word only', async () => {
+  it.skipIf(!haveDecoded)('changes the table and the compensation word only', async () => {
     const official = new Uint8Array(readFileSync(P + 'official.bin'));
     const dec = new Uint8Array(readFileSync(P + 'official.decoded'));
     const r = await fw.buildFirmware(official, [], [], soft.map((s) => ({ level: s.level, gains: fw.SOFT_FOCUS_GAINS[s.strength] })));

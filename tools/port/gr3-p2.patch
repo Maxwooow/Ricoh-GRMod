@@ -329,6 +329,18 @@ diff --git a/tools/gr3x170/adj_probe.py b/tools/gr3x170/adj_probe.py
      assert (catalog['textColumns'],catalog['iconCount'])==(786+customs+soft+dtexts+ptexts+added+htexts,671+customs+soft+dicons+picons+added+hicons)
      for lang in range(21):
          old_root=u32(cpu,0x55002bb4+lang*4);new_root=u32(cpu,catalog['textRoots']+lang*4)
+diff --git a/tools/gr3x170/build-t6.mjs b/tools/gr3x170/build-t6.mjs
+--- a/tools/gr3x170/build-t6.mjs
++++ b/tools/gr3x170/build-t6.mjs
+@@ -139,7 +139,7 @@
+   const post = film.preset?.postQ9 && !Array.from(film.preset.postQ9).every((v, i) => v === [512,0,0,0,512,0,0,0,512][i]) ? film.preset.postQ9 : undefined;
+   // As the build: the film's quantized curves when it has a preset (image-control.ts), else Standard's.
+   const look = result.manifest.addedLooks[k];
+-  halateYcc(Y, C, W, H, level, look.quantizedCurves ? halationLight(look.quantizedCurves, look.postQ9) : halationLight(), white ? 'white' : 'red');
++  halateYcc(Y, C, W, H, level, look.quantizedCurves ? halationLight(look.quantizedCurves, look.postQ9) : halationLight(), white ? 'white' : 'red', 'classic'); // GR III / IIIx keep the 0.8.9 module (white = the 0.8.2 glow)
+   void post;
+   const head = new Uint8Array(4); new DataView(head.buffer).setUint32(0, (32 + k) | level << 8 | (white ? 0x20000 : 0), true);
+   parts.push(head, Y, C);
 diff --git a/tools/gr3x170/chroma_alignment_probe.py b/tools/gr3x170/chroma_alignment_probe.py
 --- a/tools/gr3x170/chroma_alignment_probe.py
 +++ b/tools/gr3x170/chroma_alignment_probe.py
@@ -701,7 +713,7 @@ diff --git a/core/test/gr3-p2-equivalence.test.ts b/core/test/gr3-p2-equivalence
      const e3 = await Engine.open(raw3), eX = await Engine.open(rawX);
 -    expect(e3.info).toMatchObject({ family: 'gr3x', filename: 'fwdc239b.bin', models: ['GR3_HDF', 'GR3'], version: '2.10',
 +    expect(e3.info).toMatchObject({ family: 'gr3x', filename: 'fwdc239b.bin', models: ['GR3_HDF', 'GR3'], version: '2.20',
-       capabilities: { build: true, presets: true, wallpaper: false, factoryEntry: false, bridge: false, menuPictures: true, lookLayout: true },
+       capabilities: { build: true, presets: true, wallpaper: false, factoryEntry: false, menuPictures: true, lookLayout: true },
        features: { dateStamp: true, maxFilms: 20 } });
      expect(e3.info).not.toHaveProperty('experimental');
 -    expect(eX.info).toMatchObject({ filename: 'fwdc243b.bin', models: ['GR3X_HDF', 'GR3X'], version: '1.60',

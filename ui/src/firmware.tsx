@@ -1,7 +1,7 @@
 // Where the firmware comes from: a file the user picks, or the current official update fetched
 // from Ricoh's site. The program itself carries no firmware.
 import { useEffect, useRef, useState } from 'react';
-import { FIRMWARE_VERSION, FIRMWARE_VERSION_120, FIRMWARE_VERSION_121, GR3_210, GR3_220, GR3_221, GR3X_160, GR3X_170, GR3X_171 } from '@grmod/core';
+import { SUPPORTED_RELEASES } from './releases.gen';
 import type { CameraModel } from '@grmod/core';
 import { ChoiceSheet, FileButton, Ico, Segmented, pickerAccept, useDismiss } from './components';
 import { isMobile } from './host-android';
@@ -9,7 +9,7 @@ import { host, HostError } from './host';
 import type { FirmwareRelease } from './host';
 import { t } from './i18n';
 import type { Key } from './i18n';
-import { adoptFirmware, askForOfficial, fmtSize, loadFirmwareFile, setModel, setOnlineOpen, toast, useStore } from './store';
+import { adoptFirmware, fmtSize, loadFirmwareFile, setModel, setOnlineOpen, toast, useStore } from './store';
 
 export const MODELS: readonly CameraModel[] = ['GR3', 'GR3_HDF', 'GR3X', 'GR3X_HDF', 'HDF', 'STANDARD', 'MONO'];
 export const modelLabel = (m: CameraModel): string => t(('model' + m) as Key);
@@ -26,7 +26,7 @@ export function FirmwareRow() {
     <div className={`sel row ${open ? 'open' : ''}`} ref={wrap} data-tour="firmware">
       <button type="button" className="sel-btn" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(!open)}>
         <span className="side-label">{t('firmware')}</span>
-        <span className={`sel-value ${info ? '' : 'muted'}`}>{info ? (info.bridge ? t('fwBridgeValue') : info.version) : t('noFirmware')}<i className={`dot ${info ? (info.bridge ? 'warn' : 'ok') : ''}`} /></span>
+        <span className={`sel-value ${info ? '' : 'muted'}`}>{info ? info.version : t('noFirmware')}<i className={`dot ${info ? 'ok' : ''}`} /></span>
       </button>
       {open && isMobile && (
         <ChoiceSheet label={t('firmware')} onClose={close} items={[
@@ -60,17 +60,8 @@ export function FirmwareHero() {
 
 type Look = { state: 'loading' | 'none' | 'error' } | { state: 'ready'; rel: FirmwareRelease };
 
-/**
- * The official releases this program builds on, per model, newest first. The GR IV Monochrome's 1.11
- * and 1.10 are the GR IV 1.21 and 1.20 files (the same SHA-256).
- */
-const GR4_RELEASES = [FIRMWARE_VERSION_121, FIRMWARE_VERSION_120, FIRMWARE_VERSION];
-const GR3_RELEASES = [GR3_221.version, GR3_220.version, GR3_210.version];
-const GR3X_RELEASES = [GR3X_171.version, GR3X_170.version, GR3X_160.version];
-const SUPPORTED: Record<CameraModel, readonly string[]> = {
-  STANDARD: GR4_RELEASES, HDF: GR4_RELEASES, MONO: ['1.11', '1.10'],
-  GR3: GR3_RELEASES, GR3_HDF: GR3_RELEASES, GR3X: GR3X_RELEASES, GR3X_HDF: GR3X_RELEASES,
-};
+/** The official releases this program builds on, per model, newest first (from releases.json). */
+const SUPPORTED: Record<CameraModel, readonly string[]> = SUPPORTED_RELEASES;
 
 /** The current official firmware of the chosen model on Ricoh's site; a press downloads and opens it. */
 export function FirmwareOnline() {
@@ -80,7 +71,6 @@ export function FirmwareOnline() {
 
 function OnlineDialog() {
   const model = useStore((s) => s.model);
-  const reason = useStore((s) => s.onlineReason);
   const [look, setLook] = useState<Look>({ state: 'loading' });
   const [attempt, setAttempt] = useState(0);
   const [progress, setProgress] = useState<{ version: string; received: number; total: number } | null>(null);
@@ -158,7 +148,6 @@ function OnlineDialog() {
     <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget && !progress) close(); }}>
       <div className="dialog online" role="dialog" aria-modal="true" aria-label={t('fwOnlineTitle')}>
         <h3>{t('fwOnlineTitle')}</h3>
-        {reason && <p className="dialog-warn">{t('bridgeNeedOfficial')}</p>}
         <div className={`online-models ${progress ? 'off' : ''} ${more.l ? 'more-l' : ''} ${more.r ? 'more-r' : ''}`} ref={tabsRef} onScroll={edges}>
           <Segmented<CameraModel> value={model} onChange={(m) => { if (!progress) setModel(m); }} options={MODELS.map((m) => ({ value: m, label: modelLabel(m) }))} />
         </div>
@@ -197,16 +186,3 @@ function OnlineDialog() {
   );
 }
 
-
-/** Shown on the pages while a 1.12 bridge firmware file (made by GR Mod up to 0.8.x) is open. */
-export function BridgeBanner() {
-  const on = useStore((s) => !!s.info?.bridge);
-  if (!on) return null;
-  return (
-    <div className="bridge-banner" role="status">
-      <span className="bridge-banner-ico">{Ico.bridge}</span>
-      <span className="bridge-banner-text">{t('bridgeLoaded')}</span>
-      <button type="button" className="btn small primary" onClick={askForOfficial}>{Ico.download}<span>{t('bridgeLoadedAction')}</span></button>
-    </div>
-  );
-}

@@ -1,0 +1,131 @@
+# The packages of a release, built the same way every time: the Windows program, the Mac bundle (zip and dmg)
+# and the Android app. Run it by hand (Actions > Packages > Run workflow) or push a tag vX.Y.Z; the files
+# are kept as the run's artifact "packages".
+#
+# What stays by hand, on purpose: signing the update manifests (update.json, update-android.json) with the
+# project's private key, which is never given to GitHub, and publishing the release. See docs/releasing.md.
+#
+# Android: with the secrets ANDROID_KEYSTORE_B64 (base64 of the .jks) and ANDROID_KEYSTORE_PASSWORD the APK is
+# signed with GR Mod's key (ANDROID_KEY_ALIAS and ANDROID_KEY_PASSWORD when they differ from the defaults);
+# without them it is left unsigned, to be signed locally.
+name: Packages
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  desktop:
+    name: Windows and macOS
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: shell/go.mod
+          cache-dependency-path: shell/go.sum
+      - name: The lists and version numbers are in step
+        run: |
+          node tools/releases/generate.mjs --check
+          node tools/version.mjs --check
+          python3 tools/port/check.py
+      - name: A tag names the version it builds
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          v="$(node -p "require('./package.json').version")"
+          [ "v$v" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME, but package.json says $v"; exit 1; }
+      - name: Build the page
+        run: |
+          npm ci
+          npm -w ui run build
+      - name: Tools for the Mac bundle (ad hoc signature, disk image)
+        run: |
+          curl -fsSL -o rcodesign.tar.gz "https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F0.29.0/apple-codesign-0.29.0-x86_64-unknown-linux-musl.tar.gz"
+          tar -xzf rcodesign.tar.gz --strip-components=1 --wildcards '*/rcodesign'
+          sudo install rcodesign /usr/local/bin/rcodesign
+          pip install --user ds_store mac_alias
+          rcodesign --version
+          python3 -c 'import ds_store, mac_alias'
+      - name: Build
+        working-directory: shell
+        run: |
+          ./build.sh windows
+          ./build.sh mac
+          v="$(node -p "require('../package.json').version")"
+          test -f "dist/GRMod-$v-mac.dmg"   # an unsigned or dmg-less Mac build is not a release
+          mkdir -p ../out
+          cp dist/GRMod.exe "../out/GRMod-$v.exe"
+          cp dist/GRMod-mac.zip "../out/GRMod-$v-mac.zip"
+          cp "dist/GRMod-$v-mac.dmg" ../out/
+          (cd ../out && sha256sum * | tee SHA256SUMS-desktop.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-desktop
+          path: out/
+          if-no-files-found: error
+
+  android:
+    name: Android
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_B64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - name: Build the page and copy it into the Android project
+        run: |
+          npm ci
+          cd mobile && npm ci && npm run sync
+      - name: The signing key
+        if: env.HAS_KEY == 'true'
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          printf '%s' "$KEYSTORE_B64" | base64 --decode > "$RUNNER_TEMP/grmod.jks"
+          echo "GRMOD_KEYSTORE=$RUNNER_TEMP/grmod.jks" >> "$GITHUB_ENV"
+      - name: Build
+        working-directory: mobile/android
+        env:
+          GRMOD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          GRMOD_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          GRMOD_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          ./gradlew --no-daemon testDebugUnitTest assembleRelease
+          v="$(node -p "require('../package.json').version")"
+          mkdir -p ../../out
+          if [ "$HAS_KEY" = true ]; then
+            cp app/build/outputs/apk/release/app-release.apk "../../out/GRMod-Android-$v.apk"
+          else
+            cp app/build/outputs/apk/release/app-release-unsigned.apk "../../out/GRMod-Android-$v-unsigned.apk"
+            echo "::warning::No signing key in the secrets: the APK is unsigned. Sign it before publishing."
+          fi
+          (cd ../../out && sha256sum * | tee SHA256SUMS-android.txt)
+      - name: Remove the key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/grmod.jks"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: packages-android
+          path: out/
+          if-no-files-found: error

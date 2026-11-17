@@ -10,12 +10,12 @@ import { haptic, setBackFallback } from './host-android';
 import { t, uiLangPref } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
-import { BridgeBanner, FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
+import { FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
 import { CropEditor, ImageControlPage, RatioPage, WallpaperPage } from './pages';
 import { Tour, replayTour, restartTours } from './tour';
 import { UpdatePill, UpdateWatcher, checkForUpdate, openWhatsNew } from './updates';
 import {
-  askForOfficial, bridgeLoaded, getState, isGr3, backupCopies, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setAppLanguage, setModel, setPage, setShowAll, useStore, wallReady,
+  getState, isGr3, backupCopies, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setAppLanguage, setModel, setPage, setShowAll, useStore, wallReady,
 } from './store';
 import type { State } from './store';
 
@@ -72,14 +72,13 @@ function CopyActions() {
   const n = useStore((s) => s.copySel.length);
   const busy = useStore((s) => !!s.busy);
   const writable = useStore((s) => !!writableCopy(s) && s.volumes.some((v) => v.id === s.volumeId));
-  const bridge = useStore((s) => bridgeLoaded(s));
   return (
     <div className="out-actions" data-tour="copies-actions">
       {source === 'pc' && <button className="btn" title={t('copiesOpenFolder')} onClick={() => revealBackups()}>{Ico.folder}<span className="out-label">{t('copiesOpenFolder')}</span></button>}
       <button className="btn" disabled={busy || count === 0} onClick={() => { void deleteCopies(true); }}>{t('copiesDeleteAll')}</button>
       <button className="btn danger" disabled={busy || n === 0} onClick={() => { void deleteCopies(false); }}>{Ico.trash}<span>{t('copiesDelete')}{n ? ` ${n}` : ''}</span></button>
       {source === 'card' && <button className="btn" disabled={busy || n === 0} onClick={() => { void backupCopies(); }}>{t('copiesBackup')}{n ? ` ${n}` : ''}</button>}
-      <button className="btn primary" disabled={busy || (!writable && !bridge)} title={writable || bridge ? undefined : t('copiesPickOne')} onClick={() => { if (bridge) askForOfficial(); else void writeCopy(); }}>{t('writeCard')}</button>
+      <button className="btn primary" disabled={busy || !writable} title={writable ? undefined : t('copiesPickOne')} onClick={() => { void writeCopy(); }}>{t('writeCard')}</button>
     </div>
   );
 }
@@ -96,9 +95,7 @@ function OutputBar() {
   // Image Control (with its switches), the added ratios and the power-off images go into one firmware file: every page writes the same thing.
   const can = canOutput(s);
   const role: Key | '' = s.role === 'firmware' ? 'roleFirmware' : s.role === 'wallpaper' ? 'roleWallpaper' : s.role === 'mixed' ? 'roleMixed' : s.role === 'empty' ? 'roleEmpty' : '';
-  // With the bridge firmware open the buttons stay live but offer the official download instead.
-  const bridge = bridgeLoaded(s) && !s.busy;
-  const run = (kind: 'card' | 'folder'): void => { if (bridge) { askForOfficial(); return; } void outputFirmware({ kind }); };
+  const run = (kind: 'card' | 'folder'): void => { void outputFirmware({ kind }); };
   return (
     <footer className="outbar">
       <div className="out-card" data-tour="card">
@@ -119,8 +116,8 @@ function OutputBar() {
       </div>
       <span className="grow" />
       {s.page === 'copies' && <CopyActions />}
-      {s.page !== 'copies' && <button className="btn" data-tour="export" disabled={!can && !bridge} title={t('exportFolder')} onClick={() => run('folder')}>{Ico.folder}<span className="out-label">{t('exportFolder')}</span></button>}
-      {s.page !== 'copies' && <button className="btn primary" data-tour="write" disabled={!bridge && (!can || !vol)} onClick={() => run('card')}>{t('writeCard')}</button>}
+      {s.page !== 'copies' && <button className="btn" data-tour="export" disabled={!can} title={t('exportFolder')} onClick={() => run('folder')}>{Ico.folder}<span className="out-label">{t('exportFolder')}</span></button>}
+      {s.page !== 'copies' && <button className="btn primary" data-tour="write" disabled={!can || !vol} onClick={() => run('card')}>{t('writeCard')}</button>}
     </footer>
   );
 }
@@ -156,7 +153,6 @@ export function App() {
     <div className="app" onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }} onDrop={(e) => e.preventDefault()}>
       <Sidebar />
       <main className="main">
-        <BridgeBanner />
         <div className="stage">{ready ? (page === 'ratio' ? <RatioPage /> : page === 'wall' && (!gr3 || menuPicsReady || !fwOpen) ? <WallpaperPage /> : page === 'copies' ? <CopiesPage /> : <ImageControlPage />) : <div className="page"><span className="spinner" /></div>}</div>
         <OutputBar />
       </main>
@@ -184,8 +180,8 @@ function MobileTop({ onSettings, wide }: { onSettings: () => void; wide: boolean
       <span className="grow" />
       {!wide && <>
       <button type="button" className="m-fw" data-tour="m-fw" onClick={onSettings} aria-label={t('mSettings')}>
-        <span className={info ? '' : 'muted'}>{info ? (info.bridge ? t('fwBridgeValue') : <><span className="m-fw-file">{info.filename} · </span>{info.version}</>) : t('noFirmware')}</span>
-        <i className={`dot ${info ? (info.bridge ? 'warn' : 'ok') : ''}`} />
+        <span className={info ? '' : 'muted'}>{info ? <><span className="m-fw-file">{info.filename} · </span>{info.version}</> : t('noFirmware')}</span>
+        <i className={`dot ${info ? 'ok' : ''}`} />
       </button>
       <button type="button" className="btn ghost icon-only m-icon" data-tour="m-settings" onClick={onSettings} aria-label={t('mSettings')}>{Ico.sliders}</button>
       </>}
@@ -304,18 +300,17 @@ function usePressed(): { pressed: boolean; bind: React.HTMLAttributes<HTMLButton
 function MobileActions() {
   const s = useStore((x) => x);
   const can = canOutput(s);
-  const bridge = bridgeLoaded(s) && !s.busy;
   const gr4 = s.info?.family === 'gr4';
   const glass = useGlass('lg-save', { rim: 14, strength: 9, radius: 24 });
   const glass2 = useGlass('lg-send', { rim: 14, strength: 9, radius: 24 });
   const p1 = usePressed();
   const p2 = usePressed();
-  const run = (kind: 'camera' | 'phone'): void => { haptic(); if (bridge) { askForOfficial(); return; } void outputFirmware({ kind }); };
+  const run = (kind: 'camera' | 'phone'): void => { haptic(); void outputFirmware({ kind }); };
   return (
     <div className="m-actions">
       <GlassDefs>{glass.filter}{glass2.filter}</GlassDefs>
-      <button ref={glass.ref} data-tour="export" className={`btn glass ${p1.pressed ? 'pressed' : ''}`} disabled={!can && !bridge} {...p1.bind} onClick={() => run('phone')}>{Ico.save}<span>{t('saveToPhone')}</span></button>
-      <button ref={glass2.ref} data-tour="write" className={`btn glass tint ${p2.pressed ? 'pressed' : ''}`} disabled={(!can && !bridge) || (!!s.info && !gr4)} title={s.info && !gr4 ? t('pushOnlyGr4') : undefined} {...p2.bind} onClick={() => run('camera')}>{Ico.send}<span>{t('pushCamera')}</span></button>
+      <button ref={glass.ref} data-tour="export" className={`btn glass ${p1.pressed ? 'pressed' : ''}`} disabled={!can} {...p1.bind} onClick={() => run('phone')}>{Ico.save}<span>{t('saveToPhone')}</span></button>
+      <button ref={glass2.ref} data-tour="write" className={`btn glass tint ${p2.pressed ? 'pressed' : ''}`} disabled={!can || (!!s.info && !gr4)} title={s.info && !gr4 ? t('pushOnlyGr4') : undefined} {...p2.bind} onClick={() => run('camera')}>{Ico.send}<span>{t('pushCamera')}</span></button>
     </div>
   );
 }
@@ -493,7 +488,6 @@ function MobileApp() {
     <>
       <MobileTop wide={wide} onSettings={() => setSettings(true)} />
       <main className="main">
-        <BridgeBanner />
         <div className="stage" ref={stage} onScroll={(e) => { scrolls.current[shown.current] = e.currentTarget.scrollTop; }}>{ready ? (page === 'ratio' ? <RatioPage /> : page === 'wall' && (!gr3 || menuPicsReady || !fwOpen) ? <WallpaperPage /> : <ImageControlPage />) : <div className="page"><span className="spinner" /></div>}</div>
       </main>
       {/* both float over the page, which scrolls on under them */}

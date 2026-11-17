@@ -1,0 +1,113 @@
+# Every push and pull request: the checks that need no official firmware file and no camera.
+#
+#   lists    the generated files are what their sources give: the firmware releases (releases.json), the
+#            version numbers, and the ports to the later firmware (tools/port)
+#   core/ui  TypeScript types, and the engine's and the UI store's tests (the byte-identity tests that need
+#            Ricoh's firmware files are skipped here: those files are not in the repository)
+#   shell    the desktop program: gofmt, go vet, its tests with both host builds
+#   android  the app's unit tests and lint
+#
+# The iOS app is compiled by ios.yml (it needs a Mac).
+name: Tests
+
+on:
+  push:
+    branches: [main, ios]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: Lists, core and UI
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: The firmware releases are the same everywhere
+        run: node tools/releases/generate.mjs --check
+      - name: The version numbers agree
+        run: node tools/version.mjs --check
+      - name: The ports are what the generator makes
+        run: python3 tools/port/check.py
+      - name: Types
+        run: |
+          npm -w core run typecheck
+          npm -w ui run typecheck
+      - name: Tests
+        run: npm test
+
+  shell:
+    name: Desktop shell
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: shell/go.mod
+          cache-dependency-path: shell/go.sum
+      - name: Build the page and the development program (build.sh copies the page into shell/web, which the program embeds)
+        run: |
+          npm ci
+          npm -w ui run build
+          cd shell && ./build.sh dev
+      - name: Smoke test of the HTTP API
+        working-directory: shell
+        run: ./smoke.sh
+      - name: gofmt
+        working-directory: shell
+        run: |
+          out="$(gofmt -l .)"
+          if [ -n "$out" ]; then echo "not gofmt-ed:"; echo "$out"; exit 1; fi
+      - name: go vet
+        working-directory: shell
+        run: |
+          go vet ./...
+          go vet -tags desktop ./...
+      - name: go test
+        working-directory: shell
+        run: |
+          go test ./...
+          go test -tags desktop ./...
+
+  android:
+    name: Android app
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+      - name: Build the page and copy it into the Android project
+        run: |
+          npm ci
+          cd mobile && npm ci && npm run sync
+      - name: Unit tests and lint
+        working-directory: mobile/android
+        run: ./gradlew --no-daemon assembleDebug testDebugUnitTest lintDebug

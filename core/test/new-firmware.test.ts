@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * The ports to the cameras' newer firmware (GR IV 1.20 / 1.21, GR III 2.20 / 2.21, GR IIIx 1.70 / 1.71) are
- * only opened when asked for (`OpenOptions.newFirmware`, which the released app never sets), each file
- * by the program made for it, and the 1.11 / 2.10 / 1.60 files exactly as before either way.
+ * Every official release GR Mod builds on is opened by the program made for it (the engine chooses by
+ * the file's SHA-256): the version it reports is the file's, and the file inspects as official.
  *
  * Needs GRMOD_GR4_120_FIRMWARE (fwdc248b.bin 1.20), GRMOD_GR3_220_FIRMWARE, GRMOD_GR3X_170_FIRMWARE, their
  * 1.21 / 2.21 / 1.71 counterparts (GRMOD_GR4_121_FIRMWARE, GRMOD_GR3_221_FIRMWARE, GRMOD_GR3X_171_FIRMWARE) and the
@@ -15,28 +14,20 @@ import { Engine } from '../src/app/engine';
 const files: Record<string, string | undefined> = {
   '1.20': process.env.GRMOD_GR4_120_FIRMWARE, '2.20': process.env.GRMOD_GR3_220_FIRMWARE, '1.70': process.env.GRMOD_GR3X_170_FIRMWARE,
   '1.21': process.env.GRMOD_GR4_121_FIRMWARE, '2.21': process.env.GRMOD_GR3_221_FIRMWARE, '1.71': process.env.GRMOD_GR3X_171_FIRMWARE,
+  '1.11': new URL('../testdata/private/official.bin', import.meta.url).pathname,
 };
-const official = new URL('../testdata/private/official.bin', import.meta.url).pathname;
 
-describe('new firmware line', () => {
+describe('every supported release opens as itself', () => {
   for (const [version, path] of Object.entries(files)) {
-    it.skipIf(!path || !existsSync(path))(`${version}: refused unless asked for, opened as ${version} when asked`, async () => {
+    it.skipIf(!path || !existsSync(path))(`${version}`, async () => {
       const raw = new Uint8Array(readFileSync(path!));
-      await expect(Engine.open(raw, { newFirmware: false })).rejects.toMatchObject({ code: 'unsupported-firmware' });
-      const eng = await Engine.open(raw, { newFirmware: true });
+      const eng = await Engine.open(raw);
       expect(eng.info.version).toBe(version);
-      expect(eng.info.capabilities.bridge).toBe(false);
-      if (version === '1.20' || version === '1.21') await expect(eng.bridgeFirmware()).rejects.toMatchObject({ code: 'unsupported-firmware' });
       const same = await eng.inspect(raw);
       expect(same.kind).toBe('official');
     }, 120_000);
   }
-  it.skipIf(!existsSync(official))('1.11: the same with or without the new firmware', async () => {
-    const raw = new Uint8Array(readFileSync(official));
-    for (const newFirmware of [false, true]) {
-      const eng = await Engine.open(raw, { newFirmware });
-      expect(eng.info.version).toBe('1.11');
-      expect(eng.info.capabilities.bridge).toBe(true);
-    }
-  }, 120_000);
+  it('anything else is refused', async () => {
+    await expect(Engine.open(new Uint8Array(4096))).rejects.toMatchObject({ code: 'unsupported-firmware' });
+  });
 });

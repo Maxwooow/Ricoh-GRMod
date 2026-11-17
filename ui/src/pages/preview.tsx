@@ -1,0 +1,194 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { color, halateRgba, halationLight } from '@grmod/core';
+import type { ReactNode } from 'react';
+import { DropZone, FileButton, Ico, Segmented } from '../components';
+import { isMobile } from '../host';
+import { t } from '../i18n';
+import { applySlot } from '../preview';
+import { loadPreviewFile, previewPhoto, setActiveSlot, setPreviewMode, useStore, extraName, halationOf, slotOf, filmCountChoosable } from '../store';
+import { isImage } from './files';
+
+// 24 reference patches (sRGB), shown before / after a preset
+const CC24 = [[115, 82, 68], [194, 150, 130], [98, 122, 157], [87, 108, 67], [133, 128, 177], [103, 189, 170], [214, 126, 44], [80, 91, 166], [193, 90, 99], [94, 60, 108], [157, 188, 64], [224, 163, 46],
+  [56, 61, 150], [70, 148, 73], [175, 54, 60], [231, 199, 31], [187, 86, 149], [8, 133, 161], [243, 243, 242], [200, 200, 200], [160, 160, 160], [122, 122, 121], [85, 85, 85], [52, 52, 52]];
+
+function Swatches({ params }: { params?: color.SlotParams }) {
+  const gr3x = useStore(s => s.info?.family === 'gr3x');
+  const out = useMemo(() => {
+    if (!params) return null;
+    const inp = new Float64Array(CC24.length * 3);
+    CC24.forEach((c, i) => { inp[i * 3] = c[0] / 255; inp[i * 3 + 1] = c[1] / 255; inp[i * 3 + 2] = c[2] / 255; });
+    const o = gr3x ? color.GR3X_CAMERA.slotApply(params, inp) : color.previewSlot(params, inp);
+    return CC24.map((_, i) => `rgb(${Math.round(o[i * 3] * 255)},${Math.round(o[i * 3 + 1] * 255)},${Math.round(o[i * 3 + 2] * 255)})`);
+  }, [params, gr3x]);
+  return (
+    <div className="swatches" aria-hidden>
+      {CC24.map((c, i) => {
+        const before = `rgb(${c[0]},${c[1]},${c[2]})`;
+        return <span key={i} className="swatch"><i style={{ background: before }} /><i style={{ background: out ? out[i] : before }} /></span>;
+      })}
+    </div>
+  );
+}
+
+/** The sample photograph with the original on the left of a draggable divider and the preset on the right. */
+function PhotoCompare({ params }: { params?: color.SlotParams }) {
+  const photo = usePhoto();
+  const gr3x = useStore(s => s.info?.family === 'gr3x');
+  // (primitive selections: the store hook needs a stable value)
+  const haloLevel = useStore((s) => { const h = halationOf(s.activeSlot, s); return h.on ? h.preview : 0; });
+  const haloColour = useStore((s) => (s.info?.family === 'gr3x' && !filmCountChoosable(s) ? 'red' : halationOf(s.activeSlot, s).colour ?? 'red'));
+  const halo = haloLevel ? { preview: haloLevel } : undefined;
+  // where the slot's light starts: its own look decides how bright the highlights end up
+  const result = useStore((s) => slotOf(s.activeSlot, s)?.preset?.result);
+  const light = useMemo(() => (result ? halationLight(result.curves, result.postQ9) : undefined), [result]);
+  const base = useMemo(() => (photo && params ? applySlot(params, photo, gr3x) : null), [photo, params, gr3x]);
+  // The added slot's halation at the level chosen for the preview, as the camera computes it.
+  const after = useMemo(() => {
+    if (!base || !halo) return base;
+    const out = new ImageData(new Uint8ClampedArray(base.data), base.width, base.height);
+    // GR IV's white from 0.9 scatters at Weak / Medium; GR III / IIIx keep the 0.8.2 white glow
+    halateRgba(out.data, out.width, out.height, halo.preview as 1 | 2 | 3, light, haloColour, gr3x ? 'classic' : 'scatter');
+    return out;
+  }, [base, haloLevel, light, haloColour, gr3x]);
+  return <Compare photo={photo} after={after} label={t('preset')} />;
+}
+
+function usePhoto(): ImageData | null {
+  const rev = useStore((s) => s.photoRev);
+  return useMemo(() => previewPhoto(), [rev]); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+/** `photo` on the left of a draggable divider, `after` (labelled `label`) on the right. */
+function Compare({ photo, after, label }: { photo: ImageData | null; after: ImageData | null; label: string }) {
+  const beforeRef = useRef<HTMLCanvasElement>(null);
+  const afterRef = useRef<HTMLCanvasElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState(0.5);
+  const dragging = useRef(false);
+  useEffect(() => {
+    const c = beforeRef.current;
+    if (!c || !photo) return;
+    c.width = photo.width; c.height = photo.height; c.getContext('2d')!.putImageData(photo, 0, 0);
+  }, [photo]);
+  useEffect(() => {
+    const c = afterRef.current;
+    if (!c || !after) return;
+    c.width = after.width; c.height = after.height; c.getContext('2d')!.putImageData(after, 0, 0);
+  }, [after]);
+  if (!photo) {
+    return <FileButton className="compare-empty" accept="image/*" onFiles={(f) => { void loadPreviewFile(f[0]); }}>{Ico.image}<span>{t('choosePhoto')}</span></FileButton>;
+  }
+  const at = (clientX: number): void => {
+    const r = boxRef.current?.getBoundingClientRect();
+    if (r && r.width > 0) setPos(Math.max(0, Math.min(1, (clientX - r.left) / r.width)));
+  };
+  const pct = `${(pos * 100).toFixed(2)}%`;
+  return (
+    <div
+      ref={boxRef} className={`compare ${after ? '' : 'plain'}`} style={{ '--ar': String(photo.width / photo.height) } as React.CSSProperties}
+      onPointerDown={(e) => {
+        if (!after || (e.target as HTMLElement).closest('button')) return;
+        // on a phone only the divider is dragged; the rest of the picture scrolls the page (a tap moves the divider)
+        if (isMobile && !(e.target as HTMLElement).closest('.compare-line')) return;
+        e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); dragging.current = true; if (!isMobile) at(e.clientX);
+      }}
+      onPointerMove={(e) => { if (dragging.current) at(e.clientX); }}
+      onPointerUp={() => { dragging.current = false; }} onPointerCancel={() => { dragging.current = false; }}
+      onClick={isMobile ? (e) => { if (after && !(e.target as HTMLElement).closest('.compare-line, button')) { boxRef.current?.classList.add('glide'); at(e.clientX); window.setTimeout(() => boxRef.current?.classList.remove('glide'), 320); } } : undefined}
+      onDoubleClick={() => setPos(0.5)}
+    >
+      {after && <canvas ref={afterRef} className="compare-img" />}
+      <canvas ref={beforeRef} className="compare-img" style={after ? { clipPath: `inset(0 ${(100 - pos * 100).toFixed(2)}% 0 0)` } : undefined} />
+      {after && (
+        <>
+          <span className="compare-tag l" style={{ opacity: pos < 0.16 ? 0 : 1 }}>{t('original')}</span>
+          <span className="compare-tag r" style={{ opacity: pos > 0.84 ? 0 : 1 }}>{label}</span>
+          <div
+            className="compare-line" style={{ left: pct }} role="slider" tabIndex={0} aria-label={t('compare')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(pos * 100)}
+            onKeyDown={(e) => {
+              const step = e.shiftKey ? 0.1 : 0.02;
+              if (e.key === 'ArrowLeft') { e.preventDefault(); setPos((p) => Math.max(0, p - step)); }
+              else if (e.key === 'ArrowRight') { e.preventDefault(); setPos((p) => Math.min(1, p + step)); }
+              else if (e.key === 'Home') { e.preventDefault(); setPos(0); } else if (e.key === 'End') { e.preventDefault(); setPos(1); }
+            }}
+          ><span className="compare-knob"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M7.5 6L4 10l3.5 4M12.5 6L16 10l-3.5 4" /></svg></span></div>
+        </>
+      )}
+      <FileButton className="btn mini compare-swap" accept="image/*" title={t('changePhoto')} onFiles={(f) => { void loadPreviewFile(f[0]); }}>{Ico.image}</FileButton>
+    </div>
+  );
+}
+
+/** The one preview of the page: it shows whichever slot is active and fills the space the window leaves. */
+/** The preview; `below` (with its height in `belowH`) goes under the picture, which leaves room for it. */
+export function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number }) {
+  const gr3x = useStore(s => s.info?.family === 'gr3x');
+  const allSlots = useStore(s => s.info?.slots);
+  const filmCount = useStore(s => (filmCountChoosable(s) ? s.filmCount : -1));
+  const slotOptions = useMemo(() => (allSlots ? (filmCount >= 0 ? allSlots.slice(0, filmCount) : allSlots) : []), [allSlots, filmCount]);
+  const slots = useStore(s => s.slots);
+  const mode = useStore((s) => s.previewMode);
+  const active = useStore((s) => s.activeSlot);
+  const params = useStore((s) => slotOf(s.activeSlot, s)?.preset?.result?.params);
+  const extras = useStore((s) => s.extras);
+  const extraLabels = useStore((s) => s.extras.map((x) => extraName(x, s)).join('\u0000'));
+  const lang = useStore((s) => s.lang);
+  // GR III / IIIx: every slot is an added film (named as in the camera's menu, else its default name).
+  const tabs = gr3x ? slotOptions.map((x) => ({ value: x.id, label: slots[x.id].names[lang] || x.names[lang]?.text || x.defaultName }))
+    : [{ value: 'CY', label: t('slotCY') }, { value: 'CG', label: t('slotCG') }, ...extras.map((x, i) => ({ value: x.key, label: extraLabels.split('\u0000')[i] }))];
+  const tabsRef = useRef<HTMLDivElement>(null);
+  // Bring the current tab into view by scrolling the tab strip only (scrollIntoView would also scroll the page,
+  // which on a phone jumps back up to the tabs whenever a card below is touched).
+  useEffect(() => {
+    const box = tabsRef.current;
+    const el = box?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (!box || !el) return;
+    const b = box.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const k = b.width / (box.clientWidth || 1) || 1; // window px per CSS px (the interface may be zoomed)
+    const d = r.left < b.left ? r.left - b.left - 16 * k : r.right > b.right ? r.right - b.right + 16 * k : 0;
+    if (d) box.scrollBy({ left: d / k, behavior: 'smooth' });
+  }, [active]);
+  // With many added slots in a narrow window the tabs do not all fit: arrows step through them.
+  const [overflow, setOverflow] = useState(false);
+  useEffect(() => {
+    const el = tabsRef.current;
+    if (!el) return;
+    // the edges fade where more tabs are scrolled out of view (on a phone, where there are no arrows)
+    const edges = (): void => {
+      el.classList.toggle('more-l', el.scrollLeft > 1);
+      el.classList.toggle('more-r', el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    };
+    const check = (): void => { setOverflow(el.scrollWidth > el.clientWidth + 1); edges(); };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    el.addEventListener('scroll', edges, { passive: true });
+    return () => { ro.disconnect(); el.removeEventListener('scroll', edges); };
+  }, [tabs.length]);
+  const at = Math.max(0, tabs.findIndex((x) => x.value === active));
+  const step = (d: number): void => { const n = tabs[at + d]; if (n) setActiveSlot(n.value); };
+  const wheel = (e: React.WheelEvent<HTMLDivElement>): void => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY; };
+  return (
+    <DropZone className="pane" accept={isImage} onFiles={(f) => { void loadPreviewFile(f[0]); }}>
+      <div className="pane-head">
+        {tabs.length > 0 && <>
+        {overflow && <button className="btn ghost icon-only seg-arrow" title={t('prevSlot')} aria-label={t('prevSlot')} disabled={at === 0} onClick={() => step(-1)}>{Ico.left}</button>}
+        <div className="seg-scroll" ref={tabsRef} onWheel={wheel}><Segmented tour="ic-tabs" value={tabs.some((x) => x.value === active) ? active : tabs[0].value} onChange={setActiveSlot} options={tabs} /></div>
+        {overflow && <button className="btn ghost icon-only seg-arrow" title={t('nextSlot')} aria-label={t('nextSlot')} disabled={at === tabs.length - 1} onClick={() => step(1)}>{Ico.right}</button>}
+        </>}
+        <span className="grow" />
+        {/* on a phone the looks need the width: the two views as icons */}
+        <Segmented tour="ic-mode" className={isMobile ? 'seg-icons' : undefined} value={mode} onChange={setPreviewMode} options={isMobile
+          ? [{ value: 'photo', label: Ico.image, title: t('previewPhoto') }, { value: 'swatch', label: Ico.swatch, title: t('previewSwatch') }]
+          : [{ value: 'photo', label: t('previewPhoto') }, { value: 'swatch', label: t('previewSwatch') }]} />
+      </div>
+      <div className="pane-body" style={{ '--below': below ? `${belowH + 10}px` : '0px' } as React.CSSProperties}>
+        <div className="pane-fit" data-tour="ic-preview" data-tour-fit="">{mode === 'photo' ? <PhotoCompare params={params} /> : <Swatches params={params} />}</div>
+        {below && <div className="pane-below">{below}</div>}
+      </div>
+    </DropZone>
+  );
+}

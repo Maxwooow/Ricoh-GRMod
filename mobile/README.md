@@ -1,4 +1,4 @@
-# GR Mod for Android (and iOS)
+# GR Mod for Android, iPhone and iPad
 
 The GR Mod app on the phone: the same UI as the desktop app (`../ui`, built with `vite --mode android`), with two
 ways out instead of a memory card:
@@ -7,8 +7,8 @@ ways out instead of a memory card:
   The camera has to be on the same base version as the file (1.20 → 1.20).
 - **Save to phone**: `Download/GR Mod/fwdc248b.bin` (MediaStore), to copy to a card by other means. Every model.
 
-The official firmware is downloaded on the phone (Ricoh's site, SHA-256 checked, same pinned list as the desktop
-app in `Ricoh.java`); GR Mod firmware is built in the WebView by `../core`, exactly as on the desktop.
+The official firmware is downloaded on the phone (Ricoh's site, SHA-256 checked; the list of releases in
+`Ricoh.java` and `Ricoh.swift` is written from `releases.json` at the root, as the desktop app's is); GR Mod firmware is built in the WebView by `../core`, exactly as on the desktop.
 
 ## Layout
 
@@ -33,12 +33,13 @@ Safety rules in `PushSession`: nothing is retried once the PUT has started; befo
 cancel; model, base version, battery (≥ 50 %) and "hot" are checked first; without the final `01` the camera does
 not update (it shows "processing failed" after a few minutes and stays as it was).
 
-Not on Android yet: the guided tours, the copies page (no card), in-app updates (install the new APK from the
-releases page).
+Not in the phone app: the copies page (there is no card). The Android app updates itself from the GitHub release
+(`Updater.java`, `ui/src/update-android.ts`: the manifest `update-android.json` is signed with the project's key,
+the APK is kept only with the signed size and SHA-256); the iOS app is updated by the App Store.
 
 ## iOS (iPhone, iPad)
 
-Branch `ios`, not released yet. The same page (`www/`, built once for both), in `ios/` (Capacitor's Xcode
+On the App Store as "GR Mod - For Ricoh GR IV/III". The same page (`www/`, built once for both), in `ios/` (Capacitor's Xcode
 project, iOS 17+) with the native side in `ios-plugin/`: a local Capacitor plugin (npm `grmod-camera`, Swift
 package `GrmodCamera`) that `cap sync ios` adds to `ios/App/CapApp-SPM/Package.swift`. Its Swift files are a
 port of the Java ones above, with the same methods and events, so `ui/src` does not know which phone it runs on
@@ -55,8 +56,9 @@ What differs on iOS:
 - Save to phone: the Files app's export dialog (iOS has no shared Downloads folder).
 - No back button, so `Gr.leave` does nothing.
 
-Built on GitHub's Mac machines (`.github/workflows/ios.yml`, every push to `ios`), unsigned for now. Locally, on
-a Mac with Xcode 26: `cd mobile && npm run sync:ios`, then open `ios/App/App.xcodeproj`.
+Built on GitHub's Mac machines (`.github/workflows/ios.yml`): every push to the branch `ios` is signed and
+uploaded to App Store Connect (TestFlight) when the repository has the App Store Connect secrets, and only
+compiled otherwise; to release, fast-forward `ios` to `main`. Locally, on a Mac with Xcode 26: `cd mobile && npm run sync:ios`, then open `ios/App/App.xcodeproj`.
 
 ## Build
 
