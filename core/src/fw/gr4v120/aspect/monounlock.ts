@@ -25,9 +25,10 @@
  * Written here from those changes; no code of that project is used.
  */
 import { Patch, expectWord } from './build';
+import { adr } from '../target';
 
-const CHECK = 0x533de144;
-const TABLE = 0x53de9cc4;
+const CHECK = adr(0x533de144);
+const TABLE = adr(0x53de9cc4);
 const MONOCHROME_COLUMN = 1;
 /** Rows 3..8 (the six looks) and 10 (Solarized), every column but the Monochrome's. */
 const ROWS = [3, 4, 5, 6, 7, 8, 10];
@@ -41,8 +42,8 @@ export function installMonoUnlock(patch: Patch): void {
     if (patch.read(TABLE + row * 7, 7).join(',') !== '0,1,0,0,0,0,0') throw new Error(`availability row ${row} is not the official one`);
   }
   // 32 (Solarized) goes through the table: `mov r1, #10 ; ... ; b 0x533F1DC8`.
-  expectWord(patch, 0x533de080 + (32 - 25) * 4, 0x533de0b8);
-  expectWord(patch, 0x533de0b8, 0xe3a0100a);
+  expectWord(patch, adr(0x533de080) + (32 - 25) * 4, adr(0x533de0b8));
+  expectWord(patch, adr(0x533de0b8), 0xe3a0100a);
   for (const at of LOOK_FLAGS) {
     const word = patch.word(at & ~3);
     const shift = (at & 3) * 8;

@@ -28,32 +28,62 @@ import { GR3X_FILL_OFFICIAL, GR3X_FILL_R10, GR3X_ZERO_FILL_LITERAL, installGr3xS
 import { installGr3xGuardR10 } from './guard';
 import { gr3xRawDevelopmentWordsR10 } from './datestamp';
 import type { Gr3xMenuRatio } from './geometry';
-import { GR3X_160, openGr3xOfficial } from './profile';
+import { GR3X_PROFILE, openGr3xOfficial } from './profile';
 import { installGr3xImageIdentity, installGr3xDevelopAndPlayback, installGr3xAutofocus } from './image-pipeline';
 import { installGr3xMetering } from './metering';
 import { installGr3xLiveView } from './liveview';
 import { installGr3xRawDevelopment } from './raw-development';
 import { installGr3xShading } from './shading';
 import { installGr3xFullFrameRaw } from './raw-full-frame';
+import { adr, byRelease } from './target';
 
 export const GR3X_ADJ = {
-  order: 0x53b5a520,
-  orderSites: [0x531a0df0, 0x531a1234, 0x531a3438, 0x531b4e08,
-    0x531b6bd0, 0x531b82f8, 0x53227144],
-  countSites: [0x5319fea0, 0x531b3aac],
-  select: 0x531a0dd8, selected: 0x531a1218, renderIcon: 0x531a3408,
-  menuSelect: 0x531b6bb8, menuSelected: 0x531b82f0, renderText: 0x531b4dec,
-  ratioText: 0x53292544, ratioIcon: 0x53293800,
-  textRoots: 0x55002bac, textCount: 786, languages: 21,
-  textBounds: [0x533966d4, 0x533970ec],
-  textRootSites: [[0x533966e8, 0x533966f0], [0x533970fc, 0x53397100]],
-  iconRoot: 0x550020fc, iconCount: 671,
-  iconBounds: [[0x53209fb8, 3], [0x53209fec, 3], [0x5320a7cc, 1]],
-  iconRootSites: [[0x53209fcc, 3], [0x5320a000, 3], [0x5320a804, 2]],
-  fnCycle: 0x53227114, fnHook: 0x5322714c, fnJoin: 0x5322716c,
+  order: adr(0x53b5a520),
+  orderSites: [adr(0x531a0df0), adr(0x531a1234), adr(0x531a3438), adr(0x531b4e08),
+    adr(0x531b6bd0), adr(0x531b82f8), adr(0x53227144)],
+  countSites: [adr(0x5319fea0), adr(0x531b3aac)],
+  select: adr(0x531a0dd8), selected: adr(0x531a1218), renderIcon: adr(0x531a3408),
+  menuSelect: adr(0x531b6bb8), menuSelected: adr(0x531b82f0), renderText: adr(0x531b4dec),
+  ratioText: adr(0x53292544), ratioIcon: adr(0x53293800),
+  textRoots: adr(0x55002bac), textCount: byRelease({ '1.60': 786, '1.70': 786, '1.71': 793 }), languages: 21,
+  /** 1.71 / 2.21: the two text readers compare the number with an immediate, `cmpls r7,#0x318` and
+   * `cmp r7,#0x318` (before: `movw r3,#0x311`); see GR3X_TEXT_BOUND_IS_COMPARE. */
+  textBounds: [adr(0x533966d4), adr(0x533970ec)],
+  textRootSites: [[adr(0x533966e8), adr(0x533966f0)], [adr(0x533970fc), adr(0x53397100)]],
+  iconRoot: adr(0x550020fc), iconCount: 671,
+  iconBounds: [[adr(0x53209fb8), 3], [adr(0x53209fec), 3], [adr(0x5320a7cc), 1]],
+  iconRootSites: [[adr(0x53209fcc), 3], [adr(0x5320a000), 3], [adr(0x5320a804), 2]],
+  fnCycle: adr(0x53227114), fnHook: adr(0x5322714c), fnJoin: adr(0x5322716c),
 } as const;
 
-const BASE = GR3X_160.rtosBase;
+/**
+ * 1.71 / 2.21: the text readers' bound is the immediate of a compare (`cmp(ls) r7,#0x318`, the last of
+ * 793 texts), not a movw as in the earlier releases. A bound must then be an ARM immediate (8 bits
+ * rotated by an even amount), so an extended catalog's rows run to the first such value at least as
+ * large as its last text, the places after the last text holding null records, which both readers
+ * skip (`cmp r7,#0; beq`).
+ */
+export const GR3X_TEXT_BOUND_IS_COMPARE = byRelease({ '1.60': false, '1.70': false, '1.71': true });
+/** The last text number the readers accept for a catalog whose last text is `lastText`. */
+export function gr3xTextBound(lastText: number): number {
+  if (!GR3X_TEXT_BOUND_IS_COMPARE) return lastText;
+  for (let v = lastText; v < 0x10000; v++) if (armImmediate(v) !== null) return v;
+  throw new FirmwareError('unexpected-layout', 'IIIx text bound');
+}
+function armImmediate(v: number): number | null {
+  for (let r = 0; r < 16; r++) { const x = ((v << (2 * r)) | (v >>> (32 - 2 * r))) >>> 0; if (x < 256) return (r << 8) | x; }
+  return null;
+}
+/** The compare at a text-bound site with its immediate replaced. */
+export function gr3xTextBoundWord(word: number, bound: number): number {
+  const imm = armImmediate(bound);
+  if (imm === null || (word & 0x0ff0f000) !== 0x03500000) throw new FirmwareError('unexpected-layout', 'IIIx text bound site');
+  return ((word & 0xfffff000) | imm) >>> 0;
+}
+/** 1.71 / 2.21: the official words at the text-bound sites (`cmpls r7,#0x318`, `cmp r7,#0x318`). */
+export const GR3X_TEXT_BOUND_WORDS = [0x93570fc6, 0xe3570fc6] as const;
+
+const BASE = GR3X_PROFILE.rtosBase;
 const hex = (bytes: Uint8Array) => Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
 const unhex = (s: string) => Uint8Array.from(s.match(/../g) ?? [], b => parseInt(b, 16));
 const words = (n: readonly number[]) => wordsToBytes(n);
@@ -138,7 +168,7 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
   const geometry = await buildGr3xExperiment(raw, ratioMenu);
   const menu = geometry.menu, count = menu.length, spelled = count === 9 ? 'nine' : String(count);
   const { decoded, profile } = await openGr3xOfficial(raw);
-  const p = GR3X_160, m = GR3X_ADJ;
+  const p = GR3X_PROFILE, m = GR3X_ADJ;
   const rtos = decoded.subarray(p.rtosOffset, p.rtosOffset + p.rtosLength);
   const iconSection = sectionsOf(decoded).find(s => s.name === 'ICONBIN');
   if (!iconSection) fail('Missing IIIx ICONBIN');
@@ -215,8 +245,9 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
   // Round 6: thumbnails 520 x 200, the five factory pictures (by camera variant) first.
   const endIds = { typeText: pictureText, pictureText: pictureText + 1, factoryText: pictureText + 2,
     factoryIcons: GR3X_FACTORY_PICTURES.map((_, k) => pictureIcon + k), icons: pictures.map((_, k) => pictureIcon + GR3X_FACTORY_PICTURES.length + k) };
+  const bound = gr3xTextBound(columns - 1);
   const rows = Array.from({ length: m.languages }, (_, l) => {
-    const row = new Uint8Array(columns * 4);
+    const row = new Uint8Array((bound + 1) * 4);
     row.set(read(word(m.textRoots + l * 4), m.textCount * 4));
     return row;
   });
@@ -256,7 +287,8 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
   }
   const textRoots = append(words(rows.map(row => append(row))));
   for (const [low, high] of m.textRootSites) pair(low, high, 3, m.textRoots, textRoots, 'extended IIIx language directory');
-  for (const at of m.textBounds) patch(at, movWord(3, m.textCount - 1), movWord(3, columns - 1), 'extended IIIx text bound');
+  if (GR3X_TEXT_BOUND_IS_COMPARE) m.textBounds.forEach((at, k) => patch(at, GR3X_TEXT_BOUND_WORDS[k], gr3xTextBoundWord(GR3X_TEXT_BOUND_WORDS[k], bound), 'extended IIIx text bound'));
+  else for (const at of m.textBounds) patch(at, movWord(3, m.textCount - 1), movWord(3, columns - 1), 'extended IIIx text bound');
 
   const iconCount = m.iconCount + additions.length + (softFocus ? 1 : 0) + dateIconCount + pictureCount + (pictureSub ? GR3X_FACTORY_PICTURES.length : 0);
   const iconCatalog = new Uint8Array(iconCount * 4);

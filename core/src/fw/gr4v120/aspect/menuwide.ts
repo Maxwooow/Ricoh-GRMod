@@ -36,6 +36,7 @@
 import { FirmwareError } from '../../types';
 import { assembleWords, branchWord } from './arm';
 import { Patch, expectWord } from './build';
+import { adr } from '../target';
 
 export const WIDE_ITEMS = 42;
 export const OFFICIAL_ITEMS = 38;
@@ -49,11 +50,11 @@ export const W_VISIBLE = W_ID + WIDE_ITEMS * 4;
 export const WIDE_DESCRIPTOR = W_VISIBLE + WIDE_ITEMS * 8;
 
 const TABS = 5;
-const MENU_TABLE = 0x55001e78;
+const MENU_TABLE = adr(0x55001e78);
 /** The other four tabs' descriptors (movie, playback, customize, setup), as listed at MENU_TABLE. */
-const OTHER_TABS = [0x53dc7bd0, 0x53dc783c, 0x53dc6b38, 0x53dc7110] as const;
+const OTHER_TABS = [adr(0x53dc7bd0), adr(0x53dc783c), adr(0x53dc6b38), adr(0x53dc7110)] as const;
 
-const ALLOC = 0x53188530; // movw r0, #0x13ec (operator new for TopMenuController)
+const ALLOC = adr(0x53188530); // movw r0, #0x13ec (operator new for TopMenuController)
 const OBJECT = 0x13ec;
 /** The controller's own arrays, after its official fields: ids, then draw functions, then visibility. */
 export const C_ID = OBJECT;
@@ -61,18 +62,18 @@ export const C_DRAW = C_ID + TABS * WIDE_ITEMS * 4;
 export const C_VISIBLE = C_DRAW + TABS * WIDE_ITEMS * 8;
 export const WIDE_OBJECT = C_VISIBLE + TABS * WIDE_ITEMS * 8;
 
-const B_ID_INDEX = 0x531b5664; // add sl, r4, #0x6f (sl = descriptor + (item + 0x6f) * 4: its id)
-const B_VISIBLE = 0x531b5684; // add r3, r3, #0x254 (r3 = descriptor + item * 8 + 0x254)
-const B_STORE = 0x531b5690; // add r3, r5, #0x11 (first of the stores of an item shown)
-const B_STORE_END = 0x531b56ec; // cmp r4, sb
-const OK_SITES = [0x531b3664, 0x531b3668, 0x531b366c, 0x531b3670] as const;
-const DRAW_BASE = 0x531b4700; // mla r5, r5, sb, r0
-const DRAW_COUNT = 0x531b4704; // ldrb r3, [r5, #0x2bb]
-const DRAW_KEEP = 0x531b4710; // movne r8, r5
-const ROWS_COUNT = 0x531b3860; // mov r2, #0x26
-const ROWS_CALL = 0x531b387c; // bl 0x53593C14 (list view: create rows)
-const LIST_ROWS = 0x53593c14;
-const ROW_KINDS = 0x53b7318c; // 38 x 0x13
+const B_ID_INDEX = adr(0x531b5664); // add sl, r4, #0x6f (sl = descriptor + (item + 0x6f) * 4: its id)
+const B_VISIBLE = adr(0x531b5684); // add r3, r3, #0x254 (r3 = descriptor + item * 8 + 0x254)
+const B_STORE = adr(0x531b5690); // add r3, r5, #0x11 (first of the stores of an item shown)
+const B_STORE_END = adr(0x531b56ec); // cmp r4, sb
+const OK_SITES = [adr(0x531b3664), adr(0x531b3668), adr(0x531b366c), adr(0x531b3670)] as const;
+const DRAW_BASE = adr(0x531b4700); // mla r5, r5, sb, r0
+const DRAW_COUNT = adr(0x531b4704); // ldrb r3, [r5, #0x2bb]
+const DRAW_KEEP = adr(0x531b4710); // movne r8, r5
+const ROWS_COUNT = adr(0x531b3860); // mov r2, #0x26
+const ROWS_CALL = adr(0x531b387c); // bl 0x53593C14 (list view: create rows)
+const LIST_ROWS = adr(0x53593c14);
+const ROW_KINDS = adr(0x53b7318c); // 38 x 0x13
 const ROW_KIND = 0x13;
 
 function fail(code: string, message: string): never {
@@ -119,15 +120,15 @@ export function widen(official: Uint8Array): Uint8Array {
  */
 export function installWideMenus(patch: Patch, still: { gr4: number; hdf: number; mono: number }, model: { app: number; specModel: number; number: number; builder: number }, what: string): void {
   expectWord(patch, ALLOC, 0xe30103ec);
-  expectWord(patch, ALLOC + 4, branchWord(ALLOC + 4, 0x539084bc, 14, true));
-  expectWord(patch, ALLOC + 12, branchWord(ALLOC + 12, 0x531b57e4, 14, true));
+  expectWord(patch, ALLOC + 4, branchWord(ALLOC + 4, adr(0x539084bc), 14, true));
+  expectWord(patch, ALLOC + 12, branchWord(ALLOC + 12, adr(0x531b57e4), 14, true));
   expectWord(patch, B_ID_INDEX, 0xe284a06f);
   expectWord(patch, B_VISIBLE, 0xe2833f95);
   expectWord(patch, B_STORE, 0xe2853011);
-  expectWord(patch, 0x531b56b0, 0xe286ef95); // add lr, r6, #0x254 (the visibility the store copies)
-  expectWord(patch, 0x531b56a4, 0xe286108c); // add r1, r6, #0x8c (the draw function it copies)
-  expectWord(patch, 0x531b56d4, 0xe59a3000); // ldr r3, [sl] (the id it copies)
-  expectWord(patch, 0x531b5698, 0xe51b0034); // ldr r0, [fp, #-0x34] (the tab)
+  expectWord(patch, adr(0x531b56b0), 0xe286ef95); // add lr, r6, #0x254 (the visibility the store copies)
+  expectWord(patch, adr(0x531b56a4), 0xe286108c); // add r1, r6, #0x8c (the draw function it copies)
+  expectWord(patch, adr(0x531b56d4), 0xe59a3000); // ldr r3, [sl] (the id it copies)
+  expectWord(patch, adr(0x531b5698), 0xe51b0034); // ldr r0, [fp, #-0x34] (the tab)
   expectWord(patch, B_STORE_END, 0xe1540009);
   expectWord(patch, OK_SITES[0], 0xe3a030e3);
   expectWord(patch, OK_SITES[1], 0xe0200593);
@@ -137,10 +138,10 @@ export function installWideMenus(patch: Patch, still: { gr4: number; hdf: number
   expectWord(patch, DRAW_BASE, 0xe0250995);
   expectWord(patch, DRAW_COUNT, 0xe5d532bb);
   expectWord(patch, DRAW_KEEP, 0x11a08005);
-  expectWord(patch, 0x531b4738, 0xe59532c0); // ldr r3, [r5, #0x2c0]
-  expectWord(patch, 0x531b4754, 0x159532b4); // ldrne r3, [r5, #0x2b4]
-  expectWord(patch, 0x531b4758, 0x059532b4); // ldreq r3, [r5, #0x2b4]
-  expectWord(patch, 0x531b4764, 0xe5d832bb); // ldrb r3, [r8, #0x2bb]
+  expectWord(patch, adr(0x531b4738), 0xe59532c0); // ldr r3, [r5, #0x2c0]
+  expectWord(patch, adr(0x531b4754), 0x159532b4); // ldrne r3, [r5, #0x2b4]
+  expectWord(patch, adr(0x531b4758), 0x059532b4); // ldreq r3, [r5, #0x2b4]
+  expectWord(patch, adr(0x531b4764), 0xe5d832bb); // ldrb r3, [r8, #0x2bb]
   expectWord(patch, ROWS_COUNT, 0xe3a02026);
   expectWord(patch, ROWS_CALL, branchWord(ROWS_CALL, LIST_ROWS, 14, true));
   const kinds = patch.read(ROW_KINDS, OFFICIAL_ITEMS + 1);

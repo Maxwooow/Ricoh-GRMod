@@ -1,12 +1,8 @@
 {
-  "about": "GR III 2.20 / GR IIIx 1.70 (one program, as 2.10 / 1.60) from the 2.10 / 1.60 port",
+  "about": "GR III 2.20 / GR IIIx 1.70: the development tools and the equivalence test, generated from 2.10 / 1.60's. The program itself is fw/gr3x with fw/gr3x170's target (core/src/fw/release.ts)",
   "map": "tools/port/gr3-p2-map.json",
   "patch": "tools/port/gr3-p2.patch",
   "copies": [
-    [
-      "core/src/fw/gr3x",
-      "core/src/fw/gr3x170"
-    ],
     [
       "tools/gr3x",
       "tools/gr3x170"

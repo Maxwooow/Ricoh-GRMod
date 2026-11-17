@@ -45,6 +45,7 @@ import { assembleWords, branchTarget } from './arm';
 import { Patch, expectWord, u16le, u32le } from './build';
 import { HDRGAIN_CODE, HDRGAIN_CODE_LENGTH } from './hdrgain-code';
 import { JPEG_EXECUTE } from './datestamp';
+import { adr } from '../target';
 
 /** The look of the gain map. */
 export const HDR_GAIN = {
@@ -57,20 +58,20 @@ export const HDR_GAIN = {
 };
 
 /** ExifJpegWriter's vtable and the two slots. */
-export const WRITER_VTABLE = 0x53fdde18;
+export const WRITER_VTABLE = adr(0x53fdde18);
 const SLOT_INFO = WRITER_VTABLE + 9 * 4;
 const SLOT_COUNT = WRITER_VTABLE + 10 * 4;
-const GET_BLOCK_INFO = 0x53832884;
-const GET_BLOCK_COUNT = 0x5383287c;
+const GET_BLOCK_INFO = adr(0x53832884);
+const GET_BLOCK_COUNT = adr(0x5383287c);
 /** Clean and invalidate data cache lines (64 bytes) to the point of coherency: (address, length). */
-const CACHE_CLEAN_INVALIDATE = 0x53000930;
-const HEAP_ALLOC = 0x539084bc;
-const HEAP_FREE = 0x539084f8;
+const CACHE_CLEAN_INVALIDATE = adr(0x53000930);
+const HEAP_ALLOC = adr(0x539084bc);
+const HEAP_FREE = adr(0x539084f8);
 /** The module's state pointer: the last of the zero-filled words before the heap (see lookstash.ts). */
-export const HDR_STATE_WORD = 0x5583901c;
-const ZERO_FILL_END = 0x53000460;
+export const HDR_STATE_WORD = adr(0x5583901c);
+const ZERO_FILL_END = adr(0x53000460);
 /** Test builds: two zero-filled words before the heap the stubs count their calls in (the zero fill's old end). */
-export const HDR_COUNTERS = 0x55839014;
+export const HDR_COUNTERS = adr(0x55839014);
 /**
  * 0.8.9 (test 075): the camera-menu switch (`datestamp-menu.ts`, the still menu's HDR line), bit 0
  * of byte 0x10A of the user settings: 0 On, 1 Off. Alignment padding between a byte field (0x108)
@@ -79,7 +80,7 @@ export const HDR_COUNTERS = 0x55839014;
  * the user modes. Every camera has 0 there: on. Off: the encode step is not looked at (no gain map,
  * no time spent), so the writer writes the camera's two blocks.
  */
-export const HDR_SWITCH_BYTE = 0x550832a8 + 4 + 0x10a;
+export const HDR_SWITCH_BYTE = adr(0x550832a8) + 4 + 0x10a;
 
 const OP_POST = 1;
 const OP_COUNT = 2;
@@ -255,9 +256,9 @@ export function installHdrGainMap(patch: Patch, diag = false): number {
   expectWord(patch, CACHE_CLEAN_INVALIDATE + 0x14, 0xee074f3e); // mcr p15, 0, r4, c7, c14, 1
   expectWord(patch, HEAP_ALLOC, 0xe1a0c00d);
   expectWord(patch, HEAP_FREE, 0xe1a0c00d);
-  if (patch.word(ZERO_FILL_END) !== 0x55839040) {
-    expectWord(patch, ZERO_FILL_END, 0x55839014);
-    patch.setWord(ZERO_FILL_END, 0x55839040, 'start-up zero fill also clears the 44 unused bytes before the heap');
+  if (patch.word(ZERO_FILL_END) !== adr(0x55839040)) {
+    expectWord(patch, ZERO_FILL_END, adr(0x55839014));
+    patch.setWord(ZERO_FILL_END, adr(0x55839040), 'start-up zero fill also clears the 44 unused bytes before the heap');
   }
   const first = patch.word(JPEG_EXECUTE);
   let tail: string;

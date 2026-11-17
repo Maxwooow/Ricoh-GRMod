@@ -8,7 +8,7 @@ import { FirmwareError } from '../types';
 import type { Range } from '../types';
 import { buildGr3xAdjResearch } from './adj';
 import type { Gr3xAdjFeatures } from './adj';
-import { GR3X_160, openGr3xOfficial } from './profile';
+import { GR3X_PROFILE, openGr3xOfficial } from './profile';
 import { GR3X_CLARITY_OFFSET, gr3xClarityBytes } from './clarity';
 import type { Gr3xSoftFocusRequest } from './clarity';
 import { buildGr3xImageControls } from './image-control';
@@ -19,6 +19,7 @@ import { GR3X_T4_MENU, gr3xIsT4Menu } from './geometry';
 import { readRes, resRecords } from '../aspect/res';
 import { GR3X_RES_BEFORE, GR3X_RES_MAX_FILES, gr3xPicturePath } from './shutdown';
 import type { Gr3xMenuRatio } from './geometry';
+import { adr, byRelease } from './target';
 
 const unhex = (s: string) => Uint8Array.from(s.match(/../g) ?? [], b => parseInt(b, 16));
 const roundFrame = (n: number) => Math.ceil(n / FRAME_SIZE) * FRAME_SIZE;
@@ -65,16 +66,18 @@ async function buildContainer(raw: Uint8Array, purpose: 'research' | 'hardware-t
   // with 256 KB to spare; RTOS must end below its initialised data at 0x55000000 (its partition is
   // 0x4000000).
   if (icon.size + iconGrowth > GR3X_ICONBIN_MAX) throw new FirmwareError('no-space', 'IIIx icons exceed the ICONBIN partition (fewer power-off pictures or films)');
-  if (rtos.size + rtosGrowth > 0x4000000 || 0x53000000 + rtos.size + rtosGrowth > 0x55000000) throw new FirmwareError('no-space', 'IIIx RTOS exceeds its partition');
+  if (rtos.size + rtosGrowth > 0x4000000 || adr(0x53000000) + rtos.size + rtosGrowth > adr(0x55000000)) throw new FirmwareError('no-space', 'IIIx RTOS exceeds its partition');
   // Power-off pictures: RES records (two frames each) after the A: files, before the first B: file (shutdown.ts).
   const pictures = features.pictures ?? [];
   let resAt = 0, resCountOffset = 0, resCount = 0, resBlock: Uint8Array = new Uint8Array();
   if (pictures.length) {
     const dir = readRes(decoded);
     const at = dir.files.findIndex(f => f.path === GR3X_RES_BEFORE);
-    // Official: 22 A: files, then 13 B: files; the pictures go between them.
-    if (dir.files.length !== 35 || at !== 22 || dir.files.slice(0, at).some(f => !f.path.startsWith('A:\\')) || dir.files.slice(at).some(f => !f.path.startsWith('B:\\')) ||
-      dir.countOffset < iconEnd || dir.end !== decoded.length - 4) throw new FirmwareError('unexpected-layout', 'IIIx RES section is not the official one');
+    // Official: 22 A: files (from 1.70 / 2.20: 24, GB_20th and GB_30th are new), then 13 B: files; the pictures go
+    // between them. From 1.70 / 2.20 the files end one byte before the payload's last word (zero padding to 4 bytes).
+    const filesA = byRelease({ '1.60': 22, '1.70': 24, '1.71': 24 }), padded = byRelease({ '1.60': false, '1.70': true, '1.71': true });
+    if (dir.files.length !== filesA + 13 || at !== filesA || dir.files.slice(0, at).some(f => !f.path.startsWith('A:\\')) || dir.files.slice(at).some(f => !f.path.startsWith('B:\\')) ||
+      dir.countOffset < iconEnd || (padded ? dir.end !== decoded.length - 5 || decoded[dir.end] !== 0 : dir.end !== decoded.length - 4)) throw new FirmwareError('unexpected-layout', 'IIIx RES section is not the official one');
     if (dir.files.length + pictures.length > GR3X_RES_MAX_FILES) throw new FirmwareError('too-many-pictures', 'IIIx RES file count');
     const last = dir.files[at];
     const files = pictures.map((pic, k) => ({ path: gr3xPicturePath(k), data: pic.jpeg }));
@@ -104,7 +107,7 @@ async function buildContainer(raw: Uint8Array, purpose: 'research' | 'hardware-t
   const ranges: Range[] = [];
   let changedBytes = rtosGrowth + iconGrowth + resGrowth;
   for (const site of manifest.sites) {
-    const offset = rtos.offset + site.address - GR3X_160.rtosBase;
+    const offset = rtos.offset + site.address - GR3X_PROFILE.rtosBase;
     const old = unhex(site.expected), next = unhex(site.replacement);
     if (old.length !== 4 || next.length !== 4 || old.some((b, i) => decoded[offset + i] !== b)) {
       throw new FirmwareError('unexpected-instruction', 'IIIx research package instruction guard');

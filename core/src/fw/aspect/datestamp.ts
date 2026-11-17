@@ -47,22 +47,23 @@ import { DATESTAMP_CODE, DATESTAMP_CODE_LENGTH, DATESTAMP_DFDIAG_CODE, DATESTAMP
 import { DIRECT_FLASH_DIAG_SLOT } from './directflash';
 import { FRAME_LOOK, LOOK_STASH, MONO_MODEL, ORIENT_VALID, ORIENT_WORD } from './lookstash';
 import { NAME_TABLE_RTOS_OFFSETS } from '../names';
+import { adr } from '../target';
 
 /** JpegEncodeMacroProcess::Execute. */
-export const JPEG_EXECUTE = 0x537034b4;
+export const JPEG_EXECUTE = adr(0x537034b4);
 
-const CACHE = 0x538f0448;
-const CACHE_FLUSH_FOR_READ = 0x538f04d8;
-const CACHE_CLEAN = 0x538f04c4;
-const PLATFORM = 0x538f21a0;
-const GET_TIME = 0x538ea9b0;
+const CACHE = adr(0x538f0448);
+const CACHE_FLUSH_FOR_READ = adr(0x538f04d8);
+const CACHE_CLEAN = adr(0x538f04c4);
+const PLATFORM = adr(0x538f21a0);
+const GET_TIME = adr(0x538ea9b0);
 
 /**
  * Where the setting is kept: byte 0x94B of the live user settings, alignment padding that the
  * factory-defaults initialiser never writes (like 0x90F for soft focus); saved, loaded and copied
  * to U1-U3 with the rest of the structure.
  */
-export const DATESTAMP_BYTE = 0x55084dd8 + 4 + 0x94b;
+export const DATESTAMP_BYTE = adr(0x55084dd8) + 4 + 0x94b;
 
 /** Bits of the setting byte. */
 export const DATESTAMP_ON = 1;
@@ -233,17 +234,17 @@ export function installDateStamp(patch: Patch, setting: number, diag: boolean | 
  * imprint's look name. Nothing but the two words is written; the hook keeps every register (and
  * runs `mov ip, sp` itself, after them).
  */
-export const BEFORE_EXPOSE = 0x53628cd8;
-const DIRECTION_SINGLETON = 0x5537960c;
+export const BEFORE_EXPOSE = adr(0x53628cd8);
+const DIRECTION_SINGLETON = adr(0x5537960c);
 
 export function installExposureOrientation(patch: Patch): void {
   if (patch.word(BEFORE_EXPOSE) >>> 24 === 0xea) return;
   expectWord(patch, BEFORE_EXPOSE, 0xe1a0c00d); // mov ip, sp
   expectWord(patch, BEFORE_EXPOSE + 4, 0xe92dd830); // push {r4, r5, fp, ip, lr, pc}
-  expectWord(patch, 0x5375c31c, 0xe5903000); // ldr r3, [r0]
-  expectWord(patch, 0x5375c320, 0xe5d300d8); // ldrb r0, [r3, #0xd8]
-  expectWord(patch, 0x53755cc8, 0xe5950518); // ldr r0, [r5, #0x518]
-  expectWord(patch, 0x5372b640, 0xe309060c); // movw r0, #0x960c (the singleton the direction is read through)
+  expectWord(patch, adr(0x5375c31c), 0xe5903000); // ldr r3, [r0]
+  expectWord(patch, adr(0x5375c320), 0xe5d300d8); // ldrb r0, [r3, #0xd8]
+  expectWord(patch, adr(0x53755cc8), 0xe5950518); // ldr r0, [r5, #0x518]
+  expectWord(patch, adr(0x5372b640), 0xe309060c); // movw r0, #0x960c (the singleton the direction is read through)
   const stub = patch.append((at) => assembleWords(
     `push {r0, r1}
      movw r0, #${lo(LOOK_STASH)}; movt r0, #${hi(LOOK_STASH)}; ldr r0, [r0]

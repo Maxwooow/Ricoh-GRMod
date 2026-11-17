@@ -4,17 +4,18 @@
  * extracted from the verified user's firmware, not copied from the IV port. */
 import { FirmwareError } from '../types';
 import type { FactoryEntry } from '../factory';
-import { GR3X_160, gr3xOffset } from './profile';
+import { GR3X_PROFILE, gr3xOffset } from './profile';
 import type { Gr3Profile } from './profile';
+import { adr, release } from './target';
 
 export const GR3X_FACTORY = {
-  format: 0x53d615d8, keyName: 0x538f2d84, key: 0x53d628a0,
-  keywords: 0x538f2d94, keywordBytes: 0x740,
-  projectGetter: 0x5381fe4c, productGetter: 0x5381fe9c,
-  keyCompare: 0x536bf750, keywordParse: 0x536bdd80,
+  format: adr(0x53d615d8), keyName: adr(0x538f2d84), key: adr(0x53d628a0),
+  keywords: adr(0x538f2d94), keywordBytes: 0x740,
+  projectGetter: adr(0x5381fe4c), productGetter: adr(0x5381fe9c),
+  keyCompare: adr(0x536bf750), keywordParse: adr(0x536bdd80),
 } as const;
 
-export function readGr3xFactoryEntry(decoded: Uint8Array, profile: Gr3Profile = GR3X_160): FactoryEntry {
+export function readGr3xFactoryEntry(decoded: Uint8Array, profile: Gr3Profile = GR3X_PROFILE): FactoryEntry {
   const word = (va: number) => new DataView(decoded.buffer, decoded.byteOffset).getUint32(gr3xOffset(va), true);
   const ascii = (va: number, n: number, xor = 0) => {
     let s = ''; const at = gr3xOffset(va);
@@ -30,7 +31,7 @@ export function readGr3xFactoryEntry(decoded: Uint8Array, profile: Gr3Profile = 
   const movw = (v: number) => (0xe3000000 | ((v & 0xf000) << 4) | (v & 0xfff)) >>> 0;
   check(word(GR3X_FACTORY.projectGetter) === projectWord && word(GR3X_FACTORY.projectGetter + 4) === 0xe12fff1e, 'project getter');
   check(word(GR3X_FACTORY.productGetter) === movw(profile.product & 0xffff) && word(GR3X_FACTORY.productGetter + 4) === (0xe3400000 | (profile.product >>> 16)) >>> 0, 'product getter');
-  const project = word(0x53002030), product = word(0x53002034);
+  const project = word(adr(0x53002030)), product = word(adr(0x53002034));
   check(project === profile.project && product === profile.product, 'header/getter identity mismatch');
   const keyPath = ascii(GR3X_FACTORY.keyName, 15, 0x29);
   check(keyPath === 'C:\\DEVELOP.MOD', 'key filename');
@@ -38,8 +39,17 @@ export function readGr3xFactoryEntry(decoded: Uint8Array, profile: Gr3Profile = 
   check(keyword === 'OPEN_FACTORY_DEBUG_MENU', 'factory keyword');
   // The native parser compares entry +0x140 and writes flag +4, with no
   // additional authorization branch. This is executed by factory_probe.py.
-  check(word(0x536bde64) === 0xe2851d05 && word(0x536bde74) === 0xe3a00001 && word(0x536bde78) === 0xe5c40004, 'factory keyword handler');
-  check(word(GR3X_FACTORY.keyCompare + 4) === 0xe30218a0 && word(GR3X_FACTORY.keyCompare + 0x14) === 0xe34513d6, 'key reference');
+  if (release === '1.60') {
+    check(word(adr(0x536bde64)) === 0xe2851d05 && word(adr(0x536bde74)) === 0xe3a00001 && word(adr(0x536bde78)) === 0xe5c40004, 'factory keyword handler');
+    check(word(GR3X_FACTORY.keyCompare + 4) === 0xe30218a0 && word(GR3X_FACTORY.keyCompare + 0x14) === 0xe34513d6, 'key reference');
+  } else {
+    // From 1.70 / 2.20 it reaches the keyword through a literal-pool pointer (`ldr r1,[pc,#0x3e0]`, the pool
+    // word is the table's entry +0x140), and the key through a movw / movt pair.
+    check(word(adr(0x536bde64)) === 0xe59f13e0 && word(adr(0x536bde64) + 8 + 0x3e0) === GR3X_FACTORY.keywords + 0x140 &&
+      word(adr(0x536bde74)) === 0xe3a00001 && word(adr(0x536bde78)) === 0xe5c40004, 'factory keyword handler');
+    check(word(GR3X_FACTORY.keyCompare + 4) === (0xe3001000 | ((GR3X_FACTORY.key & 0xf000) << 4) | (GR3X_FACTORY.key & 0xfff)) >>> 0 &&
+      word(GR3X_FACTORY.keyCompare + 0x14) === (0xe3401000 | ((GR3X_FACTORY.key >>> 12) & 0xf0000) | ((GR3X_FACTORY.key >>> 16) & 0xfff)) >>> 0, 'key reference');
+  }
   const key = decoded.slice(gr3xOffset(GR3X_FACTORY.key), gr3xOffset(GR3X_FACTORY.key) + 10);
   check(key.some(b => b !== 0) && key.some(b => b !== 255), 'empty key');
   const modeSetName = `${String(product).padStart(8, '0')}.${String(project).padStart(3, '0')}`;

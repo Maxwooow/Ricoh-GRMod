@@ -35,6 +35,7 @@
 import { assembleWords, branchWord } from './arm';
 import { FirmwareError } from '../../types';
 import { Patch, expectWord } from './build';
+import { adr, adrHex, adrText, byRelease } from '../target';
 
 function fail(code: string, message: string): never {
   throw new FirmwareError(code, message);
@@ -88,8 +89,8 @@ export function halationTables(): { dec: Uint8Array; enc: Uint8Array } {
 }
 
 /** RAM words in the 44 bytes before the heap (cleared at every start, see slots.ts / lookstash.ts). */
-export const HAL_FLAG = 0x55839028;
-export const HAL_SAVE = 0x5583902c;
+export const HAL_FLAG = adr(0x55839028);
+export const HAL_SAVE = adr(0x5583902c);
 
 /** Text of Grain Effect's Strength ("Intensity"), its Size, and the icon of Grain Effect's Strength row. */
 const TEXT_STRENGTH = 365;
@@ -100,18 +101,18 @@ const SCALE_SIZE = 0x265;
 const SCALE_STRENGTH = 0x261;
 
 /** Current Toning of the selected look (shooting): 0x533CC288 (no arguments). */
-const SHOOT_CUR = 0x533cc288;
+const SHOOT_CUR = adr(0x533cc288);
 /** Toning setter of the selected look and set (shooting): 0x533C6FCC(settings, value). */
-const SHOOT_SET = 0x533c6fcc;
+const SHOOT_SET = adr(0x533c6fcc);
 /** RAW development: the model (0x532406A4 then 0x53240C98), its Toning getter and setter. */
-const RAW_MODEL = 'bl #0x532406a4;bl #0x53240c98';
-const RAW_GET = 0x5337a9d4;
-const RAW_SET = 0x53380ba8;
-const RAW_LOOK_CALLS = 'bl #0x532406a4;bl #0x53240c98;bl #0x5337a1b8';
+const RAW_MODEL = adrText('bl #0x532406a4;bl #0x53240c98');
+const RAW_GET = adr(0x5337a9d4);
+const RAW_SET = adr(0x53380ba8);
+const RAW_LOOK_CALLS = adrText('bl #0x532406a4;bl #0x53240c98;bl #0x5337a1b8');
 /** Grain Effect's Off / On text of a value (r0 object, r1 buffer, r2 value). */
-const ON_OFF_TEXT = 0x533aac40;
+const ON_OFF_TEXT = adr(0x533aac40);
 /** A number 1..3 for a value 0..2 (r0 object, r1 buffer, r2 value). */
-const NUMBER_TEXT = 0x533aae14;
+const NUMBER_TEXT = adr(0x533aae14);
 
 export interface HalationUiOptions {
   /** 64-byte tables: looks with halation, by style and by RAW development's number. */
@@ -168,109 +169,109 @@ export function installHalationUi(p: Patch, o: HalationUiOptions): void {
 
   // ---------------------------------------------------------------- shooting: the main row
   // Slider: Grain Effect's Off / On slider (0x531CA030; its default, Grain off, is Off).
-  hook(p, 0x531c904c, 0xe1a0c00d, `ldrb r1,[r0,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;bne #0x531ca030;mov ip,sp;b #0x531c9050`, 'halation: Off / On slider');
+  hook(p, adr(0x531c904c), 0xe1a0c00d, `ldrb r1,[r0,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;bne #${adrHex(0x531ca030)};mov ip,sp;b #${adrHex(0x531c9050)}`, 'halation: Off / On slider');
   // Current slider position (r5 the controller): Off / On.
-  hook(p, 0x531cc274, 0xeb080003,
+  hook(p, adr(0x531cc274), byRelease({ '1.20': 0xeb080003, '1.21': 0xeb08009b }),
     `bl #${SHOOT_CUR};push {r0,r1};ldrb r1,[r5,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;pop {r0,r1};beq tone
-     mov r1,#0;bl #${field};mov r4,r0;b #0x531cc19c
-     tone:bl #0x531c7c54;mov r4,r0;b #0x531cc19c`, 'halation: slider position Off / On');
+     mov r1,#0;bl #${field};mov r4,r0;b #${adrHex(0x531cc19c)}
+     tone:bl #${adrHex(0x531c7c54)};mov r4,r0;b #${adrHex(0x531cc19c)}`, 'halation: slider position Off / On');
   // The row's value text (r7 the controller, r0 object, r1 buffer): Off / On as Grain Effect's.
-  hook(p, 0x531cae34, 0xeb077df6,
+  hook(p, adr(0x531cae34), byRelease({ '1.20': 0xeb077df6, '1.21': 0xeb077ea0 }),
     `push {r0,r1};ldrb r1,[r7,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;pop {r0,r1};beq tone
-     push {r0,r1};bl #${SHOOT_CUR};mov r1,#0;bl #${field};mov r2,r0;pop {r0,r1};bl #${ON_OFF_TEXT};b #0x531cae38
-     tone:bl #0x533aa614;b #0x531cae38`, 'halation: row text Off / On');
+     push {r0,r1};bl #${SHOOT_CUR};mov r1,#0;bl #${field};mov r2,r0;pop {r0,r1};bl #${ON_OFF_TEXT};b #${adrHex(0x531cae38)}
+     tone:bl #${adrHex(0x533aa614)};b #${adrHex(0x531cae38)}`, 'halation: row text Off / On');
   // Setter (r4 controller, r6 slider position, r0 settings): switch on / off, keep the rest.
-  hook(p, 0x531ccc24, 0xe3053524,
+  hook(p, adr(0x531ccc24), byRelease({ '1.20': 0xe3053524, '1.21': 0xe3063bc4 }),
     `push {r0,r1};ldrb r1,[r4,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;pop {r0,r1};beq tone
-     push {r0,r1};bl #${SHOOT_CUR};mov r1,#0;mov r2,r6;bl #${put};mov r1,r0;pop {r0,r2};bl #${SHOOT_SET};b #0x531ccc34
-     tone:${addr('r3', 0x53de5524)};ldrb r1,[r3,r6];bl #${SHOOT_SET};b #0x531ccc34`, 'halation: switch on / off');
+     push {r0,r1};bl #${SHOOT_CUR};mov r1,#0;mov r2,r6;bl #${put};mov r1,r0;pop {r0,r2};bl #${SHOOT_SET};b #${adrHex(0x531ccc34)}
+     tone:${addr('r3', adr(0x53de5524))};ldrb r1,[r3,r6];bl #${SHOOT_SET};b #${adrHex(0x531ccc34)}`, 'halation: switch on / off');
   // Fn guide (entry; r4, r6 the guide's views as natively): shown while on, not for movies.
-  hook(p, 0x531cbfac, 0xe1a0c00d,
+  hook(p, adr(0x531cbfac), 0xe1a0c00d,
     `mov ip,sp;push {r3,r4,r5,r6,fp,ip,lr,pc};sub fp,ip,#4
      ldr r4,[r0,#0x188];ldr r6,[r0,#0x18c];mov r5,r0
-     bl #0x531cbdcc;cmp r0,#8;bne native
+     bl #${adrHex(0x531cbdcc)};cmp r0,#8;bne native
      ldrb r1,[r5,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;beq native8
-     ldrb r1,[r5,#0x1ac];cmp r1,#1;moveq r5,#0;beq #0x531cbfd8
-     bl #${SHOOT_CUR};mov r1,#0;bl #${field};mov r5,r0;b #0x531cbfd8
+     ldrb r1,[r5,#0x1ac];cmp r1,#1;moveq r5,#0;beq #${adrHex(0x531cbfd8)}
+     bl #${SHOOT_CUR};mov r1,#0;bl #${field};mov r5,r0;b #${adrHex(0x531cbfd8)}
      native8:mov r0,#8
-     native:b #0x531cbfc4`, 'halation: Fn guide');
+     native:b #${adrHex(0x531cbfc4)}`, 'halation: Fn guide');
   // Fn (r4 controller, r0 the row's kind): Halation opens Grain Effect's submenu with the flag set.
-  hook(p, 0x531cc980, 0xe3500010,
+  hook(p, adr(0x531cc980), 0xe3500010,
     `cmp r0,#0x10;beq grain
-     cmp r0,#8;bne #0x531cc964
-     ldrb r1,[r4,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;beq #0x531cc964
-     ldrb r1,[r4,#0x1ac];cmp r1,#1;beq #0x531cc964
+     cmp r0,#8;bne #${adrHex(0x531cc964)}
+     ldrb r1,[r4,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;beq #${adrHex(0x531cc964)}
+     ldrb r1,[r4,#0x1ac];cmp r1,#1;beq #${adrHex(0x531cc964)}
      mov r1,#1;b set
      grain:mov r1,#0
-     set:${addr('r2', HAL_FLAG)};str r1,[r2];b #0x531cc988`, 'halation: Fn opens the submenu');
+     set:${addr('r2', HAL_FLAG)};str r1,[r2];b #${adrHex(0x531cc988)}`, 'halation: Fn opens the submenu');
   // Movies: the Halation row has no slider (the JPEG step makes the glow; photos only).
-  hook(p, 0x531cbe34, 0xe3500010,
+  hook(p, adr(0x531cbe34), 0xe3500010,
     `cmp r0,#8;bne native
      ldrb r1,[r4,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;beq native8
      ldrb r1,[r4,#0x1ac];cmp r1,#1;bne native8
-     mov r0,#0;b #0x531cbe2c
+     mov r0,#0;b #${adrHex(0x531cbe2c)}
      native8:mov r0,#8
-     native:cmp r0,#0x10;b #0x531cbe38`, 'halation: no slider for movies');
+     native:cmp r0,#0x10;b #${adrHex(0x531cbe38)}`, 'halation: no slider for movies');
 
   // ---------------------------------------------------------------- shooting: the submenu
   submenu(p, o, field, put, {
-    title: 0x531cd578, subtitle: 0x531cdcc8,
-    icon0: 0x531cdd14, text0: [0x531cdd2c, 0xeb077458], icon1: 0x531cdda0, text1: [0x531cddb8, 0xeb077463],
-    default0: [0x531cd8f0, 0xeb083b9e], scale0: 0x531cd90c, default1: [0x531cda3c, 0xeb083d32], scale1: 0x531cda58, positions1: 0x531cda7c,
-    current0: [0x531cdc7c, 0xeb08041d, 0x531cdc80], current1: [0x531cdc60, 0xeb08056e, 0x531cdc64],
-    setter0: [0x531cdfd4, 0xeb07e4b0, 0x531cdfd8], setter1: [0x531cdfb4, 0xeb07e4cc, 0x531cdfb8],
+    title: adr(0x531cd578), subtitle: adr(0x531cdcc8),
+    icon0: adr(0x531cdd14), text0: [adr(0x531cdd2c), byRelease({ '1.20': 0xeb077458, '1.21': 0xeb077502 })], icon1: adr(0x531cdda0), text1: [adr(0x531cddb8), byRelease({ '1.20': 0xeb077463, '1.21': 0xeb07750d })],
+    default0: [adr(0x531cd8f0), byRelease({ '1.20': 0xeb083b9e, '1.21': 0xeb083c36 })], scale0: adr(0x531cd90c), default1: [adr(0x531cda3c), byRelease({ '1.20': 0xeb083d32, '1.21': 0xeb083dca })], scale1: adr(0x531cda58), positions1: adr(0x531cda7c),
+    current0: [adr(0x531cdc7c), byRelease({ '1.20': 0xeb08041d, '1.21': 0xeb0804b5 }), adr(0x531cdc80)], current1: [adr(0x531cdc60), byRelease({ '1.20': 0xeb08056e, '1.21': 0xeb080606 }), adr(0x531cdc64)],
+    setter0: [adr(0x531cdfd4), byRelease({ '1.20': 0xeb07e4b0, '1.21': 0xeb07e548 }), adr(0x531cdfd8)], setter1: [adr(0x531cdfb4), byRelease({ '1.20': 0xeb07e4cc, '1.21': 0xeb07e564 }), adr(0x531cdfb8)],
     cur: `bl #${SHOOT_CUR}`, set: SHOOT_SET, setterRegs: 'r0',
   });
   // Backup on entry (after Grain Effect's own) and the restore on cancel.
-  hook(p, 0x531cdefc, 0xeb080933,
-    `bl #0x533d03d0;${flagTest};beq done;bl #${SHOOT_CUR};${addr('r1', HAL_SAVE)};str r0,[r1];done:b #0x531cdf00`, 'halation: keep the setting for cancel');
-  hook(p, 0x531cd2c8, 0xeb080c9a,
-    `bl #0x533d0538;${flagTest};beq done;bl #0x532406a4;bl #0x53241548;${addr('r1', HAL_SAVE)};ldr r1,[r1];bl #${SHOOT_SET};done:b #0x531cd2cc`, 'halation: cancel puts the setting back');
+  hook(p, adr(0x531cdefc), byRelease({ '1.20': 0xeb080933, '1.21': 0xeb0809cb }),
+    `bl #${adrHex(0x533d03d0)};${flagTest};beq done;bl #${SHOOT_CUR};${addr('r1', HAL_SAVE)};str r0,[r1];done:b #${adrHex(0x531cdf00)}`, 'halation: keep the setting for cancel');
+  hook(p, adr(0x531cd2c8), byRelease({ '1.20': 0xeb080c9a, '1.21': 0xeb080d32 }),
+    `bl #${adrHex(0x533d0538)};${flagTest};beq done;bl #${adrHex(0x532406a4)};bl #${adrHex(0x53241548)};${addr('r1', HAL_SAVE)};ldr r1,[r1];bl #${SHOOT_SET};done:b #${adrHex(0x531cd2cc)}`, 'halation: cancel puts the setting back');
 
   // ---------------------------------------------------------------- RAW development: the main row
   // Slider (entry, r0 controller): Grain Effect's Off / On slider 0x531A8DC0.
-  hook(p, 0x531a7db8, 0xe1a0c00d, `push {r0-r3,ip,lr};${RAW_LOOK_CALLS};${lookup('ip', 'r0', 'r1', o.raws)};cmp ip,#0;pop {r0-r3,ip,lr};bne #0x531a8dc0;mov ip,sp;b #0x531a7dbc`, 'halation: Off / On slider (RAW development)');
+  hook(p, adr(0x531a7db8), 0xe1a0c00d, `push {r0-r3,ip,lr};${RAW_LOOK_CALLS};${lookup('ip', 'r0', 'r1', o.raws)};cmp ip,#0;pop {r0-r3,ip,lr};bne #${adrHex(0x531a8dc0)};mov ip,sp;b #${adrHex(0x531a7dbc)}`, 'halation: Off / On slider (RAW development)');
   // Current slider position (r0 the model; r5 is set from r0 after).
-  hook(p, 0x531aae18, 0xeb073eed,
-    `${rawHal};mov r5,ip;bl #${RAW_GET};cmp r5,#0;beq tone;mov r1,#0;bl #${field};b #0x531aae20
-     tone:bl #0x531a65e0;b #0x531aae20`, 'halation: slider position Off / On (RAW development)');
+  hook(p, adr(0x531aae18), byRelease({ '1.20': 0xeb073eed, '1.21': 0xeb07401f }),
+    `${rawHal};mov r5,ip;bl #${RAW_GET};cmp r5,#0;beq tone;mov r1,#0;bl #${field};b #${adrHex(0x531aae20)}
+     tone:bl #${adrHex(0x531a65e0)};b #${adrHex(0x531aae20)}`, 'halation: slider position Off / On (RAW development)');
   // Row text (r0 object, r1 buffer, r2 value).
-  hook(p, 0x531a9d5c, 0xeb080201,
+  hook(p, adr(0x531a9d5c), byRelease({ '1.20': 0xeb080201, '1.21': 0xeb080334 }),
     `${rawHal};cmp ip,#0;beq tone
-     push {r0,r1};mov r0,r2;mov r1,#0;bl #${field};mov r2,r0;pop {r0,r1};bl #${ON_OFF_TEXT};b #0x531a9d60
-     tone:bl #0x533aa568;b #0x531a9d60`, 'halation: row text Off / On (RAW development)');
+     push {r0,r1};mov r0,r2;mov r1,#0;bl #${field};mov r2,r0;pop {r0,r1};bl #${ON_OFF_TEXT};b #${adrHex(0x531a9d60)}
+     tone:bl #${adrHex(0x533aa568)};b #${adrHex(0x531a9d60)}`, 'halation: row text Off / On (RAW development)');
   // Setter (r6 model, r5 slider position).
-  hook(p, 0x531ab2d4, 0xe3053524,
+  hook(p, adr(0x531ab2d4), byRelease({ '1.20': 0xe3053524, '1.21': 0xe3063bc4 }),
     `${rawHal};cmp ip,#0;beq tone
-     mov r0,r6;bl #${RAW_GET};mov r1,#0;mov r2,r5;bl #${put};mov r1,r0;mov r0,r6;bl #${RAW_SET};b #0x531ab2e8
-     tone:${addr('r3', 0x53de5524)};mov r0,r6;ldrb r1,[r3,r5];bl #${RAW_SET};b #0x531ab2e8`, 'halation: switch on / off (RAW development)');
+     mov r0,r6;bl #${RAW_GET};mov r1,#0;mov r2,r5;bl #${put};mov r1,r0;mov r0,r6;bl #${RAW_SET};b #${adrHex(0x531ab2e8)}
+     tone:${addr('r3', adr(0x53de5524))};mov r0,r6;ldrb r1,[r3,r5];bl #${RAW_SET};b #${adrHex(0x531ab2e8)}`, 'halation: switch on / off (RAW development)');
   // Fn guide (r4 the row's kind, r0 the model): while on.
-  hook(p, 0x531aa550, 0xe354000d,
+  hook(p, adr(0x531aa550), 0xe354000d,
     `cmp r4,#8;bne native;${rawHal};cmp ip,#0;beq native
-     bl #${RAW_GET};mov r1,#0;bl #${field};mov r4,r0;b #0x531aa564
-     native:cmp r4,#0xd;b #0x531aa554`, 'halation: Fn guide (RAW development)');
+     bl #${RAW_GET};mov r1,#0;bl #${field};mov r4,r0;b #${adrHex(0x531aa564)}
+     native:cmp r4,#0xd;b #${adrHex(0x531aa554)}`, 'halation: Fn guide (RAW development)');
   // Fn (r4 controller, r3 the row's kind): Halation keeps its setting and opens the submenu with the flag set.
-  hook(p, 0x531ab758, 0xe3530010,
+  hook(p, adr(0x531ab758), 0xe3530010,
     `cmp r3,#0x10;beq grain
-     cmp r3,#8;bne #0x531ab71c
-     ${rawHal};cmp ip,#0;beq #0x531ab71c
+     cmp r3,#8;bne #${adrHex(0x531ab71c)}
+     ${rawHal};cmp ip,#0;beq #${adrHex(0x531ab71c)}
      bl #${rawCur};${addr('r1', HAL_SAVE)};str r0,[r1]
-     ${addr('r2', HAL_FLAG)};mov r1,#1;str r1,[r2];b #0x531ab76c
-     grain:${addr('r2', HAL_FLAG)};mov r1,#0;str r1,[r2];b #0x531ab760`, 'halation: Fn opens the submenu (RAW development)');
+     ${addr('r2', HAL_FLAG)};mov r1,#1;str r1,[r2];b #${adrHex(0x531ab76c)}
+     grain:${addr('r2', HAL_FLAG)};mov r1,#0;str r1,[r2];b #${adrHex(0x531ab760)}`, 'halation: Fn opens the submenu (RAW development)');
 
   // ---------------------------------------------------------------- RAW development: the submenu
   submenu(p, o, field, put, {
-    title: 0x531abfa4, subtitle: 0x531ac72c,
-    icon0: 0x531ac778, text0: null, icon1: 0x531ac818, text1: [0x531ac844, 0xeb07f9a0],
-    default0: [0x531ac354, 0xeb073d86], scale0: 0x531ac370, default1: [0x531ac49c, 0xeb073d3e], scale1: 0x531ac4b8, positions1: 0x531ac4dc,
-    current0: [0x531ac6e0, 0xeb073a0b, 0x531ac6e4], current1: [0x531ac6bc, 0xeb073a30, 0x531ac6c0],
-    setter0: [0x531aca28, 0xeb0753a9, 0x531aca2c], setter1: [0x531aca08, 0xeb075402, 0x531aca0c],
+    title: adr(0x531abfa4), subtitle: adr(0x531ac72c),
+    icon0: adr(0x531ac778), text0: null, icon1: adr(0x531ac818), text1: [adr(0x531ac844), byRelease({ '1.20': 0xeb07f9a0, '1.21': 0xeb07fad3 })],
+    default0: [adr(0x531ac354), byRelease({ '1.20': 0xeb073d86, '1.21': 0xeb073eb8 })], scale0: adr(0x531ac370), default1: [adr(0x531ac49c), byRelease({ '1.20': 0xeb073d3e, '1.21': 0xeb073e70 })], scale1: adr(0x531ac4b8), positions1: adr(0x531ac4dc),
+    current0: [adr(0x531ac6e0), byRelease({ '1.20': 0xeb073a0b, '1.21': 0xeb073b3d }), adr(0x531ac6e4)], current1: [adr(0x531ac6bc), byRelease({ '1.20': 0xeb073a30, '1.21': 0xeb073b62 }), adr(0x531ac6c0)],
+    setter0: [adr(0x531aca28), byRelease({ '1.20': 0xeb0753a9, '1.21': 0xeb0754db }), adr(0x531aca2c)], setter1: [adr(0x531aca08), byRelease({ '1.20': 0xeb075402, '1.21': 0xeb075534 }), adr(0x531aca0c)],
     cur: `bl #${RAW_GET}`, set: RAW_SET, setterRegs: 'r0',
-    rowValue0: [0x531ac78c, 0xeb0739e0, 0x531ac790], rowValue1: [0x531ac82c, 0xeb0739d4, 0x531ac830],
+    rowValue0: [adr(0x531ac78c), byRelease({ '1.20': 0xeb0739e0, '1.21': 0xeb073b12 }), adr(0x531ac790)], rowValue1: [adr(0x531ac82c), byRelease({ '1.20': 0xeb0739d4, '1.21': 0xeb073b06 }), adr(0x531ac830)],
   });
   // Cancel: Grain Effect's restore, then the halation setting kept at Fn.
-  hook(p, 0x531abdd0, 0xeb075734,
-    `bl #0x53381aa8;${flagTest};beq done;${RAW_MODEL};${addr('r1', HAL_SAVE)};ldr r1,[r1];bl #${RAW_SET};done:b #0x531abdd4`, 'halation: cancel puts the setting back (RAW development)');
+  hook(p, adr(0x531abdd0), byRelease({ '1.20': 0xeb075734, '1.21': 0xeb075866 }),
+    `bl #${adrHex(0x53381aa8)};${flagTest};beq done;${RAW_MODEL};${addr('r1', HAL_SAVE)};ldr r1,[r1];bl #${RAW_SET};done:b #${adrHex(0x531abdd4)}`, 'halation: cancel puts the setting back (RAW development)');
 }
 
 interface SubmenuSites {
@@ -356,10 +357,10 @@ function branchTargetOf(site: readonly number[]): number {
  * Toning code (3..11 written as 4..12 and read back, so in-camera RAW development keeps them).
  */
 export function installHalationClamps(p: Patch): void {
-  hook(p, 0x539397a8, 0xe5d367a6, 'ldrb r6,[r3,#0x7a6];cmp r6,#2;movhi r6,#0;b #0x539397ac', 'halation: development sees Toning 0..2');
-  hook(p, 0x531c7c54, 0xe1a0c00d, 'cmp r0,#2;movhi r0,#0;mov ip,sp;b #0x531c7c58', 'halation: Toning slider position 0..2');
-  hook(p, 0x531a65e0, 0xe1a0c00d, 'cmp r0,#2;movhi r0,#0;mov ip,sp;b #0x531a65e4', 'halation: Toning slider position 0..2 (RAW development)');
-  hook(p, 0x533aa568, 0xe3520001, 'cmp r2,#2;movhi r2,#0;cmp r2,#1;b #0x533aa56c', 'halation: Toning text 0..2');
-  hook(p, 0x53804008, 0xe3003e10, 'ldrb r0,[r1,#0x7a6];cmp r0,#3;blo native;cmp r0,#11;addls r0,r0,#1;popls {r4,pc};native:movw r3,#0xe10;b #0x5380400c', 'halation: maker note Toning 3..11 as codes 4..12');
-  hook(p, 0x537fdb3c, 0xe3a03000, 'sub r3,r1,#1;cmp r3,#3;blo zero;cmp r3,#11;bls keep;zero:mov r3,#0;keep:b #0x537fdb40', 'halation: maker note codes 4..12 as Toning 3..11');
+  hook(p, adr(0x539397a8), 0xe5d367a6, adrText('ldrb r6,[r3,#0x7a6];cmp r6,#2;movhi r6,#0;b #0x539397ac'), 'halation: development sees Toning 0..2');
+  hook(p, adr(0x531c7c54), 0xe1a0c00d, adrText('cmp r0,#2;movhi r0,#0;mov ip,sp;b #0x531c7c58'), 'halation: Toning slider position 0..2');
+  hook(p, adr(0x531a65e0), 0xe1a0c00d, adrText('cmp r0,#2;movhi r0,#0;mov ip,sp;b #0x531a65e4'), 'halation: Toning slider position 0..2 (RAW development)');
+  hook(p, adr(0x533aa568), 0xe3520001, adrText('cmp r2,#2;movhi r2,#0;cmp r2,#1;b #0x533aa56c'), 'halation: Toning text 0..2');
+  hook(p, adr(0x53804008), byRelease({ '1.20': 0xe3003e10, '1.21': 0xe3003e18 }), adrText('ldrb r0,[r1,#0x7a6];cmp r0,#3;blo native;cmp r0,#11;addls r0,r0,#1;popls {r4,pc};native:movw r3,#0xe10;b #0x5380400c'), 'halation: maker note Toning 3..11 as codes 4..12');
+  hook(p, adr(0x537fdb3c), 0xe3a03000, adrText('sub r3,r1,#1;cmp r3,#3;blo zero;cmp r3,#11;bls keep;zero:mov r3,#0;keep:b #0x537fdb40'), 'halation: maker note codes 4..12 as Toning 3..11');
 }

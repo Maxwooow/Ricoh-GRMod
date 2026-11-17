@@ -28,23 +28,24 @@
  */
 import { branchWord, movWord } from '../aspect/arm';
 import { FirmwareError } from '../types';
+import { adr, byRelease } from './target';
 
 const FIRST = 64;
-const TABLE = 0x53b3488c, ENTRIES = 36, KIND_TONING = 10, KIND_GRAIN = 15;
+const TABLE = adr(0x53b3488c), ENTRIES = 36, KIND_TONING = 10, KIND_GRAIN = 15;
 const TABLE_SITES: readonly (readonly [number, number, number])[] = [
-  [0x531afa20, 0x531afa24, 12], [0x531afabc, 0x531afacc, 3], [0x531affa0, 0x531affa8, 12], [0x531b01f4, 0x531b01f8, 3],
+  [adr(0x531afa20), adr(0x531afa24), 12], [adr(0x531afabc), adr(0x531afacc), 3], [adr(0x531affa0), adr(0x531affa8), 12], [adr(0x531b01f4), adr(0x531b01f8), 3],
 ];
-const BASE_DEFAULT = 0x531acb24, BASE_DEFAULT_TARGET = 0x531acbbc, BASE_RETURN = 0x531acb5c;
-const SUBTITLE = 0x531b0254;
+const BASE_DEFAULT = adr(0x531acb24), BASE_DEFAULT_TARGET = adr(0x531acbbc), BASE_RETURN = adr(0x531acb5c);
+const SUBTITLE = adr(0x531b0254);
 // Kind 10 (Colour).
-const SCALE10 = 0x531adcbc, POSITIONS10 = 0x531adce0, START10 = 0x531adca0, POSITION10 = 0x531b0514;
-const LIST_TEXT10 = 0x531af494, LIST_ICON10 = 0x531af4a8, SETTER10 = 0x531b0d8c;
-const STORED_GETTER10 = 0x532c70e4, LIVE_GETTER10 = 0x532c297c, TEXT10 = 0x532aca68, HDR_SETTER = 0x532c0894;
+const SCALE10 = adr(0x531adcbc), POSITIONS10 = adr(0x531adce0), START10 = adr(0x531adca0), POSITION10 = adr(0x531b0514);
+const LIST_TEXT10 = adr(0x531af494), LIST_ICON10 = adr(0x531af4a8), SETTER10 = adr(0x531b0d8c);
+const STORED_GETTER10 = adr(0x532c70e4), LIVE_GETTER10 = adr(0x532c297c), TEXT10 = adr(0x532aca68), HDR_SETTER = adr(0x532c0894);
 // Kind 15 (Halation).
-const START15 = 0x531ae84c, POSITION15 = 0x531b0564, LIST_TEXT15 = 0x531af6ec, LIST_ICON15 = 0x531af700, SETTER15 = 0x531b0d28;
-const STORED_GETTER15 = 0x532c9744, LIVE_GETTER15 = 0x532c2a5c, TEXT15 = 0x532ace68, PARTICLE_SETTER = 0x532c1780;
+const START15 = adr(0x531ae84c), POSITION15 = adr(0x531b0564), LIST_TEXT15 = adr(0x531af6ec), LIST_ICON15 = adr(0x531af700), SETTER15 = adr(0x531b0d28);
+const STORED_GETTER15 = adr(0x532c9744), LIVE_GETTER15 = adr(0x532c2a5c), TEXT15 = adr(0x532ace68), PARTICLE_SETTER = adr(0x532c1780);
 const GRAIN_ICON = 0x1de, TONING_ICON = 0x1e9, TONING_SCALE = 0xd3;
-const BACKUP = 0x532c337c, BACKUP_BODY = 0x532c325c, RESTORE = 0x532c34a8, RESTORE_BODY = 0x532c33c8;
+const BACKUP = adr(0x532c337c), BACKUP_BODY = adr(0x532c325c), RESTORE = adr(0x532c34a8), RESTORE_BODY = adr(0x532c33c8);
 
 export interface Gr3xHalationRowsProgram {
   code(source: string): number;
@@ -77,19 +78,19 @@ export function installGr3xHalationRows(p: Gr3xHalationRowsProgram, o: Gr3xHalat
     [SUBTITLE, 0xe1d310b2], [SUBTITLE - 0x14, 0xe3520001],
     // Kind 10.
     [SCALE10, 0xe3a030d3], [POSITIONS10, 0xe3a02002], [POSITIONS10 + 4, 0xe3a030b4], [POSITIONS10 + 8, 0xe24b0054],
-    [START10, bl(START10, STORED_GETTER10)], [START10 + 4, bl(START10 + 4, 0x531ac6f0)], [POSITION10, bl(POSITION10, LIVE_GETTER10)],
+    [START10, bl(START10, STORED_GETTER10)], [START10 + 4, bl(START10 + 4, adr(0x531ac6f0))], [POSITION10, bl(POSITION10, LIVE_GETTER10)],
     [LIST_TEXT10, bl(LIST_TEXT10, TEXT10)], [LIST_ICON10, movWord(1, TONING_ICON)], [SETTER10, bl(SETTER10, HDR_SETTER)],
-    [SETTER10 - 0xc, 0xe30e3bc4], [SETTER10 - 8, 0xe34533b4], [SETTER10 - 4, 0xe7d31006],
+    [SETTER10 - 0xc, byRelease({ '1.60': 0xe30e3bc4, '1.70': 0xe30e34ec, '1.71': 0xe303371c })], [SETTER10 - 8, byRelease({ '1.60': 0xe34533b4, '1.70': 0xe34533b4, '1.71': 0xe34533b5 })], [SETTER10 - 4, 0xe7d31006],
     // Kind 15.
-    [START15, bl(START15, STORED_GETTER15)], [START15 + 4, bl(START15 + 4, 0x531ac868)], [START15 + 0x1c, 0xe3a03039],
-    [POSITION15, bl(POSITION15, LIVE_GETTER15)], [POSITION15 + 4, bl(POSITION15 + 4, 0x531ac868)],
+    [START15, bl(START15, STORED_GETTER15)], [START15 + 4, bl(START15 + 4, adr(0x531ac868))], [START15 + 0x1c, 0xe3a03039],
+    [POSITION15, bl(POSITION15, LIVE_GETTER15)], [POSITION15 + 4, bl(POSITION15 + 4, adr(0x531ac868))],
     [LIST_TEXT15, bl(LIST_TEXT15, TEXT15)], [LIST_ICON15, movWord(1, GRAIN_ICON)], [SETTER15, bl(SETTER15, PARTICLE_SETTER)],
-    [SETTER15 - 0xc, 0xe30930d8], [SETTER15 - 8, 0xe34533b5], [SETTER15 - 4, 0xe7d31006],
+    [SETTER15 - 0xc, byRelease({ '1.60': 0xe30930d8, '1.70': 0xe3083a00, '1.71': 0xe30d3c30 })], [SETTER15 - 8, 0xe34533b5], [SETTER15 - 4, 0xe7d31006],
     // The registers the hooks read: the controller in r6 (builders, list lines), r5 (positions),
     // r4 (subtitle, setter), the slider position in r6 (setter), as the surrounding official code has it.
     [START10 - 0x18, 0xe1a06000], [START15 - 0x18, 0xe1a06000], [POSITION10 - 0x138, 0xe1a05000],
     [LIST_TEXT10 - 0x18, 0xe1a06000], [LIST_TEXT15 - 0x18, 0xe1a06000], [SUBTITLE - 0x38, 0xe1a04000],
-    [0x531b0bbc, 0xe1a04000], [0x531b0bc4, 0xe59060f8],
+    [adr(0x531b0bbc), 0xe1a04000], [adr(0x531b0bc4), 0xe59060f8],
   ];
   for (const [at, w] of guards) if (p.u32(at) !== w >>> 0) fail(`guard at ${at.toString(16)}`);
   // --- The table with the three film lists: Standard's lines, then Halation and Colour (stills).

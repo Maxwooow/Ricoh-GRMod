@@ -22,11 +22,12 @@
 import { FirmwareError } from '../../types';
 import { assembleWords, branchWord } from './arm';
 import { Patch, expectWord } from './build';
+import { adr } from '../target';
 
-const PROGRAM_GETTER = 0x536a7534; // ldrb r0, [r0, #0x39]; bx lr
-const BIAS_GETTER = 0x536a7e54; // vldr s0, [r0, #0xdc]; bx lr
-const PROGRAM_SITES = [0x5368dc80, 0x5368fb04, 0x53690df8, 0x536910a4] as const;
-const BIAS_SITE = 0x5368faf4;
+const PROGRAM_GETTER = adr(0x536a7534); // ldrb r0, [r0, #0x39]; bx lr
+const BIAS_GETTER = adr(0x536a7e54); // vldr s0, [r0, #0xdc]; bx lr
+const PROGRAM_SITES = [adr(0x5368dc80), adr(0x5368fb04), adr(0x53690df8), adr(0x536910a4)] as const;
+const BIAS_SITE = adr(0x5368faf4);
 const PROGRAM_M = 4;
 const VMOV_S0_IP = 0xee00ca10; // vmov s0, ip
 

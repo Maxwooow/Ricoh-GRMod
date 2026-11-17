@@ -1,12 +1,8 @@
 {
-  "about": "GR III 2.21 / GR IIIx 1.71 (one program, as 2.20 / 1.70) from the 2.20 / 1.70 port",
+  "about": "GR III 2.21 / GR IIIx 1.71: the development tools, generated from 2.20 / 1.70's. The program itself is fw/gr3x with fw/gr3x171's target (core/src/fw/release.ts)",
   "map": "tools/port/gr3-p3-map.json",
   "patch": "tools/port/gr3-p3.patch",
   "copies": [
-    [
-      "core/src/fw/gr3x170",
-      "core/src/fw/gr3x171"
-    ],
     [
       "tools/gr3x170",
       "tools/gr3x171"

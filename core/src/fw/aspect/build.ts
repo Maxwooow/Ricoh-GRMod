@@ -46,28 +46,29 @@ import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
 import { installAdjSlots } from './adjslots';
 import { LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
 import type { ShutdownPictureSpec } from './shutdown';
+import { adr, adrHEX, adrText } from '../target';
 
-export const BASE = 0x53000000;
+export const BASE = adr(0x53000000);
 export const OFFICIAL_RTOS_LENGTH = 0x13d2ac0;
 export const OFFICIAL_ICONBIN_LENGTH = 0xdcf460;
 /** The appended area must stay below the address where the firmware's RAM starts. */
-export const APPEND_LIMIT = 0x55000000;
+export const APPEND_LIMIT = adr(0x55000000);
 
 /** Start-up copy of initialised data: `length` bytes from `source` (in the image) to `destination`. */
-const RAM = { source: 0x5437b640, destination: 0x55000000, length: 0x57480 };
+const RAM = { source: adr(0x5437b640), destination: adr(0x55000000), length: 0x57480 };
 
-export const ICON_CATALOG = 0x543d3ac0;
-export const TEXT_CATALOG = 0x543d4ac0;
+export const ICON_CATALOG = adr(0x543d3ac0);
+export const TEXT_CATALOG = adr(0x543d4ac0);
 const ICON_COUNT = 663;
 const TEXT_COUNT = 837;
 const TEXT_CAPACITY = 896;
 export const LANGUAGES = 21;
 const ROW_STRIDE = TEXT_CAPACITY * 4;
-const NATIVE_ICON_CATALOG = 0x55013410;
-export const NATIVE_TEXT_ROOTS = 0x55002118;
+const NATIVE_ICON_CATALOG = adr(0x55013410);
+export const NATIVE_TEXT_ROOTS = adr(0x55002118);
 
-export const ORDER_SITES = [0x531baf88, 0x531bb26c, 0x531be31c, 0x531d0ce8, 0x531d2f88, 0x531d48a0, 0x5325ae2c] as const;
-export const COUNT_SITES = [0x531ba14c, 0x531cf298] as const;
+export const ORDER_SITES = [adr(0x531baf88), adr(0x531bb26c), adr(0x531be31c), adr(0x531d0ce8), adr(0x531d2f88), adr(0x531d48a0), adr(0x5325ae2c)] as const;
+export const COUNT_SITES = [adr(0x531ba14c), adr(0x531cf298)] as const;
 const FACTORY_ORDER = [0, 1, 3, 2] as const;
 /** First identity given to an added ratio (4-6 belong to earlier versions of the reference tool). */
 export const FIRST_CUSTOM_ID = 7;
@@ -338,17 +339,17 @@ function initializeCatalogs(patch: Patch): void {
 
   // Both icon consumers go through one getter; text drawing and text measuring each load the
   // language directory themselves.
-  patch.setWord(0x533ef604, movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
-  patch.setWord(0x533ef608, movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
-  for (const [site, register] of [[0x5323dbb4, 3], [0x5323e40c, 2]] as const) {
+  patch.setWord(adr(0x533ef604), movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
+  patch.setWord(adr(0x533ef608), movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
+  for (const [site, register] of [[adr(0x5323dbb4), 3], [adr(0x5323e40c), 2]] as const) {
     patch.setWord(site, movWord(register, ICON_COUNT - 1), 'icon upper bound');
   }
-  for (const [low, high] of [[0x53573500, 0x53573504], [0x53572aec, 0x53572af4]] as const) {
+  for (const [low, high] of [[adr(0x53573500), adr(0x53573504)], [adr(0x53572aec), adr(0x53572af4)]] as const) {
     patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
     patch.setWord(high, movWord(3, TEXT_CATALOG >>> 16, true), 'extended language catalog, high half');
   }
   const boundSites: number[] = [];
-  for (const [site, conditional] of [[0x535734f4, false], [0x53572ae0, true]] as const) {
+  for (const [site, conditional] of [[adr(0x535734f4), false], [adr(0x53572ae0), true]] as const) {
     // Keeps r3. The measuring CMP runs under LS so that the flags of the preceding language check
     // survive when the language is out of range.
     const compare = conditional ? 0x91570003 : 0xe1570003;
@@ -361,7 +362,7 @@ function initializeCatalogs(patch: Patch): void {
 
 function initializeScaffold(patch: Patch): void {
   initializeCatalogs(patch);
-  for (const site of [0x533e1c04, 0x533e17cc]) {
+  for (const site of [adr(0x533e1c04), adr(0x533e17cc)]) {
     const instruction = patch.word(site);
     if (instruction !== 0xe1a0c00d) fail('unexpected-layout', 'settings save/load entry is not what was expected');
     const address = patch.append((at) => [instruction, branchWord(at + 4, site + 4)], 16);
@@ -372,7 +373,7 @@ function initializeScaffold(patch: Patch): void {
 // --------------------------------------------------------------------------------------------
 // crop_icons.py
 
-export const LOOKUP_BOUNDS = [[0x5323dbb4, 3], [0x5323e40c, 2]] as const;
+export const LOOKUP_BOUNDS = [[adr(0x5323dbb4), 3], [adr(0x5323e40c), 2]] as const;
 
 function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
   const parts: Uint8Array[] = [iconbin];
@@ -441,7 +442,7 @@ function installMenu(patch: Patch, ratios: readonly RatioEntry[], iconIds: Reado
   const count = order.length;
   const orderAt = patch.append(Uint8Array.from(order), 16);
   for (const site of ORDER_SITES) {
-    const high = site + (site === 0x531be31c || site === 0x531d0ce8 ? 8 : 4);
+    const high = site + (site === adr(0x531be31c) || site === adr(0x531d0ce8) ? 8 : 4);
     patch.setWord(site, movWord(3, orderAt & 65535), 'ratio menu order, low half');
     patch.setWord(high, movWord(3, orderAt >>> 16, true), 'ratio menu order, high half');
   }
@@ -452,14 +453,14 @@ function installMenu(patch: Patch, ratios: readonly RatioEntry[], iconIds: Reado
   const cycleAt = patch.append((at) => {
     const words = [
       0xe3a02000, 0xe7d31002, 0xe1510000, 0x0a000000, 0xe2822001, movWord(12, count), 0xe152000c, 0x3a000000,
-      0xe3a02000, 0xea000000, 0xe2822001, 0xe152000c, 0x03a02000, 0xe7d31002, branchWord(at + 56, 0x5325ae6c),
+      0xe3a02000, 0xea000000, 0xe2822001, 0xe152000c, 0x03a02000, 0xe7d31002, branchWord(at + 56, adr(0x5325ae6c)),
     ];
     words[3] = branchWord(at + 12, at + 40, 0);
     words[7] = branchWord(at + 28, at + 4, 3);
     words[9] = branchWord(at + 36, at + 52);
     return words;
   }, 16);
-  patch.setWord(0x5325ae34, branchWord(0x5325ae34, cycleAt), 'ratio cycling over the new order');
+  patch.setWord(adr(0x5325ae34), branchWord(adr(0x5325ae34), cycleAt), 'ratio cycling over the new order');
 
   // Complete language rows again, now wide enough for the new names; every original entry is kept.
   let priorColumns = TEXT_CAPACITY;
@@ -488,20 +489,20 @@ function installMenu(patch: Patch, ratios: readonly RatioEntry[], iconIds: Reado
   const table256 = (get: (n: number) => number): number[] => Array.from({ length: 256 }, (_, n) => get(n));
   const textTable = patch.append(u32le(table256((n) => (allIds.includes(n) ? textId(n) : 0))), 16);
   const textAt = patch.append([movWord(3, textTable & 65535), movWord(3, textTable >>> 16, true), 0xe35100ff, 0x83a00000, 0x812fff1e, 0xe7930101, 0xe12fff1e], 16);
-  patch.setWord(0x5337fbac, branchWord(0x5337fbac, textAt), 'ratio identity to name');
+  patch.setWord(adr(0x5337fbac), branchWord(adr(0x5337fbac), textAt), 'ratio identity to name');
 
   if (iconIds.size !== ratios.length || ratios.some((r) => !(iconIds.get(r.id)! > 0 && iconIds.get(r.id)! <= 65535))) fail('internal', 'icon list does not match the ratios');
   const iconTable = patch.append(u32le(table256((n) => iconIds.get(n) ?? 0)), 16);
   // Factory identities rejoin the untouched native body (with its first CMP replayed).
   const iconAt = patch.append((at) => [
     0xe3510004, branchWord(at + 4, at + 48, 3), 0xe35100ff, 0x83a00000, 0x812fff1e, 0xe3520000, 0x13a00000, 0x112fff1e,
-    movWord(3, iconTable & 65535), movWord(3, iconTable >>> 16, true), 0xe7930101, 0xe12fff1e, 0xe3510000, branchWord(at + 52, 0x53381440),
+    movWord(3, iconTable & 65535), movWord(3, iconTable >>> 16, true), 0xe7930101, 0xe12fff1e, 0xe3510000, branchWord(at + 52, adr(0x53381440)),
   ], 16);
-  patch.setWord(0x5338143c, branchWord(0x5338143c, iconAt), 'ratio identity to icon');
+  patch.setWord(adr(0x5338143c), branchWord(adr(0x5338143c), iconAt), 'ratio identity to icon');
 
   const bitmap = patch.append(Uint8Array.from(table256((n) => (order.includes(n) ? 1 : 0))), 16);
   const validAt = patch.append([movWord(3, bitmap & 65535), movWord(3, bitmap >>> 16, true), 0xe35100ff, 0x83a00000, 0x812fff1e, 0xe7d30001, 0xe12fff1e], 16);
-  patch.setWord(0x5374acfc, branchWord(0x5374acfc, validAt), 'accept only identities that are in the menu');
+  patch.setWord(adr(0x5374acfc), branchWord(adr(0x5374acfc), validAt), 'accept only identities that are in the menu');
   return { activeBitmap: bitmap };
 }
 
@@ -586,24 +587,24 @@ function buildGeometry(patch: Patch, ratios: readonly RatioEntry[]): { p: Progra
   for (const row of rows) lookup += `cmp r0,#${row.id};` + addr('ip', row.address) + 'moveq r0,ip;bxeq lr;';
   lookup += 'mov r0,#0;bx lr;';
   const get = p.emit(lookup);
-  const scale = p.emit('mov ip,r1;mov r3,#0;umull r0,r1,r0,ip;b #0x53153EEC;');
-  const previewScale = p.emit('mov ip,r1;mov r3,#0;umull r0,r1,r0,ip;mov ip,r2,lsr#1;adds r0,r0,ip;adc r1,r1,#0;b #0x53153EEC;');
+  const scale = p.emit(adrText('mov ip,r1;mov r3,#0;umull r0,r1,r0,ip;b #0x53153EEC;'));
+  const previewScale = p.emit(adrText('mov ip,r1;mov r3,#0;umull r0,r1,r0,ip;mov ip,r2,lsr#1;adds r0,r0,ip;adc r1,r1,#0;b #0x53153EEC;'));
 
-  let out = `push {r0-r3,ip,lr};bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r4,r0;bne #0x5388C7F4;b #${p.target(0x5388c7dc)};`;
-  p.hook(0x5388c7dc, out);
-  out = `push {r0-r3,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r0,r3;bne #0x5388C8BC;b #${p.target(0x5388c8a4)};`;
-  p.hook(0x5388c8a4, out);
-  out = `push {r0-r3,ip,lr};bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};beq old;ldrb r1,[r4,#0x8D];cmp r0,r1;moveq r0,#0;movne r0,#1;b #0x5363FAC8;old:b #${p.target(0x5363faa8)};`;
-  p.hook(0x5363faa8, out);
+  let out = `push {r0-r3,ip,lr};bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r4,r0;bne #${adrHEX(0x5388C7F4)};b #${p.target(adr(0x5388c7dc))};`;
+  p.hook(adr(0x5388c7dc), out);
+  out = `push {r0-r3,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r0,r3;bne #${adrHEX(0x5388C8BC)};b #${p.target(adr(0x5388c8a4))};`;
+  p.hook(adr(0x5388c8a4), out);
+  out = `push {r0-r3,ip,lr};bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};beq old;ldrb r1,[r4,#0x8D];cmp r0,r1;moveq r0,#0;movne r0,#1;b #${adrHEX(0x5363FAC8)};old:b #${p.target(adr(0x5363faa8))};`;
+  p.hook(adr(0x5363faa8), out);
   // Both callers select the cropped window only for their original 2..5 range; a computed window
   // is invisible if selector 0 copies the untouched full canvas instead.
-  out = `push {r0-r3,ip,lr};mov r0,r4;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r0,#1;bne #0x5362E440;sub r4,r4,#2;b #0x5362E434;`;
-  p.hook(0x5362e430, out);
-  out = `push {r0-r3,ip,lr};mov r0,r1;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};beq old;orr r1,r3,#1;ldr r0,[r0,#0x3A0];b #0x53887D48;old:sub r1,r1,#2;b #0x536342F4;`;
-  p.hook(0x536342f0, out);
+  out = `push {r0-r3,ip,lr};mov r0,r4;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r0,#1;bne #${adrHEX(0x5362E440)};sub r4,r4,#2;b #${adrHEX(0x5362E434)};`;
+  p.hook(adr(0x5362e430), out);
+  out = `push {r0-r3,ip,lr};mov r0,r1;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};beq old;orr r1,r3,#1;ldr r0,[r0,#0x3A0];b #${adrHEX(0x53887D48)};old:sub r1,r1,#2;b #${adrHEX(0x536342F4)};`;
+  p.hook(adr(0x536342f0), out);
 
   // Output size: let the native function work out the 3:2 size, then look the result up.
-  for (const entry of [0x538cf488, 0x538cfbf8]) {
+  for (const entry of [adr(0x538cf488), adr(0x538cfbf8)]) {
     const old = p.target(entry);
     out = 'cmp r2,#5;bls old;push {r4-r10,lr};mov r4,r2;mov r5,r3;ldr r6,[sp,#32];';
     for (const row of rows) out += `cmp r4,#${row.id};` + addr('r7', row.dimAddress) + `beq foundrow${row.id};`;
@@ -616,7 +617,7 @@ function buildGeometry(patch: Patch, ratios: readonly RatioEntry[]): { p: Progra
     p.hook(entry, out);
   }
   // Crop origin of the 720x480 screen image and of the 160x120 thumbnail, for both model branches.
-  for (const [entry, kind] of [[0x538cf944, 'screen'], [0x538d00b4, 'screen'], [0x538cf9fc, 'thumb'], [0x538d016c, 'thumb']] as const) {
+  for (const [entry, kind] of [[adr(0x538cf944), 'screen'], [adr(0x538d00b4), 'screen'], [adr(0x538cf9fc), 'thumb'], [adr(0x538d016c), 'thumb']] as const) {
     out = '';
     for (const row of rows) out += `cmp r1,#${row.id};beq ratio${row.id};`;
     out += `b #${p.target(entry)};`;
@@ -628,26 +629,26 @@ function buildGeometry(patch: Patch, ratios: readonly RatioEntry[]): { p: Progra
   }
   // Live-view rectangle on the 45x30 plane: native 3:2 result, scaled by fx / fy and re-centred.
   out = 'cmp r2,#5;bls old;cmp r1,#0;bne old;push {r4-r10,lr};mov r5,r0;mov r0,r2;';
-  out += `bl #${get};cmp r0,#0;beq missing;mov r4,r0;mov r0,r5;mov r2,#0;mov ip,sp;bl #0x538876BC;mov r10,r0;`;
+  out += `bl #${get};cmp r0,#0;beq missing;mov r4,r0;mov r0,r5;mov r2,#0;mov ip,sp;bl #${adrHEX(0x538876BC)};mov r10,r0;`;
   for (const rect of [36, 52]) {
     for (const [dimension, origin, fn, fd] of [[rect, rect + 8, 0, 4], [rect + 4, rect + 12, 8, 12]]) {
       out += `ldr r6,[r5,#${dimension}];mov r0,r6;ldr r1,[r4,#${fn}];ldr r2,[r4,#${fd}];bl #${previewScale};str r0,[r5,#${dimension}];sub r6,r6,r0;add r6,r6,#1;ldr r7,[r5,#${origin}];add r7,r7,r6,lsr#1;str r7,[r5,#${origin}];`;
     }
   }
-  out += 'mov r0,r10;pop {r4-r10,pc};missing:mov r0,r5;pop {r4-r10,lr};old:mov ip,sp;b #0x538876BC;';
-  p.hook(0x538876b8, out);
+  out += adrText('mov r0,r10;pop {r4-r10,pc};missing:mov r0,r5;pop {r4-r10,lr};old:mov ip,sp;b #0x538876BC;');
+  p.hook(adr(0x538876b8), out);
   // AF area rectangle, its size and the small frame.
-  for (const [entry, kind] of [[0x5339e758, 'rectangle'], [0x5339e990, 'size'], [0x5339e9b8, 'small']] as const) {
+  for (const [entry, kind] of [[adr(0x5339e758), 'rectangle'], [adr(0x5339e990), 'size'], [adr(0x5339e9b8), 'small']] as const) {
     out = '';
     for (const row of rows) out += `cmp r0,#${row.id};beq ratio${row.id};`;
     out += `b #${p.target(entry)};`;
     for (const row of rows) {
       if (kind === 'rectangle') {
         const [l, t, r, b] = row.g.af;
-        out += `ratio${row.id}:movw r0,#${b};movw r1,#${l};movw r2,#${t};movw r3,#${r};b #0x5339E73C;`;
+        out += `ratio${row.id}:movw r0,#${b};movw r1,#${l};movw r2,#${t};movw r3,#${r};b #${adrHEX(0x5339E73C)};`;
       } else {
         const [w, h] = kind === 'size' ? row.g.afSize : row.g.afSmall;
-        out += `ratio${row.id}:movw r1,#${w};movw r2,#${h};mov r0,r5;bl #0x538EA168;b #0x5339E924;`;
+        out += `ratio${row.id}:movw r1,#${w};movw r2,#${h};mov r0,r5;bl #${adrHEX(0x538EA168)};b #${adrHEX(0x5339E924)};`;
       }
     }
     p.hook(entry, out);
@@ -655,39 +656,39 @@ function buildGeometry(patch: Patch, ratios: readonly RatioEntry[]): { p: Progra
   // Tracking windows.
   out = '';
   for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
-  out += 'cmp r2,#5;beq #0x5364DF8C;b #0x5364DEE8;';
-  for (const row of rows) out += `ratio${row.id}:movw r4,#${row.g.tracking[0]};movw r7,#${row.g.tracking[1]};b #0x5364DF94;`;
-  p.hook(0x5364dee4, out);
+  out += adrText('cmp r2,#5;beq #0x5364DF8C;b #0x5364DEE8;');
+  for (const row of rows) out += `ratio${row.id}:movw r4,#${row.g.tracking[0]};movw r7,#${row.g.tracking[1]};b #${adrHEX(0x5364DF94)};`;
+  p.hook(adr(0x5364dee4), out);
   out = '';
   for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
-  out += 'cmp r2,#5;beq #0x5364E4D4;b #0x5364E488;';
+  out += adrText('cmp r2,#5;beq #0x5364E4D4;b #0x5364E488;');
   for (const row of rows) {
     const [tx, ty] = row.g.tracking;
     const [lockx, locky] = row.g.modeAlias === 5 ? [778, 1000] : [1000, 750];
-    out += `ratio${row.id}:cmp r7,#0;movw r5,#${lockx};movw r4,#${locky};bne #0x5364E440;movw r5,#${tx};movw r4,#${ty};b #0x5364E3E0;`;
+    out += `ratio${row.id}:cmp r7,#0;movw r5,#${lockx};movw r4,#${locky};bne #${adrHEX(0x5364E440)};movw r5,#${tx};movw r4,#${ty};b #${adrHEX(0x5364E3E0)};`;
   }
-  p.hook(0x5364e484, out);
+  p.hook(adr(0x5364e484), out);
   // Hardware mode alias: wider than 3:2 borrows the native wide branch, otherwise the square one.
   out = '';
   for (const row of rows) out += `cmp r1,#${row.id};beq ratio${row.id};`;
-  out += 'b #0x5364E7D4;';
-  for (const row of rows) out += `ratio${row.id}:cmp r2,#0;moveq r0,#0;movne r0,#${row.g.modeAlias};b #0x5364E7CC;`;
-  p.hook(0x5364e750, out);
-  for (const [entry, resume] of [[0x5364dcb0, 0x5364dcb4], [0x5364dcd8, 0x5364dcdc]]) {
+  out += adrText('b #0x5364E7D4;');
+  for (const row of rows) out += `ratio${row.id}:cmp r2,#0;moveq r0,#0;movne r0,#${row.g.modeAlias};b #${adrHEX(0x5364E7CC)};`;
+  p.hook(adr(0x5364e750), out);
+  for (const [entry, resume] of [[adr(0x5364dcb0), adr(0x5364dcb4)], [adr(0x5364dcd8), adr(0x5364dcdc)]]) {
     out = '';
     for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
     out += `bic ip,ip,#4;b #${resume};custom:`;
-    if (entry === 0x5364dcb0) out += 'add ip,r0,#0x340;';
+    if (entry === adr(0x5364dcb0)) out += 'add ip,r0,#0x340;';
     else out += 'ldr lr,[sp,#0xC];cmp lr,#0x2000;addeq ip,r0,#0x320;addne ip,r0,#0x340;';
-    out += 'ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x5364DC68;';
+    out += adrText('ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x5364DC68;');
     p.hook(entry, out);
   }
   // Low-level live-view width / height. The ratio is the SECOND stack argument. Probe the native
   // square / panoramic cases to keep each resolution's mode overrides, then replace only the
   // dimension that really depends on the crop.
   for (const [entry, displaced, resume, axis, comparison] of [
-    [0x5388a954, 'mov ip,sp', 0x5388a958, 0, 3],
-    [0x5388af1c, 'ldrb r0,[r0,#9]', 0x5388af20, 8, 5],
+    [adr(0x5388a954), 'mov ip,sp', adr(0x5388a958), 0, 3],
+    [adr(0x5388af1c), 'ldrb r0,[r0,#9]', adr(0x5388af20), 8, 5],
   ] as const) {
     p.expect(entry, displaced, 'live-view dimension entry has changed');
     const original = p.emit(`${displaced};b #${resume};`);
@@ -707,17 +708,17 @@ function buildGeometry(patch: Patch, ratios: readonly RatioEntry[]): { p: Progra
     p.hook(entry, out);
   }
   // Vertical scale helper: only a vertically cropped aperture takes its panoramic route.
-  out = `push {r0-r3,ip,lr};mov r0,r7;bl #${get};cmp r0,#0;beq old;ldr r1,[r0,#8];ldr r2,[r0,#12];cmp r1,r2;pop {r0-r3,ip,lr};blo #0x5388BE14;b #0x5388BD68;old:pop {r0-r3,ip,lr};cmp r7,#5;beq #0x5388BE14;b #0x5388BD68;`;
-  p.hook(0x5388be10, out);
+  out = `push {r0-r3,ip,lr};mov r0,r7;bl #${get};cmp r0,#0;beq old;ldr r1,[r0,#8];ldr r2,[r0,#12];cmp r1,r2;pop {r0-r3,ip,lr};blo #${adrHEX(0x5388BE14)};b #${adrHEX(0x5388BD68)};old:pop {r0-r3,ip,lr};cmp r7,#5;beq #${adrHEX(0x5388BE14)};b #${adrHEX(0x5388BD68)};`;
+  p.hook(adr(0x5388be10), out);
   out = 'push {r0-r5,r8-r10,lr};ldrb r0,[r4,#0x8D];';
   out += `bl #${get};cmp r0,#0;beq old;mov r8,r0;`;
   for (const [value, origin, fn, fd] of [['r6', 300, 0, 4], ['r7', 308, 8, 12]] as const) {
     out += `mov r9,${value};mov r0,${value};ldr r1,[r8,#${fn}];ldr r2,[r8,#${fd}];bl #${scale};add r0,r0,#1;bic r0,r0,#1;mov ${value},r0;sub r9,r9,r0;ldr r10,[fp,#-${origin}];add r10,r10,r9,lsr#1;str r10,[fp,#-${origin}];`;
   }
-  out += 'old:pop {r0-r5,r8-r10,lr};ldr r3,[fp,#-0x12C];b #0x53634EC0;';
-  p.hook(0x53634ebc, out);
+  out += adrText('old:pop {r0-r5,r8-r10,lr};ldr r3,[fp,#-0x12C];b #0x53634EC0;');
+  p.hook(adr(0x53634ebc), out);
   {
-    const entry = 0x53646310;
+    const entry = adr(0x53646310);
     const displaced = 'cmp r2,#0x100';
     p.expect(entry, displaced, 'live-view ROI entry has changed');
     out = 'push {r0-r4,r7-r10,lr};mov r0,sl;';
@@ -729,14 +730,14 @@ function buildGeometry(patch: Patch, ratios: readonly RatioEntry[]): { p: Progra
   // conditional stores that follow.
   out = 'push {r0-r4,r7-r10,lr};mov r0,sl;mrs r10,cpsr;';
   out += `bl #${get};cmp r0,#0;beq old;mov r8,r0;mov r0,r6;ldr r1,[r8];ldr r2,[r8,#4];bl #${scale};add r0,r0,#1;bic r6,r0,#1;mov r0,r5;ldr r1,[r8,#8];ldr r2,[r8,#12];bl #${scale};add r0,r0,#1;bic r5,r0,#1;`;
-  out += 'old:msr cpsr_f,r10;pop {r0-r4,r7-r10,lr};strls r5,[fp,#-0x68];b #0x53646C20;';
-  p.hook(0x53646c1c, out);
+  out += adrText('old:msr cpsr_f,r10;pop {r0-r4,r7-r10,lr};strls r5,[fp,#-0x68];b #0x53646C20;');
+  p.hook(adr(0x53646c1c), out);
   // The live-view route above has already applied fx/fy to its source ROI, so its preliminary
   // scales and both converter passes must work on the physical canvas (ratio 0), or the same axis
   // would be cropped twice. An interior BL is replaced, so LR is set to return to the call site.
   for (const [callsite, target, aspectRegister] of [
-    [0x536462e8, 0x5388c4b8, 'r3'], [0x53646300, 0x5388bcb4, 'r3'], [0x5364635c, 0x5388b970, 'r2'],
-    [0x53646384, 0x5388bac8, 'r2'], [0x53646c48, 0x5388b970, 'r2'], [0x53646c6c, 0x5388bac8, 'r2'],
+    [adr(0x536462e8), adr(0x5388c4b8), 'r3'], [adr(0x53646300), adr(0x5388bcb4), 'r3'], [adr(0x5364635c), adr(0x5388b970), 'r2'],
+    [adr(0x53646384), adr(0x5388bac8), 'r2'], [adr(0x53646c48), adr(0x5388b970), 'r2'], [adr(0x53646c6c), adr(0x5388bac8), 'r2'],
   ] as const) {
     p.expect(callsite, `bl #${target}`, 'live-view converter call has changed');
     out = `push {r0-r3,ip,lr};mov r0,${aspectRegister};bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne ${aspectRegister},#0;`;
@@ -764,8 +765,8 @@ function installDevelop(p: Program, scale: number, ratios: readonly RatioEntry[]
   const get = p.emit(lookup + 'mov r0,#0;bx lr;');
   // The native code at 0x53701D3C divides s15 by the crop magnification; the other branch writes
   // it directly. Both contracts are kept.
-  let code = `push {r0-r3,ip,lr};bl #${get};cmp r0,#0;vldrne s15,[r0];pop {r0-r3,ip,lr};beq old;cmp r8,#0;bne #0x53701D48;b #0x53701D3C;old:cmp r0,#1;b #0x53701D90;`;
-  p.hook(0x53701d8c, code);
+  let code = `push {r0-r3,ip,lr};bl #${get};cmp r0,#0;vldrne s15,[r0];pop {r0-r3,ip,lr};beq old;cmp r8,#0;bne #${adrHEX(0x53701D48)};b #${adrHEX(0x53701D3C)};old:cmp r0,#1;b #${adrHEX(0x53701D90)};`;
+  p.hook(adr(0x53701d8c), code);
   // r8 / sb are the source dimensions: exact known sizes first, then fit the ratio for anything else.
   code = `push {r0,r4-r7,r10,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;beq old;mov r4,r0;mov r5,r8;mov r6,sb;`;
   code += 'cmp r8,#720;cmpeq sb,#480;ldreq r5,[r4,#4];ldreq r6,[r4,#8];beq crop;cmp r8,#160;cmpeq sb,#120;ldreq r5,[r4,#20];ldreq r6,[r4,#24];beq crop;';
@@ -773,8 +774,8 @@ function installDevelop(p: Program, scale: number, ratios: readonly RatioEntry[]
   code += 'ldr r7,[r4,#12];ldr r10,[r4,#16];dimension:ldrh r0,[r7];ldrh r1,[r7,#2];cmp r8,r0;cmpeq sb,r1;ldrheq r5,[r7,#4];ldrheq r6,[r7,#6];beq crop;ldrh r0,[r7,#4];ldrh r1,[r7,#6];cmp r8,r0;cmpeq sb,r1;beq crop;add r7,r7,#8;subs r10,r10,#1;bne dimension;';
   code += 'ldr r1,[r4,#4];ldr r2,[r4,#8];mul r0,r8,r2;mul r3,sb,r1;cmp r0,r3;blo width;mov r0,r8;mov r7,r1;mov r1,r2;mov r2,r7;';
   code += `bl #${scale};add r0,r0,#2;bic r6,r0,#3;b crop;width:mov r0,sb;bl #${scale};add r0,r0,#2;bic r5,r0,#3;`;
-  code += 'crop:sub r1,r8,r5;sub r2,sb,r6;mov r1,r1,lsr#1;mov r2,r2,lsr#1;mov r3,r5;mov lr,r6;pop {r0,r4-r7,r10,ip};add sp,sp,#4;b #0x53702464;old:pop {r0,r4-r7,r10,ip,lr};cmp r3,#2;b #0x53702564;';
-  p.hook(0x53702560, code);
+  code += adrText('crop:sub r1,r8,r5;sub r2,sb,r6;mov r1,r1,lsr#1;mov r2,r2,lsr#1;mov r3,r5;mov lr,r6;pop {r0,r4-r7,r10,ip};add sp,sp,#4;b #0x53702464;old:pop {r0,r4-r7,r10,ip,lr};cmp r3,#2;b #0x53702564;');
+  p.hook(adr(0x53702560), code);
 }
 
 // --------------------------------------------------------------------------------------------
@@ -810,9 +811,9 @@ function installImageMap(patch: Patch, ratios: readonly RatioEntry[]): void {
   // The first native record has its own allocation and release; extend that allocation, not the
   // map object (one caller embeds the map in a larger structure).
   const firstBytes = 48 + values.length * VIEW_BYTES;
-  p.hook(0x53877334, 'sub r0,r4,sl;cmp r0,#4;movne r0,#46;' + addr('ip', firstBytes) + 'moveq r0,ip;b #0x53877338;');
-  const factory = p.emit('uxtb r0,r0;b #0x538D0898;');
-  p.hook(0x538d0894, `uxtb r0,r0;push {r0-r3,ip,lr};bl #${mod.symbols.crop_identity};cmp r0,#0;bne custom;pop {r0-r3,ip,lr};b #${factory};custom:add sp,sp,#4;pop {r1-r3,ip,lr};bx lr;`);
+  p.hook(adr(0x53877334), 'sub r0,r4,sl;cmp r0,#4;movne r0,#46;' + addr('ip', firstBytes) + adrText('moveq r0,ip;b #0x53877338;'));
+  const factory = p.emit(adrText('uxtb r0,r0;b #0x538D0898;'));
+  p.hook(adr(0x538d0894), `uxtb r0,r0;push {r0-r3,ip,lr};bl #${mod.symbols.crop_identity};cmp r0,#0;bne custom;pop {r0-r3,ip,lr};b #${factory};custom:add sp,sp,#4;pop {r1-r3,ip,lr};bx lr;`);
   interface Options { normalize?: number | 'stack'; index?: number; factor?: number; post?: string; bias?: boolean }
   const wrapper = (site: number, mapExpr: string, idExpr: string, dest: number, o: Options = {}): void => {
     // Keeps r0-r12, lr and the caller's flags. The 16-byte frame holds the saved APSR, the
@@ -829,19 +830,19 @@ function installImageMap(patch: Patch, ratios: readonly RatioEntry[]): void {
     body += `ldr ip,[sp];msr apsr_nzcvq,ip;add sp,sp,#16;pop {r0-r12,lr};${o.post ?? ''}b #${site + 4};`;
     p.hook(site, body);
   };
-  wrapper(0x536fcc8c, 'ldr r0,[r3,#0xa50];', 'mov r1,r4;', 12, { normalize: 4 });
-  wrapper(0x536fef60, 'ldr r0,[r4,#0xa50];', 'mov r1,r8;', 12, { normalize: 8 });
-  wrapper(0x536ff504, 'ldr r0,[r3,#0xa50];', 'mov r1,sl;', 3, { index: 0 });
-  wrapper(0x537064a0, 'ldr r0,[r4,#0xa1c];', 'ldr r1,[r2,#0x34];ldrb r1,[r1,#0x7da];', 3, { bias: true });
-  wrapper(0x5370655c, 'ldr r0,[r4,#0xa1c];', 'mov r1,r7;', 2, { normalize: 7 });
-  wrapper(0x5370a2e4, 'ldr r0,[r4,#0xa1c];', 'ldr r1,[r4,#0xa10];ldr r1,[r1,#0x34];ldrb r1,[r1,#0x7da];', 5, { normalize: 'stack' });
-  wrapper(0x5370a5dc, 'ldr r0,[sb,#0xa1c];', 'ldr r1,[sb,#0xa10];ldr r1,[r1,#0x34];ldrb r1,[r1,#0x7da];', 12, { normalize: 4 });
-  wrapper(0x5370d62c, 'mov r0,r7;', 'ldr r1,[r5,#0x34];ldrb r1,[r1,#0x7da];', 7, { index: 0, post: 'add r7,r7,r0,lsl #2;' });
-  wrapper(0x5370d768, 'mov r0,r5;', 'ldr r1,[r4,#0x34];ldrb r1,[r1,#0x7da];', 5, { index: 0, post: 'add r5,r5,r0,lsl #2;' });
-  wrapper(0x5372ad4c, 'mov r0,r7;', 'mov r1,r8;', 7, { index: 3, post: 'add r3,r7,r3,lsl #2;' });
+  wrapper(adr(0x536fcc8c), 'ldr r0,[r3,#0xa50];', 'mov r1,r4;', 12, { normalize: 4 });
+  wrapper(adr(0x536fef60), 'ldr r0,[r4,#0xa50];', 'mov r1,r8;', 12, { normalize: 8 });
+  wrapper(adr(0x536ff504), 'ldr r0,[r3,#0xa50];', 'mov r1,sl;', 3, { index: 0 });
+  wrapper(adr(0x537064a0), 'ldr r0,[r4,#0xa1c];', 'ldr r1,[r2,#0x34];ldrb r1,[r1,#0x7da];', 3, { bias: true });
+  wrapper(adr(0x5370655c), 'ldr r0,[r4,#0xa1c];', 'mov r1,r7;', 2, { normalize: 7 });
+  wrapper(adr(0x5370a2e4), 'ldr r0,[r4,#0xa1c];', 'ldr r1,[r4,#0xa10];ldr r1,[r1,#0x34];ldrb r1,[r1,#0x7da];', 5, { normalize: 'stack' });
+  wrapper(adr(0x5370a5dc), 'ldr r0,[sb,#0xa1c];', 'ldr r1,[sb,#0xa10];ldr r1,[r1,#0x34];ldrb r1,[r1,#0x7da];', 12, { normalize: 4 });
+  wrapper(adr(0x5370d62c), 'mov r0,r7;', 'ldr r1,[r5,#0x34];ldrb r1,[r1,#0x7da];', 7, { index: 0, post: 'add r7,r7,r0,lsl #2;' });
+  wrapper(adr(0x5370d768), 'mov r0,r5;', 'ldr r1,[r4,#0x34];ldrb r1,[r1,#0x7da];', 5, { index: 0, post: 'add r5,r5,r0,lsl #2;' });
+  wrapper(adr(0x5372ad4c), 'mov r0,r7;', 'mov r1,r8;', 7, { index: 3, post: 'add r3,r7,r3,lsl #2;' });
   // Run the native deep clone, then rebuild the appended views for the destination.
-  const clone = p.emit('mov ip,sp;b #0x53877CA0;');
-  p.hook(0x53877c9c, `push {r0-r3,ip,lr};bl #${clone};pop {r0-r3,ip,lr};push {r0-r3,ip,lr};bl #${mod.symbols.crop_clone_tail};pop {r0-r3,ip,lr};bx lr;`);
+  const clone = p.emit(adrText('mov ip,sp;b #0x53877CA0;'));
+  p.hook(adr(0x53877c9c), `push {r0-r3,ip,lr};bl #${clone};pop {r0-r3,ip,lr};push {r0-r3,ip,lr};bl #${mod.symbols.crop_clone_tail};pop {r0-r3,ip,lr};bx lr;`);
 }
 
 function installRaw(patch: Patch, ratios: readonly RatioEntry[]): void {
@@ -884,11 +885,11 @@ function installRaw(patch: Patch, ratios: readonly RatioEntry[]): void {
   const table = patch.append(u32le(offsets.map((o) => data + o)), 16);
   const maps = patch.append(concat([forward, reverse]), 16);
   const p = new Program16(patch);
-  p.hook(0x5336b768, 'ldr r3,[r0,#0x24];ldrb r3,[r3,#0x7da];' + addr('r2', table) + 'ldr r2,[r2,r3,lsl #2];ldrb r1,[r0,#5];ldrb r0,[r2];cmp r1,#0;addne r0,r0,#1;uxtb r0,r0;bx lr;');
-  p.hook(0x5336b8c4, 'ldrb r3,[r0,#5];cmp r3,#0;beq source;cmp r1,#0;moveq r0,#0;bxeq lr;sub r1,r1,#1;uxtb r1,r1;source:ldr r3,[r0,#0x24];ldrb r3,[r3,#0x7da];' + addr('r2', table) + 'ldr r2,[r2,r3,lsl #2];ldrb r3,[r2];cmp r1,r3;movhs r0,#0;bxhs lr;add r2,r2,#1;ldrb r0,[r2,r1];bx lr;');
-  p.hook(0x5336d814, 'ldr r3,[r0,#0x24];ldrb r3,[r3,#0x7da];' + addr('r2', table) + 'ldr r2,[r2,r3,lsl #2];ldrb r3,[r2],#1;loop:cmp r3,#0;moveq r0,#0;bxeq lr;ldrb r0,[r2],#1;cmp r0,r1;moveq r0,#1;bxeq lr;sub r3,r3,#1;b loop;');
-  p.hook(0x53374d20, 'uxtb r1,r1;' + addr('r2', maps) + 'ldrb r0,[r2,r1];bx lr;');
-  p.hook(0x53375088, 'cmp r1,#0;ldreq r3,[r0,#0x24];ldrbeq r0,[r3,#0x7da];bxeq lr;uxtb r1,r1;' + addr('r2', maps + 256) + 'ldrb r0,[r2,r1];bx lr;');
+  p.hook(adr(0x5336b768), 'ldr r3,[r0,#0x24];ldrb r3,[r3,#0x7da];' + addr('r2', table) + 'ldr r2,[r2,r3,lsl #2];ldrb r1,[r0,#5];ldrb r0,[r2];cmp r1,#0;addne r0,r0,#1;uxtb r0,r0;bx lr;');
+  p.hook(adr(0x5336b8c4), 'ldrb r3,[r0,#5];cmp r3,#0;beq source;cmp r1,#0;moveq r0,#0;bxeq lr;sub r1,r1,#1;uxtb r1,r1;source:ldr r3,[r0,#0x24];ldrb r3,[r3,#0x7da];' + addr('r2', table) + 'ldr r2,[r2,r3,lsl #2];ldrb r3,[r2];cmp r1,r3;movhs r0,#0;bxhs lr;add r2,r2,#1;ldrb r0,[r2,r1];bx lr;');
+  p.hook(adr(0x5336d814), 'ldr r3,[r0,#0x24];ldrb r3,[r3,#0x7da];' + addr('r2', table) + 'ldr r2,[r2,r3,lsl #2];ldrb r3,[r2],#1;loop:cmp r3,#0;moveq r0,#0;bxeq lr;ldrb r0,[r2],#1;cmp r0,r1;moveq r0,#1;bxeq lr;sub r3,r3,#1;b loop;');
+  p.hook(adr(0x53374d20), 'uxtb r1,r1;' + addr('r2', maps) + 'ldrb r0,[r2,r1];bx lr;');
+  p.hook(adr(0x53375088), 'cmp r1,#0;ldreq r3,[r0,#0x24];ldrbeq r0,[r3,#0x7da];bxeq lr;uxtb r1,r1;' + addr('r2', maps + 256) + 'ldrb r0,[r2,r1];bx lr;');
   installImageMap(patch, ratios);
 }
 
@@ -896,10 +897,10 @@ function installRaw(patch: Patch, ratios: readonly RatioEntry[]): void {
 // crop_state.py
 
 function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
-  const priorSave = branchTarget(0x533e1c04, patch.word(0x533e1c04));
-  const priorLoad = branchTarget(0x533e17cc, patch.word(0x533e17cc));
-  expectWord(patch, 0x532a90cc, 0xebfe566c);
-  expectWord(patch, 0x537f6aac, 0xe1a0c00d);
+  const priorSave = branchTarget(adr(0x533e1c04), patch.word(adr(0x533e1c04)));
+  const priorLoad = branchTarget(adr(0x533e17cc), patch.word(adr(0x533e17cc)));
+  expectWord(patch, adr(0x532a90cc), 0xebfe566c);
+  expectWord(patch, adr(0x537f6aac), 0xe1a0c00d);
   // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
   const rects: Uint8Array[] = [];
   for (const r of ratios) {
@@ -909,39 +910,39 @@ function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap:
   const origin = patch.next(16);
   const mod = linkNative('state', rects.length, origin, {
     crop_active_bitmap: activeBitmap, crop_source_rectangles: table, prior_native_save: priorSave, prior_native_load: priorLoad,
-    factory_source_rectangle_body: 0x537f6ab0,
+    factory_source_rectangle_body: adr(0x537f6ab0),
   });
   if (patch.append(mod.code, 16) !== origin) fail('internal', 'module address changed');
-  patch.setWord(0x533e1c04, branchWord(0x533e1c04, mod.symbols.crop_state_save), 'settings save: reset a ratio that is no longer in the menu');
-  patch.setWord(0x533e17cc, branchWord(0x533e17cc, mod.symbols.crop_state_load), 'settings load: reset a ratio that is no longer in the menu');
-  const site = 0x532a90cc;
-  const stub = patch.append((at) => [0xe92d500f, 0xe1a00004, branchWord(at + 8, mod.symbols.crop_normalize_userdata, 14, true), 0xe8bd500f, branchWord(at + 16, 0x5323ea84)], 16);
+  patch.setWord(adr(0x533e1c04), branchWord(adr(0x533e1c04), mod.symbols.crop_state_save), 'settings save: reset a ratio that is no longer in the menu');
+  patch.setWord(adr(0x533e17cc), branchWord(adr(0x533e17cc), mod.symbols.crop_state_load), 'settings load: reset a ratio that is no longer in the menu');
+  const site = adr(0x532a90cc);
+  const stub = patch.append((at) => [0xe92d500f, 0xe1a00004, branchWord(at + 8, mod.symbols.crop_normalize_userdata, 14, true), 0xe8bd500f, branchWord(at + 16, adr(0x5323ea84))], 16);
   patch.setWord(site, branchWord(site, stub, 14, true), 'user-mode recall: reset a ratio that is no longer in the menu');
-  patch.setWord(0x537f6aac, branchWord(0x537f6aac, mod.symbols.crop_metadata_rectangle), 'photo-info rectangle of an added ratio');
+  patch.setWord(adr(0x537f6aac), branchWord(adr(0x537f6aac), mod.symbols.crop_metadata_rectangle), 'photo-info rectangle of an added ratio');
 }
 
 // --------------------------------------------------------------------------------------------
 // crop_image_identity.py
 
 const GATES = [
-  [0x537f5770, 0xe3500003, 'crop_image_extract_gate'],
-  [0x5380d1ec, 0xe3530003, 'crop_image_set_gate'],
-  [0x536b6848, 0xe35a0003, 'crop_image_playback_gate'],
-  [0x536c79e0, 0xe3500003, 'crop_image_aspect_gate'],
+  [adr(0x537f5770), 0xe3500003, 'crop_image_extract_gate'],
+  [adr(0x5380d1ec), 0xe3530003, 'crop_image_set_gate'],
+  [adr(0x536b6848), 0xe35a0003, 'crop_image_playback_gate'],
+  [adr(0x536c79e0), 0xe3500003, 'crop_image_aspect_gate'],
 ] as const;
 const NATIVE_JOINS: Readonly<Record<string, number>> = {
-  native_extract_table: 0x537f5774, native_extract_unknown: 0x537f5778, native_extract_return: 0x537f5798,
-  native_set_table: 0x5380d1f0, native_set_unknown: 0x5380d1f4, native_set_join: 0x5380d20c,
-  native_playback_table: 0x536b684c, native_playback_unknown: 0x536b6850, native_playback_join: 0x536b6868,
-  native_aspect_table: 0x536c79e4, native_aspect_unknown: 0x536c79e8, native_aspect_return: 0x536c7a00,
-  native_screen_rect_body: 0x536cd890, native_thumbnail_rect_body: 0x536cda84,
+  native_extract_table: adr(0x537f5774), native_extract_unknown: adr(0x537f5778), native_extract_return: adr(0x537f5798),
+  native_set_table: adr(0x5380d1f0), native_set_unknown: adr(0x5380d1f4), native_set_join: adr(0x5380d20c),
+  native_playback_table: adr(0x536b684c), native_playback_unknown: adr(0x536b6850), native_playback_join: adr(0x536b6868),
+  native_aspect_table: adr(0x536c79e4), native_aspect_unknown: adr(0x536c79e8), native_aspect_return: adr(0x536c7a00),
+  native_screen_rect_body: adr(0x536cd890), native_thumbnail_rect_body: adr(0x536cda84),
 };
 
 function installImageIdentity(patch: Patch, ratios: readonly RatioEntry[]): void {
   for (const [site, native] of GATES) expectWord(patch, site, native);
-  expectWord(patch, 0x536cd414, branchWord(0x536cd414, 0x536c79cc, 14, true));
-  expectWord(patch, 0x536cd88c, 0xe1a0c00d);
-  expectWord(patch, 0x536cda80, 0xe1a0c00d);
+  expectWord(patch, adr(0x536cd414), branchWord(adr(0x536cd414), adr(0x536c79cc), 14, true));
+  expectWord(patch, adr(0x536cd88c), 0xe1a0c00d);
+  expectWord(patch, adr(0x536cda80), 0xe1a0c00d);
   const known = new Set(ratios.map((r) => r.id));
   const archive = patch.append(Uint8Array.from({ length: 256 }, (_, n) => (known.has(n) ? 1 : 0)), 16);
   const rectangles = playbackRectangles(ratios.map((r) => r.geometry));
@@ -953,8 +954,8 @@ function installImageIdentity(patch: Patch, ratios: readonly RatioEntry[]): void
   // The caller has the photo's metadata in r7; its size classification must not replace a known
   // added identity by the nearest factory ratio.
   const context = patch.append((at) => [0xe1a01007, branchWord(at + 4, mod.symbols.crop_image_source_aspect)], 16);
-  patch.setWord(0x536cd414, branchWord(0x536cd414, context, 14, true), 'playback: keep the identity stored in the photo');
-  for (const [site, helper] of [[0x536cd88c, 'crop_image_screen_rect'], [0x536cda80, 'crop_image_thumbnail_rect']] as const) {
+  patch.setWord(adr(0x536cd414), branchWord(adr(0x536cd414), context, 14, true), 'playback: keep the identity stored in the photo');
+  for (const [site, helper] of [[adr(0x536cd88c), 'crop_image_screen_rect'], [adr(0x536cda80), 'crop_image_thumbnail_rect']] as const) {
     patch.setWord(site, branchWord(site, mod.symbols[helper]), 'playback rectangle by exact photo size');
   }
 }
@@ -975,8 +976,8 @@ function installImageIdentity(patch: Patch, ratios: readonly RatioEntry[]): void
 // count is taken for the height rounded up to 8. Width, height and stride of the picture are not
 // touched, and for a height that is already a multiple of 8 the count is the same as before.
 
-const ALLOC_SIZE_CALL = 0x5369ece8;
-const CALC_IMAGE_BUFFER_SIZE = 0x53696aa4;
+const ALLOC_SIZE_CALL = adr(0x5369ece8);
+const CALC_IMAGE_BUFFER_SIZE = adr(0x53696aa4);
 
 function installPlaybackDecode(patch: Patch): void {
   // mov r1, sb (format) / mov r0, r8 (&stride size {width16, height}) / bl CalcImageBufferSize / mov r1, r0

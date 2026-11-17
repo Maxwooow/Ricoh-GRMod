@@ -28,6 +28,9 @@
  *    two loads). The table of full-screen JPEGs (13 pointers at
  *    0x55002b78, addressed only from 0x5322e4b4/0x5322e4bc) is copied with n more entries
  *    {720, 480, "A:\Resource\Jpeg\GRMODk.jpg"}.
+ *    From 1.70 / 2.20 (the 30th-anniversary release) the table has 15 pointers (13 GB_20th, 14 GB_30th: the
+ *    camera sets its variant to 6, the 30th anniversary, at every start), the stub replaces r7 by 15 + k - 1,
+ *    and it sits 0x10 after the cases' join, where the request object is already in r8.
  *  - The files: RES records of exactly two container frames each (as on GR IV), 720 x 480 baseline
  *    JPEG 4:2:0 like the factory pictures, added to the RES section after its A: files (before the
  *    first B: file). The camera's updater (DspFwUpdate, the firmware already installed) formats A:
@@ -39,6 +42,7 @@ import { encodeCoefficients, forwardTransform, makeLayout } from '../../jpeg/enc
 import { qualityTables } from '../../jpeg/tables';
 import { branchWord, movWord } from '../aspect/arm';
 import { FirmwareError } from '../types';
+import { adr, byRelease, release } from './target';
 
 export const GR3X_PICTURE_MENU_ID = 0x020001a3;
 export const GR3X_PICTURE_OFFSET = 0x9a3;
@@ -52,24 +56,25 @@ export const GR3X_PICTURE_JPEG_BYTES = 2 * 0x6000 - 36;
 export const GR3X_RES_BEFORE = 'B:\\Resource\\Jpeg\\AlpKey.jpg';
 /** Most files RES may list: the camera's updater (0x5362a4c0) steps past RES by the file count in
  * BYTES and reads a section header there (inside the first file, DF_EX.bin); counts up to 68 land
- * on harmless bytes of the official file (simulated), 35 + 8 pictures is 43. */
-export const GR3X_RES_MAX_FILES = 43;
+ * on harmless bytes of the official file (simulated on 1.60; DF_EX.bin and its place are the same in the later
+ * releases, SHA-256 equal): the official files (35; 37 from 1.70 / 2.20) and 8 pictures. */
+export const GR3X_RES_MAX_FILES = byRelease({ '1.60': 43, '1.70': 45, '1.71': 45 });
 
-const SETTINGS_POINTER = 0x55063f34;
-const SETUP_MENU = 0x53b36a54, SETUP_ENTRY_IMAGE = 0x5407d408, SETUP_ENTRY_RAM = 0x55001ec8;
+const SETTINGS_POINTER = adr(0x55063f34);
+const SETUP_MENU = adr(0x53b36a54), SETUP_ENTRY_IMAGE = adr(0x5407d408), SETUP_ENTRY_RAM = adr(0x55001ec8);
 const DESCRIPTOR = 0x384, MAX_ITEMS = 38;
 const D_PAGES = 0x68, D_FIRST = 0x80, D_COUNT = 0x8b, D_DRAW = 0x8c, D_ID = 0x1bc, D_VISIBLE = 0x254;
-const SETUP_ITEMS = 30, END_SCREEN_ITEM = 10, END_SCREEN_ID = 0x020000ad, END_SCREEN_DRAW = 0x531987c8, END_SCREEN_TITLE = 665;
+const SETUP_ITEMS = 30, END_SCREEN_ITEM = 10, END_SCREEN_ID = 0x020000ad, END_SCREEN_DRAW = adr(0x531987c8), END_SCREEN_TITLE = 665;
 const SETUP_FIRSTS = [0, 7, 11, 13, 15, 17, 20, 23, 25, 27, 29];
 /** The id of an unused item slot. */
 const NO_ITEM = 0x10000000;
 const SETUP_FIRSTS_NEW = [0, 7, 12, 14, 16, 18, 21, 24, 26, 28, 30];
-const LINE_VALUE_TEXT = 0x5339de6c, TOP_SET_TITLE = 0x5339dc70, LIST_SET_ITEM = 0x5339e8b0;
+const LINE_VALUE_TEXT = adr(0x5339de6c), TOP_SET_TITLE = adr(0x5339dc70), LIST_SET_ITEM = adr(0x5339e8b0);
 const ICON_OFF = 344;
-const REQUEST = 0x5319f180, JOIN = 0x5319f208, JOIN_WORD = 0xe8950003;
-const JPEG_TABLE = 0x55002b78, JPEG_TABLE_IMAGE = 0x5407e0b8, JPEG_TABLE_COUNT = 13;
-const JPEG_TABLE_SITE: readonly [number, number, number] = [0x5322e4b4, 0x5322e4bc, 12];
-const PLAYBACK_JPEG = 0x5322e4a8;
+const REQUEST = adr(0x5319f180), JOIN = byRelease({ '1.60': 0x5319f208, '1.70': 0x5319f2d0, '1.71': 0x531a0230 }), JOIN_WORD = 0xe8950003;
+const JPEG_TABLE = adr(0x55002b78), JPEG_TABLE_IMAGE = adr(0x5407e0b8), JPEG_TABLE_COUNT = byRelease({ '1.60': 13, '1.70': 15, '1.71': 15 });
+const JPEG_TABLE_SITE: readonly [number, number, number] = [adr(0x5322e4b4), adr(0x5322e4bc), 12];
+const PLAYBACK_JPEG = adr(0x5322e4a8);
 
 /** The line name per text row (ja en fr de es pt it nl da sv fi pl cs hu tr el ru ko zh-TW zh-CN th). */
 export const GR3X_PICTURE_LINE_NAMES: readonly string[] = [
@@ -81,7 +86,7 @@ export const GR3X_PICTURE_LINE_NAMES: readonly string[] = [
 export const GR3X_PICTURE_ORIGINAL: readonly string[] = GR3X_PICTURE_LINE_NAMES.map((_, row) =>
   row === 0 ? 'オリジナル' : row === 18 || row === 19 ? '原始' : 'Original');
 
-export const GR3X_JPEG_TABLE_COUNT = 13;
+export const GR3X_JPEG_TABLE_COUNT = byRelease({ '1.60': 13, '1.70': 15, '1.71': 15 });
 export interface Gr3xPictureSpec {
   /** Round 6 (End Screen submenu): stable identity 1..0xffffffff, what the camera remembers. */
   id?: number;
@@ -291,8 +296,16 @@ export function installGr3xPictureStage(p: Gr3xPictureProgram, n: number, o: { p
   const withPick = o.pick !== false;
   if (n < 1 || n > GR3X_MAX_PICTURES) fail('internal', 'IIIx power-off picture count');
   const guards: readonly (readonly [number, number])[] = [
-    [REQUEST, 0xe1a0c00d], ...(withPick ? [[JOIN, JOIN_WORD]] as const : []), [JOIN - 4, 0xe3a07002], // mov r7,#2 (GoodBye), then the join
-    [JOIN + 0x24, 0xe1a01007], [JOIN + 0x2c, 0xeb000000 | (((PLAYBACK_JPEG - (JOIN + 0x2c + 8)) >> 2) & 0xffffff)], // mov r1,r7; bl request
+    [REQUEST, 0xe1a0c00d], ...(withPick ? [[JOIN, JOIN_WORD]] as const : []),
+    ...(release === '1.60' ? [
+      [JOIN - 4, 0xe3a07002], // mov r7,#2 (GoodBye), then the join
+      [JOIN + 0x24, 0xe1a01007], [JOIN + 0x2c, 0xeb000000 | (((PLAYBACK_JPEG - (JOIN + 0x2c + 8)) >> 2) & 0xffffff)], // mov r1,r7; bl request
+    ] as const : [
+      // From 1.70 / 2.20: mov r7,#2 (GoodBye), mov r0,r6 (the cases' join), ..., mov r8,r0, then the `ldm`
+      [JOIN - 4, 0xe1a08000], [JOIN - 0x14, 0xe3a07002],
+      [JOIN - 0x10, 0xe1a00006], [JOIN + 4, 0xe8860003], // stm r6,{r0,r1}
+      [JOIN + 0x20, 0xe1a01007], [JOIN + 0x28, 0xeb000000 | (((PLAYBACK_JPEG - (JOIN + 0x28 + 8)) >> 2) & 0xffffff)], // mov r1,r7; bl request
+    ] as const),
     [PLAYBACK_JPEG, 0xe1a0c00d],
     [JPEG_TABLE_SITE[0], movWord(12, lo(JPEG_TABLE))], [JPEG_TABLE_SITE[1], movWord(12, hi(JPEG_TABLE), true)],
     [JPEG_TABLE_SITE[1] + 0xc, 0xe79c1101], // ldr r1,[ip,r1,lsl #2]: no bound

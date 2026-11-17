@@ -40,7 +40,9 @@ jobs:
       - name: The version numbers agree
         run: node tools/version.mjs --check
       - name: The ports are what the generator makes
-        run: python3 tools/port/check.py
+        run: |
+          python3 tools/port/check.py
+          python3 tools/port/addresses.py --check
       - name: Types
         run: |
           npm -w core run typecheck

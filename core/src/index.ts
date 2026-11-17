@@ -21,10 +21,10 @@ export type { RatioPreview } from './app';
 
 export { GR3X_160, GR3_210, GR3_PROFILES, GR3X_SYMBOLS, GR3X_BLOCKERS, gr3ProfileOf, gr3xOffset, openGr3xOfficial } from './fw/gr3x/profile';
 export type { Gr3Profile } from './fw/gr3x/profile';
-/** The ports to the cameras' later firmware (generated copies, see tools/port). */
-export { GR3X_170, GR3_220 } from './fw/gr3x170/profile';
-export { GR3X_171, GR3_221 } from './fw/gr3x171/profile';
+/** The programs for the cameras' later firmware (see fw/release.ts and tools/port). */
+export { GR3X_170, GR3_220, GR3X_171, GR3_221 } from './fw/gr3-profiles';
 export { FIRMWARE_VERSION as FIRMWARE_VERSION_120 } from './fw/gr4v120/profile';
-export { FIRMWARE_VERSION as FIRMWARE_VERSION_121 } from './fw/gr4v121/profile';
+import { FIRMWARE_VERSION as FIRMWARE_VERSION_121 } from './fw/gr4v121';
+export { FIRMWARE_VERSION_121 };
 export { GFX_RATIOS, GR3X_BASE_SIZES, GR3X_MAX_CUSTOM_RATIOS, GR3X_RATIO_NAME_MAX, GR3X_T4_CUSTOM, planGr3xMenu, planGr3xRatio, validateGr3xRatioName } from './fw/gr3x/geometry';
 export { GR3X_FILM_IDS, GR3X_FILM_NAMES } from './fw/gr3x/look-resources';

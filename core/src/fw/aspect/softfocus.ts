@@ -57,6 +57,7 @@ import { assembleWords, movImmediate, movWord } from './arm';
 import {
   ICON_CATALOG, LANGUAGES, LOOKUP_BOUNDS, NATIVE_TEXT_ROOTS, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z,
 } from './build';
+import { adr, adrHex } from '../target';
 
 /** ADJ function number of soft focus (a function the GR IV never offers, see above). */
 export const ADJ_SOFT_FOCUS = 0x0a;
@@ -71,11 +72,11 @@ export const SOFT_FOCUS_TEXT_ID = 840;
  */
 export const SOFT_FOCUS_ICON_ID = 720;
 /** Where its value (0 off, 1 weak, 2 medium, 3 strong) is kept: byte 0x90F of the live user settings. */
-export const SOFT_FOCUS_BYTE = 0x55084dd8 + 4 + 0x90f;
+export const SOFT_FOCUS_BYTE = adr(0x55084dd8) + 4 + 0x90f;
 /** Clarity values passed on for weak / medium / strong (rows 9, 10, 11). */
 const FIRST_SOFT_CLARITY = 5;
 
-const ADJ_TABLE = 0x53d9f714;
+const ADJ_TABLE = adr(0x53d9f714);
 const ADJ_RECORD = 0x5c;
 const ADJ_FUNCTIONS = 21;
 /** The record of Crop (function 0x13), the model for the new one. */
@@ -86,19 +87,19 @@ const H_IS_CURRENT = 0x20;
 const H_SET = 0x28;
 const H_COUNT = 0x30;
 
-const MENU_LIST = 0x53dba8c0;
+const MENU_LIST = adr(0x53dba8c0);
 /** The two reads of Clarity that decide whether the digital-filter step runs (0x537150FC). */
-const CLARITY_GATE = [0x5371518c, 0x537151b4];
+const CLARITY_GATE = [adr(0x5371518c), adr(0x537151b4)];
 /** Getters of ADJ slots 1..5 (bytes 0x920..0x924 of the user settings). */
-const SLOT_GETTERS = [0x5329c240, 0x5329c248, 0x5329c250, 0x5329c258, 0x5329c260];
+const SLOT_GETTERS = [adr(0x5329c240), adr(0x5329c248), adr(0x5329c250), adr(0x5329c258), adr(0x5329c260)];
 const MENU_LIST_OFFICIAL = [0, 1, 2, 3, 4, 5, 19, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 20, 17];
 const MENU_LIST_NEW = [0, 1, 2, 3, 4, 5, 19, 6, 7, 8, 9, 11, 12, 13, 14, 15, ADJ_SOFT_FOCUS, 16, 20, 17];
 /** Official record of function 0x0A (enter, draw, is current, set, count, flag), checked before it is replaced. */
-const OFFICIAL_RECORD: readonly (readonly [number, number])[] = [[0x10, 0x531ba124], [0x18, 0x531be434], [0x20, 0x531bb454], [0x28, 0x531bb014], [0x30, 0x531ba180], [0x38, 1], [0x3c, 0]];
+const OFFICIAL_RECORD: readonly (readonly [number, number])[] = [[0x10, adr(0x531ba124)], [0x18, adr(0x531be434)], [0x20, adr(0x531bb454)], [0x28, adr(0x531bb014)], [0x30, adr(0x531ba180)], [0x38, 1], [0x3c, 0]];
 
 // Functions of the ADJ controller's list view the handlers call (the same as Crop's).
-const LIST_ITEM = 0x53570a9c; // (list, index) -> item
-const ITEM_SET_TEXT = 0x5357de6c; // (item, text number)
+const LIST_ITEM = adr(0x53570a9c); // (list, index) -> item
+const ITEM_SET_TEXT = adr(0x5357de6c); // (item, text number)
 
 /** Texts of the four values: Off, Low, Medium, High. */
 const VALUE_TEXTS = [2, 9, 10, 11];
@@ -110,7 +111,7 @@ export const SOFT_FOCUS_NAMES: readonly string[] = [
   'Мягкий фокус', '柔焦', 'Enfoque suave', 'Mjukt fokus', 'ซอฟต์โฟกัส', '柔焦', 'Yumuşak odak',
 ];
 /** First language table (in `LANGS` order) as the program sees it in RAM; tables are 0xD14 apart. */
-const FIRST_TABLE_RAM = 0x55000000 + (0x5437d7b0 - 0x5437b640);
+const FIRST_TABLE_RAM = adr(0x55000000) + (adr(0x5437d7b0) - adr(0x5437b640));
 const TABLE_STRIDE = 0xd14;
 
 export const SOFT_FOCUS_ICON_W = 40;
@@ -196,18 +197,18 @@ export function installAdjSoftFocus(patch: Patch, iconbin: Uint8Array): Uint8Arr
   if (ADJ_SOFT_FOCUS >= ADJ_FUNCTIONS) fail('internal', 'soft focus must reuse a record of the table');
   const menu = patch.read(MENU_LIST, MENU_LIST_OFFICIAL.length);
   if (!MENU_LIST_OFFICIAL.every((v, i) => menu[i] === v)) fail('unexpected-layout', 'ADJ function list is not the official one');
-  expectWord(patch, 0x531dae30, movWord(4, lo(MENU_LIST)));
-  expectWord(patch, 0x531dae40, movWord(4, hi(MENU_LIST), true));
-  expectWord(patch, 0x531dae5c, 0xe2846013); // add r6, r4, #19
-  expectWord(patch, 0x5337fef0, 0xe351000a); // cmp r1, #0x0a
-  expectWord(patch, 0x5337fef4, 0x0a000027); // beq 0x5337ff98 (no other case goes there)
-  expectWord(patch, 0x5337ff98, 0xe3a00087); // mov r0, #135
-  expectWord(patch, 0x5337ff9c, 0xe12fff1e); // bx lr
-  expectWord(patch, 0x53381850, 0xe241300a); // sub r3, r1, #0x0a
-  expectWord(patch, 0x53381854, 0xe3530001); // cmp r3, #1
-  expectWord(patch, 0x53381858, 0x9a000035); // bls 0x53381934 (0x0A and 0x0B)
-  expectWord(patch, 0x53381934, 0xe3520000); // cmp r2, #0
-  expectWord(patch, 0x53701de8, 0xe1c530b2); // strh r3, [r5, #2]
+  expectWord(patch, adr(0x531dae30), movWord(4, lo(MENU_LIST)));
+  expectWord(patch, adr(0x531dae40), movWord(4, hi(MENU_LIST), true));
+  expectWord(patch, adr(0x531dae5c), 0xe2846013); // add r6, r4, #19
+  expectWord(patch, adr(0x5337fef0), 0xe351000a); // cmp r1, #0x0a
+  expectWord(patch, adr(0x5337fef4), 0x0a000027); // beq 0x5337ff98 (no other case goes there)
+  expectWord(patch, adr(0x5337ff98), 0xe3a00087); // mov r0, #135
+  expectWord(patch, adr(0x5337ff9c), 0xe12fff1e); // bx lr
+  expectWord(patch, adr(0x53381850), 0xe241300a); // sub r3, r1, #0x0a
+  expectWord(patch, adr(0x53381854), 0xe3530001); // cmp r3, #1
+  expectWord(patch, adr(0x53381858), 0x9a000035); // bls 0x53381934 (0x0A and 0x0B)
+  expectWord(patch, adr(0x53381934), 0xe3520000); // cmp r2, #0
+  expectWord(patch, adr(0x53701de8), 0xe1c530b2); // strh r3, [r5, #2]
   for (const site of CLARITY_GATE) {
     expectWord(patch, site, 0xe5d137b4); // ldrb r3, [r1, #0x7b4]
     expectWord(patch, site + 4, 0xe5d127b3); // ldrb r2, [r1, #0x7b3]  (r2 is free at the site)
@@ -216,9 +217,9 @@ export function installAdjSoftFocus(patch: Patch, iconbin: Uint8Array): Uint8Arr
     expectWord(patch, at, 0xe5d00920 + i); // ldrb r0, [r0, #0x920 + i]
     expectWord(patch, at + 4, 0xe12fff1e); // bx lr
   });
-  expectWord(patch, 0x538a2000, 0xe3580008); // cmp r8, #8
-  expectWord(patch, 0x538a2634, 0xe0281893); // mla r8, r3, r8, r1
-  expectWord(patch, 0x538a1fe0 + 8 + 0x1a0, 0x53b4c860); // the clarity table the function copies
+  expectWord(patch, adr(0x538a2000), 0xe3580008); // cmp r8, #8
+  expectWord(patch, adr(0x538a2634), 0xe0281893); // mla r8, r3, r8, r1
+  expectWord(patch, adr(0x538a1fe0) + 8 + 0x1a0, adr(0x53b4c860)); // the clarity table the function copies
   const crop = patch.read(ADJ_TABLE + CROP * ADJ_RECORD, ADJ_RECORD);
   const cropWords = new DataView(crop.buffer);
   for (const off of [H_DRAW, H_IS_CURRENT, H_SET, H_COUNT]) {
@@ -264,12 +265,12 @@ export function installAdjSoftFocus(patch: Patch, iconbin: Uint8Array): Uint8Arr
 
   // --- ADJ mode setting menu: the list of functions.
   const list = patch.append(Uint8Array.from(MENU_LIST_NEW), 16);
-  patch.setWord(0x531dae30, movWord(4, lo(list)), 'ADJ soft focus: function list, low half');
-  patch.setWord(0x531dae40, movWord(4, hi(list), true), 'ADJ soft focus: function list, high half');
-  patch.setWord(0x531dae5c, 0xe2846000 | MENU_LIST_NEW.length, 'ADJ soft focus: function list length');
+  patch.setWord(adr(0x531dae30), movWord(4, lo(list)), 'ADJ soft focus: function list, low half');
+  patch.setWord(adr(0x531dae40), movWord(4, hi(list), true), 'ADJ soft focus: function list, high half');
+  patch.setWord(adr(0x531dae5c), 0xe2846000 | MENU_LIST_NEW.length, 'ADJ soft focus: function list length');
 
   // --- Name: function 0x0A -> text 840.
-  patch.setWord(0x5337ff98, movWord(0, SOFT_FOCUS_TEXT_ID), 'ADJ soft focus: function name');
+  patch.setWord(adr(0x5337ff98), movWord(0, SOFT_FOCUS_TEXT_ID), 'ADJ soft focus: function name');
   const descriptors: number[] = [];
   SOFT_FOCUS_NAMES.forEach((text) => {
     const encoded = utf16z(text);
@@ -301,10 +302,10 @@ export function installAdjSoftFocus(patch: Patch, iconbin: Uint8Array): Uint8Arr
     patch.setWord(site, movWord(register, Math.max(SOFT_FOCUS_ICON_ID, movImmediate(patch.word(site)))), 'icon upper bound');
   }
   const iconAt = patch.append((at) => assembleWords(
-    `cmp r3, #0; bne #0x53381934
+    `cmp r3, #0; bne #${adrHex(0x53381934)}
      cmp r2, #0; movne r0, #0; bxne lr
      movw r0, #${SOFT_FOCUS_ICON_ID}; bx lr`, at), 16);
-  patch.setWord(0x53381858, branchTo(0x53381858, iconAt, 9), 'ADJ soft focus: function icon');
+  patch.setWord(adr(0x53381858), branchTo(adr(0x53381858), iconAt, 9), 'ADJ soft focus: function icon');
 
   // --- Image processing: run the digital-filter step while soft focus is on.
   for (const site of CLARITY_GATE) {
@@ -331,14 +332,14 @@ export function installAdjSoftFocus(patch: Patch, iconbin: Uint8Array): Uint8Arr
      cmp r2, #0; bxeq lr
      cmp r2, #3; bxhi lr
      add r2, r2, #${FIRST_SOFT_CLARITY - 1}; strh r2, [r5, #2]; bx lr`, at), 16);
-  patch.setWord(0x53701de8, branchTo(0x53701de8, param, 14, true), 'ADJ soft focus: clarity parameter');
-  patch.setWord(0x538a2000, 0xe358000b, 'ADJ soft focus: clarity rows up to 11'); // cmp r8, #11
+  patch.setWord(adr(0x53701de8), branchTo(adr(0x53701de8), param, 14, true), 'ADJ soft focus: clarity parameter');
+  patch.setWord(adr(0x538a2000), 0xe358000b, 'ADJ soft focus: clarity rows up to 11'); // cmp r8, #11
   const rowAt = patch.append((at) => assembleWords(
     `cmp r8, #8; bhi soft
      mul r8, r3, r8; add r8, r8, r1; bx lr
      soft: sub r8, r8, #9; mul r8, r3, r8
      movw ip, #${lo(rows)}; movt ip, #${hi(rows)}; add r8, r8, ip; bx lr`, at), 16);
-  patch.setWord(0x538a2634, branchTo(0x538a2634, rowAt, 14, true), 'ADJ soft focus: clarity row');
+  patch.setWord(adr(0x538a2634), branchTo(adr(0x538a2634), rowAt, 14, true), 'ADJ soft focus: clarity row');
 
   return concat([iconbin, new Uint8Array(pad), icon]);
 }

@@ -61,6 +61,7 @@ import {
 } from './build';
 import { DATESTAMP_AS_STORED, DATESTAMP_BYTE, DATESTAMP_LONG, DATESTAMP_NAME } from './datestamp';
 import { OFFICIAL_ITEMS, WIDE_DESCRIPTOR, WIDE_ITEMS, W_DRAW, W_ID, W_VISIBLE, installWideMenus } from './menuwide';
+import { adr } from '../target';
 
 /** Controller ids of the submenu and of its two lists. */
 export const DATESTAMP_MENU_ID = 0x020001a0;
@@ -117,9 +118,9 @@ export const DATESTAMP_NAME_WORDS: readonly string[] = [
 export const datestampNameTexts = (date: string): string[] => DATESTAMP_NAME_WORDS.map((w) => `${date} + ${w}`);
 
 // --- Official addresses (checked before use).
-const BUILDER = 0x531b5494;
-const MENU_TABLE = 0x55001e78;
-const STILL_MENU = 0x53dc74b0;
+const BUILDER = adr(0x531b5494);
+const MENU_TABLE = adr(0x55001e78);
+const STILL_MENU = adr(0x53dc74b0);
 const DESCRIPTOR = 0x38c;
 const MAX_ITEMS = 38;
 const D_PAGES = 0x68;
@@ -130,30 +131,30 @@ const D_ID = 0x1bc;
 const D_VISIBLE = 0x254;
 const HDF_ITEM = 22;
 const RED_FILTER_ITEM = 23;
-const FACTORY = 0x531871bc;
-const SUB_SET_CURRENT = 0x531e361c;
-const SELECT_SET_CURRENT = 0x531d7860;
-const SUB_TABLE = 0x53dd0f00;
+const FACTORY = adr(0x531871bc);
+const SUB_SET_CURRENT = adr(0x531e361c);
+const SELECT_SET_CURRENT = adr(0x531d7860);
+const SUB_TABLE = adr(0x53dd0f00);
 const SUB_RECORD = 0x64;
 const SUB_RECORDS = 18;
 const SUB_SITES: readonly (readonly [number, number, number])[] = [
-  [0x531e3ab0, 0x531e3ab8, 3], [0x531e3b18, 0x531e3b20, 2], [0x531e3e84, 0x531e3e90, 8], [0x531e40b4, 0x531e40b8, 5], [0x531e4180, 0x531e418c, 3],
+  [adr(0x531e3ab0), adr(0x531e3ab8), 3], [adr(0x531e3b18), adr(0x531e3b20), 2], [adr(0x531e3e84), adr(0x531e3e90), 8], [adr(0x531e40b4), adr(0x531e40b8), 5], [adr(0x531e4180), adr(0x531e418c), 3],
 ];
-const SELECT_TABLE = 0x53dcd470;
+const SELECT_TABLE = adr(0x53dcd470);
 const SELECT_RECORD = 0x4c;
 const SELECT_RECORDS = 126; // 1.11: 124
 const SELECT_SITES: readonly (readonly [number, number, number])[] = [
-  [0x531d825c, 0x531d826c, 6], [0x531d83fc, 0x531d8400, 3], [0x531d8448, 0x531d8450, 7], [0x531d8504, 0x531d850c, 3],
-  [0x531d8570, 0x531d8574, 3], [0x531d8748, 0x531d8758, 4], [0x531d8874, 0x531d887c, 3], [0x531d8a34, 0x531d8a3c, 3],
-  [0x531d8b20, 0x531d8b24, 4], [0x531d8bd4, 0x531d8be0, 3], [0x531d8cf8, 0x531d8d00, 3], [0x531d8e1c, 0x531d8e24, 3],
-  [0x531d8fa0, 0x531d8fa8, 3], [0x531dc364, 0x531dc368, 3], [0x531dc428, 0x531dc430, 8], [0x531dc7cc, 0x531dc7d0, 3],
+  [adr(0x531d825c), adr(0x531d826c), 6], [adr(0x531d83fc), adr(0x531d8400), 3], [adr(0x531d8448), adr(0x531d8450), 7], [adr(0x531d8504), adr(0x531d850c), 3],
+  [adr(0x531d8570), adr(0x531d8574), 3], [adr(0x531d8748), adr(0x531d8758), 4], [adr(0x531d8874), adr(0x531d887c), 3], [adr(0x531d8a34), adr(0x531d8a3c), 3],
+  [adr(0x531d8b20), adr(0x531d8b24), 4], [adr(0x531d8bd4), adr(0x531d8be0), 3], [adr(0x531d8cf8), adr(0x531d8d00), 3], [adr(0x531d8e1c), adr(0x531d8e24), 3],
+  [adr(0x531d8fa0), adr(0x531d8fa8), 3], [adr(0x531dc364), adr(0x531dc368), 3], [adr(0x531dc428), adr(0x531dc430), 8], [adr(0x531dc7cc), adr(0x531dc7d0), 3],
 ];
 /**
  * The list constructor (0x531DCD4C -> 0x531D8740) walks all records from the table start (one of the
  * 16 sites) to the table end, a pool word loaded at 0x531D874C, for the largest value count.
  */
-const SELECT_TABLE_END_LOAD = 0x531d874c;
-const SELECT_TABLE_END_LITERAL = 0x531d87a0;
+const SELECT_TABLE_END_LOAD = adr(0x531d874c);
+const SELECT_TABLE_END_LITERAL = adr(0x531d87a0);
 /** D-Range Correction: its submenu record and controller id; Horizon Correction: its list record and id. */
 const D_RANGE_RECORD = 6;
 const D_RANGE_ID = 0x020000d0;
@@ -166,13 +167,13 @@ export const STYLE_RECORD_NUMBER = SELECT_RECORDS + 2;
 export const ORIENT_RECORD_NUMBER = SELECT_RECORDS + 3;
 
 // Functions the handlers call.
-const APP = 0x532406a4; // application singleton
-const SPEC_MODEL = 0x53241b48; // (app) -> SpecModel
-const MODEL_NUMBER = 0x533f1dbc; // (SpecModel) -> 0 GR IV, 1 HDF, 2 Monochrome
-const TOP_SET_TWO_ICONS = 0x5359d7dc; // (menu line, icon, icon)
-const TOP_SET_TITLE = 0x5359d48c; // (menu line, text)
-const SUB_SET_ICON = 0x535a6454; // (submenu line, icon)
-const LIST_SET_ITEM = 0x5359e1bc; // (list item, icon, text)
+const APP = adr(0x532406a4); // application singleton
+const SPEC_MODEL = adr(0x53241b48); // (app) -> SpecModel
+const MODEL_NUMBER = adr(0x533f1dbc); // (SpecModel) -> 0 GR IV, 1 HDF, 2 Monochrome
+const TOP_SET_TWO_ICONS = adr(0x5359d7dc); // (menu line, icon, icon)
+const TOP_SET_TITLE = adr(0x5359d48c); // (menu line, text)
+const SUB_SET_ICON = adr(0x535a6454); // (submenu line, icon)
+const LIST_SET_ITEM = adr(0x5359e1bc); // (list item, icon, text)
 /**
  * 0.8.4 (test 052): the list rows of SelectMenuController are widgets of class 0x5359DDF0 (vtable
  * 0x53ECF140; constructor (x, y, width, height)): selection mark at x 10, icon 40..100, the value's
@@ -183,17 +184,17 @@ const LIST_SET_ITEM = 0x5359e1bc; // (list item, icon, text)
  * right edge of the row's widest own widget (+0x100, 40..680), through the label's own SetRect (vtable +0x18, as the row's
  * icon layout 0x5359E130 does). Nothing else changes; other lists are not touched.
  */
-const ROW_VTABLE = 0x53ecf140;
-const ROW_VTABLE_LITERAL = 0x5359e008; // in the row constructor 0x5359DDF0
-const LABEL_VTABLE = 0x53ece708;
-const LABEL_VTABLE_LITERAL = 0x535960fc; // in the label constructor 0x53596018
-const LABEL_SET_RECT = 0x535aaf0c; // label vtable +0x18
+const ROW_VTABLE = adr(0x53ecf140);
+const ROW_VTABLE_LITERAL = adr(0x5359e008); // in the row constructor 0x5359DDF0
+const LABEL_VTABLE = adr(0x53ece708);
+const LABEL_VTABLE_LITERAL = adr(0x535960fc); // in the label constructor 0x53596018
+const LABEL_SET_RECT = adr(0x535aaf0c); // label vtable +0x18
 const ROW_RIGHT_MARGIN = 20;
 /** The right edge of the row's widest own widget (+0x100: x 40, 640 wide): the label never goes beyond it. */
 const ROW_CONTENT_RIGHT = 680;
 
 const TABLE_STRIDE = 0xdc4; // 881 texts (1.11: 0xd14, 837)
-const FIRST_TABLE_RAM = 0x55000000 + (0x543b5270 - 0x543b3100);
+const FIRST_TABLE_RAM = adr(0x55000000) + (adr(0x543b5270) - adr(0x543b3100));
 
 export const STYLE_ICON_W = 40;
 export const STYLE_ICON_H = 40;
@@ -363,7 +364,7 @@ export function submenuTable(patch: Patch): number {
 export function listTemplate(patch: Patch): Uint8Array {
   const r = patch.read(SELECT_TABLE + HORIZON_RECORD * SELECT_RECORD, SELECT_RECORD);
   const v = new DataView(r.buffer);
-  if (v.getUint32(0, true) !== 0x00010000 || v.getUint16(4, true) !== 420 || v.getUint32(0x0c, true) !== 0x531d0acc || v.getUint32(0x24, true) !== 0x531d4aa8 || v.getUint32(0x2c, true) !== 0x531d6458) {
+  if (v.getUint32(0, true) !== 0x00010000 || v.getUint16(4, true) !== 420 || v.getUint32(0x0c, true) !== adr(0x531d0acc) || v.getUint32(0x24, true) !== adr(0x531d4aa8) || v.getUint32(0x2c, true) !== adr(0x531d6458)) {
     fail('unexpected-layout', 'Horizon Correction list record is not as expected');
   }
   return r;
@@ -495,8 +496,8 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array, lines: r
   expectWord(patch, FACTORY + 4, 0xe1a0c00d);
   expectWord(patch, SUB_SET_CURRENT, 0xe28134fe); // add r3, r1, #0xfe000000
   expectWord(patch, SELECT_SET_CURRENT, 0xe28134fe);
-  expectWord(patch, 0x531e445c, 0xe3a02012); // the submenu constructor starts at record 18
-  expectWord(patch, 0x531dccc8, 0xe3a0e07e); // the list constructor starts at record 126
+  expectWord(patch, adr(0x531e445c), 0xe3a02012); // the submenu constructor starts at record 18
+  expectWord(patch, adr(0x531dccc8), 0xe3a0e07e); // the list constructor starts at record 126
   for (const f of [APP, SPEC_MODEL, TOP_SET_TWO_ICONS, TOP_SET_TITLE, SUB_SET_ICON, LIST_SET_ITEM, LABEL_SET_RECT]) expectWord(patch, f, 0xe1a0c00d);
   expectWord(patch, ROW_VTABLE_LITERAL, ROW_VTABLE);
   expectWord(patch, LABEL_VTABLE_LITERAL, LABEL_VTABLE);
@@ -510,7 +511,7 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array, lines: r
   if (still[D_PAGES] !== 6 || firsts.join() !== '0,10,18,24,30,35' || still[D_COUNT] !== MAX_ITEMS) fail('unexpected-layout', 'still menu pages are not the official ones');
   const id = (i: number): number => dv.getUint32(D_ID + i * 4, true);
   const visible = (i: number): number => dv.getUint32(D_VISIBLE + i * 8, true);
-  if (id(HDF_ITEM) !== 0x02000133 || id(RED_FILTER_ITEM) !== 0x02000135 || visible(HDF_ITEM) !== 0x531b1154 || visible(RED_FILTER_ITEM) !== 0x531b117c) {
+  if (id(HDF_ITEM) !== 0x02000133 || id(RED_FILTER_ITEM) !== 0x02000135 || visible(HDF_ITEM) !== adr(0x531b1154) || visible(RED_FILTER_ITEM) !== adr(0x531b117c)) {
     fail('unexpected-layout', 'HDF and Red Filter items are not the official ones');
   }
   if (id(35) !== 0x02000092 || id(36) !== 0x02000093 || id(37) !== 0x02000094) fail('unexpected-layout', 'Shooting Assist items are not the official ones');
@@ -521,7 +522,7 @@ export function installDateStampMenu(patch: Patch, iconbin: Uint8Array, lines: r
   if (sv.getUint16(2, true) !== 395 || subTemplate[6] !== 2 || sv.getUint32(0x14, true) !== 0x0200008e || sv.getUint32(0x18, true) !== 0x0200008f) fail('unexpected-layout', 'D-Range Correction submenu record is not as expected');
   const listTemplate = patch.read(SELECT_TABLE + HORIZON_RECORD * SELECT_RECORD, SELECT_RECORD);
   const lv = new DataView(listTemplate.buffer);
-  if (lv.getUint32(0, true) !== 0x00010000 || lv.getUint16(4, true) !== 420 || lv.getUint32(0x0c, true) !== 0x531d0acc || lv.getUint32(0x24, true) !== 0x531d4aa8 || lv.getUint32(0x2c, true) !== 0x531d6458) {
+  if (lv.getUint32(0, true) !== 0x00010000 || lv.getUint16(4, true) !== 420 || lv.getUint32(0x0c, true) !== adr(0x531d0acc) || lv.getUint32(0x24, true) !== adr(0x531d4aa8) || lv.getUint32(0x2c, true) !== adr(0x531d6458)) {
     fail('unexpected-layout', 'Horizon Correction list record is not as expected');
   }
 
@@ -797,12 +798,12 @@ const COLOR_SPACE_ID = 0x0200008d;
 /** The item only the GR IV (not HDF, not Monochrome) shows, and its visibility function. */
 const GR4_ONLY_ITEM = 15;
 const GR4_ONLY_ID = 0x0200007f;
-const GR4_ONLY_VISIBLE = 0x531b1130;
+const GR4_ONLY_VISIBLE = adr(0x531b1130);
 /** (menu line, icon): the one-icon still-menu line (as Horizon Correction's). */
-const TOP_SET_ICON = 0x5359d6f4;
+const TOP_SET_ICON = adr(0x5359d6f4);
 /** The model's visibility functions of the HDF and Red Filter items. */
-const HDF_VISIBLE = 0x531b1154;
-const RED_FILTER_VISIBLE = 0x531b117c;
+const HDF_VISIBLE = adr(0x531b1154);
+const RED_FILTER_VISIBLE = adr(0x531b117c);
 
 /** Load the HDR setting byte into r3 (r2 = its address). */
 function loadHdr(byte: number): string {

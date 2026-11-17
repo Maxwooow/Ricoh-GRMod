@@ -35,7 +35,7 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
   *    6..N are kept in a record of their own (appended, never opened) and SubMenuController reads
   *    them there for ADJ Mode Setting (record 10): the line's text, value icon x and value draw in
   *    its list builder (0x531E3E70), the line's controller id on OK (0x531E3AF4). Its list (made once
-@@ -59,7 +60,7 @@
+@@ -59,11 +60,11 @@
   * functions are as before.
   */
  import { FirmwareError } from '../../types';
@@ -44,7 +44,12 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
  import { LANGUAGES, Patch, TEXT_CATALOG, concat, expectWord, u32le, utf16z, widenTextRows } from './build';
  import { LIST_CONTROLLER_ID, SUBMENU_CONTROLLER_ID, SUB_RECORD, SUB_SET_ICON, addListRecords, addSubmenuRecord, hookControllerFactory, submenuTable } from './datestamp-menu';
  import { ADJSLOTS_CODE, ADJSLOTS_ENTRY } from './adjslots-code';
-@@ -73,7 +74,7 @@
+-import { adr } from '../target';
++import { adr, byRelease } from '../target';
+ 
+ export const ADJ_SLOTS_MIN = 5;
+ export const ADJ_SLOTS_MAX = 8;
+@@ -74,7 +75,7 @@
  export const ADJ_MENU_ID = 0x020001c0;
  export const ADJ_LIST_ID = 0x020001c1;
  /** Texts: the lines of slots 6..8 are ADJ_TEXT_ID + 1.. (ADJ_TEXT_ID itself is not used). */
@@ -53,31 +58,31 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
  /** The controller's new members and size. */
  export const ADJ_FRAMES = 0x294;
  export const ADJ_ICONS = 0x2b4;
-@@ -145,19 +146,19 @@
+@@ -146,19 +147,19 @@
  
  /** Official words of every place changed, checked first. */
  const OFFICIAL: readonly (readonly [number, number])[] = [
--  [0x53187c88, 0xe3a00fa5], [0x531c1a14, 0xe2840c02], [0x531c1a18, 0xe3a02078], [0x531c1a60, 0xebff0b2e],
-+  [0x53187c88, 0xe3a00fa5], [0x531c1a14, 0xe2840c02], [0x531c1a18, 0xe3a02078], [0x531c1a60, 0xebff0a70],
-   [0x531bd58c, 0xe2862c02], [0x531bd590, 0xe2863f8f], [0x531bd5b8, 0xe2860f9e], [0x531be2a4, 0xe3a0203c], [0x531be2bc, 0xe5c4220a],
-   [0x531c0590, 0xe3a0303c], [0x531c05a8, 0xe283cf82], [0x531c05ac, 0xe5d3220a], [0x531c0654, 0xe3a0303c], [0x531c0670, 0xe2822f82],
-   [0x531c0678, 0xe2811f81], [0x531c0690, 0xe5c6220a], [0x531c06a0, 0xe5931204],
-   [0x531c0974, 0xe3a0403c], [0x531c0980, 0xe5d4320a], [0x531c0994, 0xe3550005], [0x531c09ac, 0xe5d43200], [0x531c09b4, 0x15c40200],
-   [0x531c09b8, 0x15c4720a], [0x531c09d0, 0xe3a0403c], [0x531c09e8, 0xe2804f82], [0x531c0a50, 0xe3550005],
-   [0x531c0a88, 0xe3a0c03c], [0x531c0aa0, 0xe2832f82], [0x531c0aa8, 0xe2811f81], [0x531beae4, 0xea00002f], [0x53dc9dac, 0x531be5e4],
--  [0x531c0f74, 0xe1a0c00d], [0x531c0f78, 0xe30439bc], [0x531bebf4, 0xe1a0c00d], [0x531bebf8, 0xe92ddff0], [0x531bd078, 0xe1a0c00d],
-+  [0x531c0f74, 0xe1a0c00d], [0x531c0f78, 0xe30c3484], [0x531bebf4, 0xe1a0c00d], [0x531bebf8, 0xe92ddff0], [0x531bd078, 0xe1a0c00d],
-   [0x531bd07c, 0xe3a02000], [0x531c0c10, 0xe3a05005], [0x531c0c14, 0xe3540004], [0x531c0ccc, 0xe3a05005], [0x531c0cdc, 0x03a04004],
--  [0x531c0338, 0xe3a06005], [0x531c0340, 0xe3540004], [0x531c03bc, 0xeb0374e9], [0x531c0404, 0xeb05ec90], [0x531c0498, 0xea05ec6b],
-+  [0x531c0338, 0xe3a06005], [0x531c0340, 0xe3540004], [0x531c03bc, 0xeb03806c], [0x531c0404, 0xeb05fb37], [0x531c0498, 0xea05fb12],
-   [0x531c0920, 0xe30031a9], [0x531c0928, 0xe3a0103c],
+-  [adr(0x53187c88), 0xe3a00fa5], [adr(0x531c1a14), 0xe2840c02], [adr(0x531c1a18), 0xe3a02078], [adr(0x531c1a60), 0xebff0b2e],
++  [adr(0x53187c88), 0xe3a00fa5], [adr(0x531c1a14), 0xe2840c02], [adr(0x531c1a18), 0xe3a02078], [adr(0x531c1a60), byRelease({ '1.20': 0xebff0a70, '1.21': 0xebff08ee })],
+   [adr(0x531bd58c), 0xe2862c02], [adr(0x531bd590), 0xe2863f8f], [adr(0x531bd5b8), 0xe2860f9e], [adr(0x531be2a4), 0xe3a0203c], [adr(0x531be2bc), 0xe5c4220a],
+   [adr(0x531c0590), 0xe3a0303c], [adr(0x531c05a8), 0xe283cf82], [adr(0x531c05ac), 0xe5d3220a], [adr(0x531c0654), 0xe3a0303c], [adr(0x531c0670), 0xe2822f82],
+   [adr(0x531c0678), 0xe2811f81], [adr(0x531c0690), 0xe5c6220a], [adr(0x531c06a0), 0xe5931204],
+   [adr(0x531c0974), 0xe3a0403c], [adr(0x531c0980), 0xe5d4320a], [adr(0x531c0994), 0xe3550005], [adr(0x531c09ac), 0xe5d43200], [adr(0x531c09b4), 0x15c40200],
+   [adr(0x531c09b8), 0x15c4720a], [adr(0x531c09d0), 0xe3a0403c], [adr(0x531c09e8), 0xe2804f82], [adr(0x531c0a50), 0xe3550005],
+   [adr(0x531c0a88), 0xe3a0c03c], [adr(0x531c0aa0), 0xe2832f82], [adr(0x531c0aa8), 0xe2811f81], [adr(0x531beae4), 0xea00002f], [adr(0x53dc9dac), adr(0x531be5e4)],
+-  [adr(0x531c0f74), 0xe1a0c00d], [adr(0x531c0f78), 0xe30439bc], [adr(0x531bebf4), 0xe1a0c00d], [adr(0x531bebf8), 0xe92ddff0], [adr(0x531bd078), 0xe1a0c00d],
++  [adr(0x531c0f74), 0xe1a0c00d], [adr(0x531c0f78), byRelease({ '1.20': 0xe30c3484, '1.21': 0xe30d3c74 })], [adr(0x531bebf4), 0xe1a0c00d], [adr(0x531bebf8), 0xe92ddff0], [adr(0x531bd078), 0xe1a0c00d],
+   [adr(0x531bd07c), 0xe3a02000], [adr(0x531c0c10), 0xe3a05005], [adr(0x531c0c14), 0xe3540004], [adr(0x531c0ccc), 0xe3a05005], [adr(0x531c0cdc), 0x03a04004],
+-  [adr(0x531c0338), 0xe3a06005], [adr(0x531c0340), 0xe3540004], [adr(0x531c03bc), 0xeb0374e9], [adr(0x531c0404), 0xeb05ec90], [adr(0x531c0498), 0xea05ec6b],
++  [adr(0x531c0338), 0xe3a06005], [adr(0x531c0340), 0xe3540004], [adr(0x531c03bc), byRelease({ '1.20': 0xeb03806c, '1.21': 0xeb0380fe })], [adr(0x531c0404), byRelease({ '1.20': 0xeb05fb37, '1.21': 0xeb05fbc9 })], [adr(0x531c0498), byRelease({ '1.20': 0xea05fb12, '1.21': 0xea05fba4 })],
+   [adr(0x531c0920), 0xe30031a9], [adr(0x531c0928), 0xe3a0103c],
    // the functions the module and the stubs call or go back into
--  [0x531beba8, 0xe300333c], [0x531beba0, 0xe24bd018], [0x531beba4, 0xe89da870], [0x531c0e84, MOV_IP_SP], [0x532a0574, 0xe5d0091e], [0x5333f0e8, MOV_IP_SP], [0x53184428, MOV_IP_SP],
-+  [0x531beba8, 0xe30a3a24], [0x531beba0, 0xe24bd018], [0x531beba4, 0xe89da870], [0x531c0e84, MOV_IP_SP], [0x532a0574, 0xe5d0091e], [0x5333f0e8, MOV_IP_SP], [0x53184428, MOV_IP_SP],
-   [0x531be238, MOV_IP_SP], [0x531beab8, MOV_IP_SP], [0x535ab874, MOV_IP_SP], [0x539084bc, MOV_IP_SP],
+-  [adr(0x531beba8), 0xe300333c], [adr(0x531beba0), 0xe24bd018], [adr(0x531beba4), 0xe89da870], [adr(0x531c0e84), MOV_IP_SP], [adr(0x532a0574), 0xe5d0091e], [adr(0x5333f0e8), MOV_IP_SP], [adr(0x53184428), MOV_IP_SP],
++  [adr(0x531beba8), byRelease({ '1.20': 0xe30a3a24, '1.21': 0xe30c30bc })], [adr(0x531beba0), 0xe24bd018], [adr(0x531beba4), 0xe89da870], [adr(0x531c0e84), MOV_IP_SP], [adr(0x532a0574), 0xe5d0091e], [adr(0x5333f0e8), MOV_IP_SP], [adr(0x53184428), MOV_IP_SP],
+   [adr(0x531be238), MOV_IP_SP], [adr(0x531beab8), MOV_IP_SP], [adr(0x535ab874), MOV_IP_SP], [adr(0x539084bc), MOV_IP_SP],
  ];
  
-@@ -253,8 +254,8 @@
+@@ -254,8 +255,8 @@
    return text.slice(0, ascii) + String(digit) + text.slice(ascii + 1);
  }
  
@@ -88,17 +93,17 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
  
  /** Texts of row l (every row of the catalog, as the program indexes languages). */
  function installTexts(patch: Patch, entries: readonly { id: number; make: (row: number) => string }[]): void {
-@@ -276,7 +277,7 @@
+@@ -277,7 +278,7 @@
  
  // --- Settings: ADJ Mode Setting's submenu record and lists, SubMenuController's list.
  const ADJ_SUBMENU = 10;
 -const ADJ_LIST_RECORD = 67;
 +const ADJ_LIST_RECORD = 68; // 1.11: 67 (1.20 inserts a list record before it)
- const SELECT_TABLE = 0x53dcd470;
+ const SELECT_TABLE = adr(0x53dcd470);
  const SELECT_RECORD = 0x4c;
- const ADJ1_COUNT = 0x531d0b7c;
-@@ -310,9 +311,29 @@
-   [0x531e3b34, 0xe5925014],
+ const ADJ1_COUNT = adr(0x531d0b7c);
+@@ -311,9 +312,31 @@
+   [adr(0x531e3b34), 0xe5925014],
  ];
  
 -/** r1 = the function of slot k (5..7) as kept (above 0x14: none); r2 its byte's address. */
@@ -117,7 +122,9 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
 + */
 +function moduleWithTable(code: Uint8Array, table: number): void {
 +  const v = new DataView(code.buffer, code.byteOffset, code.byteLength);
-+  const sites: readonly (readonly [number, number])[] = [[68, 0xe3540014], [172, 0xe3091e38], [176, 0xe34513dc], [416, 0xe3091e38], [420, 0xe34513dc]];
++  // movw r1, the low half of FUNCTION_TABLE + 0x3c (the high half, movt, is the same in both releases)
++  const MOVW_TABLE = byRelease({ '1.20': 0xe3091e38, '1.21': 0xe30b14d0 });
++  const sites: readonly (readonly [number, number])[] = [[68, 0xe3540014], [172, MOVW_TABLE], [176, 0xe34513dc], [416, MOVW_TABLE], [420, 0xe34513dc]];
 +  for (const [at, word] of sites) if (v.getUint32(at, true) !== word) fail('internal', 'ADJ slots: the module is not the one expected');
 +  const member = table + 0x3c;
 +  v.setUint32(68, 0xe3540015, true);
@@ -129,7 +136,7 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
  
  function installMenu(patch: Patch, n: number): void {
    // --- Checks.
-@@ -339,7 +360,7 @@
+@@ -340,7 +363,7 @@
      const k = 5 + j;
      const set = patch.append((at) => assembleWords(
        `ldr r3, [r0, #0x1a8]; ldr ip, [r0, #0x1ac]; sub ip, ip, r3; cmp r1, ip; bxhs lr
@@ -138,7 +145,7 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
         movw r2, #${lo(ADJ_EXTRA_BYTE + j)}; movt r2, #${hi(ADJ_EXTRA_BYTE + j)}
         ldrb r3, [r2]; bic r3, r3, #0x1f; orr r3, r3, r1; strb r3, [r2]; bx lr`, at), 16);
      const current = patch.append((at) => assembleWords(
-@@ -440,7 +461,10 @@
+@@ -441,7 +464,10 @@
   * Install N ADJ slots (6..8; 5 only for the emulator checks, the official layout through the new
   * code). Returns nothing; the ICONBIN data does not change.
   */
@@ -150,7 +157,7 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
    if (!(Number.isInteger(n) && n >= ADJ_SLOTS_MIN && n <= ADJ_SLOTS_MAX)) fail('internal', 'ADJ slots: 5 to 8');
    for (const [at, word] of OFFICIAL) expectWord(patch, at, word);
    const officialTable = patch.readMapped(VIEW_TABLE, OFFICIAL_VIEWS * VIEW_ENTRY);
-@@ -455,7 +479,9 @@
+@@ -456,7 +482,9 @@
    }
  
    // --- The module and the view table.
@@ -180,7 +187,7 @@ diff --git a/core/src/fw/gr4v120/aspect/brightauto.ts b/core/src/fw/gr4v120/aspe
 + * 1.20 file. The balanced curve is used daily by the owner on GR IV HDF 1.11 and 1.20.
   */
  import { Patch, expectWord } from './build';
- 
+ import { adr } from '../target';
 diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/build.ts
 --- a/core/src/fw/gr4v120/aspect/build.ts
 +++ b/core/src/fw/gr4v120/aspect/build.ts
@@ -199,7 +206,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  import type { HalationLook } from './halation';
  import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
  import type { LookLayout } from './looks';
-@@ -44,23 +45,27 @@
+@@ -44,24 +45,28 @@
  import { installShutdownMenu } from './shutdown';
  import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
  import { installAdjSlots } from './adjslots';
@@ -207,22 +214,24 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +import { installExposurePreviewOff } from './lvpreview';
 +import { FRAME_LOOK, LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
  import type { ShutdownPictureSpec } from './shutdown';
+-import { adr, adrHEX, adrText } from '../target';
++import { adr, adrHEX, adrHex, adrText, byRelease } from '../target';
  
- export const BASE = 0x53000000;
+ export const BASE = adr(0x53000000);
 -export const OFFICIAL_RTOS_LENGTH = 0x13d2ac0;
 -export const OFFICIAL_ICONBIN_LENGTH = 0xdcf460;
-+export const OFFICIAL_RTOS_LENGTH = 0x140b600;
++export const OFFICIAL_RTOS_LENGTH = byRelease({ '1.20': 0x140b600, '1.21': 0x140ce00 });
 +export const OFFICIAL_ICONBIN_LENGTH = 0xf0f0e0;
  /** The appended area must stay below the address where the firmware's RAM starts. */
- export const APPEND_LIMIT = 0x55000000;
+ export const APPEND_LIMIT = adr(0x55000000);
  
  /** Start-up copy of initialised data: `length` bytes from `source` (in the image) to `destination`. */
--const RAM = { source: 0x543b3100, destination: 0x55000000, length: 0x57480 };
-+const RAM = { source: 0x543b3100, destination: 0x55000000, length: 0x58500 };
+-const RAM = { source: adr(0x543b3100), destination: adr(0x55000000), length: 0x57480 };
++const RAM = { source: adr(0x543b3100), destination: adr(0x55000000), length: 0x58500 };
  
- export const ICON_CATALOG = 0x5440c600;
+ export const ICON_CATALOG = adr(0x5440c600);
 +/** 1.20: 0x1400 after the icon catalog (1.11: 0x1000), for 1280 icons: Direct Flash's settings icons come after 1003 (see directflash-menu.ts). */
- export const TEXT_CATALOG = 0x5440da00;
+ export const TEXT_CATALOG = adr(0x5440da00);
 -const ICON_COUNT = 663;
 -const TEXT_COUNT = 837;
 -const TEXT_CAPACITY = 896;
@@ -233,8 +242,8 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +const TEXT_CAPACITY = 896 + TEXT_SHIFT;
  export const LANGUAGES = 21;
  const ROW_STRIDE = TEXT_CAPACITY * 4;
- const NATIVE_ICON_CATALOG = 0x55014280;
-@@ -83,10 +88,10 @@
+ const NATIVE_ICON_CATALOG = adr(0x55014280);
+@@ -84,10 +89,10 @@
    return id;
  }
  
@@ -248,7 +257,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  }
  
  export interface RatioSpec {
-@@ -148,11 +153,11 @@
+@@ -149,11 +154,11 @@
    /** ADJ lever slots, 6 to 8 (see `adjslots.ts`); absent or 5: the camera's five. */
    adjSlots?: number;
    /**
@@ -263,7 +272,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    softFocusMenu?: boolean;
  }
  
-@@ -163,9 +168,20 @@
+@@ -164,9 +169,20 @@
    dateStampDiag?: boolean;
    /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
    directFlashDiag?: boolean;
@@ -281,11 +290,11 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +}
 +
 +/** Test builds only: the halation module's status (the 44 bytes before the heap; Direct Flash diagnostics' word otherwise). */
-+export const HALATION_STATUS_WORD = 0x5583903c;
++export const HALATION_STATUS_WORD = adr(0x5583903c);
  
  export interface AspectResult {
    revision: BuildRevision;
-@@ -328,7 +344,7 @@
+@@ -329,7 +345,7 @@
    for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
    const rowsStart = TEXT_CATALOG + 0x100;
    const end = rowsStart + LANGUAGES * ROW_STRIDE;
@@ -294,11 +303,11 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    patch.extendTo(end - BASE);
    patch.write(ICON_CATALOG, icons);
    const relocated: number[] = [];
-@@ -340,8 +356,15 @@
+@@ -341,8 +357,15 @@
    // language directory themselves.
-   patch.setWord(0x534013f8, movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
-   patch.setWord(0x534013fc, movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
--  for (const [site, register] of [[0x5323f7ec, 3], [0x5323e40c, 2]] as const) {
+   patch.setWord(adr(0x534013f8), movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
+   patch.setWord(adr(0x534013fc), movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
+-  for (const [site, register] of [[adr(0x5323f7ec), 3], [adr(0x5323e40c), 2]] as const) {
 -    patch.setWord(site, movWord(register, ICON_COUNT - 1), 'icon upper bound');
 +  // 1.20 compares the icon number with an immediate (cmp r4,#708 / cmp r7,#708; 1.11 loaded the
 +  // bound with a movw): each goes through a helper that keeps r3, at a fixed place just below the
@@ -310,21 +319,21 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +    patch.write(helper, u32le(words));
 +    patch.setWord(site, branchWord(site, helper), 'icon bound through a helper that keeps r3');
    }
-   for (const [low, high] of [[0x535967cc, 0x535967d0], [0x53595db4, 0x53595dbc]] as const) {
+   for (const [low, high] of [[adr(0x535967cc), adr(0x535967d0)], [adr(0x53595db4), adr(0x53595dbc)]] as const) {
      patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
-@@ -372,7 +395,10 @@
+@@ -373,7 +396,10 @@
  // --------------------------------------------------------------------------------------------
  // crop_icons.py
  
--export const LOOKUP_BOUNDS = [[0x5323f7ec, 3], [0x5323e40c, 2]] as const;
+-export const LOOKUP_BOUNDS = [[adr(0x5323f7ec), 3], [adr(0x5323e40c), 2]] as const;
 +/** [site, helper, the official `cmp rN,#708`]: the two icon lookups (1.11: movw r3 / movw r2 at 0x5323dbb4 / 0x5323e40c). */
-+const ICON_BOUND_HELPERS = [[0x5323f7ec, ICON_CATALOG - 0x40, 0xe3540fb1], [0x53240064, ICON_CATALOG - 0x20, 0xe3570fb1]] as const;
++const ICON_BOUND_HELPERS = [[adr(0x5323f7ec), ICON_CATALOG - 0x40, 0xe3540fb1], [adr(0x53240064), ICON_CATALOG - 0x20, 0xe3570fb1]] as const;
 +/** The movw of each icon-bound helper (register r3). */
 +export const LOOKUP_BOUNDS = [[ICON_CATALOG - 0x40 + 4, 3], [ICON_CATALOG - 0x20 + 4, 3]] as const;
  
  function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
    const parts: Uint8Array[] = [iconbin];
-@@ -464,7 +490,7 @@
+@@ -465,7 +491,7 @@
    // Complete language rows again, now wide enough for the new names; every original entry is kept.
    let priorColumns = TEXT_CAPACITY;
    for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
@@ -333,27 +342,54 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    for (const id of allIds) upper = Math.max(upper, textId(id));
    const columns = Math.max(priorColumns, upper + 1);
    const catalogs: Uint8Array[] = [];
-@@ -677,8 +703,8 @@
+@@ -594,7 +620,7 @@
+   p.hook(adr(0x538b40ec), out);
+   out = `push {r0-r3,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r0,r3;bne #${adrHEX(0x538B41CC)};b #${p.target(adr(0x538b41b4))};`;
+   p.hook(adr(0x538b41b4), out);
+-  out = `push {r0-r3,ip,lr};bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};beq old;ldrb r1,[r4,#0x8D];cmp r0,r1;moveq r0,#0;movne r0,#1;b #${adrHEX(0x53664450)};old:b #${p.target(adr(0x53664430))};`;
++  out = `push {r0-r3,ip,lr};bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};beq old;ldrb r1,[r4,#0x8D];cmp r0,r1;moveq r0,#0;movne r0,#1;b #${adrHex(0x53664450)};old:b #${p.target(adr(0x53664430))};`;
+   p.hook(adr(0x53664430), out);
+   // Both callers select the cropped window only for their original 2..5 range; a computed window
+   // is invisible if selector 0 copies the untouched full canvas instead.
+@@ -657,7 +683,7 @@
+   out = '';
+   for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
+   out += adrText('cmp r2,#5;beq #0x5367298C;b #0x536728E8;');
+-  for (const row of rows) out += `ratio${row.id}:movw r4,#${row.g.tracking[0]};movw r7,#${row.g.tracking[1]};b #${adrHEX(0x53672994)};`;
++  for (const row of rows) out += `ratio${row.id}:movw r4,#${row.g.tracking[0]};movw r7,#${row.g.tracking[1]};b #${adrHex(0x53672994)};`;
+   p.hook(adr(0x536728e4), out);
+   out = '';
+   for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
+@@ -678,8 +704,8 @@
      out = '';
      for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
      out += `bic ip,ip,#4;b #${resume};custom:`;
--    if (entry === 0x536726b0) out += 'add ip,r0,#0x340;';
+-    if (entry === adr(0x536726b0)) out += 'add ip,r0,#0x340;';
 -    else out += 'ldr lr,[sp,#0xC];cmp lr,#0x2000;addeq ip,r0,#0x320;addne ip,r0,#0x340;';
-+    if (entry === 0x536726b0) out += 'add ip,r0,#0x354;'; // 1.11: 0x340 / 0x320 (upstream crop120)
++    if (entry === adr(0x536726b0)) out += 'add ip,r0,#0x354;'; // 1.11: 0x340 / 0x320 (upstream crop120)
 +    else out += 'ldr lr,[sp,#0xC];cmp lr,#0x2000;addeq ip,r0,#0x334;addne ip,r0,#0x354;';
-     out += 'ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;';
+     out += adrText('ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;');
      p.hook(entry, out);
    }
-@@ -898,7 +924,7 @@
+@@ -765,7 +791,7 @@
+   const get = p.emit(lookup + 'mov r0,#0;bx lr;');
+   // The native code at 0x53726698 divides s15 by the crop magnification; the other branch writes
+   // it directly. Both contracts are kept.
+-  let code = `push {r0-r3,ip,lr};bl #${get};cmp r0,#0;vldrne s15,[r0];pop {r0-r3,ip,lr};beq old;cmp r8,#0;bne #${adrHEX(0x537266A4)};b #${adrHEX(0x53726698)};old:cmp r0,#1;b #${adrHEX(0x537266EC)};`;
++  let code = `push {r0-r3,ip,lr};bl #${get};cmp r0,#0;vldrne s15,[r0];pop {r0-r3,ip,lr};beq old;cmp r8,#0;bne #${adrHEX(0x537266A4)};b #${adrHex(0x53726698)};old:cmp r0,#1;b #${adrHEX(0x537266EC)};`;
+   p.hook(adr(0x537266e8), code);
+   // r8 / sb are the source dimensions: exact known sizes first, then fit the ratio for anything else.
+   code = `push {r0,r4-r7,r10,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;beq old;mov r4,r0;mov r5,r8;mov r6,sb;`;
+@@ -899,7 +925,7 @@
  function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
-   const priorSave = branchTarget(0x533f3674, patch.word(0x533f3674));
-   const priorLoad = branchTarget(0x533f3254, patch.word(0x533f3254));
--  expectWord(patch, 0x532adedc, 0xebfe566c);
-+  expectWord(patch, 0x532adedc, 0xebfe49f0); // bl 0x532406a4
-   expectWord(patch, 0x5381d6bc, 0xe1a0c00d);
+   const priorSave = branchTarget(adr(0x533f3674), patch.word(adr(0x533f3674)));
+   const priorLoad = branchTarget(adr(0x533f3254), patch.word(adr(0x533f3254)));
+-  expectWord(patch, adr(0x532adedc), 0xebfe566c);
++  expectWord(patch, adr(0x532adedc), byRelease({ '1.20': 0xebfe49f0, '1.21': 0xebfe495e })); // bl 0x532406a4
+   expectWord(patch, adr(0x5381d6bc), 0xe1a0c00d);
    // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
    const rects: Uint8Array[] = [];
-@@ -1036,11 +1062,21 @@
+@@ -1037,11 +1063,21 @@
   * features this is `installRatios`, byte for byte. With features the revision is 3.
   */
  export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
@@ -376,7 +412,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    if (extra) revision = 3;
    if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
    if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
-@@ -1068,21 +1104,34 @@
+@@ -1069,21 +1105,34 @@
      installImageIdentity(patch, ratios);
      if (revision >= 2) installPlaybackDecode(patch);
    }
@@ -415,7 +451,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    // Halation: added slots that have it, Cinema slots with a preset that are asked to.
    const halation: HalationLook[] = [];
    slots.forEach((x, k) => {
-@@ -1110,12 +1159,18 @@
+@@ -1111,12 +1160,18 @@
    if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
    // The HDR line's list: after the additions that copy the list table first.
    if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
@@ -483,10 +519,10 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
  } from './build';
  import { DATESTAMP_AS_STORED, DATESTAMP_BYTE, DATESTAMP_LONG, DATESTAMP_NAME } from './datestamp';
 +import { OFFICIAL_ITEMS, WIDE_DESCRIPTOR, WIDE_ITEMS, W_DRAW, W_ID, W_VISIBLE, installWideMenus } from './menuwide';
+ import { adr } from '../target';
  
  /** Controller ids of the submenu and of its two lists. */
- export const DATESTAMP_MENU_ID = 0x020001a0;
-@@ -69,11 +70,12 @@
+@@ -70,11 +71,12 @@
  export const DATESTAMP_ORIENT_ID = 0x020001a5;
  
  /** Texts: line / submenu name, the two line names, the two style names. */
@@ -502,25 +538,25 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
  const TEXT_OFF = 2;
  const TEXT_ON = 1;
  
-@@ -139,7 +141,7 @@
+@@ -140,7 +142,7 @@
  ];
- const SELECT_TABLE = 0x53dcd470;
+ const SELECT_TABLE = adr(0x53dcd470);
  const SELECT_RECORD = 0x4c;
 -const SELECT_RECORDS = 124;
 +const SELECT_RECORDS = 126; // 1.11: 124
  const SELECT_SITES: readonly (readonly [number, number, number])[] = [
-   [0x531d825c, 0x531d826c, 6], [0x531d83fc, 0x531d8400, 3], [0x531d8448, 0x531d8450, 7], [0x531d8504, 0x531d850c, 3],
-   [0x531d8570, 0x531d8574, 3], [0x531d8748, 0x531d8758, 4], [0x531d8874, 0x531d887c, 3], [0x531d8a34, 0x531d8a3c, 3],
-@@ -190,7 +192,7 @@
+   [adr(0x531d825c), adr(0x531d826c), 6], [adr(0x531d83fc), adr(0x531d8400), 3], [adr(0x531d8448), adr(0x531d8450), 7], [adr(0x531d8504), adr(0x531d850c), 3],
+   [adr(0x531d8570), adr(0x531d8574), 3], [adr(0x531d8748), adr(0x531d8758), 4], [adr(0x531d8874), adr(0x531d887c), 3], [adr(0x531d8a34), adr(0x531d8a3c), 3],
+@@ -191,7 +193,7 @@
  /** The right edge of the row's widest own widget (+0x100: x 40, 640 wide): the label never goes beyond it. */
  const ROW_CONTENT_RIGHT = 680;
  
 -const TABLE_STRIDE = 0xd14;
 +const TABLE_STRIDE = 0xdc4; // 881 texts (1.11: 0xd14, 837)
- const FIRST_TABLE_RAM = 0x55000000 + (0x543b5270 - 0x543b3100);
+ const FIRST_TABLE_RAM = adr(0x55000000) + (adr(0x543b5270) - adr(0x543b3100));
  
  export const STYLE_ICON_W = 40;
-@@ -280,7 +282,7 @@
+@@ -281,7 +283,7 @@
  // --------------------------------------------------------------------------------------------
  // Texts
  
@@ -529,7 +565,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
    const roots = new DataView(patch.readMapped(NATIVE_TEXT_ROOTS, LANGUAGES * 4).buffer);
    const order: number[] = [];
    const seen = new Set<number>();
-@@ -344,7 +346,7 @@
+@@ -345,7 +347,7 @@
  // Shared with other camera-menu additions (`shutdown.ts`)
  
  export { FACTORY as CONTROLLER_FACTORY, D_RANGE_ID as SUBMENU_CONTROLLER_ID, HORIZON_ID as LIST_CONTROLLER_ID };
@@ -538,16 +574,16 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
  
  /** Where the submenu table (SubMenuController records, 0x64 bytes) is now: the official one or its latest copy. */
  export function submenuTable(patch: Patch): number {
-@@ -361,7 +363,7 @@
+@@ -362,7 +364,7 @@
  export function listTemplate(patch: Patch): Uint8Array {
    const r = patch.read(SELECT_TABLE + HORIZON_RECORD * SELECT_RECORD, SELECT_RECORD);
    const v = new DataView(r.buffer);
--  if (v.getUint32(0, true) !== 0x00010000 || v.getUint16(4, true) !== 388 || v.getUint32(0x0c, true) !== 0x531d0acc || v.getUint32(0x24, true) !== 0x531d4aa8 || v.getUint32(0x2c, true) !== 0x531d6458) {
-+  if (v.getUint32(0, true) !== 0x00010000 || v.getUint16(4, true) !== 420 || v.getUint32(0x0c, true) !== 0x531d0acc || v.getUint32(0x24, true) !== 0x531d4aa8 || v.getUint32(0x2c, true) !== 0x531d6458) {
+-  if (v.getUint32(0, true) !== 0x00010000 || v.getUint16(4, true) !== 388 || v.getUint32(0x0c, true) !== adr(0x531d0acc) || v.getUint32(0x24, true) !== adr(0x531d4aa8) || v.getUint32(0x2c, true) !== adr(0x531d6458)) {
++  if (v.getUint32(0, true) !== 0x00010000 || v.getUint16(4, true) !== 420 || v.getUint32(0x0c, true) !== adr(0x531d0acc) || v.getUint32(0x24, true) !== adr(0x531d4aa8) || v.getUint32(0x2c, true) !== adr(0x531d6458)) {
      fail('unexpected-layout', 'Horizon Correction list record is not as expected');
    }
    return r;
-@@ -370,7 +372,7 @@
+@@ -371,7 +373,7 @@
  /**
   * Add list records (SelectMenuController, 0x4C bytes each), record i shown for controller id
   * `entries[i].id`: the list table is copied (once more) with the records at its end, the
@@ -556,7 +592,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
   * to its record (before what was there: the official code, or an earlier addition's mapping). The
   * controller factory must hand out the list controller for the ids (`hookControllerFactory`).
   * Returns the record numbers.
-@@ -406,7 +408,7 @@
+@@ -407,7 +409,7 @@
  export function submenuTemplate(patch: Patch): Uint8Array {
    const r = patch.read(SUB_TABLE + 17 * SUB_RECORD, SUB_RECORD);
    const v = new DataView(r.buffer);
@@ -565,7 +601,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
      fail('unexpected-layout', 'Reset submenu record is not as expected');
    }
    return r;
-@@ -483,7 +485,7 @@
+@@ -484,7 +486,7 @@
   * Install the menu entry. `patch` must already hold the scaffold of `build.ts` (relocated
   * catalogs) and the imprint itself. Returns the ICONBIN data with the four style icons appended.
   */
@@ -574,16 +610,16 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
    // --- Checks of the official code and data this relies on.
    expectWord(patch, BUILDER, 0xe1a0c00d); // mov ip, sp
    expectWord(patch, BUILDER + 4, movWord(3, lo(MENU_TABLE)));
-@@ -494,7 +496,7 @@
+@@ -495,7 +497,7 @@
    expectWord(patch, SUB_SET_CURRENT, 0xe28134fe); // add r3, r1, #0xfe000000
    expectWord(patch, SELECT_SET_CURRENT, 0xe28134fe);
-   expectWord(patch, 0x531e445c, 0xe3a02012); // the submenu constructor starts at record 18
--  expectWord(patch, 0x531dccc8, 0xe3a0e07c); // the list constructor starts at record 124
-+  expectWord(patch, 0x531dccc8, 0xe3a0e07e); // the list constructor starts at record 126
+   expectWord(patch, adr(0x531e445c), 0xe3a02012); // the submenu constructor starts at record 18
+-  expectWord(patch, adr(0x531dccc8), 0xe3a0e07c); // the list constructor starts at record 124
++  expectWord(patch, adr(0x531dccc8), 0xe3a0e07e); // the list constructor starts at record 126
    for (const f of [APP, SPEC_MODEL, TOP_SET_TWO_ICONS, TOP_SET_TITLE, SUB_SET_ICON, LIST_SET_ITEM, LABEL_SET_RECT]) expectWord(patch, f, 0xe1a0c00d);
    expectWord(patch, ROW_VTABLE_LITERAL, ROW_VTABLE);
    expectWord(patch, LABEL_VTABLE_LITERAL, LABEL_VTABLE);
-@@ -516,10 +518,10 @@
+@@ -517,10 +519,10 @@
  
    const subTemplate = patch.read(SUB_TABLE + D_RANGE_RECORD * SUB_RECORD, SUB_RECORD);
    const sv = new DataView(subTemplate.buffer);
@@ -591,12 +627,12 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
 +  if (sv.getUint16(2, true) !== 395 || subTemplate[6] !== 2 || sv.getUint32(0x14, true) !== 0x0200008e || sv.getUint32(0x18, true) !== 0x0200008f) fail('unexpected-layout', 'D-Range Correction submenu record is not as expected');
    const listTemplate = patch.read(SELECT_TABLE + HORIZON_RECORD * SELECT_RECORD, SELECT_RECORD);
    const lv = new DataView(listTemplate.buffer);
--  if (lv.getUint32(0, true) !== 0x00010000 || lv.getUint16(4, true) !== 388 || lv.getUint32(0x0c, true) !== 0x531d0acc || lv.getUint32(0x24, true) !== 0x531d4aa8 || lv.getUint32(0x2c, true) !== 0x531d6458) {
-+  if (lv.getUint32(0, true) !== 0x00010000 || lv.getUint16(4, true) !== 420 || lv.getUint32(0x0c, true) !== 0x531d0acc || lv.getUint32(0x24, true) !== 0x531d4aa8 || lv.getUint32(0x2c, true) !== 0x531d6458) {
+-  if (lv.getUint32(0, true) !== 0x00010000 || lv.getUint16(4, true) !== 388 || lv.getUint32(0x0c, true) !== adr(0x531d0acc) || lv.getUint32(0x24, true) !== adr(0x531d4aa8) || lv.getUint32(0x2c, true) !== adr(0x531d6458)) {
++  if (lv.getUint32(0, true) !== 0x00010000 || lv.getUint16(4, true) !== 420 || lv.getUint32(0x0c, true) !== adr(0x531d0acc) || lv.getUint32(0x24, true) !== adr(0x531d4aa8) || lv.getUint32(0x2c, true) !== adr(0x531d6458)) {
      fail('unexpected-layout', 'Horizon Correction list record is not as expected');
    }
  
-@@ -700,9 +702,9 @@
+@@ -701,9 +703,9 @@
    relocateTable(patch, SUB_TABLE, SUB_RECORD, SUB_RECORDS + 1, [subRecord], SUB_SITES, 'date imprint: submenu records');
    patch.submenuRecords = SUB_RECORD_NUMBER + 1;
  
@@ -609,7 +645,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
    } else {
      const descriptor = (keep: number): Uint8Array => {
        const d = still.slice();
-@@ -789,7 +791,7 @@
+@@ -790,7 +792,7 @@
  
  /** The list's controller id (not used by the firmware) and the line / list title. */
  export const HDR_LIST_ID = 0x020001d0;
@@ -618,7 +654,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
  /** Color Space: the HDR line follows it. */
  const COLOR_SPACE_ID = 0x0200008d;
  /** The item only the GR IV (not HDF, not Monochrome) shows, and its visibility function. */
-@@ -821,46 +823,69 @@
+@@ -822,46 +824,69 @@
       pop {r4, lr}; b #${TOP_SET_TITLE}`, at), 16);
  }
  
@@ -710,7 +746,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
        }
      }
      // Pages start at the same official items (none of them is dropped).
-@@ -870,9 +895,14 @@
+@@ -871,9 +896,14 @@
      d[D_COUNT] = order.length;
      return d;
    };
@@ -728,7 +764,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
    const builder = patch.append((at) => assembleWords(
      `push {r0, r1, r2, r3, ip, lr}
       bl #${APP}; bl #${SPEC_MODEL}; bl #${MODEL_NUMBER}
-@@ -889,8 +919,8 @@
+@@ -890,8 +920,8 @@
    patch.setWord(BUILDER, branchWord(BUILDER, builder), `${what}: still menu for this model`);
  }
  
@@ -739,7 +775,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
    expectWord(patch, BUILDER, 0xe1a0c00d); // mov ip, sp
    expectWord(patch, BUILDER + 4, movWord(3, lo(MENU_TABLE)));
    expectWord(patch, BUILDER + 0x10, movWord(3, hi(MENU_TABLE), true));
-@@ -903,7 +933,7 @@
+@@ -904,7 +934,7 @@
    const firsts = [...still.subarray(D_FIRST, D_FIRST + 6)];
    if (still[D_PAGES] !== 6 || firsts.join() !== '0,10,18,24,30,35' || still[D_COUNT] !== MAX_ITEMS) fail('unexpected-layout', 'still menu pages are not the official ones');
    if (dv.getUint32(D_ID + HDF_ITEM * 4, true) !== 0x02000133 || dv.getUint32(D_ID + RED_FILTER_ITEM * 4, true) !== 0x02000135) fail('unexpected-layout', 'HDF and Red Filter items are not the official ones');
@@ -759,7 +795,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp.ts b/core/src/fw/gr4v120/aspec
   * seven-segment "'YY MM DD" like the date back of a film compact.
   *
   * Where: JpegEncodeMacroProcess::Execute (0x53727E10), the step of the still pipeline that hands
-@@ -43,7 +43,7 @@
+@@ -43,11 +43,11 @@
  import { FirmwareError } from '../../types';
  import { assembleWords } from './arm';
  import { BASE, Patch, expectWord, u16le, u32le } from './build';
@@ -768,7 +804,12 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp.ts b/core/src/fw/gr4v120/aspec
  import { DIRECT_FLASH_DIAG_SLOT } from './directflash';
  import { FRAME_LOOK, LOOK_STASH, MONO_MODEL, ORIENT_VALID, ORIENT_WORD } from './lookstash';
  import { NAME_TABLE_RTOS_OFFSETS } from '../names';
-@@ -81,6 +81,8 @@
+-import { adr } from '../target';
++import { adr, byRelease } from '../target';
+ 
+ /** JpegEncodeMacroProcess::Execute. */
+ export const JPEG_EXECUTE = adr(0x53727e10);
+@@ -82,6 +82,8 @@
    11: 'Standard', 12: 'Vivid', 13: 'Monotone', 14: 'Soft Monotone', 15: 'Hard Monotone', 16: 'Hi-Contrast B&W',
    17: 'Positive Film', 18: 'Cinema (Yellow)', 19: 'Cinema (Green)', 20: 'Bleach Bypass', 21: 'Retro', 22: 'HDR Tone',
    23: 'Cross Processing', 24: 'Negative Film', 25: 'Standard', 26: 'Soft', 27: 'High Contrast', 28: 'Grainy', 29: 'Solid', 30: 'HDR Tone',
@@ -777,7 +818,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp.ts b/core/src/fw/gr4v120/aspec
  };
  
  /** Fourteen segments of a capital (bits: a b c d e f, g1 g2, upper-left slant, upper bar, upper-right slant, lower-left slant, lower bar, lower-right slant). */
-@@ -136,13 +138,13 @@
+@@ -137,13 +139,13 @@
   * The names for the imprint, per look: the factory looks' English names; Cinema Yellow / Green as
   * renamed for English, else as renamed in a language whose own name is not in Latin letters
   * (Chinese, Japanese, Korean, Russian, Greek, Thai) when that name is all printable ASCII, else
@@ -793,7 +834,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp.ts b/core/src/fw/gr4v120/aspec
      const en = cameraText(patch, EN, index);
      let name = en;
      if (en === FACTORY_LOOK_NAMES[style]) {
-@@ -153,7 +155,7 @@
+@@ -154,7 +156,7 @@
      }
      out[style] = name;
    }
@@ -802,7 +843,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp.ts b/core/src/fw/gr4v120/aspec
    return out;
  }
  
-@@ -181,9 +183,13 @@
+@@ -182,9 +184,13 @@
    return v >>> 16;
  }
  
@@ -819,7 +860,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp.ts b/core/src/fw/gr4v120/aspec
    if ((!diag && raw.length !== DATESTAMP_CODE_LENGTH) || raw.length % 4 !== 0) fail('internal', 'date imprint module length');
    return raw;
  }
-@@ -194,18 +200,19 @@
+@@ -195,18 +201,19 @@
   * imprint is then light only exactly for those looks (and on the GR IV Monochrome) instead of
   * for pictures whose colours look neutral. Returns the module address.
   */
@@ -829,7 +870,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp.ts b/core/src/fw/gr4v120/aspec
    expectWord(patch, JPEG_EXECUTE + 4, 0xe92ddff0); // push {r4-r12, lr, pc}
    expectWord(patch, JPEG_EXECUTE + 0x18, 0xe5914008); // ldr r4, [r1, #8]  (the configuration)
 -  expectWord(patch, CACHE, 0xe30009c4); // movw r0, #0x9c4 (the cache object)
-+  expectWord(patch, CACHE, 0xe30206c4); // movw r0, #0x26c4 (the cache object; 1.11 0x553a09c4)
++  expectWord(patch, CACHE, byRelease({ '1.20': 0xe30206c4, '1.21': 0xe30206cc })); // movw r0, #0x26c4 (the cache object; 1.11 0x553a09c4)
    expectWord(patch, CACHE_CLEAN, 0xe1a00001);
    expectWord(patch, CACHE_FLUSH_FOR_READ, 0xe1a0c00d);
    expectWord(patch, GET_TIME, 0xe5d03014); // ldrb r3, [r0, #0x14]
@@ -842,12 +883,12 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp.ts b/core/src/fw/gr4v120/aspec
      look ? FRAME_LOOK : 0, names, ...(diag === 'df' ? [DIRECT_FLASH_DIAG_SLOT] : [])]), 16);
    if (look) installExposureOrientation(patch);
    const code = patch.append(datestampModule(diag), 16);
-@@ -243,7 +250,7 @@
-   expectWord(patch, 0x537818a8, 0xe5903000); // ldr r3, [r0]
-   expectWord(patch, 0x537818ac, 0xe5d300d8); // ldrb r0, [r3, #0xd8]
-   expectWord(patch, 0x5377b1d8, 0xe5950518); // ldr r0, [r5, #0x518]
--  expectWord(patch, 0x53750028, 0xe309060c); // movw r0, #0x960c (the singleton the direction is read through)
-+  expectWord(patch, 0x53750028, 0xe30b029c); // movw r0, #0xb29c (the singleton the direction is read through)
+@@ -244,7 +251,7 @@
+   expectWord(patch, adr(0x537818a8), 0xe5903000); // ldr r3, [r0]
+   expectWord(patch, adr(0x537818ac), 0xe5d300d8); // ldrb r0, [r3, #0xd8]
+   expectWord(patch, adr(0x5377b1d8), 0xe5950518); // ldr r0, [r5, #0x518]
+-  expectWord(patch, adr(0x53750028), 0xe309060c); // movw r0, #0x960c (the singleton the direction is read through)
++  expectWord(patch, adr(0x53750028), byRelease({ '1.20': 0xe30b029c, '1.21': 0xe30b02a4 })); // movw r0, #0xb29c (the singleton the direction is read through)
    const stub = patch.append((at) => assembleWords(
      `push {r0, r1}
       movw r0, #${lo(LOOK_STASH)}; movt r0, #${hi(LOOK_STASH)}; ldr r0, [r0]
@@ -863,7 +904,7 @@ diff --git a/core/src/fw/gr4v120/aspect/directflash-menu.ts b/core/src/fw/gr4v12
   *  - submenu record 5 (in the table wherever it is now, see `datestamp-menu.ts`): a third line,
   *    controller id DF_MENU_ID, value icon place 540 and no value icon, as the Wireless submenu's
   *    (record 13) line that opens Pairing (record 12);
-@@ -60,13 +60,18 @@
+@@ -61,13 +61,18 @@
  /** Test 062: the fastest shutter speed (the last list). */
  export const DF_FASTEST_ID = 0x020001b5;
  /** Texts: the submenu's name, the line names (GN, background, priority), then the values' names. */
@@ -887,7 +928,7 @@ diff --git a/core/src/fw/gr4v120/aspect/directflash-menu.ts b/core/src/fw/gr4v12
  
  /** Guide numbers of the list (ISO 100, metres); stored as the number, the default (3) as 0. */
  export const DF_GUIDE_NUMBERS: readonly number[] = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 18, 20, 22, 25, 28, 32, 36];
-@@ -134,7 +139,7 @@
+@@ -135,7 +140,7 @@
  export const DF_FASTEST: readonly { name: string; code: number }[] = [
    { name: 'sync', code: 0 }, { name: '1/2000', code: 1 }, { name: '1/1000', code: 2 }, { name: '1/500', code: 3 }, { name: '1/250', code: 4 },
  ];
@@ -896,7 +937,7 @@ diff --git a/core/src/fw/gr4v120/aspect/directflash-menu.ts b/core/src/fw/gr4v12
  export const DF_FASTEST_NAMES: readonly string[] = [
    'Nejkratší čas závěrky', 'Maks. lukkerhastighed', 'Maximum Shutter Speed', 'Lyhin suljinaika', 'Vitesse obturation max.',
    'Kürzeste Verschlusszeit', 'Μέγ.Ταχύτ.Κλείστρου', 'Maximális zársebesség', 'Tempo posa più breve', '高速限界値', '고속한계치',
-@@ -296,8 +301,8 @@
+@@ -297,8 +302,8 @@
  const FLASH_SUBMENU = 5;
  const FLASH_MODE_LINE_ID = 0x020000f3;
  const FLASH_OUTPUT_LINE_ID = 0x020000f6;
@@ -907,13 +948,13 @@ diff --git a/core/src/fw/gr4v120/aspect/directflash-menu.ts b/core/src/fw/gr4v12
  const VALUE_X = 540;
  
  /** ip = the list position of the stored field (or the fallback); r0, r2, r3 change. */
-@@ -336,7 +341,7 @@
+@@ -337,7 +342,7 @@
  
  /** The `LANGS` index of language row l (as the program indexes languages). */
- const FIRST_TABLE_RAM = 0x55000000 + (0x543b5270 - 0x543b3100);
+ const FIRST_TABLE_RAM = adr(0x55000000) + (adr(0x543b5270) - adr(0x543b3100));
 -const TABLE_STRIDE = 0xd14;
 +const TABLE_STRIDE = 0xdc4; // 1.11: 0xd14
- const NATIVE_TEXT_ROOTS = 0x55002118;
+ const NATIVE_TEXT_ROOTS = adr(0x55002118);
  function langIndex(patch: Patch, l: number): number {
    const root = new DataView(patch.readMapped(NATIVE_TEXT_ROOTS + l * 4, 4).buffer).getUint32(0, true);
 diff --git a/core/src/fw/gr4v120/aspect/directflash.ts b/core/src/fw/gr4v120/aspect/directflash.ts
@@ -947,62 +988,62 @@ diff --git a/core/src/fw/gr4v120/aspect/directflash.ts b/core/src/fw/gr4v120/asp
   *
   * Nothing changes unless the user picks Direct Flash.
   */
-@@ -70,7 +70,7 @@
- import { ICON_CATALOG, LANGUAGES, LOOKUP_BOUNDS, NATIVE_TEXT_ROOTS, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z } from './build';
+@@ -71,7 +71,7 @@
  import { DIRECTFLASH_CODE, DIRECTFLASH_DIAG_CODE, DIRECTFLASH_DIAG_ENTRY, DIRECTFLASH_ENTRY } from './directflash-code';
+ import { adr } from '../target';
  
 -export const DIRECT_FLASH_TEXT_ID = 882;
 +export const DIRECT_FLASH_TEXT_ID = 926; // 1.11: 882 (+ TEXT_SHIFT)
  export const DIRECT_FLASH_ICON_ID = 733;
  /**
   * The setting byte (0 on every camera): bit 0 Direct Flash (with Flash Mode 0); bits 1..4 and 5..7
-@@ -83,7 +83,7 @@
+@@ -84,7 +84,7 @@
   * Test 062: the fastest shutter speed chosen in the camera menu (`directflash-menu.ts`), bits 0..2;
   * 0 on every camera: the camera's own flash-sync limit. Byte 0x109 of the user settings: alignment padding between a byte
   * field (0x108) and a word (0x10C) that UserDataInitValue (run in the emulator, all 30 records)
 - * never writes; inside the 0xAE9 bytes the settings save keeps (0x533F3674).
 + * never writes; inside the 0xB44 bytes the settings save keeps (0x533F3674; 1.11: 0xAE9).
   */
- export const DIRECT_FLASH_TV_BYTE = 0x550832a8 + 4 + 0x109;
+ export const DIRECT_FLASH_TV_BYTE = adr(0x550832a8) + 4 + 0x109;
  /**
-@@ -105,7 +105,7 @@
+@@ -106,7 +106,7 @@
  ];
  
- const CURRENT = 0x550832a8;
+ const CURRENT = adr(0x550832a8);
 -const LIVE_FLASH_MODE = CURRENT + 0xbf8;
 +export const LIVE_FLASH_MODE = CURRENT + 0xc50; // 1.11: + 0xbf8
  const FLASH_OUTPUT = CURRENT + 0x114;
  
  // Camera functions (checked below by their first instructions or their callers).
-@@ -155,9 +155,9 @@
+@@ -156,9 +156,9 @@
  /** Calls of the Flash Mode icon function for the current value: [site, bl (true) or b]. */
- const CURRENT_ICON_SITES: readonly (readonly [number, boolean])[] = [[0x531b1d70, true], [0x531e2770, true], [0x533a6f30, false]];
+ const CURRENT_ICON_SITES: readonly (readonly [number, boolean])[] = [[adr(0x531b1d70), true], [adr(0x531e2770), true], [adr(0x533a6f30), false]];
  
 -/** First language table (in `LANGS` order) as the program sees it in RAM; tables are 0xD14 apart (see softfocus.ts). */
 +/** First language table (in `LANGS` order) as the program sees it in RAM; tables are 0xDC4 apart (see softfocus.ts). */
- const FIRST_TABLE_RAM = 0x55000000 + (0x543b5270 - 0x543b3100);
+ const FIRST_TABLE_RAM = adr(0x55000000) + (adr(0x543b5270) - adr(0x543b3100));
 -const TABLE_STRIDE = 0xd14;
 +const TABLE_STRIDE = 0xdc4;
  
  export const DIRECT_FLASH_ICON_W = 40;
  export const DIRECT_FLASH_ICON_H = 40;
-@@ -346,13 +346,13 @@
+@@ -347,13 +347,13 @@
    expectWord(patch, FN_RECORD, 0x16);
    LISTS.forEach((h, k) => {
      checkSlots(patch, LIST_RECORDS[k], h);
 -    expectWord(patch, LIST_RECORDS[k] + 4, 0x7f); // title: Flash Mode
 +    expectWord(patch, LIST_RECORDS[k] + 4, 0x84); // title: Flash Mode (text 132; 1.11: 127)
    });
-   expectWord(patch, 0x531bb6a4, 0xe5d03282); // ldrb r3, [r0, #0x282]  (ADJ count)
-   expectWord(patch, 0x531c1d7c, 0xe5d03197); // ldrb r3, [r0, #0x197]  (Fn count)
-   expectWord(patch, 0x531d09bc, 0xe3a00004); // mov r0, #4
-   expectWord(patch, 0x531d09c4, 0xe3a00002); // mov r0, #2
+   expectWord(patch, adr(0x531bb6a4), 0xe5d03282); // ldrb r3, [r0, #0x282]  (ADJ count)
+   expectWord(patch, adr(0x531c1d7c), 0xe5d03197); // ldrb r3, [r0, #0x197]  (Fn count)
+   expectWord(patch, adr(0x531d09bc), 0xe3a00004); // mov r0, #4
+   expectWord(patch, adr(0x531d09c4), 0xe3a00002); // mov r0, #2
 -  expectWord(patch, GET_FLASH_MODE, 0xe5d00bf8); // ldrb r0, [r0, #0xbf8]
 +  expectWord(patch, GET_FLASH_MODE, 0xe5d00c50); // ldrb r0, [r0, #0xc50] (1.11: #0xbf8)
-   expectWord(patch, 0x532a032c, 0xe5d00114); // ldrb r0, [r0, #0x114]  (Flash Output)
-   expectWord(patch, 0x531bc548, branchWord(0x531bc548, SET_FLASH_MODE)); // the ADJ setter's tail call
-   expectWord(patch, 0x531bb9e4, branchWord(0x531bb9e4, LABEL_SET_TEXT));
-@@ -422,7 +422,7 @@
+   expectWord(patch, adr(0x532a032c), 0xe5d00114); // ldrb r0, [r0, #0x114]  (Flash Output)
+   expectWord(patch, adr(0x531bc548), branchWord(adr(0x531bc548), SET_FLASH_MODE)); // the ADJ setter's tail call
+   expectWord(patch, adr(0x531bb9e4), branchWord(adr(0x531bb9e4), LABEL_SET_TEXT));
+@@ -423,7 +423,7 @@
       movw r0, #${DIRECT_FLASH_ICON_ID}; bx lr`, at), 16);
    for (const [site, link] of CURRENT_ICON_SITES) patch.setWord(site, branchTo(site, currentIcon, link), 'Direct Flash: icon of the current Flash Mode');
  
@@ -1015,7 +1056,7 @@ diff --git a/core/src/fw/gr4v120/aspect/exposure.ts b/core/src/fw/gr4v120/aspect
 new file mode 100644
 --- /dev/null
 +++ b/core/src/fw/gr4v120/aspect/exposure.ts
-@@ -0,0 +1,445 @@
+@@ -0,0 +1,446 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * Exposure preview as a camera setting, and soft focus in the camera menu (firmware 1.20; test 080).
@@ -1057,9 +1098,10 @@ new file mode 100644
 +import { DIRECT_FLASH_BYTE, DIRECT_FLASH_ICON_ID, LIVE_FLASH_MODE } from './directflash';
 +import { installExposurePreviewOff } from './lvpreview';
 +import { SOFT_FOCUS_BYTE, SOFT_FOCUS_TEXT_ID } from './softfocus';
++import { adr } from '../target';
 +
 +/** The setting byte: 0 On, 1 Off with Direct Flash, 2 Always Off. */
-+export const EXPOSURE_PREVIEW_BYTE = 0x550832a8 + 4 + 0x10b;
++export const EXPOSURE_PREVIEW_BYTE = adr(0x550832a8) + 4 + 0x10b;
 +/** The same byte as the settings guard sees it (the settings object, CURRENT()). */
 +export const EXPOSURE_PREVIEW_GUARD = 0x10f;
 +export const ADJ_EXPOSURE_PREVIEW = 0x15;
@@ -1073,12 +1115,12 @@ new file mode 100644
 +export const IMAGE_CONTROL_ID = 0x02000015;
 +export const LINK_AE_AF_ID = 0x02000081;
 +
-+const TOP_SET_ICON = 0x5359d6f4; // (menu line, icon)
-+const LIST_ITEM = 0x53593d64; // (list, index) -> item (the ADJ controller's list view)
-+const ITEM_SET_TEXT = 0x535a1138; // (item, text number)
++const TOP_SET_ICON = adr(0x5359d6f4); // (menu line, icon)
++const LIST_ITEM = adr(0x53593d64); // (list, index) -> item (the ADJ controller's list view)
++const ITEM_SET_TEXT = adr(0x535a1138); // (item, text number)
 +const SOFT_TEXTS = [TEXT_OFF, 10, 11, 12] as const; // Off, Low, Medium, High
 +
-+const ADJ_TABLE = 0x53dc9dfc;
++const ADJ_TABLE = adr(0x53dc9dfc);
 +const ADJ_RECORD = 0x5c;
 +const ADJ_FUNCTIONS = 21;
 +const CROP = 0x13;
@@ -1088,20 +1130,20 @@ new file mode 100644
 +const H_COUNT = 0x30;
 +/** Every MOVW / MOVT pair that loads the table's address: [movw, movt, register]. */
 +const ADJ_TABLE_SITES: readonly (readonly [number, number, number])[] = [
-+  [0x531bd4c4, 0x531bd4d4, 4], [0x531bee8c, 0x531bee94, 2], [0x531bf028, 0x531bf030, 3], [0x531bf0c4, 0x531bf0cc, 2],
-+  [0x531bf5c0, 0x531bf5c8, 2], [0x531bffd4, 0x531bffdc, 2], [0x531c0030, 0x531c0038, 2], [0x531c0128, 0x531c0130, 2],
-+  [0x531c01b4, 0x531c01bc, 2], [0x531c0240, 0x531c0248, 2], [0x531c02e8, 0x531c02f0, 7], [0x531c0434, 0x531c043c, 2],
-+  [0x531c05d4, 0x531c05dc, 2], [0x531c06d0, 0x531c06e8, 4], [0x531c09dc, 0x531c09e4, 6], [0x531c0ae8, 0x531c0af0, 2],
-+  [0x531c0b94, 0x531c0b9c, 2], [0x531c0bfc, 0x531c0c0c, 7], [0x531c0cb8, 0x531c0cc8, 7], [0x531c0e9c, 0x531c0ea4, 2],
-+  [0x531c1060, 0x531c1064, 3], [0x531c1220, 0x531c1228, 2],
++  [adr(0x531bd4c4), adr(0x531bd4d4), 4], [adr(0x531bee8c), adr(0x531bee94), 2], [adr(0x531bf028), adr(0x531bf030), 3], [adr(0x531bf0c4), adr(0x531bf0cc), 2],
++  [adr(0x531bf5c0), adr(0x531bf5c8), 2], [adr(0x531bffd4), adr(0x531bffdc), 2], [adr(0x531c0030), adr(0x531c0038), 2], [adr(0x531c0128), adr(0x531c0130), 2],
++  [adr(0x531c01b4), adr(0x531c01bc), 2], [adr(0x531c0240), adr(0x531c0248), 2], [adr(0x531c02e8), adr(0x531c02f0), 7], [adr(0x531c0434), adr(0x531c043c), 2],
++  [adr(0x531c05d4), adr(0x531c05dc), 2], [adr(0x531c06d0), adr(0x531c06e8), 4], [adr(0x531c09dc), adr(0x531c09e4), 6], [adr(0x531c0ae8), adr(0x531c0af0), 2],
++  [adr(0x531c0b94), adr(0x531c0b9c), 2], [adr(0x531c0bfc), adr(0x531c0c0c), 7], [adr(0x531c0cb8), adr(0x531c0cc8), 7], [adr(0x531c0e9c), adr(0x531c0ea4), 2],
++  [adr(0x531c1060), adr(0x531c1064), 3], [adr(0x531c1220), adr(0x531c1228), 2],
 +];
 +/** The initialiser's end of the table (a literal word). */
-+const ADJ_TABLE_END = 0x531bd600;
-+const NAME_OF = 0x5338f484; // (resources, function) -> text: cmp r1, #0 first
-+const ICON_OF = 0x53390e40; // (resources, function, variant) -> icon: cmp r1, #0 first
-+const FUNCTION_LIST_LOW = 0x531dc834; // movw r4, #lo(list)
-+const FUNCTION_LIST_HIGH = 0x531dc844; // movt r4, #hi(list)
-+const FUNCTION_LIST_LENGTH = 0x531dc860; // add r6, r4, #length
++const ADJ_TABLE_END = adr(0x531bd600);
++const NAME_OF = adr(0x5338f484); // (resources, function) -> text: cmp r1, #0 first
++const ICON_OF = adr(0x53390e40); // (resources, function, variant) -> icon: cmp r1, #0 first
++const FUNCTION_LIST_LOW = adr(0x531dc834); // movw r4, #lo(list)
++const FUNCTION_LIST_HIGH = adr(0x531dc844); // movt r4, #hi(list)
++const FUNCTION_LIST_LENGTH = adr(0x531dc860); // add r6, r4, #length
 +const ADJ_SOFT_FOCUS = 0x0a;
 +const ADJ_IMAGE_CONTROL = 0x0f;
 +
@@ -1395,7 +1437,7 @@ new file mode 100644
 +  expectWord(patch, ICON_OF + 4, 0x1a000003); // bne 0x53390E58
 +  const crop = patch.read(ADJ_TABLE + CROP * ADJ_RECORD, ADJ_RECORD);
 +  const cv = new DataView(crop.buffer);
-+  if (cv.getUint32(0x10, true) !== 0x531bb654 || cv.getUint32(0x38, true) !== 0 || cv.getUint32(0x3c, true) !== 0x531bdf1c || cv.getUint32(0x40, true) !== 0) fail('unexpected-layout', 'Crop record of the ADJ table is not as expected');
++  if (cv.getUint32(0x10, true) !== adr(0x531bb654) || cv.getUint32(0x38, true) !== 0 || cv.getUint32(0x3c, true) !== adr(0x531bdf1c) || cv.getUint32(0x40, true) !== 0) fail('unexpected-layout', 'Crop record of the ADJ table is not as expected');
 +  for (const off of [H_DRAW, H_IS_CURRENT, H_SET, H_COUNT]) if (cv.getUint32(off, true) === 0 || cv.getUint32(off + 4, true) !== 0) fail('unexpected-layout', 'Crop record of the ADJ table is not as expected');
 +
 +  const values = exposurePreviewValues(o.directFlash);
@@ -1509,7 +1551,16 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
   *    it is hidden. Both lists are built without hidden looks (0x533DE1E8 and 0x5338409C, through
   *    the visibility check 0x533DE144), so a hidden look could only be selected by settings an
   *    earlier firmware left; this way the lists always hold the selected look. The custom sets'
-@@ -51,10 +51,12 @@
+@@ -34,7 +34,7 @@
+ import { assembleWords, branchTarget, branchWord } from './arm';
+ import { FirmwareError } from '../../types';
+ import { Patch, expectWord } from './build';
+-import { adr } from '../target';
++import { adr, byRelease } from '../target';
+ 
+ function fail(code: string, message: string): never {
+   throw new FirmwareError(code, message);
+@@ -52,10 +52,12 @@
  const RATIO = 0x49f;
  const ADJ_SLOTS = [0x920, 0x921, 0x922, 0x923, 0x924];
  export const STANDARD = 11;
@@ -1524,7 +1575,7 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
    slots: number;
    /** Added ratios are installed (their module resets the ratio). */
    ratios: boolean;
-@@ -66,6 +68,11 @@
+@@ -67,6 +69,11 @@
    adjSlots?: number;
    /** 0.8.9: the HDR gain map's menu switch is installed (`hdrgain.ts`, byte 0x10A of the settings: 0 On, 1 Off). */
    hdr?: boolean;
@@ -1536,7 +1587,7 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
  }
  
  /** Slots 6..8 (`adjslots.ts`): bytes 0x48D..0x48F of the user settings object, bits 0..4 the function, bits 5..7 of the first the slot last used (1..3: slot 6..8). */
-@@ -73,6 +80,8 @@
+@@ -74,6 +81,8 @@
  const ADJ_STILL_POSITION = 0x91e;
  /** The HDR gain map's switch (`HDR_SWITCH_BYTE`): byte 0x10E of the user settings object; 0 or 1. */
  const HDR_SWITCH = 0x10e;
@@ -1545,7 +1596,7 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
  
  /** The standard photo and movie sets' looks (the others are custom sets' looks). */
  const CURRENT_LOOKS = [0x153, 0x515];
-@@ -82,21 +91,23 @@
+@@ -83,21 +92,23 @@
  function fixSource(o: GuardOptions): string {
    const lines: string[] = ['cmp r0,#0', 'bxeq lr', 'sub r0,r0,r1'];
    LOOKS.forEach((off, i) => {
@@ -1572,7 +1623,7 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
      });
    }
    const n = o.adjSlots ?? 5;
-@@ -110,7 +121,7 @@
+@@ -111,7 +122,7 @@
          lines.push('mov r2,#0');
        } else {
          // the function: 0..0x14, soft focus (0x0A) only with soft focus on the ADJ lever
@@ -1581,7 +1632,7 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
          if (!o.adjSoftFocus) lines.push('cmp r3,#10', `beq xbad${j}`);
          lines.push(`b xok${j}`, `xbad${j}:`, 'bic r2,r2,#0x1f', `xok${j}:`);
          // the slot last used (first byte only): slots 6..n
-@@ -121,6 +132,7 @@
+@@ -122,6 +133,7 @@
      });
    }
    if (o.hdr) lines.push(`ldrb r2,[r0,#${HDR_SWITCH}]`, 'cmp r2,#1', 'movhi r2,#0', `strbhi r2,[r0,#${HDR_SWITCH}]`);
@@ -1589,12 +1640,12 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
    lines.push('bx lr');
    return lines.join(';');
  }
-@@ -137,7 +149,7 @@
+@@ -138,7 +150,7 @@
    const recallWord = p.word(RECALL);
    if (recallWord >>> 24 !== 0xeb) fail('unexpected-layout', 'user-mode recall is not a call');
    const priorRecall = branchTarget(RECALL, recallWord);
 -  if (priorRecall === RECALL_NATIVE) expectWord(p, RECALL, 0xebfe566c);
-+  if (priorRecall === RECALL_NATIVE) expectWord(p, RECALL, 0xebfe49f0); // bl 0x532406A4
++  if (priorRecall === RECALL_NATIVE) expectWord(p, RECALL, byRelease({ '1.20': 0xebfe49f0, '1.21': 0xebfe495e })); // bl 0x532406A4
  
    const fix = p.append((a) => assembleWords(fixSource(o), a), 16);
    // fix_mode(mode): the ten snapshots at mode + 4.
@@ -1616,8 +1667,17 @@ diff --git a/core/src/fw/gr4v120/aspect/halation-ui.ts b/core/src/fw/gr4v120/asp
   *    value 0x531CDBD8, setter 0x531CDF1C, row items 0x531CDCD8 / 0x531CDD64, subtitle 0x531CDC98,
   *    title 0x531CD56C, backup 0x531CDEFC (0x533D03D0), cancel 0x531CD2B0 (0x533D0538).
   * RAW development (RawDevelopmentImageControlDetailSetController, the look asked from the model):
-@@ -91,12 +92,12 @@
- export const HAL_SAVE = 0x5583902c;
+@@ -34,7 +35,7 @@
+ import { assembleWords, branchWord } from './arm';
+ import { FirmwareError } from '../../types';
+ import { Patch, expectWord } from './build';
+-import { adr, adrHex, adrText } from '../target';
++import { adr, adrHex, adrText, byRelease } from '../target';
+ 
+ function fail(code: string, message: string): never {
+   throw new FirmwareError(code, message);
+@@ -92,12 +93,12 @@
+ export const HAL_SAVE = adr(0x5583902c);
  
  /** Text of Grain Effect's Strength ("Intensity"), its Size, and the icon of Grain Effect's Strength row. */
 -const TEXT_STRENGTH = 347;
@@ -1633,93 +1693,93 @@ diff --git a/core/src/fw/gr4v120/aspect/halation-ui.ts b/core/src/fw/gr4v120/asp
 +const SCALE_STRENGTH = 0x261;
  
  /** Current Toning of the selected look (shooting): 0x533CC288 (no arguments). */
- const SHOOT_CUR = 0x533cc288;
-@@ -169,17 +170,17 @@
+ const SHOOT_CUR = adr(0x533cc288);
+@@ -170,17 +171,17 @@
    // Slider: Grain Effect's Off / On slider (0x531CA030; its default, Grain off, is Off).
-   hook(p, 0x531c904c, 0xe1a0c00d, `ldrb r1,[r0,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;bne #0x531ca030;mov ip,sp;b #0x531c9050`, 'halation: Off / On slider');
+   hook(p, adr(0x531c904c), 0xe1a0c00d, `ldrb r1,[r0,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;bne #${adrHex(0x531ca030)};mov ip,sp;b #${adrHex(0x531c9050)}`, 'halation: Off / On slider');
    // Current slider position (r5 the controller): Off / On.
--  hook(p, 0x531cc274, 0xeb07c367,
-+  hook(p, 0x531cc274, 0xeb080003,
+-  hook(p, adr(0x531cc274), 0xeb07c367,
++  hook(p, adr(0x531cc274), byRelease({ '1.20': 0xeb080003, '1.21': 0xeb08009b }),
      `bl #${SHOOT_CUR};push {r0,r1};ldrb r1,[r5,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;pop {r0,r1};beq tone
-      mov r1,#0;bl #${field};mov r4,r0;b #0x531cc19c
-      tone:bl #0x531c7c54;mov r4,r0;b #0x531cc19c`, 'halation: slider position Off / On');
+      mov r1,#0;bl #${field};mov r4,r0;b #${adrHex(0x531cc19c)}
+      tone:bl #${adrHex(0x531c7c54)};mov r4,r0;b #${adrHex(0x531cc19c)}`, 'halation: slider position Off / On');
    // The row's value text (r7 the controller, r0 object, r1 buffer): Off / On as Grain Effect's.
--  hook(p, 0x531cae34, 0xeb07460b,
-+  hook(p, 0x531cae34, 0xeb077df6,
+-  hook(p, adr(0x531cae34), 0xeb07460b,
++  hook(p, adr(0x531cae34), byRelease({ '1.20': 0xeb077df6, '1.21': 0xeb077ea0 }),
      `push {r0,r1};ldrb r1,[r7,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;pop {r0,r1};beq tone
-      push {r0,r1};bl #${SHOOT_CUR};mov r1,#0;bl #${field};mov r2,r0;pop {r0,r1};bl #${ON_OFF_TEXT};b #0x531cae38
-      tone:bl #0x533aa614;b #0x531cae38`, 'halation: row text Off / On');
+      push {r0,r1};bl #${SHOOT_CUR};mov r1,#0;bl #${field};mov r2,r0;pop {r0,r1};bl #${ON_OFF_TEXT};b #${adrHex(0x531cae38)}
+      tone:bl #${adrHex(0x533aa614)};b #${adrHex(0x531cae38)}`, 'halation: row text Off / On');
    // Setter (r4 controller, r6 slider position, r0 settings): switch on / off, keep the rest.
--  hook(p, 0x531ccc24, 0xe30a3ccc,
-+  hook(p, 0x531ccc24, 0xe3053524,
+-  hook(p, adr(0x531ccc24), 0xe30a3ccc,
++  hook(p, adr(0x531ccc24), byRelease({ '1.20': 0xe3053524, '1.21': 0xe3063bc4 }),
      `push {r0,r1};ldrb r1,[r4,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;pop {r0,r1};beq tone
-      push {r0,r1};bl #${SHOOT_CUR};mov r1,#0;mov r2,r6;bl #${put};mov r1,r0;pop {r0,r2};bl #${SHOOT_SET};b #0x531ccc34
-      tone:${addr('r3', 0x53de5524)};ldrb r1,[r3,r6];bl #${SHOOT_SET};b #0x531ccc34`, 'halation: switch on / off');
-@@ -214,32 +215,32 @@
+      push {r0,r1};bl #${SHOOT_CUR};mov r1,#0;mov r2,r6;bl #${put};mov r1,r0;pop {r0,r2};bl #${SHOOT_SET};b #${adrHex(0x531ccc34)}
+      tone:${addr('r3', adr(0x53de5524))};ldrb r1,[r3,r6];bl #${SHOOT_SET};b #${adrHex(0x531ccc34)}`, 'halation: switch on / off');
+@@ -215,32 +216,32 @@
    // ---------------------------------------------------------------- shooting: the submenu
    submenu(p, o, field, put, {
-     title: 0x531cd578, subtitle: 0x531cdcc8,
--    icon0: 0x531cdd14, text0: [0x531cdd2c, 0xeb073c73], icon1: 0x531cdda0, text1: [0x531cddb8, 0xeb073c7e],
--    default0: [0x531cd8f0, 0xeb07fc4a], scale0: 0x531cd90c, default1: [0x531cda3c, 0xeb07fdaa], scale1: 0x531cda58, positions1: 0x531cda7c,
--    current0: [0x531cdc7c, 0xeb07c730, 0x531cdc80], current1: [0x531cdc60, 0xeb07c85d, 0x531cdc64],
--    setter0: [0x531cdfd4, 0xeb07a917, 0x531cdfd8], setter1: [0x531cdfb4, 0xeb07a933, 0x531cdfb8],
-+    icon0: 0x531cdd14, text0: [0x531cdd2c, 0xeb077458], icon1: 0x531cdda0, text1: [0x531cddb8, 0xeb077463],
-+    default0: [0x531cd8f0, 0xeb083b9e], scale0: 0x531cd90c, default1: [0x531cda3c, 0xeb083d32], scale1: 0x531cda58, positions1: 0x531cda7c,
-+    current0: [0x531cdc7c, 0xeb08041d, 0x531cdc80], current1: [0x531cdc60, 0xeb08056e, 0x531cdc64],
-+    setter0: [0x531cdfd4, 0xeb07e4b0, 0x531cdfd8], setter1: [0x531cdfb4, 0xeb07e4cc, 0x531cdfb8],
+     title: adr(0x531cd578), subtitle: adr(0x531cdcc8),
+-    icon0: adr(0x531cdd14), text0: [adr(0x531cdd2c), 0xeb073c73], icon1: adr(0x531cdda0), text1: [adr(0x531cddb8), 0xeb073c7e],
+-    default0: [adr(0x531cd8f0), 0xeb07fc4a], scale0: adr(0x531cd90c), default1: [adr(0x531cda3c), 0xeb07fdaa], scale1: adr(0x531cda58), positions1: adr(0x531cda7c),
+-    current0: [adr(0x531cdc7c), 0xeb07c730, adr(0x531cdc80)], current1: [adr(0x531cdc60), 0xeb07c85d, adr(0x531cdc64)],
+-    setter0: [adr(0x531cdfd4), 0xeb07a917, adr(0x531cdfd8)], setter1: [adr(0x531cdfb4), 0xeb07a933, adr(0x531cdfb8)],
++    icon0: adr(0x531cdd14), text0: [adr(0x531cdd2c), byRelease({ '1.20': 0xeb077458, '1.21': 0xeb077502 })], icon1: adr(0x531cdda0), text1: [adr(0x531cddb8), byRelease({ '1.20': 0xeb077463, '1.21': 0xeb07750d })],
++    default0: [adr(0x531cd8f0), byRelease({ '1.20': 0xeb083b9e, '1.21': 0xeb083c36 })], scale0: adr(0x531cd90c), default1: [adr(0x531cda3c), byRelease({ '1.20': 0xeb083d32, '1.21': 0xeb083dca })], scale1: adr(0x531cda58), positions1: adr(0x531cda7c),
++    current0: [adr(0x531cdc7c), byRelease({ '1.20': 0xeb08041d, '1.21': 0xeb0804b5 }), adr(0x531cdc80)], current1: [adr(0x531cdc60), byRelease({ '1.20': 0xeb08056e, '1.21': 0xeb080606 }), adr(0x531cdc64)],
++    setter0: [adr(0x531cdfd4), byRelease({ '1.20': 0xeb07e4b0, '1.21': 0xeb07e548 }), adr(0x531cdfd8)], setter1: [adr(0x531cdfb4), byRelease({ '1.20': 0xeb07e4cc, '1.21': 0xeb07e564 }), adr(0x531cdfb8)],
      cur: `bl #${SHOOT_CUR}`, set: SHOOT_SET, setterRegs: 'r0',
    });
    // Backup on entry (after Grain Effect's own) and the restore on cancel.
--  hook(p, 0x531cdefc, 0xeb07cba2,
-+  hook(p, 0x531cdefc, 0xeb080933,
-     `bl #0x533d03d0;${flagTest};beq done;bl #${SHOOT_CUR};${addr('r1', HAL_SAVE)};str r0,[r1];done:b #0x531cdf00`, 'halation: keep the setting for cancel');
--  hook(p, 0x531cd2c8, 0xeb07cf06,
-+  hook(p, 0x531cd2c8, 0xeb080c9a,
-     `bl #0x533d0538;${flagTest};beq done;bl #0x532406a4;bl #0x53241548;${addr('r1', HAL_SAVE)};ldr r1,[r1];bl #${SHOOT_SET};done:b #0x531cd2cc`, 'halation: cancel puts the setting back');
+-  hook(p, adr(0x531cdefc), 0xeb07cba2,
++  hook(p, adr(0x531cdefc), byRelease({ '1.20': 0xeb080933, '1.21': 0xeb0809cb }),
+     `bl #${adrHex(0x533d03d0)};${flagTest};beq done;bl #${SHOOT_CUR};${addr('r1', HAL_SAVE)};str r0,[r1];done:b #${adrHex(0x531cdf00)}`, 'halation: keep the setting for cancel');
+-  hook(p, adr(0x531cd2c8), 0xeb07cf06,
++  hook(p, adr(0x531cd2c8), byRelease({ '1.20': 0xeb080c9a, '1.21': 0xeb080d32 }),
+     `bl #${adrHex(0x533d0538)};${flagTest};beq done;bl #${adrHex(0x532406a4)};bl #${adrHex(0x53241548)};${addr('r1', HAL_SAVE)};ldr r1,[r1];bl #${SHOOT_SET};done:b #${adrHex(0x531cd2cc)}`, 'halation: cancel puts the setting back');
  
    // ---------------------------------------------------------------- RAW development: the main row
    // Slider (entry, r0 controller): Grain Effect's Off / On slider 0x531A8DC0.
-   hook(p, 0x531a7db8, 0xe1a0c00d, `push {r0-r3,ip,lr};${RAW_LOOK_CALLS};${lookup('ip', 'r0', 'r1', o.raws)};cmp ip,#0;pop {r0-r3,ip,lr};bne #0x531a8dc0;mov ip,sp;b #0x531a7dbc`, 'halation: Off / On slider (RAW development)');
+   hook(p, adr(0x531a7db8), 0xe1a0c00d, `push {r0-r3,ip,lr};${RAW_LOOK_CALLS};${lookup('ip', 'r0', 'r1', o.raws)};cmp ip,#0;pop {r0-r3,ip,lr};bne #${adrHex(0x531a8dc0)};mov ip,sp;b #${adrHex(0x531a7dbc)}`, 'halation: Off / On slider (RAW development)');
    // Current slider position (r0 the model; r5 is set from r0 after).
--  hook(p, 0x531aae18, 0xeb070b5a,
-+  hook(p, 0x531aae18, 0xeb073eed,
-     `${rawHal};mov r5,ip;bl #${RAW_GET};cmp r5,#0;beq tone;mov r1,#0;bl #${field};b #0x531aae20
-      tone:bl #0x531a65e0;b #0x531aae20`, 'halation: slider position Off / On (RAW development)');
+-  hook(p, adr(0x531aae18), 0xeb070b5a,
++  hook(p, adr(0x531aae18), byRelease({ '1.20': 0xeb073eed, '1.21': 0xeb07401f }),
+     `${rawHal};mov r5,ip;bl #${RAW_GET};cmp r5,#0;beq tone;mov r1,#0;bl #${field};b #${adrHex(0x531aae20)}
+      tone:bl #${adrHex(0x531a65e0)};b #${adrHex(0x531aae20)}`, 'halation: slider position Off / On (RAW development)');
    // Row text (r0 object, r1 buffer, r2 value).
--  hook(p, 0x531a9d5c, 0xeb07c97b,
-+  hook(p, 0x531a9d5c, 0xeb080201,
+-  hook(p, adr(0x531a9d5c), 0xeb07c97b,
++  hook(p, adr(0x531a9d5c), byRelease({ '1.20': 0xeb080201, '1.21': 0xeb080334 }),
      `${rawHal};cmp ip,#0;beq tone
-      push {r0,r1};mov r0,r2;mov r1,#0;bl #${field};mov r2,r0;pop {r0,r1};bl #${ON_OFF_TEXT};b #0x531a9d60
-      tone:bl #0x533aa568;b #0x531a9d60`, 'halation: row text Off / On (RAW development)');
+      push {r0,r1};mov r0,r2;mov r1,#0;bl #${field};mov r2,r0;pop {r0,r1};bl #${ON_OFF_TEXT};b #${adrHex(0x531a9d60)}
+      tone:bl #${adrHex(0x533aa568)};b #${adrHex(0x531a9d60)}`, 'halation: row text Off / On (RAW development)');
    // Setter (r6 model, r5 slider position).
--  hook(p, 0x531ab2d4, 0xe30a3ccc,
-+  hook(p, 0x531ab2d4, 0xe3053524,
+-  hook(p, adr(0x531ab2d4), 0xe30a3ccc,
++  hook(p, adr(0x531ab2d4), byRelease({ '1.20': 0xe3053524, '1.21': 0xe3063bc4 }),
      `${rawHal};cmp ip,#0;beq tone
-      mov r0,r6;bl #${RAW_GET};mov r1,#0;mov r2,r5;bl #${put};mov r1,r0;mov r0,r6;bl #${RAW_SET};b #0x531ab2e8
-      tone:${addr('r3', 0x53de5524)};mov r0,r6;ldrb r1,[r3,r5];bl #${RAW_SET};b #0x531ab2e8`, 'halation: switch on / off (RAW development)');
-@@ -260,15 +261,15 @@
+      mov r0,r6;bl #${RAW_GET};mov r1,#0;mov r2,r5;bl #${put};mov r1,r0;mov r0,r6;bl #${RAW_SET};b #${adrHex(0x531ab2e8)}
+      tone:${addr('r3', adr(0x53de5524))};mov r0,r6;ldrb r1,[r3,r5];bl #${RAW_SET};b #${adrHex(0x531ab2e8)}`, 'halation: switch on / off (RAW development)');
+@@ -261,15 +262,15 @@
    // ---------------------------------------------------------------- RAW development: the submenu
    submenu(p, o, field, put, {
-     title: 0x531abfa4, subtitle: 0x531ac72c,
--    icon0: 0x531ac778, text0: null, icon1: 0x531ac818, text1: [0x531ac844, 0xeb07c120],
--    default0: [0x531ac354, 0xeb0709db], scale0: 0x531ac370, default1: [0x531ac49c, 0xeb070993], scale1: 0x531ac4b8, positions1: 0x531ac4dc,
--    current0: [0x531ac6e0, 0xeb070676, 0x531ac6e4], current1: [0x531ac6bc, 0xeb07069b, 0x531ac6c0],
--    setter0: [0x531aca28, 0xeb071eb3, 0x531aca2c], setter1: [0x531aca08, 0xeb071f0c, 0x531aca0c],
-+    icon0: 0x531ac778, text0: null, icon1: 0x531ac818, text1: [0x531ac844, 0xeb07f9a0],
-+    default0: [0x531ac354, 0xeb073d86], scale0: 0x531ac370, default1: [0x531ac49c, 0xeb073d3e], scale1: 0x531ac4b8, positions1: 0x531ac4dc,
-+    current0: [0x531ac6e0, 0xeb073a0b, 0x531ac6e4], current1: [0x531ac6bc, 0xeb073a30, 0x531ac6c0],
-+    setter0: [0x531aca28, 0xeb0753a9, 0x531aca2c], setter1: [0x531aca08, 0xeb075402, 0x531aca0c],
+     title: adr(0x531abfa4), subtitle: adr(0x531ac72c),
+-    icon0: adr(0x531ac778), text0: null, icon1: adr(0x531ac818), text1: [adr(0x531ac844), 0xeb07c120],
+-    default0: [adr(0x531ac354), 0xeb0709db], scale0: adr(0x531ac370), default1: [adr(0x531ac49c), 0xeb070993], scale1: adr(0x531ac4b8), positions1: adr(0x531ac4dc),
+-    current0: [adr(0x531ac6e0), 0xeb070676, adr(0x531ac6e4)], current1: [adr(0x531ac6bc), 0xeb07069b, adr(0x531ac6c0)],
+-    setter0: [adr(0x531aca28), 0xeb071eb3, adr(0x531aca2c)], setter1: [adr(0x531aca08), 0xeb071f0c, adr(0x531aca0c)],
++    icon0: adr(0x531ac778), text0: null, icon1: adr(0x531ac818), text1: [adr(0x531ac844), byRelease({ '1.20': 0xeb07f9a0, '1.21': 0xeb07fad3 })],
++    default0: [adr(0x531ac354), byRelease({ '1.20': 0xeb073d86, '1.21': 0xeb073eb8 })], scale0: adr(0x531ac370), default1: [adr(0x531ac49c), byRelease({ '1.20': 0xeb073d3e, '1.21': 0xeb073e70 })], scale1: adr(0x531ac4b8), positions1: adr(0x531ac4dc),
++    current0: [adr(0x531ac6e0), byRelease({ '1.20': 0xeb073a0b, '1.21': 0xeb073b3d }), adr(0x531ac6e4)], current1: [adr(0x531ac6bc), byRelease({ '1.20': 0xeb073a30, '1.21': 0xeb073b62 }), adr(0x531ac6c0)],
++    setter0: [adr(0x531aca28), byRelease({ '1.20': 0xeb0753a9, '1.21': 0xeb0754db }), adr(0x531aca2c)], setter1: [adr(0x531aca08), byRelease({ '1.20': 0xeb075402, '1.21': 0xeb075534 }), adr(0x531aca0c)],
      cur: `bl #${RAW_GET}`, set: RAW_SET, setterRegs: 'r0',
--    rowValue0: [0x531ac78c, 0xeb07064b, 0x531ac790], rowValue1: [0x531ac82c, 0xeb07063f, 0x531ac830],
-+    rowValue0: [0x531ac78c, 0xeb0739e0, 0x531ac790], rowValue1: [0x531ac82c, 0xeb0739d4, 0x531ac830],
+-    rowValue0: [adr(0x531ac78c), 0xeb07064b, adr(0x531ac790)], rowValue1: [adr(0x531ac82c), 0xeb07063f, adr(0x531ac830)],
++    rowValue0: [adr(0x531ac78c), byRelease({ '1.20': 0xeb0739e0, '1.21': 0xeb073b12 }), adr(0x531ac790)], rowValue1: [adr(0x531ac82c), byRelease({ '1.20': 0xeb0739d4, '1.21': 0xeb073b06 }), adr(0x531ac830)],
    });
    // Cancel: Grain Effect's restore, then the halation setting kept at Fn.
--  hook(p, 0x531abdd0, 0xeb07223e,
-+  hook(p, 0x531abdd0, 0xeb075734,
-     `bl #0x53381aa8;${flagTest};beq done;${RAW_MODEL};${addr('r1', HAL_SAVE)};ldr r1,[r1];bl #${RAW_SET};done:b #0x531abdd4`, 'halation: cancel puts the setting back (RAW development)');
+-  hook(p, adr(0x531abdd0), 0xeb07223e,
++  hook(p, adr(0x531abdd0), byRelease({ '1.20': 0xeb075734, '1.21': 0xeb075866 }),
+     `bl #${adrHex(0x53381aa8)};${flagTest};beq done;${RAW_MODEL};${addr('r1', HAL_SAVE)};ldr r1,[r1];bl #${RAW_SET};done:b #${adrHex(0x531abdd4)}`, 'halation: cancel puts the setting back (RAW development)');
  }
  
-@@ -292,7 +293,7 @@
+@@ -293,7 +294,7 @@
  function submenu(p: Patch, o: HalationUiOptions, field: number, put: number, s: SubmenuSites): void {
    // In the prologue: ip still holds the caller's sp (`sub fp,ip,#4` follows), so only r1 is used
    // (test 043 used ip here: fp went wrong and the camera froze on entering the submenu).
@@ -1728,7 +1788,7 @@ diff --git a/core/src/fw/gr4v120/aspect/halation-ui.ts b/core/src/fw/gr4v120/asp
    hook(p, s.subtitle, 0xe1d310b4,
      `ldrh r1,[r3,#4];${flagTest};beq done;movw ip,#${TEXT_SIZE};cmp r1,ip;movweq r1,#${TEXT_STRENGTH};movwne r1,#${o.colourText};done:b #${s.subtitle + 4}`, 'halation submenu: row name');
    hook(p, s.icon0, 0xe1d370b2, `ldrh r7,[r3,#2];${flagTest};movwne r7,#${o.icon};b #${s.icon0 + 4}`, 'halation submenu: strength icon');
-@@ -319,8 +320,8 @@
+@@ -320,8 +321,8 @@
    // Sliders: defaults Weak and red; strength on Grain's strength scale; colour two positions on its scale.
    hook(p, s.default0[0], s.default0[1], `${flagTest};beq native;mov r0,#0;b #${s.default0[0] + 4};native:bl #${branchTargetOf(s.default0)};b #${s.default0[0] + 4}`, 'halation submenu: strength default');
    hook(p, s.default1[0], s.default1[1], `${flagTest};beq native;mov r0,#0;b #${s.default1[0] + 4};native:bl #${branchTargetOf(s.default1)};b #${s.default1[0] + 4}`, 'halation submenu: colour default');
@@ -1739,13 +1799,13 @@ diff --git a/core/src/fw/gr4v120/aspect/halation-ui.ts b/core/src/fw/gr4v120/asp
    expectWord(p, s.positions1 + 4, 0xe3a030b4);
    hook(p, s.positions1, 0xe3a02002, `${flagTest};mov r2,#2;mov r3,#0xb4;movne r2,#1;movne r3,#0x168;b #${s.positions1 + 8}`, 'halation submenu: colour has two positions');
    // Current positions: strength 0..2, colour 0..1 (the value-to-position tables after are 0, 1, 2).
-@@ -359,6 +360,6 @@
-   hook(p, 0x531c7c54, 0xe1a0c00d, 'cmp r0,#2;movhi r0,#0;mov ip,sp;b #0x531c7c58', 'halation: Toning slider position 0..2');
-   hook(p, 0x531a65e0, 0xe1a0c00d, 'cmp r0,#2;movhi r0,#0;mov ip,sp;b #0x531a65e4', 'halation: Toning slider position 0..2 (RAW development)');
-   hook(p, 0x533aa568, 0xe3520001, 'cmp r2,#2;movhi r2,#0;cmp r2,#1;b #0x533aa56c', 'halation: Toning text 0..2');
--  hook(p, 0x53804008, 0xe30f3150, 'ldrb r0,[r1,#0x7a6];cmp r0,#3;blo native;cmp r0,#11;addls r0,r0,#1;popls {r4,pc};native:movw r3,#0xf150;b #0x5380400c', 'halation: maker note Toning 3..11 as codes 4..12');
-+  hook(p, 0x53804008, 0xe3003e10, 'ldrb r0,[r1,#0x7a6];cmp r0,#3;blo native;cmp r0,#11;addls r0,r0,#1;popls {r4,pc};native:movw r3,#0xe10;b #0x5380400c', 'halation: maker note Toning 3..11 as codes 4..12');
-   hook(p, 0x537fdb3c, 0xe3a03000, 'sub r3,r1,#1;cmp r3,#3;blo zero;cmp r3,#11;bls keep;zero:mov r3,#0;keep:b #0x537fdb40', 'halation: maker note codes 4..12 as Toning 3..11');
+@@ -360,6 +361,6 @@
+   hook(p, adr(0x531c7c54), 0xe1a0c00d, adrText('cmp r0,#2;movhi r0,#0;mov ip,sp;b #0x531c7c58'), 'halation: Toning slider position 0..2');
+   hook(p, adr(0x531a65e0), 0xe1a0c00d, adrText('cmp r0,#2;movhi r0,#0;mov ip,sp;b #0x531a65e4'), 'halation: Toning slider position 0..2 (RAW development)');
+   hook(p, adr(0x533aa568), 0xe3520001, adrText('cmp r2,#2;movhi r2,#0;cmp r2,#1;b #0x533aa56c'), 'halation: Toning text 0..2');
+-  hook(p, adr(0x53804008), 0xe30f3150, adrText('ldrb r0,[r1,#0x7a6];cmp r0,#3;blo native;cmp r0,#11;addls r0,r0,#1;popls {r4,pc};native:movw r3,#0xf150;b #0x5380400c'), 'halation: maker note Toning 3..11 as codes 4..12');
++  hook(p, adr(0x53804008), byRelease({ '1.20': 0xe3003e10, '1.21': 0xe3003e18 }), adrText('ldrb r0,[r1,#0x7a6];cmp r0,#3;blo native;cmp r0,#11;addls r0,r0,#1;popls {r4,pc};native:movw r3,#0xe10;b #0x5380400c'), 'halation: maker note Toning 3..11 as codes 4..12');
+   hook(p, adr(0x537fdb3c), 0xe3a03000, adrText('sub r3,r1,#1;cmp r3,#3;blo zero;cmp r3,#11;bls keep;zero:mov r3,#0;keep:b #0x537fdb40'), 'halation: maker note codes 4..12 as Toning 3..11');
  }
 diff --git a/core/src/fw/gr4v120/aspect/halation.ts b/core/src/fw/gr4v120/aspect/halation.ts
 --- a/core/src/fw/gr4v120/aspect/halation.ts
@@ -1757,9 +1817,9 @@ diff --git a/core/src/fw/gr4v120/aspect/halation.ts b/core/src/fw/gr4v120/aspect
 -import { HALATION_CODE, HALATION_CODE_LENGTH } from './halation-code';
 +import { HALATION_CODE, HALATION_CODE_LENGTH, HALATION_STATUS_CODE } from './halation-code';
  import { HALATION_CODE_089, HALATION_CODE_089_LENGTH } from './halation-code-089';
+ import { adr } from '../target';
  
- /**
-@@ -248,6 +248,13 @@
+@@ -249,6 +249,13 @@
  
  /** A look with halation: its style number and its light. */
  export interface HalationLook { style: number; light: HalationLight }
@@ -1773,7 +1833,7 @@ diff --git a/core/src/fw/gr4v120/aspect/halation.ts b/core/src/fw/gr4v120/aspect
  
  /**
   * Install the module at the JPEG encode step for `looks`; `stash` is the word the development
-@@ -288,8 +295,9 @@
+@@ -289,8 +296,9 @@
      ...paramBytes(),
      ...u32le([CTX_MAGIC]),
      ...map,
@@ -1825,8 +1885,8 @@ diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/lo
   */
  import { Patch, expectWord, u32le } from './build';
  import { FirmwareError } from '../../types';
-@@ -19,12 +21,12 @@
- import { foff } from '../profile';
+@@ -20,12 +22,12 @@
+ import { adr } from '../target';
  
  export const FACTORY_LOOK_IDS: readonly number[] = [
 -  11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
@@ -1836,14 +1896,14 @@ diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/lo
 -export const EXTRA_LOOK_FIRST = 34;
 +/** First style number of an added Image Control slot (38..57; 1.11: 34..53). */
 +export const EXTRA_LOOK_FIRST = 38;
- export const ORDER_TABLE = 0x53DE8CD0;
+ export const ORDER_TABLE = adr(0x53DE8CD0);
 -export const ORDER_COUNT = 20;
 +export const ORDER_COUNT = 22;
- export const COLOR_VIS_TABLE = 0x533DE15C;
- export const COLOR_VISIBLE = 0x533DE194;
- export const COLOR_CONDITIONAL = 0x533DE19C;
-@@ -33,7 +35,7 @@
- export const MONO_HIDDEN = 0x533DE0B0;
+ export const COLOR_VIS_TABLE = adr(0x533DE15C);
+ export const COLOR_VISIBLE = adr(0x533DE194);
+ export const COLOR_CONDITIONAL = adr(0x533DE19C);
+@@ -34,7 +36,7 @@
+ export const MONO_HIDDEN = adr(0x533DE0B0);
  
  export interface LookLayout {
 -  /** Style IDs in menu order: a permutation of 11..30 and, when added slots are installed, 34..34+n-1. */
@@ -1851,7 +1911,7 @@ diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/lo
    order: readonly number[];
    /** Style IDs hidden from the lists. Factory looks and added slots are both allowed. */
    hidden: readonly number[];
-@@ -67,7 +69,7 @@
+@@ -68,7 +70,7 @@
    if (layout.hidden.length >= expected.length) fail('bad-look-layout', 'at least one look must stay visible');
    if (layout.hidden.includes(11)) fail('bad-look-layout', 'Standard (style 11) must stay visible');
    // The settings guard turns a hidden look selected in the settings into Standard: 11, or 25 (the
@@ -1860,7 +1920,7 @@ diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/lo
    if (layout.hidden.includes(25)) fail('bad-look-layout', 'Standard of the monochrome looks (style 25) must stay visible');
  }
  
-@@ -88,7 +90,7 @@
+@@ -89,7 +91,7 @@
        const word = patch.word(at);
        if (word !== COLOR_VISIBLE && word !== COLOR_CONDITIONAL) fail('unexpected-layout', `look ${style} visibility entry is not the official one`);
        patch.setWord(at, COLOR_HIDDEN, `hide look ${style}`);
@@ -1869,7 +1929,7 @@ diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/lo
        const at = MONO_VIS_TABLE + (style - 25) * 4;
        const word = patch.word(at);
        if (word === MONO_HIDDEN) continue;
-@@ -102,7 +104,7 @@
+@@ -103,7 +105,7 @@
  /**
   * In-place build (official layout): the order bytes and the visibility words as payload offsets.
   * Used by `buildFirmware` when nothing grows, so a build with only order/hide changes stays the
@@ -1878,7 +1938,7 @@ diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/lo
   */
  export function lookLayoutWords(official: Uint8Array, layout: LookLayout): { offset: number; bytes: Uint8Array; what: string }[] {
    validateLookLayout(layout, 0);
-@@ -118,8 +120,11 @@
+@@ -119,8 +121,11 @@
        const word = official[off] | (official[off + 1] << 8) | (official[off + 2] << 16) | (official[off + 3] << 24);
        if (word !== COLOR_VISIBLE && word !== COLOR_CONDITIONAL) fail('unexpected-layout', `look ${style} visibility entry is not the official one`);
        out.push({ offset: off, bytes: u32le([COLOR_HIDDEN]), what: `hide look ${style}` });
@@ -1892,7 +1952,7 @@ diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/lo
      } else {
        fail('bad-look-layout', `style ${style} is not a factory look`);
      }
-@@ -131,3 +136,20 @@
+@@ -132,3 +137,20 @@
    }
    return out;
  }
@@ -1925,8 +1985,8 @@ diff --git a/core/src/fw/gr4v120/aspect/lookstash.ts b/core/src/fw/gr4v120/aspec
   * gives grey for every colour (equal matrix rows, equal curves, equal rows of the post-curve
   * matrix).
   */
-@@ -55,7 +55,7 @@
- export const MONO_MODEL = 0x53400df4;
+@@ -56,7 +56,7 @@
+ export const MONO_MODEL = adr(0x53400df4);
  
  /** The camera's own black-and-white looks. */
 -export const MONO_LOOKS = [13, 14, 15, 16, 25, 26, 27, 28, 29, 30];
@@ -1938,7 +1998,7 @@ diff --git a/core/src/fw/gr4v120/aspect/lvpreview.ts b/core/src/fw/gr4v120/aspec
 new file mode 100644
 --- /dev/null
 +++ b/core/src/fw/gr4v120/aspect/lvpreview.ts
-@@ -0,0 +1,121 @@
+@@ -0,0 +1,122 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * Exposure preview off (issue #17; firmware 1.20; test builds only so far): the live view keeps a
@@ -1963,11 +2023,12 @@ new file mode 100644
 +import { FirmwareError } from '../../types';
 +import { assembleWords, branchWord } from './arm';
 +import { Patch, expectWord } from './build';
++import { adr } from '../target';
 +
-+const PROGRAM_GETTER = 0x536a7534; // ldrb r0, [r0, #0x39]; bx lr
-+const BIAS_GETTER = 0x536a7e54; // vldr s0, [r0, #0xdc]; bx lr
-+const PROGRAM_SITES = [0x5368dc80, 0x5368fb04, 0x53690df8, 0x536910a4] as const;
-+const BIAS_SITE = 0x5368faf4;
++const PROGRAM_GETTER = adr(0x536a7534); // ldrb r0, [r0, #0x39]; bx lr
++const BIAS_GETTER = adr(0x536a7e54); // vldr s0, [r0, #0xdc]; bx lr
++const PROGRAM_SITES = [adr(0x5368dc80), adr(0x5368fb04), adr(0x53690df8), adr(0x536910a4)] as const;
++const BIAS_SITE = adr(0x5368faf4);
 +const PROGRAM_M = 4;
 +const VMOV_S0_IP = 0xee00ca10; // vmov s0, ip
 +
@@ -2064,7 +2125,7 @@ diff --git a/core/src/fw/gr4v120/aspect/menuwide.ts b/core/src/fw/gr4v120/aspect
 new file mode 100644
 --- /dev/null
 +++ b/core/src/fw/gr4v120/aspect/menuwide.ts
-@@ -0,0 +1,241 @@
+@@ -0,0 +1,242 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * Camera menus of more than 38 lines (firmware 1.20; test 080): the still shooting menu gets room
@@ -2103,6 +2164,7 @@ new file mode 100644
 +import { FirmwareError } from '../../types';
 +import { assembleWords, branchWord } from './arm';
 +import { Patch, expectWord } from './build';
++import { adr } from '../target';
 +
 +export const WIDE_ITEMS = 42;
 +export const OFFICIAL_ITEMS = 38;
@@ -2116,11 +2178,11 @@ new file mode 100644
 +export const WIDE_DESCRIPTOR = W_VISIBLE + WIDE_ITEMS * 8;
 +
 +const TABS = 5;
-+const MENU_TABLE = 0x55001e78;
++const MENU_TABLE = adr(0x55001e78);
 +/** The other four tabs' descriptors (movie, playback, customize, setup), as listed at MENU_TABLE. */
-+const OTHER_TABS = [0x53dc7bd0, 0x53dc783c, 0x53dc6b38, 0x53dc7110] as const;
++const OTHER_TABS = [adr(0x53dc7bd0), adr(0x53dc783c), adr(0x53dc6b38), adr(0x53dc7110)] as const;
 +
-+const ALLOC = 0x53188530; // movw r0, #0x13ec (operator new for TopMenuController)
++const ALLOC = adr(0x53188530); // movw r0, #0x13ec (operator new for TopMenuController)
 +const OBJECT = 0x13ec;
 +/** The controller's own arrays, after its official fields: ids, then draw functions, then visibility. */
 +export const C_ID = OBJECT;
@@ -2128,18 +2190,18 @@ new file mode 100644
 +export const C_VISIBLE = C_DRAW + TABS * WIDE_ITEMS * 8;
 +export const WIDE_OBJECT = C_VISIBLE + TABS * WIDE_ITEMS * 8;
 +
-+const B_ID_INDEX = 0x531b5664; // add sl, r4, #0x6f (sl = descriptor + (item + 0x6f) * 4: its id)
-+const B_VISIBLE = 0x531b5684; // add r3, r3, #0x254 (r3 = descriptor + item * 8 + 0x254)
-+const B_STORE = 0x531b5690; // add r3, r5, #0x11 (first of the stores of an item shown)
-+const B_STORE_END = 0x531b56ec; // cmp r4, sb
-+const OK_SITES = [0x531b3664, 0x531b3668, 0x531b366c, 0x531b3670] as const;
-+const DRAW_BASE = 0x531b4700; // mla r5, r5, sb, r0
-+const DRAW_COUNT = 0x531b4704; // ldrb r3, [r5, #0x2bb]
-+const DRAW_KEEP = 0x531b4710; // movne r8, r5
-+const ROWS_COUNT = 0x531b3860; // mov r2, #0x26
-+const ROWS_CALL = 0x531b387c; // bl 0x53593C14 (list view: create rows)
-+const LIST_ROWS = 0x53593c14;
-+const ROW_KINDS = 0x53b7318c; // 38 x 0x13
++const B_ID_INDEX = adr(0x531b5664); // add sl, r4, #0x6f (sl = descriptor + (item + 0x6f) * 4: its id)
++const B_VISIBLE = adr(0x531b5684); // add r3, r3, #0x254 (r3 = descriptor + item * 8 + 0x254)
++const B_STORE = adr(0x531b5690); // add r3, r5, #0x11 (first of the stores of an item shown)
++const B_STORE_END = adr(0x531b56ec); // cmp r4, sb
++const OK_SITES = [adr(0x531b3664), adr(0x531b3668), adr(0x531b366c), adr(0x531b3670)] as const;
++const DRAW_BASE = adr(0x531b4700); // mla r5, r5, sb, r0
++const DRAW_COUNT = adr(0x531b4704); // ldrb r3, [r5, #0x2bb]
++const DRAW_KEEP = adr(0x531b4710); // movne r8, r5
++const ROWS_COUNT = adr(0x531b3860); // mov r2, #0x26
++const ROWS_CALL = adr(0x531b387c); // bl 0x53593C14 (list view: create rows)
++const LIST_ROWS = adr(0x53593c14);
++const ROW_KINDS = adr(0x53b7318c); // 38 x 0x13
 +const ROW_KIND = 0x13;
 +
 +function fail(code: string, message: string): never {
@@ -2186,15 +2248,15 @@ new file mode 100644
 + */
 +export function installWideMenus(patch: Patch, still: { gr4: number; hdf: number; mono: number }, model: { app: number; specModel: number; number: number; builder: number }, what: string): void {
 +  expectWord(patch, ALLOC, 0xe30103ec);
-+  expectWord(patch, ALLOC + 4, branchWord(ALLOC + 4, 0x539084bc, 14, true));
-+  expectWord(patch, ALLOC + 12, branchWord(ALLOC + 12, 0x531b57e4, 14, true));
++  expectWord(patch, ALLOC + 4, branchWord(ALLOC + 4, adr(0x539084bc), 14, true));
++  expectWord(patch, ALLOC + 12, branchWord(ALLOC + 12, adr(0x531b57e4), 14, true));
 +  expectWord(patch, B_ID_INDEX, 0xe284a06f);
 +  expectWord(patch, B_VISIBLE, 0xe2833f95);
 +  expectWord(patch, B_STORE, 0xe2853011);
-+  expectWord(patch, 0x531b56b0, 0xe286ef95); // add lr, r6, #0x254 (the visibility the store copies)
-+  expectWord(patch, 0x531b56a4, 0xe286108c); // add r1, r6, #0x8c (the draw function it copies)
-+  expectWord(patch, 0x531b56d4, 0xe59a3000); // ldr r3, [sl] (the id it copies)
-+  expectWord(patch, 0x531b5698, 0xe51b0034); // ldr r0, [fp, #-0x34] (the tab)
++  expectWord(patch, adr(0x531b56b0), 0xe286ef95); // add lr, r6, #0x254 (the visibility the store copies)
++  expectWord(patch, adr(0x531b56a4), 0xe286108c); // add r1, r6, #0x8c (the draw function it copies)
++  expectWord(patch, adr(0x531b56d4), 0xe59a3000); // ldr r3, [sl] (the id it copies)
++  expectWord(patch, adr(0x531b5698), 0xe51b0034); // ldr r0, [fp, #-0x34] (the tab)
 +  expectWord(patch, B_STORE_END, 0xe1540009);
 +  expectWord(patch, OK_SITES[0], 0xe3a030e3);
 +  expectWord(patch, OK_SITES[1], 0xe0200593);
@@ -2204,10 +2266,10 @@ new file mode 100644
 +  expectWord(patch, DRAW_BASE, 0xe0250995);
 +  expectWord(patch, DRAW_COUNT, 0xe5d532bb);
 +  expectWord(patch, DRAW_KEEP, 0x11a08005);
-+  expectWord(patch, 0x531b4738, 0xe59532c0); // ldr r3, [r5, #0x2c0]
-+  expectWord(patch, 0x531b4754, 0x159532b4); // ldrne r3, [r5, #0x2b4]
-+  expectWord(patch, 0x531b4758, 0x059532b4); // ldreq r3, [r5, #0x2b4]
-+  expectWord(patch, 0x531b4764, 0xe5d832bb); // ldrb r3, [r8, #0x2bb]
++  expectWord(patch, adr(0x531b4738), 0xe59532c0); // ldr r3, [r5, #0x2c0]
++  expectWord(patch, adr(0x531b4754), 0x159532b4); // ldrne r3, [r5, #0x2b4]
++  expectWord(patch, adr(0x531b4758), 0x059532b4); // ldreq r3, [r5, #0x2b4]
++  expectWord(patch, adr(0x531b4764), 0xe5d832bb); // ldrb r3, [r8, #0x2bb]
 +  expectWord(patch, ROWS_COUNT, 0xe3a02026);
 +  expectWord(patch, ROWS_CALL, branchWord(ROWS_CALL, LIST_ROWS, 14, true));
 +  const kinds = patch.read(ROW_KINDS, OFFICIAL_ITEMS + 1);
@@ -2332,9 +2394,9 @@ diff --git a/core/src/fw/gr4v120/aspect/monounlock.ts b/core/src/fw/gr4v120/aspe
   *
   * Found and tested on a camera by GR4-MonoUnlock (github.com/lemonadesaltbagel/GR4-MonoUnlock):
   * Standard, Soft, High Contrast and Solid worked, Grainy was in builds that ran, HDR was not tried.
-@@ -21,16 +29,20 @@
- const CHECK = 0x533de144;
- const TABLE = 0x53de9cc4;
+@@ -22,16 +30,20 @@
+ const CHECK = adr(0x533de144);
+ const TABLE = adr(0x53de9cc4);
  const MONOCHROME_COLUMN = 1;
 -/** Rows 3..8 (the six looks), every column but the Monochrome's. */
 +/** Rows 3..8 (the six looks) and 10 (Solarized), every column but the Monochrome's. */
@@ -2351,15 +2413,15 @@ diff --git a/core/src/fw/gr4v120/aspect/monounlock.ts b/core/src/fw/gr4v120/aspe
      if (patch.read(TABLE + row * 7, 7).join(',') !== '0,1,0,0,0,0,0') throw new Error(`availability row ${row} is not the official one`);
    }
 +  // 32 (Solarized) goes through the table: `mov r1, #10 ; ... ; b 0x533F1DC8`.
-+  expectWord(patch, 0x533de080 + (32 - 25) * 4, 0x533de0b8);
-+  expectWord(patch, 0x533de0b8, 0xe3a0100a);
++  expectWord(patch, adr(0x533de080) + (32 - 25) * 4, adr(0x533de0b8));
++  expectWord(patch, adr(0x533de0b8), 0xe3a0100a);
    for (const at of LOOK_FLAGS) {
      const word = patch.word(at & ~3);
      const shift = (at & 3) * 8;
 diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/package.ts
 --- a/core/src/fw/gr4v120/aspect/package.ts
 +++ b/core/src/fw/gr4v120/aspect/package.ts
-@@ -76,6 +76,9 @@
+@@ -77,6 +77,9 @@
  const FEATURE2_ADJ_SLOTS = 2;
  /** A following byte selects 1 = bright or 2 = balanced. */
  const FEATURE2_BRIGHT_AUTO = 4;
@@ -2369,7 +2431,7 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
  
  /**
   * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
-@@ -103,11 +106,11 @@
+@@ -104,11 +107,11 @@
      bytes.push(layout.order.length, ...layout.order, layout.hidden.length, ...layout.hidden);
    }
    if (features.directFlash && revision < 3) fail('internal', 'Direct Flash needs revision 3');
@@ -2384,7 +2446,7 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
      if (adj) bytes.push(adj);
      if (features.brightAuto) bytes.push(features.brightAuto === 'balanced' ? 2 : 1);
    }
-@@ -200,8 +203,10 @@
+@@ -201,8 +204,10 @@
      if (f & FEATURE_DIRECT_FLASH) features.directFlash = true;
      if (p < rec.length) {
        const f2 = rec[p++];
@@ -2396,7 +2458,7 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
        if (f2 & FEATURE2_ADJ_SLOTS) {
          if (p >= rec.length) return null;
          const n = rec[p++];
-@@ -215,7 +220,7 @@
+@@ -216,7 +221,7 @@
          features.brightAuto = mode === 2 ? 'balanced' : 'bright';
        }
      }
@@ -2446,7 +2508,14 @@ diff --git a/core/src/fw/gr4v120/aspect/shutdown.ts b/core/src/fw/gr4v120/aspect
  import { decodeBaselineJpeg } from '../../../jpeg/decoder';
  import { encodeCoefficients, forwardTransform, makeLayout } from '../../../jpeg/encoder';
  import { qualityTables } from '../../../jpeg/tables';
-@@ -60,7 +71,7 @@
+@@ -55,13 +66,13 @@
+ import { SHUTDOWN_CODE, SHUTDOWN_CODE_LENGTH, SHUTDOWN_EXPORTS } from './shutdown-code';
+ import { readRes, resFile } from './res';
+ import { SUBMENU_CONTROLLER_ID, addSubmenuRecord, hookControllerFactory, submenuTemplate } from './datestamp-menu';
+-import { adr, adrHex } from '../target';
++import { adr, adrHex, byRelease } from '../target';
+ 
+ export const SHUTDOWN_MAX_PICTURES = 8;
  /** Longest picture name (printable ASCII: the same in every camera language and font). */
  export const SHUTDOWN_NAME_MAX = 20;
  /** First text: the submenu's line names "Type" and "Picture", the factory row, the pictures' names. */
@@ -2455,41 +2524,41 @@ diff --git a/core/src/fw/gr4v120/aspect/shutdown.ts b/core/src/fw/gr4v120/aspect
  export const SHUTDOWN_TYPE_TEXT = SHUTDOWN_TEXT_ID;
  export const SHUTDOWN_PICTURE_TEXT = SHUTDOWN_TEXT_ID + 1;
  export const SHUTDOWN_FACTORY_TEXT = SHUTDOWN_TEXT_ID + 2;
-@@ -98,8 +109,9 @@
+@@ -99,8 +110,9 @@
  }
  
- const JPEG_TABLE = 0x55014d98;
+ const JPEG_TABLE = adr(0x55014d98);
 -const JPEG_TABLE_COUNT = 12;
--const TABLE_SITES = [[0x53264278, 0x53264288, 3], [0x53262324, 0x5326232c, 12]] as const;
+-const TABLE_SITES = [[adr(0x53264278), adr(0x53264288), 3], [adr(0x53262324), adr(0x5326232c), 12]] as const;
 +const JPEG_TABLE_COUNT = 13; // 12: GB_30th (1.11: 12 entries)
 +/** The table's readers: the picture request's movw / movt (1.11 also had 0x53262324 / 0x5326232C). */
-+const TABLE_SITES = [[0x53264278, 0x53264288, 3]] as const;
- const BACKGROUND = 0x531baa50;
- const BACKGROUND_BODY = 0x531baa54;
- const SETTINGS_SAVE = 0x533f3674;
-@@ -108,7 +120,7 @@
- const MENU_TYPES_AT = 0x53225684;
++const TABLE_SITES = [[adr(0x53264278), adr(0x53264288), 3]] as const;
+ const BACKGROUND = adr(0x531baa50);
+ const BACKGROUND_BODY = adr(0x531baa54);
+ const SETTINGS_SAVE = adr(0x533f3674);
+@@ -109,7 +121,7 @@
+ const MENU_TYPES_AT = adr(0x53225684);
  const ROW_TYPE = 0x15;
  const END_SCREEN_ID = 0x020000c4;
 -const END_SCREEN_TITLE = 701;
 +const END_SCREEN_TITLE = 743; // 1.11: 701
  /** List widget: rows shown (0x535944AC, at most those built); title view: text (0x535A257C). */
- const LIST_SHOWN = 0x535944ac;
- const TITLE_SET = 0x535a257c;
-@@ -117,10 +129,10 @@
- const SETUP_MENU_ENTRY = 0x55001e88;
+ const LIST_SHOWN = adr(0x535944ac);
+ const TITLE_SET = adr(0x535a257c);
+@@ -118,10 +130,10 @@
+ const SETUP_MENU_ENTRY = adr(0x55001e88);
  const SETUP_ITEM = 10;
- const SETUP_ITEM_DRAW = 0x531b32a0;
+ const SETUP_ITEM_DRAW = adr(0x531b32a0);
 -/** Line of a Setup submenu: no value (0x5359D6F4 with 0), then its title (0x5359D48C). */
 +/** Line of a Setup submenu: no value (0x5359D6F4 with 0; 1.11: 0x5357A428), then its title (0x5359D48C). */
- const LINE_VALUE_ICON = 0x5359d6f4;
- const LINE_TITLE = 0x5359d48c;
+ const LINE_VALUE_ICON = adr(0x5359d6f4);
+ const LINE_TITLE = adr(0x5359d48c);
 -/** The native End Screen line's value text: 0x5338fe60(0x53240F98(app) + 4, 0x532A061C(user data)). */
 +/** The native End Screen line's value text: 0x5338FE60(0x53240F98(app) + 4, 0x532A061C(user data)). */
- const APP = 0x532406a4;
- const SUBMENU_LINE_TEXT = 0x535a64b4;
+ const APP = adr(0x532406a4);
+ const SUBMENU_LINE_TEXT = adr(0x535a64b4);
  /** The start-up zero fill's end (literal) and the 44 bytes before the heap. */
-@@ -128,7 +140,7 @@
+@@ -129,7 +141,7 @@
  /**
   * The key mapper (hardware keys to a screen's commands) reads the current controller id at these
   * two calls of the getter (0x5325E674): 0x53257648 tells whether the screen has a key map of its
@@ -2497,17 +2566,17 @@ diff --git a/core/src/fw/gr4v120/aspect/shutdown.ts b/core/src/fw/gr4v120/aspect
 + * own, the other read picks it. Unknown ids get a generic map that, for the End Screen list, loses
   * every key (on the camera: no key worked in the picture list, touch did).
   */
- const KEY_MAP_ID_READS = [0x5325765c, 0x532560ec] as const;
-@@ -298,7 +310,7 @@
+ const KEY_MAP_ID_READS = [adr(0x5325765c), adr(0x532560ec)] as const;
+@@ -299,7 +311,7 @@
    expectWord(p, MENU_TYPES_AT, 0xe54b3034); // strb r3, [fp, #-0x34]
    expectWord(p, APDATA_BOUND_AT, 0xe58d9000);
    // The factory's End Screen case: one object, cached at +0x180.
--  for (const [at, w] of [[0x5318876c, 0xe5940180], [0x53188778, 0xe3a00f5b], [0x5318877c, 0xeb1d6485], [0x53188784, 0xeb0271c4]] as const) expectWord(p, at, w);
-+  for (const [at, w] of [[0x5318876c, 0xe5940180], [0x53188778, 0xe3a00f5b], [0x5318877c, 0xeb1dff4e], [0x53188784, 0xeb027476]] as const) expectWord(p, at, w);
-   expectWord(p, 0x5322594c, movWord(1, END_SCREEN_TITLE)); // its constructor's title
-   for (const f of [LIST_SHOWN, TITLE_SET, APP, 0x53240f98, 0x53240c38, SUBMENU_LINE_TEXT, LINE_VALUE_ICON, LINE_TITLE]) expectWord(p, f, 0xe1a0c00d);
-   expectWord(p, 0x532a061c, 0xe5d00988); // ldrb r0, [r0, #0x988]
-@@ -433,8 +445,15 @@
+-  for (const [at, w] of [[adr(0x5318876c), 0xe5940180], [adr(0x53188778), 0xe3a00f5b], [adr(0x5318877c), 0xeb1d6485], [adr(0x53188784), 0xeb0271c4]] as const) expectWord(p, at, w);
++  for (const [at, w] of [[adr(0x5318876c), 0xe5940180], [adr(0x53188778), 0xe3a00f5b], [adr(0x5318877c), byRelease({ '1.20': 0xeb1dff4e, '1.21': 0xeb1e02d3 })], [adr(0x53188784), byRelease({ '1.20': 0xeb027476, '1.21': 0xeb027657 })]] as const) expectWord(p, at, w);
+   expectWord(p, adr(0x5322594c), movWord(1, END_SCREEN_TITLE)); // its constructor's title
+   for (const f of [LIST_SHOWN, TITLE_SET, APP, adr(0x53240f98), adr(0x53240c38), SUBMENU_LINE_TEXT, LINE_VALUE_ICON, LINE_TITLE]) expectWord(p, f, 0xe1a0c00d);
+   expectWord(p, adr(0x532a061c), 0xe5d00988); // ldrb r0, [r0, #0x988]
+@@ -434,8 +446,15 @@
       mov r0, r4; movw r1, #${END_SCREEN_TITLE}
       pop {r4, lr}
       b #${LINE_TITLE}`, a), 16);
@@ -2561,7 +2630,12 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  import { SLOT_PARAMETERS, SLOT_PARAMS_MODULE } from './slotparams-native';
  import { HALATION_COLOUR_NAMES, HALATION_LOOKS, HALATION_NAMES, halationColourIcon, halationColourScale, halationIcon, installHalationModule, readHalation } from './halation';
  import { installHalationClamps, installHalationUi } from './halation-ui';
-@@ -45,15 +47,19 @@
+@@ -42,19 +44,23 @@
+ import { FirmwareError } from '../../types';
+ import { installFactoryHidden, validateLookLayout } from './looks';
+ import type { LookLayout } from './looks';
+-import { adr, adrHex, adrText } from '../target';
++import { adr, adrHex, adrText, byRelease } from '../target';
  
  /** Up to 0.8.1: 6. */
  export const MAX_EXTRA_SLOTS = 20;
@@ -2589,7 +2663,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  /** Icon number of the first added slot's icon: slots 0..11 768..779 (780, 781 are halation's), slots 12.. 782..789 (790, 791 halation's). */
  export const EXTRA_ICON_ID = 768;
  const EXTRA_ICON_SPLIT = 12;
-@@ -97,22 +103,28 @@
+@@ -98,22 +104,28 @@
   * row's name, the colour slider's scale and the red and white row icons. (Icon 781 was the Off /
   * Weak / Strong scale up to test 042.)
   */
@@ -2630,26 +2704,26 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  const VARIANTS = 3;
  const CY = 18;
  const STANDARD = 11;
-@@ -120,7 +132,7 @@
- const MA_TABLE = 0x55054554;
- const YCC_TABLE = 0x55053ce4;
- const GAMMA_TABLE = 0x55054158;
+@@ -121,7 +133,7 @@
+ const MA_TABLE = adr(0x55054554);
+ const YCC_TABLE = adr(0x55053ce4);
+ const GAMMA_TABLE = adr(0x55054158);
 -/** [table, `mov r2,#34` of its accessor, movw, movt] */
 +/** [table, `mov r2,#38` of its accessor, movw, movt] */
  const TABLES = [
-   [TONE_TABLE, 0x5394dfb0, 0x5394dfb4, 0x5394dfbc],
-   [MA_TABLE, 0x5394dfdc, 0x5394dfe0, 0x5394dfe8],
-@@ -136,7 +148,8 @@
+   [TONE_TABLE, adr(0x5394dfb0), adr(0x5394dfb4), adr(0x5394dfbc)],
+   [MA_TABLE, adr(0x5394dfdc), adr(0x5394dfe0), adr(0x5394dfe8)],
+@@ -137,7 +149,8 @@
  const POST_STRIDE = 20;
  const MA_POINTERS = 8;
- const ORDER_TABLE = 0x53de8cd0;
+ const ORDER_TABLE = adr(0x53de8cd0);
 -const ORDER_COUNT = 20;
 +/** 1.20: 22 (31 Pictorialist and 32 Solarized joined the order; the colour models hide them). */
 +const ORDER_COUNT = 22;
  const TILE_BG = [53, 53, 54];
  
  function fail(code: string, message: string): never {
-@@ -255,7 +268,7 @@
+@@ -256,7 +269,7 @@
    return out;
  }
  
@@ -2658,7 +2732,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  // handles the new styles and otherwise runs the overwritten instruction and branches back.
  function hook(p: Patch, at: number, expected: number, body: string, reason: string): void {
    expectWord(p, at, expected);
-@@ -369,7 +382,7 @@
+@@ -370,7 +383,7 @@
    for (const site of p.textBoundSites) p.setWord(site, movWord(3, Math.max(lastText, movImmediate(p.word(site)))), 'text upper bound');
    for (const [site, r] of LOOKUP_BOUNDS) p.setWord(site, movWord(r, Math.max(lastIcon, movImmediate(p.word(site)))), 'icon upper bound');
  
@@ -2667,43 +2741,43 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
    TABLES.forEach(([old, stride, low, high], t) => {
      const out: number[] = [];
      for (let v = 0; v < VARIANTS; v++) {
-@@ -382,9 +395,9 @@
+@@ -383,9 +396,9 @@
      pointer(p, low, high, 3, old, table, 'added slots: style table');
    });
  
 -  // The style -> LUT index check: only the new styles are let through, the native fallback for
 -  // invalid values (31..33 among them) stays as it is.
--  hook(p, 0x5393aa94, 0xe352001e, `sub r1,r2,#${EXTRA_FIRST_STYLE};cmp r1,#${count - 1};bhi native;mov r3,r2;b #0x5393aaa8;native:cmp r2,#30;b #0x5393aa98`, 'added slots: style to table index');
+-  hook(p, adr(0x5393aa94), 0xe352001e, `sub r1,r2,#${EXTRA_FIRST_STYLE};cmp r1,#${count - 1};bhi native;mov r3,r2;b #${adrHex(0x5393aaa8)};native:cmp r2,#30;b #${adrHex(0x5393aa98)}`, 'added slots: style to table index');
 +  // The style -> table column check (1.20: styles 0..32 through the byte table 0x5407A53C, anything
 +  // else Standard's column 11): the new styles are their own column, the native fallback stays.
-+  hook(p, 0x5393aa94, 0xe3520020, `sub r1,r2,#${EXTRA_FIRST_STYLE};cmp r1,#${count - 1};bhi native;mov r3,r2;b #0x5393aaa8;native:cmp r2,#32;b #0x5393aa98`, 'added slots: style to table index');
++  hook(p, adr(0x5393aa94), 0xe3520020, `sub r1,r2,#${EXTRA_FIRST_STYLE};cmp r1,#${count - 1};bhi native;mov r3,r2;b #${adrHex(0x5393aaa8)};native:cmp r2,#32;b #${adrHex(0x5393aa98)}`, 'added slots: style to table index');
    // The common input fields (grain among them) are read as for Cinema Yellow; only the local
    // dispatch register changes, the frame's style and the table index stay the new ones. With
    // halation or the date imprint by look, the frame's style and Toning (halation) level are also
-@@ -424,13 +437,14 @@
-   hook(p, 0x533905d8, 0xe351000a, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;cmp r2,#0;movne r0,#0;bxne lr;${iconAsm('r0', 'ip')};bx lr;native:cmp r1,#10;b #0x533905dc`, 'added slots: ADJ icon');
-   early(p, 0x533a66c8, textAsm('r0', 'ip'), count, 'added slots: name');
-   early(p, 0x533a6868, iconAsm('r0', 'ip'), count, 'added slots: icon');
+@@ -425,13 +438,14 @@
+   hook(p, adr(0x533905d8), 0xe351000a, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;cmp r2,#0;movne r0,#0;bxne lr;${iconAsm('r0', 'ip')};bx lr;native:cmp r1,#10;b #${adrHex(0x533905dc)}`, 'added slots: ADJ icon');
+   early(p, adr(0x533a66c8), textAsm('r0', 'ip'), count, 'added slots: name');
+   early(p, adr(0x533a6868), iconAsm('r0', 'ip'), count, 'added slots: icon');
 -  // The shooting overlay's icon (through CommonProperty); r3 is the style minus 8 there.
--  hook(p, 0x533b6138, 0xe3530016, `sub ip,r3,#${EXTRA_FIRST_STYLE - 8};cmp ip,#${count - 1};bhi native;${iconAsm('r0', 'ip')};b #0x533b61c8;native:cmp r3,#22;b #0x533b613c`, 'added slots: shooting overlay icon');
+-  hook(p, adr(0x533b6138), 0xe3530016, `sub ip,r3,#${EXTRA_FIRST_STYLE - 8};cmp ip,#${count - 1};bhi native;${iconAsm('r0', 'ip')};b #${adrHex(0x533b61c8)};native:cmp r3,#22;b #${adrHex(0x533b613c)}`, 'added slots: shooting overlay icon');
 -  // RAW development has its own numbering (0 = as shot, factory looks up to 20): new ones 21, ...
 +  // The shooting overlay's icon (through CommonProperty); r3 is the style minus 8 there (1.20: a
 +  // jump table over 0..24, joining at 0x533B61C8 with the icon in r0).
-+  hook(p, 0x533b6138, 0xe3530018, `sub ip,r3,#${EXTRA_FIRST_STYLE - 8};cmp ip,#${count - 1};bhi native;${iconAsm('r0', 'ip')};b #0x533b61c8;native:cmp r3,#24;b #0x533b613c`, 'added slots: shooting overlay icon');
++  hook(p, adr(0x533b6138), 0xe3530018, `sub ip,r3,#${EXTRA_FIRST_STYLE - 8};cmp ip,#${count - 1};bhi native;${iconAsm('r0', 'ip')};b #${adrHex(0x533b61c8)};native:cmp r3,#24;b #${adrHex(0x533b613c)}`, 'added slots: shooting overlay icon');
 +  // RAW development has its own numbering (0 = as shot, factory looks 1..22 in 1.20): new ones 23, ...
-   for (const at of [0x53382a14, 0x53382bc0]) {
+   for (const at of [adr(0x53382a14), adr(0x53382bc0)]) {
 -    hook(p, at, 0xe1a0c00d, `sub ip,r1,#21;cmp ip,#${count - 1};bhi native;add r0,ip,#${EXTRA_FIRST_STYLE};bx lr;native:mov ip,sp;b #${at + 4}`, 'added slots: RAW development look');
 -  }
--  hook(p, 0x5338262c, 0xe241100b, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;add r0,ip,#21;bx lr;native:sub r1,r1,#11;b #0x53382630`, 'added slots: RAW development look');
+-  hook(p, adr(0x5338262c), 0xe241100b, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;add r0,ip,#21;bx lr;native:sub r1,r1,#11;b #${adrHex(0x53382630)}`, 'added slots: RAW development look');
 +    hook(p, at, 0xe1a0c00d, `sub ip,r1,#${RAW_FIRST_EXTRA};cmp ip,#${count - 1};bhi native;add r0,ip,#${EXTRA_FIRST_STYLE};bx lr;native:mov ip,sp;b #${at + 4}`, 'added slots: RAW development look');
 +  }
-+  hook(p, 0x5338262c, 0xe241100b, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;add r0,ip,#${RAW_FIRST_EXTRA};bx lr;native:sub r1,r1,#11;b #0x53382630`, 'added slots: RAW development look');
++  hook(p, adr(0x5338262c), 0xe241100b, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;add r0,ip,#${RAW_FIRST_EXTRA};bx lr;native:sub r1,r1,#11;b #${adrHex(0x53382630)}`, 'added slots: RAW development look');
  
    const hiddenMask = hiddenExtras.reduce((m, id) => (m | (1 << (id - EXTRA_FIRST_STYLE))) >>> 0, 0);
    const module = installOwnParameters(p, count, prints, hiddenMask);
-@@ -546,11 +560,12 @@
+@@ -547,11 +561,12 @@
  ];
- const FUNCTOR_AREA = [0x53270000, 0x532a0000] as const;
+ const FUNCTOR_AREA = [adr(0x53270000), adr(0x532a0000)] as const;
  const FUNCTOR_LOADS: Readonly<Record<number, 'half' | 'byte' | 'word'>> = {
 -  0xe19030b3: 'half', // ldrh r3,[r0,r3] after movw r3,#0xc3e (photo standard set)
 -  0xe5d03c40: 'byte', 0xe5d03c41: 'byte', 0xe5d03c42: 'byte', // ldrb r3,[r0,#0xc40..2] (photo custom sets)
@@ -2719,7 +2793,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  };
  const FUNCTOR_NEXT: Readonly<Record<string, readonly number[]>> = { half: [0xe3530c12], byte: [0xe3530012], word: [0xe3a02001, 0xe3a02002] };
  
-@@ -569,7 +584,7 @@
+@@ -570,7 +585,7 @@
      const found: number[] = [];
      for (let a = starts[0], k = 0; k < 30; k++, a += 4) {
        const w = p.word(a);
@@ -2728,7 +2802,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
        if (w >>> 24 === 0xea) break;
      }
      if (found.length !== 1) fail('unexpected-layout', `change functor of field 0x${field.toString(16)}: ${found.length} style loads`);
-@@ -587,10 +602,10 @@
+@@ -588,10 +603,10 @@
  /**
   * Looks shown as their own, not as Standard or with Standard's parameter list:
   *  - the parameter screens pick their list of parameters from the look (0x531C80B0 shooting,
@@ -2741,7 +2815,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   *    themselves, the icon lookup knows them (test 033);
   *  - whether a picture goes through the digital-filter step (grain, Clarity, the setting before
   *    it) is decided from the look by 0x53739A5C with a chain of compares that includes Cinema
-@@ -608,40 +623,50 @@
+@@ -609,40 +624,50 @@
  }
  
  /**
@@ -2762,7 +2836,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   * word) and the flags change. The record's own style byte is written elsewhere: the look itself
   * stays the new one.
   */
- const GENERATOR = [0x532a24a8, 0x532ac56c] as const;
+ const GENERATOR = [adr(0x532a24a8), adr(0x532ac56c)] as const;
  const GENERATOR_LOADS: readonly { word: number; kind: 'half' | 'byte'; sites: number }[] = [
 -  { word: 0xe19430b3, kind: 'half', sites: 178 }, // ldrh r3,[r4,r3] after movw r3,#0xc3e
 -  { word: 0xe5d43c40, kind: 'byte', sites: 102 }, // ldrb r3,[r4,#0xc40]
@@ -2808,7 +2882,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
      return ((p.word(next) & 0xfffff000) >>> 0) === CMP_R3;
    };
    for (const load of GENERATOR_LOADS) {
-@@ -649,11 +674,6 @@
+@@ -650,11 +675,6 @@
      if (sites.length !== load.sites) fail('unexpected-layout', `live-view parameters: ${sites.length} loads of ${load.word.toString(16)}, expected ${load.sites}`);
      for (const at of sites) {
        if (!cmpFollows(at)) fail('unexpected-layout', `live-view parameters: load at 0x${at.toString(16)} is not followed by a compare`);
@@ -2820,7 +2894,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
      }
      const map = load.kind === 'half'
        ? `sub r3,r3,#${EXTRA_FIRST_STYLE << 8};cmp r3,#${count << 8};andlo r3,r3,#0xff;orrlo r3,r3,#${CY << 8};addhs r3,r3,#${EXTRA_FIRST_STYLE << 8}`
-@@ -676,20 +696,22 @@
+@@ -677,20 +697,22 @@
  
  // -------------------------------------------------------------- RAW development
  
@@ -2830,7 +2904,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
 -const RAW_FIRST_EXTRA = 21;
 +const RAW_FIRST_EXTRA = 23;
  /** The functions of RawDevelopmentModel.cpp that read or write a look's parameters. */
- const RAW_MODEL = [0x5337a3d0, 0x53381e6c] as const;
+ const RAW_MODEL = [adr(0x5337a3d0), adr(0x53381e6c)] as const;
  /** `ldrb r2,[r3,#0x9d]` (the look of the selected custom base), always followed by `cmp r2,#0`. */
  const RAW_LOOK_LOAD = 0xe5d3209d;
 -const RAW_LOOK_SITES = 72;
@@ -2848,7 +2922,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   * "absent": the parameter screen showed -4 everywhere and developing stopped the camera (reported
   * on 0.7.0). The added looks now use Cinema Yellow's row, as the shooting side does with Cinema
   * Yellow's fields; the look itself (name, icon, the style given to development) stays the added
-@@ -703,11 +725,12 @@
+@@ -704,11 +726,12 @@
    const sites: number[] = [];
    for (let at = RAW_MODEL[0]; at < RAW_MODEL[1]; at += 4) {
      if (p.word(at) !== RAW_LOOK_LOAD) continue;
@@ -2863,16 +2937,16 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
      }
      if (!row) continue;
      if (p.word(at + 4) !== 0xe3520000) fail('unexpected-layout', `RAW development: load at 0x${at.toString(16)} is not followed by cmp r2,#0`);
-@@ -725,31 +748,32 @@
+@@ -726,31 +749,32 @@
    // Applying a look: the row goes to the looks now selected.
-   hook(p, 0x53382e20, 0xe1a0c00d, `push {r0-r4,lr};bl #${module.sp_raw_sync};pop {r0-r4,lr};mov ip,sp;b #0x53382e24`, 'added slots: own RAW development parameters');
+   hook(p, adr(0x53382e20), 0xe1a0c00d, `push {r0-r4,lr};bl #${module.sp_raw_sync};pop {r0-r4,lr};mov ip,sp;b #${adrHex(0x53382e24)}`, 'added slots: own RAW development parameters');
    // The RAW development screen makes its list as long as the longest of its lists (0x531A2680):
 -  // Image Control at most 24 entries (the factory looks, the three custom sets, "as shot"). With
 +  // Image Control at most 26 entries in 1.20 (the 22 factory looks, the three custom sets, "as shot"). With
    // the added looks the list is longer; the list widget then refuses the count (assertion) and the
    // camera stops on entering Image Control (0.7.1 with 4 added slots).
--  swap(p, 0x53379c6c, 'mov r0,#24', `mov r0,#${24 + count}`, 'added slots: RAW development list capacity');
-+  swap(p, 0x53379c6c, 'mov r0,#26', `mov r0,#${26 + count}`, 'added slots: RAW development list capacity');
+-  swap(p, adr(0x53379c6c), 'mov r0,#24', `mov r0,#${24 + count}`, 'added slots: RAW development list capacity');
++  swap(p, adr(0x53379c6c), 'mov r0,#26', `mov r0,#${26 + count}`, 'added slots: RAW development list capacity');
  }
  
  // -------------------------------------------------------------- picture information
@@ -2890,8 +2964,8 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
 +/** Playback's own numbering of the looks (0x53DE8374: 1..22 in 1.20, 0x8106 / 0x8107 = 21 / 22); the added ones are 23, ... */
 +const PLAY_FIRST_EXTRA = 23;
  /** Static init of the "looks that have parameter X" lists the maker note writers consult. */
- const PARAM_LISTS = [0x53807a1c, 0x53807d7c] as const;
- const LIST_ASSIGN = 0x53800ccc;
+ const PARAM_LISTS = [adr(0x53807a1c), adr(0x53807d7c)] as const;
+ const LIST_ASSIGN = adr(0x53800ccc);
 -const PARAM_LISTS_CALLS = 18;
 -const PARAM_LISTS_WITH_CY = 7;
 +/** 1.20: 21 lists (1.11: 18), 8 of them with Cinema Yellow (1.11: 7). */
@@ -2905,33 +2979,33 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   *    wrote Standard otherwise), and has the parameters of Cinema Yellow (each parameter's writer
   *    looks the style up in a list of the looks that have it; the added looks join every list
   *    Cinema Yellow is in);
-@@ -763,7 +787,7 @@
+@@ -764,7 +788,7 @@
  function installPictureInfo(p: Patch, count: number): void {
    const n = count - 1;
    // Writer: r1 the maker note, r2 the frame record; tail-calls 0x5380DD48(note, 0, code).
--  hook(p, 0x53804f34, 0xe30f3198, `ldrb ip,[r2,#0x79c];sub ip,ip,#${EXTRA_FIRST_STYLE};cmp ip,#${n};bhi native;mov r0,r1;mov r1,#0;movw r2,#${EXTRA_TONE_CODE};add r2,r2,ip;b #0x5380dd48;native:movw r3,#0xf198;b #0x53804f38`, 'added slots: maker note look');
-+  hook(p, 0x53804f34, 0xe3003e64, `ldrb ip,[r2,#0x79c];sub ip,ip,#${EXTRA_FIRST_STYLE};cmp ip,#${n};bhi native;mov r0,r1;mov r1,#0;movw r2,#${EXTRA_TONE_CODE};add r2,r2,ip;b #0x5380dd48;native:movw r3,#0xe64;b #0x53804f38`, 'added slots: maker note look');
+-  hook(p, adr(0x53804f34), 0xe30f3198, `ldrb ip,[r2,#0x79c];sub ip,ip,#${EXTRA_FIRST_STYLE};cmp ip,#${n};bhi native;mov r0,r1;mov r1,#0;movw r2,#${EXTRA_TONE_CODE};add r2,r2,ip;b #${adrHex(0x5380dd48)};native:movw r3,#0xf198;b #${adrHex(0x53804f38)}`, 'added slots: maker note look');
++  hook(p, adr(0x53804f34), byRelease({ '1.20': 0xe3003e64, '1.21': 0xe3003e6c }), `ldrb ip,[r2,#0x79c];sub ip,ip,#${EXTRA_FIRST_STYLE};cmp ip,#${n};bhi native;mov r0,r1;mov r1,#0;movw r2,#${EXTRA_TONE_CODE};add r2,r2,ip;b #${adrHex(0x5380dd48)};native:movw r3,#0xe64;b #${adrHex(0x53804f38)}`, 'added slots: maker note look');
    // Parameter lists: the ones with Cinema Yellow get the added styles appended (new copies).
    const calls: number[] = [];
    for (let at = PARAM_LISTS[0]; at < PARAM_LISTS[1]; at += 4) if (p.word(at) === branchWord(at, LIST_ASSIGN, 14, true) || p.word(at) === branchWord(at, LIST_ASSIGN)) calls.push(at);
-@@ -794,12 +818,12 @@
+@@ -795,12 +819,12 @@
    }
    if (extended !== PARAM_LISTS_WITH_CY) fail('unexpected-layout', `maker note parameter lists: ${extended} with Cinema Yellow, expected ${PARAM_LISTS_WITH_CY}`);
    // Readers: RAW development's record, then playback's numbering and its style.
--  hook(p, 0x537fbae4, 0xe300310a, `sub r3,r0,#${EXTRA_TONE_CODE & 0xff00};sub r3,r3,#${EXTRA_TONE_CODE & 0xff};cmp r3,#${n};bhi native;add r3,r3,#${EXTRA_FIRST_STYLE};b #0x537fbb38;native:movw r3,#0x10a;b #0x537fbae8`, 'added slots: look of a RAW file');
--  hook(p, 0x537feeec, 0xe3003109, `sub r3,r0,#${EXTRA_TONE_CODE & 0xff00};sub r3,r3,#${EXTRA_TONE_CODE & 0xff};cmp r3,#${n};bhi native;add r2,r3,#${PLAY_FIRST_EXTRA};b #0x537fef3c;native:movw r3,#0x109;b #0x537feef0`, 'added slots: playback look');
-+  hook(p, 0x537fbae4, 0xe300310b, `sub r3,r0,#${EXTRA_TONE_CODE & 0xff00};sub r3,r3,#${EXTRA_TONE_CODE & 0xff};cmp r3,#${n};bhi native;add r3,r3,#${EXTRA_FIRST_STYLE};b #0x537fbb38;native:movw r3,#0x10b;b #0x537fbae8`, 'added slots: look of a RAW file');
-+  hook(p, 0x537feeec, 0xe300310a, `sub r3,r0,#${EXTRA_TONE_CODE & 0xff00};sub r3,r3,#${EXTRA_TONE_CODE & 0xff};cmp r3,#${n};bhi native;add r2,r3,#${PLAY_FIRST_EXTRA};b #0x537fef3c;native:movw r3,#0x10a;b #0x537feef0`, 'added slots: playback look');
+-  hook(p, adr(0x537fbae4), 0xe300310a, `sub r3,r0,#${EXTRA_TONE_CODE & 0xff00};sub r3,r3,#${EXTRA_TONE_CODE & 0xff};cmp r3,#${n};bhi native;add r3,r3,#${EXTRA_FIRST_STYLE};b #${adrHex(0x537fbb38)};native:movw r3,#0x10a;b #${adrHex(0x537fbae8)}`, 'added slots: look of a RAW file');
+-  hook(p, adr(0x537feeec), 0xe3003109, `sub r3,r0,#${EXTRA_TONE_CODE & 0xff00};sub r3,r3,#${EXTRA_TONE_CODE & 0xff};cmp r3,#${n};bhi native;add r2,r3,#${PLAY_FIRST_EXTRA};b #${adrHex(0x537fef3c)};native:movw r3,#0x109;b #${adrHex(0x537feef0)}`, 'added slots: playback look');
++  hook(p, adr(0x537fbae4), 0xe300310b, `sub r3,r0,#${EXTRA_TONE_CODE & 0xff00};sub r3,r3,#${EXTRA_TONE_CODE & 0xff};cmp r3,#${n};bhi native;add r3,r3,#${EXTRA_FIRST_STYLE};b #${adrHex(0x537fbb38)};native:movw r3,#0x10b;b #${adrHex(0x537fbae8)}`, 'added slots: look of a RAW file');
++  hook(p, adr(0x537feeec), 0xe300310a, `sub r3,r0,#${EXTRA_TONE_CODE & 0xff00};sub r3,r3,#${EXTRA_TONE_CODE & 0xff};cmp r3,#${n};bhi native;add r2,r3,#${PLAY_FIRST_EXTRA};b #${adrHex(0x537fef3c)};native:movw r3,#0x10a;b #${adrHex(0x537feef0)}`, 'added slots: playback look');
    // 0x533B3040: r0 = number - 1, r4 = where the style goes (may be null).
--  hook(p, 0x533b3060, 0xe3500013, `sub r3,r0,#${PLAY_FIRST_EXTRA - 1};cmp r3,#${n};bhi native;cmp r4,#0;beq #0x533b3090;add r3,r3,#${EXTRA_FIRST_STYLE};strb r3,[r4];b #0x533b3080;native:cmp r0,#0x13;b #0x533b3064`, 'added slots: playback look');
-+  hook(p, 0x533b3060, 0xe3500015, `sub r3,r0,#${PLAY_FIRST_EXTRA - 1};cmp r3,#${n};bhi native;cmp r4,#0;beq #0x533b3090;add r3,r3,#${EXTRA_FIRST_STYLE};strb r3,[r4];b #0x533b3080;native:cmp r0,#0x15;b #0x533b3064`, 'added slots: playback look');
+-  hook(p, adr(0x533b3060), 0xe3500013, `sub r3,r0,#${PLAY_FIRST_EXTRA - 1};cmp r3,#${n};bhi native;cmp r4,#0;beq #${adrHex(0x533b3090)};add r3,r3,#${EXTRA_FIRST_STYLE};strb r3,[r4];b #${adrHex(0x533b3080)};native:cmp r0,#0x13;b #${adrHex(0x533b3064)}`, 'added slots: playback look');
++  hook(p, adr(0x533b3060), 0xe3500015, `sub r3,r0,#${PLAY_FIRST_EXTRA - 1};cmp r3,#${n};bhi native;cmp r4,#0;beq #${adrHex(0x533b3090)};add r3,r3,#${EXTRA_FIRST_STYLE};strb r3,[r4];b #${adrHex(0x533b3080)};native:cmp r0,#0x15;b #${adrHex(0x533b3064)}`, 'added slots: playback look');
    // Playback information's parameters: r3 = style - 8, the added looks as Cinema Yellow (10).
--  hook(p, 0x533b6ff0, 0xe3530016, `cmp r3,#${EXTRA_FIRST_STYLE - 8};blo native;cmp r3,#${EXTRA_FIRST_STYLE - 8 + count};movlo r3,#${CY - 8};native:cmp r3,#0x16;b #0x533b6ff4`, 'added slots: playback parameters of Cinema Yellow');
-+  hook(p, 0x533b6ff0, 0xe3530018, `cmp r3,#${EXTRA_FIRST_STYLE - 8};blo native;cmp r3,#${EXTRA_FIRST_STYLE - 8 + count};movlo r3,#${CY - 8};native:cmp r3,#0x18;b #0x533b6ff4`, 'added slots: playback parameters of Cinema Yellow');
+-  hook(p, adr(0x533b6ff0), 0xe3530016, `cmp r3,#${EXTRA_FIRST_STYLE - 8};blo native;cmp r3,#${EXTRA_FIRST_STYLE - 8 + count};movlo r3,#${CY - 8};native:cmp r3,#0x16;b #${adrHex(0x533b6ff4)}`, 'added slots: playback parameters of Cinema Yellow');
++  hook(p, adr(0x533b6ff0), 0xe3530018, `cmp r3,#${EXTRA_FIRST_STYLE - 8};blo native;cmp r3,#${EXTRA_FIRST_STYLE - 8 + count};movlo r3,#${CY - 8};native:cmp r3,#0x18;b #${adrHex(0x533b6ff4)}`, 'added slots: playback parameters of Cinema Yellow');
  }
  
  // -------------------------------------------------------------- halation
-@@ -832,7 +856,7 @@
+@@ -833,7 +857,7 @@
   * For such a look, Cinema's Toning on the parameter screens (shooting: ImageControlDetail-
   * Controller, the style at +0x19C; RAW development: RawDevelopmentImageControlDetailSetController,
   * the look asked from the model) shows as Halation: its name (the subtitle, from a table of texts
@@ -2940,25 +3014,25 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   * Off / On row like Grain Effect's, and Fn opens Grain Effect's submenu as Halation's (Strength,
   * Colour); the setting is kept in the Toning byte (`halation-ui.ts`). Which looks: two tables of 64
   * bytes (by style, by RAW development's number).
-@@ -879,13 +903,13 @@
-   hook(p, 0x531cbf68, 0xe1d610b2, `ldrh r1,[r6,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;ldrb ip,[r5,#0x19c];push {r0};${lookupAsm('ip', 'ip', 'r0', styles)};pop {r0};cmp ip,#0;movwne r1,#${HALATION_TEXT_ID};done:b #0x531cbf6c`, 'halation: name of the parameter');
+@@ -880,13 +904,13 @@
+   hook(p, adr(0x531cbf68), 0xe1d610b2, `ldrh r1,[r6,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;ldrb ip,[r5,#0x19c];push {r0};${lookupAsm('ip', 'ip', 'r0', styles)};pop {r0};cmp ip,#0;movwne r1,#${HALATION_TEXT_ID};done:b #${adrHex(0x531cbf6c)}`, 'halation: name of the parameter');
    // Shooting: list icon (controller r7, r6).
-   for (const [at, ctl] of [[0x531cae48, 'r7'], [0x531caf38, 'r6']] as const) {
+   for (const [at, ctl] of [[adr(0x531cae48), 'r7'], [adr(0x531caf38), 'r6']] as const) {
 -    hook(p, at, 0xe300116f, `ldrb r1,[${ctl},#0x19c];push {r0};${lookupAsm('r1', 'r1', 'r0', styles)};pop {r0};cmp r1,#0;movw r1,#${TONING_ICON};movwne r1,#${HALATION_ICON_ID};b #${at + 4}`, 'halation: list icon');
 +    hook(p, at, 0xe3a01f61, `ldrb r1,[${ctl},#0x19c];push {r0};${lookupAsm('r1', 'r1', 'r0', styles)};pop {r0};cmp r1,#0;movw r1,#${TONING_ICON};movwne r1,#${HALATION_ICON_ID};b #${at + 4}`, 'halation: list icon');
    }
    // RAW development: subtitle (r7 the table entry).
-   hook(p, 0x531a97dc, 0xe1d710b2, `ldrh r1,[r7,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_TEXT};movwne r1,#${HALATION_TEXT_ID};pop {r0,r2,r3,lr};done:b #0x531a97e0`, 'halation: name of the parameter (RAW development)');
+   hook(p, adr(0x531a97dc), 0xe1d710b2, `ldrh r1,[r7,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_TEXT};movwne r1,#${HALATION_TEXT_ID};pop {r0,r2,r3,lr};done:b #${adrHex(0x531a97e0)}`, 'halation: name of the parameter (RAW development)');
    // RAW development: list icon.
-   for (const at of [0x531a9d70, 0x531a9e88]) {
+   for (const at of [adr(0x531a9d70), adr(0x531a9e88)]) {
 -    hook(p, at, 0xe300116f, `push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_ICON};movwne r1,#${HALATION_ICON_ID};pop {r0,r2,r3,lr};b #${at + 4}`, 'halation: list icon (RAW development)');
 +    hook(p, at, 0xe3a01f61, `push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_ICON};movwne r1,#${HALATION_ICON_ID};pop {r0,r2,r3,lr};b #${at + 4}`, 'halation: list icon (RAW development)');
    }
  
    // Off / On, Fn to the submenu (Strength, Colour); native Toning readers kept to 0..2.
-@@ -898,6 +922,8 @@
+@@ -899,6 +923,8 @@
    // The look of the picture for the JPEG step: without added slots their hook is not there.
-   if (p.word(0x53939148) === 0xe5d3279c) installLookStash(p);
+   if (p.word(adr(0x53939148)) === 0xe5d3279c) installLookStash(p);
    else if (!isLookStashed(p)) fail('internal', 'halation: the development step does not leave the look');
 +  // FRAME_LOOK is filled at the start of each exposure (also without the date imprint).
 +  installExposureOrientation(p);
@@ -3008,7 +3082,7 @@ diff --git a/core/src/fw/gr4v120/aspect/softfocus.ts b/core/src/fw/gr4v120/aspec
   *  - Image processing, step 2: DigitalFilterProcess::SetEffectParameter stores the clarity setting as a
   *    halfword at param+2 (0x53726744). That store now goes through a helper that, when the byte is
   *    1..3, stores 5..7 instead. The clarity function (0x538C98B8) checks `clarity + 4 <= 8`
-@@ -61,7 +63,7 @@
+@@ -62,7 +64,7 @@
  /** ADJ function number of soft focus (a function the GR IV never offers, see above). */
  export const ADJ_SOFT_FOCUS = 0x0a;
  /** Text number of its name. */
@@ -3017,19 +3091,19 @@ diff --git a/core/src/fw/gr4v120/aspect/softfocus.ts b/core/src/fw/gr4v120/aspec
  /**
   * Icon number of its icon: 720, the number the ratio icons keep for identity 4, which is never
   * given out (added ratios start at identity 7, icon 723). So the icon lookup bound never goes
-@@ -87,8 +89,8 @@
+@@ -88,8 +90,8 @@
  const H_COUNT = 0x30;
  
- const MENU_LIST = 0x53de50f0;
+ const MENU_LIST = adr(0x53de50f0);
 -/** The two reads of Clarity that decide whether the digital-filter step runs (0x53739A5C). */
--const CLARITY_GATE = [0x53739b04, 0x53739b60];
+-const CLARITY_GATE = [adr(0x53739b04), adr(0x53739b60)];
 +/** The reads of Clarity (`ldrb ip, [r1, #0x7b4]`) that decide whether the digital-filter step runs (0x53739A5C). */
-+const CLARITY_GATE = [0x53739b0c, 0x53739b64, 0x53739b30];
++const CLARITY_GATE = [adr(0x53739b0c), adr(0x53739b64), adr(0x53739b30)];
  /** Getters of ADJ slots 1..5 (bytes 0x920..0x924 of the user settings). */
- const SLOT_GETTERS = [0x532a0584, 0x532a058c, 0x532a0594, 0x532a059c, 0x532a05a4];
+ const SLOT_GETTERS = [adr(0x532a0584), adr(0x532a058c), adr(0x532a0594), adr(0x532a059c), adr(0x532a05a4)];
  const MENU_LIST_OFFICIAL = [0, 1, 2, 3, 4, 5, 19, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 20, 17];
-@@ -101,7 +103,7 @@
- const ITEM_SET_TEXT = 0x535a1138; // (item, text number)
+@@ -102,7 +104,7 @@
+ const ITEM_SET_TEXT = adr(0x535a1138); // (item, text number)
  
  /** Texts of the four values: Off, Low, Medium, High. */
 -const VALUE_TEXTS = [2, 9, 10, 11];
@@ -3037,19 +3111,19 @@ diff --git a/core/src/fw/gr4v120/aspect/softfocus.ts b/core/src/fw/gr4v120/aspec
  
  /** The name of the function in each language, in the order of `LANGS` in `../names.ts`. */
  export const SOFT_FOCUS_NAMES: readonly string[] = [
-@@ -109,9 +111,9 @@
+@@ -110,9 +112,9 @@
    'Lágy fókusz', 'Effetto flou', 'ソフトフォーカス', '소프트 포커스', 'Soft focus', 'Miękka ostrość', 'Foco suave',
    'Мягкий фокус', '柔焦', 'Enfoque suave', 'Mjukt fokus', 'ซอฟต์โฟกัส', '柔焦', 'Yumuşak odak',
  ];
 -/** First language table (in `LANGS` order) as the program sees it in RAM; tables are 0xD14 apart. */
 +/** First language table (in `LANGS` order) as the program sees it in RAM; tables are 0xDC4 apart (1.11: 0xD14). */
- const FIRST_TABLE_RAM = 0x55000000 + (0x543b5270 - 0x543b3100);
+ const FIRST_TABLE_RAM = adr(0x55000000) + (adr(0x543b5270) - adr(0x543b3100));
 -const TABLE_STRIDE = 0xd14;
 +const TABLE_STRIDE = 0xdc4;
  
  export const SOFT_FOCUS_ICON_W = 40;
  export const SOFT_FOCUS_ICON_H = 40;
-@@ -190,7 +192,8 @@
+@@ -191,7 +193,8 @@
   * Install soft focus on the ADJ lever. `patch` must already hold the scaffold of `build.ts`
   * (relocated catalogs). Returns the ICONBIN data with the icon appended.
   */
@@ -3059,39 +3133,39 @@ diff --git a/core/src/fw/gr4v120/aspect/softfocus.ts b/core/src/fw/gr4v120/aspec
    // --- Checks of the official code this relies on.
    for (const [off, value] of OFFICIAL_RECORD) expectWord(patch, ADJ_TABLE + ADJ_SOFT_FOCUS * ADJ_RECORD + off, value);
    if (ADJ_SOFT_FOCUS >= ADJ_FUNCTIONS) fail('internal', 'soft focus must reuse a record of the table');
-@@ -201,17 +204,17 @@
-   expectWord(patch, 0x531dc860, 0xe2846013); // add r6, r4, #19
-   expectWord(patch, 0x5338f4dc, 0xe351000a); // cmp r1, #0x0a
-   expectWord(patch, 0x5338f4e0, 0x0a000027); // beq 0x5338f584 (no other case goes there)
--  expectWord(patch, 0x5338f584, 0xe3a00087); // mov r0, #135
-+  expectWord(patch, 0x5338f584, 0xe3a0008c); // mov r0, #140 (1.11: #135)
-   expectWord(patch, 0x5338f588, 0xe12fff1e); // bx lr
-   expectWord(patch, 0x53390ea0, 0xe241300a); // sub r3, r1, #0x0a
-   expectWord(patch, 0x53390ea4, 0xe3530001); // cmp r3, #1
-   expectWord(patch, 0x53390ea8, 0x9a000035); // bls 0x53390f84 (0x0A and 0x0B)
-   expectWord(patch, 0x53390f84, 0xe3520000); // cmp r2, #0
-   expectWord(patch, 0x53726744, 0xe1c530b2); // strh r3, [r5, #2]
+@@ -202,17 +205,17 @@
+   expectWord(patch, adr(0x531dc860), 0xe2846013); // add r6, r4, #19
+   expectWord(patch, adr(0x5338f4dc), 0xe351000a); // cmp r1, #0x0a
+   expectWord(patch, adr(0x5338f4e0), 0x0a000027); // beq 0x5338f584 (no other case goes there)
+-  expectWord(patch, adr(0x5338f584), 0xe3a00087); // mov r0, #135
++  expectWord(patch, adr(0x5338f584), 0xe3a0008c); // mov r0, #140 (1.11: #135)
+   expectWord(patch, adr(0x5338f588), 0xe12fff1e); // bx lr
+   expectWord(patch, adr(0x53390ea0), 0xe241300a); // sub r3, r1, #0x0a
+   expectWord(patch, adr(0x53390ea4), 0xe3530001); // cmp r3, #1
+   expectWord(patch, adr(0x53390ea8), 0x9a000035); // bls 0x53390f84 (0x0A and 0x0B)
+   expectWord(patch, adr(0x53390f84), 0xe3520000); // cmp r2, #0
+   expectWord(patch, adr(0x53726744), 0xe1c530b2); // strh r3, [r5, #2]
 -  for (const site of CLARITY_GATE) {
 -    expectWord(patch, site, 0xe5d137b4); // ldrb r3, [r1, #0x7b4]
 -    expectWord(patch, site + 4, 0xe5d127b3); // ldrb r2, [r1, #0x7b3]  (r2 is free at the site)
 -  }
 +  for (const site of CLARITY_GATE) expectWord(patch, site, 0xe5d1c7b4); // ldrb ip, [r1, #0x7b4]
-+  expectWord(patch, 0x53739b10, 0xe2533004); // subs r3, r3, #4 (flags set anew after each site)
-+  expectWord(patch, 0x53739b68, 0xe5d127b5); // ldrb r2, [r1, #0x7b5]
-+  expectWord(patch, 0x53739b34, 0xe3a03000); // mov r3, #0
++  expectWord(patch, adr(0x53739b10), 0xe2533004); // subs r3, r3, #4 (flags set anew after each site)
++  expectWord(patch, adr(0x53739b68), 0xe5d127b5); // ldrb r2, [r1, #0x7b5]
++  expectWord(patch, adr(0x53739b34), 0xe3a03000); // mov r3, #0
    SLOT_GETTERS.forEach((at, i) => {
      expectWord(patch, at, 0xe5d00920 + i); // ldrb r0, [r0, #0x920 + i]
      expectWord(patch, at + 4, 0xe12fff1e); // bx lr
-@@ -268,7 +271,7 @@
-   patch.setWord(0x531dc844, movWord(4, hi(list), true), 'ADJ soft focus: function list, high half');
-   patch.setWord(0x531dc860, 0xe2846000 | MENU_LIST_NEW.length, 'ADJ soft focus: function list length');
+@@ -269,7 +272,7 @@
+   patch.setWord(adr(0x531dc844), movWord(4, hi(list), true), 'ADJ soft focus: function list, high half');
+   patch.setWord(adr(0x531dc860), 0xe2846000 | MENU_LIST_NEW.length, 'ADJ soft focus: function list length');
  
 -  // --- Name: function 0x0A -> text 840.
 +  // --- Name: function 0x0A -> text 884.
-   patch.setWord(0x5338f584, movWord(0, SOFT_FOCUS_TEXT_ID), 'ADJ soft focus: function name');
+   patch.setWord(adr(0x5338f584), movWord(0, SOFT_FOCUS_TEXT_ID), 'ADJ soft focus: function name');
    const descriptors: number[] = [];
    SOFT_FOCUS_NAMES.forEach((text) => {
-@@ -308,18 +311,21 @@
+@@ -309,18 +312,21 @@
  
    // --- Image processing: run the digital-filter step while soft focus is on.
    for (const site of CLARITY_GATE) {
@@ -4645,40 +4719,63 @@ diff --git a/tools/gr4v120/adjslots/gen.py b/tools/gr4v120/adjslots/gen.py
  ENTRIES = ['adj_slot_function', 'adj_can_open', 'adj_draw_more', 'adj_touchable_more', 'adj_taps_more', 'adj_bind',
             'adj_get_position', 'adj_set_position']
  USE_ZIG = bool(os.environ.get('GRMOD_ZIG')) or not (shutil.which('clang') and shutil.which('ld.lld') and shutil.which('llvm-objcopy'))
+diff --git a/core/src/fw/gr4v120/target.ts b/core/src/fw/gr4v120/target.ts
+--- a/core/src/fw/gr4v120/target.ts
++++ b/core/src/fw/gr4v120/target.ts
+@@ -1,6 +1,7 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+-/** The GR IV program in fw/ (profile, patch, names, ... and aspect/) is written for firmware 1.11 and builds
+- * only that release: addresses are used as they are written. See release.ts. */
++/** The GR IV program in fw/gr4v120 is written for firmware 1.20 (its addresses are 1.20's) and also builds
++ * 1.21, whose directory fw/gr4v121 has a target of its own. Here, for 1.20, addresses are used as they are
++ * written. See release.ts. */
+ import { releaseTarget } from '../release';
+ 
+-export const { release, adr, adrHex, adrHEX, adrText, byRelease } = releaseTarget('1.11', ['1.11'], null);
++export const { release, adr, adrHex, adrHEX, adrText, byRelease } = releaseTarget('1.20', ['1.20', '1.21'], null);
 diff --git a/core/src/fw/gr4v120/profile.ts b/core/src/fw/gr4v120/profile.ts
 --- a/core/src/fw/gr4v120/profile.ts
 +++ b/core/src/fw/gr4v120/profile.ts
-@@ -1,5 +1,5 @@
+@@ -1,37 +1,43 @@
  /**
 - * Everything that is specific to GR IV firmware 1.11 (fwdc248b.bin): hashes, section offsets,
-+ * Everything that is specific to GR IV firmware 1.20 (fwdc248b.bin; GR IV Monochrome 1.10 is the same file): hashes, section offsets,
++ * Everything that is specific to GR IV firmware 1.20 and 1.21 (fwdc248b.bin; GR IV Monochrome 1.10 and 1.11 are the same files): hashes, section offsets,
   * table addresses and the expected resolved addresses of the two editable Image Control slots.
   *
   * Addresses ("VA") are the run-time addresses used by the RTOS image; `foff()` maps them to
-@@ -7,30 +7,30 @@
+  * offsets in the decoded payload exactly like `plan.py`.
   */
  import { Firmware, FirmwareError, sha256Hex } from '../container';
- 
+-import { adr } from './target';
+-
 -export const FIRMWARE_VERSION = '1.11';
 -export const OFFICIAL_SHA256 = 'a2f664dfca034059eb0fd6e18ab08684c326b4a034d85c164dad7e1ec9b5655f';
 -export const DECODED_SHA256 = 'c4e597c7c9ca1bc181b30e35139ed90a4fd876ddcca14f12be0e00b6702233ae';
 -export const OFFICIAL_SIZE = 38648776;
 -export const DECODED_SIZE = 67948280;
-+export const FIRMWARE_VERSION = '1.20';
-+export const OFFICIAL_SHA256 = '7563d7e462f0c53b6ab2fbab7cdfbbb57151a41192ee82f4f3a2108f9d77650d';
-+export const DECODED_SHA256 = 'f5cf55a48f65d55f4ebbd40bcd1d64d1ceca3c88432a2a4ceaa93fe1cad5fc3a';
-+export const OFFICIAL_SIZE = 38919904;
-+export const DECODED_SIZE = 69632740;
++import { adr, byRelease } from './target';
++
++export const FIRMWARE_VERSION = byRelease({ '1.20': '1.20', '1.21': '1.21' });
++export const OFFICIAL_SHA256 = byRelease({
++  '1.20': '7563d7e462f0c53b6ab2fbab7cdfbbb57151a41192ee82f4f3a2108f9d77650d',
++  '1.21': 'bf4d6c35f6da1c16ed5f2943af570eab8fef326f7501a2b3ce5413fa55ec5c99',
++});
++export const DECODED_SHA256 = byRelease({
++  '1.20': 'f5cf55a48f65d55f4ebbd40bcd1d64d1ceca3c88432a2a4ceaa93fe1cad5fc3a',
++  '1.21': '38352e38a626e14f599cb3df740b115b515a05a3c6bf45de55fb70b06bdd0bdf',
++});
++export const OFFICIAL_SIZE = byRelease({ '1.20': 38919904, '1.21': 38917288 });
++export const DECODED_SIZE = byRelease({ '1.20': 69632740, '1.21': 69638884 });
  
  /** RTOS section: data offset in the decoded payload, length, load address. */
 -export const RTOS_OFFSET = 0x17d10;
 -export const RTOS_LENGTH = 0x13d2ac0;
 +export const RTOS_OFFSET = 0x17d28;
-+export const RTOS_LENGTH = 0x140b600;
- export const RTOS_VA = 0x53000000;
++export const RTOS_LENGTH = byRelease({ '1.20': 0x140b600, '1.21': 0x140ce00 });
+ export const RTOS_VA = adr(0x53000000);
  /** Initialised RAM: lives at RAM_VA at run time, stored in the RTOS image at RAM_IMAGE_VA. */
- export const RAM_VA = 0x55000000;
- export const RAM_IMAGE_VA = 0x543b3100;
+ export const RAM_VA = adr(0x55000000);
+ export const RAM_IMAGE_VA = adr(0x543b3100);
 -export const RAM_LENGTH = 0x57480;
 +export const RAM_LENGTH = 0x58500;
  
@@ -4687,76 +4784,76 @@ diff --git a/core/src/fw/gr4v120/profile.ts b/core/src/fw/gr4v120/profile.ts
 -export const ICONBIN_LENGTH = 0xdcf460;
 -
 -/** Per-style pointer tables (34 entries x 3 identical variants), all in the RAM image. */
-+export const ICONBIN_OFFSET = 0x2eec088;
++export const ICONBIN_OFFSET = byRelease({ '1.20': 0x2eec088, '1.21': 0x2eed888 });
 +export const ICONBIN_LENGTH = 0xf0f0e0;
 +
 +/** Per-style pointer tables (38 entries x 3 variants; styles 34..37 are new in 1.20), all in the RAM image. */
- export const T_REC = 0x55054800; // tone record table
- export const T_MA = 0x55054554; // multi-axis table
- export const T_GAM = 0x55054158; // gamma descriptor table
+ export const T_REC = adr(0x55054800); // tone record table
+ export const T_MA = adr(0x55054554); // multi-axis table
+ export const T_GAM = adr(0x55054158); // gamma descriptor table
 -export const TABLE_ENTRIES = 34;
 +export const TABLE_ENTRIES = 38;
  export const TABLE_VARIANTS = 3;
  
  export const TONE_STANDARD = 0x0b;
-@@ -63,11 +63,11 @@
+@@ -64,11 +70,11 @@
  
  /** Checksum compensation word: 4 bytes inside the assert-only text "MakeParameter". */
- export const COMP_VA = 0x5408004c;
+ export const COMP_VA = adr(0x5408004c);
 -export const COMP_OFFSET = 0x10610a4;
-+export const COMP_OFFSET = 0x1097d74;
++export const COMP_OFFSET = byRelease({ '1.20': 0x1097d74, '1.21': 0x1099564 });
  const COMP_GUARD = 'MakeParameter\0';
  
  /** 40x40 RGBA icon used only as a drawing template ("Nega": film frame with sprocket holes). */
 -export const NEGA_ICON_OFFSET = 0x2fc2cf0;
-+export const NEGA_ICON_OFFSET = 0x301b288;
++export const NEGA_ICON_OFFSET = byRelease({ '1.20': 0x301b288, '1.21': 0x301ca88 });
  export const ICON_BYTES = 40 * 40 * 4;
  
  export type SlotId = 'CY' | 'CG';
-@@ -83,8 +83,8 @@
+@@ -84,8 +90,8 @@
  }
  
  export const SLOTS: readonly SlotDef[] = [
 -  { id: 'CY', toneId: 0x12, nameIndex: 301, iconOffset: 0x30221f0, defaultName: 'Cinema (Yellow)' },
 -  { id: 'CG', toneId: 0x13, nameIndex: 302, iconOffset: 0x3023af0, defaultName: 'Cinema (Green)' },
-+  { id: 'CY', toneId: 0x12, nameIndex: 318, iconOffset: 0x30efa88, defaultName: 'Cinema (Yellow)' },
-+  { id: 'CG', toneId: 0x13, nameIndex: 319, iconOffset: 0x30f1388, defaultName: 'Cinema (Green)' },
++  { id: 'CY', toneId: 0x12, nameIndex: 318, iconOffset: byRelease({ '1.20': 0x30efa88, '1.21': 0x30f1288 }), defaultName: 'Cinema (Yellow)' },
++  { id: 'CG', toneId: 0x13, nameIndex: 319, iconOffset: byRelease({ '1.20': 0x30f1388, '1.21': 0x30f2b88 }), defaultName: 'Cinema (Green)' },
  ];
  
  export function slotDef(id: SlotId): SlotDef {
-@@ -154,13 +154,13 @@
+@@ -155,13 +161,13 @@
    };
  }
  
 -/** Resolved addresses that must come out of `slotInfo` for firmware 1.11. */
 +/** Resolved addresses that must come out of `slotInfo` for firmware 1.20. */
  export const EXPECTED_SLOT_INFO: Readonly<Record<SlotId, Readonly<Pick<SlotInfo, 'matrix' | 'desc' | 'R' | 'G' | 'B' | 'maBlock'>>>> = {
-   CY: { matrix: 0x54080998, desc: 0x540b1e98, R: 0x540b7bac, G: 0x540b77ac, B: 0x540b71ac, maBlock: 0x54080ab8 },
-   CG: { matrix: 0x540801e4, desc: 0x540b7198, R: 0x540b6798, G: 0x540b6384, B: 0x540b4578, maBlock: 0x5408138c },
+   CY: { matrix: adr(0x54080998), desc: adr(0x540b1e98), R: adr(0x540b7bac), G: adr(0x540b77ac), B: adr(0x540b71ac), maBlock: adr(0x54080ab8) },
+   CG: { matrix: adr(0x540801e4), desc: adr(0x540b7198), R: adr(0x540b6798), G: adr(0x540b6384), B: adr(0x540b4578), maBlock: adr(0x5408138c) },
  };
- export const EXPECTED_STANDARD_MA_BLOCK = 0x54081c28;
+ export const EXPECTED_STANDARD_MA_BLOCK = adr(0x54081c28);
 -/** The post-curve matrix array every colour style shares in 1.11 (identity at saturation 0). */
 +/** The post-curve matrix array every colour style shares in 1.20 (identity at saturation 0). */
- export const EXPECTED_POST_ARRAY = 0x5501bd34;
+ export const EXPECTED_POST_ARRAY = adr(0x5501bd34);
  
  export interface Layout {
-@@ -200,16 +200,16 @@
+@@ -201,16 +207,16 @@
  }
  
  /**
 - * Accept only the official 1.11 file. Throws `FirmwareError('unsupported-firmware')` unless the
-+ * Accept only the official 1.20 file. Throws `FirmwareError('unsupported-firmware')` unless the
++ * Accept only the official file of this release (1.20 or 1.21). Throws `FirmwareError('unsupported-firmware')` unless the
   * file's SHA-256 is `OFFICIAL_SHA256`; then parses it and also asserts the decoded SHA-256.
   */
  export async function openOfficial(raw: Uint8Array): Promise<{ fw: Firmware; decoded: Uint8Array }> {
    if (raw.length !== OFFICIAL_SIZE || (await sha256Hex(raw)) !== OFFICIAL_SHA256) {
 -    throw new FirmwareError('unsupported-firmware', 'this is not the official GR IV firmware 1.11 file (fwdc248b.bin)');
-+    throw new FirmwareError('unsupported-firmware', 'this is not the official GR IV firmware 1.20 file (fwdc248b.bin)');
++    throw new FirmwareError('unsupported-firmware', `this is not the official GR IV firmware ${FIRMWARE_VERSION} file (fwdc248b.bin)`);
    }
    const fw = new Firmware(raw);
    if (fw.decoded.length !== DECODED_SIZE || (await sha256Hex(fw.decoded)) !== DECODED_SHA256) {
 -    throw new FirmwareError('unsupported-firmware', 'decoded payload does not match firmware 1.11');
-+    throw new FirmwareError('unsupported-firmware', 'decoded payload does not match firmware 1.20');
++    throw new FirmwareError('unsupported-firmware', `decoded payload does not match firmware ${FIRMWARE_VERSION}`);
    }
    return { fw, decoded: fw.decoded };
  }
@@ -4768,7 +4865,7 @@ diff --git a/core/src/fw/gr4v120/names.ts b/core/src/fw/gr4v120/names.ts
 - * UI strings of firmware 1.11.
 - *
 - * There are 21 language tables in the RAM image, each 836 u32 pointers. Each pointer is the VA of
-+ * UI strings of firmware 1.20 (texts renumbered from 1.11: 44 more).
++ * UI strings of firmware 1.20 and 1.21 (texts renumbered from 1.11: 44 more; in 1.21 the tables are 0x1800 further, with the RAM image).
 + *
 + * There are 21 language tables in the RAM image, each 880 u32 pointers (1.11: 836). Each pointer is the VA of
   * an 8-byte descriptor `{u32 count, u32 strVA}`; the string is UTF-16LE at strVA followed by a
@@ -4779,16 +4876,24 @@ diff --git a/core/src/fw/gr4v120/names.ts b/core/src/fw/gr4v120/names.ts
   *   low byte  = number of UTF-16 code units + 1 (i.e. including the terminator)
   *   next byte = number of lines (1 + number of '\n' in the string)
   * so for a single-line string, such as every style name, `count = 0x101 + nChars`. Multi-line
-@@ -28,11 +28,11 @@
+@@ -18,6 +18,7 @@
+ import { FirmwareError } from '../types';
+ import type { Range } from '../types';
+ import { RTOS_LENGTH, RTOS_OFFSET, RTOS_VA } from './profile';
++import { byRelease } from './target';
+ 
+ /** Language codes, in table order. */
+ export const LANGS = [
+@@ -28,11 +29,11 @@
  
  /** Start of each language's pointer table as an offset inside the RTOS section, in `LANGS` order. */
  export const NAME_TABLE_RTOS_OFFSETS: readonly number[] = [
 -  0x137d7b0, 0x137e4c4, 0x137f1d8, 0x137feec, 0x1380c00, 0x1381914, 0x1382628,
 -  0x138333c, 0x1384050, 0x1384d64, 0x1385a78, 0x138678c, 0x13874a0, 0x13881b4,
 -  0x1388ec8, 0x1389bdc, 0x138a8f0, 0x138b604, 0x138c318, 0x138d02c, 0x138dd40,
-+  0x13b5270, 0x13b6034, 0x13b6df8, 0x13b7bbc, 0x13b8980, 0x13b9744, 0x13ba508,
-+  0x13bb2cc, 0x13bc090, 0x13bce54, 0x13bdc18, 0x13be9dc, 0x13bf7a0, 0x13c0564,
-+  0x13c1328, 0x13c20ec, 0x13c2eb0, 0x13c3c74, 0x13c4a38, 0x13c57fc, 0x13c65c0,
++  byRelease({ '1.20': 0x13b5270, '1.21': 0x13b6a70 }), byRelease({ '1.20': 0x13b6034, '1.21': 0x13b7834 }), byRelease({ '1.20': 0x13b6df8, '1.21': 0x13b85f8 }), byRelease({ '1.20': 0x13b7bbc, '1.21': 0x13b93bc }), byRelease({ '1.20': 0x13b8980, '1.21': 0x13ba180 }), byRelease({ '1.20': 0x13b9744, '1.21': 0x13baf44 }), byRelease({ '1.20': 0x13ba508, '1.21': 0x13bbd08 }),
++  byRelease({ '1.20': 0x13bb2cc, '1.21': 0x13bcacc }), byRelease({ '1.20': 0x13bc090, '1.21': 0x13bd890 }), byRelease({ '1.20': 0x13bce54, '1.21': 0x13be654 }), byRelease({ '1.20': 0x13bdc18, '1.21': 0x13bf418 }), byRelease({ '1.20': 0x13be9dc, '1.21': 0x13c01dc }), byRelease({ '1.20': 0x13bf7a0, '1.21': 0x13c0fa0 }), byRelease({ '1.20': 0x13c0564, '1.21': 0x13c1d64 }),
++  byRelease({ '1.20': 0x13c1328, '1.21': 0x13c2b28 }), byRelease({ '1.20': 0x13c20ec, '1.21': 0x13c38ec }), byRelease({ '1.20': 0x13c2eb0, '1.21': 0x13c46b0 }), byRelease({ '1.20': 0x13c3c74, '1.21': 0x13c5474 }), byRelease({ '1.20': 0x13c4a38, '1.21': 0x13c6238 }), byRelease({ '1.20': 0x13c57fc, '1.21': 0x13c6ffc }), byRelease({ '1.20': 0x13c65c0, '1.21': 0x13c7dc0 }),
  ];
 -export const NAME_TABLE_ENTRIES = 836;
 +export const NAME_TABLE_ENTRIES = 880;

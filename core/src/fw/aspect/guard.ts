@@ -34,18 +34,19 @@
 import { assembleWords, branchTarget, branchWord } from './arm';
 import { FirmwareError } from '../types';
 import { Patch, expectWord } from './build';
+import { adr } from '../target';
 
 function fail(code: string, message: string): never {
   throw new FirmwareError(code, message);
 }
 
 /** CURRENT(): the live user settings. */
-const CURRENT = 0x5323f018;
-const SETTINGS_SAVE = 0x533e1c04;
-const SETTINGS_LOAD = 0x533e17cc;
+const CURRENT = adr(0x5323f018);
+const SETTINGS_SAVE = adr(0x533e1c04);
+const SETTINGS_LOAD = adr(0x533e17cc);
 /** User-mode recall: `bl 0x5323EA84` with the settings in r4 (see build.ts, installState). */
-const RECALL = 0x532a90cc;
-const RECALL_NATIVE = 0x5323ea84;
+const RECALL = adr(0x532a90cc);
+const RECALL_NATIVE = adr(0x5323ea84);
 
 const LOOKS = [0x153, 0x154, 0x155, 0x156, 0x515, 0x516, 0x517, 0x518];
 const RATIO = 0x49f;

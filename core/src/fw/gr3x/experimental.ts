@@ -5,23 +5,24 @@
 import { assembleWords, branchWord, encodeImmediate, wordsToBytes } from '../aspect/arm';
 import { alignedCrop, parseRatio } from '../aspect/geometry';
 import { FirmwareError } from '../types';
-import { GR3X_160, openGr3xOfficial } from './profile';
+import { GR3X_PROFILE, openGr3xOfficial } from './profile';
 import { GR3X_T4_MENU, checkGr3xMenu, gr3xCustoms, gr3xMaxId, gr3xWide } from './geometry';
 import type { Gr3xMenuRatio } from './geometry';
+import { adr, adrHex } from './target';
 
 /** `mov` where the value encodes as a modified immediate (all T4 values do), else `movw`. */
 export const gr3xImm = (reg: string, value: number) => `${encodeImmediate(value) === null ? 'movw' : 'mov'} ${reg},#${value}`;
-const BASE = GR3X_160.rtosBase;
-const DIMENSION_ENTRY = 0x536a2a30;
+const BASE = GR3X_PROFILE.rtosBase;
+const DIMENSION_ENTRY = adr(0x536a2a30);
 // Keep the PC-relative VFP literal load at the original entry; replace the following MOV.
 const DIMENSION_HOOK = DIMENSION_ENTRY + 4;
-const PREVIEW_ENTRY = 0x5366632c;
-const PREVIEW_SETUP = 0x5366634c;
-const PREVIEW_RELEASE = 0x53666500;
-const UDIV = 0x5313d850;
-const ASPECT_GETTER = 0x53245260;
-const ASPECT_SETTER = 0x532525a4;
-const APPEND = BASE + GR3X_160.rtosLength;
+const PREVIEW_ENTRY = adr(0x5366632c);
+const PREVIEW_SETUP = adr(0x5366634c);
+const PREVIEW_RELEASE = adr(0x53666500);
+const UDIV = adr(0x5313d850);
+const ASPECT_GETTER = adr(0x53245260);
+const ASPECT_SETTER = adr(0x532525a4);
+const APPEND = BASE + GR3X_PROFILE.rtosLength;
 const GUARDS = [
   [DIMENSION_ENTRY, 'f87adfed0dc0a0e1f0db2de9124f6fe1'],
   [PREVIEW_ENTRY, '0dc0a0e1f0df2de904b04ce22cd04de2'],
@@ -76,7 +77,7 @@ function dimensionAssembly(additions: Additions, max: number): string {
 function previewSetupAssembly(max: number): string {
   return `
     str r7,[fp,#-0x4c]; cmp r7,#4; blo original; cmp r7,#${max}; movls r7,#0
-    original: bl #0x53665c2c; b #${PREVIEW_SETUP + 4}
+    original: bl #${adrHex(0x53665c2c)}; b #${PREVIEW_SETUP + 4}
   `;
 }
 
@@ -98,7 +99,7 @@ function previewAssembly(additions: Additions, max: number): string {
     rect:
     push {r4-r6,lr}; mov r4,r0; ldr r5,[r4]
     mov r6,r2; umull r0,r3,r5,r1; mov r1,r3; mov r2,r6; mov r3,#0
-    bl #0x5313db54
+    bl #${adrHex(0x5313db54)}
     str r0,[r4]; sub r0,r5,r0; add r0,r0,#1; mov r0,r0,lsr #1
     ldr r1,[r4,#8]; add r0,r1,r0; str r0,[r4,#8]; pop {r4-r6,pc}
   `;
@@ -125,7 +126,7 @@ export async function buildGr3xExperiment(raw: Uint8Array, ratioMenu: readonly G
   const menu = checkGr3xMenu(ratioMenu);
   const additions = additionsOf(menu), max = gr3xMaxId(menu);
   const { decoded, profile } = await openGr3xOfficial(raw);
-  const rtos = decoded.subarray(GR3X_160.rtosOffset, GR3X_160.rtosOffset + GR3X_160.rtosLength);
+  const rtos = decoded.subarray(GR3X_PROFILE.rtosOffset, GR3X_PROFILE.rtosOffset + GR3X_PROFILE.rtosLength);
   for (const [at, expected] of GUARDS) {
     if (hex(rtos.subarray(at - BASE, at - BASE + expected.length / 2)) !== expected) {
       throw new FirmwareError('unexpected-instruction', `GR IIIx experimental guard failed at ${at.toString(16)}`);

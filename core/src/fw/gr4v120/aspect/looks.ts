@@ -19,20 +19,21 @@ import { Patch, expectWord, u32le } from './build';
 import { FirmwareError } from '../../types';
 import type { Range } from '../../types';
 import { foff } from '../profile';
+import { adr } from '../target';
 
 export const FACTORY_LOOK_IDS: readonly number[] = [
   11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32,
 ];
 /** First style number of an added Image Control slot (38..57; 1.11: 34..53). */
 export const EXTRA_LOOK_FIRST = 38;
-export const ORDER_TABLE = 0x53DE8CD0;
+export const ORDER_TABLE = adr(0x53DE8CD0);
 export const ORDER_COUNT = 22;
-export const COLOR_VIS_TABLE = 0x533DE15C;
-export const COLOR_VISIBLE = 0x533DE194;
-export const COLOR_CONDITIONAL = 0x533DE19C;
-export const COLOR_HIDDEN = 0x533DE1AC;
-export const MONO_VIS_TABLE = 0x533DE080;
-export const MONO_HIDDEN = 0x533DE0B0;
+export const COLOR_VIS_TABLE = adr(0x533DE15C);
+export const COLOR_VISIBLE = adr(0x533DE194);
+export const COLOR_CONDITIONAL = adr(0x533DE19C);
+export const COLOR_HIDDEN = adr(0x533DE1AC);
+export const MONO_VIS_TABLE = adr(0x533DE080);
+export const MONO_HIDDEN = adr(0x533DE0B0);
 
 export interface LookLayout {
   /** Style IDs in menu order: a permutation of 11..32 and, when added slots are installed, 38..38+n-1. */

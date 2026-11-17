@@ -17,9 +17,10 @@
  * Written here from those changes; no code of that project is used.
  */
 import { Patch, expectWord } from './build';
+import { adr } from '../target';
 
-const CHECK = 0x533cc6e0;
-const TABLE = 0x53dbf36c;
+const CHECK = adr(0x533cc6e0);
+const TABLE = adr(0x53dbf36c);
 const MONOCHROME_COLUMN = 1;
 /** Rows 3..8 (the six looks), every column but the Monochrome's. */
 const LOOK_FLAGS: number[] = [];

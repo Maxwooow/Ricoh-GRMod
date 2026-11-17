@@ -6,6 +6,7 @@
  * offsets in the decoded payload exactly like `plan.py`.
  */
 import { Firmware, FirmwareError, sha256Hex } from './container';
+import { adr } from './target';
 
 export const FIRMWARE_VERSION = '1.11';
 export const OFFICIAL_SHA256 = 'a2f664dfca034059eb0fd6e18ab08684c326b4a034d85c164dad7e1ec9b5655f';
@@ -16,10 +17,10 @@ export const DECODED_SIZE = 67948280;
 /** RTOS section: data offset in the decoded payload, length, load address. */
 export const RTOS_OFFSET = 0x17d10;
 export const RTOS_LENGTH = 0x13d2ac0;
-export const RTOS_VA = 0x53000000;
+export const RTOS_VA = adr(0x53000000);
 /** Initialised RAM: lives at RAM_VA at run time, stored in the RTOS image at RAM_IMAGE_VA. */
-export const RAM_VA = 0x55000000;
-export const RAM_IMAGE_VA = 0x5437b640;
+export const RAM_VA = adr(0x55000000);
+export const RAM_IMAGE_VA = adr(0x5437b640);
 export const RAM_LENGTH = 0x57480;
 
 /** ICONBIN section: data offset in the decoded payload and length. */
@@ -27,9 +28,9 @@ export const ICONBIN_OFFSET = 0x2e93af0;
 export const ICONBIN_LENGTH = 0xdcf460;
 
 /** Per-style pointer tables (34 entries x 3 identical variants), all in the RAM image. */
-export const T_REC = 0x55053780; // tone record table
-export const T_MA = 0x55053504; // multi-axis table
-export const T_GAM = 0x55053138; // gamma descriptor table
+export const T_REC = adr(0x55053780); // tone record table
+export const T_MA = adr(0x55053504); // multi-axis table
+export const T_GAM = adr(0x55053138); // gamma descriptor table
 export const TABLE_ENTRIES = 34;
 export const TABLE_VARIANTS = 3;
 
@@ -62,7 +63,7 @@ export const POST = {
 } as const;
 
 /** Checksum compensation word: 4 bytes inside the assert-only text "MakeParameter". */
-export const COMP_VA = 0x54049394;
+export const COMP_VA = adr(0x54049394);
 export const COMP_OFFSET = 0x10610a4;
 const COMP_GUARD = 'MakeParameter\0';
 
@@ -156,12 +157,12 @@ export function slotInfo(decoded: Uint8Array, tone: number): SlotInfo {
 
 /** Resolved addresses that must come out of `slotInfo` for firmware 1.11. */
 export const EXPECTED_SLOT_INFO: Readonly<Record<SlotId, Readonly<Pick<SlotInfo, 'matrix' | 'desc' | 'R' | 'G' | 'B' | 'maBlock'>>>> = {
-  CY: { matrix: 0x54049ce0, desc: 0x5407b1e0, R: 0x540808b4, G: 0x5407f0b4, B: 0x5407feb4, maBlock: 0x54049e00 },
-  CG: { matrix: 0x5404952c, desc: 0x5407decc, R: 0x5407f6b4, G: 0x5407eeb4, B: 0x5407d6b8, maBlock: 0x5404a6d4 },
+  CY: { matrix: adr(0x54049ce0), desc: adr(0x5407b1e0), R: adr(0x540808b4), G: adr(0x5407f0b4), B: adr(0x5407feb4), maBlock: adr(0x54049e00) },
+  CG: { matrix: adr(0x5404952c), desc: adr(0x5407decc), R: adr(0x5407f6b4), G: adr(0x5407eeb4), B: adr(0x5407d6b8), maBlock: adr(0x5404a6d4) },
 };
-export const EXPECTED_STANDARD_MA_BLOCK = 0x5404af70;
+export const EXPECTED_STANDARD_MA_BLOCK = adr(0x5404af70);
 /** The post-curve matrix array every colour style shares in 1.11 (identity at saturation 0). */
-export const EXPECTED_POST_ARRAY = 0x5501ad98;
+export const EXPECTED_POST_ARRAY = adr(0x5501ad98);
 
 export interface Layout {
   CY: SlotInfo;

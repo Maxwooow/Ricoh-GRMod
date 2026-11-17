@@ -48,18 +48,19 @@ function cmp(a, b) {
 
 // ---------------------------------------------------------------- against the engine
 // The official files the engine opens: `OFFICIAL_SHA256 = '...'` (GR IV programs) and the `sha256:`
-// of the GR III / IIIx profiles.
+// of the GR III / IIIx profiles (fw/gr3-profiles.ts).
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
-    if (statSync(p).isDirectory()) walk(p, out); else if (name === 'profile.ts') out.push(p);
+    if (statSync(p).isDirectory()) walk(p, out); else if (name === 'profile.ts' || name === 'gr3-profiles.ts') out.push(p);
   }
   return out;
 }
 const engine = new Set();
 for (const f of walk(join(ROOT, 'core/src/fw'))) {
   const t = readFileSync(f, 'utf8');
-  for (const m of t.matchAll(/OFFICIAL_SHA256\s*=\s*'([0-9a-f]{64})'/g)) engine.add(m[1]);
+  // one hash, or byRelease({ '1.20': '...', '1.21': '...' }) for a program of several releases
+  for (const m of t.matchAll(/OFFICIAL_SHA256\s*=\s*(?:'[0-9a-f]{64}'|byRelease\(\{[^}]*\}\))/g)) for (const h of m[0].matchAll(/'([0-9a-f]{64})'/g)) engine.add(h[1]);
   for (const m of t.matchAll(/^\s*sha256:\s*'([0-9a-f]{64})'/gm)) engine.add(m[1]);
 }
 const listed = new Set(groups.flatMap((g) => g.releases.map((r) => r.firmwareSha256)));

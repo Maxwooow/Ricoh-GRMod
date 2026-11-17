@@ -47,22 +47,23 @@ import { DATESTAMP_CODE, DATESTAMP_CODE_LENGTH, DATESTAMP_DFDIAG_CODE, DATESTAMP
 import { DIRECT_FLASH_DIAG_SLOT } from './directflash';
 import { FRAME_LOOK, LOOK_STASH, MONO_MODEL, ORIENT_VALID, ORIENT_WORD } from './lookstash';
 import { NAME_TABLE_RTOS_OFFSETS } from '../names';
+import { adr, byRelease } from '../target';
 
 /** JpegEncodeMacroProcess::Execute. */
-export const JPEG_EXECUTE = 0x53727e10;
+export const JPEG_EXECUTE = adr(0x53727e10);
 
-const CACHE = 0x53918010;
-const CACHE_FLUSH_FOR_READ = 0x539180a0;
-const CACHE_CLEAN = 0x5391808c;
-const PLATFORM = 0x53919d68;
-const GET_TIME = 0x53912578;
+const CACHE = adr(0x53918010);
+const CACHE_FLUSH_FOR_READ = adr(0x539180a0);
+const CACHE_CLEAN = adr(0x5391808c);
+const PLATFORM = adr(0x53919d68);
+const GET_TIME = adr(0x53912578);
 
 /**
  * Where the setting is kept: byte 0x94B of the live user settings, alignment padding that the
  * factory-defaults initialiser never writes (like 0x90F for soft focus); saved, loaded and copied
  * to U1-U3 with the rest of the structure.
  */
-export const DATESTAMP_BYTE = 0x550832a8 + 4 + 0x94b;
+export const DATESTAMP_BYTE = adr(0x550832a8) + 4 + 0x94b;
 
 /** Bits of the setting byte. */
 export const DATESTAMP_ON = 1;
@@ -204,7 +205,7 @@ export function installDateStamp(patch: Patch, setting: number, diag: DateStampD
   expectWord(patch, JPEG_EXECUTE, 0xe1a0c00d); // mov ip, sp
   expectWord(patch, JPEG_EXECUTE + 4, 0xe92ddff0); // push {r4-r12, lr, pc}
   expectWord(patch, JPEG_EXECUTE + 0x18, 0xe5914008); // ldr r4, [r1, #8]  (the configuration)
-  expectWord(patch, CACHE, 0xe30206c4); // movw r0, #0x26c4 (the cache object; 1.11 0x553a09c4)
+  expectWord(patch, CACHE, byRelease({ '1.20': 0xe30206c4, '1.21': 0xe30206cc })); // movw r0, #0x26c4 (the cache object; 1.11 0x553a09c4)
   expectWord(patch, CACHE_CLEAN, 0xe1a00001);
   expectWord(patch, CACHE_FLUSH_FOR_READ, 0xe1a0c00d);
   expectWord(patch, GET_TIME, 0xe5d03014); // ldrb r3, [r0, #0x14]
@@ -240,17 +241,17 @@ export function installDateStamp(patch: Patch, setting: number, diag: DateStampD
  * imprint's look name. Nothing but the two words is written; the hook keeps every register (and
  * runs `mov ip, sp` itself, after them).
  */
-export const BEFORE_EXPOSE = 0x5364d640;
-const DIRECTION_SINGLETON = 0x5537b29c;
+export const BEFORE_EXPOSE = adr(0x5364d640);
+const DIRECTION_SINGLETON = adr(0x5537b29c);
 
 export function installExposureOrientation(patch: Patch): void {
   if (patch.word(BEFORE_EXPOSE) >>> 24 === 0xea) return;
   expectWord(patch, BEFORE_EXPOSE, 0xe1a0c00d); // mov ip, sp
   expectWord(patch, BEFORE_EXPOSE + 4, 0xe92dd830); // push {r4, r5, fp, ip, lr, pc}
-  expectWord(patch, 0x537818a8, 0xe5903000); // ldr r3, [r0]
-  expectWord(patch, 0x537818ac, 0xe5d300d8); // ldrb r0, [r3, #0xd8]
-  expectWord(patch, 0x5377b1d8, 0xe5950518); // ldr r0, [r5, #0x518]
-  expectWord(patch, 0x53750028, 0xe30b029c); // movw r0, #0xb29c (the singleton the direction is read through)
+  expectWord(patch, adr(0x537818a8), 0xe5903000); // ldr r3, [r0]
+  expectWord(patch, adr(0x537818ac), 0xe5d300d8); // ldrb r0, [r3, #0xd8]
+  expectWord(patch, adr(0x5377b1d8), 0xe5950518); // ldr r0, [r5, #0x518]
+  expectWord(patch, adr(0x53750028), byRelease({ '1.20': 0xe30b029c, '1.21': 0xe30b02a4 })); // movw r0, #0xb29c (the singleton the direction is read through)
   const stub = patch.append((at) => assembleWords(
     `push {r0, r1}
      movw r0, #${lo(LOOK_STASH)}; movt r0, #${hi(LOOK_STASH)}; ldr r0, [r0]

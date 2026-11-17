@@ -336,9 +336,9 @@ function boxBlur(rgb: Uint8Array, w: number, h: number, radius: number): Uint8Ar
 }
 
 /**
- * The GR III / IIIx programs: GR IIIx 1.60 / GR III 2.10 (fw/gr3x) and its generated port to GR IIIx
- * 1.70 / GR III 2.20 (fw/gr3x170, experimental). Every firmware address lives in one of them; an
- * engine keeps the program of the file it opened and never mixes the two.
+ * The GR III / IIIx programs, one per release: fw/gr3x (GR IIIx 1.60 / GR III 2.10) and the same program
+ * with the targets of 1.70 / 2.20 (fw/gr3x170) and 1.71 / 2.21 (fw/gr3x171), see fw/release.ts. An engine
+ * keeps the program of the file it opened and never mixes two.
  */
 const GR3_PROGRAMS = [Gr3Program210, Gr3Program220, Gr3Program221] as const;
 /** Development: the patch manifest of each GR III / IIIx build (tools/port/compare_builds.mts compares the programs' builds). */

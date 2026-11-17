@@ -37,20 +37,21 @@
  */
 import { branchWord, movWord } from '../aspect/arm';
 import { FirmwareError } from '../types';
+import { adr, byRelease } from './target';
 
 /** GR III's own three-position scale of HDR Tone's Toning (400 x 60). */
 export const GR3X_TONING_SCALE = 0xd3;
 const FIRST = 64;
-const TABLE = 0x53b3488c, ENTRIES = 36, KIND_TONING = 10;
+const TABLE = adr(0x53b3488c), ENTRIES = 36, KIND_TONING = 10;
 const TABLE_SITES: readonly (readonly [number, number, number])[] = [
-  [0x531afa20, 0x531afa24, 12], [0x531afabc, 0x531afacc, 3], [0x531affa0, 0x531affa8, 12], [0x531b01f4, 0x531b01f8, 3],
+  [adr(0x531afa20), adr(0x531afa24), 12], [adr(0x531afabc), adr(0x531afacc), 3], [adr(0x531affa0), adr(0x531affa8), 12], [adr(0x531b01f4), adr(0x531b01f8), 3],
 ];
-const BASE_DEFAULT = 0x531acb24, BASE_DEFAULT_TARGET = 0x531acbbc, BASE_RETURN = 0x531acb5c;
-const SUBTITLE = 0x531b0254, SCALE = 0x531adcbc, START = 0x531adca0, POSITION = 0x531b0514;
-const LIST_TEXT = 0x531af494, LIST_ICON = 0x531af4a8, SETTER = 0x531b0d8c;
-const STORED_GETTER = 0x532c70e4, LIVE_GETTER = 0x532c297c, TEXT_OF_VALUE = 0x532aca68, HDR_SETTER = 0x532c0894;
+const BASE_DEFAULT = adr(0x531acb24), BASE_DEFAULT_TARGET = adr(0x531acbbc), BASE_RETURN = adr(0x531acb5c);
+const SUBTITLE = adr(0x531b0254), SCALE = adr(0x531adcbc), START = adr(0x531adca0), POSITION = adr(0x531b0514);
+const LIST_TEXT = adr(0x531af494), LIST_ICON = adr(0x531af4a8), SETTER = adr(0x531b0d8c);
+const STORED_GETTER = adr(0x532c70e4), LIVE_GETTER = adr(0x532c297c), TEXT_OF_VALUE = adr(0x532aca68), HDR_SETTER = adr(0x532c0894);
 const TONING_ICON = 0x1e9, TONING_TEXT = 0x12f;
-const BACKUP = 0x532c337c, BACKUP_BODY = 0x532c325c, RESTORE = 0x532c34a8, RESTORE_BODY = 0x532c33c8;
+const BACKUP = adr(0x532c337c), BACKUP_BODY = adr(0x532c325c), RESTORE = adr(0x532c34a8), RESTORE_BODY = adr(0x532c33c8);
 
 export interface Gr3xHalationScreenProgram {
   code(source: string): number;
@@ -79,11 +80,11 @@ export function installGr3xHalationScreen(p: Gr3xHalationScreenProgram, o: Gr3xH
     [SUBTITLE, 0xe1d310b2], [SUBTITLE - 0x14, 0xe3520001],
     [SCALE, 0xe3a030d3], [START, bl(START, STORED_GETTER)], [POSITION, bl(POSITION, LIVE_GETTER)],
     [LIST_TEXT, bl(LIST_TEXT, TEXT_OF_VALUE)], [LIST_ICON, 0xe30011e9], [SETTER, bl(SETTER, HDR_SETTER)],
-    [SETTER - 0xc, 0xe30e3bc4], [SETTER - 8, 0xe34533b4], [SETTER - 4, 0xe7d31006],
+    [SETTER - 0xc, byRelease({ '1.60': 0xe30e3bc4, '1.70': 0xe30e34ec, '1.71': 0xe303371c })], [SETTER - 8, byRelease({ '1.60': 0xe34533b4, '1.70': 0xe34533b4, '1.71': 0xe34533b5 })], [SETTER - 4, 0xe7d31006],
     // The registers the hooks read: the controller in r6 (start, scale, list), r5 (position),
     // r4 (subtitle, setter), as the surrounding official code has it.
     [START - 0x18, 0xe1a06000], [POSITION - 0x138, 0xe1a05000], [LIST_TEXT - 0x18, 0xe1a06000], [SUBTITLE - 0x38, 0xe1a04000],
-    [0x531b0bbc, 0xe1a04000],
+    [adr(0x531b0bbc), 0xe1a04000],
   ];
   for (const [at, w] of guards) if (p.u32(at) !== w >>> 0) fail(`guard at ${at.toString(16)}`);
   // --- The table with the three Halation lists.

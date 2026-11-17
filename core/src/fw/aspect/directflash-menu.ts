@@ -50,6 +50,7 @@ import {
   LIST_CONTROLLER_ID, LIST_SET_ITEM, SUBMENU_CONTROLLER_ID, SUB_RECORD, SUB_SET_ICON, addListRecords, addSubmenuRecord, hookControllerFactory, listTemplate, submenuTable,
 } from './datestamp-menu';
 import { DIRECT_FLASH_BYTE, DIRECT_FLASH_GN_BYTE, DIRECT_FLASH_TV_BYTE } from './directflash';
+import { adr } from '../target';
 
 /** Controller ids (not used by the firmware): the lists, the submenu. */
 export const DF_GN_ID = 0x020001b0;
@@ -335,9 +336,9 @@ function installTexts(patch: Patch, entries: readonly { id: number; names: reado
 }
 
 /** The `LANGS` index of language row l (as the program indexes languages). */
-const FIRST_TABLE_RAM = 0x55000000 + (0x5437d7b0 - 0x5437b640);
+const FIRST_TABLE_RAM = adr(0x55000000) + (adr(0x5437d7b0) - adr(0x5437b640));
 const TABLE_STRIDE = 0xd14;
-const NATIVE_TEXT_ROOTS = 0x55002118;
+const NATIVE_TEXT_ROOTS = adr(0x55002118);
 function langIndex(patch: Patch, l: number): number {
   const root = new DataView(patch.readMapped(NATIVE_TEXT_ROOTS + l * 4, 4).buffer).getUint32(0, true);
   const k = (root + 4 - FIRST_TABLE_RAM) / TABLE_STRIDE;
@@ -379,10 +380,10 @@ function installIcons(patch: Patch, iconbin: Uint8Array, icons: readonly { id: n
  * any other id the Flash submenu came back with no back target, so MENU did nothing (0.8.4 / 0.8.5).
  * Both checks now count DF_MENU_ID as nested too.
  */
-const NESTED_OPEN = 0x531e20fc; // mov r3,#0x124; movt r3,#0x200; cmp r5,r3; beq keep
-const NESTED_OPEN_KEEP = 0x531e212c, NESTED_OPEN_ON = 0x531e210c;
-const NESTED_BACK = 0x531e2164; // mov r3,#0x124; movt r3,#0x200; cmp r0,r3; beq done
-const NESTED_BACK_DONE = 0x531e2188, NESTED_BACK_ON = 0x531e2174;
+const NESTED_OPEN = adr(0x531e20fc); // mov r3,#0x124; movt r3,#0x200; cmp r5,r3; beq keep
+const NESTED_OPEN_KEEP = adr(0x531e212c), NESTED_OPEN_ON = adr(0x531e210c);
+const NESTED_BACK = adr(0x531e2164); // mov r3,#0x124; movt r3,#0x200; cmp r0,r3; beq done
+const NESTED_BACK_DONE = adr(0x531e2188), NESTED_BACK_ON = adr(0x531e2174);
 
 function installNestedBack(patch: Patch): void {
   for (const [at, cmp, beq] of [[NESTED_OPEN, 0xe1550003, 0x0a000007], [NESTED_BACK, 0xe1500003, 0x0a000004]]) {

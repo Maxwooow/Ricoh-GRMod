@@ -38,6 +38,7 @@ import { MAX_EXTRA_SLOTS } from './slots';
 import { ADJ_SLOTS_MAX } from './adjslots';
 import { RES_ANCHOR, SHUTDOWN_MAX_PICTURES, shutdownFiles } from './shutdown';
 import { readRes, resRecords } from './res';
+import { adr } from '../target';
 
 const MAGIC_STEM = 'GRMODAR';
 const MAGIC_LENGTH = MAGIC_STEM.length + 1;
@@ -360,7 +361,7 @@ export function growPayload(payload: Uint8Array, aspect: AspectResult, specs: re
 /** Planned ranges (NEW payload offsets) of everything `growPayload` adds or changes, for the self-check. */
 export function grownRanges(g: GrownPayload, aspect: AspectResult): Range[] {
   const out: Range[] = [];
-  for (const w of aspect.words) out.push({ what: `ratio hook 0x${w.address.toString(16)}`, offset: g.rtosOffset + (w.address - 0x53000000), length: 4 });
+  for (const w of aspect.words) out.push({ what: `ratio hook 0x${w.address.toString(16)}`, offset: g.rtosOffset + (w.address - adr(0x53000000)), length: 4 });
   out.push({ what: 'RTOS section size', offset: g.rtosOffset - 4, length: 4 });
   out.push({ what: 'RTOS appended area', offset: g.rtosOffset + OFFICIAL_RTOS_LENGTH, length: g.rtosGrowth });
   if (g.iconGrowth > 0) {
