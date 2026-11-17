@@ -32,6 +32,7 @@ import { FirmwareError } from '../types';
 import { GR3X_LOAD_CALL, GR3X_LOAD_DATA, GR3X_SAVE_CALL, GR3X_SAVE_DATA } from './look-addresses';
 import { gr3xSettingsHook, gr3xSettingsPrior } from './round10';
 import type { Gr3xSite } from './round10';
+import { adr } from './target';
 
 export const GR3X_STANDARD_LOOK = 11;
 const OWN_LOOKS = [11, 22] as const;
@@ -40,8 +41,8 @@ const LOOKS = [0x1c2, 0x1c4, 0x1c6, 0x57e, 0x580, 0x582];
 const RATIO = 0x4c2;
 const RECORDS = 8;
 /** The mode recall: memcpy(record in use, stored record, 0xb26). */
-export const GR3X_RECALL_COPY = 0x5327a004;
-const MEMCPY = 0x5313fd80;
+export const GR3X_RECALL_COPY = adr(0x5327a004);
+const MEMCPY = adr(0x5313fd80);
 
 export interface Gr3xGuardProgram {
   code(source: string): number;
@@ -107,7 +108,7 @@ export function installGr3xGuardCode(p: Gr3xGuardProgram, o: Gr3xGuardOptions) {
 /** The mode recall: the record just copied into use. */
 export function installGr3xGuardRecall(p: Gr3xGuardProgram, fix: number, before?: number) {
   if (p.u32(GR3X_RECALL_COPY) !== bl(GR3X_RECALL_COPY, MEMCPY) || p.u32(GR3X_RECALL_COPY - 0x18) !== 0xe5950004 || p.u32(GR3X_RECALL_COPY - 0x50) !== 0xe1a05000 ||
-      p.u32(GR3X_RECALL_COPY + 0x14) !== bl(GR3X_RECALL_COPY + 0x14, 0x532750f8)) fail('mode recall');
+      p.u32(GR3X_RECALL_COPY + 0x14) !== bl(GR3X_RECALL_COPY + 0x14, adr(0x532750f8))) fail('mode recall');
   // `before(settings object)` (the films' own parameters, slots3.c): r5 holds the object here.
   const pre = before ? `push {r0,r1,r2,r3,r4,lr};mov r0,r5;bl #${before};pop {r0,r1,r2,r3,r4,lr};` : '';
   const recall = p.code(`${pre}push {r4,lr};mov r4,r0;bl #${MEMCPY};mov r0,r4;bl #${fix};mov r0,r4;pop {r4,pc};`);

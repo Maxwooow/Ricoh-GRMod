@@ -72,6 +72,7 @@ import { FirmwareError } from '../types';
 import { GR3X_FILMS_MODULE } from './films-native';
 import { GR3X_R10, GR3X_SETTINGS_LOAD, GR3X_SETTINGS_SAVE, gr3xSettingsHook, gr3xSettingsPrior } from './round10';
 import type { Gr3xSite } from './round10';
+import { adr, byRelease } from './target';
 
 export const GR3X_BLEACH = 18;
 export const GR3X_FILM_LOOKS = 84;
@@ -99,10 +100,10 @@ export interface Gr3xR10Film { id: number; record: number; iconId: number; print
 const u32le = (words: readonly number[]) => wordsToBytes(words.map(w => w >>> 0));
 
 // ------------------------------------------------------------------ the three tables
-const TONE_TABLE = 0x55018d94, MA_TABLE = 0x55018cf0, YCC_TABLE = 0x55018e4c;
+const TONE_TABLE = adr(0x55018d94), MA_TABLE = adr(0x55018cf0), YCC_TABLE = adr(0x55018e4c);
 /** [table, register, movw, movt] as the builder loads them. */
-const TABLE_SITES = [[TONE_TABLE, 0, 0x536dc28c, 0x536dc294], [MA_TABLE, 12, 0x536dc290, 0x536dc298], [YCC_TABLE, 0, 0x536dc2a4, 0x536dc2a8]] as const;
-const TABLE_INDEX = [[0x536dc2a0, 0xe790e101], [0x536dc2b0, 0xe79cc101], [0x536dc2bc, 0xe7901101]] as const;
+const TABLE_SITES = [[TONE_TABLE, 0, adr(0x536dc28c), adr(0x536dc294)], [MA_TABLE, 12, adr(0x536dc290), adr(0x536dc298)], [YCC_TABLE, 0, adr(0x536dc2a4), adr(0x536dc2a8)]] as const;
+const TABLE_INDEX = [[adr(0x536dc2a0), 0xe790e101], [adr(0x536dc2b0), 0xe79cc101], [adr(0x536dc2bc), 0xe7901101]] as const;
 
 export function installGr3xR10Tables(p: Gr3xR10Program, films: readonly Gr3xR10Film[]) {
   for (const [at, w] of TABLE_INDEX) if (p.u32(at) !== w) fail(`descriptor table index at ${at.toString(16)}`);
@@ -121,34 +122,34 @@ export function installGr3xR10Tables(p: Gr3xR10Program, films: readonly Gr3xR10F
 }
 
 /** The four words the camera's start-up gives every native tone record (0x536eb0e4) at words 17..20. */
-export const GR3X_TONE_RECORD_TAIL = 0x53dc27a4;
+export const GR3X_TONE_RECORD_TAIL = adr(0x53dc27a4);
 
 // ------------------------------------------------------------------ parameters
 /** The parameter setters' call of the current look (GR3X_PARAMETER_SETTER_LOOKS) and its target. */
-const CURRENT_LOOK = 0x53549ee8;
+const CURRENT_LOOK = adr(0x53549ee8);
 /** Bleach Bypass's active checks: [site, word] (P0 / M0 `ldr r3,[r3,#0x1c0 / 0x57c]`, then `cmp r3,#0x120000`;
  * the others `ldrb r3,[r3,#0x1c4 / 0x1c6 / 0x580 / 0x582]`, then `cmp r3,#18`). */
 export const GR3X_BLEACH_CHECKS: readonly (readonly [number, number])[] = [
-  ...[0x5325bb34, 0x5325bdbc, 0x5325c1f4, 0x5325c5c0, 0x5325c98c, 0x5325cd58, 0x5325d124, 0x5325d3ac, 0x5325d7e4, 0x5325db44].map(a => [a, 0xe59331c0] as const),
-  ...[0x5325df9c, 0x5325e23c, 0x5325e69c, 0x5325ea8c, 0x5325ee7c, 0x5325f26c, 0x5325f65c, 0x5325f8fc, 0x5325fd5c, 0x532600dc].map(a => [a, 0xe5d331c4] as const),
-  ...[0x5326053c, 0x532607dc, 0x53260c3c, 0x5326102c, 0x5326141c, 0x5326180c, 0x53261bfc, 0x53261e9c, 0x532622fc, 0x5326267c].map(a => [a, 0xe5d331c6] as const),
-  ...[0x53262bd4, 0x53262e68, 0x53263288, 0x532636a8, 0x53263ac8, 0x53263ee8, 0x53264308, 0x5326459c, 0x532649bc].map(a => [a, 0xe593357c] as const),
-  ...[0x53264c68, 0x53264f10, 0x53265350, 0x53265790, 0x53265bd0, 0x53266010, 0x53266450, 0x532666f8, 0x53266b38].map(a => [a, 0xe5d33580] as const),
-  ...[0x53266de0, 0x53267088, 0x532674c8, 0x53267908, 0x53267d48, 0x53268188, 0x532685c8, 0x53268870, 0x53268cb0].map(a => [a, 0xe5d33582] as const),
+  ...[adr(0x5325bb34), adr(0x5325bdbc), adr(0x5325c1f4), adr(0x5325c5c0), adr(0x5325c98c), adr(0x5325cd58), adr(0x5325d124), adr(0x5325d3ac), adr(0x5325d7e4), adr(0x5325db44)].map(a => [a, 0xe59331c0] as const),
+  ...[adr(0x5325df9c), adr(0x5325e23c), adr(0x5325e69c), adr(0x5325ea8c), adr(0x5325ee7c), adr(0x5325f26c), adr(0x5325f65c), adr(0x5325f8fc), adr(0x5325fd5c), adr(0x532600dc)].map(a => [a, 0xe5d331c4] as const),
+  ...[adr(0x5326053c), adr(0x532607dc), adr(0x53260c3c), adr(0x5326102c), adr(0x5326141c), adr(0x5326180c), adr(0x53261bfc), adr(0x53261e9c), adr(0x532622fc), adr(0x5326267c)].map(a => [a, 0xe5d331c6] as const),
+  ...[adr(0x53262bd4), adr(0x53262e68), adr(0x53263288), adr(0x532636a8), adr(0x53263ac8), adr(0x53263ee8), adr(0x53264308), adr(0x5326459c), adr(0x532649bc)].map(a => [a, 0xe593357c] as const),
+  ...[adr(0x53264c68), adr(0x53264f10), adr(0x53265350), adr(0x53265790), adr(0x53265bd0), adr(0x53266010), adr(0x53266450), adr(0x532666f8), adr(0x53266b38)].map(a => [a, 0xe5d33580] as const),
+  ...[adr(0x53266de0), adr(0x53267088), adr(0x532674c8), adr(0x53267908), adr(0x53267d48), adr(0x53268188), adr(0x532685c8), adr(0x53268870), adr(0x53268cb0)].map(a => [a, 0xe5d33582] as const),
 ];
 /** The photo / movie "look of set n" setters. */
-const STYLE_SETTERS = [[0x5327b394, 0xe5903004, 'ldr r3,[r0,#4]'], [0x5327b3b4, 0xe5903004, 'ldr r3,[r0,#4]'], [0x5327b3d4, 0xe5903004, 'ldr r3,[r0,#4]'],
-  [0x5327b54c, 0xe1a03000, 'mov r3,r0'], [0x5327b584, 0xe1a03000, 'mov r3,r0'], [0x5327b5bc, 0xe1a03000, 'mov r3,r0']] as const;
-const MENU_ROWS = [[0x5326c238, 0x5326c22c], [0x5326c3ec, 0x5326c3e0]] as const;
-const DEV_TONING = 0x536dbd48, SLIDER_MAP = 0x531ac654;
-const STORAGE = 0x53828014, STORE_WRITE = 0x53829a08, STORE_READ = 0x53829fcc, STORE_SIZE = 0x53829e50, HEAP_ALLOC = 0x536af2a8;
-export const GR3X_SETTINGS_OBJECT = 0x55063f30;
+const STYLE_SETTERS = [[adr(0x5327b394), 0xe5903004, 'ldr r3,[r0,#4]'], [adr(0x5327b3b4), 0xe5903004, 'ldr r3,[r0,#4]'], [adr(0x5327b3d4), 0xe5903004, 'ldr r3,[r0,#4]'],
+  [adr(0x5327b54c), 0xe1a03000, 'mov r3,r0'], [adr(0x5327b584), 0xe1a03000, 'mov r3,r0'], [adr(0x5327b5bc), 0xe1a03000, 'mov r3,r0']] as const;
+const MENU_ROWS = [[adr(0x5326c238), adr(0x5326c22c)], [adr(0x5326c3ec), adr(0x5326c3e0)]] as const;
+const DEV_TONING = adr(0x536dbd48), SLIDER_MAP = adr(0x531ac654);
+const STORAGE = adr(0x53828014), STORE_WRITE = adr(0x53829a08), STORE_READ = adr(0x53829fcc), STORE_SIZE = adr(0x53829e50), HEAP_ALLOC = adr(0x536af2a8);
+export const GR3X_SETTINGS_OBJECT = adr(0x55063f30);
 /** Default getters [entry, CommonProperty byte] (image-control.ts's DEFAULTS; Cross Processing's toning is 0x797). */
 const DEFAULT_GETTERS: readonly (readonly [number, number])[] = [
-  [0x532c34e8, 0x77d], [0x532c3b54, 0x77e], [0x532c41c0, 0x77f], [0x532c494c, 0x780], [0x532c50d8, 0x781], [0x532c5864, 0x782],
-  [0x532c5ff0, 0x784], [0x532c677c, 0x785], [0x532c6b94, 0x786], [0x532c6e38, 0x787], [0x532c70e4, 0x788], [0x532c7270, 0x797],
-  [0x532c7520, 0x78a], [0x532c78a8, 0x78c], [0x532c7f0c, 0x78e], [0x532c8570, 0x790], [0x532c8bd4, 0x793], [0x532c9360, 0x794],
-  [0x532c9744, 0x795], [0x532c9a20, 0x796],
+  [adr(0x532c34e8), 0x77d], [adr(0x532c3b54), 0x77e], [adr(0x532c41c0), 0x77f], [adr(0x532c494c), 0x780], [adr(0x532c50d8), 0x781], [adr(0x532c5864), 0x782],
+  [adr(0x532c5ff0), 0x784], [adr(0x532c677c), 0x785], [adr(0x532c6b94), 0x786], [adr(0x532c6e38), 0x787], [adr(0x532c70e4), 0x788], [adr(0x532c7270), 0x797],
+  [adr(0x532c7520), 0x78a], [adr(0x532c78a8), 0x78c], [adr(0x532c7f0c), 0x78e], [adr(0x532c8570), 0x790], [adr(0x532c8bd4), 0x793], [adr(0x532c9360), 0x794],
+  [adr(0x532c9744), 0x795], [adr(0x532c9a20), 0x796],
 ];
 /** A film's default (neutral) value per CommonProperty byte: 4 on the -4..+4 scales, 0 otherwise (Halation off, no filter / grain / HDR). */
 const FILM_DEFAULT: Readonly<Record<number, number>> = { 0x77d: 4, 0x77e: 4, 0x77f: 4, 0x780: 4, 0x781: 4, 0x782: 4, 0x784: 4, 0x785: 0,
@@ -234,12 +235,12 @@ export function installGr3xR10Parameters(p: Gr3xR10Program, o: Gr3xR10ParameterO
 }
 
 // ------------------------------------------------------------------ RAW development
-const RAW_TO_STYLE = 0x53289058, STYLE_TO_RAW = 0x53288d5c;
-const RAW_ROW_LOAD = 0xe5d32083, RAW_ROW_LOAD_R1 = 0xe5d31083, RAW_ROW_R1_SITE = 0x532846e8;
-const RAW_MODEL = [0x53283400, 0x53289000] as const;
+const RAW_TO_STYLE = adr(0x53289058), STYLE_TO_RAW = adr(0x53288d5c);
+const RAW_ROW_LOAD = 0xe5d32083, RAW_ROW_LOAD_R1 = 0xe5d31083, RAW_ROW_R1_SITE = adr(0x532846e8);
+const RAW_MODEL = [adr(0x53283400), adr(0x53289000)] as const;
 const RAW_ROW_SITES = 61;
-const RAW_FILL = 0x532899b4, RAW_AS_SHOT = 0x53289a14, RAW_APPLY = 0x53289240, RAW_COLUMN = 0x5318dea0;
-const RAW_COUNT = 0x53283358, RAW_BASE = 0x532834d0, RAW_LOOK = 0x532834f0, RAW_CAPACITY = 0x532833bc;
+const RAW_FILL = adr(0x532899b4), RAW_AS_SHOT = adr(0x53289a14), RAW_APPLY = adr(0x53289240), RAW_COLUMN = adr(0x5318dea0);
+const RAW_COUNT = adr(0x53283358), RAW_BASE = adr(0x532834d0), RAW_LOOK = adr(0x532834f0), RAW_CAPACITY = adr(0x532833bc);
 export const GR3X_RAW_FIRST_FILM = 13;
 const RAW_BLEACH = 9;
 /** The camera's RAW development numbers of its looks (menu order). */
@@ -278,7 +279,7 @@ export function installGr3xR10Raw(p: Gr3xR10Program, o: Gr3xR10RawOptions) {
   const rowR1 = p.code(`ldrb r1,[r3,#0x83];${map('r1')};b #${RAW_ROW_R1_SITE + 4};`);
   p.patch(RAW_ROW_R1_SITE, RAW_ROW_LOAD_R1, branchWord(RAW_ROW_R1_SITE, rowR1), 'films as looks: RAW development row of Bleach Bypass');
   // The films' own values in that row.
-  if (p.u32(RAW_FILL) !== 0xe5d4204c || p.u32(RAW_FILL - 4) !== bl(RAW_FILL - 4, 0x53288e40)) fail('RAW development fill');
+  if (p.u32(RAW_FILL) !== 0xe5d4204c || p.u32(RAW_FILL - 4) !== bl(RAW_FILL - 4, adr(0x53288e40))) fail('RAW development fill');
   const fill = p.code(`push {r0-r3,ip,lr};mov r0,r4;bl #${sym.sp_raw_init};pop {r0-r3,ip,lr};ldrb r2,[r4,#0x4c];b #${RAW_FILL + 4};`);
   p.patch(RAW_FILL, 0xe5d4204c, branchWord(RAW_FILL, fill), 'films: their own RAW development parameters');
   if (p.u32(RAW_AS_SHOT) !== 0xe3500000 || p.u32(RAW_AS_SHOT - 4) !== bl(RAW_AS_SHOT - 4, STYLE_TO_RAW)) fail('RAW development as shot');
@@ -296,7 +297,7 @@ export function installGr3xR10Raw(p: Gr3xR10Program, o: Gr3xR10RawOptions) {
   if (looks.some(v => v === undefined) || new Set(looks).size !== looks.length) fail('RAW development list');
   const L = looks.length;
   const guards: readonly (readonly [number, number])[] = [[RAW_COUNT, 0xe5d03005], [RAW_COUNT + 8, 0x13a0000f], [RAW_COUNT + 12, 0x03a0000e],
-    [RAW_BASE, 0xe5d03005], [RAW_LOOK, 0xe1a0c00d], [RAW_LOOK + 4, movWord(3, 0xacb4)], [RAW_CAPACITY, 0xe3a0000f], [RAW_CAPACITY + 4, 0xe12fff1e]];
+    [RAW_BASE, 0xe5d03005], [RAW_LOOK, 0xe1a0c00d], [RAW_LOOK + 4, movWord(3, byRelease({ '1.60': 0xacb4, '1.70': 0xa5dc, '1.71': 0xf80c }))], [RAW_CAPACITY, 0xe3a0000f], [RAW_CAPACITY + 4, 0xe12fff1e]];
   for (const [at, w] of guards) if (p.u32(at) !== w >>> 0) fail(`RAW development list at ${at.toString(16)}`);
   const table = p.append(Uint8Array.from(looks));
   const count = p.code(`ldrb r3,[r0,#5];cmp r3,#0;movne r0,#${L + 3};moveq r0,#${L + 2};bx lr;`);
@@ -315,18 +316,24 @@ export function installGr3xR10Raw(p: Gr3xR10Program, o: Gr3xR10RawOptions) {
 }
 
 // ------------------------------------------------------------------ the picture's information
-const TONE_WRITER = 0x535c780c, NOTE_STORE = 0x535d02c8;
+const TONE_WRITER = adr(0x535c780c), NOTE_STORE = adr(0x535d02c8);
 export const GR3X_FILM_TONE_CODE = 0x8110;
-const RAW_RECORD = 0x535bf7c4, PLAY_NUMBER = 0x535c2508, PLAY_STYLE = 0x532b44dc, PLAY_PARAMS = 0x532b7d10, PLAY_ICON = 0x532b6f3c;
-const LIST_ASSIGN = 0x535c3ed8, LISTS = [0x535ca050, 0x535ca310] as const, LIST_CALLS = 17, LISTS_WITH_BLEACH = 7;
-const TONING_WRITER = 0x535c5e34, TONING_READER = 0x535c0d04;
+const RAW_RECORD = adr(0x535bf7c4), PLAY_NUMBER = adr(0x535c2508), PLAY_STYLE = adr(0x532b44dc), PLAY_PARAMS = adr(0x532b7d10), PLAY_ICON = adr(0x532b6f3c);
+const LIST_ASSIGN = adr(0x535c3ed8), LISTS = [adr(0x535ca050), adr(0x535ca310)] as const, LIST_CALLS = 17, LISTS_WITH_BLEACH = 7;
+const TONING_WRITER = adr(0x535c5e34), TONING_READER = adr(0x535c0d04);
+
+// The immediates of the official `movw r3,#...` at the maker note's writers and reader (a data address's low half:
+// it moved in 1.71 / 2.21).
+const TONE_MOVW = byRelease({ '1.60': 0xad6c, '1.70': 0xad6c, '1.71': 0xb03c });
+const TONING_WRITER_MOVW = byRelease({ '1.60': 0x7ad8, '1.70': 0x7ad8, '1.71': 0x7da8 });
+const TONING_READER_MOVW = byRelease({ '1.60': 0xad90, '1.70': 0xad90, '1.71': 0xb060 });
 
 export function installGr3xR10PictureInfo(p: Gr3xR10Program, films: number, firstIcon: number) {
   const n = films;
-  if (p.u32(TONE_WRITER) !== movWord(3, 0xad6c) || p.u32(NOTE_STORE) !== 0xe5903010) fail('maker note look');
+  if (p.u32(TONE_WRITER) !== movWord(3, TONE_MOVW) || p.u32(NOTE_STORE) !== 0xe5903010) fail('maker note look');
   const writer = p.code(`ldrb ip,[r2,#0x77c];sub ip,ip,#${FIRST};cmp ip,#${n - 1};bhi native;mov r0,r1;mov r1,#0;movw r2,#${GR3X_FILM_TONE_CODE};add r2,r2,ip;b #${NOTE_STORE};
-    native:movw r3,#0xad6c;b #${TONE_WRITER + 4};`);
-  p.patch(TONE_WRITER, movWord(3, 0xad6c), branchWord(TONE_WRITER, writer), 'films as looks: the maker note\'s look code of a film');
+    native:movw r3,#0x${TONE_MOVW.toString(16)};b #${TONE_WRITER + 4};`);
+  p.patch(TONE_WRITER, movWord(3, TONE_MOVW), branchWord(TONE_WRITER, writer), 'films as looks: the maker note\'s look code of a film');
   // Parameter lists: the looks a parameter is written as absent for; the films join Bleach Bypass's.
   const calls: number[] = [];
   for (let at = LISTS[0]; at < LISTS[1]; at += 4) {
@@ -358,12 +365,12 @@ export function installGr3xR10PictureInfo(p: Gr3xR10Program, films: number, firs
   }
   if (grown.length !== LISTS_WITH_BLEACH) fail(`maker note lists with Bleach Bypass: ${grown.length}`);
   // Bleach Bypass's Toning: a film's Halation state s as code 0x100 + s, and back.
-  if (p.u32(TONING_WRITER) !== movWord(3, 0x7ad8) || p.u32(TONING_READER) !== movWord(3, 0xad90)) fail('maker note Toning');
+  if (p.u32(TONING_WRITER) !== movWord(3, TONING_WRITER_MOVW) || p.u32(TONING_READER) !== movWord(3, TONING_READER_MOVW)) fail('maker note Toning');
   const toningWriter = p.code(`ldrb ip,[r1,#0x77c];sub ip,ip,#${FIRST};cmp ip,#${n - 1};bhi native;ldrb r0,[r1,#0x786];cmp r0,#11;movhi r0,#0;add r0,r0,#0x100;bx lr;
-    native:movw r3,#0x7ad8;b #${TONING_WRITER + 4};`);
-  p.patch(TONING_WRITER, movWord(3, 0x7ad8), branchWord(TONING_WRITER, toningWriter), 'films: the maker note\'s Toning holds the Halation');
-  const toningReader = p.code(`sub ip,r1,#0x100;cmp ip,#11;strbls ip,[r2,#0x786];bxls lr;movw r3,#0xad90;b #${TONING_READER + 4};`);
-  p.patch(TONING_READER, movWord(3, 0xad90), branchWord(TONING_READER, toningReader), 'films: the Halation back from the maker note');
+    native:movw r3,#0x${TONING_WRITER_MOVW.toString(16)};b #${TONING_WRITER + 4};`);
+  p.patch(TONING_WRITER, movWord(3, TONING_WRITER_MOVW), branchWord(TONING_WRITER, toningWriter), 'films: the maker note\'s Toning holds the Halation');
+  const toningReader = p.code(`sub ip,r1,#0x100;cmp ip,#11;strbls ip,[r2,#0x786];bxls lr;movw r3,#0x${TONING_READER_MOVW.toString(16)};b #${TONING_READER + 4};`);
+  p.patch(TONING_READER, movWord(3, TONING_READER_MOVW), branchWord(TONING_READER, toningReader), 'films: the Halation back from the maker note');
   // Readers of the look code.
   const codeOf = (r: string) => `sub ${r},r0,#${GR3X_FILM_TONE_CODE & 0xff00};sub ${r},${r},#${GR3X_FILM_TONE_CODE & 0xff};cmp ${r},#${n - 1};`;
   if (p.u32(RAW_RECORD) !== 0xe2400c01 || p.u32(PLAY_NUMBER) !== 0xe2400c01 || p.u32(PLAY_STYLE) !== 0xe350000b || p.u32(PLAY_PARAMS) !== 0xe352000e || p.u32(PLAY_ICON) !== 0xe353000e) fail('picture information readers');

@@ -40,7 +40,8 @@
  *    without one of them and with the new line at the end; on entry the builder stores the one
  *    for the camera's model (0x532dbee8: 0 ND, 1 HDF) in the table. Every model sees exactly the
  *    official menu plus the new line. The builder is the table's only reader.
- *  - Controller id 0x020001a0 (unused; GR III's ids end at 0x02000140). The factory (0x5316f3b8)
+ *  - Controller id 0x020001a0 (unused; GR III's ids end at 0x02000140, in 1.71 / 2.21 at 0x02000146, where
+ *    Reset Settings is also submenu record 17: 18 records, the added ones from 19 on). The factory (0x5316f3b8)
  *    hands out Horizon Correction's list controller (0x0200007d) for it, and ActionModel::OnEvent
  *    (key handling: an unknown id asserts and ignores every key) gets Horizon's id for it from
  *    its single read at 0x53221a4c. The other readers of the current id compare it with live-view
@@ -70,40 +71,44 @@ import { GR3X_FRAME_LOOK, GR3X_GAP, GR3X_HEAP_BASE, GR3X_ORIENT_BYTE, GR3X_ZERO_
 import { GR3X_DATESTAMP_R10_CODE } from './picture-modules-r10';
 import { GR3X_R10 } from './round10';
 import type { Gr3xPictureIds } from './shutdown';
+import { adr, byRelease } from './target';
 
-export const GR3X_DATE_SETTINGS_POINTER = 0x55063f34;
+export const GR3X_DATE_SETTINGS_POINTER = adr(0x55063f34);
 export const GR3X_DATE_OFFSET = 0x9a2;
 export const GR3X_DATE_MENU_ID = 0x020001a0;
 const HORIZON_ID = 0x0200007d;
 
-const BUILDER = 0x5319a778, MENU_TABLE = 0x55001eb8, STILL_MENU = 0x53b36dec;
+const BUILDER = adr(0x5319a778), MENU_TABLE = adr(0x55001eb8), STILL_MENU = adr(0x53b36dec);
 const DESCRIPTOR = 0x384, MAX_ITEMS = 38;
 const D_PAGES = 0x68, D_FIRST = 0x80, D_COUNT = 0x8b, D_DRAW = 0x8c, D_ID = 0x1bc, D_VISIBLE = 0x254;
 const ND_ITEM = 13, HDF_ITEM = 25;
 const OFFICIAL_FIRSTS = [0, 8, 16, 19, 26, 31, 35];
 const FIRSTS_WITHOUT_ND = [0, 8, 15, 18, 25, 30, 34];
 const FIRSTS_WITHOUT_HDF = [0, 8, 16, 19, 25, 30, 34];
-const APP = 0x5320ad88, SPEC_MODEL = 0x5320c09c, MODEL_NUMBER = 0x532dbee8;
-const FACTORY = 0x5316f3b8;
-const KEY_MAP_READ = 0x53221a4c, CURRENT_ID_GETTER = 0x53228c4c;
-const SELECT_SET_CURRENT = 0x531b9640, SELECT_RECORD_BYTE = 0x198;
-const SELECT_TABLE = 0x53b3c6c0, SELECT_RECORD = 0x40, SELECT_RECORDS = 117, HORIZON_RECORD = 44;
-const SELECT_CONSTRUCTOR_START = 0x531be7c4;
-const SELECT_SCAN_END = 0x531ba534;
+const APP = adr(0x5320ad88), SPEC_MODEL = adr(0x5320c09c), MODEL_NUMBER = adr(0x532dbee8);
+const FACTORY = adr(0x5316f3b8);
+/** The first word of the factory, `movw r3,#...`: the low half of the last controller id it knows (0x0200013b; 1.71 / 2.21: 0x02000141). */
+const FACTORY_LAST = byRelease({ '1.60': 0x13b, '1.70': 0x13b, '1.71': 0x141 });
+const FACTORY_MOVW = '0x' + FACTORY_LAST.toString(16);
+const KEY_MAP_READ = adr(0x53221a4c), CURRENT_ID_GETTER = adr(0x53228c4c);
+const SELECT_SET_CURRENT = adr(0x531b9640), SELECT_RECORD_BYTE = 0x198;
+const SELECT_TABLE = adr(0x53b3c6c0), SELECT_RECORD = 0x40, SELECT_RECORDS = 117, HORIZON_RECORD = 44;
+const SELECT_CONSTRUCTOR_START = adr(0x531be7c4);
+const SELECT_SCAN_END = adr(0x531ba534);
 /** The 15 places that address the list table (movw/movt pairs and their register). */
 const SELECT_SITES: readonly (readonly [number, number, number])[] = [
-  [0x531b9fdc, 0x531b9fe8, 4], [0x531ba154, 0x531ba158, 3], [0x531ba19c, 0x531ba1a4, 4], [0x531ba24c, 0x531ba250, 3],
-  [0x531ba2b0, 0x531ba2b4, 3], [0x531ba4c0, 0x531ba4c4, 3], [0x531ba520, 0x531ba524, 4], [0x531ba648, 0x531ba64c, 3],
-  [0x531ba800, 0x531ba804, 5], [0x531ba9a0, 0x531ba9a8, 3], [0x531baa60, 0x531baa68, 3], [0x531bab3c, 0x531bab44, 3],
-  [0x531bdfc4, 0x531bdfc8, 3], [0x531be084, 0x531be08c, 8], [0x531be400, 0x531be404, 3],
+  [adr(0x531b9fdc), adr(0x531b9fe8), 4], [adr(0x531ba154), adr(0x531ba158), 3], [adr(0x531ba19c), adr(0x531ba1a4), 4], [adr(0x531ba24c), adr(0x531ba250), 3],
+  [adr(0x531ba2b0), adr(0x531ba2b4), 3], [adr(0x531ba4c0), adr(0x531ba4c4), 3], [adr(0x531ba520), adr(0x531ba524), 4], [adr(0x531ba648), adr(0x531ba64c), 3],
+  [adr(0x531ba800), adr(0x531ba804), 5], [adr(0x531ba9a0), adr(0x531ba9a8), 3], [adr(0x531baa60), adr(0x531baa68), 3], [adr(0x531bab3c), adr(0x531bab44), 3],
+  [adr(0x531bdfc4), adr(0x531bdfc8), 3], [adr(0x531be084), adr(0x531be08c), 8], [adr(0x531be400), adr(0x531be404), 3],
 ];
 export const GR3X_DATE_RECORD = SELECT_RECORDS + 1;
-const LINE_VALUE_ICON = 0x5339de20, TOP_SET_TITLE = 0x5339dc70, LIST_SET_ITEM = 0x5339e8b0;
+const LINE_VALUE_ICON = adr(0x5339de20), TOP_SET_TITLE = adr(0x5339dc70), LIST_SET_ITEM = adr(0x5339e8b0);
 /** Horizon Correction's line icons (rounds 4..6) and, from round 7, the camera's boxed OFF / ON texts. */
 const ICON_OFF = 344, TEXT_OFF = 2, TEXT_ICON_OFF = 296;
-const HORIZON_HANDLERS = { title: 362, count: 0x531b3b04, draw: 0x531b5310, set: 0x531b6de4, isCurrent: 0x531b8544 };
+const HORIZON_HANDLERS = { title: 362, count: adr(0x531b3b04), draw: adr(0x531b5310), set: adr(0x531b6de4), isCurrent: adr(0x531b8544) };
 
-const CACHE = 0x536bbc30, CACHE_FLUSH_FOR_READ = 0x536bbcc0, CACHE_CLEAN = 0x536bbcac, PLATFORM = 0x536bd838, GET_TIME = 0x536b6510;
+const CACHE = adr(0x536bbc30), CACHE_FLUSH_FOR_READ = adr(0x536bbcc0), CACHE_CLEAN = adr(0x536bbcac), PLATFORM = adr(0x536bd838), GET_TIME = adr(0x536b6510);
 
 export interface Gr3xDateProgram {
   code(source: string): number;
@@ -136,17 +141,17 @@ const INSTANT_REVIEW_RECORD = 10;
  * before the row's right edge, never beyond x 680), through the label's own SetRect (vtable +0x18,
  * 0x533ab548). Nothing else changes; other lists are not touched.
  */
-const ROW_VTABLE = 0x53c0ada8, ROW_VTABLE_LITERAL = 0x5339e734;
-const LABEL_VTABLE = 0x53c0a378, LABEL_VTABLE_LITERAL = 0x53396a28, LABEL_SET_RECT = 0x533ab548;
+const ROW_VTABLE = adr(0x53c0ada8), ROW_VTABLE_LITERAL = adr(0x5339e734);
+const LABEL_VTABLE = adr(0x53c0a378), LABEL_VTABLE_LITERAL = adr(0x53396a28), LABEL_SET_RECT = adr(0x533ab548);
 const ROW_RIGHT_MARGIN = 20, ROW_CONTENT_RIGHT = 680;
 const D_RANGE_ID = 0x020000ba, D_RANGE_RECORD = 6;
-const SUB_SET_CURRENT = 0x531c5950, SUB_RECORD_BYTE = 0x174;
-const SUB_TABLE = 0x53b3fb10, SUB_RECORD = 0x64, SUB_RECORDS = 17, SUB_CONSTRUCTOR_START = 0x531c66ac;
+const SUB_SET_CURRENT = adr(0x531c5950), SUB_RECORD_BYTE = 0x174;
+const SUB_TABLE = adr(0x53b3fb10), SUB_RECORD = 0x64, SUB_RECORDS = byRelease({ '1.60': 17, '1.70': 17, '1.71': 18 }), SUB_CONSTRUCTOR_START = adr(0x531c66ac);
 export const GR3X_SUB_FIRST_RECORD = SUB_RECORDS + 1;
 const SUB_SITES: readonly (readonly [number, number, number])[] = [
-  [0x531c5d18, 0x531c5d20, 3], [0x531c5d80, 0x531c5d88, 2], [0x531c60e8, 0x531c60f4, 8], [0x531c6318, 0x531c631c, 5], [0x531c63e4, 0x531c63f0, 3],
+  [adr(0x531c5d18), adr(0x531c5d20), 3], [adr(0x531c5d80), adr(0x531c5d88), 2], [adr(0x531c60e8), adr(0x531c60f4), 8], [adr(0x531c6318), adr(0x531c631c), 5], [adr(0x531c63e4), adr(0x531c63f0), 3],
 ];
-const TOP_SET_TWO_ICONS = 0x5339df08, SUB_SET_ICON = 0x533a6a70;
+const TOP_SET_TWO_ICONS = adr(0x5339df08), SUB_SET_ICON = adr(0x533a6a70);
 const ICON_ON = 345, TEXT_ON = 1, TEXT_ICON_ON = 297;
 const END_SCREEN_TITLE = 665;
 
@@ -233,17 +238,17 @@ function gr3xLookNameTable(p: Gr3xDateProgram, names: Readonly<Record<number, st
  * GR3X_FRAME_LOOK, for the imprint's name. Nothing but those three bytes is written; every
  * register is kept, and the hook runs `mov ip, sp` itself.
  */
-export const GR3X_BEFORE_EXPOSE = 0x534322d8;
-const DIRECTION_SINGLETON = 0x553458b0;
+export const GR3X_BEFORE_EXPOSE = adr(0x534322d8);
+const DIRECTION_SINGLETON = adr(0x553458b0);
 const ram = (r: string, label: string) => `cmp ${r},#0x40000000;blo ${label};cmp ${r},#0xc0000000;bhs ${label};tst ${r},#3;bne ${label};`;
 export function installGr3xExposureOrientation(p: Gr3xDateProgram, stash: number, r10 = false) {
   const guards: readonly (readonly [number, number])[] = [
     [GR3X_BEFORE_EXPOSE, 0xe1a0c00d], [GR3X_BEFORE_EXPOSE + 4, 0xe92dd830], // mov ip, sp; push {r4, r5, fp, ip, lr, pc}
     [GR3X_BEFORE_EXPOSE + 0x88, 0xe5c41946], // strb r1, [r4, #0x946] (the frame's date)
-    [0x53550e68, 0xe5903000], [0x53550e6c, 0xe5d300c8], // the direction getter: ldr r3, [r0]; ldrb r0, [r3, #0xc8]
-    [0x5354801c, 0xe5950518], // ldr r0, [r5, #0x518]
-    [0x53525d7c, movWord(0, 0x58b0)], [0x53525d80, movWord(0, 0x5534, true)], // the singleton's address
-    [0x535f63d0, 0xe28320c8], // the EXIF setter's +0x14: the record + 0xc8
+    [adr(0x53550e68), 0xe5903000], [adr(0x53550e6c), 0xe5d300c8], // the direction getter: ldr r3, [r0]; ldrb r0, [r3, #0xc8]
+    [adr(0x5354801c), 0xe5950518], // ldr r0, [r5, #0x518]
+    [adr(0x53525d7c), movWord(0, byRelease({ '1.60': 0x58b0, '1.70': 0x58b0, '1.71': 0x5b80 }))], [adr(0x53525d80), movWord(0, 0x5534, true)], // the singleton's address
+    [adr(0x535f63d0), 0xe28320c8], // the EXIF setter's +0x14: the record + 0xc8
   ];
   for (const [at, w] of guards) if (p.word(at) !== w >>> 0) fail(`IIIx exposure orientation guard at ${at.toString(16)}`);
   // Round 10 (GR IV): the stash's word as it is (FRAME_LOOK), the direction | 0x100 (ORIENT_WORD).
@@ -304,7 +309,7 @@ export function gr3xMonoTable(monoFilms: readonly boolean[]): Uint8Array {
 export function installGr3xDateImprintStage(p: Gr3xDateProgram, look?: Gr3xDateLook) {
   const guards: readonly (readonly [number, number])[] = [
     [GR3X_JPEG_EXECUTE, 0xe1a0c00d], [GR3X_JPEG_EXECUTE + 4, 0xe92ddff0], [GR3X_JPEG_EXECUTE + 0x18, 0xe5914008],
-    [CACHE, 0xe30d01b4], [CACHE_FLUSH_FOR_READ, 0xe1a0c00d], [CACHE_CLEAN, 0xe1a00001], [PLATFORM, 0xe1a0c00d], [GET_TIME, 0xe5d0300c],
+    [CACHE, byRelease({ '1.60': 0xe30d01b4, '1.70': 0xe30d01b4, '1.71': 0xe30d0484 })], [CACHE_FLUSH_FOR_READ, 0xe1a0c00d], [CACHE_CLEAN, 0xe1a00001], [PLATFORM, 0xe1a0c00d], [GET_TIME, 0xe5d0300c],
   ];
   for (const [at, w] of guards) if (p.word(at) !== w) fail(`IIIx date imprint guard at ${at.toString(16)}`);
   if (look && (look.monoFilms.length > 20)) fail('IIIx date imprint: films');
@@ -357,13 +362,13 @@ export function installGr3xMenuAdditions(p: Gr3xDateProgram, o: { date?: Gr3xDat
   // --- Checks of the official code and data this relies on.
   const guards: readonly (readonly [number, number])[] = [
     ...(ids ? [[BUILDER, 0xe1a0c00d], [BUILDER + 4, movWord(3, lo(MENU_TABLE))], [BUILDER + 0x10, movWord(3, hi(MENU_TABLE), true)]] as const : []),
-    [FACTORY, movWord(3, 0x13b)], [FACTORY + 4, 0xe1a0c00d], [FACTORY + 8, movWord(3, 0x200, true)],
+    [FACTORY, movWord(3, FACTORY_LAST)], [FACTORY + 4, 0xe1a0c00d], [FACTORY + 8, movWord(3, 0x200, true)],
     [KEY_MAP_READ, bl(KEY_MAP_READ, CURRENT_ID_GETTER)], [CURRENT_ID_GETTER, 0xe5900000], [CURRENT_ID_GETTER + 4, 0xe12fff1e],
     [SELECT_SET_CURRENT, 0xe28134fe], [SELECT_SET_CURRENT + 4, 0xe1a0c00d],
     [SELECT_CONSTRUCTOR_START, 0xe3a0e075], // mov lr,#117: the list constructor starts with record 117
     [SELECT_SCAN_END, 0xe2847d75], // add r7,r4,#0x1d40: the longest-list scan ends 117 records on
     [APP, 0xe1a0c00d], [SPEC_MODEL, 0xe1a0c00d], [LINE_VALUE_ICON, 0xe1a0c00d], [TOP_SET_TITLE, 0xe1a0c00d], [LIST_SET_ITEM, 0xe1a0c00d],
-    ...(sub || o.endScreen ? [[SUB_SET_CURRENT, 0xe28134fe], [SUB_SET_CURRENT + 4, 0xe1a0c00d], [SUB_CONSTRUCTOR_START, 0xe3a02011], // mov r2,#17
+    ...(sub || o.endScreen ? [[SUB_SET_CURRENT, 0xe28134fe], [SUB_SET_CURRENT + 4, 0xe1a0c00d], [SUB_CONSTRUCTOR_START, byRelease({ '1.60': 0xe3a02011, '1.70': 0xe3a02011, '1.71': 0xe3a02012 })], // mov r2,#17
       [TOP_SET_TWO_ICONS, 0xe1a0c00d], [SUB_SET_ICON, 0xe1a0c00d]] as const : []),
     ...(r8 ? [[ROW_VTABLE_LITERAL, ROW_VTABLE], [LABEL_VTABLE_LITERAL, LABEL_VTABLE], [LABEL_SET_RECT, 0xe1a0c00d], [LABEL_VTABLE + 0x18, LABEL_SET_RECT]] as const : []),
   ];
@@ -374,12 +379,12 @@ export function installGr3xMenuAdditions(p: Gr3xDateProgram, o: { date?: Gr3xDat
     if (still[D_PAGES] !== 7 || [...still.subarray(D_FIRST, D_FIRST + 7)].join() !== OFFICIAL_FIRSTS.join() || still[D_COUNT] !== MAX_ITEMS)
       fail('IIIx still menu pages');
     const id = (i: number) => dv.getUint32(D_ID + i * 4, true), visible = (i: number) => dv.getUint32(D_VISIBLE + i * 8, true);
-    if (id(ND_ITEM) !== 0x02000069 || visible(ND_ITEM) !== 0x531966e4 || id(HDF_ITEM) !== 0x0200013f || visible(HDF_ITEM) !== 0x53196708)
+    if (id(ND_ITEM) !== 0x02000069 || visible(ND_ITEM) !== adr(0x531966e4) || id(HDF_ITEM) !== byRelease({ '1.60': 0x0200013f, '1.70': 0x0200013f, '1.71': 0x02000145 }) || visible(HDF_ITEM) !== adr(0x53196708))
       fail('IIIx ND / HDF menu items');
     if (id(35) !== 0x0200007b || id(36) !== 0x0200007c || id(37) !== HORIZON_ID) fail('IIIx Shooting Assist items');
     for (let i = 0; i < MAX_ITEMS; i++) if (id(i) === GR3X_DATE_MENU_ID) fail('IIIx date imprint id in use');
     // Both visibility functions ask the same model number (0 ND, 1 HDF).
-    for (const v of [0x531966e4, 0x53196708]) {
+    for (const v of [adr(0x531966e4), adr(0x53196708)]) {
       if (p.word(v + 0xc) !== bl(v + 0xc, APP) || p.word(v + 0x10) !== bl(v + 0x10, SPEC_MODEL) || p.word(v + 0x14) !== bl(v + 0x14, MODEL_NUMBER))
         fail('IIIx model visibility');
     }
@@ -606,10 +611,10 @@ export function installGr3xMenuAdditions(p: Gr3xDateProgram, o: { date?: Gr3xDat
   const factory = o.endScreen ? p.code([...mapped.map(([id, to]) => [id, to, id === GR3X_PICTURE_LIST_ID ? 1 : -1] as const), [END_SCREEN_ID, END_SCREEN_ID, 0] as const]
     .map(([id, to, mode], k) => `movw ip,#${lo(id)};movt ip,#${hi(id)};cmp r1,ip;bne f${k};movw r1,#${lo(to)};movt r1,#${hi(to)};` +
       (mode >= 0 ? `mov ip,#${mode};movw r3,#${lo(GR3X_PICTURE_MODE)};movt r3,#${hi(GR3X_PICTURE_MODE)};${r8 ? 'strb' : 'str'} ip,[r3];` : '') + `b done;f${k}:`).join('') +
-    `done:movw r3,#0x13b;b #${FACTORY + 4};`)
+    `done:movw r3,#${FACTORY_MOVW};b #${FACTORY + 4};`)
     : p.code(mapped.map(([id, to]) => `movw ip,#${lo(id)};movt ip,#${hi(id)};cmp r1,ip;
-    movweq r1,#${lo(to)};movteq r1,#${hi(to)};`).join('') + `movw r3,#0x13b;b #${FACTORY + 4};`);
-  p.patch(FACTORY, movWord(3, 0x13b), branchWord(FACTORY, factory), o.picture ? `${what}: list controller` : 'date imprint: list controller');
+    movweq r1,#${lo(to)};movteq r1,#${hi(to)};`).join('') + `movw r3,#${FACTORY_MOVW};b #${FACTORY + 4};`);
+  p.patch(FACTORY, movWord(3, FACTORY_LAST), branchWord(FACTORY, factory), o.picture ? `${what}: list controller` : 'date imprint: list controller');
   const keys = p.code('ldr r0,[r0];' + mapped.map(([id, to]) => `movw ip,#${lo(id)};movt ip,#${hi(id)};cmp r0,ip;
     movweq r0,#${lo(to)};movteq r0,#${hi(to)};`).join('') + 'bx lr;');
   p.patch(KEY_MAP_READ, bl(KEY_MAP_READ, CURRENT_ID_GETTER), bl(KEY_MAP_READ, keys), o.picture ? `${what}: key map of the lists` : 'date imprint: key map of the list');

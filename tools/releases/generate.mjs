@@ -48,11 +48,11 @@ function cmp(a, b) {
 
 // ---------------------------------------------------------------- against the engine
 // The official files the engine opens: `OFFICIAL_SHA256 = '...'` (GR IV programs) and the `sha256:`
-// of the GR III / IIIx profiles.
+// of the GR III / IIIx profiles (fw/gr3-profiles.ts).
 function walk(dir, out = []) {
   for (const name of readdirSync(dir)) {
     const p = join(dir, name);
-    if (statSync(p).isDirectory()) walk(p, out); else if (name === 'profile.ts') out.push(p);
+    if (statSync(p).isDirectory()) walk(p, out); else if (name === 'profile.ts' || name === 'gr3-profiles.ts') out.push(p);
   }
   return out;
 }

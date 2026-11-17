@@ -24,31 +24,32 @@
  */
 import { branchWord } from '../aspect/arm';
 import { FirmwareError } from '../types';
+import { adr } from './target';
 
-export const GR3X_ZERO_FILL_LITERAL = 0x53000460;
+export const GR3X_ZERO_FILL_LITERAL = adr(0x53000460);
 /** End of the start-up zero fill: official, rounds 6..9, round 10. */
-export const GR3X_FILL_OFFICIAL = 0x55804374;
-export const GR3X_FILL_R9 = 0x55804380;
-export const GR3X_FILL_R10 = 0x558043c0;
+export const GR3X_FILL_OFFICIAL = adr(0x55804374);
+export const GR3X_FILL_R9 = adr(0x55804380);
+export const GR3X_FILL_R10 = adr(0x558043c0);
 
 /** Round 10's words (GR IV's names, ../aspect/lookstash.ts, slots.ts, shutdown.ts). */
 export const GR3X_R10 = {
   /** The films' state pointer (GR IV: SLOT_STATE, slot_params.c sp_gap[0]). */
-  slotState: 0x55804374,
+  slotState: adr(0x55804374),
   /** The look of the picture being made: look | level << 8 | 0x10000 (| 0x20000 white), GR IV's LOOK_STASH. */
-  lookStash: 0x55804378,
+  lookStash: adr(0x55804378),
   /** The End Screen list's mode (GR IV: PICTURE_MODE). */
-  pictureMode: 0x5580437c,
+  pictureMode: adr(0x5580437c),
   /** The orientation of the picture being made: value | 0x100 (GR IV: ORIENT_WORD). */
-  orientWord: 0x55804380,
+  orientWord: adr(0x55804380),
   /** The look at the start of the exposure, LOOK_STASH's word (GR IV: FRAME_LOOK). */
-  frameLook: 0x55804384,
+  frameLook: adr(0x55804384),
   /** Reserved for the End Screen choice (unused: as GR IV's shutdown.c, endscreen.c reads its record each time). */
-  endScreenChoice: 0x55804388,
+  endScreenChoice: adr(0x55804388),
 } as const;
 
-export const GR3X_SETTINGS_LOAD = 0x5324b284;
-export const GR3X_SETTINGS_SAVE = 0x5323f274;
+export const GR3X_SETTINGS_LOAD = adr(0x5324b284);
+export const GR3X_SETTINGS_SAVE = adr(0x5323f274);
 
 export interface Gr3xSite { address: number; expected: string; replacement: string; reason: string }
 export interface Gr3xScaffoldProgram {

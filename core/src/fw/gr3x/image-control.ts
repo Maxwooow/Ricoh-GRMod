@@ -9,7 +9,7 @@ import { buildGr3xLookMenuResearch } from './image-control-research';
 import type { Gr3xMenuRatio } from './geometry';
 import type { Gr3xAdjFeatures } from './adj';
 import type { Gr3xResearchLook } from './image-control-research';
-import { GR3X_160, openGr3xOfficial } from './profile';
+import { GR3X_PROFILE, openGr3xOfficial } from './profile';
 import { GR3X_PARAMETER_SETTER_LOOKS, GR3X_STANDARD_ACTIVE_CHECKS, GR3X_STANDARD_ACTIVE_CHECKS_SET0, GR3X_TONE_READS,
   GR3X_PHOTO_STYLE_SETTERS, GR3X_LOAD_CALL, GR3X_LOAD_DATA, GR3X_SAVE_CALL, GR3X_SAVE_DATA,
   GR3X_ZERO_FILL_END, GR3X_GAP, GR3X_HEAP_BASE, GR3X_R10_TONE_READS } from './look-addresses';
@@ -36,14 +36,15 @@ import { GR3X_TONING_SCALE } from './halation-screen';
 import { GR3X_STASH_FILM, gr3xRawDevelopmentWords } from './datestamp';
 
 /** The live view's change detection reads the frame's look here (round 9: unmapped). */
-const GR3X_LIVE_LOOK_READ = 0x536dc998;
+const GR3X_LIVE_LOOK_READ = adr(0x536dc998);
 /** The change detection's last flag store of its partial set-up (`strb r1,[r4,#0x1a5]`), before it returns. */
-const GR3X_LIVE_FLAGS_END = 0x536dd0b4;
+const GR3X_LIVE_FLAGS_END = adr(0x536dd0b4);
 import { quantizeSlot } from '../../color/camera';
 import type { SlotParams } from '../../color/camera';
 import type { QuantizedSlot } from '../../color/camera';
 import { GR3X_FILM_NAMES, gr3xLookResources, validateGr3xLookName } from './look-resources';
 import { gr3xLookBadge } from './look-icons';
+import { adr, adrHex, adrText } from './target';
 
 export interface Gr3xFilmLook {
   /** Default name (menus of languages without their own name). */
@@ -89,13 +90,13 @@ const hex = (b: Uint8Array) => Array.from(b, x => x.toString(16).padStart(2, '0'
 const unhex = (s: string) => Uint8Array.from(s.match(/../g) ?? [], x => parseInt(x, 16));
 const addr = (r: number, a: number) => `movw r${r},#${a & 65535};movt r${r},#${a >>> 16};`;
 const DEFAULTS = [
-  [0x532c34e8, 0x77d], [0x532c3b54, 0x77e], [0x532c41c0, 0x77f],
-  [0x532c494c, 0x780], [0x532c50d8, 0x781], [0x532c5864, 0x782],
-  [0x532c5ff0, 0x784], [0x532c677c, 0x785], [0x532c6b94, 0x786],
-  [0x532c6e38, 0x787], [0x532c70e4, 0x788], [0x532c7270, 0x789],
-  [0x532c7520, 0x78a], [0x532c78a8, 0x78c], [0x532c7f0c, 0x78e],
-  [0x532c8570, 0x790], [0x532c8bd4, 0x793], [0x532c9360, 0x794],
-  [0x532c9744, 0x795], [0x532c9a20, 0x796],
+  [adr(0x532c34e8), 0x77d], [adr(0x532c3b54), 0x77e], [adr(0x532c41c0), 0x77f],
+  [adr(0x532c494c), 0x780], [adr(0x532c50d8), 0x781], [adr(0x532c5864), 0x782],
+  [adr(0x532c5ff0), 0x784], [adr(0x532c677c), 0x785], [adr(0x532c6b94), 0x786],
+  [adr(0x532c6e38), 0x787], [adr(0x532c70e4), 0x788], [adr(0x532c7270), 0x789],
+  [adr(0x532c7520), 0x78a], [adr(0x532c78a8), 0x78c], [adr(0x532c7f0c), 0x78e],
+  [adr(0x532c8570), 0x790], [adr(0x532c8bd4), 0x793], [adr(0x532c9360), 0x794],
+  [adr(0x532c9744), 0x795], [adr(0x532c9a20), 0x796],
 ] as const;
 /** CommonProperty offsets of the parameters Standard has (its default getters answer, 2.10/1.60). */
 const STANDARD_PARAMETERS: readonly number[] = [0x77d, 0x77e, 0x77f, 0x780, 0x781, 0x782, 0x784, 0x793, 0x794];
@@ -157,7 +158,7 @@ function halationResources(decoded: Uint8Array, round7: boolean, round8 = false)
   const view = new DataView(decoded.buffer, decoded.byteOffset, decoded.byteLength);
   const icons = sectionsOf(decoded).find(s => s.name === 'ICONBIN');
   if (!icons) throw new FirmwareError('unexpected-layout', 'IIIx icon section missing');
-  const d = gr3xOffset(view.getUint32(gr3xOffset(0x550020fc + GR3X_TONING_SCALE * 4), true));
+  const d = gr3xOffset(view.getUint32(gr3xOffset(adr(0x550020fc) + GR3X_TONING_SCALE * 4), true));
   if (view.getUint16(d, true) !== 400 || view.getUint16(d + 2, true) !== 60) throw new FirmwareError('unexpected-layout', 'IIIx Toning scale size');
   const at = view.getUint32(d + 4, true) * 4;
   if (at + 400 * 60 * 4 > icons.size) throw new FirmwareError('unexpected-layout', 'IIIx Toning scale pointer');
@@ -223,7 +224,7 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
   const filmNames = round8Date ? films.map(f => f.names?.en || f.name) : undefined;
   const menu = await buildGr3xLookMenuResearch(raw, specs as Gr3xResearchLook[], displayIcons, ratioMenu, features,
     round6 ? halationResources(decoded, round7, round8) : undefined, monoFilms, filmNames);
-  const p = GR3X_160;
+  const p = GR3X_PROFILE;
   const rtos = decoded.subarray(p.rtosOffset, p.rtosOffset + p.rtosLength);
   const originalRead = (va: number, size: number) => {
     const image = va >= p.ramBase && va + size <= p.ramBase + p.ramLength ? p.ramSource + va - p.ramBase : va;
@@ -250,14 +251,14 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
       throw new FirmwareError('unexpected-instruction', `IIIx look guard/overlap at ${at.toString(16)}`);
     sites.push({ address: at, expected: hex(wordsToBytes([expected])), replacement: hex(wordsToBytes([replacement])), reason });
   };
-  const mstd = new DataView(originalRead(u32(u32(0x55018d94 + 11 * 4) + 4), 18).buffer);
+  const mstd = new DataView(originalRead(u32(u32(adr(0x55018d94) + 11 * 4) + 4), 18).buffer);
   const matrix = Array.from({ length: 9 }, (_, i) => mstd.getInt16(i * 2, true));
   const slots = specs.map((spec, i) => {
     const id = menu.addedLooks[i].id;
     let record = 0, curves = 0, postQ9: Int16Array | undefined, quantizedCurves: QuantizedSlot['curves'] | undefined, print = 0;
     const curveId = 0x47430000 + id;
     if (spec.film || spec.base === 20) {
-      const rec = originalRead(u32(0x55018d94 + spec.base * 4), 84);
+      const rec = originalRead(u32(adr(0x55018d94) + spec.base * 4), 84);
       // Round 10: words 17..20 as the camera's start-up gives its own records (0x536eb0e4).
       if (round10) rec.set(originalRead(GR3X_TONE_RECORD_TAIL, 16), 68);
       const quantized = spec.film ? filmBytes(spec.film, matrix) : undefined;
@@ -309,8 +310,8 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
   if (round9) {
     // The read and the only uses of its value (the frame slot fp-0x34, the remembered byte
     // [r4,#0x1a8], written at start-up by 0x536daf64), as audited: nothing else may read them.
-    const live: readonly (readonly [number, number])[] = [[GR3X_LIVE_LOOK_READ, 0xe5d5c77c], [0x536dc9a0, 0xe50bc034], [0x536dcb64, 0xe51b2034],
-      [0x536dcb6c, 0xe5d431a8], [0x536dcdf4, 0xe55b2034], [0x536dcdfc, 0xe5c421a8], [0x536daf64, 0xe5c431a8]];
+    const live: readonly (readonly [number, number])[] = [[GR3X_LIVE_LOOK_READ, 0xe5d5c77c], [adr(0x536dc9a0), 0xe50bc034], [adr(0x536dcb64), 0xe51b2034],
+      [adr(0x536dcb6c), 0xe5d431a8], [adr(0x536dcdf4), 0xe55b2034], [adr(0x536dcdfc), 0xe5c421a8], [adr(0x536daf64), 0xe5c431a8]];
     for (const [at, w] of live) if (u32(at) !== w) throw new FirmwareError('unexpected-instruction', `IIIx live view look comparison at ${at.toString(16)}`);
   }
   // Round 9: a changed look marks the matrix and second matrix (obj+5, +6) but not the gamma
@@ -319,7 +320,7 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
   // set-up (the full one marks everything), "the look changed" ([fp,#-0xcc], written at
   // 0x536dcb80 on every path to it) also marks the gamma.
   const liveGamma = round9 ? (() => {
-    const tail: readonly (readonly [number, number])[] = [[0x536dcb80, 0xe50b30cc], [GR3X_LIVE_FLAGS_END, 0xe5c411a5], [GR3X_LIVE_FLAGS_END + 4, 0xe24bd028], [GR3X_LIVE_FLAGS_END + 8, 0xe89daff0]];
+    const tail: readonly (readonly [number, number])[] = [[adr(0x536dcb80), 0xe50b30cc], [GR3X_LIVE_FLAGS_END, 0xe5c411a5], [GR3X_LIVE_FLAGS_END + 4, 0xe24bd028], [GR3X_LIVE_FLAGS_END + 8, 0xe89daff0]];
     for (const [at, w] of tail) if (u32(at) !== w) throw new FirmwareError('unexpected-instruction', `IIIx live view flags at ${at.toString(16)}`);
     const stub = code(`strb r1,[r4,#0x1a5];ldr r1,[fp,#-0xcc];cmp r1,#0;movne r1,#1;strbne r1,[r4,#0xe];b #${GR3X_LIVE_FLAGS_END + 4};`);
     patch(GR3X_LIVE_FLAGS_END, 0xe5c411a5, branchWord(GR3X_LIVE_FLAGS_END, stub), 'films: a look change also marks the live view\'s gamma (curves)');
@@ -375,15 +376,15 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
   const aggregate = adjustable ? undefined : code(`push {r0-r3,ip,lr};ldrb r2,[r6,#0xb8];` +
     slots.map(s => `cmp r2,#${s.id};beq slot${s.id};`).join('') +
     `b done;` + slots.map(s => `slot${s.id}:${addr(1, s.parameterAddress)}
-      add r0,r6,#0xb9;mov r2,#26;bl #0x5313fd80;b done;`).join('') +
-    `done:pop {r0-r3,ip,lr};mov r1,r6;b #0x53279a0c;`);
-  if (aggregate !== undefined) patch(0x53279a08, 0xe1a01006, branchWord(0x53279a08, aggregate), 'image control: fixed preset parameters in native property transaction');
+      add r0,r6,#0xb9;mov r2,#26;bl #${adrHex(0x5313fd80)};b done;`).join('') +
+    `done:pop {r0-r3,ip,lr};mov r1,r6;b #${adrHex(0x53279a0c)};`);
+  if (aggregate !== undefined) patch(adr(0x53279a08), 0xe1a01006, branchWord(adr(0x53279a08), aggregate), 'image control: fixed preset parameters in native property transaction');
   // RAW development safely falls back to each original base. It does not
   // pretend an imported film can be reconstructed from the native EXIF enum.
-  const rawEnum = round10 ? undefined : code(map(1) + 'sub r1,r1,#11;b #0x53288d60;');
-  if (rawEnum !== undefined) patch(0x53288d5c, 0xe241100b, branchWord(0x53288d5c, rawEnum), 'image control: RAW development native-base fallback');
-  const restriction = code(map(1) + 'cmp r1,#0;b #0x53553ad8;');
-  patch(0x53553ad4, 0xe3510000, branchWord(0x53553ad4, restriction), 'image control: preserve native shooting-mode restrictions');
+  const rawEnum = round10 ? undefined : code(map(1) + adrText('sub r1,r1,#11;b #0x53288d60;'));
+  if (rawEnum !== undefined) patch(adr(0x53288d5c), 0xe241100b, branchWord(adr(0x53288d5c), rawEnum), 'image control: RAW development native-base fallback');
+  const restriction = code(map(1) + adrText('cmp r1,#0;b #0x53553ad8;'));
+  patch(adr(0x53553ad4), 0xe3510000, branchWord(adr(0x53553ad4), restriction), 'image control: preserve native shooting-mode restrictions');
   // Native default getters assert on unknown IDs. Fixed new presets have their
   // own values; every other ID still executes the original validation.
   const defaults = round10 ? [] : DEFAULTS.map(([at, offset]) => {
@@ -403,15 +404,15 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
   // restores the film's fixed parameters first, before any consumer reads them.
   const enforce = adjustable ? undefined : code(`push {r0-r3,ip,lr};ldrb r2,[r7,#0x77c];` +
     slots.map(s => `cmp r2,#${s.id};beq slot${s.id};`).join('') +
-    `b done;` + slots.map(s => `slot${s.id}:${addr(1, s.parameterAddress)}add r0,r7,#0x700;add r0,r0,#0x7d;mov r2,#26;bl #0x5313fd80;b done;`).join('') +
-    `done:pop {r0-r3,ip,lr};b #0x536db7d8;`);
-  if (enforce !== undefined) patch(0x536dc124, branchWord(0x536dc124, 0x536db7d8, 14, true),
-    branchWord(0x536dc124, enforce, 14, true), 'image control: films always render with their fixed parameters');
+    `b done;` + slots.map(s => `slot${s.id}:${addr(1, s.parameterAddress)}add r0,r7,#0x700;add r0,r0,#0x7d;mov r2,#26;bl #${adrHex(0x5313fd80)};b done;`).join('') +
+    `done:pop {r0-r3,ip,lr};b #${adrHex(0x536db7d8)};`);
+  if (enforce !== undefined) patch(adr(0x536dc124), branchWord(adr(0x536dc124), adr(0x536db7d8), 14, true),
+    branchWord(adr(0x536dc124), enforce, 14, true), 'image control: films always render with their fixed parameters');
   // Parameter setters (SetSaturation etc.) take the current look from 0x53549ee8 and do
   // nothing for an unknown one; for a film they now act on Standard.
   const setters = adjustable && !round10 ? GR3X_PARAMETER_SETTER_LOOKS.map(at => {
-    const entry = code(`push {lr};bl #0x53549ee8;` + map(0) + `pop {pc};`);
-    patch(at, branchWord(at, 0x53549ee8, 14, true), branchWord(at, entry, 14, true), 'image control: film parameter write uses Standard storage');
+    const entry = code(`push {lr};bl #${adrHex(0x53549ee8)};` + map(0) + `pop {pc};`);
+    patch(at, branchWord(at, adr(0x53549ee8), 14, true), branchWord(at, entry, 14, true), 'image control: film parameter write uses Standard storage');
     return { address: at, entry };
   }) : [];
   // After a stored write, each Standard setter updates the live value only when the stored
@@ -520,7 +521,7 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
     const tables = postSlots.map(s => append(q9Bytes(s.postQ9!)));
     const entry = code(`push {r0,r1,r4,lr};bl #${GR3X_MATRIX_PROCESS};pop {r0,r1};ldr r2,[r1,#8];` +
       postSlots.map((s, k) => `${addr(3, s.record)}cmp r2,r3;${addr(1, tables[k])}beq copy;`).join('') +
-      `${addr(1, identity)}copy:add r0,r0,#0x32;mov r2,#18;bl #0x5313fd80;pop {r4,pc};`);
+      `${addr(1, identity)}copy:add r0,r0,#0x32;mov r2,#18;bl #${adrHex(0x5313fd80)};pop {r4,pc};`);
     patch(GR3X_MATRIX_CALL, branchWord(GR3X_MATRIX_CALL, GR3X_MATRIX_PROCESS, 14, true), branchWord(GR3X_MATRIX_CALL, entry, 14, true),
       'films: post-curve (second) matrix');
     return { entry, identity, tables };
@@ -545,20 +546,20 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
     slots.filter(s => s.record).map(s => `cmp r2,#${s.id};beq slot${s.id};`).join('') +
     `b done;` + slots.filter(s => s.record).map(s => `slot${s.id}:${addr(3, s.record)}str r3,[r4,#8];` +
       (s.nativeBase === 20 ? 'mov r3,#1;strb r3,[r4,#0x79];' : '') + 'b done;').join('') +
-    'done:pop {r1-r3,ip};b #0x536f00c4;');
-  if (descriptor !== undefined) patch(0x536dc690, branchWord(0x536dc690, 0x536f00c4, 14, true),
-    branchWord(0x536dc690, descriptor, 14, true), 'image control: selected immutable matrix record');
+    adrText('done:pop {r1-r3,ip};b #0x536f00c4;'));
+  if (descriptor !== undefined) patch(adr(0x536dc690), branchWord(adr(0x536dc690), adr(0x536f00c4), 14, true),
+    branchWord(adr(0x536dc690), descriptor, 14, true), 'image control: selected immutable matrix record');
   const imported = slots.filter(s => s.curves);
   const gamma = code(`cmp r2,#0;bne native;ldrb ip,[r1,#0x77c];` +
     imported.map(s => `cmp ip,#${s.id};beq slot${s.id};`).join('') +
-    `native:mov ip,sp;b #0x536f0290;` +
+    `native:mov ip,sp;b #${adrHex(0x536f0290)};` +
     imported.map(s => `slot${s.id}:push {r4-r8,lr};mov r4,r0;${addr(5, s.curves)}${addr(6, s.curveId)}b copy;`).join('') +
-    `copy:bl #0x536eff34;
-      ldr r0,[r4];mov r1,r5;mov r2,#512;bl #0x5313fd80;
-      ldr r0,[r4,#4];add r1,r5,#512;mov r2,#512;bl #0x5313fd80;
-      ldr r0,[r4,#8];add r1,r5,#1024;mov r2,#512;bl #0x5313fd80;
+    `copy:bl #${adrHex(0x536eff34)};
+      ldr r0,[r4];mov r1,r5;mov r2,#512;bl #${adrHex(0x5313fd80)};
+      ldr r0,[r4,#4];add r1,r5,#512;mov r2,#512;bl #${adrHex(0x5313fd80)};
+      ldr r0,[r4,#8];add r1,r5,#1024;mov r2,#512;bl #${adrHex(0x5313fd80)};
       mov r3,#1;strb r3,[r4,#12];strb r3,[r4,#13];str r6,[r4,#20];pop {r4-r8,pc};`);
-  patch(0x536f028c, 0xe1a0c00d, branchWord(0x536f028c, gamma), 'image control: per-film RGB curves and native cache identity');
+  patch(adr(0x536f028c), 0xe1a0c00d, branchWord(adr(0x536f028c), gamma), 'image control: per-film RGB curves and native cache identity');
   const payload = new Uint8Array((length + 3) & ~3);
   let cursor = 0; for (const part of parts) { payload.set(part, cursor); cursor += part.length; }
   return {

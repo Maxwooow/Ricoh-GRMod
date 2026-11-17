@@ -23,19 +23,22 @@ the rest; `npm run check` (and the Tests workflow) fails when they are out of st
 | --- | --- | --- | --- |
 | The official firmware releases GR Mod builds on | `releases.json` | `node tools/releases/generate.mjs` | `shell/internal/ricoh/releases_gen.go`, `Ricoh.java`, `Ricoh.swift`, `ui/src/releases.gen.ts`, the README's table |
 | The version numbers | `package.json` (desktop), `mobile/package.json` (phone) | `node tools/version.mjs desktop X.Y.Z` / `mobile X.Y.Z` | the lock files, `build.gradle` (`versionName`, `versionCode`), the Xcode project |
-| The programs for the later firmware (generated copies) | the program they were ported from, the address map and the `.patch` in `tools/port` | `python3 tools/port/generate.py tools/port/NAME.json` | `core/src/fw/gr4v120`, `gr3x170`, `gr3x171` and the `tools/` of every release |
-| The address table of a release that shares its program (GR IV 1.21) | the address map in `tools/port` | `python3 tools/port/addresses.py` | `core/src/fw/gr4v121/addresses.ts` |
+| The generated copies (GR IV 1.20's program, every later release's development tools) | what they were ported from, the address map and the `.patch` in `tools/port` | `python3 tools/port/generate.py tools/port/NAME.json` | `core/src/fw/gr4v120`, `tools/gr4v120`, `tools/gr4v121`, `tools/gr3x170`, `tools/gr3x171` |
+| The address table of a release that shares its program | the address maps in `tools/port` | `python3 tools/port/addresses.py` | `core/src/fw/gr4v121/addresses.ts`, `gr3x170/addresses.ts`, `gr3x171/addresses.ts` |
 
 ### One program, several releases
 
-GR IV 1.20 and 1.21 are one program, `core/src/fw/gr4v120`: its addresses are 1.20's and go through
-`adr(...)`, which for 1.21 looks them up in 1.21's table; the few other values that differ are
-`byRelease({...})` (`core/src/fw/release.ts`). `core/src/fw/gr4v121` holds only 1.21's own files.
-`core/overlays.mjs`, a small Vite plugin, loads gr4v120's modules a second time under gr4v121's
-paths so that they take 1.21's target. It is in every pipeline that loads the engine (core's and
-ui's Vitest, ui's build and its worker, the root `vite.config.mjs` for vite-node); without it the
-import of `fw/gr4v121` does not resolve and the build stops. The other releases are still generated
-copies; they are to follow the same way.
+GR IV 1.20 and 1.21 are one program, `core/src/fw/gr4v120`; GR III / IIIx 2.10 / 1.60, 2.20 / 1.70 and
+2.21 / 1.71 are one program, `core/src/fw/gr3x`. A program's addresses are those of the release it is
+written for and go through `adr(...)`, which for a later release looks them up in that release's
+table; the few other values that differ are `byRelease({...})`, and code Ricoh changed is a branch on
+`release` (`core/src/fw/release.ts`). The later releases' directories (`gr4v121`, `gr3x170`, `gr3x171`)
+hold only their own files. `core/overlays.mjs`, a small Vite plugin, loads the program's modules again
+under such a directory's paths so that they take its target. It is in every pipeline that loads the
+engine (core's and ui's Vitest, ui's build and its worker, the root `vite.config.mjs` for vite-node);
+without it the import of such a directory does not resolve and the build stops. The `.d.ts` files there
+tell the type checker what the plugin does. Only GR IV 1.20 is still a generated copy (of the 1.11
+program).
 
 ### Adding a firmware release
 

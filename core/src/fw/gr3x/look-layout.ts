@@ -27,6 +27,7 @@
  */
 import { branchWord } from '../aspect/arm';
 import { FirmwareError } from '../types';
+import { adr } from './target';
 
 /** The camera's lists in its own order (the tables above). */
 export const GR3X_STILL_LOOKS: readonly number[] = [11, 12, 13, 14, 15, 16, 22, 17, 18, 19, 20, 21];
@@ -40,11 +41,11 @@ export interface Gr3xLookLayout {
   hidden: readonly number[];
 }
 
-const COUNT = 0x532c2a9c, COUNT_STILL = 0x532c2acc, COUNT_MOVIE = 0x532c2ae0, ITEM = 0x532c2c80, INDEX = 0x532c2f08;
+const COUNT = adr(0x532c2a9c), COUNT_STILL = adr(0x532c2acc), COUNT_MOVIE = adr(0x532c2ae0), ITEM = adr(0x532c2c80), INDEX = adr(0x532c2f08);
 /** RawDevelopmentModel's own count of its Image Control values (`mov r0,#12; bx lr`): the range of
  * RAW development's Image Control dial, whose entries come from ITEM with the byte 2. */
-const RAW_COUNT = 0x53283c08;
-const STILL_TABLES = [0x53b59224, 0x53b58fcc, 0x53b5919c], MOVIE_TABLES = [0x53b59234, 0x53b591c8, 0x53b5936c];
+const RAW_COUNT = adr(0x53283c08);
+const STILL_TABLES = [adr(0x53b59224), adr(0x53b58fcc), adr(0x53b5919c)], MOVIE_TABLES = [adr(0x53b59234), adr(0x53b591c8), adr(0x53b5936c)];
 const fail = (code: string, m: string): never => { throw new FirmwareError(code, `IIIx look layout: ${m}`); };
 const lo = (v: number) => v & 0xffff, hi = (v: number) => v >>> 16;
 const addr = (r: string, a: number) => `movw ${r},#${lo(a)};movt ${r},#${hi(a)};`;

@@ -37,19 +37,24 @@ import { GR3X_ENDSCREEN_NATIVE } from './endscreen-native';
 import { GR3X_ENDSCREEN2_NATIVE } from './endscreen2-native';
 import { gr3xSettingsHook, gr3xSettingsPrior } from './round10';
 import type { Gr3xSite } from './round10';
+import { adr, byRelease } from './target';
 /** Round 10: the HTData record of the choice (GR IV: its APData record; the films' table is 12). */
 export const GR3X_END_SCREEN_RECORD = 13;
 
 export const GR3X_PICTURE_LIST_ID = 0x020001a4;
 /** The third word of the gap before the heap (zeroed at start by the extended fill). */
-export const GR3X_PICTURE_MODE = 0x5580437c;
+export const GR3X_PICTURE_MODE = adr(0x5580437c);
 export const GR3X_END_SCREEN_ID = 0x020000ad;
 export const GR3X_PREVIEW_W = 520, GR3X_PREVIEW_H = 200;
-/** The camera's own power-off pictures by variant (0x5319f180: 0 GoodBye, 1 Collabo, 2..4). */
-export const GR3X_FACTORY_PICTURES = [
-  'B:\\Resource\\Jpeg\\GoodBye.jpg', 'B:\\Resource\\Jpeg\\Collabo.jpg', 'B:\\Resource\\Jpeg\\GB_Urban.jpg',
-  'B:\\Resource\\Jpeg\\GB_ING.jpg', 'B:\\Resource\\Jpeg\\GB_Diary.jpg',
-] as const;
+/** The camera's own power-off pictures. 1.60 / 2.10: by variant (0x5319f180: 0 GoodBye, 1 Collabo, 2..4). From 1.70 / 2.20
+ * (the 30th-anniversary release) the camera sets its variant to 6 at every start (0x53821a14 in 1.70, from the start-up
+ * 0x53820480), so its own picture is always GB_30th (A:, JPEG table index 14): "Original" has that one thumbnail. */
+const ANNIVERSARY_PICTURE: readonly string[] = ['A:\\Resource\\Jpeg\\GB_30th.jpg'];
+export const GR3X_FACTORY_PICTURES: readonly string[] = byRelease({
+  '1.60': ['B:\\Resource\\Jpeg\\GoodBye.jpg', 'B:\\Resource\\Jpeg\\Collabo.jpg', 'B:\\Resource\\Jpeg\\GB_Urban.jpg',
+    'B:\\Resource\\Jpeg\\GB_ING.jpg', 'B:\\Resource\\Jpeg\\GB_Diary.jpg'],
+  '1.70': ANNIVERSARY_PICTURE, '1.71': ANNIVERSARY_PICTURE,
+});
 /** GR IV's line names (shutdown.ts), every glyph in GR III's own texts of that language. */
 export const GR3X_TYPE_NAMES: readonly string[] = [
   'タイプ', 'Type', 'Type', 'Typ', 'Tipo', 'Tipo', 'Tipo', 'Type', 'Type', 'Typ', 'Tyyppi',
@@ -62,13 +67,17 @@ export const GR3X_PICTURE_NAMES: readonly string[] = [
 
 const CTX_MAGIC = 0x33455347; // 'GSE3'
 const CTX_MAGIC_R10 = 0x34455347; // 'GSE4'
-const MAX = 8, FACTORY = 5;
+const MAX = 8, FACTORY = GR3X_FACTORY_PICTURES.length;
 const CTX_BYTES = 12 + FACTORY * 2 + MAX * 2 + 2 + MAX * 4 * 2;
-const REFRESH = 0x532049fc, CONFIRM = 0x532048c4, UP = 0x53204834, DOWN = 0x53204878, FOOTER = 0x53204ab0;
-const ROWS_AT = 0x532044c4, TYPES_AT = 0x532044f4, ROW_TYPE = 0x15, TITLE = 665;
-const LIST_SHOWN = 0x53394e8c, TITLE_SET = 0x533a2ba0, GRAPHIC_VISIBLE = 0x533ad3c0, SUB_LINE_TEXT = 0x533a6ad0;
-const APP = 0x5320ad88, UI_MODEL = 0x5320b67c, USERDATA = 0x5320b31c, END_SCREEN_GET = 0x53246b88, END_SCREEN_TEXT = 0x53293164;
-const JOIN = 0x5319f208, JOIN_WORD = 0xe8950003;
+const REFRESH = adr(0x532049fc), CONFIRM = adr(0x532048c4), UP = adr(0x53204834), DOWN = adr(0x53204878), FOOTER = adr(0x53204ab0);
+const ROWS_AT = adr(0x532044c4), TYPES_AT = adr(0x532044f4), ROW_TYPE = 0x15, TITLE = 665;
+const LIST_SHOWN = adr(0x53394e8c), TITLE_SET = adr(0x533a2ba0), GRAPHIC_VISIBLE = adr(0x533ad3c0), SUB_LINE_TEXT = adr(0x533a6ad0);
+const APP = adr(0x5320ad88), UI_MODEL = adr(0x5320b67c), USERDATA = adr(0x5320b31c), END_SCREEN_GET = adr(0x53246b88), END_SCREEN_TEXT = adr(0x53293164);
+// The picture request: from 1.70 / 2.20 the join of its cases is 0x10 before the `ldm r5,{r0,r1}` the stub replaces (the
+// request object goes into r8 in between), so the words around it are at other distances.
+const JOIN = byRelease({ '1.60': 0x5319f208, '1.70': 0x5319f2d0, '1.71': 0x531a0230 }), JOIN_WORD = 0xe8950003;
+const JOIN_GUARDS_30TH: readonly (readonly [number, number])[] = [[JOIN - 4, 0xe1a08000], [JOIN - 0x10, 0xe1a00006], [JOIN - 0x14, 0xe3a07002], [JOIN + 0x20, 0xe1a01007]];
+const JOIN_GUARDS: readonly (readonly [number, number])[] = byRelease({ '1.60': [[JOIN - 4, 0xe3a07002], [JOIN + 0x24, 0xe1a01007]], '1.70': JOIN_GUARDS_30TH, '1.71': JOIN_GUARDS_30TH });
 
 export interface Gr3xEndScreenProgram {
   code(source: string): number;
@@ -128,13 +137,13 @@ export function installGr3xEndScreen(p: Gr3xEndScreenProgram, o: Gr3xEndScreenOp
     new Set(o.choices).size !== n || o.choices.some(c => !(Number.isInteger(c) && c >= 1 && c <= 0xffffffff))) fail('pictures');
   const guards: readonly (readonly [number, number])[] = [
     [REFRESH, 0xe1a0c00d], [CONFIRM, 0xe5900168], [UP, 0xe1a0c00d], [DOWN, 0xe1a0c00d], [FOOTER, 0xe1a0c00d],
-    [ROWS_AT, 0xe3a02002], [TYPES_AT, 0xe54b3034], [TYPES_AT - 4, 0xe3a03015], [TYPES_AT + 8, 0xe54b3033], [TYPES_AT + 0x10, bl(TYPES_AT + 0x10, 0x53394610)],
-    [0x532047bc, movWord(1, TITLE)], [0x5316ff88, 0xe5940180], [0x5316ffa0, bl(0x5316ffa0, 0x532047d4)],
+    [ROWS_AT, 0xe3a02002], [TYPES_AT, 0xe54b3034], [TYPES_AT - 4, 0xe3a03015], [TYPES_AT + 8, 0xe54b3033], [TYPES_AT + 0x10, bl(TYPES_AT + 0x10, adr(0x53394610))],
+    [adr(0x532047bc), movWord(1, TITLE)], [adr(0x5316ff88), 0xe5940180], [adr(0x5316ffa0), bl(adr(0x5316ffa0), adr(0x532047d4))],
     [LIST_SHOWN, 0xe1a0c00d], [TITLE_SET, 0xe1a0c00d], [GRAPHIC_VISIBLE, 0xe5d0209e], [SUB_LINE_TEXT, 0xe1a0c00d],
     [APP, 0xe1a0c00d], [UI_MODEL, 0xe1a0c00d], [USERDATA, 0xe1a0c00d], [END_SCREEN_GET, 0xe5903004], [END_SCREEN_TEXT, 0xe3510000],
     // The native line (0x531987c8) as the Type line draws it.
-    [0x531987ec, bl(0x531987ec, END_SCREEN_GET)], [0x531987f8, bl(0x531987f8, END_SCREEN_TEXT)],
-    [JOIN, JOIN_WORD], [JOIN - 4, 0xe3a07002], [JOIN + 0x24, 0xe1a01007],
+    [adr(0x531987ec), bl(adr(0x531987ec), END_SCREEN_GET)], [adr(0x531987f8), bl(adr(0x531987f8), END_SCREEN_TEXT)],
+    [JOIN, JOIN_WORD], ...JOIN_GUARDS,
   ];
   for (const [at, w] of guards) if (p.word(at) !== w >>> 0) fail(`guard at ${at.toString(16)}`);
   const r10 = o.r10;

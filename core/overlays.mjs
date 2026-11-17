@@ -2,7 +2,7 @@
 /**
  * A release's directory is its program's directory with the release's own files on top.
  *
- * core/src/fw/gr4v121 holds only what is 1.21's own (target.ts with the address table, the compiled
+ * core/src/fw/gr4v121 (and gr3x170, gr3x171 over gr3x in the same way) holds only what is 1.21's own (target.ts with the address table, the compiled
  * native modules). Every other module is gr4v120's file, loaded a second time so that it takes 1.21's
  * target: an import that points into gr4v121 at a file that is not there is given that path as its
  * identity and gr4v120's file as its text. See core/src/fw/release.ts.
@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 
 const FW = join(dirname(fileURLToPath(import.meta.url)), 'src', 'fw');
 /** release directory -> the program it is laid over (both in core/src/fw). */
-export const OVERLAYS = { gr4v121: 'gr4v120' };
+export const OVERLAYS = { gr4v121: 'gr4v120', gr3x170: 'gr3x', gr3x171: 'gr3x' };
 
 const isFile = (p) => existsSync(p) && statSync(p).isFile();
 const clean = (id) => id.replace(/[?#].*$/, '');

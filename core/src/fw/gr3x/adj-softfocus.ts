@@ -33,21 +33,22 @@
 import { assembleWords, wordsToBytes } from '../aspect/arm';
 import { softFocusRows } from '../aspect/softfocus';
 import { FirmwareError } from '../types';
+import { adr } from './target';
 
 export const GR3X_ADJ_SOFT_FOCUS = 0x13;
-export const GR3X_SETTINGS_POINTER = 0x55063f34;
+export const GR3X_SETTINGS_POINTER = adr(0x55063f34);
 export const GR3X_SOFT_FOCUS_OFFSET = 0x9a1;
-const TABLE = 0x53b39a14, RECORD = 0x44, CROP = 0x10;
+const TABLE = adr(0x53b39a14), RECORD = 0x44, CROP = 0x10;
 const H_DRAW = 0x18, H_IS_CURRENT = 0x20, H_SET = 0x28, H_COUNT = 0x30;
-const OFFICIAL_0X13: readonly (readonly [number, number])[] = [[0x10, 0x531a0448], [0x18, 0x531a3638], [0x20, 0x531a1490],
-  [0x28, 0x531a0ee0], [0x30, 0x5319feec], [0x3c, 0x531a4d74]];
-const CROP_HANDLERS: readonly (readonly [number, number])[] = [[0x10, 0x5319fe80], [0x18, 0x531a3468], [0x20, 0x531a1250],
-  [0x28, 0x531a0e08], [0x30, 0x5319fea8], [0x3c, 0x531a4d68]];
-const LIST_ITEM = 0x53394758, ITEM_SET_TEXT = 0x533a1808;
+const OFFICIAL_0X13: readonly (readonly [number, number])[] = [[0x10, adr(0x531a0448)], [0x18, adr(0x531a3638)], [0x20, adr(0x531a1490)],
+  [0x28, adr(0x531a0ee0)], [0x30, adr(0x5319feec)], [0x3c, adr(0x531a4d74)]];
+const CROP_HANDLERS: readonly (readonly [number, number])[] = [[0x10, adr(0x5319fe80)], [0x18, adr(0x531a3468)], [0x20, adr(0x531a1250)],
+  [0x28, adr(0x531a0e08)], [0x30, adr(0x5319fea8)], [0x3c, adr(0x531a4d68)]];
+const LIST_ITEM = adr(0x53394758), ITEM_SET_TEXT = adr(0x533a1808);
 const VALUE_TEXTS = [2, 9, 10, 11];
-const NAME_SITE = 0x532928b8, ICON_TAIL = 0x53293ad0;
-const GATES = [0x53513218, 0x53513240];
-const PARAM_STORE = 0x53503184, BOUND = 0x5367c1b0, ROW = 0x5367c7e4;
+const NAME_SITE = adr(0x532928b8), ICON_TAIL = adr(0x53293ad0);
+const GATES = [adr(0x53513218), adr(0x53513240)];
+const PARAM_STORE = adr(0x53503184), BOUND = adr(0x5367c1b0), ROW = adr(0x5367c7e4);
 
 export interface Gr3xSoftFocusProgram {
   code(source: string): number;
@@ -81,14 +82,14 @@ const b = (at: number, target: number) => (0xea000000 | (((target - (at + 8)) >>
  * camera's menu; GF-2 Flash Mode (0x13) is the camera's own again.
  */
 export const GR3X_ADJ_SOFT_FOCUS_R10 = 0x09;
-const OFFICIAL_0X09: readonly (readonly [number, number])[] = [[0x10, 0x5319fe88], [0x18, 0x531a3540], [0x20, 0x531a1418],
-  [0x28, 0x531a0e7c], [0x30, 0x5319fedc], [0x38, 1], [0x3c, 0]];
-const NAME_SITE_R10 = 0x53292900, ICON_SITE_R10 = 0x53293b20;
-export const GR3X_ADJ_LISTS = [0x53b4eba0, 0x53b5a430, 0x53b5a404, 0x53b58fb0, 0x53b5a4b4] as const;
+const OFFICIAL_0X09: readonly (readonly [number, number])[] = [[0x10, adr(0x5319fe88)], [0x18, adr(0x531a3540)], [0x20, adr(0x531a1418)],
+  [0x28, adr(0x531a0e7c)], [0x30, adr(0x5319fedc)], [0x38, 1], [0x3c, 0]];
+const NAME_SITE_R10 = adr(0x53292900), ICON_SITE_R10 = adr(0x53293b20);
+export const GR3X_ADJ_LISTS = [adr(0x53b4eba0), adr(0x53b5a430), adr(0x53b5a404), adr(0x53b58fb0), adr(0x53b5a4b4)] as const;
 const ADJ_LIST = [0, 1, 2, 3, 4, 16, 5, 6, 7, 8, 9, 18, 19, 10, 11, 12, 13, 17, 14];
 /** The lists with 0x09 after Image Control (0x0C), as GR IV's with 0x0A. */
 export const GR3X_ADJ_LIST_R10 = [0, 1, 2, 3, 4, 16, 5, 6, 7, 8, 18, 19, 10, 11, 12, 9, 13, 17, 14];
-const SLOT_GETTERS = [0x5324633c, 0x53246348, 0x53246354, 0x53246360, 0x5324636c];
+const SLOT_GETTERS = [adr(0x5324633c), adr(0x53246348), adr(0x53246354), adr(0x53246360), adr(0x5324636c)];
 export const GR3X_ADJ_SLOTS = [0x918, 0x91a, 0x91c, 0x91e, 0x920] as const;
 
 export function installGr3xAdjSoftFocus(p: Gr3xSoftFocusProgram, textId: number, iconId: number, round10 = false) {

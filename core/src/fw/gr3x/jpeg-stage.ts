@@ -36,28 +36,29 @@ import type { HalationLight } from '../aspect/halation';
 import { halationLutR6, halationModuleR6, paramBytesR6 } from './halation-r6';
 import type { HalationLightR6 } from './halation-r6';
 import { GR3X_DATESTAMP_DIAG_R6_CODE, GR3X_HALATION_STATUS_R6_CODE } from './picture-modules-r6';
+import { adr, byRelease } from './target';
 
-export const GR3X_JPEG_EXECUTE = 0x535047d4;
-export const GR3X_DEVELOP_LOOK_READ = 0x536db7f8;
+export const GR3X_JPEG_EXECUTE = adr(0x535047d4);
+export const GR3X_DEVELOP_LOOK_READ = adr(0x536db7f8);
 export const GR3X_FIRST_FILM = 64;
 /** Second word of the 12 bytes between the zero-filled data and the heap (the first is the
  * own-parameters table pointer, the third is kept for the power-off picture setting). */
-export const GR3X_HALATION_STASH = 0x55804378;
+export const GR3X_HALATION_STASH = adr(0x55804378);
 /** Diagnostic builds only: the halation module's status word, right after the stash. */
-export const GR3X_HALATION_STATUS = 0x5580437c;
-export const GR3X_MATRIX_CALL = 0x536df3e8;
-export const GR3X_MATRIX_PROCESS = 0x536deecc;
+export const GR3X_HALATION_STATUS = adr(0x5580437c);
+export const GR3X_MATRIX_CALL = adr(0x536df3e8);
+export const GR3X_MATRIX_PROCESS = adr(0x536deecc);
 
-const CACHE = 0x536bbc30;
-const CACHE_FLUSH_FOR_READ = 0x536bbcc0;
-const CACHE_CLEAN = 0x536bbcac;
-const HEAP_ALLOC = 0x536af2a8;
-const HEAP_FREE = 0x536af2e4;
-const PLATFORM = 0x536bd838;
-const GET_TIME = 0x536b6510;
+const CACHE = adr(0x536bbc30);
+const CACHE_FLUSH_FOR_READ = adr(0x536bbcc0);
+const CACHE_CLEAN = adr(0x536bbcac);
+const HEAP_ALLOC = adr(0x536af2a8);
+const HEAP_FREE = adr(0x536af2e4);
+const PLATFORM = adr(0x536bd838);
+const GET_TIME = adr(0x536b6510);
 const GUARDS: readonly (readonly [number, number])[] = [
   [GR3X_JPEG_EXECUTE, 0xe1a0c00d], [GR3X_JPEG_EXECUTE + 4, 0xe92ddff0], [GR3X_JPEG_EXECUTE + 0x18, 0xe5914008],
-  [CACHE, 0xe30d01b4], [CACHE_FLUSH_FOR_READ, 0xe1a0c00d], [CACHE_CLEAN, 0xe1a00001],
+  [CACHE, byRelease({ '1.60': 0xe30d01b4, '1.70': 0xe30d01b4, '1.71': 0xe30d0484 })], [CACHE_FLUSH_FOR_READ, 0xe1a0c00d], [CACHE_CLEAN, 0xe1a00001],
   [HEAP_ALLOC, 0xe1a0c00d], [HEAP_FREE, 0xe1a0c00d], [PLATFORM, 0xe1a0c00d], [GET_TIME, 0xe5d0300c],
   [GR3X_MATRIX_CALL, 0xebfffeb7],
 ];

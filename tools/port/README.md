@@ -4,23 +4,25 @@ GR Mod's patches name firmware addresses. When Ricoh ships a new release, every 
 moves, and some code changes. There are two ways a program is made to build a new release; the
 engine picks the program by the SHA-256 of the file it opens and never mixes two.
 
-**The same program with another address table** (GR IV 1.21). `core/src/fw/gr4v120` is written for
-1.20 and builds 1.21 as well: every address goes through `adr(...)`, every other value that differs
-is `byRelease({ '1.20': a, '1.21': b })`, and `core/src/fw/gr4v121` holds only 1.21's own files (its
-`target.ts`, the address table `addresses.ts` written by `addresses.py` from the address map, the
-compiled native modules). See `core/src/fw/release.ts`. This is how a new release is added from now
-on, where the program allows it.
+**The same program with another address table** (GR IV 1.21; GR III 2.20 / 2.21 and GR IIIx 1.70 / 1.71).
+`core/src/fw/gr4v120` is written for 1.20 and builds 1.21 as well; `core/src/fw/gr3x` is written for
+GR IIIx 1.60 / GR III 2.10 and builds the two later releases as well. Every address goes through
+`adr(...)`, every other value that differs is `byRelease({ '1.20': a, '1.21': b })`, code Ricoh
+changed is a branch on `release`, and the later release's directory (`fw/gr4v121`, `fw/gr3x170`,
+`fw/gr3x171`) holds only its own files: its `target.ts`, the address table `addresses.ts` written
+by `addresses.py` from the address maps, the compiled native modules. See `core/src/fw/release.ts`.
+This is how a new release is added from now on.
 
-**A generated copy** (the others, for now). A copy of the program for the new release, next to the
-one it was made from: the sources with every address substituted through the map, and the hand
-edits of a `.patch`.
+**A generated copy** (GR IV 1.20 from 1.11, and every release's development tools). A copy for the
+new release, next to what it was made from: the sources with every address substituted through the
+map, and the hand edits of a `.patch`.
 
-| Release | From | Config | What is generated |
+| Release | Program | Config | What is generated |
 |---|---|---|---|
-| GR III 2.20 / GR IIIx 1.70 | 2.10 / 1.60 (`fw/gr3x`, `tools/gr3x`) | `gr3-p2.json` | `fw/gr3x170`, `tools/gr3x170` |
-| GR III 2.21 / GR IIIx 1.71 | 2.20 / 1.70 (`fw/gr3x170`, `tools/gr3x170`) | `gr3-p3.json` | `fw/gr3x171`, `tools/gr3x171` |
-| GR IV 1.20 (= GR IV Monochrome 1.10) | 1.11 (`fw/*.ts`, `fw/aspect`, `tools/{aspect,datestamp,...}`) | `gr4-120.json` | `fw/gr4v120`, `tools/gr4v120` |
-| GR IV 1.21 (= GR IV Monochrome 1.11) | 1.20 (`tools/gr4v120`) | `gr4-121.json` | `tools/gr4v121` only (the development tools and, through them, the compiled native modules in `fw/gr4v121/aspect`); the program is `fw/gr4v120` |
+| GR III 2.20 / GR IIIx 1.70 | `fw/gr3x` with `fw/gr3x170`'s target | `gr3-p2.json` | `tools/gr3x170` (from `tools/gr3x`) and, through its post steps, the native modules in `fw/gr3x170` |
+| GR III 2.21 / GR IIIx 1.71 | `fw/gr3x` with `fw/gr3x171`'s target (its table follows both maps) | `gr3-p3.json` | `tools/gr3x171` (from `tools/gr3x170`), the native modules in `fw/gr3x171` |
+| GR IV 1.20 (= GR IV Monochrome 1.10) | `fw/gr4v120`, a generated copy of the 1.11 program (`fw/*.ts`, `fw/aspect`) | `gr4-120.json` | `fw/gr4v120`, `tools/gr4v120` |
+| GR IV 1.21 (= GR IV Monochrome 1.11) | `fw/gr4v120` with `fw/gr4v121`'s target | `gr4-121.json` | `tools/gr4v121` (from `tools/gr4v120`), the native modules in `fw/gr4v121/aspect` |
 
 A new release also goes into `releases.json` at the root (`node tools/releases/generate.mjs`), which
 the download lists and the README's table are written from.

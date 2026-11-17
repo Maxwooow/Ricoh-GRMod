@@ -5,6 +5,11 @@ import { releaseTarget } from '../src/fw/release';
 import * as gr4v120 from '../src/fw/gr4v120';
 import * as gr4v121 from '../src/fw/gr4v121';
 import * as target120 from '../src/fw/gr4v120/target';
+import * as gr3x160 from '../src/fw/gr3x/program';
+import * as gr3x170 from '../src/fw/gr3x170/program';
+import * as gr3x171 from '../src/fw/gr3x171/program';
+import { ADDRESSES as TO_170 } from '../src/fw/gr3x170/addresses';
+import { ADDRESSES as TO_171 } from '../src/fw/gr3x171/addresses';
 import { ADDRESSES } from '../src/fw/gr4v121/addresses';
 import { BASE as BASE_120, ICON_CATALOG as ICON_CATALOG_120, OFFICIAL_RTOS_LENGTH as LENGTH_120 } from '../src/fw/gr4v120/aspect/build';
 // @ts-expect-error not a file: gr4v120's module under gr4v121's path (the type checker only knows the index)
@@ -55,5 +60,27 @@ describe('GR IV 1.21 is the 1.20 program with its own target', () => {
     expect(ADDRESSES.size).toBeGreaterThan(1000);
     const code = [...ADDRESSES].filter(([a]) => a < 0x54000000);
     expect(new Set(code.map(([, b]) => b)).size).toBe(code.length);
+  });
+});
+
+describe('GR III / IIIx: one program, three releases', () => {
+  it('each release is its own instance and accepts its own two files only', () => {
+    const versions = (p: typeof gr3x160) => p.GR3_PROFILES.map((x) => x.version);
+    expect(versions(gr3x160)).toEqual(['1.60', '2.10']);
+    expect(versions(gr3x170)).toEqual(['1.70', '2.20']);
+    expect(versions(gr3x171)).toEqual(['1.71', '2.21']);
+    expect(gr3x170).not.toBe(gr3x160);
+    expect(Object.keys(gr3x171).sort()).toEqual(Object.keys(gr3x160).sort());
+  });
+  it('the power-off pictures of the camera are the release\'s', () => {
+    expect(gr3x160.GR3X_FACTORY_PICTURES.length).toBe(5);
+    expect(gr3x170.GR3X_FACTORY_PICTURES).toEqual(['A:\\Resource\\Jpeg\\GB_30th.jpg']);
+    expect(gr3x171.GR3X_FACTORY_PICTURES).toEqual(gr3x170.GR3X_FACTORY_PICTURES);
+  });
+  it('1.71 / 2.21\'s table follows both maps: nothing that 1.70 / 2.20 has is missing from it', () => {
+    expect(TO_170.size).toBeGreaterThan(900);
+    expect(TO_171.size).toBeGreaterThan(900);
+    // every address the program uses resolved when its modules loaded (an unmapped one throws there)
+    expect([...TO_170.keys()].filter((a) => !TO_171.has(a)).length).toBeLessThan(TO_170.size / 20);
   });
 });

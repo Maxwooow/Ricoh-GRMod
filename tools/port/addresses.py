@@ -16,6 +16,8 @@ REPO = Path(__file__).resolve().parents[2]
 # table file -> the maps that lead from the program's own release to this one, in order
 TABLES = {
     'core/src/fw/gr4v121/addresses.ts': ('GR IV 1.20 (the program in fw/gr4v120)', 'GR IV 1.21', ['tools/port/gr4-121-map.json']),
+    'core/src/fw/gr3x170/addresses.ts': ('GR IIIx 1.60 / GR III 2.10 (the program in fw/gr3x)', 'GR IIIx 1.70 / GR III 2.20', ['tools/port/gr3-p2-map.json']),
+    'core/src/fw/gr3x171/addresses.ts': ('GR IIIx 1.60 / GR III 2.10 (the program in fw/gr3x)', 'GR IIIx 1.71 / GR III 2.21', ['tools/port/gr3-p2-map.json', 'tools/port/gr3-p3-map.json']),
 }
 
 

@@ -2,7 +2,7 @@
 /**
  * One program, several official releases.
  *
- * A GR Mod program (fw/gr4v120, fw/gr3x170, ...) is written for one release: its addresses are that
+ * A GR Mod program (fw/gr4v120, fw/gr3x) is written for one release: its addresses are that
  * release's. A later release moves every function and table; apart from that, and a handful of
  * values, the program is the same. So the program is written once, and everything that depends on the
  * release goes through the program's `target` module:
@@ -13,6 +13,7 @@
  *   adrText('bl #0x532406a4;bx lr')      every address of a string
  *   byRelease({ '1.20': a, '1.21': b })  a value that is not an address and differs (an expected
  *                                        instruction word, a size, a hash)
+ *   release === '1.60'                   for code Ricoh changed between releases
  *
  * The directory of the release the program is written for has a `target.ts` that changes nothing.
  * A later release has a directory with only what differs: its own `target.ts` (the address table made

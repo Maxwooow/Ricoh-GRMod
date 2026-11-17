@@ -6,7 +6,7 @@
 import { FirmwareError } from '../types';
 import { alignedCrop, parseRatio, ratioText } from '../aspect/geometry';
 import { Frac } from '../aspect/fraction';
-import { GR3X_160 } from './profile';
+import { GR3X_PROFILE } from './profile';
 
 /** The T4 menu: order and names as built, tested and released for the camera. */
 export const GFX_RATIOS = ['4:3', '3:2', '16:9', '65:24', '17:6', '3:4', '1:1', '7:6', '5:4'] as const;
@@ -28,7 +28,7 @@ function fail(code: string, message: string): never { throw new FirmwareError(co
 
 export function planGr3xRatio(text: string) {
   const requested = parseRatio(text);
-  if (GR3X_160.factoryRatios.some(r => requested.eq(parseRatio(r)))) fail('ratio-factory', 'the camera already has this ratio');
+  if (GR3X_PROFILE.factoryRatios.some(r => requested.eq(parseRatio(r)))) fail('ratio-factory', 'the camera already has this ratio');
   if (requested.cmp(MIN_RATIO) < 0 || requested.cmp(MAX_RATIO) > 0) fail('ratio-too-extreme', 'GR III / IIIx take ratios from 1:2 to 3:1');
   if (requested.n > 65535n || requested.d > 65535n) fail('bad-ratio', 'write the ratio with fewer digits');
   const screen = alignedCrop(720, 480, requested);

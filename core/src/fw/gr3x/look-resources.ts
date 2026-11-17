@@ -3,6 +3,7 @@ import { sectionsOf } from '../container';
 import { FirmwareError } from '../types';
 import { CONTENT_AREA, TILE_BG } from '../icons';
 import { gr3xOffset } from './profile';
+import { adr, byRelease } from './target';
 
 /** Twenty film slots (round 6); the camera-tested T6 builds have the first nine. */
 export const GR3X_FILM_NAMES = Array.from({ length: 20 }, (_, i) => `Film ${i + 1}`) as readonly string[];
@@ -16,7 +17,7 @@ export type Gr3xTextLang = typeof GR3X_TEXT_ROWS[number];
  * (a proxy for the camera font of that language having the glyph, as on GR IV). */
 export function gr3xAllowedChars(decoded: Uint8Array, lang: Gr3xTextLang): string {
   const view = new DataView(decoded.buffer, decoded.byteOffset, decoded.byteLength);
-  const RTOS = 0x10870, BASE = 0x53000000, RAM = 0x55000000, RAM_IMAGE = 0x5407b540, RAM_LEN = 0x3a080, LEN = 17520064;
+  const RTOS = 0x10870, BASE = adr(0x53000000), RAM = adr(0x55000000), RAM_IMAGE = adr(0x5407b540), RAM_LEN = byRelease({ '1.60': 0x3a080, '1.70': 0x3a0c0, '1.71': 0x3a300 }), LEN = byRelease({ '1.60': 17520064, '1.70': 17520384, '1.71': 17557824 });
   const off = (va: number) => {
     if (va >= RAM && va < RAM + RAM_LEN) va = RAM_IMAGE + va - RAM;
     if (va < BASE || va >= BASE + LEN) throw new FirmwareError('bad-address', 'IIIx text outside RTOS');
@@ -25,8 +26,8 @@ export function gr3xAllowedChars(decoded: Uint8Array, lang: Gr3xTextLang): strin
   const u32 = (va: number) => view.getUint32(off(va), true);
   const set = new Set<number>();
   for (let c = 0x20; c <= 0x7e; c++) set.add(c);
-  const row = u32(0x55002bac + GR3X_TEXT_ROWS.indexOf(lang) * 4);
-  for (let i = 0; i < 786; i++) {
+  const row = u32(adr(0x55002bac) + GR3X_TEXT_ROWS.indexOf(lang) * 4);
+  for (let i = 0; i < byRelease({ '1.60': 786, '1.70': 786, '1.71': 793 }); i++) {
     let desc: number, n: number, p: number;
     try { desc = u32(row + i * 4); n = decoded[off(desc)]; p = u32(desc + 4); off(p + 2 * Math.max(0, n - 1)); } catch { continue; } // empty entries
     for (let k = 0; k + 1 < n; k++) { const u = view.getUint16(off(p) + 2 * k, true); if (u >= 0x20 && !(u >= 0x7f && u <= 0x9f) && !(u >= 0xd800 && u <= 0xdfff)) set.add(u); }
@@ -56,7 +57,7 @@ export function gr3xLookResources(decoded: Uint8Array) {
   const icons = sectionsOf(decoded).find(s => s.name === 'ICONBIN');
   if (!icons) throw new FirmwareError('unexpected-layout', 'IIIx icon section missing');
   const icon = (id: number) => {
-    const offset = gr3xOffset(u32(0x550020fc + id * 4));
+    const offset = gr3xOffset(u32(adr(0x550020fc) + id * 4));
     if (view.getUint16(offset, true) !== 40 || view.getUint16(offset + 2, true) !== 40)
       throw new FirmwareError('unexpected-layout', 'IIIx look icon size');
     const pos = view.getUint32(offset + 4, true) * 4;
@@ -69,7 +70,7 @@ export function gr3xLookResources(decoded: Uint8Array) {
     for (let y = c.y0; y <= c.y1; y++)
       for (let x = c.x0; x <= c.x1; x++) tiles[style].set(TILE_BG, (y * 40 + x) * 4);
   }
-  const m = gr3xOffset(u32(u32(0x55018d94 + 11 * 4) + 4));
+  const m = gr3xOffset(u32(u32(adr(0x55018d94) + 11 * 4) + 4));
   const matrix = Int16Array.from({ length: 9 }, (_, i) => view.getInt16(m + i * 2, true));
   return { film, tiles, matrix, icon };
 }

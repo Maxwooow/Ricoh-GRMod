@@ -7,21 +7,22 @@ import { assembleWords, branchWord, movWord, wordsToBytes } from '../aspect/arm'
 import { sectionsOf } from '../container';
 import { normalizeIcon } from '../icons';
 import { FirmwareError } from '../types';
-import { buildGr3xAdjResearch, GR3X_ADJ } from './adj';
+import { buildGr3xAdjResearch, GR3X_ADJ, GR3X_TEXT_BOUND_IS_COMPARE, GR3X_TEXT_BOUND_WORDS, gr3xTextBound, gr3xTextBoundWord } from './adj';
 import type { Gr3xAdjFeatures } from './adj';
 import type { Gr3xMenuRatio } from './geometry';
-import { GR3X_160, openGr3xOfficial } from './profile';
+import { GR3X_PROFILE, openGr3xOfficial } from './profile';
 import { GR3X_FONT_VERIFIED_CHARS, GR3X_TEXT_ROWS, gr3xAllowedChars, validateGr3xLookNameFor } from './look-resources';
 import { GR3X_MOVIE_COUNT, installGr3xLookLayout, isGr3xFactoryLayout, validateGr3xLookLayout } from './look-layout';
+import { adr, adrHex, byRelease } from './target';
 
 export const GR3X_LOOK_RESEARCH = {
   // The native list has 12 + n + 2 widgets: twelve originals, n films and Custom 1/2 (nine films
   // in the camera-tested T6 builds; round 6 up to twenty, looks 64..83).
   firstId: 64, maxAdditions: 20,
-  count: 0x532c2a9c, countHook: 0x532c2acc,
-  item: 0x532c2c80, index: 0x532c2f08, maximumCount: 0x532c2b7c,
-  name: 0x532a985c, icon: 0x532a9988, shortName: 0x532922b4,
-  tileIcon: 0x532935dc,
+  count: adr(0x532c2a9c), countHook: adr(0x532c2acc),
+  item: adr(0x532c2c80), index: adr(0x532c2f08), maximumCount: adr(0x532c2b7c),
+  name: adr(0x532a985c), icon: adr(0x532a9988), shortName: adr(0x532922b4),
+  tileIcon: adr(0x532935dc),
   nativeStill: [11, 12, 13, 14, 15, 16, 22, 17, 18, 19, 20, 21],
   blockers: [
     'native setting validation, power-cycle and U-mode persistence',
@@ -76,7 +77,7 @@ export async function buildGr3xLookMenuResearch(raw: Uint8Array, looks: readonly
   const { decoded } = await openGr3xOfficial(raw);
   for (const look of looks) for (const [lang, text] of Object.entries(look.names ?? {}))
     if (text) validateGr3xLookNameFor(text, gr3xAllowedChars(decoded, lang as typeof GR3X_TEXT_ROWS[number]));
-  const p = GR3X_160, m = GR3X_ADJ, cfg = GR3X_LOOK_RESEARCH;
+  const p = GR3X_PROFILE, m = GR3X_ADJ, cfg = GR3X_LOOK_RESEARCH;
   const rtos = decoded.subarray(p.rtosOffset, p.rtosOffset + p.rtosLength);
   const parts: Uint8Array[] = [unhex(base.append.bytes)];
   let length = parts[0].length;
@@ -125,8 +126,9 @@ export async function buildGr3xLookMenuResearch(raw: Uint8Array, looks: readonly
   };
 
   const columns = base.catalogs.textColumns + looks.length + extraTexts.length;
+  const bound = gr3xTextBound(columns - 1);
   const rows = Array.from({ length: m.languages }, (_, language) => {
-    const row = new Uint8Array(columns * 4);
+    const row = new Uint8Array((bound + 1) * 4);
     row.set(read(u32(base.catalogs.textRoots + language * 4), base.catalogs.textColumns * 4));
     return row;
   });
@@ -166,7 +168,8 @@ export async function buildGr3xLookMenuResearch(raw: Uint8Array, looks: readonly
   });
   const textRoots = append(wordsToBytes(rows.map(row => append(row))));
   for (const [lo, hi] of m.textRootSites) pair(lo, hi, 3, m.textRoots, textRoots, 'research: extended look language directory');
-  for (const at of m.textBounds) patch(at, movWord(3, m.textCount - 1), movWord(3, columns - 1), 'research: extended look text bound');
+  if (GR3X_TEXT_BOUND_IS_COMPARE) m.textBounds.forEach((at, k) => patch(at, GR3X_TEXT_BOUND_WORDS[k], gr3xTextBoundWord(GR3X_TEXT_BOUND_WORDS[k], bound), 'research: extended look text bound'));
+  else for (const at of m.textBounds) patch(at, movWord(3, m.textCount - 1), movWord(3, columns - 1), 'research: extended look text bound');
 
   const icons = sectionsOf(decoded).find(s => s.name === 'ICONBIN');
   if (!icons) throw new FirmwareError('unexpected-layout', 'IIIx ICONBIN missing');
@@ -223,7 +226,7 @@ export async function buildGr3xLookMenuResearch(raw: Uint8Array, looks: readonly
     count = layoutEntries.lookLayoutCount; item = layoutEntries.lookLayoutItem; index = layoutEntries.lookLayoutIndex;
   } else {
     const order = append(Uint8Array.from(slots.map(s => s.id)));
-    count = code(`bhi #0x532c2ad0;cmp r3,#0;moveq r0,#${12 + slots.length};movne r0,#12;b #0x532c2ad4;`);
+    count = code(`bhi #${adrHex(0x532c2ad0)};cmp r3,#0;moveq r0,#${12 + slots.length};movne r0,#12;b #${adrHex(0x532c2ad4)};`);
     patch(cfg.countHook, 0x93a0000c, branchWord(cfg.countHook, count), 'research: extra still-photo look count');
     if (features.round10) {
       // Round 10 (GR IV: the added slots are in the movie list too): the films after the movie list's ten.
@@ -248,7 +251,7 @@ export async function buildGr3xLookMenuResearch(raw: Uint8Array, looks: readonly
     patch(cfg.index, 0xe1a0c00d, branchWord(cfg.index, index), 'research: extra still-photo look reverse lookup');
   }
   const maximum = code(`mov r0,#${12 + slots.length};bx lr;`);
-  patch(cfg.maximumCount, movWord(3, 0xd368), branchWord(cfg.maximumCount, maximum), 'research: maximum look menu allocation count');
+  patch(cfg.maximumCount, movWord(3, byRelease({ '1.60': 0xd368, '1.70': 0xcc98, '1.71': 0x1ec8 })), branchWord(cfg.maximumCount, maximum), 'research: maximum look menu allocation count');
 
   const payload = new Uint8Array((length + 3) & ~3);
   let cursor = 0; for (const part of parts) { payload.set(part, cursor); cursor += part.length; }

@@ -5,7 +5,7 @@
  * GR IIIx 1.70 / GR III 2.20. The engine keeps the program of the file it opened and calls only
  * through it, so an address of one program is never used with the other's file.
  */
-export { GR3X_160 as GR3_LAYOUT, GR3_PROFILES, gr3ProfileOf, openGr3xOfficial } from './profile';
+export { GR3X_PROFILE as GR3_LAYOUT, GR3_PROFILES, gr3ProfileOf, openGr3xOfficial } from './profile';
 export { buildGr3xTestFirmware } from './research-package';
 export { readGr3xFactoryEntry } from './factory';
 export { GR3X_CLARITY_OFFSET } from './clarity';
