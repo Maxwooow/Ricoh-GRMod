@@ -23,11 +23,23 @@ the rest; `npm run check` (and the Tests workflow) fails when they are out of st
 | --- | --- | --- | --- |
 | The official firmware releases GR Mod builds on | `releases.json` | `node tools/releases/generate.mjs` | `shell/internal/ricoh/releases_gen.go`, `Ricoh.java`, `Ricoh.swift`, `ui/src/releases.gen.ts`, the README's table |
 | The version numbers | `package.json` (desktop), `mobile/package.json` (phone) | `node tools/version.mjs desktop X.Y.Z` / `mobile X.Y.Z` | the lock files, `build.gradle` (`versionName`, `versionCode`), the Xcode project |
-| The programs for the later firmware | the program they were ported from, the address map and the `.patch` in `tools/port` | `python3 tools/port/generate.py tools/port/NAME.json` | `core/src/fw/gr4v120`, `gr4v121`, `gr3x170`, `gr3x171` and their `tools/` |
+| The programs for the later firmware (generated copies) | the program they were ported from, the address map and the `.patch` in `tools/port` | `python3 tools/port/generate.py tools/port/NAME.json` | `core/src/fw/gr4v120`, `gr3x170`, `gr3x171` and the `tools/` of every release |
+| The address table of a release that shares its program (GR IV 1.21) | the address map in `tools/port` | `python3 tools/port/addresses.py` | `core/src/fw/gr4v121/addresses.ts` |
+
+### One program, several releases
+
+GR IV 1.20 and 1.21 are one program, `core/src/fw/gr4v120`: its addresses are 1.20's and go through
+`adr(...)`, which for 1.21 looks them up in 1.21's table; the few other values that differ are
+`byRelease({...})` (`core/src/fw/release.ts`). `core/src/fw/gr4v121` holds only 1.21's own files.
+`core/overlays.mjs`, a small Vite plugin, loads gr4v120's modules a second time under gr4v121's
+paths so that they take 1.21's target. It is in every pipeline that loads the engine (core's and
+ui's Vitest, ui's build and its worker, the root `vite.config.mjs` for vite-node); without it the
+import of `fw/gr4v121` does not resolve and the build stops. The other releases are still generated
+copies; they are to follow the same way.
 
 ### Adding a firmware release
 
-1. Port the program ([tools/port/README.md](../tools/port/README.md)) and test it in the emulator and on a camera.
+1. Port the program ([tools/port/README.md](../tools/port/README.md): a new address table where the program has a target, a generated copy otherwise) and test it in the emulator and on a camera.
 2. Add the release to `releases.json`: the archive's name, size and SHA-256 on Ricoh's site, and the SHA-256 of
    the `.bin` inside (`firmwareSha256`, which must be the one the new program's `profile.ts` accepts).
 3. `node tools/releases/generate.mjs`, then `npm run check`.
@@ -55,6 +67,9 @@ cd mobile/android && ./gradlew testDebugUnitTest lintDebug     # needs `npm run 
   | GR IIIx 1.60 / 1.70 / 1.71 `fwdc243b.bin` | `GRMOD_GR3X_FIRMWARE`, `GRMOD_GR3X_170_FIRMWARE`, `GRMOD_GR3X_171_FIRMWARE` |
 
   Run them before any release that touches `core/`: they compare builds byte for byte with recorded ones.
+  `golden-builds.test.ts` is the widest of them: for each of the nine official files, some twenty recipes that
+  between them use every feature, with the SHA-256 of every file built (`golden-builds.json`). It takes about
+  fifteen minutes with all nine files.
 - `ui/test`: the store with the platform mocked (`store-gr3.test.mjs`), the Android updater, the texts (both
   languages have the same entries and variables), the release list against the engine, and that every part of
   the store and every page loads.
