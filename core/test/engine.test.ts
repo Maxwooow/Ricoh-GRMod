@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import { Engine, SHUTDOWN_H, SHUTDOWN_W, card, fw, jpeg, wallpaper } from '../src';
 
-const P = new URL('../testdata/private/', import.meta.url).pathname;
+const P = fileURLToPath(new URL('../testdata/private/', import.meta.url));
 
 /** Change one more word so that the 32-bit word sum of the payload is zero again (as a foreign tool would). */
 function fixSum(d: Uint8Array): Uint8Array {

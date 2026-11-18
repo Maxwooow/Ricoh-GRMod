@@ -9,9 +9,10 @@ import { existsSync, readFileSync } from 'node:fs';
 import { Engine, fw } from '../src';
 import { DIRECTFLASH_SOURCE_SHA256 } from '../src/fw/aspect/directflash-code';
 import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import { LANGS, allowedChars, readName } from '../src/fw/names';
 
-const P = new URL('../testdata/private/', import.meta.url).pathname;
+const P = fileURLToPath(new URL('../testdata/private/', import.meta.url));
 const have = existsSync(P + 'official.bin');
 const { aspect } = fw;
 

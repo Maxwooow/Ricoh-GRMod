@@ -16,15 +16,16 @@
 import { describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Engine } from '../src';
 import * as fw from '../src/fw';
 import type { BuildOptions, ExtraSlotSpec } from '../src';
 import { testPresetRequests, testRatios } from './fw-helpers/test-firmware';
 
-const GOLDEN = new URL('./golden-builds.json', import.meta.url).pathname;
+const GOLDEN = fileURLToPath(new URL('./golden-builds.json', import.meta.url));
 const record = process.env.GRMOD_GOLDEN === 'record';
 const FILES: Record<string, string | undefined> = {
-  'gr4-1.11': new URL('../testdata/private/official.bin', import.meta.url).pathname,
+  'gr4-1.11': fileURLToPath(new URL('../testdata/private/official.bin', import.meta.url)),
   'gr4-1.20': process.env.GRMOD_GR4_120_FIRMWARE, 'gr4-1.21': process.env.GRMOD_GR4_121_FIRMWARE,
   'gr3-2.10': process.env.GRMOD_GR3_FIRMWARE, 'gr3-2.20': process.env.GRMOD_GR3_220_FIRMWARE, 'gr3-2.21': process.env.GRMOD_GR3_221_FIRMWARE,
   'gr3x-1.60': process.env.GRMOD_GR3X_FIRMWARE, 'gr3x-1.70': process.env.GRMOD_GR3X_170_FIRMWARE, 'gr3x-1.71': process.env.GRMOD_GR3X_171_FIRMWARE,

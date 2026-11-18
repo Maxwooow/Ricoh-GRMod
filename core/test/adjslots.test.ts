@@ -9,8 +9,9 @@ import { existsSync, readFileSync } from 'node:fs';
 import { Engine, fw } from '../src';
 import { ADJSLOTS_CODE, ADJSLOTS_SOURCE_SHA256 } from '../src/fw/aspect/adjslots-code';
 import { createHash } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
-const P = new URL('../testdata/private/', import.meta.url).pathname;
+const P = fileURLToPath(new URL('../testdata/private/', import.meta.url));
 const have = existsSync(P + 'official.bin');
 const { aspect } = fw;
 

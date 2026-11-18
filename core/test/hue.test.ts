@@ -6,13 +6,14 @@
  */
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Engine, color, fw } from '../src';
 import { composeWithStandard, hueBlockBytes, hueCopy0, hueFromBlock, hueMatricesFromD, hueToQ10, HUE_BLOCK_BYTES } from '../src/color/hue';
 import { applyBeforeHue, beforeStandardHue } from '../src/color/hue-fit';
 import { convertCube } from '../src/color/convert';
 import { syntheticSamples } from '../src/color/convert';
 
-const P = new URL('../testdata/private/', import.meta.url).pathname;
+const P = fileURLToPath(new URL('../testdata/private/', import.meta.url));
 const have = existsSync(P + 'official.bin');
 const I = [1, 0, 0, 0, 1, 0, 0, 0, 1];
 const identity = (): number[][] => Array.from({ length: 12 }, () => I.slice());

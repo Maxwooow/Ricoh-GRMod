@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-only
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { Engine, fw } from '../src';
 import type { BuildOptions } from '../src/app/engine';
 
-const P = new URL('../testdata/private/', import.meta.url).pathname;
+const P = fileURLToPath(new URL('../testdata/private/', import.meta.url));
 const files = [
   { version: '1.11', path: P + 'official.bin', table: 0x53dba138, clamp: 0x532681a4, top: 0x532681c4 },
   { version: '1.20', path: process.env.GRMOD_GR4_120_FIRMWARE || P + 'official120.bin', table: 0x53de4968, clamp: 0x53269ffc, top: 0x5326a01c },
