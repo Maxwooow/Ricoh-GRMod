@@ -11,11 +11,11 @@ import { t, uiLangPref } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
 import { FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
-import { CropEditor, ImageControlPage, RatioPage, WallpaperPage } from './pages';
+import { BatteryPage, CropEditor, ImageControlPage, RatioPage, WallpaperPage } from './pages';
 import { Tour, replayTour, restartTours } from './tour';
 import { UpdatePill, UpdateWatcher, checkForUpdate, openWhatsNew } from './updates';
 import {
-  getState, isGr3, backupCopies, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setAppLanguage, setModel, setPage, setShowAll, useStore, wallReady,
+  pageOffered, getState, isGr3, backupCopies, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setAppLanguage, setModel, setPage, setShowAll, useStore, wallReady,
 } from './store';
 import type { State } from './store';
 
@@ -26,11 +26,13 @@ function Sidebar() {
   const model = useStore((s) => s.model);
   const menuPics = useStore((s) => !!s.info?.capabilities.menuPictures);
   const info = useStore((s) => !!s.info);
+  const battery = useStore((s) => pageOffered('battery', s));
   return (
     <aside className="sidebar">
       <nav>
         <button className={`nav ${page === 'ic' ? 'on' : ''}`} data-tour="nav-ic" onClick={() => setPage('ic')}>{Ico.aperture}<span>{t('navIC')}</span></button>
         <button className={`nav ${page === 'ratio' ? 'on' : ''}`} data-tour="nav-ratio" onClick={() => setPage('ratio')}>{Ico.ratio}<span>{t('navRatio')}</span></button>
+        {battery && <button className={`nav ${page === 'battery' ? 'on' : ''}`} data-tour="nav-battery" onClick={() => setPage('battery')}>{Ico.battery}<span>{t('navBatteryPage')}</span></button>}
         {(!isGr3(model) || menuPics || !info) && <button className={`nav ${page === 'wall' ? 'on' : ''}`} data-tour="nav-wall" onClick={() => setPage('wall')}>{Ico.image}<span>{t('navWall')}</span></button>}
       </nav>
       <div className="grow" />
@@ -85,7 +87,7 @@ function CopyActions() {
 
 /** Whether the page's output buttons can make a firmware file now. */
 function canOutput(s: State): boolean {
-  const isIC = s.page === 'ic' || s.page === 'ratio'; const isWall = s.page === 'wall';
+  const isIC = s.page === 'ic' || s.page === 'ratio' || s.page === 'battery'; const isWall = s.page === 'wall';
   return !!s.info && s.info.models.includes(s.model) && (isIC ? s.info.capabilities.build : isWall ? (s.info.capabilities.wallpaper || s.info.capabilities.menuPictures) : s.info.capabilities.factoryEntry) && !s.busy && (isIC ? (pendingChanges(s).length + ratioSpecs(s).length > 0 || extrasOn(s) || (s.model !== 'MONO' && s.info.family !== 'gr3x' && s.extras.length > 0) || menuPictures(s).length > 0) && !hasNameErrors(s) && !hasRatioErrors(s) : isWall ? wallReady(s) && !hasNameErrors(s) && !hasRatioErrors(s) : true);
 }
 
@@ -146,6 +148,7 @@ export function App() {
   const gr3 = useStore((s) => isGr3(s.model));
   const menuPicsReady = useStore((s) => !!s.info?.capabilities.menuPictures);
   const fwOpen = useStore((s) => !!s.info);
+  const batteryOk = useStore((s) => pageOffered('battery', s));
   const ready = useStore((s) => s.ready);
   if (!host.available) return <div className="nohost">{t('hostMissing')}</div>;
   if (isMobile) return <Crashed><MobileApp /></Crashed>;
@@ -153,7 +156,7 @@ export function App() {
     <div className="app" onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }} onDrop={(e) => e.preventDefault()}>
       <Sidebar />
       <main className="main">
-        <div className="stage">{ready ? (page === 'ratio' ? <RatioPage /> : page === 'wall' && (!gr3 || menuPicsReady || !fwOpen) ? <WallpaperPage /> : page === 'copies' ? <CopiesPage /> : <ImageControlPage />) : <div className="page"><span className="spinner" /></div>}</div>
+        <div className="stage">{ready ? (page === 'ratio' ? <RatioPage /> : page === 'battery' && batteryOk ? <BatteryPage /> : page === 'wall' && (!gr3 || menuPicsReady || !fwOpen) ? <WallpaperPage /> : page === 'copies' ? <CopiesPage /> : <ImageControlPage />) : <div className="page"><span className="spinner" /></div>}</div>
         <OutputBar />
       </main>
       <CropEditor />
@@ -169,7 +172,7 @@ export function App() {
 
 // ------------------------------------------------------------------ Android: the same pages in a phone layout
 
-const PAGE_TITLE: Record<string, Key> = { ic: 'navIC', ratio: 'navRatio', wall: 'navWall', copies: 'navIC' };
+const PAGE_TITLE: Record<string, Key> = { ic: 'navIC', ratio: 'navRatio', battery: 'navBatteryPage', wall: 'navWall', copies: 'navIC' };
 
 function MobileTop({ onSettings, wide }: { onSettings: () => void; wide: boolean }) {
   const page = useStore((s) => s.page);
@@ -248,9 +251,11 @@ function usePageTabs(): { p: TabPage; icon: React.ReactNode; key: Key }[] {
   const model = useStore((s) => s.model);
   const menuPics = useStore((s) => !!s.info?.capabilities.menuPictures);
   const info = useStore((s) => !!s.info);
+  const battery = useStore((s) => pageOffered('battery', s));
   return [
     { p: 'ic', icon: Ico.aperture, key: 'navIC' },
     { p: 'ratio', icon: Ico.ratio, key: 'navRatio' },
+    ...(battery ? [{ p: 'battery' as TabPage, icon: Ico.battery, key: 'navBatteryPage' as Key }] : []),
     ...((!isGr3(model) || menuPics || !info) ? [{ p: 'wall' as TabPage, icon: Ico.image, key: 'navWall' as Key }] : []),
   ];
 }
@@ -315,7 +320,7 @@ function MobileActions() {
   );
 }
 
-type TabPage = 'ic' | 'ratio' | 'wall';
+type TabPage = 'ic' | 'ratio' | 'battery' | 'wall';
 
 /**
  * The page tabs: a floating bar of glass with a lens over the current tab (after Kyant0/AndroidLiquidGlass).
@@ -451,6 +456,7 @@ function MobileApp() {
   const gr3 = useStore((s) => isGr3(s.model));
   const menuPicsReady = useStore((s) => !!s.info?.capabilities.menuPictures);
   const fwOpen = useStore((s) => !!s.info);
+  const batteryOk = useStore((s) => pageOffered('battery', s));
   const ready = useStore((s) => s.ready);
   const [settings, setSettings] = useState(false);
   const wide = useWide();
@@ -477,7 +483,7 @@ function MobileApp() {
     if (!el || from === page) return;
     shown.current = page;
     el.scrollTop = scrolls.current[page] ?? 0;
-    const ORDER = ['ic', 'ratio', 'wall'];
+    const ORDER = ['ic', 'ratio', 'battery', 'wall'];
     const dir = Math.sign(ORDER.indexOf(page) - ORDER.indexOf(from)) || 1;
     const view = el.firstElementChild as HTMLElement | null;
     if (view && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -488,7 +494,7 @@ function MobileApp() {
     <>
       <MobileTop wide={wide} onSettings={() => setSettings(true)} />
       <main className="main">
-        <div className="stage" ref={stage} onScroll={(e) => { scrolls.current[shown.current] = e.currentTarget.scrollTop; }}>{ready ? (page === 'ratio' ? <RatioPage /> : page === 'wall' && (!gr3 || menuPicsReady || !fwOpen) ? <WallpaperPage /> : <ImageControlPage />) : <div className="page"><span className="spinner" /></div>}</div>
+        <div className="stage" ref={stage} onScroll={(e) => { scrolls.current[shown.current] = e.currentTarget.scrollTop; }}>{ready ? (page === 'ratio' ? <RatioPage /> : page === 'battery' && batteryOk ? <BatteryPage /> : page === 'wall' && (!gr3 || menuPicsReady || !fwOpen) ? <WallpaperPage /> : <ImageControlPage />) : <div className="page"><span className="spinner" /></div>}</div>
       </main>
       {/* both float over the page, which scrolls on under them */}
       <MobileActions />

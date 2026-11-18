@@ -2,7 +2,7 @@ import type { CameraModel, LangCode } from '@grmod/core';
 import { engine, EngineError } from '../engine';
 import { host } from '../host';
 import { setUiLangPref, t, uiLangPref } from '../i18n';
-import { Page, TOUR_IDS, TourId, cameraLang, fail, isGr3, set, slotOf, state, supportedList, toast } from './core';
+import { Page, State, TOUR_IDS, TourId, cameraLang, fail, isGr3, set, slotOf, state, supportedList, toast } from './core';
 import { LEGACY_FW_GROUP_NAME, cancelSave, enterFamily, familyOf, fwGroupOf, fwKey, keptFirmware, leaveFamily, saveProject, scheduleSave } from './families';
 import { allSlotKeys, renderIcon, runPreset } from './slots';
 import { encodeWall } from './wall';
@@ -39,8 +39,15 @@ export function endTour(): void {
 }
 
 // ------------------------------------------------------------------ settings
+/** Pages of additions that only some firmware has: offered when the open firmware has the addition, or, with none open yet, for the GR IV. */
+export function pageOffered(page: Page, s: State = state): boolean {
+  if (page === 'battery') return s.info ? !!s.info.features.batteryPercent : !isGr3(s.model);
+  return true;
+}
+
 export function setPage(page: Page): void {
   if (page === 'wall' && isGr3(state.model) && state.info && !state.info.capabilities.menuPictures) return; // power-off pictures: GR III / IIIx with the End Screen menu
+  if (!pageOffered(page)) return;
   set({ page }); scheduleSave(); if (page === 'copies') void refreshCopies();
 }
 export async function setAppLanguage(v: '' | 'zh' | 'en'): Promise<void> {
@@ -74,6 +81,7 @@ export function setModel(model: CameraModel): void {
       copyInfo: {}, copySel: [], ratios: state.ratios.map(({ preview, ...r }) => r) });
   }
   set({ model });
+  if (!pageOffered(state.page)) set({ page: 'ic' });
   // The other camera's work comes back (its pictures are encoded again once read).
   if (differentFamily) enterFamily(familyOf(model));
   else for (const w of state.wall) void encodeWall(w.id);
@@ -108,6 +116,7 @@ export async function openFirmware(raw: Uint8Array, name: string, persist: boole
     const sameFamily = familyOf(state.model) === familyOf(model);
     if (!sameFamily) leaveFamily();
     set({ info, raw, model, fwName: info.filename, fwBusy: false, copyInfo: {}, copySel: [], });
+    if (!pageOffered(state.page)) set({ page: 'ic' });
     // Opening the other camera's firmware brings back that camera's work.
     if (!sameFamily) enterFamily(familyOf(model));
     if (info.family === 'gr3x') set((s) => ({ dateStamp: s.dateStamp && info.features.dateStamp, monoUnlock: s.monoUnlock && info.features.monoUnlock }));

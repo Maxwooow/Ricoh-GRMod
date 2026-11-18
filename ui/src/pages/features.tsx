@@ -7,7 +7,7 @@ import { uiScale } from '../fit';
 import { useStore, setSoft, setDateStamp, setMonoUnlock, setDirectFlash, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setBrightAuto } from '../store';
 
 /** One switch of the firmware additions: icon, name, one line of detail. */
-function FeatureRow({ icon, title, sub, on, onChange, tour }: { icon: ReactNode; title: string; sub: string; on: boolean; onChange: (v: boolean) => void; tour?: string }) {
+export function FeatureRow({ icon, title, sub, on, onChange, tour }: { icon: ReactNode; title: string; sub: string; on: boolean; onChange: (v: boolean) => void; tour?: string }) {
   return (
     <div className={`soft-switch ${on ? 'on' : ''}`} data-tour={tour}>
       <span className="page-icon soft-ico">{icon}</span>

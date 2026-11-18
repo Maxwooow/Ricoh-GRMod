@@ -124,6 +124,8 @@ const zh = {
   softAdjSub: '拍摄后直接获得柔光滤光镜效果', softAdjLine: '柔焦  ·  ADJ 拨杆（关闭 / 弱 / 中 / 强）',
   softAdjMenuLine: '柔焦  ·  ADJ 拨杆和[拍摄菜单] › [影像处理设定] › [柔焦]（关闭 / 弱 / 中 / 强）',
   navPreview: '曝光预览开关', previewSub: '在照相机中选择实时显示是否随曝光设定改变亮度：开启 / 直闪模式时关闭 / 始终关闭（默认开启）。',
+  navBattery: '电量百分比', batterySub: '以 10% 为一档显示电量，代替电量格', batteryLine: '电量百分比  ·  以 10% 为一档', batteryChip: '电量 %', navBatteryPage: '电池', batteryLook: '照相机上的显示',
+  batteryNote: '照相机固件 1.11。数字以 10% 为一档，只有电量明显变化时才会改变。电量低于 5% 或使用 USB 供电时，显示照相机原来的图标。',
   previewLine: '曝光预览  ·  [拍摄菜单] › [曝光设定] › [曝光预览]和 ADJ（开启 / 直闪模式时关闭 / 始终关闭）',
   previewLineNoFlash: '曝光预览  ·  [拍摄菜单] › [曝光设定] › [曝光预览]和 ADJ（开启 / 关闭）',
   navDate: '时间戳', dateSub: '将日期（可附加影像控制名称）打印在照片上', dateLine: '时间戳  ·  [拍摄辅助] › [拍摄时间戳]（\'26 10 08 / 2026.10.08 17:34，各可附加名称）',
@@ -150,6 +152,7 @@ const zh = {
   tIcFFlashB: '闪光灯以固定功率闪光时，照相机根据对焦距离和输入的闪光灯 GN 值设定曝光。',
   tIcFHdrB: '在 JPEG 中写入 HDR 增益图，在支持 HDR 的显示屏上查看时，高光部分更亮。可在[拍摄菜单] › [HDR]中开启或关闭。',
   tIcFPreviewB: '照相机固件 1.20 及以上：在[拍摄菜单] › [曝光设定] › [曝光预览]或 ADJ 中，选择实时显示是否随曝光设定改变亮度（开启 / 直闪模式时关闭 / 始终关闭）。',
+  tBatteryB: '照相机固件 1.11：照相机以百分比测量电量，但只显示电量格，而电量格在电量降到一半左右之前一直是满的。开启后，拍摄和回放画面上的电池图标显示电量，以 10% 为一档；只有电量明显变化时数字才会改变。电量低于 5% 或使用 USB 供电时，显示照相机原来的图标。',
   tIcFAdjB: '将 ADJ 拨杆的栏目增加至所选数量，并可在照相机的[自定义设定] › [ADJ 模式设定]中设定每个栏目的功能。',
   tIcFBrightB: '照相机的户外显示设定为自动时，提高显示屏在室内光线下的亮度：[稍亮]适度提高，[最亮]进一步提高；最高亮度不变。',
   // Android
@@ -320,6 +323,8 @@ const en: typeof zh = {
   softAdjSub: 'A soft-focus filter look, straight out of camera', softAdjLine: 'Soft focus  ·  ADJ lever (off / low / medium / high)',
   softAdjMenuLine: 'Soft focus  ·  ADJ lever and Shooting › Image Process Settings › Soft Focus (off / low / medium / high)',
   navPreview: 'Exposure preview switch', previewSub: 'Choose in the camera whether the live view gets brighter and darker with the exposure set: On / Off in Direct Flash / Always Off (On by default).',
+  navBattery: 'Battery percentage', batterySub: 'Shows the charge in steps of 10% instead of the bars', batteryLine: 'Battery percentage  ·  in steps of 10%', batteryChip: 'Battery %', navBatteryPage: 'Battery', batteryLook: 'On the camera',
+  batteryNote: 'Camera firmware 1.11. The number moves in steps of 10%, and only when the charge clearly changes. Below 5% and on USB power the camera shows its own icon.',
   previewLine: 'Exposure preview  ·  Shooting › Exposure Settings › Exposure Preview and ADJ (On / Off in Direct Flash / Always Off)',
   previewLineNoFlash: 'Exposure preview  ·  Shooting › Exposure Settings › Exposure Preview and ADJ (On / Off)',
   navDate: 'Date imprint', dateSub: 'Print the date (and the look\'s name) on photos', dateLine: 'Date imprint  ·  Shooting Assist › Date Imprint (\'26 10 08 / 2026.10.08 17:34, each with or without the look\'s name)',
@@ -346,6 +351,7 @@ const en: typeof zh = {
   tIcFFlashB: 'When the flash fires at a fixed power, Direct Flash sets the exposure from the focus distance and the flash\'s guide number you enter.',
   tIcFHdrB: 'Writes an HDR gain map into the JPEGs, so the highlights show brighter on HDR screens. Switched on and off in the camera under Shooting › HDR.',
   tIcFPreviewB: 'Camera firmware 1.20 and later: choose under Shooting › Exposure Settings › Exposure Preview or on the ADJ lever whether the live view gets brighter and darker with the exposure set (On / Off in Direct Flash / Always Off).',
+  tBatteryB: 'Camera firmware 1.11: the camera measures the charge in percent but shows only bars, which stay full until the battery is about half empty. With this on, the battery icon on the shooting and playback screens shows the charge in steps of 10%; the number changes only when the charge clearly moves. Below 5% and on USB power the camera shows its own icons.',
   tIcFAdjB: 'Raises the number of items on the ADJ lever to the number chosen; what each one does is set in the camera under Customize Settings › ADJ Mode Setting.',
   tIcFBrightB: 'With the camera\'s Outdoor View Setting on Auto, the screen is brighter in indoor light: Brighter a little, Brightest more; the highest brightness stays as it is.',
   // Android

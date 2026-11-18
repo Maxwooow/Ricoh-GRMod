@@ -7,6 +7,7 @@
  *     look-order     the menu order list with drag and drop
  *     features       the switches of the firmware additions
  *   ratio          added aspect ratios
+ *   battery        the battery percentage (GR IV)
  *   wallpaper      power-off pictures
  *   crop           the crop editor of a power-off picture
  *   files          what kind of file was dropped
@@ -18,5 +19,6 @@ export * from './pages/look-order';
 export * from './pages/features';
 export * from './pages/image-control';
 export * from './pages/ratio';
+export * from './pages/battery';
 export * from './pages/wallpaper';
 export * from './pages/crop';

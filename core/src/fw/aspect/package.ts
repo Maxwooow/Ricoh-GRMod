@@ -21,7 +21,8 @@
  * menu order, u8 h, the h hidden styles; bit 7 (0.8.4): Direct Flash (`directflash.ts`)). Then
  * (0.8.6) one more byte of additions, where earlier builds have their zero padding: bit 0, the HDR
  * gain map (`hdrgain.ts`); bit 1, ADJ lever slots (`adjslots.ts`), their number (6..8) follows in
- * one more byte. Bit 2: a following bright-Auto curve byte (1 bright, 2 balanced).
+ * one more byte. Bit 2: a following bright-Auto curve byte (1 bright, 2 balanced). Bit 7: a third
+ * byte of additions follows, after those bytes: bit 2, the battery percentage (`battery.ts`).
  * A build without them reads as before; earlier programs do not take a record with
  * this byte set.
  *
@@ -77,6 +78,10 @@ const FEATURE2_HDR_GAIN_MAP = 1;
 const FEATURE2_ADJ_SLOTS = 2;
 /** A following byte selects 1 = bright or 2 = balanced. */
 const FEATURE2_BRIGHT_AUTO = 4;
+/** Second feature byte: bit 7, a third feature byte follows (after the bytes of bits 1 and 2). */
+const FEATURE2_MORE = 128;
+/** Third feature byte: bit 2, the battery percentage (`battery.ts`). */
+const FEATURE3_BATTERY = 4;
 
 /**
  * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
@@ -104,13 +109,15 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
     bytes.push(layout.order.length, ...layout.order, layout.hidden.length, ...layout.hidden);
   }
   if (features.directFlash && revision < 3) fail('internal', 'Direct Flash needs revision 3');
-  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5)) {
+  const f3 = features.batteryPercent ? FEATURE3_BATTERY : 0;
+  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || f3) {
     if (revision < 3) fail('internal', 'the HDR gain map and ADJ slots need revision 3');
     const adj = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
     if (adj && !(Number.isInteger(adj) && adj <= ADJ_SLOTS_MAX)) fail('internal', 'ADJ slots cannot be recorded');
-    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.brightAuto ? FEATURE2_BRIGHT_AUTO : 0));
+    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.brightAuto ? FEATURE2_BRIGHT_AUTO : 0) | (f3 ? FEATURE2_MORE : 0));
     if (adj) bytes.push(adj);
     if (features.brightAuto) bytes.push(features.brightAuto === 'balanced' ? 2 : 1);
+    if (f3) bytes.push(f3);
   }
   while (bytes.length % 4) bytes.push(0);
   return Uint8Array.from(bytes);
@@ -201,7 +208,7 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
     if (f & FEATURE_DIRECT_FLASH) features.directFlash = true;
     if (p < rec.length) {
       const f2 = rec[p++];
-      if ((f2 & ~(FEATURE2_HDR_GAIN_MAP | FEATURE2_ADJ_SLOTS | FEATURE2_BRIGHT_AUTO)) !== 0) return null;
+      if ((f2 & ~(FEATURE2_HDR_GAIN_MAP | FEATURE2_ADJ_SLOTS | FEATURE2_BRIGHT_AUTO | FEATURE2_MORE)) !== 0) return null;
       if (f2 & FEATURE2_HDR_GAIN_MAP) features.hdrGainMap = true;
       if (f2 & FEATURE2_ADJ_SLOTS) {
         if (p >= rec.length) return null;
@@ -215,8 +222,14 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
         if (mode !== 1 && mode !== 2) return null;
         features.brightAuto = mode === 2 ? 'balanced' : 'bright';
       }
+      if (f2 & FEATURE2_MORE) {
+        if (p >= rec.length) return null;
+        const f3 = rec[p++];
+        if (f3 === 0 || (f3 & ~FEATURE3_BATTERY) !== 0) return null;
+        if (f3 & FEATURE3_BATTERY) features.batteryPercent = true;
+      }
     }
-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.brightAuto) return null;
+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.brightAuto && !features.batteryPercent) return null;
   }
   for (; p < rec.length; p++) if (rec[p] !== 0) return null;
   return { specs: out, features, extraSlots, shutdownPictures };
