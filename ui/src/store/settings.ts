@@ -2,7 +2,7 @@ import type { CameraModel, LangCode } from '@grmod/core';
 import { engine, EngineError } from '../engine';
 import { host } from '../host';
 import { setUiLangPref, t, uiLangPref } from '../i18n';
-import { Page, TourId, cameraLang, fail, isGr3, set, slotOf, state, supportedList, toast } from './core';
+import { Page, TOUR_IDS, TourId, cameraLang, fail, isGr3, set, slotOf, state, supportedList, toast } from './core';
 import { LEGACY_FW_GROUP_NAME, cancelSave, enterFamily, familyOf, fwGroupOf, fwKey, keptFirmware, leaveFamily, saveProject, scheduleSave } from './families';
 import { allSlotKeys, renderIcon, runPreset } from './slots';
 import { encodeWall } from './wall';
@@ -25,6 +25,11 @@ export function tourStep(delta: 1 | -1): void {
 }
 /** Forget which tours were seen (and stop the one running): they start by themselves again. */
 export function resetTours(): void { set({ tour: undefined, toursSeen: [] }); scheduleSave(); }
+/** "Skip guides" on a guide that started by itself: it ends, and no guide starts by itself again (until resetTours). */
+export function skipTours(): void {
+  set({ tour: undefined, toursSeen: [...TOUR_IDS] });
+  scheduleSave();
+}
 /** Finished or skipped: either way it is not started by itself again. */
 export function endTour(): void {
   const tr = state.tour;
