@@ -4,7 +4,7 @@ import { engine } from '../engine';
 import { host } from '../host';
 import { t } from '../i18n';
 import type { Key } from '../i18n';
-import { RatioItem, State, emptySlot, filmCountChoosable, isGr3, set, state, toast } from './core';
+import { RatioItem, ShadeTone, State, emptySlot, filmCountChoosable, isGr3, set, state, toast } from './core';
 import { presetKey, scheduleSave } from './families';
 
 // ------------------------------------------------------------------ added aspect ratios
@@ -126,3 +126,21 @@ export function removeFilm(id: SlotId): void {
   }
 }
 export function setActiveRatio(id: string): void { if (state.activeRatio !== id) set({ activeRatio: id }); }
+
+// ------------------------------------------------------------------ live-view shade (GR IV 1.11)
+export function setRatioShade(ratioShade: boolean): void {
+  if (ratioShade && !state.info?.features.ratioShade) return;
+  set({ ratioShade }); scheduleSave();
+}
+/** The live view's one choice: the photo area only ('100'), or the whole frame with the outside darkened ('50' / '25'). */
+export type LiveView = '100' | '50' | '25';
+export function liveViewOf(s: State = state): LiveView { return !s.ratioShade ? '100' : s.ratioShadeTone === 'light' ? '25' : '50'; }
+export function setLiveView(v: LiveView): void {
+  if (v === '100') { setRatioShade(false); return; }
+  if (!state.info?.features.ratioShade) return;
+  set({ ratioShade: true, ratioShadeTone: v === '25' ? 'light' : 'dark' }); scheduleSave();
+}
+/** How dark the outside of the photo is, for the summaries. */
+export function toneLabel(tone: ShadeTone): string { return tone === 'light' ? '25%' : '50%'; }
+/** The live-view shade goes into a build: chosen, offered by the open firmware, and there is an added ratio. */
+export function ratioShadeOn(s: State = state, ratios = ratioSpecs(s)): boolean { return !!s.ratioShade && !!s.info?.features.ratioShade && ratios.length > 0; }

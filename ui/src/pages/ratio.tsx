@@ -3,8 +3,8 @@ import { GR3X_RATIO_NAME_MAX } from '@grmod/core';
 import { DropZone, FileButton, Ico, RatioIcon, Segmented } from '../components';
 import { FirmwareHero } from '../firmware';
 import { t } from '../i18n';
-import { addRatio, loadFirmwareFile, loadPreviewFile, previewPhoto, maxRatios, ratioName, ratioProblem, removeRatio, setActiveRatio, setRatio, setRatioBackdrop, useStore } from '../store';
-import type { RatioItem } from '../store';
+import { addRatio, loadFirmwareFile, loadPreviewFile, previewPhoto, maxRatios, ratioName, ratioProblem, removeRatio, setActiveRatio, setRatio, setRatioBackdrop, liveViewOf, setLiveView, useStore } from '../store';
+import type { LiveView, RatioItem } from '../store';
 import { isFirmware, isImage } from './files';
 import { pick } from './slot-cards';
 
@@ -44,6 +44,9 @@ function RatioRow({ r, active, tour }: { r: RatioItem; active: boolean; tour?: s
 function RatioPane({ r }: { r?: RatioItem }) {
   const rev = useStore((s) => s.photoRev);
   const backdrop = useStore((s) => s.ratioBackdrop);
+  // With the live-view shade the camera darkens the outside (black at 50 % or grey at 25 %); the preview does the same.
+  const shade = useStore((s) => s.ratioShade && !!s.info?.features.ratioShade);
+  const tone = useStore((s) => s.ratioShadeTone);
   const photo = useMemo(() => previewPhoto(), [rev]); // eslint-disable-line react-hooks/exhaustive-deps
   const ref = useRef<HTMLCanvasElement>(null);
   const showPhoto = backdrop === 'photo' && !!photo;
@@ -64,7 +67,7 @@ function RatioPane({ r }: { r?: RatioItem }) {
         <Segmented tour="ratio-backdrop" value={backdrop} onChange={setRatioBackdrop} options={[{ value: 'photo', label: t('previewPhoto') }, { value: 'gray', label: t('ratioGray') }]} />
       </div>
       <div className="ratio-body" data-tour="ratio-frame" data-tour-fit="">
-        <div className={`ratio-frame ${showPhoto ? '' : 'gray'}`}>
+        <div className={`ratio-frame ${showPhoto ? '' : 'gray'} ${shade ? `live-shade tone-${tone}` : ''}`}>
           {showPhoto && <canvas ref={ref} className="ratio-photo" />}
           {sc && (
             <>
@@ -95,6 +98,8 @@ export function RatioPage() {
   const max = useStore((s) => maxRatios(s));
   const full = ratios.length >= max;
   const used = new Set(ratios.map((r) => r.ratio.trim()));
+  const shadeOk = !!info?.features.ratioShade;
+  const live = useStore((s) => liveViewOf(s));
   return (
     <DropZone className="page" accept={isFirmware} onFiles={(f) => { void loadFirmwareFile(f[0]); }}>
       <header className="page-head">
@@ -118,6 +123,14 @@ export function RatioPage() {
                 <div className="chips" data-tour="ratio-common">
                   {COMMON_RATIOS.filter((c) => !used.has(c)).map((c) => <button key={c} className="btn ghost small" onClick={() => addRatio(c)}>{c}</button>)}
                 </div>
+              </div>
+            )}
+            {shadeOk && (
+              <div className="ratio-live" data-tour="ratio-live">
+                <span className="muted small">{t('ratioLive')}</span>
+                <Segmented<LiveView> value={live} onChange={setLiveView}
+                  options={[{ value: '100', label: '100%' }, { value: '50', label: '50%' }, { value: '25', label: '25%' }]} />
+                <p className="muted small">{t('ratioLiveTip')}</p>
               </div>
             )}
           </div>

@@ -22,8 +22,10 @@
  * (0.8.6) one more byte of additions, where earlier builds have their zero padding: bit 0, the HDR
  * gain map (`hdrgain.ts`); bit 1, ADJ lever slots (`adjslots.ts`), their number (6..8) follows in
  * one more byte. Bit 2: a following bright-Auto curve byte (1 bright, 2 balanced). Bit 7: a third
- * byte of additions follows, after those bytes: bit 2, the battery percentage (`battery.ts`); bit 3,
- * custom grid lines (`grid.ts`), followed by two bytes, the 3x3 and the 4x4 style's lines (line i in bit i).
+ * byte of additions follows, after those bytes: bit 0, live view of the added ratios with the
+ * whole frame and the part outside darkened (`shade.ts`); bit 1, its lighter colour ('light');
+ * bit 2, the battery percentage (`battery.ts`); bit 3, custom grid lines (`grid.ts`), followed by
+ * two bytes, the 3x3 and the 4x4 style's lines (line i in bit i).
  * A build without them reads as before; earlier programs do not take a record with
  * this byte set.
  *
@@ -82,6 +84,10 @@ const FEATURE2_ADJ_SLOTS = 2;
 const FEATURE2_BRIGHT_AUTO = 4;
 /** Second feature byte: bit 7, a third feature byte follows (after the bytes of bits 1 and 2). */
 const FEATURE2_MORE = 128;
+/** Third feature byte: bit 0, live view of the added ratios with the part outside darkened (`shade.ts`). */
+const FEATURE3_RATIO_SHADE = 1;
+/** Third feature byte: bit 1, the shade is 'light' (grey at 25 %) instead of 'dark' (black at 50 %); only with bit 0. */
+const FEATURE3_SHADE_LIGHT = 2;
 /** Third feature byte: bit 2, the battery percentage (`battery.ts`). */
 const FEATURE3_BATTERY = 4;
 /** Third feature byte: bit 3, custom grid lines (`grid.ts`); two bytes follow, the 3x3 and the 4x4 style's lines. */
@@ -113,7 +119,11 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
     bytes.push(layout.order.length, ...layout.order, layout.hidden.length, ...layout.hidden);
   }
   if (features.directFlash && revision < 3) fail('internal', 'Direct Flash needs revision 3');
-  const f3 = (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0);
+  const tone = features.ratioShadeTone ?? 'dark';
+  if (tone !== 'dark' && tone !== 'light') fail('internal', 'unknown shade tone');
+  if (tone !== 'dark' && !features.ratioShade) fail('internal', 'a shade tone needs the live-view shade');
+  if (features.ratioShade && specs.length === 0) fail('internal', 'the live-view shade needs an added ratio');
+  const f3 = (features.ratioShade ? FEATURE3_RATIO_SHADE : 0) | (tone === 'light' ? FEATURE3_SHADE_LIGHT : 0) | (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0);
   if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || f3) {
     if (revision < 3) fail('internal', 'the HDR gain map and ADJ slots need revision 3');
     const adj = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
@@ -230,7 +240,12 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
       if (f2 & FEATURE2_MORE) {
         if (p >= rec.length) return null;
         const f3 = rec[p++];
-        if (f3 === 0 || (f3 & ~(FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID)) !== 0) return null;
+        if (f3 === 0 || (f3 & ~(FEATURE3_RATIO_SHADE | FEATURE3_SHADE_LIGHT | FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID)) !== 0) return null;
+        if (f3 & FEATURE3_RATIO_SHADE) {
+          if (count === 0) return null;
+          features.ratioShade = true;
+          if (f3 & FEATURE3_SHADE_LIGHT) features.ratioShadeTone = 'light';
+        } else if (f3 & FEATURE3_SHADE_LIGHT) return null;
         if (f3 & FEATURE3_BATTERY) features.batteryPercent = true;
         if (f3 & FEATURE3_CUSTOM_GRID) {
           if (p + 2 > rec.length) return null;

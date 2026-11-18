@@ -47,6 +47,8 @@ import { installAdjSlots } from './adjslots';
 import { installBatteryPercent } from './battery';
 import { installCustomGrid, isCameraGrid, validCustomGrid } from './grid';
 import type { CustomGrid } from './grid';
+import { installRatioShade } from './shade';
+import type { ShadeTone } from './shade';
 import { LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
 import type { ShutdownPictureSpec } from './shutdown';
 import { adr, adrHEX, adrText } from '../target';
@@ -162,6 +164,13 @@ export interface ExtensionFeatures {
   batteryPercent?: boolean;
   /** Which lines the camera's 3x3 and 4x4 grid styles draw, each on or off (see `grid.ts`); never the camera's own grids. */
   customGrid?: CustomGrid;
+  /**
+   * Live view of an added ratio shows the whole 3:2 frame, the part outside the ratio darkened
+   * (see `shade.ts`); the photo is cropped as before. Needs at least one added ratio.
+   */
+  ratioShade?: boolean;
+  /** How dark the shade is (`shade.ts`): 'dark' (black at 50 %, the default) or 'light' (grey at 25 %). */
+  ratioShadeTone?: ShadeTone;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -1050,8 +1059,9 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
   const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
   const adjSlots = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
-  const extra = !!features.brightAuto || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid;
+  const extra = !!features.brightAuto || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade;
   if (features.customGrid && (!validCustomGrid(features.customGrid) || isCameraGrid(features.customGrid))) fail('internal', 'a custom grid must differ from the camera’s');
+  if (features.ratioShade && ratios.length === 0) fail('internal', 'the live-view shade needs an added ratio');
   if (extra) revision = 3;
   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
@@ -1072,8 +1082,9 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
     const installed = installIcons(patch, iconbin, ratios);
     icons = installed.iconbin;
     const menu = installMenu(patch, ratios, installed.ids);
-    const { p, scale } = buildGeometry(patch, ratios);
+    const { p, get, scale } = buildGeometry(patch, ratios);
     installDevelop(p, scale, ratios);
+    if (features.ratioShade) installRatioShade(p, get, scale, features.ratioShadeTone ?? 'dark');
     installRaw(patch, ratios);
     installState(patch, ratios, menu.activeBitmap);
     installImageIdentity(patch, ratios);
@@ -1133,5 +1144,5 @@ export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios:
   if (features.customGrid) installCustomGrid(patch, features.customGrid);
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}) } };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true, ...(features.ratioShadeTone && features.ratioShadeTone !== 'dark' ? { ratioShadeTone: features.ratioShadeTone } : {}) } : {}) } };
 }

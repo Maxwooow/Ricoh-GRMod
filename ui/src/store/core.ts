@@ -1,6 +1,9 @@
 import { useSyncExternalStore } from 'react';
 import { CAMERA_GRID, card, GR3X_FILM_IDS, GRID_LINE_COUNT, LANGS } from '@grmod/core';
-import type { CameraModel, CustomGrid, FirmwareInfo, FirmwareSummary, LangCode, PresetResult, RatioPreview, SlotId } from '@grmod/core';
+import type { CameraModel, CustomGrid, FirmwareInfo, FirmwareSummary, LangCode, PresetResult, RatioPreview, ShadeTone, SlotId } from '@grmod/core';
+
+/** How dark the live-view shade is: black at 50 % or grey at 25 % (core's ShadeTone). */
+export type { ShadeTone };
 import { EngineError } from '../engine';
 import { HostError } from '../host';
 import type { ParkedEntry, Volume } from '../host';
@@ -79,6 +82,10 @@ export interface State {
   hdr: boolean;
   /** GR IV 1.20: exposure preview as a camera setting (Shooting › Exposure Settings, ADJ lever). */
   exposurePreview: boolean;
+  /** GR IV 1.11: live view of the added ratios shows the whole frame with the part outside darkened, instead of the photo area only. */
+  ratioShade: boolean;
+  /** How dark the live-view shade is (UI palette black 50 % / grey 25 %). */
+  ratioShadeTone: ShadeTone;
   /** GR IV 1.11: the battery icon shows the charge in steps of 10 % instead of the bars. */
   battery: boolean;
   /** GR IV 1.11: custom grid lines (`gridLines`) instead of the camera's own grids. */
@@ -119,7 +126,7 @@ export const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', te
 export const emptySlots = (): Record<SlotId, SlotState> => Object.fromEntries(SLOT_IDS.map(id => [id, emptySlot()])) as Record<SlotId, SlotState>;
 export let state: State = {
   ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: cameraLang(), langAuto: uiLangPref() === '',
-  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hdr: false, exposurePreview: false, battery: false, customGrid: false, gridLines: cameraGrid(), adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [],
+  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hdr: false, exposurePreview: false, ratioShade: false, ratioShadeTone: 'dark', battery: false, customGrid: false, gridLines: cameraGrid(), adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [],
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();

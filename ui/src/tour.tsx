@@ -67,6 +67,7 @@ export const TOURS: Record<TourId, Step[]> = {
     step('ratio-row', 'RatioRow', 'bottom'),
     step('ratio-add', 'RatioAdd', 'bottom'),
     step('ratio-common', 'RatioCommon', 'bottom'),
+    step('ratio-live', 'RatioLive', 'bottom'),
     step('ratio-backdrop', 'RatioBackdrop', 'bottom'),
     step('ratio-frame', 'RatioFrame', 'left'),
     step('write', 'IcWrite', 'top'),

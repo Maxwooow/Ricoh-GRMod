@@ -12,7 +12,7 @@ import { nameProblem } from './slots';
 import { extraSpecs, hasExtraErrors, lookLayoutSpec } from './looks';
 import { menuPictures, menuReady } from './wall';
 import { GR3X_SOFT_FOCUS, adjSlotsOf, batteryOn, brightAutoOf, customGridOf, directFlashOn, exposurePreviewOn, hdrOn, monoUnlockOn, softOn } from './features';
-import { hasRatioErrors, ratioSpecs } from './ratios';
+import { hasRatioErrors, ratioShadeOn, ratioSpecs, toneLabel } from './ratios';
 import { canEject } from './photo';
 import { recordBuild, refreshCopies } from './copies';
 
@@ -143,6 +143,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const directFlash = !stock && directFlashOn();
   const hdr = !stock && hdrOn();
   const exposurePreview = !stock && exposurePreviewOn();
+  const ratioShade = !stock && ratioShadeOn(state, ratios);
   const battery = !stock && batteryOn();
   const customGrid = stock ? undefined : customGridOf();
   const brightAuto = stock ? false : brightAutoOf();
@@ -170,6 +171,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     const named = (name: string, n: number, unit: Key = 'chkCount'): string => (n > 1 ? `${name}  ·  ${t(unit, { n })}` : name);
     const lines = changes.map((c) => named(state.info?.family === 'gr3x' ? (state.slots[c.id].names[state.lang] || state.info.slots.find(s => s.id === c.id)?.defaultName || c.id) : t(('slot' + c.id) as Key), c.labels.length, 'chkChanges'));
     if (ratios.length) lines.push(named(t('chkRatios'), ratios.length));
+    if (ratioShade) lines.push(`${t('ratioLive')}  ·  ${toneLabel(state.ratioShadeTone)}`);
     if (soft) lines.push(t('navSoft'));
     if (films) lines.push(named(t('extraTitle'), films));
     if (dateStamp) lines.push(t('navDate'));
@@ -196,7 +198,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
       set({ busy: t('building') });
       const clarity = soft && sourceInfo.features.softFocus === 'clarity' ? [...GR3X_SOFT_FOCUS] : [];
       const built = await engine.build(changes.map((c) => c.request), ratios, clarity,
-        { ...(brightAuto ? { brightAuto } : {}), adjSoftFocus: soft && sourceInfo.features.softFocus === 'adj', dateStamp, monoUnlock, ...(directFlash ? { directFlash } : {}), ...(hdr ? { hdrGainMap: true } : {}), ...(exposurePreview ? { exposurePreview: true } : {}), ...(battery ? { batteryPercent: true } : {}), ...(customGrid ? { customGrid } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}),
+        { ...(brightAuto ? { brightAuto } : {}), adjSoftFocus: soft && sourceInfo.features.softFocus === 'adj', dateStamp, monoUnlock, ...(directFlash ? { directFlash } : {}), ...(ratioShade ? { ratioShade, ratioShadeTone: state.ratioShadeTone } : {}), ...(hdr ? { hdrGainMap: true } : {}), ...(exposurePreview ? { exposurePreview: true } : {}), ...(battery ? { batteryPercent: true } : {}), ...(customGrid ? { customGrid } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}),
           ...(films ? { filmCount: films } : {}), ...(lookLayout ? { lookLayout } : {}) });
       if (!Object.values(built.checks).every((v) => v === true)) throw new EngineError('selfcheck-failed', 'self-check');
       file = built.file;

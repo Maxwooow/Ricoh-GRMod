@@ -22,6 +22,8 @@ export { findResInsertion, readRes, resFile } from './res';
 export { Patch } from './build';
 export { CAMERA_GRID, GRID_LINE_COUNT, isCameraGrid, validCustomGrid } from './grid';
 export type { CustomGrid, GridLines } from './grid';
+export { SHADE_TONES } from './shade';
+export type { ShadeTone } from './shade';
 export { HALATION, HALATION_COLOUR_NAMES, HALATION_NAMES, halateRgba, halateYcc, halationColourIcon, halationColourScale, halationGains, halationIcon, halationLight, halationLut, paramBytes, PLAIN_LIGHT, readHalation, readHalationLight } from './halation';
 export type { HalationColour, HalationLevel } from './halation';
 export type { HalationLight, HalationLook } from './halation';

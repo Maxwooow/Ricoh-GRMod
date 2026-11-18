@@ -41,7 +41,7 @@ Use only firmware intended for your camera model and a base version listed above
 ## Features
 
 - **Image Control presets:** add your own looks from `.cube` LUTs or `.xmp` profiles, adjust their parameters, and reorder or hide looks in the camera menu.
-- **Aspect ratios:** add custom ratios alongside the camera's factory options.
+- **Aspect ratios:** add custom ratios alongside the camera's factory options; on GR IV firmware 1.11 the live view can also show the whole frame with the outside darkened.
 - **Power-off images:** add your own End Screen pictures and choose between them in the camera.
 - **Soft focus and halation:** create softer images and red or white highlight effects.
 - **Date imprint:** add a shooting date, date and time, and optionally the Image Control name to JPEGs.

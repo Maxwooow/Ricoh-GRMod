@@ -6,6 +6,7 @@ import type { ParkedEntry } from '../host';
 import { t } from '../i18n';
 import { CopySource, State, ask, askOfficial, fail, newFirmwareWarning, set, state, toast } from './core';
 import { gridText, softText } from './features';
+import { toneLabel } from './ratios';
 import { SlotChange, doneToast, firmwareFilename, firmwareToCard, refreshVolumes } from './output';
 
 // ------------------------------------------------------------------ copies moved aside on the card, and their backups
@@ -154,6 +155,7 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
     return `${sl.names[s.lang]}  ·  ${parts.join(' / ') || t('original')}`;
   });
   if (summary.ratios.length) lines.push(t('ratioLine', { n: summary.ratios.length, l: summary.ratios.map((r) => r.name).join(' / ') }));
+  if (summary.ratioShade) lines.push(t('ratioShadeLine', { p: toneLabel(summary.ratioShadeTone ?? 'dark') }));
   if (summary.adjSoftFocus) lines.push(t('softAdjLine'));
   if (summary.brightAuto) lines.push(t(summary.brightAuto === 'balanced' ? 'brightAutoBalanced' : 'brightAutoBright'));
   if (summary.dateStamp) lines.push(t('dateLine'));
