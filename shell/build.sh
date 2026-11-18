@@ -150,6 +150,11 @@ write_info_plist() {
 	<string>io.github.maxwooow.grmod</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>zh-Hans</string>
+		<string>en</string>
+	</array>
 	<key>CFBundleName</key>
 	<string>GR Mod</string>
 	<key>CFBundlePackageType</key>
@@ -190,6 +195,22 @@ write_info_plist() {
 PLIST
 }
 
+# write_infoplist_strings DIR writes the permission prompts in English for Macs whose language is
+# English (Contents/Resources/en.lproj/InfoPlist.strings). Every other language keeps the
+# two-language text of Info.plist: with a zh-Hans.lproj as well, macOS would show the Chinese
+# prompts on Macs in any language without a .lproj of its own (it falls back to the development
+# region, zh_CN).
+write_infoplist_strings() {
+  mkdir -p "$1/en.lproj"
+  cat > "$1/en.lproj/InfoPlist.strings" <<'STRINGS'
+"NSRemovableVolumesUsageDescription" = "GR Mod reads and writes the memory card to install firmware and power-off images.";
+"NSDesktopFolderUsageDescription" = "GR Mod exports files to the folder you choose.";
+"NSDocumentsFolderUsageDescription" = "GR Mod exports files to the folder you choose.";
+"NSDownloadsFolderUsageDescription" = "GR Mod exports files to the folder you choose.";
+"NSAppleEventsUsageDescription" = "GR Mod uses the system dialog to let you choose an export folder.";
+STRINGS
+}
+
 build_mac() {
   local app="dist/GR Mod.app" tmp="dist/.mac"
   rm -rf "$tmp" "$app" dist/GRMod-mac.zip
@@ -214,6 +235,7 @@ build_mac() {
   rm -rf "$tmp"
   go run ./tools/genicon -out "" -icns "$app/Contents/Resources/GRMod.icns" >/dev/null
   write_info_plist "$app/Contents/Info.plist"
+  write_infoplist_strings "$app/Contents/Resources"
   printf 'APPL????' > "$app/Contents/PkgInfo"
 
   local rcodesign="${RCODESIGN:-$(command -v rcodesign || true)}"
