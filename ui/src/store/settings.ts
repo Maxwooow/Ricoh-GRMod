@@ -42,6 +42,7 @@ export function endTour(): void {
 /** Pages of additions that only some firmware has: offered when the open firmware has the addition, or, with none open yet, for the GR IV. */
 export function pageOffered(page: Page, s: State = state): boolean {
   if (page === 'battery') return s.info ? !!s.info.features.batteryPercent : !isGr3(s.model);
+  if (page === 'grid') return s.info ? !!s.info.features.customGrid : !isGr3(s.model);
   return true;
 }
 

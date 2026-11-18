@@ -5,7 +5,7 @@ import { host, sha256Hex } from '../host';
 import type { ParkedEntry } from '../host';
 import { t } from '../i18n';
 import { CopySource, State, ask, askOfficial, fail, newFirmwareWarning, set, state, toast } from './core';
-import { softText } from './features';
+import { gridText, softText } from './features';
 import { SlotChange, doneToast, firmwareFilename, firmwareToCard, refreshVolumes } from './output';
 
 // ------------------------------------------------------------------ copies moved aside on the card, and their backups
@@ -163,6 +163,7 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
   if (summary.exposurePreview) lines.push(t(summary.directFlash ? 'previewLine' : 'previewLineNoFlash'));
   if (summary.adjSlots) lines.push(t('adjSlotsLine', { n: summary.adjSlots }));
   if (summary.batteryPercent) lines.push(t('batteryLine'));
+  if (summary.customGrid) lines.push(t('gridLine', { a: gridText(summary.customGrid, 'g3'), b: gridText(summary.customGrid, 'g4') }));
   if (summary.extraSlots?.length) lines.push(t('extraLine', { n: summary.extraSlots.length, l: summary.extraSlots.map((x) => x.name).join(' / ') }));
   if (summary.lookLayout) lines.push(t('lookOrderLine', { n: summary.lookLayout.hidden.length }));
   if (summary.shutdownPictures?.length) lines.push(t('wallMenuLine', { n: summary.shutdownPictures.length, l: summary.shutdownPictures.map((p) => p.name).join(' / ') }));

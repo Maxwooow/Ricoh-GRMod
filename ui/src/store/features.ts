@@ -1,4 +1,5 @@
-import type { ClarityChange, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
+import { CAMERA_GRID, GRID_LINE_COUNT, isCameraGrid } from '@grmod/core';
+import type { ClarityChange, CustomGrid, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
 import { t } from '../i18n';
 import { State, set, state } from './core';
 import { scheduleSave } from './families';
@@ -53,6 +54,27 @@ export function setBattery(battery: boolean): void {
   set({ battery }); scheduleSave();
 }
 export function batteryOn(s: State = state): boolean { return !!s.battery && !!s.info?.features.batteryPercent; }
+export function setCustomGrid(customGrid: boolean): void {
+  if (customGrid && !state.info?.features.customGrid) return;
+  set({ customGrid }); scheduleSave();
+}
+/** Line `index` of the 3x3 ('g3') or 4x4 ('g4') grid on or off. */
+export function setGridLine(style: 'g3' | 'g4', index: number, on: boolean): void {
+  if (!(Number.isInteger(index) && index >= 0 && index < GRID_LINE_COUNT)) return;
+  const lines = [...state.gridLines[style]];
+  lines[index] = on;
+  set({ gridLines: { ...state.gridLines, [style]: lines } }); scheduleSave();
+}
+/** The grid lines a build gets: none when the switch is off, the firmware cannot have them, or they are the camera's own. */
+export function customGridOf(s: State = state): CustomGrid | undefined {
+  return s.customGrid && s.info?.features.customGrid && !isCameraGrid(s.gridLines) ? s.gridLines : undefined;
+}
+/** How many lines a style of a custom grid draws, for the summaries. */
+export function gridText(g: CustomGrid, style: 'g3' | 'g4'): string {
+  if (g[style].every((v, i) => v === CAMERA_GRID[style][i])) return t('gridCameraLines');
+  const n = g[style].filter(Boolean).length;
+  return n === 0 ? t('gridNoLines') : t('gridLinesN', { n });
+}
 /** ADJ lever slots (5..8): the camera's five unless the firmware can have more. */
 export function setAdjSlots(adjSlots: number): void {
   if (!(Number.isInteger(adjSlots) && adjSlots >= 5 && adjSlots <= (state.info?.features.maxAdjSlots ?? 5))) return;
@@ -61,7 +83,7 @@ export function setAdjSlots(adjSlots: number): void {
 /** The ADJ lever slots the build gets (5: none added). */
 export function adjSlotsOf(s: State = state): number { const max = s.info?.features.maxAdjSlots ?? 5; return s.adjSlots > 5 && s.adjSlots <= max ? s.adjSlots : 5; }
 /** Any addition that is not a slot or a ratio. */
-export function extrasOn(s: State = state): boolean { return !!brightAutoOf(s) || exposurePreviewOn(s) || softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hasLookLayout(s) || directFlashOn(s) || adjSlotsOf(s) > 5 || hdrOn(s) || batteryOn(s); }
+export function extrasOn(s: State = state): boolean { return !!brightAutoOf(s) || exposurePreviewOn(s) || softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hasLookLayout(s) || directFlashOn(s) || adjSlotsOf(s) > 5 || hdrOn(s) || batteryOn(s) || !!customGridOf(s); }
 const MINUS = '\u2212';
 const strengthLabel = (st: SoftFocusStrength | 'custom'): string => t(st === 'weak' ? 'softWeak' : st === 'medium' ? 'softMedium' : st === 'strong' ? 'softStrong' : 'softCustom');
 /** "−2 weak / −3 medium" (−1 first), for confirmations and the copies page. */

@@ -74,6 +74,9 @@ export const TOURS: Record<TourId, Step[]> = {
   battery: [
     { target: 'battery-switch', title: 'navBattery', body: 'tBatteryB', side: 'bottom' },
   ],
+  grid: [
+    { target: 'grid-switch', title: 'navGrid', body: 'tGridB', side: 'bottom' },
+  ],
   wall: [
     step(undefined, 'WallMenu'),
     step('wall-add', 'WallAdd'),

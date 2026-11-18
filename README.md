@@ -51,6 +51,7 @@ Use only firmware intended for your camera model and a base version listed above
 - **More ADJ options:** add ADJ lever slots on supported GR IV firmware.
 - **Battery percentage:** show the charge as a number in steps of 10 % instead of bars, on GR IV firmware 1.11.
 - **Exposure preview and display options:** access additional preview and automatic screen-brightness settings on supported GR IV firmware.
+- **Custom grid lines:** choose which lines the camera's 3x3 and 4x4 grids draw, on GR IV firmware 1.11.
 
 Features vary by camera model and firmware version. The app only offers options supported by the selected firmware.
 

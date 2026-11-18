@@ -22,7 +22,8 @@
  * (0.8.6) one more byte of additions, where earlier builds have their zero padding: bit 0, the HDR
  * gain map (`hdrgain.ts`); bit 1, ADJ lever slots (`adjslots.ts`), their number (6..8) follows in
  * one more byte. Bit 2: a following bright-Auto curve byte (1 bright, 2 balanced). Bit 7: a third
- * byte of additions follows, after those bytes: bit 2, the battery percentage (`battery.ts`).
+ * byte of additions follows, after those bytes: bit 2, the battery percentage (`battery.ts`); bit 3,
+ * custom grid lines (`grid.ts`), followed by two bytes, the 3x3 and the 4x4 style's lines (line i in bit i).
  * A build without them reads as before; earlier programs do not take a record with
  * this byte set.
  *
@@ -36,6 +37,7 @@ import type { Range } from '../types';
 import { MAX_CUSTOM_RATIOS, OFFICIAL_ICONBIN_LENGTH, OFFICIAL_RTOS_LENGTH } from './build';
 import type { AspectResult, BuildRevision, ExtensionFeatures, RatioSpec } from './build';
 import { MAX_EXTRA_SLOTS } from './slots';
+import { gridByte, gridLinesOf, isCameraGrid } from './grid';
 import { ADJ_SLOTS_MAX } from './adjslots';
 import { RES_ANCHOR, SHUTDOWN_MAX_PICTURES, shutdownFiles } from './shutdown';
 import { readRes, resRecords } from './res';
@@ -82,6 +84,8 @@ const FEATURE2_BRIGHT_AUTO = 4;
 const FEATURE2_MORE = 128;
 /** Third feature byte: bit 2, the battery percentage (`battery.ts`). */
 const FEATURE3_BATTERY = 4;
+/** Third feature byte: bit 3, custom grid lines (`grid.ts`); two bytes follow, the 3x3 and the 4x4 style's lines. */
+const FEATURE3_CUSTOM_GRID = 8;
 
 /**
  * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
@@ -109,7 +113,7 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
     bytes.push(layout.order.length, ...layout.order, layout.hidden.length, ...layout.hidden);
   }
   if (features.directFlash && revision < 3) fail('internal', 'Direct Flash needs revision 3');
-  const f3 = features.batteryPercent ? FEATURE3_BATTERY : 0;
+  const f3 = (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0);
   if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || f3) {
     if (revision < 3) fail('internal', 'the HDR gain map and ADJ slots need revision 3');
     const adj = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
@@ -118,6 +122,7 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
     if (adj) bytes.push(adj);
     if (features.brightAuto) bytes.push(features.brightAuto === 'balanced' ? 2 : 1);
     if (f3) bytes.push(f3);
+    if (features.customGrid) bytes.push(gridByte(features.customGrid.g3), gridByte(features.customGrid.g4));
   }
   while (bytes.length % 4) bytes.push(0);
   return Uint8Array.from(bytes);
@@ -225,11 +230,17 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
       if (f2 & FEATURE2_MORE) {
         if (p >= rec.length) return null;
         const f3 = rec[p++];
-        if (f3 === 0 || (f3 & ~FEATURE3_BATTERY) !== 0) return null;
+        if (f3 === 0 || (f3 & ~(FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID)) !== 0) return null;
         if (f3 & FEATURE3_BATTERY) features.batteryPercent = true;
+        if (f3 & FEATURE3_CUSTOM_GRID) {
+          if (p + 2 > rec.length) return null;
+          const grid = { g3: gridLinesOf(rec[p++]), g4: gridLinesOf(rec[p++]) };
+          if (isCameraGrid(grid)) return null;
+          features.customGrid = grid;
+        }
       }
     }
-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.brightAuto && !features.batteryPercent) return null;
+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.brightAuto && !features.batteryPercent && !features.customGrid) return null;
   }
   for (; p < rec.length; p++) if (rec[p] !== 0) return null;
   return { specs: out, features, extraSlots, shutdownPictures };

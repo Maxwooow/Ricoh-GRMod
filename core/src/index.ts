@@ -18,6 +18,8 @@ export type { ExtraSlotSpec, LookLayout, ShutdownPictureSpec } from './fw';
 export { HALATION, halateRgba, halationLight } from './fw';
 export { RATIO_ICON_H, RATIO_ICON_W } from './fw/aspect';
 export { batteryIcons } from './fw/aspect/battery';
+export { CAMERA_GRID, GRID_LINE_COUNT, isCameraGrid } from './fw/aspect/grid';
+export type { CustomGrid, GridLines } from './fw/aspect/grid';
 export type { RatioPreview } from './app';
 
 export { GR3X_160, GR3_210, GR3_PROFILES, GR3X_SYMBOLS, GR3X_BLOCKERS, gr3ProfileOf, gr3xOffset, openGr3xOfficial } from './fw/gr3x/profile';
