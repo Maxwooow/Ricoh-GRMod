@@ -127,6 +127,10 @@
   "new": "0x543b6a70",
   "reason": "aligned in 1.21 (aligned); +-8 words equal up to relocation"
  },
+ "0x5440b600": {
+  "new": "0x5440ce00",
+  "reason": "end of the official RTOS image (its length; the emulator checks treat everything beyond it as GR Mod's): 1.20 0x140B600 bytes, 1.21 0x140CE00"
+ },
  "0x5440c5c0": {
   "new": "0x5440ddc0",
   "reason": "appended area at a fixed distance from the end of the official RTOS: 1.21 RTOS is 0x1800 longer (0x140ce00)"
@@ -222,6 +226,18 @@
  "0x553a26c4": {
   "new": "0x553a26cc",
   "reason": "date imprint cache object: the movw/movt that named it in 1.20 name 0x553a26cc in 1.21 (RAM refs 0x553a26cc)"
+ },
+ "0x553a283c": {
+  "new": "0x553a2844",
+  "reason": "field of the shadow-correction core's live-view smoothing state 0x553A2830 (1.21 0x553A2838, refs x3): the same +8; its one reference (movw at 0x53948C28) agrees"
+ },
+ "0x553a284c": {
+  "new": "0x553a2854",
+  "reason": "field of the shadow-correction core's live-view smoothing state 0x553A2830 (1.21 0x553A2838, refs x3): the same +8; its one reference (movw at 0x53948AD4) agrees"
+ },
+ "0x55800000": {
+  "new": "0x55800000",
+  "reason": "the emulator's heap in tools/*/shadowml/fwemu.py, inside the heap: the 1.21 RAM layout is unchanged (start-up literals 0x53000454..0x53000460 equal)"
  },
  "0x55839014": {
   "new": "0x55839014",

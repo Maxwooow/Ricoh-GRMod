@@ -70,7 +70,7 @@ export interface State {
   hdr: boolean;
   /** GR IV 1.20: exposure preview as a camera setting (Shooting › Exposure Settings, ADJ lever). */
   exposurePreview: boolean;
-  /** The learned Auto for Shadow Correction (GR IV 1.11 / 1.20; off by default). */
+  /** The learned Auto for Shadow Correction (GR IV 1.11 / 1.20 / 1.21; off by default). */
   shadowLearn: boolean;
   /** ADJ lever slots in the build: 5 (the camera's) to 8 (GR IV). */
   adjSlots: number;

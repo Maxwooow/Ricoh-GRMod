@@ -82,7 +82,7 @@ export interface FirmwareInfo {
     hdrGainMap?: boolean;
     /** 0.8.11: exposure preview as a camera setting, and soft focus's still-menu line (GR IV 1.20). */
     exposurePreview?: boolean;
-    /** A learned Auto for Shadow Correction (GR IV 1.11 and 1.20; see `aspect/shadowml.ts`). */
+    /** A learned Auto for Shadow Correction (GR IV 1.11, 1.20 and 1.21; see `aspect/shadowml.ts`). */
     shadowLearn?: boolean;
     /** GR III / IIIx: the most films a build can have (9; 20 on GR III 2.10, where
      * the number is chosen with BuildOptions.filmCount and Halation is set in the camera). */
@@ -264,7 +264,7 @@ export interface BuildOptions {
    */
   exposurePreview?: boolean;
   /**
-   * A learned Auto for Shadow Correction (GR IV 1.11 and 1.20, `features.shadowLearn`): Shadow
+   * A learned Auto for Shadow Correction (GR IV 1.11, 1.20 and 1.21, `features.shadowLearn`): Shadow
    * Correction Auto estimates the lift from the scene instead of the camera's own rule, which comes
    * out as no correction on real photos. The fixed levels are unchanged. Off unless asked for.
    */
@@ -504,7 +504,7 @@ export class Engine {
       family: 'gr4', filename: 'fwdc248b.bin', models: ['STANDARD', 'HDF', 'MONO'],
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
       capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, menuPictures: true, lookLayout: true },
-      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== (Gr4Program121 as unknown as Gr4Program) ? { shadowLearn: true } : {}) },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), shadowLearn: true },
       version: g4.FIRMWARE_VERSION,
       looks: { factory: [...g4.aspect.FACTORY_LOOK_IDS], extraFirst: g4.aspect.EXTRA_FIRST_STYLE, monoOnly: g4.aspect.FACTORY_LOOK_IDS.filter((n) => n >= 25) },
       sha256: await sha256Hex(input),
@@ -1027,7 +1027,7 @@ export class Engine {
     const softFocusMenu = adjSoftFocus && on120;
     if (options && options.shadowLearn !== undefined && typeof options.shadowLearn !== 'boolean') throw new FirmwareError('bad-edit', 'shadowLearn must be boolean');
     const shadowLearn = !!(options && options.shadowLearn);
-    if (shadowLearn && !this.info.features.shadowLearn) throw new FirmwareError('bad-edit', 'the learned shadow correction needs GR IV firmware 1.11 or 1.20');
+    if (shadowLearn && !this.info.features.shadowLearn) throw new FirmwareError('bad-edit', 'the learned shadow correction needs GR IV firmware 1.11, 1.20 or 1.21');
     if (shadowLearn && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the learned shadow correction cannot be combined with the clarity-table soft focus of 0.4.x');
     if (hdrGainMap && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the HDR gain map cannot be combined with the clarity-table soft focus of 0.4.x');
     if (directFlash && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Direct Flash cannot be combined with the clarity-table soft focus of 0.4.x');

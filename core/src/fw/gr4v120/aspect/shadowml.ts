@@ -39,8 +39,8 @@
  * (SHADOWML_SLOT, SHADOWML_SCRATCH_SLOT) are otherwise used only by test builds (Direct Flash / halation diagnostics and the HDR
  * gain map's counters), which `build.ts` refuses together with this.
  *
- * Every address is looked up (`adr`) when the module is installed, not when this file loads: a release whose address table does
- * not have them (GR IV 1.21) loads the program's modules too, and the engine does not offer this there.
+ * Every address is looked up (`adr`) when the module is installed, not when this file loads. GR IV 1.21 runs the 1.20 port through
+ * its address table (tools/port/gr4-121-map.json): the core is the same code there, moved, with only its address constants relocated.
  */
 import { FirmwareError } from '../../types';
 import { assembleWords, branchWord } from './arm';

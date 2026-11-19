@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * The learned Auto for Shadow Correction (`aspect/shadowml.ts`, GR IV 1.11 and the 1.20 port).
- * Needs testdata/private/official.bin (1.11) and GRMOD_GR4_120_FIRMWARE (or testdata/private/official120.bin).
+ * The learned Auto for Shadow Correction (`aspect/shadowml.ts`, GR IV 1.11, the 1.20 port and 1.21 through its address table).
+ * Needs testdata/private/official.bin (1.11), GRMOD_GR4_120_FIRMWARE (or testdata/private/official120.bin) and
+ * GRMOD_GR4_121_FIRMWARE (or testdata/private/official121.bin).
  * The module itself is checked by tools/shadowml (test_host.py, test_arm.py, test_fw.py on a built RTOS).
  */
 import { describe, expect, it } from 'vitest';
@@ -15,6 +16,7 @@ const P = fileURLToPath(new URL('../testdata/private/', import.meta.url));
 const files = [
   { version: '1.11', path: P + 'official.bin', hook: 0x5391f3a4, gain: 0x5404938c, zeroFill: 0x53000460, heap: 0x55837300 },
   { version: '1.20', path: process.env.GRMOD_GR4_120_FIRMWARE || P + 'official120.bin', hook: 0x539473a4, gain: 0x54080044, zeroFill: 0x53000460, heap: 0x55839040 },
+  { version: '1.21', path: process.env.GRMOD_GR4_121_FIRMWARE || P + 'official121.bin', hook: 0x5394896c, gain: 0x54081834, zeroFill: 0x53000460, heap: 0x55839040 },
 ];
 function rtos(file: Uint8Array): Uint8Array {
   const d = new fw.Firmware(file).decoded, s = fw.sectionsOf(d).find((x) => x.name === 'RTOS')!;
@@ -80,14 +82,8 @@ for (const f of files) describe.skipIf(!existsSync(f.path))(`learned shadow corr
   }, 60000);
 });
 
-describe('learned shadow correction: where it is not offered', () => {
-  const file121 = process.env.GRMOD_GR4_121_FIRMWARE;
-  it.skipIf(!file121 || !existsSync(file121))('GR IV 1.21: not offered, and refused', async () => {
-    const e = await Engine.open(new Uint8Array(readFileSync(file121!)));
-    expect(e.info.features.shadowLearn).toBeUndefined();
-    await expect(e.buildFirmware([], [], [], { dateStamp: true, shadowLearn: true })).rejects.toMatchObject({ code: 'bad-edit' });
-  }, 60000);
-  it('the 1.21 program still loads: the module looks its addresses up only when installed', async () => {
+describe('learned shadow correction: the 1.21 program', () => {
+  it('loads: the module looks its addresses up only when installed', async () => {
     const m = await import('../src/fw/gr4v121');
     expect(typeof m.buildFirmware).toBe('function');
   });

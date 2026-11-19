@@ -161,7 +161,7 @@ export interface ExtensionFeatures {
   exposurePreview?: boolean;
   /** 0.8.11: soft focus (with `adjSoftFocus`) also a line of the still menu (`exposure.ts`). */
   softFocusMenu?: boolean;
-  /** A learned Auto for Shadow Correction (see `shadowml.ts`); GR IV 1.11 and 1.20 (not 1.21). Off unless asked for. */
+  /** A learned Auto for Shadow Correction (see `shadowml.ts`); GR IV 1.11, 1.20 and 1.21. Off unless asked for. */
   shadowLearn?: boolean;
 }
 
