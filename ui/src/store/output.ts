@@ -11,7 +11,7 @@ import { scheduleSave } from './families';
 import { nameProblem } from './slots';
 import { extraSpecs, hasExtraErrors, lookLayoutSpec } from './looks';
 import { menuPictures, menuReady } from './wall';
-import { GR3X_SOFT_FOCUS, adjSlotsOf, brightAutoOf, directFlashOn, exposurePreviewOn, hdrOn, monoUnlockOn, softOn } from './features';
+import { GR3X_SOFT_FOCUS, adjSlotsOf, brightAutoOf, directFlashOn, exposurePreviewOn, flashTtlOn, hdrOn, monoUnlockOn, softOn } from './features';
 import { hasRatioErrors, ratioSpecs } from './ratios';
 import { canEject } from './photo';
 import { recordBuild, refreshCopies } from './copies';
@@ -143,6 +143,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const directFlash = !stock && directFlashOn();
   const hdr = !stock && hdrOn();
   const exposurePreview = !stock && exposurePreviewOn();
+  const flashTtl = !stock && flashTtlOn();
   const brightAuto = stock ? false : brightAutoOf();
   const adjSlots = stock ? 5 : adjSlotsOf();
   if (!stock && (hasNameErrors() || hasRatioErrors())) return;
@@ -155,7 +156,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const pictures = noPictures ? [] : menuPictures();
   const films = filmCountChoosable() ? state.filmCount : 0;
   const lookLayout = stock ? undefined : lookLayoutSpec();
-  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && !directFlash && !hdr && !exposurePreview && !brightAuto && adjSlots === 5 && extras.length === 0 && pictures.length === 0 && films === 0 && !lookLayout) { toast(t('nothingToDo'), 'info'); return; }
+  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && !directFlash && !hdr && !exposurePreview && !flashTtl && !brightAuto && adjSlots === 5 && extras.length === 0 && pictures.length === 0 && films === 0 && !lookLayout) { toast(t('nothingToDo'), 'info'); return; }
   const fresh = newFirmwareWarning(sourceInfo);
   // The cannot-go-back warning is a paragraph (the dialog's lines are cut to one line each).
   // GR III / IIIx cannot take a firmware over Wi-Fi (only the GR IV's camera has that interface).
@@ -176,6 +177,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (directFlash) lines.push(t('navFlash'));
     if (hdr) lines.push(t('navHdr'));
     if (exposurePreview) lines.push(t('navPreview'));
+    if (flashTtl) lines.push(t('navFlashTtl'));
     if (adjSlots > 5) lines.push(`${t('navAdjSlots')}  ·  ${t('chkCount', { n: adjSlots })}`);
     if (extras.length) lines.push(named(t('extraTitle'), extras.length));
     if (lookLayout) lines.push(lookLayout.hidden.length ? `${t('icViewOrder')}  ·  ${t('chkHidden', { n: lookLayout.hidden.length })}` : t('icViewOrder'));
@@ -192,7 +194,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
       set({ busy: t('building') });
       const clarity = soft && sourceInfo.features.softFocus === 'clarity' ? [...GR3X_SOFT_FOCUS] : [];
       const built = await engine.build(changes.map((c) => c.request), ratios, clarity,
-        { ...(brightAuto ? { brightAuto } : {}), adjSoftFocus: soft && sourceInfo.features.softFocus === 'adj', dateStamp, monoUnlock, ...(directFlash ? { directFlash } : {}), ...(hdr ? { hdrGainMap: true } : {}), ...(exposurePreview ? { exposurePreview: true } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}),
+        { ...(brightAuto ? { brightAuto } : {}), adjSoftFocus: soft && sourceInfo.features.softFocus === 'adj', dateStamp, monoUnlock, ...(directFlash ? { directFlash } : {}), ...(hdr ? { hdrGainMap: true } : {}), ...(exposurePreview ? { exposurePreview: true } : {}), ...(flashTtl ? { flashTtl: true } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}),
           ...(films ? { filmCount: films } : {}), ...(lookLayout ? { lookLayout } : {}) });
       if (!Object.values(built.checks).every((v) => v === true)) throw new EngineError('selfcheck-failed', 'self-check');
       file = built.file;

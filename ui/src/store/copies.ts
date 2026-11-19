@@ -161,6 +161,7 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
   if (summary.directFlash) lines.push(t('flashLine'));
   if (summary.hdrGainMap) lines.push(t('hdrLine'));
   if (summary.exposurePreview) lines.push(t(summary.directFlash ? 'previewLine' : 'previewLineNoFlash'));
+  if (summary.flashTtl) lines.push(t('flashTtlLine'));
   if (summary.adjSlots) lines.push(t('adjSlotsLine', { n: summary.adjSlots }));
   if (summary.extraSlots?.length) lines.push(t('extraLine', { n: summary.extraSlots.length, l: summary.extraSlots.map((x) => x.name).join(' / ') }));
   if (summary.lookLayout) lines.push(t('lookOrderLine', { n: summary.lookLayout.hidden.length }));

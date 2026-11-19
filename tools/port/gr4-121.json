@@ -13,7 +13,8 @@
   "exclude": [
     "__pycache__",
     ".refdata",
-    "out"
+    "out",
+    "flash"
   ],
   "rename": [
     [

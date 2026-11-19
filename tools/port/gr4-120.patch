@@ -191,7 +191,7 @@ diff --git a/core/src/fw/gr4v120/aspect/brightauto.ts b/core/src/fw/gr4v120/aspe
 diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/build.ts
 --- a/core/src/fw/gr4v120/aspect/build.ts
 +++ b/core/src/fw/gr4v120/aspect/build.ts
-@@ -32,11 +32,12 @@
+@@ -32,11 +32,13 @@
  import { installDirectFlashMenu } from './directflash-menu';
  import { DATESTAMP_BYTE, installDateStamp, lookNames } from './datestamp';
  import { HDR_SWITCH_BYTE, installHdrGainMap } from './hdrgain';
@@ -200,13 +200,14 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +import { exposurePreviewStillLines, installExposurePreviewAdj, installExposurePreviewAssets, installExposurePreviewLists, installExposurePreviewLive } from './exposure';
  import { installMonoUnlock } from './monounlock';
  import { installBrightAuto } from './brightauto';
++import { installFlashTtl } from './flttl';
  import { CINEMA_STYLES, installExtraSlots, installHalation } from './slots';
 -import { halationLight } from './halation';
 +import { HALATION_TEST, halationLight } from './halation';
  import type { HalationLook } from './halation';
  import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
  import type { LookLayout } from './looks';
-@@ -44,24 +45,28 @@
+@@ -44,24 +46,28 @@
  import { installShutdownMenu } from './shutdown';
  import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
  import { installAdjSlots } from './adjslots';
@@ -243,7 +244,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  export const LANGUAGES = 21;
  const ROW_STRIDE = TEXT_CAPACITY * 4;
  const NATIVE_ICON_CATALOG = adr(0x55014280);
-@@ -84,10 +89,10 @@
+@@ -84,10 +90,10 @@
    return id;
  }
  
@@ -257,7 +258,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  }
  
  export interface RatioSpec {
-@@ -149,11 +154,11 @@
+@@ -149,13 +155,13 @@
    /** ADJ lever slots, 6 to 8 (see `adjslots.ts`); absent or 5: the camera's five. */
    adjSlots?: number;
    /**
@@ -270,9 +271,12 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 -  /** 0.8.11, GR IV 1.20 only (not built on 1.11): soft focus (with `adjSoftFocus`) also a line of the still menu. */
 +  /** 0.8.11: soft focus (with `adjSoftFocus`) also a line of the still menu (`exposure.ts`). */
    softFocusMenu?: boolean;
+-  /** GR IV 1.20 only (`fw/gr4v120/aspect/flttl.ts`; not built on 1.11): pre-flash (TTL) metering for a GF-2 class flash. */
++  /** Pre-flash (TTL) metering for a GF-2 class flash in the two red-eye flash modes (`flttl.ts`); 1.20 only (not 1.21). Off unless asked for. */
+   flashTtl?: boolean;
  }
  
-@@ -164,9 +169,20 @@
+@@ -166,9 +172,20 @@
    dateStampDiag?: boolean;
    /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
    directFlashDiag?: boolean;
@@ -294,7 +298,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  export interface AspectResult {
    revision: BuildRevision;
-@@ -329,7 +345,7 @@
+@@ -331,7 +348,7 @@
    for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
    const rowsStart = TEXT_CATALOG + 0x100;
    const end = rowsStart + LANGUAGES * ROW_STRIDE;
@@ -303,7 +307,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    patch.extendTo(end - BASE);
    patch.write(ICON_CATALOG, icons);
    const relocated: number[] = [];
-@@ -341,8 +357,15 @@
+@@ -343,8 +360,15 @@
    // language directory themselves.
    patch.setWord(adr(0x534013f8), movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
    patch.setWord(adr(0x534013fc), movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
@@ -321,7 +325,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    }
    for (const [low, high] of [[adr(0x535967cc), adr(0x535967d0)], [adr(0x53595db4), adr(0x53595dbc)]] as const) {
      patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
-@@ -373,7 +396,10 @@
+@@ -375,7 +399,10 @@
  // --------------------------------------------------------------------------------------------
  // crop_icons.py
  
@@ -333,7 +337,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
    const parts: Uint8Array[] = [iconbin];
-@@ -465,7 +491,7 @@
+@@ -467,7 +494,7 @@
    // Complete language rows again, now wide enough for the new names; every original entry is kept.
    let priorColumns = TEXT_CAPACITY;
    for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
@@ -342,7 +346,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    for (const id of allIds) upper = Math.max(upper, textId(id));
    const columns = Math.max(priorColumns, upper + 1);
    const catalogs: Uint8Array[] = [];
-@@ -594,7 +620,7 @@
+@@ -596,7 +623,7 @@
    p.hook(adr(0x538b40ec), out);
    out = `push {r0-r3,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r0,r3;bne #${adrHEX(0x538B41CC)};b #${p.target(adr(0x538b41b4))};`;
    p.hook(adr(0x538b41b4), out);
@@ -351,7 +355,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x53664430), out);
    // Both callers select the cropped window only for their original 2..5 range; a computed window
    // is invisible if selector 0 copies the untouched full canvas instead.
-@@ -657,7 +683,7 @@
+@@ -659,7 +686,7 @@
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
    out += adrText('cmp r2,#5;beq #0x5367298C;b #0x536728E8;');
@@ -360,7 +364,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x536728e4), out);
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
-@@ -678,8 +704,8 @@
+@@ -680,8 +707,8 @@
      out = '';
      for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
      out += `bic ip,ip,#4;b #${resume};custom:`;
@@ -371,7 +375,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      out += adrText('ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;');
      p.hook(entry, out);
    }
-@@ -765,7 +791,7 @@
+@@ -767,7 +794,7 @@
    const get = p.emit(lookup + 'mov r0,#0;bx lr;');
    // The native code at 0x53726698 divides s15 by the crop magnification; the other branch writes
    // it directly. Both contracts are kept.
@@ -380,7 +384,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x537266e8), code);
    // r8 / sb are the source dimensions: exact known sizes first, then fit the ratio for anything else.
    code = `push {r0,r4-r7,r10,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;beq old;mov r4,r0;mov r5,r8;mov r6,sb;`;
-@@ -899,7 +925,7 @@
+@@ -901,7 +928,7 @@
  function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
    const priorSave = branchTarget(adr(0x533f3674), patch.word(adr(0x533f3674)));
    const priorLoad = branchTarget(adr(0x533f3254), patch.word(adr(0x533f3254)));
@@ -389,7 +393,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    expectWord(patch, adr(0x5381d6bc), 0xe1a0c00d);
    // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
    const rects: Uint8Array[] = [];
-@@ -1037,11 +1063,21 @@
+@@ -1039,11 +1066,21 @@
   * features this is `installRatios`, byte for byte. With features the revision is 3.
   */
  export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
@@ -408,11 +412,19 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
    const adjSlots = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
 -  const extra = !!features.brightAuto || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap;
-+  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap;
++  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.flashTtl;
    if (extra) revision = 3;
    if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
    if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
-@@ -1069,21 +1105,34 @@
+@@ -1053,6 +1090,7 @@
+     if (r.id !== FIRST_CUSTOM_ID + i) fail('internal', 'ratio identities must be consecutive');
+   });
+   if (features.brightAuto !== undefined && ![true, false, 'bright', 'balanced'].includes(features.brightAuto)) fail('bad-edit', 'brightAuto must be boolean, bright or balanced');
++  if (features.flashTtl !== undefined && typeof features.flashTtl !== 'boolean') fail('bad-edit', 'flashTtl must be boolean');
+   const patch = new Patch(rtos);
+   const ramCopy = new DataView(patch.read(BASE + 0x450, 12).buffer);
+   if (ramCopy.getUint32(0, true) !== RAM.source || ramCopy.getUint32(4, true) !== RAM.destination || ramCopy.getUint32(8, true) !== RAM.length) {
+@@ -1071,21 +1109,34 @@
      installImageIdentity(patch, ratios);
      if (revision >= 2) installPlaybackDecode(patch);
    }
@@ -451,7 +463,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    // Halation: added slots that have it, Cinema slots with a preset that are asked to.
    const halation: HalationLook[] = [];
    slots.forEach((x, k) => {
-@@ -1111,12 +1160,18 @@
+@@ -1113,12 +1164,24 @@
    if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
    // The HDR line's list: after the additions that copy the list table first.
    if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
@@ -468,11 +480,17 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 -  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}) });
 +  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}), ...(ep ? { exposurePreview: true } : {}) });
    if (features.brightAuto) installBrightAuto(patch, features.brightAuto === 'balanced' ? 'balanced' : 'bright');
++  // Flash TTL: last, so that everything appended before it stays where it is in builds without it.
++  if (features.flashTtl) {
++    // Its state pointer is the second of the HDR test counters (FLTTL_SLOT): one or the other.
++    if (features.hdrGainMap && test.hdrDiag) fail('bad-edit', 'flash TTL cannot be built together with the HDR diagnostics (same RAM word)');
++    installFlashTtl(patch);
++  }
    if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
    if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
 -  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}) } };
 -}
-+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}) } };
++  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}) } };
 +}
 diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/aspect/datestamp-menu.ts
 --- a/core/src/fw/gr4v120/aspect/datestamp-menu.ts
@@ -1526,6 +1544,219 @@ diff --git a/core/src/fw/gr4v120/aspect/facts.ts b/core/src/fw/gr4v120/aspect/fa
  
  /** Photo-info rectangle [width, height, left, top] (Q16 on the 45x30 plane) per crop step, ratio 3:2. */
  export const RECT_BASES: readonly (readonly number[])[] = [[2949120,1966080,0,0],[2354697,1569789,297212,198141],[1668913,1112609,640104,426736]];
+diff --git a/core/src/fw/gr4v120/aspect/flttl.ts b/core/src/fw/gr4v120/aspect/flttl.ts
+new file mode 100644
+--- /dev/null
++++ b/core/src/fw/gr4v120/aspect/flttl.ts
+@@ -0,0 +1,208 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/**
++ * Pre-flash (TTL) metering for a GF-2 class flash (GR IV 1.20; tools/gr4v120/flash/ttl: README.md, flttl.c).
++ *
++ * By itself the camera sets the GF-2's output from the focus distance. In the two flash modes with red-eye reduction it
++ * also fires a small emission before the picture. With this option the live view frame that catches that emission is
++ * compared with the frame before it, and the result replaces the distance in the camera's own output formula; when the
++ * comparison is not usable the distance stays. The other two flash modes and the manual output are not touched.
++ *
++ * Six hooks, each a `bl` replaced by a `bl` to a stub that calls the module:
++ *  - 0x5368b3d0 `bl 0x536918c0`: after the per-frame live view AE the module gets the live view exposure object.
++ *  - 0x53797070 `bl 0x537964f8`: right before the pre-emission pulse.
++ *  - 0x5368774c `bl 0x53684ca4`: the release plan's "free live view" step starts 150 ms later in the red-eye modes with
++ *    a GF-2 class flash, so that the frame with the pre-emission still arrives.
++ *  - 0x53a9b70c `bl 0x537986e0`: for 600 ms after a pre-emission the flash's "not ready" (it recharges) is not stored,
++ *    or the camera cancels the picture's flash.
++ *  - 0x536a5198, in the GF-2 output level calculation 0x536a50b8 (auto branch): `bl 0x5369ceb8`, which returns
++ *    X = Dv + Av - (Sv - 5) + compensation in s0; the level is then 8 X + 52, limited to the flash's range. The stub makes
++ *    the call, hands X (as bits) and the calculation object to the module, and returns what the module returns in s0.
++ *    The manual output branch does not come here.
++ *  - 0x536a562c, where the flash data for a GF-2 class flash is filled (0x536a5610): `bl 0x536a3a04` stores the output
++ *    level (r1); two instructions earlier the level is 0x40 for state 0xA, the red-eye pre-emission (r7 is the state). The
++ *    stub passes level and state through the module: near subjects get a weaker pre-emission, so the frame does not clip.
++ * The first four were run on the camera in a probe build before the metering itself (the red-eye modes still fire their
++ * main flash with them); all six are in the builds of the camera rounds in README.md.
++ *
++ * State: one operator-new allocation (on the first live view frame with a GF-2 class flash attached), its
++ * pointer in FLTTL_SLOT, the second word of the HDR gain map's test counters (`hdrgain.ts`, HDR_COUNTERS + 4; zero at
++ * start-up once the start-up zero fill reaches 0x55839040). `build.ts` refuses this option together with those test
++ * counters.
++ *
++ * The module can write its record of each shot (644 bytes, struct log in flttl.c) to the card; this build gives it no file
++ * service (the `file_holder` native is a stub that returns 0), so nothing is written. The record is still kept in RAM.
++ *
++ * 1.20 only: the addresses are looked up (adr) when the option is installed, and the 1.21 program does not offer it.
++ */
++import { FirmwareError } from '../../types';
++import { assembleWords, branchTarget } from './arm';
++import { Patch, expectWord, u32le } from './build';
++import { FLTTL_CODE, FLTTL_CODE_LENGTH } from './flttl-code';
++import { extendZeroFill } from './lookstash';
++import { adr } from '../target';
++
++export const FLTTL_MAGIC = 0x4c54464c; // "LFTL"
++const VMOV_R2_S0 = 0xee102a10;
++const VMOV_S0_R0 = 0xee000a10;
++
++/** The places the module relies on (addresses of this program's release). */
++function places() {
++  return {
++    frameCall: adr(0x5368b3d0),
++    frameAe: adr(0x536918c0),
++    pulseCall: adr(0x53797070),
++    pulse: adr(0x537964f8),
++    freeStepCall: adr(0x5368774c),
++    addStep: adr(0x53684ca4),
++    statusCall: adr(0x53a9b70c),
++    statusSet: adr(0x537986e0),
++    xCall: adr(0x536a5198),
++    xFn: adr(0x5369ceb8),
++    levelCall: adr(0x536a562c),
++    levelSet: adr(0x536a3a04),
++    /** The state pointer: the second HDR test counter (`hdrgain.ts`, HDR_COUNTERS + 4). */
++    slot: adr(0x55839018),
++    /** struct ctx in flttl.c: alloc, timer holder, tick, elapsed, flash holder, (file holder: a stub), AE holder, settings holder, flash mode. */
++    alloc: adr(0x539084bc),
++    timerHolder: adr(0x53919d68),
++    tick: adr(0x5391ca64),
++    elapsed: adr(0x5391ca74),
++    flashHolder: adr(0x53797a30),
++    aeHolder: adr(0x536ac0b8),
++    settingsHolder: adr(0x53750008),
++    flashMode: adr(0x5377ccc4),
++  };
++}
++
++/** The state pointer's RAM word. */
++export function flashTtlSlot(): number {
++  return places().slot;
++}
++
++export function flashTtlModule(): Uint8Array {
++  const module = Uint8Array.from(atob(FLTTL_CODE), (c) => c.charCodeAt(0));
++  if (module.length !== FLTTL_CODE_LENGTH) throw new FirmwareError('internal', 'flash TTL: embedded module length');
++  return module;
++}
++
++function callTo(p: Patch, at: number, target: number, what: string): void {
++  const word = p.word(at);
++  if (word >>> 24 !== 0xeb || branchTarget(at, word) !== target) throw new FirmwareError('unexpected-layout', `flash TTL: unexpected ${what}`);
++}
++
++export interface FlashTtlLayout {
++  ctx: number;
++  code: number;
++  noFiles: number;
++  frameStub: number;
++  pulseStub: number;
++  delayStub: number;
++  statusStub: number;
++  xStub: number;
++  levelStub: number;
++}
++
++/** The six hooked words (for tests). */
++export function flashTtlSites(): number[] {
++  const a = places();
++  return [a.frameCall, a.pulseCall, a.freeStepCall, a.statusCall, a.xCall, a.levelCall];
++}
++
++/** Pre-flash metering for a GF-2 class flash (option flashTtl). */
++export function installFlashTtl(p: Patch): FlashTtlLayout {
++  const a = places();
++  expectWord(p, a.frameCall - 4, 0xe5940034); // ldr r0, [r4, #0x34]
++  callTo(p, a.frameCall, a.frameAe, 'live view AE call');
++  expectWord(p, a.frameCall + 4, 0xe5940040); // ldr r0, [r4, #0x40]
++  expectWord(p, a.pulseCall - 4, 0xe1a00005); // mov r0, r5
++  callTo(p, a.pulseCall, a.pulse, 'pre-emission call');
++  expectWord(p, a.freeStepCall - 4, 0xe3a03fc3); // mov r3, #0x30c
++  expectWord(p, a.freeStepCall - 0x20, 0xe58d4000); // str r4, [sp]: the delay, 0
++  callTo(p, a.freeStepCall, a.addStep, 'add-step call');
++  expectWord(p, a.statusCall - 8, 0xe55b1024); // ldrb r1, [fp, #-0x24]
++  expectWord(p, a.statusCall - 4, 0xe55b2023); // ldrb r2, [fp, #-0x23]
++  callTo(p, a.statusCall, a.statusSet, 'status setter call');
++  expectWord(p, a.xCall - 4, 0xe595001c); // ldr r0, [r5, #0x1c]
++  callTo(p, a.xCall, a.xFn, 'flash level formula call');
++  expectWord(p, a.xCall + 4, 0xeeb27a00); // vmov.f32 s14, #8.0
++  expectWord(p, a.levelCall - 0x10, 0xe357000a); // cmp r7, #0xa
++  expectWord(p, a.levelCall - 0xc, 0x11a01000); // movne r1, r0
++  expectWord(p, a.levelCall - 8, 0x03a01040); // moveq r1, #0x40
++  expectWord(p, a.levelCall - 4, 0xe5950024); // ldr r0, [r5, #0x24]
++  callTo(p, a.levelCall, a.levelSet, 'output level setter call');
++  extendZeroFill(p);
++  const module = flashTtlModule();
++  // ctx word 7 (`file_holder`) is set below to a stub that returns 0: no file service, the record stays in RAM.
++  const ctx = p.append(u32le([FLTTL_MAGIC, a.slot, a.alloc, a.timerHolder, a.tick, a.elapsed, a.flashHolder, 0, a.aeHolder, a.settingsHolder, a.flashMode]), 16);
++  const code = p.append(module, 16);
++  const loadCtx = `movw r0,#${ctx & 65535};movt r0,#${ctx >>> 16}`;
++  const frameStub = p.append((at) => assembleWords(
++    `push {r4,lr}
++     bl #${a.frameAe}
++     ${loadCtx}
++     mov r1,#0
++     ldr r2,[r4,#0x34]
++     bl #${code}
++     pop {r4,pc}`, at), 16);
++  const pulseStub = p.append((at) => assembleWords(
++    `push {r0-r2,lr}
++     ${loadCtx}
++     mov r1,#1
++     mov r2,#0
++     bl #${code}
++     pop {r0-r2,lr}
++     b #${a.pulse}`, at), 16);
++  const delayStub = p.append((at) => assembleWords(
++    `push {r0-r3,r12,lr}
++     ${loadCtx}
++     mov r1,#2
++     mov r2,#0
++     bl #${code}
++     str r0,[sp,#24]
++     pop {r0-r3,r12,lr}
++     b #${a.addStep}`, at), 16);
++  const statusStub = p.append((at) => assembleWords(
++    `push {r0-r3,r12,lr}
++     ${loadCtx}
++     mov r2,r1
++     mov r1,#3
++     bl #${code}
++     str r0,[sp,#4]
++     pop {r0-r3,r12,lr}
++     b #${a.statusSet}`, at), 16);
++  // X comes back in s0 and goes on in s0; the module is soft float, so it travels as bits in r2 / r0.
++  const xStub = p.append((at) => [
++    ...assembleWords(
++      `push {r4,lr}
++       mov r4,r0
++       bl #${a.xFn}`, at),
++    VMOV_R2_S0,
++    ...assembleWords(
++      `mov r3,r4
++       ${loadCtx}
++       mov r1,#4
++       bl #${code}`, at + 16),
++    VMOV_S0_R0,
++    ...assembleWords('pop {r4,pc}', at + 40),
++  ], 16);
++  const levelStub = p.append((at) => assembleWords(
++    `push {r0-r3,r12,lr}
++     ${loadCtx}
++     mov r2,r1
++     mov r3,r7
++     mov r1,#5
++     bl #${code}
++     str r0,[sp,#4]
++     pop {r0-r3,r12,lr}
++     b #${a.levelSet}`, at), 16);
++  const noFiles = p.append((at) => assembleWords('mov r0,#0;bx lr', at), 16);
++  p.setWord(ctx + 28, noFiles, 'flash TTL: no file service (the record of each shot is not written to the card)');
++  const bl = (at: number, to: number) => (0xeb000000 | (((to - (at + 8)) >> 2) & 0xffffff)) >>> 0;
++  p.setWord(a.frameCall, bl(a.frameCall, frameStub), 'flash TTL: look at the frame after the live view AE');
++  p.setWord(a.pulseCall, bl(a.pulseCall, pulseStub), 'flash TTL: stamp the pre-emission');
++  p.setWord(a.freeStepCall, bl(a.freeStepCall, delayStub), 'flash TTL: live view stays 150 ms after the pre-emission');
++  p.setWord(a.statusCall, bl(a.statusCall, statusStub), 'flash TTL: the flash stays "ready" for 600 ms after the pre-emission');
++  p.setWord(a.xCall, bl(a.xCall, xStub), 'flash TTL: the pre-flash result replaces the distance in the output formula');
++  p.setWord(a.levelCall, bl(a.levelCall, levelStub), 'flash TTL: weaker pre-emission for near subjects');
++  return { ctx, code, noFiles, frameStub, pulseStub, delayStub, statusStub, xStub, levelStub };
++}
 diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/guard.ts
 --- a/core/src/fw/gr4v120/aspect/guard.ts
 +++ b/core/src/fw/gr4v120/aspect/guard.ts
@@ -2421,49 +2652,63 @@ diff --git a/core/src/fw/gr4v120/aspect/monounlock.ts b/core/src/fw/gr4v120/aspe
 diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/package.ts
 --- a/core/src/fw/gr4v120/aspect/package.ts
 +++ b/core/src/fw/gr4v120/aspect/package.ts
-@@ -77,6 +77,9 @@
+@@ -21,7 +21,9 @@
+  * menu order, u8 h, the h hidden styles; bit 7 (0.8.4): Direct Flash (`directflash.ts`)). Then
+  * (0.8.6) one more byte of additions, where earlier builds have their zero padding: bit 0, the HDR
+  * gain map (`hdrgain.ts`); bit 1, ADJ lever slots (`adjslots.ts`), their number (6..8) follows in
+- * one more byte. Bit 2: a following bright-Auto curve byte (1 bright, 2 balanced).
++ * one more byte. Bit 2: a following bright-Auto curve byte (1 bright, 2 balanced). Bit 7: pre-flash
++ * (TTL) metering for a GF-2 class flash (`flttl.ts`; bits 3 and 4 are exposure preview's, bits 5
++ * and 6 are kept free).
+  * A build without them reads as before; earlier programs do not take a record with
+  * this byte set.
+  *
+@@ -77,6 +79,11 @@
  const FEATURE2_ADJ_SLOTS = 2;
  /** A following byte selects 1 = bright or 2 = balanced. */
  const FEATURE2_BRIGHT_AUTO = 4;
 +/** Second feature byte (0.8.11): bit 3 exposure preview, bit 4 soft focus's still-menu line (`exposure.ts`). */
 +const FEATURE2_EXPOSURE_PREVIEW = 8;
 +const FEATURE2_SOFT_FOCUS_MENU = 16;
++/** Second feature byte: bit 7, pre-flash (TTL) metering for a GF-2 class flash (`flttl.ts`). */
++const FEATURE2_FLASH_TTL = 128;
  
  /**
   * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
-@@ -104,11 +107,11 @@
+@@ -104,11 +111,11 @@
      bytes.push(layout.order.length, ...layout.order, layout.hidden.length, ...layout.hidden);
    }
    if (features.directFlash && revision < 3) fail('internal', 'Direct Flash needs revision 3');
 -  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5)) {
 -    if (revision < 3) fail('internal', 'the HDR gain map and ADJ slots need revision 3');
-+  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.exposurePreview || features.softFocusMenu) {
-+    if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, bright Auto, exposure preview and the soft focus line need revision 3');
++  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.exposurePreview || features.softFocusMenu || features.flashTtl) {
++    if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, bright Auto, exposure preview, the soft focus line and flash TTL need revision 3');
      const adj = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
      if (adj && !(Number.isInteger(adj) && adj <= ADJ_SLOTS_MAX)) fail('internal', 'ADJ slots cannot be recorded');
 -    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.brightAuto ? FEATURE2_BRIGHT_AUTO : 0));
-+    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.brightAuto ? FEATURE2_BRIGHT_AUTO : 0) | (features.exposurePreview ? FEATURE2_EXPOSURE_PREVIEW : 0) | (features.softFocusMenu ? FEATURE2_SOFT_FOCUS_MENU : 0));
++    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.brightAuto ? FEATURE2_BRIGHT_AUTO : 0) | (features.exposurePreview ? FEATURE2_EXPOSURE_PREVIEW : 0) | (features.softFocusMenu ? FEATURE2_SOFT_FOCUS_MENU : 0) | (features.flashTtl ? FEATURE2_FLASH_TTL : 0));
      if (adj) bytes.push(adj);
      if (features.brightAuto) bytes.push(features.brightAuto === 'balanced' ? 2 : 1);
    }
-@@ -201,8 +204,10 @@
+@@ -201,8 +208,11 @@
      if (f & FEATURE_DIRECT_FLASH) features.directFlash = true;
      if (p < rec.length) {
        const f2 = rec[p++];
 -      if ((f2 & ~(FEATURE2_HDR_GAIN_MAP | FEATURE2_ADJ_SLOTS | FEATURE2_BRIGHT_AUTO)) !== 0) return null;
-+      if ((f2 & ~(FEATURE2_HDR_GAIN_MAP | FEATURE2_ADJ_SLOTS | FEATURE2_BRIGHT_AUTO | FEATURE2_EXPOSURE_PREVIEW | FEATURE2_SOFT_FOCUS_MENU)) !== 0) return null;
++      if ((f2 & ~(FEATURE2_HDR_GAIN_MAP | FEATURE2_ADJ_SLOTS | FEATURE2_BRIGHT_AUTO | FEATURE2_EXPOSURE_PREVIEW | FEATURE2_SOFT_FOCUS_MENU | FEATURE2_FLASH_TTL)) !== 0) return null;
        if (f2 & FEATURE2_HDR_GAIN_MAP) features.hdrGainMap = true;
 +      if (f2 & FEATURE2_EXPOSURE_PREVIEW) features.exposurePreview = true;
 +      if (f2 & FEATURE2_SOFT_FOCUS_MENU) features.softFocusMenu = true;
++      if (f2 & FEATURE2_FLASH_TTL) features.flashTtl = true;
        if (f2 & FEATURE2_ADJ_SLOTS) {
          if (p >= rec.length) return null;
          const n = rec[p++];
-@@ -216,7 +221,7 @@
+@@ -216,7 +226,7 @@
          features.brightAuto = mode === 2 ? 'balanced' : 'bright';
        }
      }
 -    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.brightAuto) return null;
-+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview && !features.brightAuto) return null;
++    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview && !features.brightAuto && !features.flashTtl) return null;
    }
    for (; p < rec.length; p++) if (rec[p] !== 0) return null;
    return { specs: out, features, extraSlots, shutdownPictures };
@@ -4857,6 +5102,18 @@ diff --git a/core/src/fw/gr4v120/profile.ts b/core/src/fw/gr4v120/profile.ts
    }
    return { fw, decoded: fw.decoded };
  }
+diff --git a/core/src/fw/gr4v120/patch.ts b/core/src/fw/gr4v120/patch.ts
+--- a/core/src/fw/gr4v120/patch.ts
++++ b/core/src/fw/gr4v120/patch.ts
+@@ -206,7 +206,7 @@
+ export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = [], clarity: readonly ClarityEdit[] = [], features: ExtensionFeatures = {}, test: TestOptions = {}): Promise<BuildResult> {
+   // Additions that append code or icons need the grown layout. The monochrome looks change 13
+   // words in place: on their own (or with only same-length edits) the file keeps the official layout.
+-  const grows = !!features.brightAuto || ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash || (features.adjSlots ?? 5) > 5 || !!features.hdrGainMap;
++  const grows = !!features.brightAuto || ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash || (features.adjSlots ?? 5) > 5 || !!features.hdrGainMap || !!features.flashTtl;
+   const inPlaceMono = !grows && !!features.monoUnlock;
+   const inPlaceLooks = !grows && !!features.lookLayout;
+   const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity, inPlaceMono, inPlaceLooks ? features.lookLayout : undefined);
 diff --git a/core/src/fw/gr4v120/names.ts b/core/src/fw/gr4v120/names.ts
 --- a/core/src/fw/gr4v120/names.ts
 +++ b/core/src/fw/gr4v120/names.ts

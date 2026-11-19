@@ -155,6 +155,8 @@ export interface ExtensionFeatures {
   exposurePreview?: boolean;
   /** 0.8.11, GR IV 1.20 only (not built on 1.11): soft focus (with `adjSoftFocus`) also a line of the still menu. */
   softFocusMenu?: boolean;
+  /** GR IV 1.20 only (`fw/gr4v120/aspect/flttl.ts`; not built on 1.11): pre-flash (TTL) metering for a GF-2 class flash. */
+  flashTtl?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
