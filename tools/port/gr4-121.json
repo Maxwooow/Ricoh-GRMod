@@ -13,8 +13,7 @@
   "exclude": [
     "__pycache__",
     ".refdata",
-    "out",
-    "grain"
+    "out"
   ],
   "rename": [
     [

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * GR Mod's film grain in place of the camera's Grain Effect (`gr4v120/aspect/grain.ts`, GR IV 1.20 only).
- * Needs GRMOD_GR4_120_FIRMWARE (or testdata/private/official120.bin); the "not offered" cases also
- * testdata/private/official.bin (1.11) and GRMOD_GR4_121_FIRMWARE.
+ * GR Mod's film grain in place of the camera's Grain Effect (`gr4v120/aspect/grain.ts`, GR IV 1.20 and 1.21).
+ * Needs GRMOD_GR4_120_FIRMWARE (or testdata/private/official120.bin) and GRMOD_GR4_121_FIRMWARE (or
+ * testdata/private/official121.bin); the "not offered" case testdata/private/official.bin (1.11).
  * The module and the hooks are checked by tools/gr4v120/grain (check.py: the module against the model;
  * fw_check.py: the hooks inside a built RTOS).
  */
@@ -15,12 +15,14 @@ import type { BuildOptions, ExtraSlotSpec } from '../src';
 const P = fileURLToPath(new URL('../testdata/private/', import.meta.url));
 const file120 = process.env.GRMOD_GR4_120_FIRMWARE || P + 'official120.bin';
 const file111 = P + 'official.bin';
-const file121 = process.env.GRMOD_GR4_121_FIRMWARE;
+const file121 = process.env.GRMOD_GR4_121_FIRMWARE || P + 'official121.bin';
 
-// The camera's grain wrapper, the development step's compare, the JPEG step's second instruction.
-const NATIVE_GRAIN = 0x538c9854, DEV_SITE = 0x5393914c, JPEG_HOOK = 0x53727e14;
-// The Grain Effect row's Fn guide and Fn (shooting, RAW development).
-const MENU = [0x531cc004, 0x531cc988, 0x531aa590, 0x531ab760];
+// Per release: the camera's grain wrapper, the development step's compare, the JPEG step's second
+// instruction, and the Grain Effect row's Fn guide and Fn (shooting, RAW development).
+const releases = [
+  { version: '1.20', path: file120, NATIVE_GRAIN: 0x538c9854, DEV_SITE: 0x5393914c, JPEG_HOOK: 0x53727e14, MENU: [0x531cc004, 0x531cc988, 0x531aa590, 0x531ab760] },
+  { version: '1.21', path: file121, NATIVE_GRAIN: 0x538ca4fc, DEV_SITE: 0x5393a714, JPEG_HOOK: 0x53728864, MENU: [0x531cc60c, 0x531ccf90, 0x531aa974, 0x531abb44] },
+];
 
 function rtos(file: Uint8Array): Uint8Array {
   const d = new fw.Firmware(file).decoded, s = fw.sectionsOf(d).find((x) => x.name === 'RTOS')!;
@@ -31,8 +33,8 @@ const branchTarget = (at: number, w: number) => at + 8 + (((w & 0xffffff) << 8) 
 const recordStart = (v: Uint8Array) => v.length - 16 - new DataView(v.buffer, v.byteOffset, v.byteLength).getUint32(v.length - 16, true);
 const curve = (g: number): number[] => Array.from({ length: 256 }, (_, i) => Math.min(16383, Math.round(16383 * Math.pow(i / 255, g))));
 
-describe.skipIf(!existsSync(file120))('film grain 1.20', () => {
-  const raw = existsSync(file120) ? new Uint8Array(readFileSync(file120)) : new Uint8Array();
+for (const { version, path, NATIVE_GRAIN, DEV_SITE, JPEG_HOOK, MENU } of releases) describe.skipIf(!existsSync(path))(`film grain ${version}`, () => {
+  const raw = existsSync(path) ? new Uint8Array(readFileSync(path)) : new Uint8Array();
   const halo = (e: Engine): ExtraSlotSpec => ({ name: 'Halo', matrixQ13: [8192, 0, 0, 0, 8192, 0, 0, 0, 8192], curves: [curve(0.9), curve(1), curve(1.1)],
     postQ9: [512, 0, 0, 0, 512, 0, 0, 0, 512], icon: fw.composeIcon(e.info.tiles.film, new Float32Array(1600).fill(0.6)), halation: true } as ExtraSlotSpec);
   const recipes: [string, (e: Engine) => BuildOptions][] = [
@@ -97,12 +99,7 @@ describe('film grain: where it is not offered', () => {
     expect(e.info.features.filmGrain).toBeUndefined();
     await expect(e.buildFirmware([], [], [], { dateStamp: true, filmGrain: true })).rejects.toMatchObject({ code: 'bad-edit' });
   }, 60000);
-  it.skipIf(!file121 || !existsSync(file121))('GR IV 1.21: not offered, and refused', async () => {
-    const e = await Engine.open(new Uint8Array(readFileSync(file121!)));
-    expect(e.info.features.filmGrain).toBeUndefined();
-    await expect(e.buildFirmware([], [], [], { dateStamp: true, filmGrain: true })).rejects.toMatchObject({ code: 'bad-edit' });
-  }, 60000);
-  it('the 1.21 program still loads: the grain looks its addresses up only when installed', async () => {
+  it('the 1.21 program loads: the grain looks its addresses up only when installed', async () => {
     const m = await import('../src/fw/gr4v121');
     expect(typeof m.buildFirmware).toBe('function');
   });

@@ -161,7 +161,7 @@ export interface ExtensionFeatures {
   exposurePreview?: boolean;
   /** 0.8.11: soft focus (with `adjSoftFocus`) also a line of the still menu (`exposure.ts`). */
   softFocusMenu?: boolean;
-  /** GR Mod's film grain in place of the camera's Grain Effect (`grain.ts`); 1.20 only (not 1.21). Off unless asked for. */
+  /** GR Mod's film grain in place of the camera's Grain Effect (`grain.ts`); 1.20 and 1.21. Off unless asked for. */
   filmGrain?: boolean;
 }
 

@@ -19,6 +19,7 @@
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/directflash/check.py",
     "tools/gr4v120/directflash/settings_check.py",
+    "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/halation/check.py",
     "tools/gr4v120/hdrgain/check.py",
     "tools/gr4v120/shutdown/menu_check.py",
@@ -81,8 +82,10 @@
    "how": "aligned + refs 0x53185054x625",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts",
     "tools/gr4v120/adjslots/adjslots.c",
-    "tools/gr4v120/adjslots/check.py"
+    "tools/gr4v120/adjslots/check.py",
+    "tools/gr4v120/grain/fw_check.py"
    ]
   },
   "0x531871bc": {
@@ -307,7 +310,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/halation-ui.ts"
+    "core/src/fw/gr4v120/aspect/halation-ui.ts",
+    "tools/gr4v120/grain/fw_check.py"
    ]
   },
   "0x531aa554": {
@@ -318,12 +322,28 @@
     "core/src/fw/gr4v120/aspect/halation-ui.ts"
    ]
   },
+  "0x531aa560": {
+   "new": "0x531aa944",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts"
+   ]
+  },
   "0x531aa564": {
    "new": "0x531aa948",
    "how": "aligned + refs 0x531aa948x2",
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531aa590": {
+   "new": "0x531aa974",
+   "how": "aligned + refs 0x531aa974x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts"
    ]
   },
   "0x531aa73c": {
@@ -384,6 +404,14 @@
     "core/src/fw/gr4v120/aspect/halation-ui.ts"
    ]
   },
+  "0x531ab5bc": {
+   "new": "0x531ab9a0",
+   "how": "aligned + refs 0x531ab9a0x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/grain/fw_check.py"
+   ]
+  },
   "0x531ab6fc": {
    "new": "0x531abae0",
    "how": "aligned + refs 0x531abae0x2",
@@ -397,6 +425,7 @@
    "how": "aligned + refs 0x531abb00x1",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation-ui.ts"
    ]
   },
@@ -406,7 +435,8 @@
    "ok": true,
    "why": "aligned in 1.21 (aligned); +-8 words equal up to relocation except at [7] words (neighbouring code Ricoh changed; checked side by side)",
    "files": [
-    "core/src/fw/gr4v120/aspect/halation-ui.ts"
+    "core/src/fw/gr4v120/aspect/halation-ui.ts",
+    "tools/gr4v120/grain/fw_check.py"
    ]
   },
   "0x531ab760": {
@@ -415,6 +445,7 @@
    "ok": true,
    "why": "aligned in 1.21 (aligned); +-8 words equal up to relocation except at [5] words (neighbouring code Ricoh changed; checked side by side)",
    "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation-ui.ts"
    ]
   },
@@ -424,6 +455,7 @@
    "ok": true,
    "why": "aligned in 1.21 (aligned); +-8 words equal up to relocation except at [2] words (neighbouring code Ricoh changed; checked side by side)",
    "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation-ui.ts"
    ]
   },
@@ -2535,7 +2567,8 @@
    "how": "aligned + refs 0x531cc3d4x10",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/halation-ui.ts"
+    "core/src/fw/gr4v120/aspect/halation-ui.ts",
+    "tools/gr4v120/grain/fw_check.py"
    ]
   },
   "0x531cbe0c": {
@@ -2591,7 +2624,8 @@
    "how": "aligned + refs 0x531cc5b4x1",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/halation-ui.ts"
+    "core/src/fw/gr4v120/aspect/halation-ui.ts",
+    "tools/gr4v120/grain/fw_check.py"
    ]
   },
   "0x531cbfc4": {
@@ -2602,12 +2636,28 @@
     "core/src/fw/gr4v120/aspect/halation-ui.ts"
    ]
   },
+  "0x531cbfd4": {
+   "new": "0x531cc5dc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts"
+   ]
+  },
   "0x531cbfd8": {
    "new": "0x531cc5e0",
    "how": "aligned + refs 0x531cc5e0x2",
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/halation-ui.ts"
+   ]
+  },
+  "0x531cc004": {
+   "new": "0x531cc60c",
+   "how": "aligned + refs 0x531cc60cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts"
    ]
   },
   "0x531cc104": {
@@ -2643,12 +2693,21 @@
     "core/src/fw/gr4v120/aspect/halation-ui.ts"
    ]
   },
+  "0x531cc77c": {
+   "new": "0x531ccd84",
+   "how": "aligned + refs 0x531ccd84x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/grain/fw_check.py"
+   ]
+  },
   "0x531cc944": {
    "new": "0x531ccf4c",
    "how": "aligned + refs 0x531ccf4cx2",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/halation-ui.ts"
+    "core/src/fw/gr4v120/aspect/halation-ui.ts",
+    "tools/gr4v120/grain/fw_check.py"
    ]
   },
   "0x531cc964": {
@@ -2656,6 +2715,7 @@
    "how": "aligned + refs 0x531ccf6cx1",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation-ui.ts"
    ]
   },
@@ -2672,6 +2732,7 @@
    "how": "aligned",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation-ui.ts"
    ]
   },
@@ -4201,6 +4262,7 @@
     "core/src/fw/gr4v120/aspect/build.ts",
     "core/src/fw/gr4v120/aspect/datestamp-menu.ts",
     "core/src/fw/gr4v120/aspect/directflash.ts",
+    "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/guard.ts",
     "core/src/fw/gr4v120/aspect/halation-ui.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
@@ -4209,6 +4271,7 @@
     "tools/gr4v120/adjslots/check.py",
     "tools/gr4v120/aspect/boot_checks.py",
     "tools/gr4v120/directflash/check.py",
+    "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/shutdown/shutdown.c",
     "tools/gr4v120/softfocus/check.py"
@@ -4280,7 +4343,8 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/halation-ui.ts",
-    "core/src/fw/gr4v120/aspect/slots.ts"
+    "core/src/fw/gr4v120/aspect/slots.ts",
+    "tools/gr4v120/grain/fw_check.py"
    ]
   },
   "0x53240f98": {
@@ -4300,7 +4364,8 @@
    "how": "aligned + refs 0x53241b54x126",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/halation-ui.ts"
+    "core/src/fw/gr4v120/aspect/halation-ui.ts",
+    "tools/gr4v120/grain/fw_check.py"
    ]
   },
   "0x53241b48": {
@@ -4870,12 +4935,30 @@
     "core/src/fw/gr4v120/aspect/halation-ui.ts"
    ]
   },
+  "0x5337aba0": {
+   "new": "0x5337b44c",
+   "how": "aligned + refs 0x5337b44cx8",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/grain/fw_check.py"
+   ]
+  },
+  "0x5337aeb8": {
+   "new": "0x5337b764",
+   "how": "aligned + refs 0x5337b764x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts",
+    "tools/gr4v120/grain/fw_check.py"
+   ]
+  },
   "0x5337b490": {
    "new": "0x5337bd3c",
    "how": "aligned + refs 0x5337bd3cx1",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/halation-ui.ts"
+    "core/src/fw/gr4v120/aspect/halation-ui.ts",
+    "tools/gr4v120/grain/fw_check.py"
    ]
   },
   "0x5337bc70": {
@@ -5665,6 +5748,14 @@
     "core/src/fw/gr4v120/aspect/halation-ui.ts"
    ]
   },
+  "0x533c73dc": {
+   "new": "0x533c7c44",
+   "how": "aligned + refs 0x533c7c44x11",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/grain/fw_check.py"
+   ]
+  },
   "0x533c73fc": {
    "new": "0x533c7c64",
    "how": "aligned",
@@ -5860,6 +5951,14 @@
     "core/src/fw/gr4v120/aspect/slots.ts",
     "tools/gr4v120/slotparams/gen_slotparams.py",
     "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x533ce7d0": {
+   "new": "0x533cf038",
+   "how": "aligned + refs 0x533cf038x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/grain/fw_check.py"
    ]
   },
   "0x533ce7f0": {
@@ -6908,6 +7007,14 @@
     "tools/gr4v120/adjslots/check.py"
    ]
   },
+  "0x535ac790": {
+   "new": "0x535ad0b8",
+   "how": "aligned + refs 0x535ad0b8x38",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/grain/fw_check.py"
+   ]
+  },
   "0x535acd84": {
    "new": "0x535ad6ac",
    "how": "aligned + refs 0x535ad6acx1227",
@@ -6915,6 +7022,7 @@
    "files": [
     "tools/gr4v120/adjslots/adjslots.c",
     "tools/gr4v120/adjslots/check.py",
+    "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/shutdown/shutdown.c"
    ]
@@ -7800,10 +7908,28 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/datestamp.ts",
+    "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation.ts",
     "core/src/fw/gr4v120/aspect/hdrgain.ts",
     "tools/gr4v120/halation/check.py",
     "tools/gr4v120/hdrgain/check.py"
+   ]
+  },
+  "0x53727e14": {
+   "new": "0x53728864",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts",
+    "tools/gr4v120/grain/fw_check.py"
+   ]
+  },
+  "0x53727e18": {
+   "new": "0x53728868",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/grain/fw_check.py"
    ]
   },
   "0x5372adfc": {
@@ -8498,6 +8624,32 @@
     "core/src/fw/gr4v120/aspect/build.ts"
    ]
   },
+  "0x538c59a4": {
+   "new": "0x538c664c",
+   "how": "aligned + refs 0x538c664cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts",
+    "tools/gr4v120/grain/grain.c"
+   ]
+  },
+  "0x538c9854": {
+   "new": "0x538ca4fc",
+   "how": "aligned + refs 0x538ca4fcx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts",
+    "tools/gr4v120/grain/fw_check.py"
+   ]
+  },
+  "0x538c98a8": {
+   "new": "0x538ca550",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts"
+   ]
+  },
   "0x538c98b8": {
    "new": "0x538ca560",
    "how": "aligned + refs 0x538ca560x2",
@@ -8541,6 +8693,14 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/clarity.ts"
+   ]
+  },
+  "0x538ce520": {
+   "new": "0x538cf1c8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts"
    ]
   },
   "0x538f6604": {
@@ -8670,6 +8830,7 @@
    "files": [
     "core/src/fw/gr4v120/aspect/adjslots.ts",
     "core/src/fw/gr4v120/aspect/directflash.ts",
+    "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation.ts",
     "core/src/fw/gr4v120/aspect/hdrgain.ts",
     "core/src/fw/gr4v120/aspect/menuwide.ts",
@@ -8679,6 +8840,8 @@
     "tools/gr4v120/aspect/playback_check.py",
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/directflash/diag_check.py",
+    "tools/gr4v120/grain/fw_check.py",
+    "tools/gr4v120/grain/grain.c",
     "tools/gr4v120/halation/halation.c",
     "tools/gr4v120/hdrgain/check.py",
     "tools/gr4v120/hdrgain/hdrgain.c",
@@ -8691,10 +8854,13 @@
    "how": "aligned + refs 0x53909190x6107",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation.ts",
     "core/src/fw/gr4v120/aspect/hdrgain.ts",
     "tools/gr4v120/adjslots/check.py",
     "tools/gr4v120/aspect/playback_check.py",
+    "tools/gr4v120/grain/fw_check.py",
+    "tools/gr4v120/grain/grain.c",
     "tools/gr4v120/halation/halation.c",
     "tools/gr4v120/hdrgain/check.py",
     "tools/gr4v120/hdrgain/hdrgain.c",
@@ -8806,8 +8972,11 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/datestamp.ts",
+    "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation.ts",
     "tools/gr4v120/datestamp/datestamp.c",
+    "tools/gr4v120/grain/fw_check.py",
+    "tools/gr4v120/grain/grain.c",
     "tools/gr4v120/halation/halation.c"
    ]
   },
@@ -8817,8 +8986,11 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/datestamp.ts",
+    "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation.ts",
     "tools/gr4v120/datestamp/datestamp.c",
+    "tools/gr4v120/grain/fw_check.py",
+    "tools/gr4v120/grain/grain.c",
     "tools/gr4v120/halation/halation.c"
    ]
   },
@@ -8828,8 +9000,11 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/datestamp.ts",
+    "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation.ts",
     "tools/gr4v120/datestamp/datestamp.c",
+    "tools/gr4v120/grain/fw_check.py",
+    "tools/gr4v120/grain/grain.c",
     "tools/gr4v120/halation/halation.c"
    ]
   },
@@ -8891,7 +9066,25 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/slots.ts"
+    "core/src/fw/gr4v120/aspect/grain.ts",
+    "core/src/fw/gr4v120/aspect/slots.ts",
+    "tools/gr4v120/grain/fw_check.py"
+   ]
+  },
+  "0x53939150": {
+   "new": "0x5393a718",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/grain/fw_check.py"
+   ]
+  },
+  "0x53939298": {
+   "new": "0x5393a860",
+   "how": "aligned + refs 0x5393a860x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grain.ts"
    ]
   },
   "0x539397a8": {
@@ -9588,6 +9781,7 @@
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/directflash/check.py",
     "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/softfocus/check.py"
    ]
@@ -9604,6 +9798,15 @@
     "core/src/fw/gr4v120/aspect/softfocus.ts",
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/exposure/check.py"
+   ]
+  },
+  "0x54400000": {
+   "new": "0x54400000",
+   "how": "override",
+   "ok": true,
+   "why": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release",
+   "files": [
+    "tools/gr4v120/grain/check.py"
    ]
   },
   "0x54408b70": {
@@ -9691,6 +9894,7 @@
     "tools/gr4v120/adjslots/gen.py",
     "tools/gr4v120/datestamp/gen.py",
     "tools/gr4v120/directflash/gen.py",
+    "tools/gr4v120/grain/gen.py",
     "tools/gr4v120/halation/gen.py",
     "tools/gr4v120/hdrgain/gen.py",
     "tools/gr4v120/shutdown/gen.py"
@@ -9716,6 +9920,15 @@
     "tools/gr4v120/slotparams/gen_slotparams.py"
    ]
   },
+  "0x54500000": {
+   "new": "0x54500000",
+   "how": "override",
+   "ok": true,
+   "why": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release",
+   "files": [
+    "tools/gr4v120/grain/check.py"
+   ]
+  },
   "0x5450584c": {
    "new": "0x5450584c",
    "how": "override",
@@ -9734,6 +9947,15 @@
     "tools/gr4v120/softfocus/check.py"
    ]
   },
+  "0x54600000": {
+   "new": "0x54600000",
+   "how": "override",
+   "ok": true,
+   "why": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release",
+   "files": [
+    "tools/gr4v120/grain/check.py"
+   ]
+  },
   "0x55000000": {
    "new": "0x55000000",
    "how": "refs 0x55000000x22",
@@ -9750,10 +9972,20 @@
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/directflash/check.py",
     "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/grain/check.py",
+    "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/halation/check.py",
     "tools/gr4v120/hdrgain/menu_check.py",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/softfocus/check.py"
+   ]
+  },
+  "0x55001000": {
+   "new": "0x55001000",
+   "how": "refs 0x55001000x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/grain/check.py"
    ]
   },
   "0x55001e78": {
@@ -9774,6 +10006,15 @@
     "core/src/fw/gr4v120/aspect/shutdown.ts"
    ]
   },
+  "0x55002000": {
+   "new": "0x55002000",
+   "how": "override",
+   "ok": true,
+   "why": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release",
+   "files": [
+    "tools/gr4v120/grain/check.py"
+   ]
+  },
   "0x55002118": {
    "new": "0x55002118",
    "how": "refs 0x55002118x2",
@@ -9783,6 +10024,15 @@
     "core/src/fw/gr4v120/aspect/directflash-menu.ts",
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/exposure/check.py"
+   ]
+  },
+  "0x55003000": {
+   "new": "0x55003000",
+   "how": "override",
+   "ok": true,
+   "why": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release",
+   "files": [
+    "tools/gr4v120/grain/check.py"
    ]
   },
   "0x55013e70": {
@@ -9998,7 +10248,8 @@
    "ok": true,
    "why": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged",
    "files": [
-    "core/src/fw/gr4v120/aspect/lookstash.ts"
+    "core/src/fw/gr4v120/aspect/lookstash.ts",
+    "tools/gr4v120/grain/fw_check.py"
    ]
   },
   "0x55839028": {
@@ -10007,7 +10258,8 @@
    "ok": true,
    "why": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged",
    "files": [
-    "core/src/fw/gr4v120/aspect/halation-ui.ts"
+    "core/src/fw/gr4v120/aspect/halation-ui.ts",
+    "tools/gr4v120/grain/fw_check.py"
    ]
   },
   "0x5583902c": {
@@ -10044,7 +10296,8 @@
    "ok": true,
    "why": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged",
    "files": [
-    "core/src/fw/gr4v120/aspect/lookstash.ts"
+    "core/src/fw/gr4v120/aspect/lookstash.ts",
+    "tools/gr4v120/grain/fw_check.py"
    ]
   },
   "0x5583903c": {

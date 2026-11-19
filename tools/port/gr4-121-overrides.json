@@ -127,6 +127,10 @@
   "new": "0x543b6a70",
   "reason": "aligned in 1.21 (aligned); +-8 words equal up to relocation"
  },
+ "0x54400000": {
+  "new": "0x54400000",
+  "reason": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release"
+ },
  "0x5440c5c0": {
   "new": "0x5440ddc0",
   "reason": "appended area at a fixed distance from the end of the official RTOS: 1.21 RTOS is 0x1800 longer (0x140ce00)"
@@ -163,6 +167,10 @@
   "new": "0x54440000",
   "reason": "reference link address of a relocatable pre-compiled module (native-link.ts places it): not a firmware address"
  },
+ "0x54500000": {
+  "new": "0x54500000",
+  "reason": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release"
+ },
  "0x5450584c": {
   "new": "0x5450584c",
   "reason": "not an address: four byte offsets packed in one constant (hdrgain.c)"
@@ -171,9 +179,21 @@
   "new": "0x54540000",
   "reason": "emulator hook range end (check.py): above any image"
  },
+ "0x54600000": {
+  "new": "0x54600000",
+  "reason": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release"
+ },
  "0x55001e88": {
   "new": "0x55001e88",
   "reason": "initialised RAM, same place (1.21 RAM image same length 0x58500, word-for-word equal up to relocation here; RAM image aligned)"
+ },
+ "0x55002000": {
+  "new": "0x55002000",
+  "reason": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release"
+ },
+ "0x55003000": {
+  "new": "0x55003000",
+  "reason": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release"
  },
  "0x55013e70": {
   "new": "0x55013e70",

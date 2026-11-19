@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * Film grain in place of the camera's Grain Effect (GR IV 1.20).
+ * Film grain in place of the camera's Grain Effect (GR IV 1.20 and 1.21).
  *
  * The camera's own grain: Granulation (0x538C59A4) fills two picture-sized planes with random bytes
  * and has the image hardware blur them by 3 x 3 and add them within limits by brightness. The grain
@@ -32,9 +32,11 @@
  * date imprint, before the encoder. Everything is appended after all the other additions, so a
  * build without the grain is the same byte for byte up to there.
  *
- * 1.20 only (not 1.11, not 1.21: the engine does not offer it there). Every address is looked up
- * (`adr`) when the grain is installed, not when this file loads, so that a release whose address
- * table does not have them still loads the program.
+ * GR IV 1.20 and 1.21 (not 1.11: the engine does not offer it there). 1.21 runs this through its
+ * address table: the code the grain hooks is the same there, moved; the one instruction word that
+ * differs (a movw of a relocated data address in the JPEG step) is a `byRelease`. Every address is
+ * looked up (`adr`) when the grain is installed, not when this file loads, so that a release whose
+ * address table does not have them still loads the program.
  */
 import { FirmwareError } from '../../types';
 import { assembleWords, branchWord } from './arm';
@@ -44,7 +46,7 @@ import { GRAIN_AMP, GRAIN_FULL_WIDTH, GRAIN_GAIN, GRAIN_OCTAVES } from './grain-
 import { installExposureOrientation } from './datestamp';
 import { FRAME_LOOK, LOOK_SITE, LOOK_STASH, extendZeroFill } from './lookstash';
 import { HAL_FLAG } from './halation-ui';
-import { adr } from '../target';
+import { adr, byRelease } from '../target';
 
 function fail(code: string, message: string): never {
   throw new FirmwareError(code, message);
@@ -178,7 +180,7 @@ export function installFilmGrain(p: Patch): void {
 
   // The module, at the step's second instruction (ip = sp of the caller there).
   expectWord(p, a.jpegExecute + 4, 0xe92ddff0); // push {r4-r12, lr, pc}
-  expectWord(p, a.jpegExecute + 8, 0xe30c6484); // movw r6, #0xc484
+  expectWord(p, a.jpegExecute + 8, byRelease({ '1.20': 0xe30c6484, '1.21': 0xe30d6c74 })); // movw r6, #0xc484 (1.21 #0xdc74: the same data, moved)
   if (GRAIN_GAIN.length !== 64 || GRAIN_GAIN.some((v) => !(Number.isInteger(v) && v >= 0 && v < 256))) fail('internal', 'film grain: gain table');
   const tables = p.append(Uint8Array.from([...GRAIN_AMP, ...GRAIN_OCTAVES, ...GRAIN_GAIN]), 16);
   const ctx = p.append(u32le([a.cache, a.cacheFlushForRead, a.cacheClean, a.heapAlloc, a.heapFree, FRAME_LOOK, tables, tables + 768, tables + 792, GRAIN_FULL_WIDTH, CTX_MAGIC]), 16);

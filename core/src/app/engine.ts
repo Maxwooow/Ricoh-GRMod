@@ -82,7 +82,7 @@ export interface FirmwareInfo {
     hdrGainMap?: boolean;
     /** 0.8.11: exposure preview as a camera setting, and soft focus's still-menu line (GR IV 1.20). */
     exposurePreview?: boolean;
-    /** GR Mod's film grain in place of the camera's Grain Effect (GR IV 1.20 only; see `gr4v120/aspect/grain.ts`). */
+    /** GR Mod's film grain in place of the camera's Grain Effect (GR IV 1.20 and 1.21; see `gr4v120/aspect/grain.ts`). */
     filmGrain?: boolean;
     /** GR III / IIIx: the most films a build can have (9; 20 on GR III 2.10, where
      * the number is chosen with BuildOptions.filmCount and Halation is set in the camera). */
@@ -264,7 +264,7 @@ export interface BuildOptions {
    */
   exposurePreview?: boolean;
   /**
-   * GR Mod's film grain in place of the camera's Grain Effect (GR IV 1.20 only, `features.filmGrain`):
+   * GR Mod's film grain in place of the camera's Grain Effect (GR IV 1.20 and 1.21, `features.filmGrain`):
    * with Grain Effect on, a luminance-only grain of several sizes, strongest in the midtones, its
    * strength set per picture; the camera's Strength and Size are not used. Off unless asked for.
    */
@@ -504,7 +504,7 @@ export class Engine {
       family: 'gr4', filename: 'fwdc248b.bin', models: ['STANDARD', 'HDF', 'MONO'],
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
       capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, menuPictures: true, lookLayout: true },
-      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 === (Gr4Program120 as unknown as Gr4Program) ? { filmGrain: true } : {}) },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== Gr4Program111 ? { filmGrain: true } : {}) },
       version: g4.FIRMWARE_VERSION,
       looks: { factory: [...g4.aspect.FACTORY_LOOK_IDS], extraFirst: g4.aspect.EXTRA_FIRST_STYLE, monoOnly: g4.aspect.FACTORY_LOOK_IDS.filter((n) => n >= 25) },
       sha256: await sha256Hex(input),
@@ -1027,7 +1027,7 @@ export class Engine {
     const softFocusMenu = adjSoftFocus && on120;
     if (options && options.filmGrain !== undefined && typeof options.filmGrain !== 'boolean') throw new FirmwareError('bad-edit', 'filmGrain must be boolean');
     const filmGrain = !!(options && options.filmGrain);
-    if (filmGrain && !this.info.features.filmGrain) throw new FirmwareError('bad-edit', 'the film grain needs GR IV firmware 1.20');
+    if (filmGrain && !this.info.features.filmGrain) throw new FirmwareError('bad-edit', 'the film grain needs GR IV firmware 1.20 or 1.21');
     if (filmGrain && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the film grain cannot be combined with the clarity-table soft focus of 0.4.x');
     if (hdrGainMap && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the HDR gain map cannot be combined with the clarity-table soft focus of 0.4.x');
     if (directFlash && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Direct Flash cannot be combined with the clarity-table soft focus of 0.4.x');

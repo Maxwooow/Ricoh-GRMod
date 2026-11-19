@@ -155,7 +155,7 @@ export interface ExtensionFeatures {
   exposurePreview?: boolean;
   /** 0.8.11, GR IV 1.20 only (not built on 1.11): soft focus (with `adjSoftFocus`) also a line of the still menu. */
   softFocusMenu?: boolean;
-  /** GR IV 1.20 only (`fw/gr4v120/aspect/grain.ts`; not built on 1.11): GR Mod's film grain in place of the camera's Grain Effect. */
+  /** GR IV 1.20 and 1.21 (`fw/gr4v120/aspect/grain.ts`; not built on 1.11): GR Mod's film grain in place of the camera's Grain Effect. */
   filmGrain?: boolean;
 }
 
