@@ -1,7 +1,7 @@
 {
  "gr4-1.11": {
   "version": "1.11",
-  "info": "0402f7796b594091db8574887ca07a3b07c62fecdc25bcb79fe02078bef5adfe",
+  "info": "42ed6103a5c624d69053433c946d92a3370a1598f2a0942d372e428ee9a10565",
   "ratios": "6e8de8e2edd17955e2a1dfdf7645ecc51b2ae5f3ed7e84c820bbbbadee407668",
   "ratios / inspect": "35389f97b141f15c28bd27d0b228136222b544d1bbff0a87cd77dab798b0f208",
   "ratios, no guard": "e5bbb0ffd5850dfff04a65e0599e4e747c7e533320043ddec50a073a5e351bc6",
@@ -46,7 +46,7 @@
  },
  "gr4-1.20": {
   "version": "1.20",
-  "info": "5afbe93899f9ebb59f12b7b9ee10eae546bf813979a2b69e513ab6b123e3680b",
+  "info": "3f032de562adf1850adfb2fb67ef134e8ff019f48296fbbb93d3b944f3729bb4",
   "ratios": "a4f51f2eb28969ac11a340b26672bf960a0e0124b13aec4377efcd4ea0ef3740",
   "ratios / inspect": "fba5f4b12123afcfe81370bf9cf2bc1e1a554194180ecf251ac5129c118f82cf",
   "ratios, no guard": "1238370c5352015a18f14aadde4f40d8c1ecc871adcc65e2c9ddec32d1aaafeb",
