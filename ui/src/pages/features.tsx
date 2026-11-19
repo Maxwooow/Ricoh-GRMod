@@ -4,7 +4,7 @@ import { Ico, Segmented, Select, Switch } from '../components';
 import { isMobile } from '../host';
 import { t } from '../i18n';
 import { uiScale } from '../fit';
-import { useStore, setSoft, setDateStamp, setMonoUnlock, setDirectFlash, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setBrightAuto } from '../store';
+import { useStore, setSoft, setDateStamp, setMonoUnlock, setDirectFlash, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain, setBrightAuto } from '../store';
 
 /** One switch of the firmware additions: icon, name, one line of detail. */
 function FeatureRow({ icon, title, sub, on, onChange, tour }: { icon: ReactNode; title: string; sub: string; on: boolean; onChange: (v: boolean) => void; tour?: string }) {
@@ -55,6 +55,8 @@ export function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?
   const hdrOk = useStore((s) => !!s.info?.features.hdrGainMap);
   const preview = useStore((s) => s.exposurePreview);
   const previewOk = useStore((s) => !!s.info?.features.exposurePreview);
+  const grain = useStore((s) => s.filmGrain);
+  const grainOk = useStore((s) => !!s.info?.features.filmGrain);
   const own = useRef<HTMLDivElement | null>(null);
   // Moved to the other column: glide from where it was (FLIP). Rectangles are in window pixels,
   // the transform is in the zoomed interface's pixels.
@@ -76,6 +78,7 @@ export function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?
       {flashOk && <FeatureRow icon={Ico.flash} title={t('navFlash')} sub={t('flashSub')} on={flash} onChange={setDirectFlash} tour="ic-f-flash" />}
       {hdrOk && <FeatureRow icon={Ico.hdr} title={t('navHdr')} sub={t('hdrSub')} on={hdr} onChange={setHdr} tour="ic-f-hdr" />}
       {previewOk && <FeatureRow icon={Ico.preview} title={t('navPreview')} sub={t('previewSub')} on={preview} onChange={setExposurePreview} tour="ic-f-preview" />}
+      {grainOk && <FeatureRow icon={Ico.grain} title={t('navGrain')} sub={t('grainSub')} on={grain} onChange={setFilmGrain} tour="ic-f-grain" />}
       {adjMax > 5 && <AdjSlotsRow max={adjMax} />}
       {brightAutoOk && !isMobile && <div className="soft-switch" data-tour="ic-f-bright"><Select value={brightAuto || 'off'} options={[{ value: 'off', label: t('brightAutoOff') }, { value: 'balanced', label: t('brightAutoBalanced') }, { value: 'bright', label: t('brightAutoBright') }]} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')} label={t('navBrightAuto')} variant="row" /></div>}
       {/* on a phone: a row like the others, the three levels side by side (as the ADJ items) */}
