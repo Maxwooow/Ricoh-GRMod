@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * Pre-flash (TTL) metering for a GF-2 class flash (`gr4v120/aspect/flttl.ts`, GR IV 1.20 only).
- * Needs GRMOD_GR4_120_FIRMWARE (or testdata/private/official120.bin); the "not offered" cases also
- * testdata/private/official.bin (1.11) and GRMOD_GR4_121_FIRMWARE.
+ * Pre-flash (TTL) metering for a GF-2 class flash (`gr4v120/aspect/flttl.ts`, GR IV 1.20 and 1.21).
+ * Needs GRMOD_GR4_120_FIRMWARE (or testdata/private/official120.bin) and GRMOD_GR4_121_FIRMWARE (or
+ * testdata/private/official121.bin); the "not offered" case testdata/private/official.bin (1.11).
  * The module and the stubs are checked by tools/gr4v120/flash/ttl (host_test.c: the module against a
  * floating-point version; test_arm.py: the stubs and the module inside a built RTOS).
  */
@@ -16,10 +16,16 @@ import { FLTTL_CODE, FLTTL_CODE_LENGTH } from '../src/fw/gr4v120/aspect/flttl-co
 const P = fileURLToPath(new URL('../testdata/private/', import.meta.url));
 const file120 = process.env.GRMOD_GR4_120_FIRMWARE || P + 'official120.bin';
 const file111 = P + 'official.bin';
-const file121 = process.env.GRMOD_GR4_121_FIRMWARE;
+const file121 = process.env.GRMOD_GR4_121_FIRMWARE || P + 'official121.bin';
 
-// The six hooked calls (live view AE, pre-emission, free-live-view step, status store, X, output level) and their targets.
-const SITES: [number, number][] = [[0x5368b3d0, 0x536918c0], [0x53797070, 0x537964f8], [0x5368774c, 0x53684ca4], [0x53a9b70c, 0x537986e0], [0x536a5198, 0x5369ceb8], [0x536a562c, 0x536a3a04]];
+// Per release: the six hooked calls (live view AE, pre-emission, free-live-view step, status store, X, output level) and
+// their targets; the natives of the context (alloc, timer holder, tick, elapsed, flash holder, AE holder, settings holder, flash mode).
+const releases: { version: string; path: string; SITES: [number, number][]; NATIVES: number[] }[] = [
+  { version: '1.20', path: file120, SITES: [[0x5368b3d0, 0x536918c0], [0x53797070, 0x537964f8], [0x5368774c, 0x53684ca4], [0x53a9b70c, 0x537986e0], [0x536a5198, 0x5369ceb8], [0x536a562c, 0x536a3a04]],
+    NATIVES: [0x539084bc, 0x53919d68, 0x5391ca64, 0x5391ca74, 0x53797a30, 0x536ac0b8, 0x53750008, 0x5377ccc4] },
+  { version: '1.21', path: file121, SITES: [[0x5368bd10, 0x53692200], [0x53797d00, 0x53797188], [0x5368808c, 0x536855e4], [0x53a9ccd4, 0x53799370], [0x536a5ad8, 0x5369d7f8], [0x536a5f6c, 0x536a4344]],
+    NATIVES: [0x53909154, 0x5391aaa0, 0x5391d79c, 0x5391d7ac, 0x537986c0, 0x536ac9f8, 0x53750a58, 0x5377d954] },
+];
 const MAGIC = 0x4c54464c, SLOT = 0x55839018, ZERO_FILL_END = 0x53000460;
 
 function rtos(file: Uint8Array): Uint8Array {
@@ -32,8 +38,8 @@ const recordStart = (v: Uint8Array) => v.length - 16 - new DataView(v.buffer, v.
 const findWord = (b: Uint8Array, v: number) => { for (let i = 0; i + 4 <= b.length; i += 4) if (word(b, 0x53000000 + i) === v) return 0x53000000 + i; return -1; };
 const rgb = (v: number) => new Uint8Array(720 * 480 * 3).fill(v);
 
-describe.skipIf(!existsSync(file120))('flash TTL 1.20', () => {
-  const raw = existsSync(file120) ? new Uint8Array(readFileSync(file120)) : new Uint8Array();
+for (const { version, path, SITES, NATIVES } of releases) describe.skipIf(!existsSync(path))(`flash TTL ${version}`, () => {
+  const raw = existsSync(path) ? new Uint8Array(readFileSync(path)) : new Uint8Array();
   const module = Uint8Array.from(Buffer.from(FLTTL_CODE, 'base64'));
   const recipes: [string, (e: Engine) => BuildOptions][] = [
     ['alone', () => ({})],
@@ -60,7 +66,7 @@ describe.skipIf(!existsSync(file120))('flash TTL 1.20', () => {
       const ctx = findWord(b, MAGIC);
       expect(ctx - 0x53000000).toBeGreaterThanOrEqual(a.length);
       expect(word(b, ctx + 4)).toBe(SLOT);
-      expect([2, 3, 4, 5, 6, 8, 9, 10].map((k) => word(b, ctx + 4 * k))).toEqual([0x539084bc, 0x53919d68, 0x5391ca64, 0x5391ca74, 0x53797a30, 0x536ac0b8, 0x53750008, 0x5377ccc4]);
+      expect([2, 3, 4, 5, 6, 8, 9, 10].map((k) => word(b, ctx + 4 * k))).toEqual(NATIVES);
       const noFiles = word(b, ctx + 28);
       expect([word(b, noFiles), word(b, noFiles + 4)]).toEqual([0xe3a00000, 0xe12fff1e]); // mov r0,#0; bx lr
       const code = ctx + 0x30;
@@ -107,12 +113,7 @@ describe('flash TTL: where it is not offered', () => {
     expect(e.info.features.flashTtl).toBeUndefined();
     await expect(e.buildFirmware([], [], [], { dateStamp: true, flashTtl: true })).rejects.toMatchObject({ code: 'bad-edit' });
   }, 60000);
-  it.skipIf(!file121 || !existsSync(file121))('GR IV 1.21: not offered, and refused', async () => {
-    const e = await Engine.open(new Uint8Array(readFileSync(file121!)));
-    expect(e.info.features.flashTtl).toBeUndefined();
-    await expect(e.buildFirmware([], [], [], { dateStamp: true, flashTtl: true })).rejects.toMatchObject({ code: 'bad-edit' });
-  }, 60000);
-  it('the 1.21 program still loads: flash TTL looks its addresses up only when installed', async () => {
+  it('the 1.21 program loads: flash TTL looks its addresses up only when installed', async () => {
     const m = await import('../src/fw/gr4v121');
     expect(typeof m.buildFirmware).toBe('function');
   });

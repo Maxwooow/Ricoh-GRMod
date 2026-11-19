@@ -140,7 +140,7 @@ check('GPIO released from the alarm-timer event: 0x53796584 called only at 0x537
 check('GF-2 output level, auto branch: X = 0x5369ceb8(), level = 8 X + 52 (0x536a5198..0x536a51a4)',
       ins(0x536a5194, 3) == [('ldr', 'r0, [r5, #0x1c]'), ('bl', '#0x5369ceb8'), ('vmov.f32', 's14, #8.000000e+00')] and f32(0x536a51d4) == 52.0)
 check('X\'s distance term is record + 0x84 (0x5369ced4 -> 0x536a7d44), written only at 0x536a66f0, from the lens distance',
-      ins(0x5369ced4) == [('bl', '#0x536a7d44')] and ins(0x536a7d44) == [('vldr', 's0, [r0, #0x84]')] and callers(0x536a7d4c) == [0x536a66f0])
+      ins(0x5369ced4) == [('bl', '#0x536a7d44')] and ins(0x536a7d44) == [('vldr', 's0, [r0, #0x84]')] and [c for c in callers(0x536a7d4c) if w(c) >> 24 == 0xeb] == [0x536a66f0])   # bl only: a data word can decode as a branch
 check('the pre-flash switch record + 0xba: read by the flash program\'s distance term 0x536a1a9c, not inside X (0x5369ceb8)',
       ins(0x536a1ab8) == [('bl', '#0x536a771c')] and 0x5369ceb8 <= 0x5369cf50 and not any(0x5369ceb8 <= c < 0x5369cf50 for c in callers(0x536a771c)))
 check('flash data fill for the GF-2: level from 0x536a50b8, 0x40 for state 0xA, stored by 0x536a3a04 (0x536a5618..0x536a562c)',

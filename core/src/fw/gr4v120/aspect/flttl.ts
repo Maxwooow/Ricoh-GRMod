@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * Pre-flash (TTL) metering for a GF-2 class flash (GR IV 1.20; tools/gr4v120/flash/ttl: README.md, flttl.c).
+ * Pre-flash (TTL) metering for a GF-2 class flash (GR IV 1.20 and 1.21; tools/gr4v120/flash/ttl: README.md, flttl.c).
  *
  * By itself the camera sets the GF-2's output from the focus distance. In the two flash modes with red-eye reduction it
  * also fires a small emission before the picture. With this option the live view frame that catches that emission is
@@ -32,7 +32,9 @@
  * The module can write its record of each shot (644 bytes, struct log in flttl.c) to the card; this build gives it no file
  * service (the `file_holder` native is a stub that returns 0), so nothing is written. The record is still kept in RAM.
  *
- * 1.20 only: the addresses are looked up (adr) when the option is installed, and the 1.21 program does not offer it.
+ * GR IV 1.20 and 1.21 (not 1.11). 1.21 runs this through its address table: the hooked calls, their targets and the code
+ * around them are the same there, moved, with only branches and movw/movt address constants relocated; the struct offsets the
+ * module reads are those of the same instructions. The addresses are looked up (adr) when the option is installed.
  */
 import { FirmwareError } from '../../types';
 import { assembleWords, branchTarget } from './arm';

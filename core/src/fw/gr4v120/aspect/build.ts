@@ -161,7 +161,7 @@ export interface ExtensionFeatures {
   exposurePreview?: boolean;
   /** 0.8.11: soft focus (with `adjSoftFocus`) also a line of the still menu (`exposure.ts`). */
   softFocusMenu?: boolean;
-  /** Pre-flash (TTL) metering for a GF-2 class flash in the two red-eye flash modes (`flttl.ts`); 1.20 only (not 1.21). Off unless asked for. */
+  /** Pre-flash (TTL) metering for a GF-2 class flash in the two red-eye flash modes (`flttl.ts`); 1.20 and 1.21. Off unless asked for. */
   flashTtl?: boolean;
 }
 

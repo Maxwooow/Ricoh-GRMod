@@ -82,7 +82,7 @@ export interface FirmwareInfo {
     hdrGainMap?: boolean;
     /** 0.8.11: exposure preview as a camera setting, and soft focus's still-menu line (GR IV 1.20). */
     exposurePreview?: boolean;
-    /** Pre-flash (TTL) metering for a GF-2 class flash in the two red-eye flash modes (GR IV 1.20 only; see `gr4v120/aspect/flttl.ts`). */
+    /** Pre-flash (TTL) metering for a GF-2 class flash in the two red-eye flash modes (GR IV 1.20 and 1.21; see `gr4v120/aspect/flttl.ts`). */
     flashTtl?: boolean;
     /** GR III / IIIx: the most films a build can have (9; 20 on GR III 2.10, where
      * the number is chosen with BuildOptions.filmCount and Halation is set in the camera). */
@@ -264,7 +264,7 @@ export interface BuildOptions {
    */
   exposurePreview?: boolean;
   /**
-   * Pre-flash (TTL) metering for a GF-2 class flash (GR IV 1.20 only, `features.flashTtl`): in the two
+   * Pre-flash (TTL) metering for a GF-2 class flash (GR IV 1.20 and 1.21, `features.flashTtl`): in the two
    * flash modes with red-eye reduction, the live view frame that catches the pre-emission sets the
    * main flash's output in place of the focus distance; when that frame is not usable the camera's own
    * output stays. The other flash modes are not touched. Off unless asked for.
@@ -505,7 +505,7 @@ export class Engine {
       family: 'gr4', filename: 'fwdc248b.bin', models: ['STANDARD', 'HDF', 'MONO'],
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
       capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, menuPictures: true, lookLayout: true },
-      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 === (Gr4Program120 as unknown as Gr4Program) ? { flashTtl: true } : {}) },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== Gr4Program111 ? { flashTtl: true } : {}) },
       version: g4.FIRMWARE_VERSION,
       looks: { factory: [...g4.aspect.FACTORY_LOOK_IDS], extraFirst: g4.aspect.EXTRA_FIRST_STYLE, monoOnly: g4.aspect.FACTORY_LOOK_IDS.filter((n) => n >= 25) },
       sha256: await sha256Hex(input),
@@ -1028,7 +1028,7 @@ export class Engine {
     const softFocusMenu = adjSoftFocus && on120;
     if (options && options.flashTtl !== undefined && typeof options.flashTtl !== 'boolean') throw new FirmwareError('bad-edit', 'flashTtl must be boolean');
     const flashTtl = !!(options && options.flashTtl);
-    if (flashTtl && !this.info.features.flashTtl) throw new FirmwareError('bad-edit', 'flash TTL needs GR IV firmware 1.20');
+    if (flashTtl && !this.info.features.flashTtl) throw new FirmwareError('bad-edit', 'flash TTL needs GR IV firmware 1.20 or 1.21');
     if (flashTtl && clarity.length > 0) throw new FirmwareError('bad-clarity', 'flash TTL cannot be combined with the clarity-table soft focus of 0.4.x');
     if (hdrGainMap && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the HDR gain map cannot be combined with the clarity-table soft focus of 0.4.x');
     if (directFlash && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Direct Flash cannot be combined with the clarity-table soft focus of 0.4.x');
