@@ -77,6 +77,7 @@ def generate(cfg, target_root):
     for rel in cfg.get('preserve', []):   # made once by other tools (translated fixtures): kept as they are
         p = target_root / rel
         if p.is_dir(): keep[rel] = {f.relative_to(p): f.read_bytes() for f in p.rglob('*') if f.is_file()}
+        elif p.is_file(): keep[rel] = {'': p.read_bytes()}   # one file (a release-only module's generated code)
     for src, dst in cfg['copies']:
         s, d = REPO / src, target_root / dst
         if d.exists(): shutil.rmtree(d)
@@ -91,7 +92,8 @@ def generate(cfg, target_root):
                 shutil.copy2(f, out)
     for rel, files in keep.items():
         for name, data in files.items():
-            out = target_root / rel / name; out.parent.mkdir(parents=True, exist_ok=True); out.write_bytes(data)
+            out = target_root / rel / name if name != '' else target_root / rel
+            out.parent.mkdir(parents=True, exist_ok=True); out.write_bytes(data)
 
 def main():
     cfg_path = Path(sys.argv[1]); cfg = json.loads(cfg_path.read_text()); args = sys.argv[2:]
@@ -103,7 +105,7 @@ def main():
             raw = Path(t) / 'raw'; generate(cfg, raw)
             diffs = []
             skip = lambda rel: (any(part in cfg.get('exclude', []) for part in Path(rel).parts) or
-                                any(rel.startswith(p + '/') for p in cfg.get('preserve', [])) or
+                                any(rel == p or rel.startswith(p + '/') for p in cfg.get('preserve', [])) or
                                 any(re.search(g, rel) for g in cfg.get('generated', [])))   # post-step outputs are made again
             def files_of(root, dst):
                 p = root / dst

@@ -239,5 +239,8 @@
       "core/src/fw/gr4v120/aspect/adjslots-code.ts"
     ]
   ],
-  "old_marker": "1.11"
+  "old_marker": "1.11",
+  "preserve": [
+    "core/src/fw/gr4v120/aspect/grain-code.ts"
+  ]
 }

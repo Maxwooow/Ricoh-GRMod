@@ -302,5 +302,25 @@
  "0x53ad3684": {
   "new": "0x53ad4c4c",
   "reason": "movw r3,#0x9080 of the heap set-up; same code"
+ },
+ "0x54400000": {
+  "new": "0x54400000",
+  "reason": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release"
+ },
+ "0x54500000": {
+  "new": "0x54500000",
+  "reason": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release"
+ },
+ "0x54600000": {
+  "new": "0x54600000",
+  "reason": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release"
+ },
+ "0x55002000": {
+  "new": "0x55002000",
+  "reason": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release"
+ },
+ "0x55003000": {
+  "new": "0x55003000",
+  "reason": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release"
  }
 }

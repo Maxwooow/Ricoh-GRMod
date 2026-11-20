@@ -141,6 +141,61 @@ diff --git a/tools/gr4v121/directflash/settings_check.py b/tools/gr4v121/directf
  CURRENT = 0x550832a8
  BYTE = CURRENT + 4 + 0x99b
  GN_BYTE = CURRENT + 4 + 0x99a
+diff --git a/tools/gr4v121/grain/check.py b/tools/gr4v121/grain/check.py
+--- a/tools/gr4v121/grain/check.py
++++ b/tools/gr4v121/grain/check.py
+@@ -21,8 +21,9 @@
+ import model  # noqa: E402
+ 
+ ROOT = HERE.parent.parent.parent
+-CODE = base64.b64decode(re.search(r"GRAIN_CODE = '([^']+)'", (ROOT / 'core/src/fw/gr4v121/aspect/grain-code.ts').read_text()).group(1))
+-TABLES = (ROOT / 'core/src/fw/gr4v121/aspect/grain-tables.ts').read_text()
++# 1.21 uses the 1.20 port's module and tables (core/overlays.mjs): they name no firmware address.
++CODE = base64.b64decode(re.search(r"GRAIN_CODE = '([^']+)'", (ROOT / 'core/src/fw/gr4v120/aspect/grain-code.ts').read_text()).group(1))
++TABLES = (ROOT / 'core/src/fw/gr4v120/aspect/grain-tables.ts').read_text()
+ AMP = np.array(json.loads(re.search(r'GRAIN_AMP: readonly number\[\] = (\[[^\]]*\])', TABLES).group(1)), dtype=np.uint8).reshape(3, 256)
+ OCT = json.loads(re.search(r'GRAIN_OCTAVES: readonly number\[\] = (\[[^\]]*\])', TABLES).group(1))
+ GAIN = np.array(json.loads(re.search(r'GRAIN_GAIN: readonly number\[\] = (\[[^\]]*\])', TABLES).group(1)), dtype=np.uint8)
+diff --git a/tools/gr4v121/grain/gen.py b/tools/gr4v121/grain/gen.py
+--- a/tools/gr4v121/grain/gen.py
++++ b/tools/gr4v121/grain/gen.py
+@@ -1,5 +1,5 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+-"""Compile tools/gr4v121/grain/grain.c and write core/src/fw/gr4v121/aspect/grain-code.ts.
++"""Compile tools/gr4v121/grain/grain.c and write core/src/fw/gr4v120/aspect/grain-code.ts, which 1.21 shares.
+ 
+ The module is position independent (-fropi -frwpi, no global data, every address passed in through
+ its context argument), so the bytes do not depend on where they are placed. This is checked by
+@@ -18,7 +18,7 @@
+ HERE = Path(__file__).resolve().parent
+ ROOT = HERE.parent.parent.parent
+ SRC = HERE / 'grain.c'
+-OUT = ROOT / 'core' / 'src' / 'fw' / 'gr4v121' / 'aspect' / 'grain-code.ts'
++OUT = ROOT / 'core' / 'src' / 'fw' / 'gr4v120' / 'aspect' / 'grain-code.ts'   # shared by 1.21 (core/overlays.mjs)
+ USE_ZIG = bool(os.environ.get('GRMOD_ZIG')) or not (shutil.which('clang') and shutil.which('ld.lld') and shutil.which('llvm-objcopy'))
+ FLAGS = ['-mcpu=cortex_a9' if USE_ZIG else '-mcpu=cortex-a9', '-marm', '-mfloat-abi=soft', '-O2',
+          '-ffreestanding', '-fno-builtin', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-nostdlib',
+diff --git a/tools/gr4v121/grain/model.py b/tools/gr4v121/grain/model.py
+--- a/tools/gr4v121/grain/model.py
++++ b/tools/gr4v121/grain/model.py
+@@ -1,7 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ """Film grain (grain.c): the tables, and a numpy model that gives the same bytes as the module.
+ 
+-`python3 model.py` writes core/src/fw/gr4v121/aspect/grain-tables.ts (the tables the build puts in
++`python3 model.py` writes core/src/fw/gr4v120/aspect/grain-tables.ts (shared by 1.21) (the tables the build puts in
+ the firmware). Look: texture that still shows when the photo is seen
+ whole on a phone, but never reads as a fault: luminance only, soft clumps of a few sizes instead of
+ pixel noise, strongest in the midtones, fading out towards skin, sky and deep shadow.
+@@ -14,7 +14,7 @@
+ 
+ HERE = Path(__file__).resolve().parent
+ ROOT = HERE.parent.parent.parent
+-OUT = ROOT / 'core' / 'src' / 'fw' / 'gr4v121' / 'aspect' / 'grain-tables.ts'
++OUT = ROOT / 'core' / 'src' / 'fw' / 'gr4v120' / 'aspect' / 'grain-tables.ts'   # shared by 1.21 (core/overlays.mjs)
+ 
+ FULL_WIDTH = 6192
+ OCTAVES = 4
 diff --git a/tools/gr4v121/shade/draw_check.py b/tools/gr4v121/shade/draw_check.py
 --- a/tools/gr4v121/shade/draw_check.py
 +++ b/tools/gr4v121/shade/draw_check.py

@@ -235,7 +235,7 @@ diff --git a/core/src/fw/gr4v120/aspect/brightauto.ts b/core/src/fw/gr4v120/aspe
 diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/build.ts
 --- a/core/src/fw/gr4v120/aspect/build.ts
 +++ b/core/src/fw/gr4v120/aspect/build.ts
-@@ -32,12 +32,13 @@
+@@ -32,12 +32,14 @@
  import { installDirectFlashMenu } from './directflash-menu';
  import { DATESTAMP_BYTE, installDateStamp, lookNames } from './datestamp';
  import { HDR_SWITCH_BYTE, installHdrGainMap } from './hdrgain';
@@ -245,13 +245,14 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  import { installMonoUnlock } from './monounlock';
  import { installBrightAuto } from './brightauto';
  import { installShadowLearn } from './shadowml';
++import { installFilmGrain } from './grain';
  import { CINEMA_STYLES, installExtraSlots, installHalation } from './slots';
 -import { halationLight } from './halation';
 +import { HALATION_TEST, halationLight } from './halation';
  import type { HalationLook } from './halation';
  import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
  import type { LookLayout } from './looks';
-@@ -50,24 +51,28 @@
+@@ -50,24 +52,28 @@
  import type { CustomGrid } from './grid';
  import { installRatioShade } from './shade';
  import type { ShadeTone } from './shade';
@@ -288,7 +289,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  export const LANGUAGES = 21;
  const ROW_STRIDE = TEXT_CAPACITY * 4;
  const NATIVE_ICON_CATALOG = adr(0x55014280);
-@@ -90,10 +95,10 @@
+@@ -90,10 +96,10 @@
    return id;
  }
  
@@ -302,7 +303,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  }
  
  export interface RatioSpec {
-@@ -155,11 +160,11 @@
+@@ -155,11 +161,11 @@
    /** ADJ lever slots, 6 to 8 (see `adjslots.ts`); absent or 5: the camera's five. */
    adjSlots?: number;
    /**
@@ -317,7 +318,16 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    softFocusMenu?: boolean;
    /** The battery icon shows the charge in steps of 10 % instead of the bars (see `battery.ts`). */
    batteryPercent?: boolean;
-@@ -183,11 +188,22 @@
+@@ -174,7 +180,7 @@
+   ratioShadeTone?: ShadeTone;
+   /** A learned Auto for Shadow Correction (see `shadowml.ts`); GR IV 1.11, 1.20 and 1.21. Off unless asked for. */
+   shadowLearn?: boolean;
+-  /** GR IV 1.20 and 1.21 (`fw/gr4v120/aspect/grain.ts`; not built on 1.11): GR Mod's film grain in place of the camera's Grain Effect. */
++  /** GR Mod's film grain in place of the camera's Grain Effect (`grain.ts`); 1.20 and 1.21. Off unless asked for. */
+   filmGrain?: boolean;
+ }
+ 
+@@ -185,11 +191,22 @@
    dateStampDiag?: boolean;
    /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
    directFlashDiag?: boolean;
@@ -341,7 +351,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  export interface AspectResult {
    revision: BuildRevision;
-@@ -350,7 +366,7 @@
+@@ -352,7 +369,7 @@
    for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
    const rowsStart = TEXT_CATALOG + 0x100;
    const end = rowsStart + LANGUAGES * ROW_STRIDE;
@@ -350,7 +360,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    patch.extendTo(end - BASE);
    patch.write(ICON_CATALOG, icons);
    const relocated: number[] = [];
-@@ -362,8 +378,15 @@
+@@ -364,8 +381,15 @@
    // language directory themselves.
    patch.setWord(adr(0x534013f8), movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
    patch.setWord(adr(0x534013fc), movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
@@ -368,7 +378,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    }
    for (const [low, high] of [[adr(0x535967cc), adr(0x535967d0)], [adr(0x53595db4), adr(0x53595dbc)]] as const) {
      patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
-@@ -394,7 +417,10 @@
+@@ -396,7 +420,10 @@
  // --------------------------------------------------------------------------------------------
  // crop_icons.py
  
@@ -380,7 +390,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
    const parts: Uint8Array[] = [iconbin];
-@@ -486,7 +512,7 @@
+@@ -488,7 +515,7 @@
    // Complete language rows again, now wide enough for the new names; every original entry is kept.
    let priorColumns = TEXT_CAPACITY;
    for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
@@ -389,7 +399,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    for (const id of allIds) upper = Math.max(upper, textId(id));
    const columns = Math.max(priorColumns, upper + 1);
    const catalogs: Uint8Array[] = [];
-@@ -615,7 +641,7 @@
+@@ -617,7 +644,7 @@
    p.hook(adr(0x538b40ec), out);
    out = `push {r0-r3,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r0,r3;bne #${adrHEX(0x538B41CC)};b #${p.target(adr(0x538b41b4))};`;
    p.hook(adr(0x538b41b4), out);
@@ -398,7 +408,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x53664430), out);
    // Both callers select the cropped window only for their original 2..5 range; a computed window
    // is invisible if selector 0 copies the untouched full canvas instead.
-@@ -678,7 +704,7 @@
+@@ -680,7 +707,7 @@
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
    out += adrText('cmp r2,#5;beq #0x5367298C;b #0x536728E8;');
@@ -407,7 +417,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x536728e4), out);
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
-@@ -699,8 +725,8 @@
+@@ -701,8 +728,8 @@
      out = '';
      for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
      out += `bic ip,ip,#4;b #${resume};custom:`;
@@ -418,7 +428,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      out += adrText('ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;');
      p.hook(entry, out);
    }
-@@ -786,7 +812,7 @@
+@@ -788,7 +815,7 @@
    const get = p.emit(lookup + 'mov r0,#0;bx lr;');
    // The native code at 0x53726698 divides s15 by the crop magnification; the other branch writes
    // it directly. Both contracts are kept.
@@ -427,7 +437,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x537266e8), code);
    // r8 / sb are the source dimensions: exact known sizes first, then fit the ratio for anything else.
    code = `push {r0,r4-r7,r10,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;beq old;mov r4,r0;mov r5,r8;mov r6,sb;`;
-@@ -920,7 +946,7 @@
+@@ -922,7 +949,7 @@
  function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
    const priorSave = branchTarget(adr(0x533f3674), patch.word(adr(0x533f3674)));
    const priorLoad = branchTarget(adr(0x533f3254), patch.word(adr(0x533f3254)));
@@ -436,7 +446,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    expectWord(patch, adr(0x5381d6bc), 0xe1a0c00d);
    // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
    const rects: Uint8Array[] = [];
-@@ -1058,11 +1084,21 @@
+@@ -1060,11 +1087,21 @@
   * features this is `installRatios`, byte for byte. With features the revision is 3.
   */
  export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
@@ -455,11 +465,11 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
    const adjSlots = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
 -  const extra = !!features.brightAuto || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade || !!features.shadowLearn;
-+  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade || !!features.shadowLearn;
++  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade || !!features.shadowLearn || !!features.filmGrain;
    if (features.customGrid && (!validCustomGrid(features.customGrid) || isCameraGrid(features.customGrid))) fail('internal', 'a custom grid must differ from the camera’s');
    if (features.ratioShade && ratios.length === 0) fail('internal', 'the live-view shade needs an added ratio');
    if (extra) revision = 3;
-@@ -1075,8 +1111,8 @@
+@@ -1077,8 +1114,9 @@
    });
    if (features.brightAuto !== undefined && ![true, false, 'bright', 'balanced'].includes(features.brightAuto)) fail('bad-edit', 'brightAuto must be boolean, bright or balanced');
    if (features.shadowLearn !== undefined && typeof features.shadowLearn !== 'boolean') fail('bad-edit', 'shadowLearn must be boolean');
@@ -467,10 +477,11 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 -  if (features.shadowLearn && (test.directFlashDiag || test.hdrDiag)) fail('internal', 'the learned shadow correction cannot be built with diagnostics');
 +  // Its two RAM words are those of the diagnostics of Direct Flash and halation and the HDR gain map's counters (test builds).
 +  if (features.shadowLearn && (test.directFlashDiag || test.hdrDiag || test.halationDiag)) fail('internal', 'the learned shadow correction cannot be built with diagnostics');
++  if (features.filmGrain !== undefined && typeof features.filmGrain !== 'boolean') fail('bad-edit', 'filmGrain must be boolean');
    const patch = new Patch(rtos);
    const ramCopy = new DataView(patch.read(BASE + 0x450, 12).buffer);
    if (ramCopy.getUint32(0, true) !== RAM.source || ramCopy.getUint32(4, true) !== RAM.destination || ramCopy.getUint32(8, true) !== RAM.length) {
-@@ -1096,21 +1132,34 @@
+@@ -1098,21 +1136,34 @@
      installImageIdentity(patch, ratios);
      if (revision >= 2) installPlaybackDecode(patch);
    }
@@ -509,7 +520,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    // Halation: added slots that have it, Cinema slots with a preset that are asked to.
    const halation: HalationLook[] = [];
    slots.forEach((x, k) => {
-@@ -1138,10 +1187,16 @@
+@@ -1140,19 +1191,27 @@
    if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
    // The HDR line's list: after the additions that copy the list table first.
    if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
@@ -528,13 +539,18 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    if (features.brightAuto) installBrightAuto(patch, features.brightAuto === 'balanced' ? 'balanced' : 'bright');
    if (features.batteryPercent) icons = installBatteryPercent(patch, icons, !!test.batteryDiag);
    // After the ratios: the diagonals take the point setter the grid view's layout calls then.
-@@ -1152,5 +1207,5 @@
+   if (features.customGrid) installCustomGrid(patch, features.customGrid);
+   // Last: appended after everything else, so every other addition keeps its place without it.
+   if (features.shadowLearn) installShadowLearn(patch);
++  // Film grain: last, so that everything appended before it stays where it is in builds without it.
++  if (features.filmGrain) installFilmGrain(patch);
+   // Very last: the zero fill over the sbrk arena; the additions above expect it at 0x55839040 or its official end.
    if (features.batteryPercent) extendBatteryZeroFill(patch);
    if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
    if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
 -  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true, ...(features.ratioShadeTone && features.ratioShadeTone !== 'dark' ? { ratioShadeTone: features.ratioShadeTone } : {}) } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}) } };
 -}
-+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true, ...(features.ratioShadeTone && features.ratioShadeTone !== 'dark' ? { ratioShadeTone: features.ratioShadeTone } : {}) } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}) } };
++  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true, ...(features.ratioShadeTone && features.ratioShadeTone !== 'dark' ? { ratioShadeTone: features.ratioShadeTone } : {}) } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}) } };
 +}
 diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/aspect/datestamp-menu.ts
 --- a/core/src/fw/gr4v120/aspect/datestamp-menu.ts
@@ -1588,6 +1604,223 @@ diff --git a/core/src/fw/gr4v120/aspect/facts.ts b/core/src/fw/gr4v120/aspect/fa
  
  /** Photo-info rectangle [width, height, left, top] (Q16 on the 45x30 plane) per crop step, ratio 3:2. */
  export const RECT_BASES: readonly (readonly number[])[] = [[2949120,1966080,0,0],[2354697,1569789,297212,198141],[1668913,1112609,640104,426736]];
+diff --git a/core/src/fw/gr4v120/aspect/grain-tables.ts b/core/src/fw/gr4v120/aspect/grain-tables.ts
+new file mode 100644
+--- /dev/null
++++ b/core/src/fw/gr4v120/aspect/grain-tables.ts
+@@ -0,0 +1,9 @@
++// SPDX-License-Identifier: GPL-2.0-only
++// GENERATED by tools/gr4v120/grain/model.py -- do not edit.
++/** Amplitude of the grain per Y value (1/16 level), for Strength weak, medium, strong. */
++export const GRAIN_AMP: readonly number[] = [0, 1, 1, 2, 3, 3, 4, 5, 5, 6, 6, 7, 7, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 14, 14, 15, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 23, 23, 24, 24, 25, 25, 26, 26, 26, 26, 27, 27, 27, 27, 28, 28, 28, 28, 29, 29, 29, 29, 30, 30, 30, 30, 31, 31, 31, 31, 32, 32, 32, 32, 33, 33, 33, 33, 33, 34, 34, 34, 34, 34, 34, 34, 34, 34, 34, 34, 34, 34, 34, 34, 34, 34, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 35, 34, 34, 34, 34, 34, 34, 34, 34, 33, 33, 33, 33, 33, 33, 33, 32, 32, 32, 32, 32, 32, 32, 31, 31, 31, 31, 31, 30, 30, 29, 29, 29, 28, 28, 27, 27, 27, 26, 26, 25, 25, 25, 24, 24, 23, 23, 23, 22, 22, 22, 21, 21, 20, 20, 19, 19, 19, 18, 18, 17, 17, 16, 16, 16, 15, 15, 14, 14, 14, 13, 13, 12, 12, 11, 11, 11, 10, 10, 10, 10, 9, 9, 9, 9, 8, 8, 8, 8, 7, 7, 7, 7, 6, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 9, 10, 11, 12, 12, 13, 14, 15, 16, 16, 17, 18, 19, 20, 20, 21, 22, 23, 23, 24, 25, 25, 26, 27, 27, 28, 29, 29, 30, 31, 31, 32, 33, 33, 34, 35, 35, 36, 37, 37, 38, 38, 38, 39, 39, 39, 40, 40, 41, 41, 41, 42, 42, 42, 43, 43, 43, 44, 44, 45, 45, 45, 46, 46, 46, 47, 47, 48, 48, 48, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 49, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 51, 50, 50, 50, 50, 50, 49, 49, 49, 49, 49, 48, 48, 48, 48, 48, 47, 47, 47, 47, 46, 46, 46, 46, 46, 45, 45, 45, 44, 44, 43, 43, 42, 42, 41, 40, 40, 39, 39, 38, 38, 37, 36, 36, 35, 35, 34, 34, 33, 32, 32, 31, 31, 30, 29, 29, 28, 28, 27, 26, 26, 25, 25, 24, 23, 23, 22, 22, 21, 20, 20, 19, 18, 18, 17, 17, 16, 15, 15, 15, 14, 14, 14, 13, 13, 12, 12, 12, 11, 11, 11, 10, 10, 9, 9, 9, 8, 8, 8, 7, 7, 7, 6, 6, 6, 6, 5, 5, 5, 5, 5, 4, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 3, 4, 5, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 51, 52, 52, 53, 53, 54, 54, 55, 55, 56, 56, 57, 57, 58, 58, 59, 59, 60, 60, 61, 61, 62, 62, 63, 63, 64, 64, 65, 65, 66, 66, 67, 67, 67, 67, 67, 67, 68, 68, 68, 68, 68, 68, 68, 68, 69, 69, 69, 69, 69, 69, 69, 69, 69, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 70, 69, 69, 69, 68, 68, 68, 68, 67, 67, 67, 66, 66, 66, 66, 65, 65, 65, 64, 64, 64, 64, 63, 63, 63, 63, 62, 62, 61, 60, 60, 59, 58, 57, 56, 56, 55, 54, 53, 52, 52, 51, 50, 49, 49, 48, 47, 46, 45, 45, 44, 43, 42, 41, 41, 40, 39, 38, 37, 36, 35, 35, 34, 33, 32, 31, 30, 30, 29, 28, 27, 26, 25, 24, 24, 23, 22, 21, 21, 20, 20, 19, 19, 18, 18, 17, 17, 16, 16, 15, 15, 14, 14, 13, 13, 12, 11, 11, 10, 10, 9, 9, 8, 8, 8, 8, 7, 7, 7, 7, 6, 6, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0];
++/** Per Size (small, medium, large): four octaves of {grid shift, weight}. */
++export const GRAIN_OCTAVES: readonly number[] = [1, 153, 2, 52, 0, 0, 0, 0, 1, 138, 2, 77, 3, 39, 0, 0, 1, 96, 2, 112, 3, 71, 0, 0];
++/** Automatic strength: share of the amplitude (255: all) by the picture's own fine texture (0..63). */
++export const GRAIN_GAIN: readonly number[] = [255, 254, 254, 252, 250, 248, 245, 242, 238, 233, 228, 222, 216, 209, 201, 192, 182, 170, 157, 142, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128, 128];
++export const GRAIN_FULL_WIDTH = 6192;
+diff --git a/core/src/fw/gr4v120/aspect/grain.ts b/core/src/fw/gr4v120/aspect/grain.ts
+new file mode 100644
+--- /dev/null
++++ b/core/src/fw/gr4v120/aspect/grain.ts
+@@ -0,0 +1,198 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/**
++ * Film grain in place of the camera's Grain Effect (GR IV 1.20 and 1.21).
++ *
++ * The camera's own grain: Granulation (0x538C59A4) fills two picture-sized planes with random bytes
++ * and has the image hardware blur them by 3 x 3 and add them within limits by brightness. The grain
++ * is one or two pixels, about as strong in sky and highlights as in the midtones (its brightness
++ * table only lowers the midtones, to 72 %). It reads as sensor noise, and is mostly gone when the
++ * photo is seen whole on a phone.
++ *
++ * Here: the camera's grain is turned off (its wrapper 0x538C9854, called for Grain Effect only, not
++ * for the Grainy look's own grain, returns "done") and `tools/gr4v120/grain/grain.c` puts a grain of
++ * its own on the finished pictures at the start of JpegEncodeMacroProcess::Execute (0x53727E10),
++ * when Grain Effect is on. Only on / off counts: the camera's Strength and Size are not used, and the
++ * Strength / Size submenu is no longer offered for the Grain Effect row (`hideGrainSubmenu`). The
++ * strength is found per picture: full for a clean one, down to half for one that already has fine
++ * texture of its own (high ISO noise, busy detail). Luminance only; soft grain of several sizes
++ * (2, 4 and 8 pixels on the main picture); strongest in the midtones and fading out towards skin,
++ * sky and deep shadows; a new grain for every picture. Tables: `tools/gr4v120/grain/model.py`
++ * (which also gives the module's exact bytes); checks: `tools/gr4v120/grain/check.py` (the compiled
++ * module in unicorn against the model) and `fw_check.py` (the hooks inside a built image).
++ *
++ * The settings reach the JPEG step in free bits of the look words (lookstash.ts): a hook of the
++ * development step right after the look stash (0x5393914C, the look's compare; the frame's record in
++ * r3) sets bits 20..25 of LOOK_STASH (and, in RAW development, of FRAME_LOOK): bit 25 written, 20
++ * Grain Effect on (not for the Grainy look, which keeps the camera's own grain), 21..22 Strength,
++ * 23..24 Size. The start of each exposure copies LOOK_STASH to FRAME_LOOK (datestamp.ts); the module
++ * reads FRAME_LOOK. The other readers of the words use bits 0..17 only.
++ *
++ * The module runs at the second instruction of JpegEncodeMacroProcess::Execute (0x53727E14), where
++ * every wrapper of the step (halation, date imprint, HDR gain map) ends: after the halation and the
++ * date imprint, before the encoder. Everything is appended after all the other additions, so a
++ * build without the grain is the same byte for byte up to there.
++ *
++ * GR IV 1.20 and 1.21 (not 1.11: the engine does not offer it there). 1.21 runs this through its
++ * address table: the code the grain hooks is the same there, moved; the one instruction word that
++ * differs (a movw of a relocated data address in the JPEG step) is a `byRelease`. Every address is
++ * looked up (`adr`) when the grain is installed, not when this file loads, so that a release whose
++ * address table does not have them still loads the program.
++ */
++import { FirmwareError } from '../../types';
++import { assembleWords, branchWord } from './arm';
++import { Patch, expectWord, u32le } from './build';
++import { GRAIN_CODE, GRAIN_CODE_LENGTH } from './grain-code';
++import { GRAIN_AMP, GRAIN_FULL_WIDTH, GRAIN_GAIN, GRAIN_OCTAVES } from './grain-tables';
++import { installExposureOrientation } from './datestamp';
++import { FRAME_LOOK, LOOK_SITE, LOOK_STASH, extendZeroFill } from './lookstash';
++import { HAL_FLAG } from './halation-ui';
++import { adr, byRelease } from '../target';
++
++function fail(code: string, message: string): never {
++  throw new FirmwareError(code, message);
++}
++
++const CTX_MAGIC = 0x324e5247; // 'GRN2'
++const GRAINY_LOOK = 28;
++/** The bits of the look words (LOOK_STASH, FRAME_LOOK) that carry Grain Effect's settings. */
++export const GRAIN_BITS = 0x3f00000;
++
++/** The places the grain relies on (addresses of this program's release). */
++function places() {
++  return {
++    jpegExecute: adr(0x53727e10),
++    cache: adr(0x53918010),
++    cacheFlushForRead: adr(0x539180a0),
++    cacheClean: adr(0x5391808c),
++    heapAlloc: adr(0x539084bc),
++    heapFree: adr(0x539084f8),
++    /** The camera's Grain Effect: the wrapper the effect dispatcher (0x538CE520) calls, then Granulation. */
++    nativeGrain: adr(0x538c9854),
++    nativeGrainTail: adr(0x538c98a8), // b Granulation
++    granulation: adr(0x538c59a4),
++    /** The development step's compare of the look (`cmp r2, #0xb`), right after the look stash's hook. */
++    devSite: adr(0x5393914c),
++    devSkip: adr(0x53939298), // beq target of the compare
++    // The Grain Effect row's submenu (see hideGrainSubmenu).
++    /** Shooting, Fn guide: Grain Effect (kind 16) reads the switch (`bl 0x532406a4`) -> `b 0x531CBFD4` (r5 = 0: no guide). */
++    shootGuide: adr(0x531cc004),
++    shootNoGuide: adr(0x531cbfd4), // mov r5, #0
++    /** Shooting, Fn: Grain Effect's (and, with the flag, the Halation row's) way into the submenu (`mov r0, r4`). */
++    shootFn: adr(0x531cc988),
++    shootFnCall: adr(0x53185054),
++    shootNoSubmenu: adr(0x531cc964), // mov r0, r4: Fn on a row without a submenu
++    /** RAW development, Fn guide: Grain Effect reads the switch (`bl 0x5337AEB8`) -> `b 0x531AA560` (r4 = 0). */
++    rawGuide: adr(0x531aa590),
++    rawNoGuide: adr(0x531aa560), // mov r4, #0
++    /** RAW development, Fn: Grain Effect's way into the submenu (`bl 0x532406A4`; the Halation row enters at 0x531AB76C) -> `b 0x531AB71C`. */
++    rawFn: adr(0x531ab760),
++    rawNoSubmenu: adr(0x531ab71c), // mov r0, r4: Fn on a row without a submenu
++    switchRead: adr(0x532406a4),
++    rawSwitchRead: adr(0x5337aeb8),
++  };
++}
++
++/**
++ * Grain Effect's Strength and Size (its submenu, opened with Fn from the Grain Effect row) do nothing
++ * with the film grain, so the submenu is no longer offered for that row: no Fn guide, and Fn does
++ * what it does on a row without a submenu. Shooting (ImageControlDetailController) and RAW
++ * development (RawDevelopmentImageControlDetailSetController). The Halation row (halation-ui.ts)
++ * opens the same submenu with HAL_FLAG set and keeps it; the Grainy look's rows (kind 13) are not
++ * touched.
++ */
++function hideGrainSubmenu(p: Patch, a: ReturnType<typeof places>): void {
++  expectWord(p, a.shootGuide, branchWord(a.shootGuide, a.switchRead, 14, true));
++  expectWord(p, a.shootNoGuide, 0xe3a05000); // mov r5, #0
++  expectWord(p, a.shootFn, 0xe1a00004); // mov r0, r4
++  expectWord(p, a.shootFn + 4, branchWord(a.shootFn + 4, a.shootFnCall, 14, true));
++  expectWord(p, a.shootNoSubmenu, 0xe1a00004); // mov r0, r4
++  expectWord(p, a.rawGuide, branchWord(a.rawGuide, a.rawSwitchRead, 14, true));
++  expectWord(p, a.rawNoGuide, 0xe3a04000); // mov r4, #0
++  expectWord(p, a.rawFn, branchWord(a.rawFn, a.switchRead, 14, true));
++  expectWord(p, a.rawNoSubmenu, 0xe1a00004); // mov r0, r4
++  p.setWord(a.shootGuide, branchWord(a.shootGuide, a.shootNoGuide), 'film grain: no Fn guide on Grain Effect');
++  const fn = p.append((at) => assembleWords(
++    `movw ip,#${HAL_FLAG & 65535};movt ip,#${HAL_FLAG >>> 16};ldr ip,[ip];cmp ip,#0
++     beq #${a.shootNoSubmenu}
++     mov r0,r4;b #${a.shootFn + 4}`, at), 16);
++  p.setWord(a.shootFn, branchWord(a.shootFn, fn), 'film grain: Fn on Grain Effect opens no submenu (Halation still does)');
++  p.setWord(a.rawGuide, branchWord(a.rawGuide, a.rawNoGuide), 'film grain: no Fn guide on Grain Effect (RAW development)');
++  p.setWord(a.rawFn, branchWord(a.rawFn, a.rawNoSubmenu), 'film grain: Fn on Grain Effect opens no submenu (RAW development)');
++}
++
++export function grainModule(): Uint8Array {
++  const raw = Uint8Array.from(atob(GRAIN_CODE), (c) => c.charCodeAt(0));
++  if (raw.length !== GRAIN_CODE_LENGTH || raw.length % 4 !== 0) fail('internal', 'film grain module length');
++  return raw;
++}
++
++/** Whether a build has the film grain (the camera's own grain turned off). */
++export function filmGrainInstalled(p: Patch): boolean {
++  return p.word(places().nativeGrain) === 0xe3a00001;
++}
++
++/** The words the grain hooks (for tests): the camera's grain, the development step, the JPEG step. */
++export function filmGrainSites(): { nativeGrain: number; devSite: number; jpegHook: number } {
++  const a = places();
++  return { nativeGrain: a.nativeGrain, devSite: a.devSite, jpegHook: a.jpegExecute + 4 };
++}
++
++export function installFilmGrain(p: Patch): void {
++  const a = places();
++  if (GRAIN_AMP.length !== 768 || GRAIN_AMP.some((v) => !(Number.isInteger(v) && v >= 0 && v < 256))) fail('internal', 'film grain: amplitude table');
++  if (GRAIN_OCTAVES.length !== 24 || GRAIN_OCTAVES.some((v) => !(Number.isInteger(v) && v >= 0 && v < 256))) fail('internal', 'film grain: octave table');
++  for (let s = 0; s < 3; s++) for (let o = 1; o < 4; o++) {
++    const at = (s * 4 + o) * 2;
++    if (GRAIN_OCTAVES[at + 1] && GRAIN_OCTAVES[at] < GRAIN_OCTAVES[at - 2]) fail('internal', 'film grain: octaves must go from fine to coarse');
++  }
++  // The camera's grain: `push {r4, r5, r6, lr}; ldr ip, [sp, #0x10]` -> `mov r0, #1; bx lr` (1: done, as
++  // when the effect is not asked for).
++  expectWord(p, a.nativeGrain, 0xe92d4070);
++  expectWord(p, a.nativeGrain + 4, 0xe59dc010);
++  expectWord(p, a.nativeGrainTail, branchWord(a.nativeGrainTail, a.granulation)); // b Granulation
++  p.setWord(a.nativeGrain, 0xe3a00001, 'film grain: the camera\'s own grain off');
++  p.setWord(a.nativeGrain + 4, 0xe12fff1e, 'film grain: the camera\'s own grain off');
++
++  // The frame's settings into the look words (r1 = the step's argument + 0x8000, r2 the look, r3 the
++  // frame's record; the flags are set by the compare that ends the hook).
++  expectWord(p, a.devSite, 0xe352000b); // cmp r2, #0xb
++  expectWord(p, a.devSite + 4, branchWord(a.devSite + 4, a.devSkip, 0)); // beq
++  if (p.word(LOOK_SITE) >>> 24 !== 0xea && p.word(LOOK_SITE) !== 0xe5d3279c) fail('unexpected-layout', 'film grain: development step');
++  const dev = p.append((at) => assembleWords(
++    `push {r0,r1,r2}
++     mov r0,#0x2000000
++     ldrb r2,[r3,#0x79c];cmp r2,#${GRAINY_LOOK};beq gstore
++     ldrb r2,[r3,#0x7b5];cmp r2,#0;beq gstore
++     orr r0,r0,#0x100000
++     ldrb r2,[r3,#0x7b7];cmp r2,#2;movhi r2,#0;orr r0,r0,r2,lsl #21
++     ldrb r2,[r3,#0x7b6];cmp r2,#2;movhi r2,#0;orr r0,r0,r2,lsl #23
++     gstore:movw r2,#${LOOK_STASH & 65535};movt r2,#${LOOK_STASH >>> 16}
++     ldr r1,[r2];bic r1,r1,#0x${GRAIN_BITS.toString(16)};orr r1,r1,r0;str r1,[r2]
++     ldr r1,[sp,#4];ldrb r1,[r1,#0x2ac];cmp r1,#0;bne gdone
++     movw r2,#${FRAME_LOOK & 65535};movt r2,#${FRAME_LOOK >>> 16}
++     ldr r1,[r2];bic r1,r1,#0x${GRAIN_BITS.toString(16)};orr r1,r1,r0;str r1,[r2]
++     gdone:pop {r0,r1,r2}
++     cmp r2,#0xb
++     b #${a.devSite + 4}`, at), 16);
++  p.setWord(a.devSite, branchWord(a.devSite, dev), 'film grain: the frame\'s Grain Effect settings');
++  extendZeroFill(p);
++  installExposureOrientation(p);
++
++  // The module, at the step's second instruction (ip = sp of the caller there).
++  expectWord(p, a.jpegExecute + 4, 0xe92ddff0); // push {r4-r12, lr, pc}
++  expectWord(p, a.jpegExecute + 8, byRelease({ '1.20': 0xe30c6484, '1.21': 0xe30d6c74 })); // movw r6, #0xc484 (1.21 #0xdc74: the same data, moved)
++  if (GRAIN_GAIN.length !== 64 || GRAIN_GAIN.some((v) => !(Number.isInteger(v) && v >= 0 && v < 256))) fail('internal', 'film grain: gain table');
++  const tables = p.append(Uint8Array.from([...GRAIN_AMP, ...GRAIN_OCTAVES, ...GRAIN_GAIN]), 16);
++  const ctx = p.append(u32le([a.cache, a.cacheFlushForRead, a.cacheClean, a.heapAlloc, a.heapFree, FRAME_LOOK, tables, tables + 768, tables + 792, GRAIN_FULL_WIDTH, CTX_MAGIC]), 16);
++  const code = p.append(grainModule(), 16);
++  const stub = p.append((at) => assembleWords(
++    `push {r0-r3,ip,lr}
++     movw r0,#${ctx & 65535};movt r0,#${ctx >>> 16}
++     ldr r1,[r1,#8]
++     bl #${code}
++     pop {r0-r3,ip,lr}
++     push {r4-r12,lr,pc}
++     b #${a.jpegExecute + 8}`, at), 16);
++  hideGrainSubmenu(p, a);
++  p.setWord(a.jpegExecute + 4, branchWord(a.jpegExecute + 4, stub), 'film grain at the JPEG encode step');
++}
 diff --git a/core/src/fw/gr4v120/aspect/grid.ts b/core/src/fw/gr4v120/aspect/grid.ts
 --- a/core/src/fw/gr4v120/aspect/grid.ts
 +++ b/core/src/fw/gr4v120/aspect/grid.ts
@@ -2494,7 +2727,16 @@ diff --git a/core/src/fw/gr4v120/aspect/monounlock.ts b/core/src/fw/gr4v120/aspe
 diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/package.ts
 --- a/core/src/fw/gr4v120/aspect/package.ts
 +++ b/core/src/fw/gr4v120/aspect/package.ts
-@@ -83,6 +83,9 @@
+@@ -27,6 +27,8 @@
+  * whole frame and the part outside darkened (`shade.ts`); bit 1, its lighter colour ('light');
+  * bit 2, the battery percentage (`battery.ts`); bit 3, custom grid lines (`grid.ts`), followed by
+  * two bytes, the 3x3 and the 4x4 style's lines (line i in bit i); bit 4 is 1.20's.
++ * one more byte. Bit 2: a following bright-Auto curve byte (1 bright, 2 balanced). Bit 6: GR Mod's
++ * film grain (`grain.ts`; bits 3 and 4 are exposure preview's, bit 5 is kept free).
+  * A build without them reads as before; earlier programs do not take a record with
+  * this byte set.
+  *
+@@ -83,6 +85,9 @@
  const FEATURE2_ADJ_SLOTS = 2;
  /** A following byte selects 1 = bright or 2 = balanced. */
  const FEATURE2_BRIGHT_AUTO = 4;
@@ -2504,39 +2746,49 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
  /** Second feature byte: bit 5, the learned Auto for Shadow Correction (`shadowml.ts`). */
  const FEATURE2_SHADOW_LEARN = 32;
  /** Second feature byte: bit 7, a third feature byte follows (after the bytes of bits 1 and 2). */
-@@ -127,11 +130,11 @@
+@@ -95,6 +100,8 @@
+ const FEATURE3_BATTERY = 4;
+ /** Third feature byte: bit 3, custom grid lines (`grid.ts`); two bytes follow, the 3x3 and the 4x4 style's lines. */
+ const FEATURE3_CUSTOM_GRID = 8;
++/** Second feature byte: bit 6, GR Mod's film grain in place of the camera's Grain Effect (`grain.ts`). */
++const FEATURE2_FILM_GRAIN = 64;
+ 
+ /**
+  * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
+@@ -127,11 +134,11 @@
    if (tone !== 'dark' && !features.ratioShade) fail('internal', 'a shade tone needs the live-view shade');
    if (features.ratioShade && specs.length === 0) fail('internal', 'the live-view shade needs an added ratio');
    const f3 = (features.ratioShade ? FEATURE3_RATIO_SHADE : 0) | (tone === 'light' ? FEATURE3_SHADE_LIGHT : 0) | (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0);
 -  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.shadowLearn || f3) {
 -    if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, the learned shadow correction and the third feature byte need revision 3');
-+  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.exposurePreview || features.softFocusMenu || features.shadowLearn || f3) {
-+    if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, bright Auto, exposure preview, the soft focus line, the learned shadow correction and the third feature byte need revision 3');
++  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.exposurePreview || features.softFocusMenu || features.shadowLearn || features.filmGrain || f3) {
++    if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, bright Auto, exposure preview, the soft focus line, the learned shadow correction, the film grain and the third feature byte need revision 3');
      const adj = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
      if (adj && !(Number.isInteger(adj) && adj <= ADJ_SLOTS_MAX)) fail('internal', 'ADJ slots cannot be recorded');
 -    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.brightAuto ? FEATURE2_BRIGHT_AUTO : 0) | (features.shadowLearn ? FEATURE2_SHADOW_LEARN : 0) | (f3 ? FEATURE2_MORE : 0));
-+    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.brightAuto ? FEATURE2_BRIGHT_AUTO : 0) | (features.exposurePreview ? FEATURE2_EXPOSURE_PREVIEW : 0) | (features.softFocusMenu ? FEATURE2_SOFT_FOCUS_MENU : 0) | (features.shadowLearn ? FEATURE2_SHADOW_LEARN : 0) | (f3 ? FEATURE2_MORE : 0));
++    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.brightAuto ? FEATURE2_BRIGHT_AUTO : 0) | (features.exposurePreview ? FEATURE2_EXPOSURE_PREVIEW : 0) | (features.softFocusMenu ? FEATURE2_SOFT_FOCUS_MENU : 0) | (features.shadowLearn ? FEATURE2_SHADOW_LEARN : 0) | (features.filmGrain ? FEATURE2_FILM_GRAIN : 0) | (f3 ? FEATURE2_MORE : 0));
      if (adj) bytes.push(adj);
      if (features.brightAuto) bytes.push(features.brightAuto === 'balanced' ? 2 : 1);
      if (f3) bytes.push(f3);
-@@ -226,8 +229,10 @@
+@@ -226,8 +233,11 @@
      if (f & FEATURE_DIRECT_FLASH) features.directFlash = true;
      if (p < rec.length) {
        const f2 = rec[p++];
 -      if ((f2 & ~(FEATURE2_HDR_GAIN_MAP | FEATURE2_ADJ_SLOTS | FEATURE2_BRIGHT_AUTO | FEATURE2_SHADOW_LEARN | FEATURE2_MORE)) !== 0) return null;
-+      if ((f2 & ~(FEATURE2_HDR_GAIN_MAP | FEATURE2_ADJ_SLOTS | FEATURE2_BRIGHT_AUTO | FEATURE2_EXPOSURE_PREVIEW | FEATURE2_SOFT_FOCUS_MENU | FEATURE2_SHADOW_LEARN | FEATURE2_MORE)) !== 0) return null;
++      if ((f2 & ~(FEATURE2_HDR_GAIN_MAP | FEATURE2_ADJ_SLOTS | FEATURE2_BRIGHT_AUTO | FEATURE2_EXPOSURE_PREVIEW | FEATURE2_SOFT_FOCUS_MENU | FEATURE2_SHADOW_LEARN | FEATURE2_FILM_GRAIN | FEATURE2_MORE)) !== 0) return null;
        if (f2 & FEATURE2_HDR_GAIN_MAP) features.hdrGainMap = true;
 +      if (f2 & FEATURE2_EXPOSURE_PREVIEW) features.exposurePreview = true;
 +      if (f2 & FEATURE2_SOFT_FOCUS_MENU) features.softFocusMenu = true;
++      if (f2 & FEATURE2_FILM_GRAIN) features.filmGrain = true;
        if (f2 & FEATURE2_ADJ_SLOTS) {
          if (p >= rec.length) return null;
          const n = rec[p++];
-@@ -259,7 +264,7 @@
+@@ -259,7 +269,7 @@
          }
        }
      }
 -    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn) return null;
-+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn) return null;
++    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn && !features.filmGrain) return null;
    }
    for (; p < rec.length; p++) if (rec[p] !== 0) return null;
    return { specs: out, features, extraSlots, shutdownPictures };
@@ -4987,6 +5239,18 @@ diff --git a/core/src/fw/gr4v120/profile.ts b/core/src/fw/gr4v120/profile.ts
    }
    return { fw, decoded: fw.decoded };
  }
+diff --git a/core/src/fw/gr4v120/patch.ts b/core/src/fw/gr4v120/patch.ts
+--- a/core/src/fw/gr4v120/patch.ts
++++ b/core/src/fw/gr4v120/patch.ts
+@@ -206,7 +206,7 @@
+ export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = [], clarity: readonly ClarityEdit[] = [], features: ExtensionFeatures = {}, test: TestOptions = {}): Promise<BuildResult> {
+   // Additions that append code or icons need the grown layout. The monochrome looks change 13
+   // words in place: on their own (or with only same-length edits) the file keeps the official layout.
+-  const grows = !!features.brightAuto || ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash || (features.adjSlots ?? 5) > 5 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.shadowLearn;
++  const grows = !!features.brightAuto || ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash || (features.adjSlots ?? 5) > 5 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.shadowLearn || !!features.filmGrain;
+   const inPlaceMono = !grows && !!features.monoUnlock;
+   const inPlaceLooks = !grows && !!features.lookLayout;
+   const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity, inPlaceMono, inPlaceLooks ? features.lookLayout : undefined);
 diff --git a/core/src/fw/gr4v120/names.ts b/core/src/fw/gr4v120/names.ts
 --- a/core/src/fw/gr4v120/names.ts
 +++ b/core/src/fw/gr4v120/names.ts
