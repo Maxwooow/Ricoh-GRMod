@@ -25,7 +25,9 @@
     "tools/gr4v120/softfocus/check.py",
     "tools/gr4v120/battery/check.py",
     "tools/gr4v120/grid/check.py",
-    "tools/gr4v120/shade/draw_check.py"
+    "tools/gr4v120/shade/draw_check.py",
+    "tools/gr4v120/shadowml/fwemu.py",
+    "tools/gr4v120/shadowml/test_fw.py"
    ]
   },
   "0x53000460": {
@@ -39,7 +41,9 @@
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "core/src/fw/gr4v120/aspect/slots.ts",
     "tools/gr4v120/shutdown/menu_check.py",
-    "tools/gr4v120/battery/check.py"
+    "tools/gr4v120/battery/check.py",
+    "core/src/fw/gr4v120/aspect/shadowml.ts",
+    "tools/gr4v120/shadowml/test_fw.py"
    ]
   },
   "0x53000930": {
@@ -8695,7 +8699,10 @@
     "tools/gr4v120/hdrgain/check.py",
     "tools/gr4v120/hdrgain/hdrgain.c",
     "tools/gr4v120/shutdown/menu_check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/shadowml.ts",
+    "tools/gr4v120/shadowml/fwemu.py",
+    "tools/gr4v120/shadowml/test_fw.py"
    ]
   },
   "0x539084f8": {
@@ -8710,7 +8717,8 @@
     "tools/gr4v120/halation/halation.c",
     "tools/gr4v120/hdrgain/check.py",
     "tools/gr4v120/hdrgain/hdrgain.c",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "tools/gr4v120/shadowml/fwemu.py"
    ]
   },
   "0x53908530": {
@@ -8721,7 +8729,8 @@
     "tools/gr4v120/adjslots/check.py",
     "tools/gr4v120/aspect/playback_check.py",
     "tools/gr4v120/datestamp/list_width_check.py",
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/shadowml/fwemu.py"
    ]
   },
   "0x5390856c": {
@@ -8731,7 +8740,8 @@
    "files": [
     "tools/gr4v120/adjslots/check.py",
     "tools/gr4v120/aspect/playback_check.py",
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/shadowml/fwemu.py"
    ]
   },
   "0x53909c88": {
@@ -8802,7 +8812,8 @@
     "tools/gr4v120/hdrgain/check.py",
     "tools/gr4v120/softfocus/check.py",
     "tools/gr4v120/battery/check.py",
-    "tools/gr4v120/shade/draw_check.py"
+    "tools/gr4v120/shade/draw_check.py",
+    "tools/gr4v120/shadowml/fwemu.py"
    ]
   },
   "0x53916064": {
@@ -9709,7 +9720,8 @@
     "tools/gr4v120/directflash/gen.py",
     "tools/gr4v120/halation/gen.py",
     "tools/gr4v120/hdrgain/gen.py",
-    "tools/gr4v120/shutdown/gen.py"
+    "tools/gr4v120/shutdown/gen.py",
+    "tools/gr4v120/shadowml/gen.py"
    ]
   },
   "0x5443c1d0": {
@@ -9772,7 +9784,8 @@
     "tools/gr4v120/softfocus/check.py",
     "tools/gr4v120/battery/check.py",
     "tools/gr4v120/grid/check.py",
-    "tools/gr4v120/shade/draw_check.py"
+    "tools/gr4v120/shade/draw_check.py",
+    "tools/gr4v120/shadowml/fwemu.py"
    ]
   },
   "0x55001e78": {
@@ -9992,7 +10005,9 @@
     "core/src/fw/gr4v120/aspect/slots.ts",
     "tools/gr4v120/shutdown/menu_check.py",
     "core/src/fw/gr4v120/aspect/battery.ts",
-    "tools/gr4v120/battery/check.py"
+    "tools/gr4v120/battery/check.py",
+    "core/src/fw/gr4v120/aspect/shadowml.ts",
+    "tools/gr4v120/shadowml/test_fw.py"
    ]
   },
   "0x5583901c": {
@@ -10076,7 +10091,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/build.ts",
     "core/src/fw/gr4v120/aspect/directflash.ts",
-    "tools/gr4v120/directflash/diag_check.py"
+    "tools/gr4v120/directflash/diag_check.py",
+    "core/src/fw/gr4v120/aspect/shadowml.ts",
+    "tools/gr4v120/shadowml/test_fw.py"
    ]
   },
   "0x55839040": {
@@ -10090,7 +10107,8 @@
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "core/src/fw/gr4v120/aspect/slots.ts",
     "tools/gr4v120/shutdown/menu_check.py",
-    "tools/gr4v120/battery/check.py"
+    "tools/gr4v120/battery/check.py",
+    "core/src/fw/gr4v120/aspect/shadowml.ts"
    ]
   },
   "0x53154a70": {
@@ -10507,6 +10525,210 @@
    "ok": true,
    "files": [
     "tools/gr4v120/battery/check.py"
+   ]
+  },
+  "0x53000450": {
+   "new": "0x53000450",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/shadowml/fwemu.py"
+   ]
+  },
+  "0x5391f1d4": {
+   "new": "0x5391ff0c",
+   "how": "aligned + refs 0x5391ff0cx7",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shadowml.ts",
+    "tools/gr4v120/shadowml/stack_fw.py",
+    "tools/gr4v120/shadowml/test_fw.py"
+   ]
+  },
+  "0x53947230": {
+   "new": "0x539487f8",
+   "how": "aligned + refs 0x539487f8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shadowml.ts",
+    "tools/gr4v120/shadowml/shadowml.c",
+    "tools/gr4v120/shadowml/test_fw.py"
+   ]
+  },
+  "0x53947240": {
+   "new": "0x53948808",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shadowml.ts"
+   ]
+  },
+  "0x53947258": {
+   "new": "0x53948820",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shadowml.ts"
+   ]
+  },
+  "0x53947334": {
+   "new": "0x539488fc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shadowml.ts"
+   ]
+  },
+  "0x539473a0": {
+   "new": "0x53948968",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shadowml.ts"
+   ]
+  },
+  "0x539473a4": {
+   "new": "0x5394896c",
+   "how": "aligned + refs 0x5394896cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shadowml.ts",
+    "tools/gr4v120/shadowml/test_fw.py"
+   ]
+  },
+  "0x53947448": {
+   "new": "0x53948a10",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shadowml.ts"
+   ]
+  },
+  "0x539474d8": {
+   "new": "0x53948aa0",
+   "how": "aligned + refs 0x53948aa0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shadowml.ts",
+    "tools/gr4v120/shadowml/test_fw.py"
+   ]
+  },
+  "0x539474e8": {
+   "new": "0x53948ab0",
+   "how": "aligned + refs 0x53948ab0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shadowml.ts"
+   ]
+  },
+  "0x539474f0": {
+   "new": "0x53948ab8",
+   "how": "aligned + refs 0x53948ab8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shadowml.ts"
+   ]
+  },
+  "0x53947508": {
+   "new": "0x53948ad0",
+   "how": "aligned + refs 0x53948ad0x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shadowml.ts"
+   ]
+  },
+  "0x53947784": {
+   "new": "0x53948d4c",
+   "how": "aligned + refs 0x53948d4cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shadowml.ts",
+    "tools/gr4v120/shadowml/test_fw.py"
+   ]
+  },
+  "0x53947800": {
+   "new": "0x53948dc8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shadowml.ts"
+   ]
+  },
+  "0x53947804": {
+   "new": "0x53948dcc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shadowml.ts"
+   ]
+  },
+  "0x54080044": {
+   "new": "0x54081834",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shadowml.ts",
+    "tools/gr4v120/shadowml/test_fw.py"
+   ]
+  },
+  "0x54080058": {
+   "new": "0x54081848",
+   "how": "aligned + refs 0x54081848x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/shadowml/test_fw.py"
+   ]
+  },
+  "0x5440b600": {
+   "new": "0x5440ce00",
+   "how": "override",
+   "ok": true,
+   "why": "end of the official RTOS image (its length; the emulator checks treat everything beyond it as GR Mod's): 1.20 0x140B600 bytes, 1.21 0x140CE00",
+   "files": [
+    "tools/gr4v120/shadowml/test_fw.py"
+   ]
+  },
+  "0x553a2830": {
+   "new": "0x553a2838",
+   "how": "refs 0x553a2838x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/shadowml/test_fw.py"
+   ]
+  },
+  "0x553a283c": {
+   "new": "0x553a2844",
+   "how": "override",
+   "ok": true,
+   "why": "field of the shadow-correction core's live-view smoothing state 0x553A2830 (1.21 0x553A2838, refs x3): the same +8; its one reference (movw at 0x53948C28) agrees",
+   "files": [
+    "tools/gr4v120/shadowml/test_fw.py"
+   ]
+  },
+  "0x553a2840": {
+   "new": "0x553a2848",
+   "how": "refs 0x553a2848x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/shadowml/test_fw.py"
+   ]
+  },
+  "0x553a284c": {
+   "new": "0x553a2854",
+   "how": "override",
+   "ok": true,
+   "why": "field of the shadow-correction core's live-view smoothing state 0x553A2830 (1.21 0x553A2838, refs x3): the same +8; its one reference (movw at 0x53948AD4) agrees",
+   "files": [
+    "tools/gr4v120/shadowml/test_fw.py"
+   ]
+  },
+  "0x55800000": {
+   "new": "0x55800000",
+   "how": "override",
+   "ok": true,
+   "why": "the emulator's heap in tools/*/shadowml/fwemu.py, inside the heap: the 1.21 RAM layout is unchanged (start-up literals 0x53000454..0x53000460 equal)",
+   "files": [
+    "tools/gr4v120/shadowml/fwemu.py"
    ]
   }
  }

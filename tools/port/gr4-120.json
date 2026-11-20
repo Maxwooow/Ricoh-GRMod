@@ -106,6 +106,10 @@
     [
       "tools/shade",
       "tools/gr4v120/shade"
+    ],
+    [
+      "tools/shadowml",
+      "tools/gr4v120/shadowml"
     ]
   ],
   "exclude": [
@@ -171,6 +175,10 @@
       "tools/gr4v120/shade/"
     ],
     [
+      "tools/shadowml/",
+      "tools/gr4v120/shadowml/"
+    ],
+    [
       "parents[2]",
       "parents[3]"
     ]
@@ -212,6 +220,10 @@
     [
       "python3",
       "tools/gr4v120/adjslots/gen.py"
+    ],
+    [
+      "python3",
+      "tools/gr4v120/shadowml/gen.py"
     ],
     [
       "python3",

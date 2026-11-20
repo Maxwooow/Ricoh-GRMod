@@ -58,6 +58,7 @@ function FirmwareLine({ info, builds, lang, name }: { info: CopyInfo | undefined
           {s.batteryPercent && <span className="chip tiny" title={t('batteryLine')}><b>{t('batteryChip')}</b></span>}
           {s.customGrid && <span className="chip tiny" title={t('gridLine', { a: gridText(s.customGrid, 'g3'), b: gridText(s.customGrid, 'g4') })}><b>{t('gridChip')}</b></span>}
           {s.ratioShade && <span className="chip tiny" title={t('ratioShadeLine', { p: toneLabel(s.ratioShadeTone ?? 'dark') })}><b>{t('ratioLiveChip')}</b><span className="ellipsis">{toneLabel(s.ratioShadeTone ?? 'dark')}</span></span>}
+          {s.shadowLearn && <span className="chip tiny" title={t('shadowLine')}><b>{t('navShadow')}</b></span>}
         </div>
       </div>
     </>

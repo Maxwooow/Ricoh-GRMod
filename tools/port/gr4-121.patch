@@ -156,6 +156,28 @@ diff --git a/tools/gr4v121/shade/draw_check.py b/tools/gr4v121/shade/draw_check.
      ins = next(md.disasm(new.R[GRID_CTOR_CLEAR - BASE:GRID_CTOR_CLEAR - BASE + 4], GRID_CTOR_CLEAR))
      check((ins.mnemonic, ins.op_str) == ('str', 'r5, [r4, #0xf4]'), f'constructor clear is {ins.mnemonic} {ins.op_str}')
      zero = None
+diff --git a/tools/gr4v121/shadowml/gen.py b/tools/gr4v121/shadowml/gen.py
+--- a/tools/gr4v121/shadowml/gen.py
++++ b/tools/gr4v121/shadowml/gen.py
+@@ -1,5 +1,5 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+-"""Compile tools/gr4v121/shadowml/shadowml.c and write core/src/fw/gr4v121/aspect/shadowml-code.ts (module) and shadowml-data.ts (the model blob).
++"""Compile tools/gr4v121/shadowml/shadowml.c and write core/src/fw/gr4v120/aspect/shadowml-code.ts (module) and shadowml-data.ts (the model blob), which 1.21 shares.
+ 
+ As tools/gr4v121/hdrgain/gen.py, the module is position independent (-fropi -frwpi, no global data), checked by linking it at two
+ addresses and comparing, by refusing any .data/.bss/.rodata/.got section and any undefined symbol (no libcalls), and by
+@@ -23,8 +23,9 @@
+ ROOT = next(p for p in HERE.parents if (p / 'package.json').exists())   # the repository (this file is also in a port's tools)
+ SRC = HERE / 'shadowml.c'
+ HDR = HERE / 'shadowml_const.h'
+-OUT_CODE = ROOT / 'core/src/fw/gr4v121/aspect/shadowml-code.ts'
+-OUT_DATA = ROOT / 'core/src/fw/gr4v121/aspect/shadowml-data.ts'
++# 1.21 uses the 1.20 port's module and blob (core/overlays.mjs): they name no firmware address (the stub passes them in).
++OUT_CODE = ROOT / 'core/src/fw/gr4v120/aspect/shadowml-code.ts'
++OUT_DATA = ROOT / 'core/src/fw/gr4v120/aspect/shadowml-data.ts'
+ USE_ZIG = bool(os.environ.get('GRMOD_ZIG')) or not (shutil.which('clang') and shutil.which('ld.lld') and shutil.which('llvm-objcopy'))
+ FLAGS = ['-mcpu=cortex_a7' if USE_ZIG else '-mcpu=cortex-a7', '-marm', '-mfloat-abi=soft', '-O2', '-fomit-frame-pointer',
+          '-ffreestanding', '-fno-builtin', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-nostdlib',
 diff --git a/tools/gr4v121/softfocus/check.py b/tools/gr4v121/softfocus/check.py
 --- a/tools/gr4v121/softfocus/check.py
 +++ b/tools/gr4v121/softfocus/check.py

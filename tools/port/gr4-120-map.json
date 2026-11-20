@@ -25,7 +25,9 @@
     "tools/hdrgain/check.py",
     "tools/battery/check.py",
     "tools/grid/check.py",
-    "tools/shade/draw_check.py"
+    "tools/shade/draw_check.py",
+    "tools/shadowml/fwemu.py",
+    "tools/shadowml/test_fw.py"
    ]
   },
   "0x53000460": {
@@ -40,7 +42,8 @@
     "core/src/fw/aspect/slots.ts",
     "tools/shutdown/menu_check.py",
     "core/src/fw/aspect/hdrgain.ts",
-    "tools/battery/check.py"
+    "tools/battery/check.py",
+    "core/src/fw/aspect/shadowml.ts"
    ]
   },
   "0x53000930": {
@@ -8088,7 +8091,10 @@
     "tools/softfocus/check.py",
     "core/src/fw/aspect/hdrgain.ts",
     "tools/hdrgain/check.py",
-    "tools/hdrgain/hdrgain.c"
+    "tools/hdrgain/hdrgain.c",
+    "core/src/fw/aspect/shadowml.ts",
+    "tools/shadowml/fwemu.py",
+    "tools/shadowml/test_fw.py"
    ]
   },
   "0x538e09ec": {
@@ -8103,7 +8109,8 @@
     "tools/softfocus/check.py",
     "core/src/fw/aspect/hdrgain.ts",
     "tools/hdrgain/check.py",
-    "tools/hdrgain/hdrgain.c"
+    "tools/hdrgain/hdrgain.c",
+    "tools/shadowml/fwemu.py"
    ]
   },
   "0x538e0a24": {
@@ -8113,7 +8120,8 @@
    "files": [
     "tools/adjslots/check.py",
     "tools/aspect/playback_check.py",
-    "tools/datestamp/list_width_check.py"
+    "tools/datestamp/list_width_check.py",
+    "tools/shadowml/fwemu.py"
    ]
   },
   "0x538e0a60": {
@@ -8122,7 +8130,8 @@
    "ok": true,
    "files": [
     "tools/adjslots/check.py",
-    "tools/aspect/playback_check.py"
+    "tools/aspect/playback_check.py",
+    "tools/shadowml/fwemu.py"
    ]
   },
   "0x538e217c": {
@@ -8194,7 +8203,8 @@
     "tools/softfocus/check.py",
     "tools/hdrgain/check.py",
     "tools/battery/check.py",
-    "tools/shade/draw_check.py"
+    "tools/shade/draw_check.py",
+    "tools/shadowml/fwemu.py"
    ]
   },
   "0x538ee49c": {
@@ -8981,7 +8991,8 @@
     "tools/shutdown/menu_check.py",
     "tools/softfocus/check.py",
     "tools/grid/check.py",
-    "tools/shade/draw_check.py"
+    "tools/shade/draw_check.py",
+    "tools/shadowml/fwemu.py"
    ]
   },
   "0x5437d7b0": {
@@ -9041,7 +9052,8 @@
     "tools/directflash/gen.py",
     "tools/halation/gen.py",
     "tools/shutdown/gen.py",
-    "tools/hdrgain/gen.py"
+    "tools/hdrgain/gen.py",
+    "tools/shadowml/gen.py"
    ]
   },
   "0x543fc1d0": {
@@ -9101,7 +9113,8 @@
     "tools/softfocus/check.py",
     "tools/battery/check.py",
     "tools/grid/check.py",
-    "tools/shade/draw_check.py"
+    "tools/shade/draw_check.py",
+    "tools/shadowml/fwemu.py"
    ]
   },
   "0x55001e78": {
@@ -9298,7 +9311,9 @@
     "tools/shutdown/menu_check.py",
     "core/src/fw/aspect/hdrgain.ts",
     "core/src/fw/aspect/battery.ts",
-    "tools/battery/check.py"
+    "tools/battery/check.py",
+    "core/src/fw/aspect/shadowml.ts",
+    "tools/shadowml/test_fw.py"
    ]
   },
   "0x558372dc": {
@@ -9381,7 +9396,9 @@
    "why": "one of the 44 bytes between the zero fill end and the heap (zero fill end + 0x28, as in 1.11)",
    "files": [
     "core/src/fw/aspect/directflash.ts",
-    "tools/directflash/diag_check.py"
+    "tools/directflash/diag_check.py",
+    "core/src/fw/aspect/shadowml.ts",
+    "tools/shadowml/test_fw.py"
    ]
   },
   "0x55837300": {
@@ -9396,7 +9413,8 @@
     "core/src/fw/aspect/slots.ts",
     "tools/shutdown/menu_check.py",
     "core/src/fw/aspect/hdrgain.ts",
-    "tools/battery/check.py"
+    "tools/battery/check.py",
+    "core/src/fw/aspect/shadowml.ts"
    ]
   },
   "0x531afbc0": {
@@ -9887,6 +9905,211 @@
    "ok": true,
    "files": [
     "tools/battery/check.py"
+   ]
+  },
+  "0x538f75fc": {
+   "new": "0x5391f1d4",
+   "how": "aligned + refs 0x5391f1d4x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shadowml.ts",
+    "tools/shadowml/stack_fw.py",
+    "tools/shadowml/test_fw.py"
+   ]
+  },
+  "0x5391f230": {
+   "new": "0x53947230",
+   "how": "aligned + refs 0x53947230x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shadowml.ts",
+    "tools/shadowml/shadowml.c",
+    "tools/shadowml/test_fw.py"
+   ]
+  },
+  "0x5391f240": {
+   "new": "0x53947240",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shadowml.ts"
+   ]
+  },
+  "0x5391f258": {
+   "new": "0x53947258",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shadowml.ts"
+   ]
+  },
+  "0x5391f334": {
+   "new": "0x53947334",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shadowml.ts"
+   ]
+  },
+  "0x5391f3a0": {
+   "new": "0x539473a0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shadowml.ts"
+   ]
+  },
+  "0x5391f3a4": {
+   "new": "0x539473a4",
+   "how": "aligned + refs 0x539473a4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shadowml.ts",
+    "tools/shadowml/test_fw.py"
+   ]
+  },
+  "0x5391f448": {
+   "new": "0x53947448",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shadowml.ts"
+   ]
+  },
+  "0x5391f4d8": {
+   "new": "0x539474d8",
+   "how": "aligned + refs 0x539474d8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shadowml.ts",
+    "tools/shadowml/test_fw.py"
+   ]
+  },
+  "0x5391f4e8": {
+   "new": "0x539474e8",
+   "how": "aligned + refs 0x539474e8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shadowml.ts"
+   ]
+  },
+  "0x5391f4f0": {
+   "new": "0x539474f0",
+   "how": "aligned + refs 0x539474f0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shadowml.ts"
+   ]
+  },
+  "0x5391f508": {
+   "new": "0x53947508",
+   "how": "aligned + refs 0x53947508x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shadowml.ts"
+   ]
+  },
+  "0x5391f784": {
+   "new": "0x53947784",
+   "how": "aligned + refs 0x53947784x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shadowml.ts",
+    "tools/shadowml/test_fw.py"
+   ]
+  },
+  "0x5391f800": {
+   "new": "0x53947800",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shadowml.ts"
+   ]
+  },
+  "0x5391f804": {
+   "new": "0x53947804",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shadowml.ts"
+   ]
+  },
+  "0x5404938c": {
+   "new": "0x54080044",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shadowml.ts",
+    "tools/shadowml/test_fw.py"
+   ]
+  },
+  "0x543d2ac0": {
+   "new": "0x5440b600",
+   "how": "override",
+   "ok": true,
+   "files": [
+    "tools/shadowml/test_fw.py"
+   ],
+   "why": "end-exclusive official RTOS length (profile RTOS_LENGTH 140b600), not a code pointer"
+  },
+  "0x553a0b30": {
+   "new": "0x553a2830",
+   "how": "refs 0x553a2830x3",
+   "ok": true,
+   "files": [
+    "tools/shadowml/test_fw.py"
+   ]
+  },
+  "0x553a0b3c": {
+   "new": "0x553a283c",
+   "how": "override",
+   "ok": true,
+   "files": [
+    "tools/shadowml/test_fw.py"
+   ],
+   "why": "shadow smoothing state +0xc: relocated base 553a2830 (3 unanimous references) and explicit sole reference agrees"
+  },
+  "0x553a0b40": {
+   "new": "0x553a2840",
+   "how": "refs 0x553a2840x2",
+   "ok": true,
+   "files": [
+    "tools/shadowml/test_fw.py"
+   ]
+  },
+  "0x553a0b4c": {
+   "new": "0x553a284c",
+   "how": "override",
+   "ok": true,
+   "files": [
+    "tools/shadowml/test_fw.py"
+   ],
+   "why": "shadow smoothing state +0x1c: relocated base 553a2830 (3 unanimous references) and explicit sole reference agrees"
+  },
+  "0x55800000": {
+   "new": "0x55800000",
+   "how": "override",
+   "ok": true,
+   "why": "emulator-only heap address; not a firmware slot or image pointer",
+   "files": [
+    "tools/shadowml/fwemu.py"
+   ]
+  },
+  "0x53000450": {
+   "new": "0x53000450",
+   "how": "override",
+   "ok": true,
+   "why": "the start-up data copy (source, destination, length) at RTOS + 0x450, the place build.ts reads in both images",
+   "files": [
+    "tools/shadowml/fwemu.py"
+   ]
+  },
+  "0x540493a0": {
+   "new": "0x54080058",
+   "how": "aligned + refs 0x54080058x1",
+   "ok": true,
+   "files": [
+    "tools/shadowml/test_fw.py"
    ]
   }
  }

@@ -270,5 +270,21 @@
  "0x5537efbc": {
   "new": "0x5537efc4",
   "reason": "CpuInformationService holder guard word (battery.ts): movw/movt of the holder getter 0x537a4118 (aligned with 1.20 0x537a3400), +0x124 from the holder 0x5537eea0 as in 1.20"
+ },
+ "0x5440b600": {
+  "new": "0x5440ce00",
+  "reason": "end of the official RTOS image (its length; the emulator checks treat everything beyond it as GR Mod's): 1.20 0x140B600 bytes, 1.21 0x140CE00"
+ },
+ "0x553a283c": {
+  "new": "0x553a2844",
+  "reason": "field of the shadow-correction core's live-view smoothing state 0x553A2830 (1.21 0x553A2838, refs x3): the same +8; its one reference (movw at 0x53948C28) agrees"
+ },
+ "0x553a284c": {
+  "new": "0x553a2854",
+  "reason": "field of the shadow-correction core's live-view smoothing state 0x553A2830 (1.21 0x553A2838, refs x3): the same +8; its one reference (movw at 0x53948AD4) agrees"
+ },
+ "0x55800000": {
+  "new": "0x55800000",
+  "reason": "the emulator's heap in tools/*/shadowml/fwemu.py, inside the heap: the 1.21 RAM layout is unchanged (start-up literals 0x53000454..0x53000460 equal)"
  }
 }
