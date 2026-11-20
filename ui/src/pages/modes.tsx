@@ -1,9 +1,10 @@
+import { useState } from 'react';
 import { usermode } from '@grmod/core';
-import { DropZone, Ico, Menu, Select } from '../components';
+import { DropZone, Ico, Menu, Segmented, Select } from '../components';
 import { FirmwareHero } from '../firmware';
 import { t } from '../i18n';
 import type { Key } from '../i18n';
-import { MAX_RECIPES, addRecipe, loadFirmwareFile, recipeCount, recipeNameProblem, recipeProblem, removeRecipe, renameRecipe, selectRecipe, setRecipeValue, useStore } from '../store';
+import { MAX_RECIPES, addRecipe, addSuggested, loadFirmwareFile, recipeCount, recipeNameProblem, recipeProblem, removeRecipe, renameRecipe, selectRecipe, setRecipeValue, useStore } from '../store';
 import { isFirmware } from './files';
 
 // ---------------------------------------------------------------- user mode recipes (GR IV)
@@ -17,17 +18,21 @@ const GROUPS: { title: Key; ids: usermode.RecipeSettingId[] }[] = [
 
 function SettingRow({ index, id, mono }: { index: number; id: usermode.RecipeSettingId; mono: boolean }) {
   const value = useStore((s) => s.recipes[index]?.values[id]);
+  const why = useStore((s) => s.recipes[index]?.why?.[id]);
   const s = usermode.recipeSetting(id);
   const label = t(`rcp_${id}` as Key);
   if (s.colourOnly && mono) return null;
   return (
     <div className={`recipe-row ${value === undefined ? 'keep' : ''}`}>
-      <span className="recipe-label">{label}</span>
-      <Select<string>
-        variant="box" label={label} value={value ?? KEEP}
-        onChange={(v) => setRecipeValue(index, id, v === KEEP ? undefined : v)}
-        options={[{ value: KEEP, label: t('rcpKeep') }, ...s.choices.map((c) => ({ value: c.id, label: c.label }))]}
-      />
+      <div className="recipe-line">
+        <span className="recipe-label">{label}</span>
+        <Select<string>
+          variant="box" label={label} value={value ?? KEEP}
+          onChange={(v) => setRecipeValue(index, id, v === KEEP ? undefined : v)}
+          options={[{ value: KEEP, label: t('rcpKeep') }, ...s.choices.map((c) => ({ value: c.id, label: c.label }))]}
+        />
+      </div>
+      {why && value !== undefined && <p className="recipe-why">{t(`why_${why}` as Key)}</p>}
     </div>
   );
 }
@@ -63,6 +68,46 @@ function RecipeEditor({ index }: { index: number }) {
   );
 }
 
+// ---------------------------------------------------------------- guided questions
+/** Each question: its title key and its answers (text keys `<key>_<answer>`). */
+const QUESTIONS: Record<keyof usermode.Answers, { key: 'qPlace' | 'qLight' | 'qSubject' | 'qLook' | 'qFile'; values: readonly string[] }> = {
+  place: { key: 'qPlace', values: usermode.PLACES },
+  light: { key: 'qLight', values: usermode.LIGHTS },
+  subject: { key: 'qSubject', values: usermode.SUBJECTS },
+  look: { key: 'qLook', values: usermode.LOOKS },
+  file: { key: 'qFile', values: usermode.FILES },
+};
+
+/** A few plain questions; the recipe they give comes with the reason of each value. */
+function RecipeWizard({ onDone }: { onDone: () => void }) {
+  const [a, setA] = useState<usermode.Answers>({ place: 'outdoor', light: 'sun', subject: 'street', look: 'warm', file: 'raw' });
+  const row = (k: keyof usermode.Answers) => {
+    const q = QUESTIONS[k];
+    return (
+      <div className="wizard-q" key={k}>
+        <span className="recipe-label">{t(q.key)}</span>
+        <Segmented<string> value={a[k]} onChange={(v) => setA({ ...a, [k]: v })} options={q.values.map((v) => ({ value: v, label: t(`${q.key}_${v}` as Key) }))} />
+      </div>
+    );
+  };
+  return (
+    <div className="card recipe-card wizard" data-tour="recipe-wizard">
+      <b>{t('qTitle')}</b>
+      {row('place')}
+      {a.place === 'outdoor' || a.light === 'overcast' ? row('light') : null}
+      {a.place === 'indoor' && <p className="muted small">{t('qIndoorNote')}</p>}
+      {row('subject')}
+      {row('look')}
+      {row('file')}
+      <div className="recipe-head">
+        <span className="grow" />
+        <button className="btn" onClick={onDone}>{t('cancel')}</button>
+        <button className="btn primary" onClick={() => { addSuggested(a); onDone(); }}>{t('qCreate')}</button>
+      </div>
+    </div>
+  );
+}
+
 /** How the card is used in the camera: the factory menu once, then one power-on, then the camera's own menus. */
 function RecipeSteps() {
   return (
@@ -84,7 +129,9 @@ export function ModesPage() {
   const recipes = useStore((s) => s.recipes);
   const active = useStore((s) => s.activeRecipe);
   const full = recipes.length >= MAX_RECIPES;
+  const [wizard, setWizard] = useState(false);
   const addItems = [
+    { label: t('rcpAddGuided'), run: () => setWizard(true), disabled: full },
     { label: t('rcpAddEmpty'), run: () => addRecipe(), disabled: full },
     ...usermode.EXAMPLE_RECIPES.map((x, i) => ({ label: t('rcpAddExample', { name: x.name }), run: () => addRecipe(i), disabled: full })),
   ];
@@ -106,7 +153,8 @@ export function ModesPage() {
             {/* at the end of the row: the menu opens towards the left, over the page */}
             <Menu items={addItems}><span className="btn small">{Ico.plus}<span>{t('rcpAdd')}</span></span></Menu>
           </div>
-          {recipes.length === 0 ? <p className="muted">{t('rcpEmptyList')}</p> : <RecipeEditor index={Math.min(active, recipes.length - 1)} />}
+          {wizard && <RecipeWizard onDone={() => setWizard(false)} />}
+          {!wizard && (recipes.length === 0 ? <p className="muted">{t('rcpEmptyList')}</p> : <RecipeEditor index={Math.min(active, recipes.length - 1)} />)}
           <RecipeSteps />
         </div>
       )}

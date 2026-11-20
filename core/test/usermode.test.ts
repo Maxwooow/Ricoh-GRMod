@@ -1,12 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import { cardRole, planRecipeCard } from '../src/card';
-import { EXAMPLE_RECIPES, RECIPE_SETTINGS, isRecipeDoneFile, recipeChoice, recipeDoneFile, recipeLines, recipeProblem, recipeScript, recipeScriptName, recipeSettingsFor, validRecipeName } from '../src/usermode';
-import type { Recipe, RecipeModel } from '../src/usermode';
+import { EXAMPLE_RECIPES, FILES, LIGHTS, LOOKS, PLACES, RECIPE_SETTINGS, SUBJECTS, WHY_CODES, suggestRecipe, isRecipeDoneFile, recipeChoice, recipeDoneFile, recipeLines, recipeProblem, recipeScript, recipeScriptName, recipeSettingsFor, validRecipeName } from '../src/usermode';
+import type { Answers, Recipe, RecipeModel } from '../src/usermode';
 import { MODEL_FILE, MODEL_FILE_MAGIC, MODEL_INFO, runScript } from '../src/wallpaper';
 import type { SimFs } from '../src/wallpaper';
 
 const NYC = EXAMPLE_RECIPES[0];
+/** The recipe of the camera test on a GR IV 1.21 (every value read back in the menus). */
+const CAMERA_TEST: Recipe = {
+  name: 'NYC Day',
+  values: {
+    aperture: 'F8', focus: 'Snap', snapDistance: '200', fullPressSnap: 'On', metering: 'Highlight', isoAuto: 'On', isoUpper: '3200', isoLower: '100',
+    minShutter: '1/250', nd: 'Auto', fileFormat: 'RawPlus', imageControl: 'PositiveFilm', whiteBalance: 'AutoStandard', highlightCorrection: 'Auto', exposureComp: '-0.7',
+  },
+};
 const ID = '1A2B';
 const DONE = `C:\\${recipeDoneFile(ID)}`;
 
@@ -18,7 +26,7 @@ const sent = (trace: string[]): string[] => trace.filter((x) => x.startsWith('se
 describe('user mode recipe: values', () => {
   it('sends the camera words and APEX numbers checked on a GR IV 1.21', () => {
     // The lines of the camera test (U1 "NYC Day"), in the order the script sends them.
-    expect(recipeLines(NYC, 'STANDARD')).toEqual([
+    expect(recipeLines(CAMERA_TEST, 'STANDARD')).toEqual([
       ['CommonAv', '6'],
       ['StillFocus', 'Snap'],
       ['StillSnapDistanceCm', '200'],
@@ -202,5 +210,39 @@ describe('user mode recipe: card', () => {
 
   it('refuses a script that is not ASCII', () => {
     expect(() => planRecipeCard({ root: [], script: [] }, entry, 'é\n', isRecipeDoneFile, 's')).toThrow();
+  });
+});
+
+describe('user mode recipe: suggestions', () => {
+  const all: Answers[] = [];
+  for (const place of PLACES) for (const light of LIGHTS) for (const subject of SUBJECTS) for (const look of LOOKS) for (const file of FILES) all.push({ place, light, subject, look, file });
+
+  it('every combination of answers gives a recipe that can be written, with a known reason for each value', () => {
+    for (const a of all) {
+      const { recipe, why } = suggestRecipe(a);
+      const tag = JSON.stringify(a);
+      expect(validRecipeName(recipe.name), tag).toBe(true);
+      expect(recipeProblem(recipe, 'HDF'), tag).toBeNull();
+      for (const id of Object.keys(recipe.values) as (keyof typeof recipe.values)[]) {
+        expect(recipeChoice(id, recipe.values[id]!), `${tag} ${id}`).toBeDefined();
+        expect(WHY_CODES, `${tag} ${id}`).toContain(why[id]);
+      }
+      expect(Object.keys(why).sort(), tag).toEqual(Object.keys(recipe.values).sort());
+      const fs = camera(MODEL_INFO.HDF.productBytes);
+      expect(runScript(recipeScript(recipe, 'HDF', ID), fs).error, tag).toBeUndefined();
+    }
+  });
+
+  it('snap focus only with the depth of field for it; black and white without a white balance', () => {
+    for (const a of all) {
+      const { recipe } = suggestRecipe(a);
+      if (recipe.values.focus === 'Snap') expect(['F5.6', 'F8']).toContain(recipe.values.aperture);
+      if (a.look === 'bw') expect(recipe.values.whiteBalance).toBeUndefined();
+    }
+  });
+
+  it('the NYC Day example keeps the values tested on the camera, with shake reduction on', () => {
+    expect(NYC.values).toEqual({ ...CAMERA_TEST.values, shakeReduction: 'On' });
+    expect(NYC.why?.aperture).toBe('apStreetSun');
   });
 });

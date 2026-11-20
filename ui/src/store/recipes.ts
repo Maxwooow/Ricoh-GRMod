@@ -36,12 +36,17 @@ export function savedRecipes(v: unknown): Recipe[] {
       const c = r.values?.[s.id];
       if (typeof c === 'string' && s.choices.some((x) => x.id === c)) values[s.id] = c;
     }
-    out.push({ name: typeof r.name === 'string' ? r.name.slice(0, 40) : '', values });
+    const why: NonNullable<Recipe['why']> = {};
+    for (const id of Object.keys(values) as SettingId[]) {
+      const w = r.why?.[id];
+      if (typeof w === 'string' && usermode.WHY_CODES.includes(w)) why[id] = w;
+    }
+    out.push({ name: typeof r.name === 'string' ? r.name.slice(0, 40) : '', values, ...(Object.keys(why).length ? { why } : {}) });
   }
   return out;
 }
 
-const copy = (r: Recipe): Recipe => ({ name: r.name, values: { ...r.values } });
+const copy = (r: Recipe): Recipe => ({ name: r.name, values: { ...r.values }, ...(r.why ? { why: { ...r.why } } : {}) });
 /** A name not used yet: `base`, else `base 2`, `base 3`, ... */
 function freeName(base: string, s: State = state): string {
   const used = new Set(s.recipes.map((r) => r.name.toLowerCase()));
@@ -64,6 +69,14 @@ export function addRecipe(example?: number): void {
   set((s) => ({ recipes: [...s.recipes, r], activeRecipe: s.recipes.length }));
   scheduleSave();
 }
+/** A new recipe from the guided questions: the values picked for these answers, each with its reason. */
+export function addSuggested(answers: usermode.Answers): void {
+  if (state.recipes.length >= MAX_RECIPES) return;
+  const { recipe, why } = usermode.suggestRecipe(answers);
+  const r: Recipe = { name: freeName(recipe.name), values: recipe.values, why };
+  set((s) => ({ recipes: [...s.recipes, r], activeRecipe: s.recipes.length }));
+  scheduleSave();
+}
 export function removeRecipe(index: number): void {
   set((s) => {
     const recipes = s.recipes.filter((_, i) => i !== index);
@@ -73,12 +86,14 @@ export function removeRecipe(index: number): void {
 }
 /** The name as typed; checked when written (recipeNameProblem). */
 export function renameRecipe(index: number, name: string): void { patchRecipe(index, (r) => ({ ...r, name: name.slice(0, 40) })); }
-/** One setting: a choice id, or undefined to leave it as the camera has it. */
+/** One setting: a choice id, or undefined to leave it as the camera has it. A value chosen by hand loses the suggestion's reason. */
 export function setRecipeValue(index: number, id: SettingId, choice: string | undefined): void {
   patchRecipe(index, (r) => {
     const values = { ...r.values };
     if (choice === undefined) delete values[id]; else values[id] = choice;
-    return { ...r, values };
+    const why = { ...r.why };
+    delete why[id];
+    return { name: r.name, values, ...(Object.keys(why).length ? { why } : {}) };
   });
 }
 

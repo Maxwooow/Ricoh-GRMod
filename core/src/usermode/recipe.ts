@@ -21,6 +21,7 @@
 
 import { RECIPE_SCRIPT_HEAD } from '../card/layout';
 import { MODEL_FILE, MODEL_FILE_MAGIC, MODEL_INFO } from '../wallpaper/script';
+import { EXAMPLE_ANSWERS, suggestRecipe } from './suggest';
 
 /** The GR IV models a recipe script runs on (product bytes of `E:\BlkCtl15.bin`). */
 export type RecipeModel = 'STANDARD' | 'HDF' | 'MONO';
@@ -89,8 +90,11 @@ export const RECIPE_SETTINGS: readonly RecipeSetting[] = [
   { id: 'exposureComp', property: 'CommonXv', choices: thirds(-5, EV) },
 ];
 
-/** A recipe: its name (shown in the app and in the script's first line) and the settings it changes (choice ids). */
-export interface Recipe { name: string; values: Partial<Record<RecipeSettingId, string>> }
+/**
+ * A recipe: its name (shown in the app and in the script's first line), the settings it changes
+ * (choice ids) and, for values picked from answers (suggest.ts), the reason of each (a code).
+ */
+export interface Recipe { name: string; values: Partial<Record<RecipeSettingId, string>>; why?: Partial<Record<RecipeSettingId, string>> }
 
 export const RECIPE_NAME_MAX = 32;
 /** A name that can go into the script's comment line: printable ASCII, no quotes, 1..32 characters. */
@@ -206,22 +210,8 @@ export function recipeScriptName(script: string): string | null {
   return validRecipeName(name) ? name : null;
 }
 
-/** Two recipes to start from (street photography in a city, sunny day and golden hour). */
-export const EXAMPLE_RECIPES: readonly Recipe[] = [
-  {
-    name: 'NYC Day',
-    values: {
-      aperture: 'F8', focus: 'Snap', snapDistance: '200', fullPressSnap: 'On', metering: 'Highlight',
-      isoAuto: 'On', isoUpper: '3200', isoLower: '100', minShutter: '1/250', nd: 'Auto', fileFormat: 'RawPlus',
-      imageControl: 'PositiveFilm', whiteBalance: 'AutoStandard', highlightCorrection: 'Auto', exposureComp: '-0.7',
-    },
-  },
-  {
-    name: 'Golden',
-    values: {
-      aperture: 'F2.8', focus: 'AutoArea', fullPressSnap: 'On', metering: 'Multi',
-      isoAuto: 'On', isoUpper: '6400', isoLower: '100', minShutter: '1/60', nd: 'Off', fileFormat: 'RawPlus',
-      imageControl: 'PositiveFilm', whiteBalance: 'Daylight', highlightCorrection: 'Auto', shakeReduction: 'On', exposureComp: '-0.3',
-    },
-  },
-];
+/** Two recipes to start from (city streets on a sunny day and at golden hour), with their reasons. */
+export const EXAMPLE_RECIPES: readonly Recipe[] = EXAMPLE_ANSWERS.map(({ name, answers }) => {
+  const { recipe, why } = suggestRecipe(answers);
+  return { name, values: recipe.values, why };
+});

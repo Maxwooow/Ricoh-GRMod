@@ -908,3 +908,10 @@ html.mobile-app .tour-hole { border-radius: 14px; }
 .recipe-row > :last-child { width: 170px; flex: none; }
 .recipe-steps { padding: 12px 14px; }
 .recipe-steps ol { margin: 6px 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.recipe-row { flex-direction: column; align-items: stretch; gap: 2px; }
+.recipe-line { display: flex; align-items: center; gap: 8px; min-height: 32px; }
+.recipe-line > :last-child { width: 170px; flex: none; }
+.recipe-why { margin: 0 0 4px; font-size: 12px; line-height: 1.4; color: var(--muted); }
+.wizard { gap: 12px; }
+.wizard-q { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.wizard-q .recipe-label { flex: none; width: 70px; }
