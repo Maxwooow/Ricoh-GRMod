@@ -68,7 +68,7 @@ function familyData(s: State): FamilyDoc {
     lookOrder: s.lookOrder, lookHidden: s.lookHidden, lookOrder3: s.lookOrder3, lookHidden3: s.lookHidden3,
     wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: 'image', width: w.width, height: w.height, crop: w.crop, ...(w.menuName !== undefined ? { menuName: w.menuName } : {}), ...(w.menuId ? { menuId: w.menuId } : {}) })),
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
-    brightAuto: s.brightAuto, soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock, directFlash: s.directFlash, hdr: s.hdr, exposurePreview: s.exposurePreview, flashTtl: s.flashTtl, filmGrain: s.filmGrain, shadowLearn: s.shadowLearn, ratioShade: s.ratioShade, ratioShadeTone: s.ratioShadeTone, battery: s.battery, customGrid: s.customGrid, gridLines: s.gridLines, adjSlots: s.adjSlots, filmCount: s.filmCount,
+    brightAuto: s.brightAuto, soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock, directFlash: s.directFlash, hdr: s.hdr, exposurePreview: s.exposurePreview, flashTtl: s.flashTtl, awbLearn: s.awbLearn, filmGrain: s.filmGrain, shadowLearn: s.shadowLearn, ratioShade: s.ratioShade, ratioShadeTone: s.ratioShadeTone, battery: s.battery, customGrid: s.customGrid, gridLines: s.gridLines, adjSlots: s.adjSlots, filmCount: s.filmCount,
   };
 }
 
@@ -97,7 +97,7 @@ function parseFamily(doc: FamilyDoc | null): Partial<State> {
     lookOrder3: gr3SavedKeys(doc?.lookOrder3), lookHidden3: gr3SavedKeys(doc?.lookHidden3).filter((k) => k !== 'g11'),
     brightAuto: doc?.brightAuto === 'balanced' ? 'balanced' : doc?.brightAuto === true || doc?.brightAuto === 'bright' ? 'bright' : false,
     soft: doc?.soft === true || (!!doc?.softFocus && typeof doc.softFocus === 'object' && Object.keys(doc.softFocus).length > 0),
-    dateStamp: doc?.dateStamp === true, monoUnlock: doc?.monoUnlock === true, directFlash: doc?.directFlash === true, hdr: doc?.hdr === true, exposurePreview: doc?.exposurePreview === true, filmGrain: doc?.filmGrain === true, shadowLearn: doc?.shadowLearn === true, ratioShade: doc?.ratioShade === true, ratioShadeTone: doc?.ratioShadeTone === 'light' ? 'light' : 'dark', battery: doc?.battery === true, customGrid: doc?.customGrid === true, gridLines: savedGridLines(doc?.gridLines), flashTtl: doc?.flashTtl === true, adjSlots: typeof doc?.adjSlots === 'number' && Number.isInteger(doc.adjSlots) && doc.adjSlots >= 5 && doc.adjSlots <= 8 ? doc.adjSlots : 5,
+    dateStamp: doc?.dateStamp === true, monoUnlock: doc?.monoUnlock === true, directFlash: doc?.directFlash === true, hdr: doc?.hdr === true, exposurePreview: doc?.exposurePreview === true, filmGrain: doc?.filmGrain === true, shadowLearn: doc?.shadowLearn === true, ratioShade: doc?.ratioShade === true, ratioShadeTone: doc?.ratioShadeTone === 'light' ? 'light' : 'dark', battery: doc?.battery === true, customGrid: doc?.customGrid === true, gridLines: savedGridLines(doc?.gridLines), flashTtl: doc?.flashTtl === true, awbLearn: doc?.awbLearn === true, adjSlots: typeof doc?.adjSlots === 'number' && Number.isInteger(doc.adjSlots) && doc.adjSlots >= 5 && doc.adjSlots <= 8 ? doc.adjSlots : 5,
     filmCount: Number.isInteger(doc?.filmCount) && doc!.filmCount >= 0 && doc!.filmCount <= GR3X_FILM_IDS.length ? doc!.filmCount : doc && doc.filmCount === undefined && doc.slots ? 9 : 0,
   };
 }

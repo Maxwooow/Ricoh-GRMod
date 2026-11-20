@@ -178,6 +178,8 @@ export interface ExtensionFeatures {
   filmGrain?: boolean;
   /** GR IV 1.20 and 1.21 (`fw/gr4v120/aspect/flttl.ts`; not built on 1.11): pre-flash (TTL) metering for a GF-2 class flash. */
   flashTtl?: boolean;
+  /** GR IV 1.20 and 1.21 (`fw/gr4v120/aspect/awb2.ts`; not built on 1.11): a learned auto white balance for the three Auto modes. */
+  awbLearn?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
