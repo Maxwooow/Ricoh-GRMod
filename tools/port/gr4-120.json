@@ -241,6 +241,7 @@
   ],
   "old_marker": "1.11",
   "preserve": [
-    "core/src/fw/gr4v120/aspect/grain-code.ts"
+    "core/src/fw/gr4v120/aspect/grain-code.ts",
+    "core/src/fw/gr4v120/aspect/flttl-code.ts"
   ]
 }

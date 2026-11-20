@@ -28,7 +28,9 @@
     "tools/gr4v120/shade/draw_check.py",
     "tools/gr4v120/shadowml/fwemu.py",
     "tools/gr4v120/shadowml/test_fw.py",
-    "tools/gr4v120/grain/fw_check.py"
+    "tools/gr4v120/grain/fw_check.py",
+    "tools/gr4v120/flash/ttl/evidence.py",
+    "tools/gr4v120/flash/ttl/test_arm.py"
    ]
   },
   "0x53000460": {
@@ -7982,7 +7984,8 @@
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/shutdown/shutdown.c",
-    "tools/gr4v120/shade/draw_check.py"
+    "tools/gr4v120/shade/draw_check.py",
+    "core/src/fw/gr4v120/aspect/flttl.ts"
    ]
   },
   "0x53750028": {
@@ -8726,7 +8729,8 @@
     "tools/gr4v120/shadowml/test_fw.py",
     "core/src/fw/gr4v120/aspect/grain.ts",
     "tools/gr4v120/grain/fw_check.py",
-    "tools/gr4v120/grain/grain.c"
+    "tools/gr4v120/grain/grain.c",
+    "core/src/fw/gr4v120/aspect/flttl.ts"
    ]
   },
   "0x539084f8": {
@@ -8900,7 +8904,8 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/datestamp.ts",
-    "tools/gr4v120/datestamp/datestamp.c"
+    "tools/gr4v120/datestamp/datestamp.c",
+    "core/src/fw/gr4v120/aspect/flttl.ts"
    ]
   },
   "0x5391a484": {
@@ -9761,7 +9766,8 @@
     "tools/gr4v120/hdrgain/gen.py",
     "tools/gr4v120/shutdown/gen.py",
     "tools/gr4v120/shadowml/gen.py",
-    "tools/gr4v120/grain/gen.py"
+    "tools/gr4v120/grain/gen.py",
+    "tools/gr4v120/flash/ttl/gen.py"
    ]
   },
   "0x5443c1d0": {
@@ -10154,7 +10160,8 @@
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/battery/check.py",
     "core/src/fw/gr4v120/aspect/shadowml.ts",
-    "core/src/fw/gr4v120/aspect/battery.ts"
+    "core/src/fw/gr4v120/aspect/battery.ts",
+    "core/src/fw/gr4v120/aspect/flttl.ts"
    ]
   },
   "0x53154a70": {
@@ -10588,7 +10595,8 @@
    "files": [
     "core/src/fw/gr4v120/aspect/shadowml.ts",
     "tools/gr4v120/shadowml/stack_fw.py",
-    "tools/gr4v120/shadowml/test_fw.py"
+    "tools/gr4v120/shadowml/test_fw.py",
+    "tools/gr4v120/flash/ttl/flttl.c"
    ]
   },
   "0x53947230": {
@@ -11021,6 +11029,883 @@
    "why": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release",
    "files": [
     "tools/gr4v120/grain/check.py"
+   ]
+  },
+  "0x53674a70": {
+   "new": "0x536753b0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53674dc0": {
+   "new": "0x53675700",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5367f15c": {
+   "new": "0x5367fa9c",
+   "how": "aligned + refs 0x5367fa9cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5367f1c4": {
+   "new": "0x5367fb04",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53684ca4": {
+   "new": "0x536855e4",
+   "how": "aligned + refs 0x536855e4x188",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "tools/gr4v120/flash/ttl/test_arm.py"
+   ]
+  },
+  "0x5368774c": {
+   "new": "0x5368808c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "tools/gr4v120/flash/ttl/flttl.c",
+    "tools/gr4v120/flash/ttl/test_arm.py"
+   ]
+  },
+  "0x5368a8d0": {
+   "new": "0x5368b210",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5368a964": {
+   "new": "0x5368b2a4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5368b3d0": {
+   "new": "0x5368bd10",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "tools/gr4v120/flash/ttl/flttl.c",
+    "tools/gr4v120/flash/ttl/test_arm.py"
+   ]
+  },
+  "0x5368b458": {
+   "new": "0x5368bd98",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5368c238": {
+   "new": "0x5368cb78",
+   "how": "aligned + refs 0x5368cb78x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/flttl.c"
+   ]
+  },
+  "0x5368c270": {
+   "new": "0x5368cbb0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5368c2c0": {
+   "new": "0x5368cc00",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5368c2c4": {
+   "new": "0x5368cc04",
+   "how": "aligned + refs 0x5368cc04x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5368f858": {
+   "new": "0x53690198",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5368f860": {
+   "new": "0x536901a0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5368f86c": {
+   "new": "0x536901ac",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536915b4": {
+   "new": "0x53691ef4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536916d0": {
+   "new": "0x53692010",
+   "how": "aligned + refs 0x53692010x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536918b0": {
+   "new": "0x536921f0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536918c0": {
+   "new": "0x53692200",
+   "how": "aligned + refs 0x53692200x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "tools/gr4v120/flash/ttl/test_arm.py"
+   ]
+  },
+  "0x53691970": {
+   "new": "0x536922b0",
+   "how": "aligned + refs 0x536922b0x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5369197c": {
+   "new": "0x536922bc",
+   "how": "aligned + refs 0x536922bcx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536919a4": {
+   "new": "0x536922e4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53691d70": {
+   "new": "0x536926b0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536923d8": {
+   "new": "0x53692d18",
+   "how": "aligned + refs 0x53692d18x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5369ceb8": {
+   "new": "0x5369d7f8",
+   "how": "aligned + refs 0x5369d7f8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "tools/gr4v120/flash/ttl/evidence.py",
+    "tools/gr4v120/flash/ttl/flttl.c",
+    "tools/gr4v120/flash/ttl/test_arm.py"
+   ]
+  },
+  "0x5369ced4": {
+   "new": "0x5369d814",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5369cf20": {
+   "new": "0x5369d860",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5369cf40": {
+   "new": "0x5369d880",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5369cf50": {
+   "new": "0x5369d890",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5369f72c": {
+   "new": "0x536a006c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a1a9c": {
+   "new": "0x536a23dc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a1ab8": {
+   "new": "0x536a23f8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a1b00": {
+   "new": "0x536a2440",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a3a04": {
+   "new": "0x536a4344",
+   "how": "aligned + refs 0x536a4344x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "tools/gr4v120/flash/ttl/evidence.py",
+    "tools/gr4v120/flash/ttl/test_arm.py"
+   ]
+  },
+  "0x536a3a0c": {
+   "new": "0x536a434c",
+   "how": "aligned + refs 0x536a434cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a50b8": {
+   "new": "0x536a59f8",
+   "how": "aligned + refs 0x536a59f8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "tools/gr4v120/flash/ttl/evidence.py",
+    "tools/gr4v120/flash/ttl/flttl.c"
+   ]
+  },
+  "0x536a5148": {
+   "new": "0x536a5a88",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a515c": {
+   "new": "0x536a5a9c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a5194": {
+   "new": "0x536a5ad4",
+   "how": "aligned + refs 0x536a5ad4x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a5198": {
+   "new": "0x536a5ad8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "tools/gr4v120/flash/ttl/evidence.py",
+    "tools/gr4v120/flash/ttl/flttl.c",
+    "tools/gr4v120/flash/ttl/test_arm.py"
+   ]
+  },
+  "0x536a51a4": {
+   "new": "0x536a5ae4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a51d4": {
+   "new": "0x536a5b14",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a54e0": {
+   "new": "0x536a5e20",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a5610": {
+   "new": "0x536a5f50",
+   "how": "aligned + refs 0x536a5f50x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts"
+   ]
+  },
+  "0x536a5618": {
+   "new": "0x536a5f58",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a5624": {
+   "new": "0x536a5f64",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a562c": {
+   "new": "0x536a5f6c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "tools/gr4v120/flash/ttl/evidence.py",
+    "tools/gr4v120/flash/ttl/flttl.c",
+    "tools/gr4v120/flash/ttl/test_arm.py"
+   ]
+  },
+  "0x536a5828": {
+   "new": "0x536a6168",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a582c": {
+   "new": "0x536a616c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a66f0": {
+   "new": "0x536a7030",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a771c": {
+   "new": "0x536a805c",
+   "how": "aligned + refs 0x536a805cx4",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a7724": {
+   "new": "0x536a8064",
+   "how": "aligned + refs 0x536a8064x4",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a7b60": {
+   "new": "0x536a84a0",
+   "how": "aligned + refs 0x536a84a0x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a7d44": {
+   "new": "0x536a8684",
+   "how": "aligned + refs 0x536a8684x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a7d4c": {
+   "new": "0x536a868c",
+   "how": "aligned + refs 0x536a868cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a7dfc": {
+   "new": "0x536a873c",
+   "how": "aligned + refs 0x536a873cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a7e0c": {
+   "new": "0x536a874c",
+   "how": "aligned + refs 0x536a874cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a7f14": {
+   "new": "0x536a8854",
+   "how": "aligned + refs 0x536a8854x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536aa13c": {
+   "new": "0x536aaa7c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536aa148": {
+   "new": "0x536aaa88",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536aa9cc": {
+   "new": "0x536ab30c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536ac0b8": {
+   "new": "0x536ac9f8",
+   "how": "aligned + refs 0x536ac9f8x85",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts"
+   ]
+  },
+  "0x5377ccc4": {
+   "new": "0x5377d954",
+   "how": "aligned + refs 0x5377d954x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts"
+   ]
+  },
+  "0x5379637c": {
+   "new": "0x5379700c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x537964f8": {
+   "new": "0x53797188",
+   "how": "aligned + refs 0x53797188x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "tools/gr4v120/flash/ttl/evidence.py",
+    "tools/gr4v120/flash/ttl/test_arm.py"
+   ]
+  },
+  "0x53796534": {
+   "new": "0x537971c4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53796584": {
+   "new": "0x53797214",
+   "how": "aligned + refs 0x53797214x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53797030": {
+   "new": "0x53797cc0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53797070": {
+   "new": "0x53797d00",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "tools/gr4v120/flash/ttl/evidence.py",
+    "tools/gr4v120/flash/ttl/flttl.c",
+    "tools/gr4v120/flash/ttl/test_arm.py"
+   ]
+  },
+  "0x537974cc": {
+   "new": "0x5379815c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53797a30": {
+   "new": "0x537986c0",
+   "how": "aligned + refs 0x537986c0x35",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts"
+   ]
+  },
+  "0x53798088": {
+   "new": "0x53798d18",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53798124": {
+   "new": "0x53798db4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53798160": {
+   "new": "0x53798df0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x537981d4": {
+   "new": "0x53798e64",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x537981dc": {
+   "new": "0x53798e6c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x537981f4": {
+   "new": "0x53798e84",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x537986e0": {
+   "new": "0x53799370",
+   "how": "aligned + refs 0x53799370x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "tools/gr4v120/flash/ttl/test_arm.py"
+   ]
+  },
+  "0x5391ca64": {
+   "new": "0x5391d79c",
+   "how": "aligned + refs 0x5391d79cx30",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts"
+   ]
+  },
+  "0x5391ca74": {
+   "new": "0x5391d7ac",
+   "how": "aligned + refs 0x5391d7acx5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts"
+   ]
+  },
+  "0x5391f270": {
+   "new": "0x5391ffa8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5391f274": {
+   "new": "0x5391ffac",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5391fca8": {
+   "new": "0x539209e0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5391fcb0": {
+   "new": "0x539209e8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5391fcb4": {
+   "new": "0x539209ec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5391fd34": {
+   "new": "0x53920a6c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53a5cf90": {
+   "new": "0x53a5e558",
+   "how": "aligned + refs 0x53a5e558x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53a5cf94": {
+   "new": "0x53a5e55c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53a9b578": {
+   "new": "0x53a9cb40",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53a9b654": {
+   "new": "0x53a9cc1c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53a9b668": {
+   "new": "0x53a9cc30",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53a9b70c": {
+   "new": "0x53a9ccd4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "tools/gr4v120/flash/ttl/flttl.c",
+    "tools/gr4v120/flash/ttl/test_arm.py"
+   ]
+  },
+  "0x53a9b868": {
+   "new": "0x53a9ce30",
+   "how": "aligned + refs 0x53a9ce30x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53eeb6b4": {
+   "new": "0x53eecd44",
+   "how": "aligned + refs 0x53eecd44x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53eeb6c0": {
+   "new": "0x53eecd50",
+   "how": "aligned + refs 0x53eecd50x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x54383ed0": {
+   "new": "0x543856c0",
+   "how": "override",
+   "ok": true,
+   "why": "TopGpio's vtable (tools/*/flash/ttl/evidence.py): aligned with one reference; its entry + 0x58 is 0x53A5E558, the 1.21 address of the 0x53A5CF90 it names in 1.20",
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5438b63c": {
+   "new": "0x5438ce2c",
+   "how": "aligned + refs 0x5438ce2cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5438b64c": {
+   "new": "0x5438ce3c",
+   "how": "aligned + refs 0x5438ce3cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5438b65c": {
+   "new": "0x5438ce4c",
+   "how": "aligned + refs 0x5438ce4cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5438b66c": {
+   "new": "0x5438ce5c",
+   "how": "aligned + refs 0x5438ce5cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5438b6e0": {
+   "new": "0x5438ced0",
+   "how": "aligned + refs 0x5438ced0x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5438bb1c": {
+   "new": "0x5438d30c",
+   "how": "aligned + refs 0x5438d30cx5",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x55839000": {
+   "new": "0x55839000",
+   "how": "refs 0x55839000x6",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/flash/ttl/test_arm.py"
+   ]
+  },
+  "0x55839018": {
+   "new": "0x55839018",
+   "how": "override",
+   "ok": true,
+   "why": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged",
+   "files": [
+    "core/src/fw/gr4v120/aspect/flttl.ts"
    ]
   }
  }

@@ -38,6 +38,7 @@ import { installMonoUnlock } from './monounlock';
 import { installBrightAuto } from './brightauto';
 import { installShadowLearn } from './shadowml';
 import { installFilmGrain } from './grain';
+import { installFlashTtl } from './flttl';
 import { CINEMA_STYLES, installExtraSlots, installHalation } from './slots';
 import { HALATION_TEST, halationLight } from './halation';
 import type { HalationLook } from './halation';
@@ -182,6 +183,8 @@ export interface ExtensionFeatures {
   shadowLearn?: boolean;
   /** GR Mod's film grain in place of the camera's Grain Effect (`grain.ts`); 1.20 and 1.21. Off unless asked for. */
   filmGrain?: boolean;
+  /** Pre-flash (TTL) metering for a GF-2 class flash in the two red-eye flash modes (`flttl.ts`); 1.20 and 1.21. Off unless asked for. */
+  flashTtl?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -1101,7 +1104,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
   const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
   const adjSlots = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
-  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade || !!features.shadowLearn || !!features.filmGrain;
+  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl;
   if (features.customGrid && (!validCustomGrid(features.customGrid) || isCameraGrid(features.customGrid))) fail('internal', 'a custom grid must differ from the camera’s');
   if (features.ratioShade && ratios.length === 0) fail('internal', 'the live-view shade needs an added ratio');
   if (extra) revision = 3;
@@ -1117,6 +1120,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   // Its two RAM words are those of the diagnostics of Direct Flash and halation and the HDR gain map's counters (test builds).
   if (features.shadowLearn && (test.directFlashDiag || test.hdrDiag || test.halationDiag)) fail('internal', 'the learned shadow correction cannot be built with diagnostics');
   if (features.filmGrain !== undefined && typeof features.filmGrain !== 'boolean') fail('bad-edit', 'filmGrain must be boolean');
+  if (features.flashTtl !== undefined && typeof features.flashTtl !== 'boolean') fail('bad-edit', 'flashTtl must be boolean');
   const patch = new Patch(rtos);
   const ramCopy = new DataView(patch.read(BASE + 0x450, 12).buffer);
   if (ramCopy.getUint32(0, true) !== RAM.source || ramCopy.getUint32(4, true) !== RAM.destination || ramCopy.getUint32(8, true) !== RAM.length) {
@@ -1209,9 +1213,15 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   if (features.shadowLearn) installShadowLearn(patch);
   // Film grain: last, so that everything appended before it stays where it is in builds without it.
   if (features.filmGrain) installFilmGrain(patch);
+  // Flash TTL: after the film grain, so that everything appended before it stays where it is in builds without it.
+  if (features.flashTtl) {
+    // Its state pointer is the second of the HDR test counters (FLTTL_SLOT): one or the other.
+    if (features.hdrGainMap && test.hdrDiag) fail('bad-edit', 'flash TTL cannot be built together with the HDR diagnostics (same RAM word)');
+    installFlashTtl(patch);
+  }
   // Very last: the zero fill over the sbrk arena; the additions above expect it at 0x55839040 or its official end.
   if (features.batteryPercent) extendBatteryZeroFill(patch);
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true, ...(features.ratioShadeTone && features.ratioShadeTone !== 'dark' ? { ratioShadeTone: features.ratioShadeTone } : {}) } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}) } };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true, ...(features.ratioShadeTone && features.ratioShadeTone !== 'dark' ? { ratioShadeTone: features.ratioShadeTone } : {}) } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}) } };
 }

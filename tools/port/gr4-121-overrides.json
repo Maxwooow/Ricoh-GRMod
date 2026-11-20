@@ -322,5 +322,13 @@
  "0x55003000": {
   "new": "0x55003000",
   "reason": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release"
+ },
+ "0x54383ed0": {
+  "new": "0x543856c0",
+  "reason": "TopGpio's vtable (tools/*/flash/ttl/evidence.py): aligned with one reference; its entry + 0x58 is 0x53A5E558, the 1.21 address of the 0x53A5CF90 it names in 1.20"
+ },
+ "0x55839018": {
+  "new": "0x55839018",
+  "reason": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged"
  }
 }

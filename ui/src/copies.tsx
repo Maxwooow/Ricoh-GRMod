@@ -60,6 +60,7 @@ function FirmwareLine({ info, builds, lang, name }: { info: CopyInfo | undefined
           {s.ratioShade && <span className="chip tiny" title={t('ratioShadeLine', { p: toneLabel(s.ratioShadeTone ?? 'dark') })}><b>{t('ratioLiveChip')}</b><span className="ellipsis">{toneLabel(s.ratioShadeTone ?? 'dark')}</span></span>}
           {s.shadowLearn && <span className="chip tiny" title={t('shadowLine')}><b>{t('navShadow')}</b></span>}
           {s.filmGrain && <span className="chip tiny" title={t('grainLine')}><b>{t('navGrain')}</b></span>}
+          {s.flashTtl && <span className="chip tiny" title={t('flashTtlLine')}><b>{t('navFlashTtl')}</b></span>}
         </div>
       </div>
     </>

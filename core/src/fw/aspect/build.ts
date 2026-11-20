@@ -176,6 +176,8 @@ export interface ExtensionFeatures {
   shadowLearn?: boolean;
   /** GR IV 1.20 and 1.21 (`fw/gr4v120/aspect/grain.ts`; not built on 1.11): GR Mod's film grain in place of the camera's Grain Effect. */
   filmGrain?: boolean;
+  /** GR IV 1.20 and 1.21 (`fw/gr4v120/aspect/flttl.ts`; not built on 1.11): pre-flash (TTL) metering for a GF-2 class flash. */
+  flashTtl?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
