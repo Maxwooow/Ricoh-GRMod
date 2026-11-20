@@ -69,7 +69,8 @@ export const RECIPE_SETTINGS: readonly RecipeSetting[] = [
   { id: 'snapDistance', property: 'StillSnapDistanceCm', choices: [word('100', '1m'), word('150', '1.5m'), word('200', '2m'), word('250', '2.5m'), word('350', '3.5m'), word('500', '5m'), word('Infinity', '∞')] },
   { id: 'fullPressSnap', property: 'StillFullPressSnap', choices: [word('On'), word('Off')] },
   { id: 'metering', property: 'StillAeMode', choices: [word('Multi', 'Multi-segment'), word('Center', 'Center-weighted'), word('Spot', 'Spot'), word('Highlight', 'Highlight-weighted')] },
-  { id: 'isoAuto', property: 'StillSvAuto', choices: [word('On', 'AUTO'), word('Off', 'Manual')] },
+  // AUTO, or a fixed ISO: ISO Auto off and the fixed value in use (CommonSv) and remembered (CommonSvManual); recipeLines.
+  { id: 'isoAuto', property: 'StillSvAuto', choices: [word('On', 'AUTO'), ...thirds(5, ISO).map((c) => ({ ...c, id: `ISO${c.id}`, label: `ISO ${c.label}` }))] },
   { id: 'isoUpper', property: 'StillSvAutoUpper', choices: thirds(5, ISO) },
   { id: 'isoLower', property: 'StillSvAutoLower', choices: thirds(5, ISO) },
   { id: 'minShutter', property: 'StillSvAutoLowerTv', choices: thirds(3, SHUTTER) },
@@ -134,6 +135,11 @@ export function recipeLines(recipe: Recipe, model: RecipeModel): [string, string
     if (s.colourOnly && model === 'MONO') continue;
     const c = s.choices.find((x) => x.id === v);
     if (!c) throw new RangeError(`"${v}" is not a choice of ${s.id}`);
+    if (s.id === 'isoAuto' && c.id !== 'On') {
+      // A fixed ISO: the camera's own ISO menu (AUTO, 100, 125, ...) sets these three.
+      out.push(['StillSvAuto', 'Off'], ['CommonSvManual', c.value], ['CommonSv', c.value]);
+      continue;
+    }
     out.push([s.property, c.value]);
     // The look goes into the Image Control set that is used (No0, the camera's own; No1..No3 are the Custom ones).
     if (s.id === 'imageControl') out.splice(out.length - 1, 0, ['StillActiveImageControlSet', 'No0']);

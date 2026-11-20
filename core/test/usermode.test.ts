@@ -75,6 +75,12 @@ describe('user mode recipe: values', () => {
     }
   });
 
+  it('ISO: AUTO, or a fixed value (ISO Auto off, the value in use and remembered)', () => {
+    expect(recipeLines({ name: 'a', values: { isoAuto: 'On' } }, 'HDF')).toEqual([['StillSvAuto', 'On']]);
+    expect(recipeLines({ name: 'f', values: { isoAuto: 'ISO400' } }, 'HDF')).toEqual([['StillSvAuto', 'Off'], ['CommonSvManual', '7'], ['CommonSv', '7']]);
+    expect(recipeChoice('isoAuto', 'Off')).toBeUndefined();
+  });
+
   it('leaves colour settings out on the Monochrome', () => {
     const mono = recipeLines(NYC, 'MONO').map(([p]) => p);
     expect(mono).not.toContain('StillImageControlNo0');
