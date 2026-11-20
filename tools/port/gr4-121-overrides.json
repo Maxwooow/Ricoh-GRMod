@@ -330,5 +330,25 @@
  "0x55839018": {
   "new": "0x55839018",
   "reason": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged"
+ },
+ "0x533ae080": {
+  "new": "0x533ae930",
+  "reason": "GetFocusAreaSize jump table, entry of mode 3 (aligned with the table; it holds 0x533ae998 = 1.21 of the 1.20 entry's 0x533ae0e8, and the mode 8 entry 0x533ae944 maps as ok)"
+ },
+ "0x533ae67c": {
+  "new": "0x533aef2c",
+  "reason": "area-type jump table, entry of mode 3 (aligned with the table; it holds 0x533af04c = 1.21 of the 1.20 entry's 0x533ae79c, and the mode 8 entry 0x533aef40 maps as ok)"
+ },
+ "0x53edf05c": {
+  "new": "0x53ee06ec",
+  "reason": "CafProcess vtable, movie-state-1 callback slot (aligned; it holds 0x536123b4 = 1.21 of the 1.20 slot's 0x53611a74)"
+ },
+ "0x53edf068": {
+  "new": "0x53ee06f8",
+  "reason": "CafProcess vtable, movie-state-0 callback slot (aligned; it holds 0x536123c4 = 1.21 of the 1.20 slot's 0x53611a84)"
+ },
+ "0x5583907c": {
+  "new": "0x5583907c",
+  "reason": "movie AF state pointer: the last word of the sbrk arena before the heap (0x55839040..0x55839080, see 0x55839080: the arena and the heap are where they are in 1.20); a GR Mod word, no firmware reference"
  }
 }
