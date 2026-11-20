@@ -994,5 +994,21 @@
  "0x5450584c": {
   "new": "0x5450584c",
   "reason": "not an address: hdrgain.c packs the four output descriptor offsets 0x4c, 0x58, 0x50, 0x54 into one word; JpegEncodeMacroProcess::Execute is the same in 1.20 (0x53727e10, every instruction equal but address movw/movt), so the offsets are unchanged"
+ },
+ "0x5339a1e8": {
+  "new": "0x533a98a0",
+  "reason": "GetBatteryIcon (battery.ts): the same code, aligned with 2 references agreeing; its icon numbers changed (bars 0xF4..0xF7 -> 0x104..0x107, 0xF2 -> 0x102, 0x271 -> 0x29D), which is why the window is not exact; the hook's displaced CMP r1,#1 / MOV ip,sp are the same"
+ },
+ "0x5339a2cc": {
+  "new": "0x533a9984",
+  "reason": "playback battery icon (battery.ts, comment): the function after GetBatteryIcon, the same code up to branch targets; 4 references agree"
+ },
+ "0x5537d2fc": {
+  "new": "0x5537efbc",
+  "reason": "CpuInformationService holder guard word (battery.ts): movw/movt of the holder getter 0x537a3400 (aligned with 1.11 0x5377d0f8), +0x124 from the holder 0x5537ee98 as in 1.11"
+ },
+ "0x53e98bd8": {
+  "new": "0x53ecee00",
+  "reason": "GridView vtable (shade.ts): 2 references agree; slot 19 holds GridView::Draw 0x5359bb14 (1.11 0x53578848 -> 0x5359bb14 aligned), slots 0..21 are the 1.11 slots' functions at the same shift"
  }
 }

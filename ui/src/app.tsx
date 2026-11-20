@@ -335,6 +335,9 @@ type TabPage = 'ic' | 'ratio' | 'battery' | 'grid' | 'wall';
  * - Pressing swells the lens and strengthens its rim, light and inner shade; it can be dragged along the bar and
  *   lands on the nearest tab; a tap sends it to the tab tapped. It moves on a spring and stretches with its speed.
  */
+/** Tab names for a bar of five tabs (GR IV with the battery and grid pages). */
+const SHORT_TAB: Partial<Record<Key, Key>> = { navIC: 'navICTab', navRatio: 'navRatioTab', navWall: 'navWallTab' };
+
 function MobileTabs() {
   const page = useStore((s) => s.page);
   const tabs = usePageTabs();
@@ -438,7 +441,7 @@ function MobileTabs() {
     <button
       key={x.p} type="button" tabIndex={hot ? -1 : 0} aria-hidden={hot || undefined} className={`m-tab ${hot ? 'on' : ''}`} data-tour={hot ? undefined : `nav-${x.p}`}
       aria-current={!hot && i === current ? 'page' : undefined} onClick={hot ? undefined : (e) => { if (e.detail === 0) setPage(x.p); }}
-    >{x.icon}<span>{t(x.key)}</span></button>
+    >{x.icon}<span>{t(tabs.length > 4 ? SHORT_TAB[x.key] ?? x.key : x.key)}</span></button>
   ));
   return (
     <div className="m-dock">

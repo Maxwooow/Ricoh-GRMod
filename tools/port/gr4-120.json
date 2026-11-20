@@ -94,6 +94,18 @@
     [
       "tools/adjslots",
       "tools/gr4v120/adjslots"
+    ],
+    [
+      "tools/battery",
+      "tools/gr4v120/battery"
+    ],
+    [
+      "tools/grid",
+      "tools/gr4v120/grid"
+    ],
+    [
+      "tools/shade",
+      "tools/gr4v120/shade"
     ]
   ],
   "exclude": [
@@ -145,6 +157,18 @@
     [
       "tools/adjslots/",
       "tools/gr4v120/adjslots/"
+    ],
+    [
+      "tools/battery/",
+      "tools/gr4v120/battery/"
+    ],
+    [
+      "tools/grid/",
+      "tools/gr4v120/grid/"
+    ],
+    [
+      "tools/shade/",
+      "tools/gr4v120/shade/"
     ],
     [
       "parents[2]",

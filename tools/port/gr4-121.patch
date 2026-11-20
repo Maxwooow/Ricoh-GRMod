@@ -141,6 +141,21 @@ diff --git a/tools/gr4v121/directflash/settings_check.py b/tools/gr4v121/directf
  CURRENT = 0x550832a8
  BYTE = CURRENT + 4 + 0x99b
  GN_BYTE = CURRENT + 4 + 0x99a
+diff --git a/tools/gr4v121/shade/draw_check.py b/tools/gr4v121/shade/draw_check.py
+--- a/tools/gr4v121/shade/draw_check.py
++++ b/tools/gr4v121/shade/draw_check.py
+@@ -278,9 +278,9 @@
+     for va in LIVE_MODE_CALLS:
+         check(bl_target(old, va) == CAPTURE_ASPECT, f'official {va:#x} is not the capture aspect call')
+         t = bl_target(new, va)
+-        check(t is not None and t >= BASE + 0x140b600, f'{va:#x} does not call into the appended area')
++        check(t is not None and t >= BASE + 0x140ce00, f'{va:#x} does not call into the appended area')
+     check(old.u32(GRID_DRAW_SLOT) == GRID_DRAW, 'official GridView::Draw slot')
+-    check(new.u32(GRID_DRAW_SLOT) != GRID_DRAW and new.u32(GRID_DRAW_SLOT) >= BASE + 0x140b600, 'patched Draw slot points into the appended area')
++    check(new.u32(GRID_DRAW_SLOT) != GRID_DRAW and new.u32(GRID_DRAW_SLOT) >= BASE + 0x140ce00, 'patched Draw slot points into the appended area')
+     ins = next(md.disasm(new.R[GRID_CTOR_CLEAR - BASE:GRID_CTOR_CLEAR - BASE + 4], GRID_CTOR_CLEAR))
+     check((ins.mnemonic, ins.op_str) == ('str', 'r5, [r4, #0xf4]'), f'constructor clear is {ins.mnemonic} {ins.op_str}')
+     zero = None
 diff --git a/tools/gr4v121/softfocus/check.py b/tools/gr4v121/softfocus/check.py
 --- a/tools/gr4v121/softfocus/check.py
 +++ b/tools/gr4v121/softfocus/check.py

@@ -1,7 +1,7 @@
 {
  "gr4-1.11": {
   "version": "1.11",
-  "info": "0402f7796b594091db8574887ca07a3b07c62fecdc25bcb79fe02078bef5adfe",
+  "info": "a08caa85f945f1eb47ce52b1a854a3302f1c41de7e1a343d58567512c327dbc8",
   "ratios": "6e8de8e2edd17955e2a1dfdf7645ecc51b2ae5f3ed7e84c820bbbbadee407668",
   "ratios / inspect": "35389f97b141f15c28bd27d0b228136222b544d1bbff0a87cd77dab798b0f208",
   "ratios, no guard": "e5bbb0ffd5850dfff04a65e0599e4e747c7e533320043ddec50a073a5e351bc6",
@@ -42,11 +42,21 @@
   "everything": "67896392f046a53a6742187e634393a9ce553a8acf16c5889cab23adc39a6595",
   "everything / inspect": "9d9f6a4afe50b3a2d8765b743c494d810d37ff6473b7009646f11056a9f6cfc1",
   "everything, test diagnostics": "71b4d49d359e96322de9bcd1dc8d4107def6d58100eceb608455bb19d9316692",
-  "everything, test diagnostics / inspect": "615e209caeb031c9e39d047d51080ab468fbf31242f481376cb6f5e270d73f18"
+  "everything, test diagnostics / inspect": "615e209caeb031c9e39d047d51080ab468fbf31242f481376cb6f5e270d73f18",
+  "battery percentage": "4d7423f761df0f9bb73e5427a5e764c804c97e7a3bfb5993e87c4fce07f39935",
+  "battery percentage / inspect": "4e6e44eb4605b81e20d5f6562ea59f445259174baca193379f81b6a59e5f6a81",
+  "battery percentage, diagnostics": "e9a4530e1e3057b2b6be84fedee0619b38e0ace8329684eb362cf502800d92a8",
+  "battery percentage, diagnostics / inspect": "7f822dea4185cab8569d7f01b1dc7614f0c5a62e16c0234801daf5d5aa82bb6f",
+  "custom grid": "997a80e115742e5b0c3a1a44cf5daf64215b3e84429b5e6302fa3d5ce10685b8",
+  "custom grid / inspect": "0802db7ca979c419a891b0fca81008c4556b3b67e5879a22d116f8d1ed51c9b6",
+  "live-view shade": "9ae35dd99420cb64bfdcff7eac0289690292e872a8c15b394de7414b2423c193",
+  "live-view shade / inspect": "cb122a42544fbb061432f4aa0d32dcde2c5f93a449169819f30414be70440a6e",
+  "live-view shade (light), custom grid, battery percentage, everything": "32ff6eb327ee91994a723ea359eea27ab9991d82ecfdc62f72ab0203b4c29935",
+  "live-view shade (light), custom grid, battery percentage, everything / inspect": "461f664802ec8710e4b1deafede5c08cf6a2add3877c1fb0f346d9874c2f4f0a"
  },
  "gr4-1.20": {
   "version": "1.20",
-  "info": "5afbe93899f9ebb59f12b7b9ee10eae546bf813979a2b69e513ab6b123e3680b",
+  "info": "83b2cf84ac78ae5b34cc05e4d110dcde2b423ef77511816bb1384d10ff3cae38",
   "ratios": "a4f51f2eb28969ac11a340b26672bf960a0e0124b13aec4377efcd4ea0ef3740",
   "ratios / inspect": "fba5f4b12123afcfe81370bf9cf2bc1e1a554194180ecf251ac5129c118f82cf",
   "ratios, no guard": "1238370c5352015a18f14aadde4f40d8c1ecc871adcc65e2c9ddec32d1aaafeb",
@@ -89,11 +99,21 @@
   "everything": "328f1214b8f2b6cab1eedff52c3d965eb2a4d01670b25f22bcc6aa5878a39cd7",
   "everything / inspect": "8ce01f2b83ec5d878c3876505f16d353b9204353bd13613eec47792959835e73",
   "everything, test diagnostics": "2e4a846581728ca24c636d3c172b37660b85b87e8db8ddc8d76650df96bdea2c",
-  "everything, test diagnostics / inspect": "3c824542717087687ba778d7b2fdad3b5c207e4cd93c8c2d2b8629319384da60"
+  "everything, test diagnostics / inspect": "3c824542717087687ba778d7b2fdad3b5c207e4cd93c8c2d2b8629319384da60",
+  "battery percentage": "166120ffbff103fdcff7c035c14f08f95f69126a4b41331fa37be87eff9ac47e",
+  "battery percentage / inspect": "364eca578d3c5d4a92d1a83d4f1b874246f77123139529c10cf9260093e37620",
+  "battery percentage, diagnostics": "9552d848f1004f82eb31230b81c77ecbcfa061b2ec47d0cd96ab2beca3b5f41e",
+  "battery percentage, diagnostics / inspect": "1b14929c9718353a4bd7125ea44e5449b8e40f0741b465cc411a64d1476889f8",
+  "custom grid": "0b882708ea5bb12358f991c05f838c5c6dfbb610bd3f92e7a3870e8268610b49",
+  "custom grid / inspect": "20c2857fc398b66ef29b08a62fe93949137e833d0e50b1b93d01cbc6ba240154",
+  "live-view shade": "7b0e992c7878c7a0040da62ca5aa51f8c8d33bb5741aeeceedb5e5f85ca6feab",
+  "live-view shade / inspect": "1078f954f06a3f24fedbd40abdffbb965df1542df2546afb29da97eee0373969",
+  "live-view shade (light), custom grid, battery percentage, everything": "a35362dc460c3dc8eaa245edf6fdcd5120b3a4b38ee9b5383a9f106b970b2d10",
+  "live-view shade (light), custom grid, battery percentage, everything / inspect": "621c2918d68b2374562ca15769041dd535df4793a458db9f6e5d1947c60a1ef4"
  },
  "gr4-1.21": {
   "version": "1.21",
-  "info": "46e9ab7ab05a6628d0961fd112a4ad55c62dfcbf9e9005dce6d1a8f64659a8a0",
+  "info": "d2afa9baa6dda69650af2aa496f9f08e6cb890ea422e72fcf69870790d6c02ea",
   "ratios": "9d66c46762d91b1f4e7c05e1f1851e544d33109fe674dff7cfa645889302fa9b",
   "ratios / inspect": "856e7f15d3c0c06a0aac08982e9ca13a40cc98c0c07ba4dff25acf1488be0cce",
   "ratios, no guard": "35f0b48ced7ee8c4f2fc0bfcab1a1850a92803795e28fd1f5bca37369a57c811",
@@ -136,7 +156,17 @@
   "everything": "13c8eeda866e29a15405229796651bb0efe2456feb2e61e9aa94dbe51a4f2b49",
   "everything / inspect": "91b4d0f37b96ab3e62388dd21a1a7c98ced7d6530113646e015e331439111968",
   "everything, test diagnostics": "1e14cf2df8835447111d750129c9a93ca7f4dc8849a114e6af3706f4533511f6",
-  "everything, test diagnostics / inspect": "df28840e0fda11e3e22589fed8b23a53237efeaeb4954d6872dac5f30ad445fe"
+  "everything, test diagnostics / inspect": "df28840e0fda11e3e22589fed8b23a53237efeaeb4954d6872dac5f30ad445fe",
+  "battery percentage": "114fb03f4ec80c67b412215cf1ef325f9bf1f2c1afdaf80f5856949cdb13cbab",
+  "battery percentage / inspect": "837b4cfcabcbb18937dca0bb362bc595d284a50b9777ee92a887ce4ab74c1848",
+  "battery percentage, diagnostics": "2127c098660b2f08cb0725ba4ff58566776d164744d16dd74139d294f7bb9d5f",
+  "battery percentage, diagnostics / inspect": "ef864884504d9a535e90e8a3ce191dc851332c41cc6fc2ccf912a2d8235f359f",
+  "custom grid": "a4c904b2815c0aebfce6d8d2cd5ab1ee0e3c3a5a4e7dfb15e3083a23e2700685",
+  "custom grid / inspect": "d865870f8ce343b7d8f1b62cf770b5b759a6bf053f09662eceac949ad57b7d58",
+  "live-view shade": "c9ebf16cc491041d910a4b6c9a3648d5329f08eea41488f9ed404312c6d24a88",
+  "live-view shade / inspect": "1f8349c4e44be0b50a738e02f35e74adf4591c46d4da7df7c58fd15237b38cc4",
+  "live-view shade (light), custom grid, battery percentage, everything": "aa6c4ff0b83545f711a735b8c2eddff166f6d7ee630ac83ed5f4242d00d74eb9",
+  "live-view shade (light), custom grid, battery percentage, everything / inspect": "d5ea8cf50a32ca1dbaf42f0c2f489b63b1af7f455e7a8fee2844462f0ce1d9d8"
  },
  "gr3-2.10": {
   "version": "2.10",

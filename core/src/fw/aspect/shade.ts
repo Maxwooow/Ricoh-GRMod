@@ -50,24 +50,25 @@
  *       frame (slot 6 -> 7), so a change of ratio lays them out again.
  */
 import { FirmwareError } from '../types';
+import { adr } from '../target';
 import { assembleWords } from './arm';
 import { Program } from './build';
 
-const GRID_VTABLE = 0x53e98bd8;
+const GRID_VTABLE = adr(0x53e98bd8);
 const GRID_DRAW_SLOT = GRID_VTABLE + 19 * 4;
-const GRID_DRAW = 0x53578848;
-const VIEW_BASE_DRAW = 0x535880b0;
-const GRID_CTOR_CLEAR = 0x535784b4;
-const SET_VISIBLE = 0x53589ab4;
-const UPDATE_GRID_VISIBLE = 0x5318f0c0;
-const CURRENT_USERDATA = 0x5323f018;
+const GRID_DRAW = adr(0x53578848);
+const VIEW_BASE_DRAW = adr(0x535880b0);
+const GRID_CTOR_CLEAR = adr(0x535784b4);
+const SET_VISIBLE = adr(0x53589ab4);
+const UPDATE_GRID_VISIBLE = adr(0x5318f0c0);
+const CURRENT_USERDATA = adr(0x5323f018);
 const ASPECT_BYTE = 0x49f;
-const FILL_FACTORY = 0x5323bbb8;
-const FILL_GET = 0x5323bd30;
-const FILL_RECT = 0x5323c588;
-const CAPTURE_ASPECT = 0x5375840c;
+const FILL_FACTORY = adr(0x5323bbb8);
+const FILL_GET = adr(0x5323bd30);
+const FILL_RECT = adr(0x5323c588);
+const CAPTURE_ASPECT = adr(0x5375840c);
 /** The capture aspect getter calls of the live-view mode function and of its mode check. */
-const LIVE_MODE_CALLS = [0x5388c7d0, 0x5363fa9c] as const;
+const LIVE_MODE_CALLS = [adr(0x5388c7d0), adr(0x5363fa9c)] as const;
 const MARK = 0xf6;
 /** The view's frame (x, y, w, h), the base Draw's copy of it, and the visible flag. */
 const FRAME = 0x30;
@@ -76,8 +77,8 @@ const VISIBLE = 0x9e;
 /** The grid view's two line views (the 4x4 style's diagonals), its children. */
 const LINE_VIEWS = [0xec, 0xf0] as const;
 /** The grid view's layout calls of the line views' point setter (the two diagonals). */
-export const DIAGONAL_CALLS = [0x53578770, 0x535787b0] as const;
-const LINE_SET_POINTS = 0x5356e654;
+export const DIAGONAL_CALLS = [adr(0x53578770), adr(0x535787b0)] as const;
+const LINE_SET_POINTS = adr(0x5356e654);
 
 /** How dark the part outside the photo is: UI palette colours 16 (black at 50 %) and 19 (grey at 25 %). */
 export type ShadeTone = 'dark' | 'light';

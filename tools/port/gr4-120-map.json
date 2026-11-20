@@ -22,7 +22,10 @@
     "tools/shutdown/menu_check.py",
     "tools/softfocus/check.py",
     "core/test/hdrgain.test.ts",
-    "tools/hdrgain/check.py"
+    "tools/hdrgain/check.py",
+    "tools/battery/check.py",
+    "tools/grid/check.py",
+    "tools/shade/draw_check.py"
    ]
   },
   "0x53000460": {
@@ -36,7 +39,8 @@
     "core/src/fw/aspect/shutdown.ts",
     "core/src/fw/aspect/slots.ts",
     "tools/shutdown/menu_check.py",
-    "core/src/fw/aspect/hdrgain.ts"
+    "core/src/fw/aspect/hdrgain.ts",
+    "tools/battery/check.py"
    ]
   },
   "0x53000930": {
@@ -3859,7 +3863,10 @@
     "tools/directflash/check.py",
     "tools/shutdown/menu_check.py",
     "tools/shutdown/shutdown.c",
-    "tools/softfocus/check.py"
+    "tools/softfocus/check.py",
+    "core/src/fw/aspect/shade.ts",
+    "tools/grid/check.py",
+    "tools/shade/draw_check.py"
    ]
   },
   "0x5323f038": {
@@ -6435,7 +6442,11 @@
    "files": [
     "tools/adjslots/check.py",
     "tools/shutdown/menu_check.py",
-    "tools/shutdown/shutdown.c"
+    "tools/shutdown/shutdown.c",
+    "core/src/fw/aspect/grid.ts",
+    "core/src/fw/aspect/shade.ts",
+    "tools/grid/check.py",
+    "tools/shade/draw_check.py"
    ]
   },
   "0x53589ee4": {
@@ -7362,7 +7373,8 @@
    "why": "fork B: setting root getter (+0x28: power-off picture setting, APData record 7)",
    "files": [
     "tools/shutdown/menu_check.py",
-    "tools/shutdown/shutdown.c"
+    "tools/shutdown/shutdown.c",
+    "tools/shade/draw_check.py"
    ]
   },
   "0x5372b640": {
@@ -8180,7 +8192,9 @@
     "tools/aspect/playback_check.py",
     "tools/datestamp/menu_check.py",
     "tools/softfocus/check.py",
-    "tools/hdrgain/check.py"
+    "tools/hdrgain/check.py",
+    "tools/battery/check.py",
+    "tools/shade/draw_check.py"
    ]
   },
   "0x538ee49c": {
@@ -8965,7 +8979,9 @@
     "tools/datestamp/menu_check.py",
     "tools/directflash/check.py",
     "tools/shutdown/menu_check.py",
-    "tools/softfocus/check.py"
+    "tools/softfocus/check.py",
+    "tools/grid/check.py",
+    "tools/shade/draw_check.py"
    ]
   },
   "0x5437d7b0": {
@@ -9082,7 +9098,10 @@
     "tools/datestamp/menu_check.py",
     "tools/directflash/check.py",
     "tools/shutdown/menu_check.py",
-    "tools/softfocus/check.py"
+    "tools/softfocus/check.py",
+    "tools/battery/check.py",
+    "tools/grid/check.py",
+    "tools/shade/draw_check.py"
    ]
   },
   "0x55001e78": {
@@ -9277,7 +9296,9 @@
     "core/src/fw/aspect/shutdown.ts",
     "core/src/fw/aspect/slots.ts",
     "tools/shutdown/menu_check.py",
-    "core/src/fw/aspect/hdrgain.ts"
+    "core/src/fw/aspect/hdrgain.ts",
+    "core/src/fw/aspect/battery.ts",
+    "tools/battery/check.py"
    ]
   },
   "0x558372dc": {
@@ -9374,7 +9395,8 @@
     "core/src/fw/aspect/shutdown.ts",
     "core/src/fw/aspect/slots.ts",
     "tools/shutdown/menu_check.py",
-    "core/src/fw/aspect/hdrgain.ts"
+    "core/src/fw/aspect/hdrgain.ts",
+    "tools/battery/check.py"
    ]
   },
   "0x531afbc0": {
@@ -9447,6 +9469,424 @@
    "why": "LCD Auto curve: paired stock-function disassembly, identical 18 x/y pairs and 1050 limits; on/off ARM replay checks both firmware versions.",
    "files": [
     "core/src/fw/aspect/brightauto.ts"
+   ]
+  },
+  "0x53153830": {
+   "new": "0x53154a70",
+   "how": "aligned + refs 0x53154a70x700",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts"
+   ]
+  },
+  "0x5318f00c": {
+   "new": "0x53190264",
+   "how": "aligned + refs 0x53190264x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shade.ts"
+   ]
+  },
+  "0x5318f09c": {
+   "new": "0x531902f4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shade.ts"
+   ]
+  },
+  "0x5318f0c0": {
+   "new": "0x53190318",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shade.ts",
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x5323bbb8": {
+   "new": "0x5323d7f0",
+   "how": "aligned + refs 0x5323d7f0x49",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shade.ts",
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x5323bd30": {
+   "new": "0x5323d968",
+   "how": "aligned + refs 0x5323d968x37",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shade.ts",
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x5323c588": {
+   "new": "0x5323e1c0",
+   "how": "aligned + refs 0x5323e1c0x46",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shade.ts"
+   ]
+  },
+  "0x5339a1e8": {
+   "new": "0x533a98a0",
+   "how": "override",
+   "ok": true,
+   "why": "GetBatteryIcon (battery.ts): the same code, aligned with 2 references agreeing; its icon numbers changed (bars 0xF4..0xF7 -> 0x104..0x107, 0xF2 -> 0x102, 0x271 -> 0x29D), which is why the window is not exact; the hook's displaced CMP r1,#1 / MOV ip,sp are the same",
+   "files": [
+    "core/src/fw/aspect/battery.ts",
+    "tools/battery/check.py"
+   ]
+  },
+  "0x5339a2cc": {
+   "new": "0x533a9984",
+   "how": "override",
+   "ok": true,
+   "why": "playback battery icon (battery.ts, comment): the function after GetBatteryIcon, the same code up to branch targets; 4 references agree",
+   "files": [
+    "core/src/fw/aspect/battery.ts",
+    "tools/battery/check.py"
+   ]
+  },
+  "0x533a03dc": {
+   "new": "0x533afba4",
+   "how": "aligned + refs 0x533afba4x7",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shade.ts"
+   ]
+  },
+  "0x5356e654": {
+   "new": "0x5359191c",
+   "how": "aligned + refs 0x5359191cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts",
+    "core/src/fw/aspect/shade.ts",
+    "tools/grid/check.py",
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x5356e7ac": {
+   "new": "0x53591a74",
+   "how": "aligned + refs 0x53591a74x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts",
+    "tools/grid/check.py",
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x53578450": {
+   "new": "0x5359b71c",
+   "how": "aligned + refs 0x5359b71cx1",
+   "ok": true,
+   "files": [
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x535784b4": {
+   "new": "0x5359b780",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shade.ts",
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x53578548": {
+   "new": "0x5359b814",
+   "how": "aligned + refs 0x5359b814x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts",
+    "tools/grid/check.py",
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x53578678": {
+   "new": "0x5359b944",
+   "how": "aligned + refs 0x5359b944x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts",
+    "core/src/fw/aspect/shade.ts",
+    "tools/grid/check.py",
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x535786f8": {
+   "new": "0x5359b9c4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts"
+   ]
+  },
+  "0x53578720": {
+   "new": "0x5359b9ec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts"
+   ]
+  },
+  "0x53578770": {
+   "new": "0x5359ba3c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts",
+    "core/src/fw/aspect/shade.ts"
+   ]
+  },
+  "0x5357877c": {
+   "new": "0x5359ba48",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts"
+   ]
+  },
+  "0x535787b0": {
+   "new": "0x5359ba7c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts",
+    "core/src/fw/aspect/shade.ts"
+   ]
+  },
+  "0x53578848": {
+   "new": "0x5359bb14",
+   "how": "aligned + refs 0x5359bb14x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts",
+    "core/src/fw/aspect/shade.ts",
+    "tools/grid/check.py",
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x53578918": {
+   "new": "0x5359bbe4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts"
+   ]
+  },
+  "0x5357891c": {
+   "new": "0x5359bbe8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts"
+   ]
+  },
+  "0x53578924": {
+   "new": "0x5359bbf0",
+   "how": "aligned + refs 0x5359bbf0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts"
+   ]
+  },
+  "0x5357894c": {
+   "new": "0x5359bc18",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts"
+   ]
+  },
+  "0x53578950": {
+   "new": "0x5359bc1c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts"
+   ]
+  },
+  "0x535789ac": {
+   "new": "0x5359bc78",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts"
+   ]
+  },
+  "0x535880b0": {
+   "new": "0x535ab380",
+   "how": "aligned + refs 0x535ab380x29",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shade.ts",
+    "tools/grid/check.py",
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x535880e4": {
+   "new": "0x535ab3b4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shade.ts"
+   ]
+  },
+  "0x5358a45c": {
+   "new": "0x535ad72c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x5363fa84": {
+   "new": "0x5366440c",
+   "how": "aligned + refs 0x5366440cx3",
+   "ok": true,
+   "files": [
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x5363fa9c": {
+   "new": "0x53664424",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shade.ts",
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x5375840c": {
+   "new": "0x5377d960",
+   "how": "aligned + refs 0x5377d960x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shade.ts",
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x5377d0f8": {
+   "new": "0x537a3400",
+   "how": "aligned + refs 0x537a3400x32",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/battery.ts"
+   ]
+  },
+  "0x53780918": {
+   "new": "0x537a6c20",
+   "how": "aligned + refs 0x537a6c20x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/battery.ts"
+   ]
+  },
+  "0x5386a538": {
+   "new": "0x53891e48",
+   "how": "aligned + refs 0x53891e48x193",
+   "ok": true,
+   "files": [
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x5386a608": {
+   "new": "0x53891f18",
+   "how": "aligned + refs 0x53891f18x228",
+   "ok": true,
+   "files": [
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x5388c7b8": {
+   "new": "0x538b40c8",
+   "how": "aligned + refs 0x538b40c8x2",
+   "ok": true,
+   "files": [
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x5388c7d0": {
+   "new": "0x538b40e0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shade.ts",
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x538e99ec": {
+   "new": "0x539115b4",
+   "how": "aligned + refs 0x539115b4x89",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts"
+   ]
+  },
+  "0x538e9c24": {
+   "new": "0x539117ec",
+   "how": "aligned + refs 0x539117ecx100",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts"
+   ]
+  },
+  "0x538e9c34": {
+   "new": "0x539117fc",
+   "how": "aligned + refs 0x539117fcx105",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/grid.ts"
+   ]
+  },
+  "0x53e98bd8": {
+   "new": "0x53ecee00",
+   "how": "override",
+   "ok": true,
+   "why": "GridView vtable (shade.ts): 2 references agree; slot 19 holds GridView::Draw 0x5359bb14 (1.11 0x53578848 -> 0x5359bb14 aligned), slots 0..21 are the 1.11 slots' functions at the same shift",
+   "files": [
+    "core/src/fw/aspect/shade.ts",
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x540414e4": {
+   "new": "0x540781ec",
+   "how": "aligned + refs 0x540781ecx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shade.ts",
+    "tools/shade/draw_check.py"
+   ]
+  },
+  "0x5537d1d8": {
+   "new": "0x5537ee98",
+   "how": "refs 0x5537ee98x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/battery.ts",
+    "tools/battery/check.py"
+   ]
+  },
+  "0x5537d2fc": {
+   "new": "0x5537efbc",
+   "how": "override",
+   "ok": true,
+   "why": "CpuInformationService holder guard word (battery.ts): movw/movt of the holder getter 0x537a3400 (aligned with 1.11 0x5377d0f8), +0x124 from the holder 0x5537ee98 as in 1.11",
+   "files": [
+    "core/src/fw/aspect/battery.ts",
+    "tools/battery/check.py"
+   ]
+  },
+  "0x55555555": {
+   "new": "0x55555555",
+   "how": "refs 0x55555555x12",
+   "ok": true,
+   "files": [
+    "tools/battery/check.py"
    ]
   }
  }

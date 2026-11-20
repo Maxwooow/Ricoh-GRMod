@@ -45,6 +45,11 @@ import type { ExtraSlotSpec } from './slots';
 import { installShutdownMenu } from './shutdown';
 import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
 import { installAdjSlots } from './adjslots';
+import { installBatteryPercent } from './battery';
+import { installCustomGrid, isCameraGrid, validCustomGrid } from './grid';
+import type { CustomGrid } from './grid';
+import { installRatioShade } from './shade';
+import type { ShadeTone } from './shade';
 import { installExposurePreviewOff } from './lvpreview';
 import { FRAME_LOOK, LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
 import type { ShutdownPictureSpec } from './shutdown';
@@ -160,6 +165,17 @@ export interface ExtensionFeatures {
   exposurePreview?: boolean;
   /** 0.8.11: soft focus (with `adjSoftFocus`) also a line of the still menu (`exposure.ts`). */
   softFocusMenu?: boolean;
+  /** The battery icon shows the charge in steps of 10 % instead of the bars (see `battery.ts`). */
+  batteryPercent?: boolean;
+  /** Which lines the camera's 3x3 and 4x4 grid styles draw, each on or off (see `grid.ts`); never the camera's own grids. */
+  customGrid?: CustomGrid;
+  /**
+   * Live view of an added ratio shows the whole 3:2 frame, the part outside the ratio darkened
+   * (see `shade.ts`); the photo is cropped as before. Needs at least one added ratio.
+   */
+  ratioShade?: boolean;
+  /** How dark the shade is (`shade.ts`): 'dark' (black at 50 %, the default) or 'light' (grey at 25 %). */
+  ratioShadeTone?: ShadeTone;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -177,6 +193,8 @@ export interface TestOptions {
   halationDiag?: boolean;
   /** HDR gain map: an APP15 segment with the module's counters in every JPEG. */
   hdrDiag?: boolean;
+  /** Battery percentage: "?" and "!" instead of the camera's icon when the report is missing or disagrees with the bars. */
+  batteryDiag?: boolean;
   /** Exposure preview off (issue #17), always on: the live view keeps a normal brightness (`lvpreview.ts`). */
   exposurePreviewOff?: boolean;
 }
@@ -535,7 +553,7 @@ function installMenu(patch: Patch, ratios: readonly RatioEntry[], iconIds: Reado
 // --------------------------------------------------------------------------------------------
 // crop_geometry.py
 
-class Program {
+export class Program {
   /** The image as it was when the program was created (displaced instructions are read from it). */
   private readonly source: Uint8Array;
   cursor: number;
@@ -1077,7 +1095,9 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
   const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
   const adjSlots = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
-  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap;
+  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade;
+  if (features.customGrid && (!validCustomGrid(features.customGrid) || isCameraGrid(features.customGrid))) fail('internal', 'a custom grid must differ from the camera’s');
+  if (features.ratioShade && ratios.length === 0) fail('internal', 'the live-view shade needs an added ratio');
   if (extra) revision = 3;
   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
@@ -1098,8 +1118,9 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
     const installed = installIcons(patch, iconbin, ratios);
     icons = installed.iconbin;
     const menu = installMenu(patch, ratios, installed.ids);
-    const { p, scale } = buildGeometry(patch, ratios);
+    const { p, get, scale } = buildGeometry(patch, ratios);
     installDevelop(p, scale, ratios);
+    if (features.ratioShade) installRatioShade(p, get, scale, features.ratioShadeTone ?? 'dark');
     installRaw(patch, ratios);
     installState(patch, ratios, menu.activeBitmap);
     installImageIdentity(patch, ratios);
@@ -1171,7 +1192,12 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   // Last: wraps every other settings save/load and user-mode recall hook.
   if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}), ...(ep ? { exposurePreview: true } : {}) });
   if (features.brightAuto) installBrightAuto(patch, features.brightAuto === 'balanced' ? 'balanced' : 'bright');
+  // The HDR gain map's test counters (`HDR_COUNTERS`) use the byte the battery percentage keeps.
+  if (features.batteryPercent && features.hdrGainMap && test.hdrDiag) fail('internal', 'the battery percentage cannot be combined with the HDR gain map’s test counters');
+  if (features.batteryPercent) icons = installBatteryPercent(patch, icons, !!test.batteryDiag);
+  // After the ratios: the diagonals take the point setter the grid view's layout calls then.
+  if (features.customGrid) installCustomGrid(patch, features.customGrid);
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}) } };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true, ...(features.ratioShadeTone && features.ratioShadeTone !== 'dark' ? { ratioShadeTone: features.ratioShadeTone } : {}) } : {}) } };
 }

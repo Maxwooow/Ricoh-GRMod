@@ -127,7 +127,7 @@ export function removeFilm(id: SlotId): void {
 }
 export function setActiveRatio(id: string): void { if (state.activeRatio !== id) set({ activeRatio: id }); }
 
-// ------------------------------------------------------------------ live-view shade (GR IV 1.11)
+// ------------------------------------------------------------------ live-view shade (GR IV)
 export function setRatioShade(ratioShade: boolean): void {
   if (ratioShade && !state.info?.features.ratioShade) return;
   set({ ratioShade }); scheduleSave();

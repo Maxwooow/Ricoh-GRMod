@@ -46,6 +46,7 @@ function gr4Recipes(eng: Engine): [string, () => Args][] {
   const preview = eng.info.features.exposurePreview ? { exposurePreview: true } : {};
   const pictures = () => [1, 2].map((k) => ({ id: 0x2000 + k, name: `Golden ${k}`, jpeg: eng.encodeMenuPicture(rgb(5 + 2 * k)) }));
   const soft = [{ level: -1, strength: 'weak' }, { level: -2, strength: 'medium' }] as Args[2];
+  const grid = { g3: [true, true, true, true, true, true, true, false], g4: [false, true, false, false, true, false, true, true] };
   const all: BuildOptions = { dateStamp: true, adjSoftFocus: true, monoUnlock: true, directFlash: true, hdrGainMap: true, adjSlots: 8, ...preview, brightAuto: 'balanced' };
   return [
     ['ratios', () => [[], testRatios(eng)]],
@@ -71,6 +72,11 @@ function gr4Recipes(eng: Engine): [string, () => Args][] {
     ['everything', () => [testPresetRequests(eng).map((r) => ({ ...r, halation: true })), testRatios(eng), [],
       { ...all, extraSlots: [slot('A1'), slot('Halo', true), slot('C3')], shutdownPictures: pictures(), lookLayout: { order: [looks.extraFirst + 2, ...order], hidden: [looks.factory[3], looks.extraFirst + 1] } }]],
     ['everything, test diagnostics', () => [[], [], [], { ...all, dateStampDiag: true, halationDiag: true, hdrDiag: true, dateStampFixed: 3 }]],
+    ['battery percentage', () => [[], [], [], { batteryPercent: true }]],
+    ['battery percentage, diagnostics', () => [[], [], [], { batteryPercent: true, batteryDiag: true }]],
+    ['custom grid', () => [[], [], [], { customGrid: grid }]],
+    ['live-view shade', () => [[], testRatios(eng), [], { ratioShade: true }]],
+    ['live-view shade (light), custom grid, battery percentage, everything', () => [[], testRatios(eng), [], { ...all, ratioShade: true, ratioShadeTone: 'light', customGrid: grid, batteryPercent: true }]],
   ];
 }
 

@@ -82,11 +82,11 @@ export interface FirmwareInfo {
     hdrGainMap?: boolean;
     /** 0.8.11: exposure preview as a camera setting, and soft focus's still-menu line (GR IV 1.20). */
     exposurePreview?: boolean;
-    /** The battery icon can show the charge in steps of 10 % (GR IV 1.11, `BuildOptions.batteryPercent`). */
+    /** The battery icon can show the charge in steps of 10 % (GR IV 1.11 / 1.20 / 1.21, `BuildOptions.batteryPercent`). */
     batteryPercent?: boolean;
-    /** Which lines the camera's 3x3 and 4x4 grids draw can be chosen (GR IV 1.11, `BuildOptions.customGrid`). */
+    /** Which lines the camera's 3x3 and 4x4 grids draw can be chosen (GR IV 1.11 / 1.20 / 1.21, `BuildOptions.customGrid`). */
     customGrid?: boolean;
-    /** Live view of the added ratios can show the whole frame, the part outside darkened (GR IV 1.11, `BuildOptions.ratioShade`). */
+    /** Live view of the added ratios can show the whole frame, the part outside darkened (GR IV 1.11 / 1.20 / 1.21, `BuildOptions.ratioShade`). */
     ratioShade?: boolean;
     /** GR III / IIIx: the most films a build can have (9; 20 on GR III 2.10, where
      * the number is chosen with BuildOptions.filmCount and Halation is set in the camera). */
@@ -268,20 +268,20 @@ export interface BuildOptions {
   /** Test builds only (GR IV 1.20): exposure preview always off (issue #17). */
   exposurePreviewOff?: boolean;
   /**
-   * GR IV 1.11 (`features.batteryPercent`): the battery icon shows the charge in steps of 10 % (a
+   * GR IV 1.11 / 1.20 / 1.21 (`features.batteryPercent`): the battery icon shows the charge in steps of 10 % (a
    * number inside the battery) instead of the bars (see `aspect/battery.ts`).
    */
   batteryPercent?: boolean;
   /** Test builds only: the battery percentage shows "?" (no usable report) and "!" (disagrees with the bars) instead of the camera's icon. */
   batteryDiag?: boolean;
   /**
-   * GR IV 1.11 (`features.customGrid`): which lines the camera's 3x3 and 4x4 grid styles draw, eight
+   * GR IV 1.11 / 1.20 / 1.21 (`features.customGrid`): which lines the camera's 3x3 and 4x4 grid styles draw, eight
    * each, on or off (see `aspect/grid.ts`; the 3x3 style may also have centre lines and diagonals).
    * The camera's own grids leave it out.
    */
   customGrid?: Gr4Program111.aspect.CustomGrid;
   /**
-   * GR IV 1.11 (`features.ratioShade`): live view of the added ratios shows the whole 3:2 frame with
+   * GR IV 1.11 / 1.20 / 1.21 (`features.ratioShade`): live view of the added ratios shows the whole 3:2 frame with
    * the part outside the ratio darkened, instead of the photo area only (see `aspect/shade.ts`).
    * Photos are the same either way. Needs at least one added ratio; without one it is left out.
    */
@@ -529,7 +529,7 @@ export class Engine {
       family: 'gr4', filename: 'fwdc248b.bin', models: ['STANDARD', 'HDF', 'MONO'],
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
       capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, menuPictures: true, lookLayout: true },
-      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : { batteryPercent: true, customGrid: true, ratioShade: true }) },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, batteryPercent: true, customGrid: true, ratioShade: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}) },
       version: g4.FIRMWARE_VERSION,
       looks: { factory: [...g4.aspect.FACTORY_LOOK_IDS], extraFirst: g4.aspect.EXTRA_FIRST_STYLE, monoOnly: g4.aspect.FACTORY_LOOK_IDS.filter((n) => n >= 25) },
       sha256: await sha256Hex(input),
@@ -1054,16 +1054,16 @@ export class Engine {
     if (exposurePreview && clarity.length > 0) throw new FirmwareError('bad-clarity', 'exposure preview cannot be combined with the clarity-table soft focus of 0.4.x');
     const softFocusMenu = adjSoftFocus && on120;
     const batteryPercent = !!(options && options.batteryPercent);
-    if (batteryPercent && !this.info.features.batteryPercent) throw new FirmwareError('bad-edit', 'the battery percentage needs GR IV firmware 1.11');
+    if (batteryPercent && !this.info.features.batteryPercent) throw new FirmwareError('bad-edit', 'the battery percentage needs GR IV firmware 1.11, 1.20 or 1.21');
     if (batteryPercent && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the battery percentage cannot be combined with the clarity-table soft focus of 0.4.x');
     // Its shown-step byte is where the HDR gain map's test builds keep their counters (aspect/battery.ts BATTERY_SHOWN).
     if (batteryPercent && hdrGainMap && options.hdrDiag) throw new FirmwareError('bad-edit', 'the battery percentage cannot be combined with the HDR gain map\u2019s test counters');
     if (options && options.customGrid !== undefined && !Gr4Program111.aspect.validCustomGrid(options.customGrid)) throw new FirmwareError('bad-edit', 'custom grid: eight lines on or off for each style');
     const customGrid = options && options.customGrid && !Gr4Program111.aspect.isCameraGrid(options.customGrid) ? { g3: [...options.customGrid.g3], g4: [...options.customGrid.g4] } : undefined;
-    if (customGrid && !this.info.features.customGrid) throw new FirmwareError('bad-edit', 'custom grid lines need GR IV firmware 1.11');
+    if (customGrid && !this.info.features.customGrid) throw new FirmwareError('bad-edit', 'custom grid lines need GR IV firmware 1.11, 1.20 or 1.21');
     if (customGrid && clarity.length > 0) throw new FirmwareError('bad-clarity', 'custom grid lines cannot be combined with the clarity-table soft focus of 0.4.x');
     const ratioShade = !!(options && options.ratioShade) && ratios.length > 0;
-    if (ratioShade && !this.info.features.ratioShade) throw new FirmwareError('bad-edit', 'the live-view shade needs GR IV firmware 1.11');
+    if (ratioShade && !this.info.features.ratioShade) throw new FirmwareError('bad-edit', 'the live-view shade needs GR IV firmware 1.11, 1.20 or 1.21');
     const ratioShadeTone = ratioShade && options.ratioShadeTone && options.ratioShadeTone !== 'dark' ? options.ratioShadeTone : undefined;
     if (ratioShadeTone && !Gr4Program111.aspect.SHADE_TONES.includes(ratioShadeTone)) throw new FirmwareError('bad-edit', 'unknown shade tone');
     if (hdrGainMap && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the HDR gain map cannot be combined with the clarity-table soft focus of 0.4.x');

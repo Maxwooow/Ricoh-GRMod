@@ -16,33 +16,34 @@
  * hides them. 0x53578720 is its end.
  */
 import { FirmwareError } from '../types';
+import { adr } from '../target';
 import { branchTarget } from './arm';
 import type { Patch } from './build';
 import { BASE, OFFICIAL_RTOS_LENGTH, Program } from './build';
 
-const GRID_HORIZONTAL = 0x5357891c;
+const GRID_HORIZONTAL = adr(0x5357891c);
 const GRID_STYLE = 0xf4;
 /** Frame getters: width / height (size + 8), and the line drawer. */
-const FRAME_WIDTH = 0x538e9c24;
-const FRAME_HEIGHT = 0x538e9c34;
-const DRAW_LINE = 0x53578548;
+const FRAME_WIDTH = adr(0x538e9c24);
+const FRAME_HEIGHT = adr(0x538e9c34);
+const DRAW_LINE = adr(0x53578548);
 /** GridView::Draw after the lines: frees the line rectangle, then the base view Draw. */
-const GRID_LINES_DONE = 0x535789ac;
+const GRID_LINES_DONE = adr(0x535789ac);
 /** Unsigned r0 / r1, as GridView::Draw divides the frame. */
-const UDIV = 0x53153830;
+const UDIV = adr(0x53153830);
 /** The line colour byte (a UI palette number). */
 const GRID_COLOUR = 0xf5;
 /** GridView layout (0x53578678): where it reads the style for the diagonals, and its exit. */
-const LAYOUT_DIAGONALS = 0x535786f8;
-const LAYOUT_DONE = 0x53578720;
+const LAYOUT_DIAGONALS = adr(0x535786f8);
+const LAYOUT_DONE = adr(0x53578720);
 /** The two diagonal line views of the grid view. */
 const DIAGONAL_VIEWS = [0xec, 0xf0] as const;
 /** The layout's calls of the line views' point setter, one per diagonal. */
-const DIAGONAL_CALLS = [0x53578770, 0x535787b0] as const;
+const DIAGONAL_CALLS = [adr(0x53578770), adr(0x535787b0)] as const;
 /** LineView: set the two points (child, p1, p2, thickness) and the colour (child, palette number). */
-const LINE_SET_POINTS = 0x5356e654;
-const LINE_SET_COLOUR = 0x5356e7ac;
-const SET_VISIBLE = 0x53589ab4;
+const LINE_SET_POINTS = adr(0x5356e654);
+const LINE_SET_COLOUR = adr(0x5356e7ac);
+const SET_VISIBLE = adr(0x53589ab4);
 
 /**
  * The lines of one grid style, on or off, in this order: horizontal top, centre, bottom; vertical
@@ -96,11 +97,11 @@ export function installCustomGrid(patch: Patch, grid: CustomGrid): void {
   if (!validCustomGrid(grid)) throw new FirmwareError('internal', 'bad custom grid');
   const p = new Program(patch);
   p.expect(GRID_HORIZONTAL, 'add r3,r7,sl', 'grid view Draw: the horizontal lines have moved');
-  p.expect(GRID_HORIZONTAL - 4, `bl #${0x538e99ec}`, 'grid view Draw: the line rectangle has moved');
+  p.expect(GRID_HORIZONTAL - 4, `bl #${adr(0x538e99ec)}`, 'grid view Draw: the line rectangle has moved');
   p.expect(GRID_LINES_DONE, 'sub r0,fp,#0x40', 'grid view Draw: the end of the lines has moved');
   p.expect(LAYOUT_DIAGONALS, `ldrb r5,[r4,#${GRID_STYLE}]`, 'grid view layout: the diagonals have moved');
   p.expect(LAYOUT_DONE, 'sub r0,fp,#0x38', 'grid view layout: its end has moved');
-  p.expect(0x5357877c, `bl #${LINE_SET_COLOUR}`, 'grid view layout: the diagonal colour has moved');
+  p.expect(adr(0x5357877c), `bl #${LINE_SET_COLOUR}`, 'grid view layout: the diagonal colour has moved');
   // The point setter as the layout calls it now: the line view's own, or what an addition installed
   // before put there (code appended to the image). Both calls must be unconditional BLs to it.
   const words = DIAGONAL_CALLS.map((call) => patch.word(call));

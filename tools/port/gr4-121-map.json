@@ -22,7 +22,10 @@
     "tools/gr4v120/halation/check.py",
     "tools/gr4v120/hdrgain/check.py",
     "tools/gr4v120/shutdown/menu_check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "tools/gr4v120/battery/check.py",
+    "tools/gr4v120/grid/check.py",
+    "tools/gr4v120/shade/draw_check.py"
    ]
   },
   "0x53000460": {
@@ -35,7 +38,8 @@
     "core/src/fw/gr4v120/aspect/lookstash.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "core/src/fw/gr4v120/aspect/slots.ts",
-    "tools/gr4v120/shutdown/menu_check.py"
+    "tools/gr4v120/shutdown/menu_check.py",
+    "tools/gr4v120/battery/check.py"
    ]
   },
   "0x53000930": {
@@ -4255,7 +4259,10 @@
     "tools/gr4v120/directflash/check.py",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/shutdown/shutdown.c",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/grid/check.py",
+    "tools/gr4v120/shade/draw_check.py"
    ]
   },
   "0x53240c58": {
@@ -6916,7 +6923,11 @@
     "tools/gr4v120/adjslots/adjslots.c",
     "tools/gr4v120/adjslots/check.py",
     "tools/gr4v120/shutdown/menu_check.py",
-    "tools/gr4v120/shutdown/shutdown.c"
+    "tools/gr4v120/shutdown/shutdown.c",
+    "core/src/fw/gr4v120/aspect/grid.ts",
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/grid/check.py",
+    "tools/gr4v120/shade/draw_check.py"
    ]
   },
   "0x535ad1b4": {
@@ -7945,7 +7956,8 @@
    "files": [
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "tools/gr4v120/shutdown/menu_check.py",
-    "tools/gr4v120/shutdown/shutdown.c"
+    "tools/gr4v120/shutdown/shutdown.c",
+    "tools/gr4v120/shade/draw_check.py"
    ]
   },
   "0x53750028": {
@@ -8788,7 +8800,9 @@
     "tools/gr4v120/aspect/playback_check.py",
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/hdrgain/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "tools/gr4v120/battery/check.py",
+    "tools/gr4v120/shade/draw_check.py"
    ]
   },
   "0x53916064": {
@@ -9589,7 +9603,9 @@
     "tools/gr4v120/directflash/check.py",
     "tools/gr4v120/exposure/check.py",
     "tools/gr4v120/shutdown/menu_check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "tools/gr4v120/grid/check.py",
+    "tools/gr4v120/shade/draw_check.py"
    ]
   },
   "0x543b5270": {
@@ -9753,7 +9769,10 @@
     "tools/gr4v120/halation/check.py",
     "tools/gr4v120/hdrgain/menu_check.py",
     "tools/gr4v120/shutdown/menu_check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "tools/gr4v120/battery/check.py",
+    "tools/gr4v120/grid/check.py",
+    "tools/gr4v120/shade/draw_check.py"
    ]
   },
   "0x55001e78": {
@@ -9971,7 +9990,9 @@
     "core/src/fw/gr4v120/aspect/lookstash.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "core/src/fw/gr4v120/aspect/slots.ts",
-    "tools/gr4v120/shutdown/menu_check.py"
+    "tools/gr4v120/shutdown/menu_check.py",
+    "core/src/fw/gr4v120/aspect/battery.ts",
+    "tools/gr4v120/battery/check.py"
    ]
   },
   "0x5583901c": {
@@ -10068,7 +10089,424 @@
     "core/src/fw/gr4v120/aspect/lookstash.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "core/src/fw/gr4v120/aspect/slots.ts",
-    "tools/gr4v120/shutdown/menu_check.py"
+    "tools/gr4v120/shutdown/menu_check.py",
+    "tools/gr4v120/battery/check.py"
+   ]
+  },
+  "0x53154a70": {
+   "new": "0x53154a70",
+   "how": "aligned + refs 0x53154a70x712",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts"
+   ]
+  },
+  "0x53190264": {
+   "new": "0x5319023c",
+   "how": "aligned + refs 0x5319023cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shade.ts"
+   ]
+  },
+  "0x531902f4": {
+   "new": "0x531902cc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shade.ts"
+   ]
+  },
+  "0x53190318": {
+   "new": "0x531902f0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x5323d7f0": {
+   "new": "0x5323ddf8",
+   "how": "aligned + refs 0x5323ddf8x49",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x5323d968": {
+   "new": "0x5323df70",
+   "how": "aligned + refs 0x5323df70x37",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x5323e1c0": {
+   "new": "0x5323e7c8",
+   "how": "aligned + refs 0x5323e7c8x46",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shade.ts"
+   ]
+  },
+  "0x533a98a0": {
+   "new": "0x533aa150",
+   "how": "aligned + refs 0x533aa150x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/battery.ts",
+    "tools/gr4v120/battery/check.py"
+   ]
+  },
+  "0x533a9984": {
+   "new": "0x533aa234",
+   "how": "aligned + refs 0x533aa234x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/battery.ts",
+    "tools/gr4v120/battery/check.py"
+   ]
+  },
+  "0x533afba4": {
+   "new": "0x533b0454",
+   "how": "aligned + refs 0x533b0454x7",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shade.ts"
+   ]
+  },
+  "0x5359191c": {
+   "new": "0x53592244",
+   "how": "aligned + refs 0x53592244x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts",
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/grid/check.py",
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x53591a74": {
+   "new": "0x5359239c",
+   "how": "aligned + refs 0x5359239cx6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts",
+    "tools/gr4v120/grid/check.py",
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x5359b71c": {
+   "new": "0x5359c044",
+   "how": "aligned + refs 0x5359c044x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x5359b780": {
+   "new": "0x5359c0a8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x5359b814": {
+   "new": "0x5359c13c",
+   "how": "aligned + refs 0x5359c13cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts",
+    "tools/gr4v120/grid/check.py",
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x5359b944": {
+   "new": "0x5359c26c",
+   "how": "aligned + refs 0x5359c26cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts",
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/grid/check.py",
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x5359b9c4": {
+   "new": "0x5359c2ec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts"
+   ]
+  },
+  "0x5359b9ec": {
+   "new": "0x5359c314",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts"
+   ]
+  },
+  "0x5359ba3c": {
+   "new": "0x5359c364",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts",
+    "core/src/fw/gr4v120/aspect/shade.ts"
+   ]
+  },
+  "0x5359ba48": {
+   "new": "0x5359c370",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts"
+   ]
+  },
+  "0x5359ba7c": {
+   "new": "0x5359c3a4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts",
+    "core/src/fw/gr4v120/aspect/shade.ts"
+   ]
+  },
+  "0x5359bb14": {
+   "new": "0x5359c43c",
+   "how": "aligned + refs 0x5359c43cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts",
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/grid/check.py",
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x5359bbe4": {
+   "new": "0x5359c50c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts"
+   ]
+  },
+  "0x5359bbe8": {
+   "new": "0x5359c510",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts"
+   ]
+  },
+  "0x5359bbf0": {
+   "new": "0x5359c518",
+   "how": "aligned + refs 0x5359c518x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts"
+   ]
+  },
+  "0x5359bc18": {
+   "new": "0x5359c540",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts"
+   ]
+  },
+  "0x5359bc1c": {
+   "new": "0x5359c544",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts"
+   ]
+  },
+  "0x5359bc78": {
+   "new": "0x5359c5a0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts"
+   ]
+  },
+  "0x535ab380": {
+   "new": "0x535abca8",
+   "how": "aligned + refs 0x535abca8x29",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/grid/check.py",
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x535ab3b4": {
+   "new": "0x535abcdc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shade.ts"
+   ]
+  },
+  "0x535ad72c": {
+   "new": "0x535ae054",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x5366440c": {
+   "new": "0x53664d4c",
+   "how": "aligned + refs 0x53664d4cx3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x53664424": {
+   "new": "0x53664d64",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x5377d960": {
+   "new": "0x5377e5f0",
+   "how": "aligned + refs 0x5377e5f0x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x537a3400": {
+   "new": "0x537a4118",
+   "how": "aligned + refs 0x537a4118x35",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/battery.ts"
+   ]
+  },
+  "0x537a6c20": {
+   "new": "0x537a7938",
+   "how": "aligned + refs 0x537a7938x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/battery.ts"
+   ]
+  },
+  "0x53891e48": {
+   "new": "0x53892af0",
+   "how": "aligned + refs 0x53892af0x195",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x53891f18": {
+   "new": "0x53892bc0",
+   "how": "aligned + refs 0x53892bc0x229",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x538b40c8": {
+   "new": "0x538b4d70",
+   "how": "aligned + refs 0x538b4d70x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x538b40e0": {
+   "new": "0x538b4d88",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x539115b4": {
+   "new": "0x5391224c",
+   "how": "aligned + refs 0x5391224cx89",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts"
+   ]
+  },
+  "0x539117ec": {
+   "new": "0x53912484",
+   "how": "aligned + refs 0x53912484x100",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts"
+   ]
+  },
+  "0x539117fc": {
+   "new": "0x53912494",
+   "how": "aligned + refs 0x53912494x105",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/grid.ts"
+   ]
+  },
+  "0x53ecee00": {
+   "new": "0x53ed0498",
+   "how": "override",
+   "ok": true,
+   "why": "GridView vtable (shade.ts): 2 references agree; slot 19 holds GridView::Draw 0x5359c43c (1.20 0x5359bb14 aligned), slots 0 and 19 at the code's shift 0x928",
+   "files": [
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x540781ec": {
+   "new": "0x540799dc",
+   "how": "aligned + refs 0x540799dcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x5537ee98": {
+   "new": "0x5537eea0",
+   "how": "refs 0x5537eea0x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/battery.ts",
+    "tools/gr4v120/battery/check.py"
+   ]
+  },
+  "0x5537efbc": {
+   "new": "0x5537efc4",
+   "how": "override",
+   "ok": true,
+   "why": "CpuInformationService holder guard word (battery.ts): movw/movt of the holder getter 0x537a4118 (aligned with 1.20 0x537a3400), +0x124 from the holder 0x5537eea0 as in 1.20",
+   "files": [
+    "core/src/fw/gr4v120/aspect/battery.ts",
+    "tools/gr4v120/battery/check.py"
+   ]
+  },
+  "0x55555555": {
+   "new": "0x55555555",
+   "how": "refs 0x55555555x12",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/battery/check.py"
    ]
   }
  }

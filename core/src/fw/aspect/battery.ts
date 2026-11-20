@@ -32,18 +32,19 @@
  * On external power the camera's icons are unchanged.
  */
 import { FirmwareError } from '../types';
+import { adr } from '../target';
 import { movImmediate, movWord } from './arm';
 import { ICON_CATALOG, LOOKUP_BOUNDS, Patch, Program, concat, u16le, u32le } from './build';
 import { extendZeroFill } from './lookstash';
 
-const GET_BATTERY_ICON = 0x5339a1e8;
-const HOLDER_GUARD = 0x5537d2fc;
-const HOLDER = 0x5537d1d8;
+const GET_BATTERY_ICON = adr(0x5339a1e8);
+const HOLDER_GUARD = adr(0x5537d2fc);
+const HOLDER = adr(0x5537d1d8);
 /**
  * One byte in the 44 zero-filled bytes before the heap: the shown step + 1 (0: none yet). Free in
  * every build but the HDR gain map's test builds (`HDR_COUNTERS`), which `installExtensions` refuses.
  */
-export const BATTERY_SHOWN = 0x558372d4;
+export const BATTERY_SHOWN = adr(0x558372d4);
 
 /** Icons: 10 %, 20 %, ..., 100 %, then the two diagnostic ones. Above the power-off thumbnails (992..1003). */
 export const BATTERY_ICON_ID = 1009;

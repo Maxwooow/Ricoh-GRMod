@@ -262,5 +262,13 @@
  "0x5583903c": {
   "new": "0x5583903c",
   "reason": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged"
+ },
+ "0x53ecee00": {
+  "new": "0x53ed0498",
+  "reason": "GridView vtable (shade.ts): 2 references agree; slot 19 holds GridView::Draw 0x5359c43c (1.20 0x5359bb14 aligned), slots 0 and 19 at the code's shift 0x928"
+ },
+ "0x5537efbc": {
+  "new": "0x5537efc4",
+  "reason": "CpuInformationService holder guard word (battery.ts): movw/movt of the holder getter 0x537a4118 (aligned with 1.20 0x537a3400), +0x124 from the holder 0x5537eea0 as in 1.20"
  }
 }
