@@ -18,6 +18,8 @@
 //   filewrite fh S             append the string's bytes
 //   filecopy P Q               copy P over Q (no effect if P is missing)
 //   strcompare S T             result = 0 if equal, else -1 / 1
+//   sendln S                   one line to the camera's debug shell (GR IV: `UserData Set <name> <value>`);
+//                              recorded in the trace as `sendln <line>`
 // P, Q, S, T are 'single-quoted' literals or string variables. Paths are
 // compared case-insensitively. Strings behave like C strings: a 0x00 byte read
 // from a file ends the string, so reading a zero byte gives an empty string and
@@ -68,6 +70,7 @@ const COMMAND_ARITY: Record<string, number> = {
   filewrite: 2,
   filecopy: 2,
   strcompare: 2,
+  sendln: 1,
 };
 
 const KEYWORDS = new Set(['if', 'then', 'endif', 'goto', 'exit', ...Object.keys(COMMAND_ARITY)]);
@@ -430,6 +433,9 @@ export function runScript(script: string, fs: SimFs, opts?: SimOptions): SimResu
           vars.set('result', a === b ? 0 : a < b ? -1 : 1);
           break;
         }
+        case 'sendln':
+          trace.push(`sendln ${str(st.args[0])}`);
+          break;
         default:
           fail(`unknown command "${st.op}"`);
       }

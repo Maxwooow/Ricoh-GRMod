@@ -9,6 +9,8 @@
  *    no factory-menu entry files;
  *  - factory-menu card: the two entry files and no firmware file (holding MENU while switching
  *    on starts either the factory menu or the firmware update).
+ *  - user mode recipe card (GR IV): `script\startup.ttl` of a recipe and this camera's two entry
+ *    files (Script has to be enabled once in the factory menu), no firmware file.
  * Files that are in the way are never deleted; they are moved into `GRMOD\parked-<stamp>\`.
  */
 export const FIRMWARE_FILE = 'fwdc248b.bin';
@@ -34,9 +36,13 @@ export interface CardListing {
   root: CardEntry[];
   /** Entries of `script\` (empty when the directory does not exist). */
   script: CardEntry[];
+  /** The first line of `script\startup.ttl`, when it was read: tells a user mode recipe from power-off images. */
+  scriptHead?: string;
 }
 
-export type CardRole = 'empty' | 'firmware' | 'wallpaper' | 'mixed' | 'other';
+export type CardRole = 'empty' | 'firmware' | 'wallpaper' | 'recipe' | 'mixed' | 'other';
+/** First line of a user mode recipe's script (usermode/recipe.ts). */
+export const RECIPE_SCRIPT_HEAD = '; GR Mod user mode recipe: ';
 
 export type PlanStep =
   | { op: 'move'; from: string[]; to: string[] }
@@ -49,6 +55,7 @@ export function cardRole(l: CardListing): CardRole {
   // The script is what makes a card act as a power-off image card; image files alone are inert.
   const fw = FIRMWARE_FILES.some(name => has(l.root, name));
   const script = has(l.script, SCRIPT_FILE);
+  if (script && l.scriptHead?.startsWith(RECIPE_SCRIPT_HEAD)) return 'recipe';
   if (fw && script) return 'mixed';
   if (fw) return 'firmware';
   if (script) return 'wallpaper';
@@ -189,5 +196,35 @@ export function planEntryCard(l: CardListing, files: { name: string; data: Uint8
     const present = l.root.find((x) => !x.dir && eq(x.name, f.name));
     steps.push({ op: 'write', path: [present ? present.name : f.name], data: f.data });
   }
+  return steps;
+}
+
+// ---------------------------------------------------------------- user mode recipe
+
+/**
+ * Steps that make the card apply a user mode recipe (usermode/recipe.ts) at the next power-on: the
+ * firmware file and an earlier start-up script (a recipe, or GR Mod 0.7's power-off images) are
+ * moved aside, so are the done files of earlier recipes; the factory-menu entry files are written
+ * where they are missing (the camera runs the script only with Script enabled in that menu), and
+ * the script last.
+ */
+export function planRecipeCard(l: CardListing, entry: { name: string; data: Uint8Array }[], script: string, isDoneFile: (name: string) => boolean, stamp: string): PlanStep[] {
+  if (!/^[\x09\x0a\x20-\x7e]*$/.test(script) || script.length === 0) throw new Error('script must be non-empty ASCII');
+  for (const f of entry) if (!/^[A-Z0-9]{1,8}\.[A-Z0-9]{1,3}$/.test(f.name) || f.data.length === 0 || f.data.length > 4096) throw new Error(`unexpected entry file ${f.name}`);
+  const steps: PlanStep[] = [];
+  const park = parkDir(stamp);
+  for (const e of l.root) {
+    if (e.dir) continue;
+    if (FIRMWARE_FILES.some((n) => eq(n, e.name)) || isDoneFile(e.name)) steps.push({ op: 'move', from: [e.name], to: [...park, e.name] });
+  }
+  for (const e of l.script) {
+    if (!e.dir && eq(e.name, SCRIPT_FILE)) steps.push({ op: 'move', from: [SCRIPT_DIR, e.name], to: [...park, SCRIPT_DIR, e.name] });
+  }
+  // The other camera family's entry files go aside (as planEntryCard); this family's are written where missing.
+  for (const step of parkEntryFiles(l, park)) if (step.op === 'move' && !entry.some((f) => eq(f.name, step.from[0]))) steps.push(step);
+  for (const f of entry) if (!has(l.root, f.name)) steps.push({ op: 'write', path: [f.name], data: f.data });
+  const bytes = new Uint8Array(script.length);
+  for (let i = 0; i < script.length; i++) bytes[i] = script.charCodeAt(i);
+  steps.push({ op: 'write', path: [SCRIPT_DIR, SCRIPT_FILE], data: bytes });
   return steps;
 }

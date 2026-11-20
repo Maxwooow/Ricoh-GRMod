@@ -331,6 +331,16 @@ factory order. The order is saved in `project.json` (`lookOrder`, `lookHidden`).
   so the program recognises and verifies it (`tools/looks/looks_check.py` runs both lists and the
   guard in an emulator).
 
+## User mode recipes
+
+`core/src/usermode/recipe.ts` (UI: `ui/src/pages/modes.tsx`, `ui/src/store/recipes.ts`) writes a set of shooting settings to the card as `script\startup.ttl`; the camera applies it once at power-on and the user saves it with the camera's own D1 › Save User Mode Box or Assign User Mode Dial. No firmware is built; the open firmware only provides the factory-menu entry files (`readFactoryEntry`), because the camera runs the script only with Script enabled in that menu.
+
+- The script's `sendln` passes a line to the camera's debug shell (SHELLCMD section). Its `UserData` command (1.21: 0x53008038) takes `Set <name> <value>` (0x534be364): one branch per named property, ~1900 of them, each parsing a word from a fixed list or a number (strtof) and calling the setter on the settings object in use (0x550832A8, `CURRENT()`). `Get` (0x53533214) prints to the debug console only, and `SYS_copylog` copies nothing while the stored log is off, so the script cannot read settings back.
+- Numbers are APEX as the camera keeps them: Av = 2 log2 N (F8 = 6), Sv = log2(ISO / 3.125) (ISO 100 = 5), Tv = log2(1 / t) (1/250 s = 8), exposure compensation in EV; thirds are sent with four decimals.
+- Not reachable this way: the stored modes U1–U3 and boxes BOX1–6 (the user saves them in the camera), and names (their setters keep two characters). The exposure mode is the mode dial's.
+- The script exits when a firmware update file is on the card, when its done file `GRUM<id>.TXT` exists (it runs once per write), and unless `E:\BlkCtl15.bin` names a GR IV, GR IV HDF or GR IV Monochrome; colour settings are left out for the Monochrome. Only flat `if`s and literal assignments, as in the power-off image script. Writing a recipe moves the firmware file, an earlier `startup.ttl` and earlier done files aside (`planRecipeCard`); writing a firmware moves the script aside (`planFirmwareCard`).
+- The property names and value words are the same in 1.11, 1.20 and 1.21. Checked on a GR IV 1.21 (exFAT card): a whole recipe set from the card and read back in the menus, including the APEX numbers and a negative compensation. `core/test/usermode.test.ts` runs the script in the TTL simulator (`wallpaper/sim.ts`, which gained `sendln`).
+
 ## Power-off pictures chosen in the camera
 
 `core/src/fw/aspect/shutdown.ts` (camera side: `tools/shutdown/shutdown.c`, compiled by `tools/shutdown/gen.py`) builds 1 to 8 pictures into the firmware and lets the camera choose among them: Setup > Display > End Screen opens a submenu with Type (the camera's own type 1 / 2 list, unchanged) and Picture, a list of the factory picture of this camera and the pictures by name, each with a 520x200 thumbnail above the list. `tools/shutdown/menu_check.py` runs the menu in an emulator. The approach follows gr-custom-tool's End Screen list (Copyright (C) 2026 DoYitNow, GPL-2.0-only); the code is GR Mod's own.

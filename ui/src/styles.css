@@ -891,3 +891,26 @@ html.mobile-app .tour-hole { border-radius: 14px; }
 .dialog.upd .upd-notes { white-space: pre-line; margin: 2px 0 10px; line-height: 1.5; }
 .dialog.upd .upd-hint { font-size: 12.5px; margin: 0 0 6px; }
 .dialog.upd h3 .push-file { margin-left: 10px; }
+
+/* user mode recipes (GR IV) */
+.modes-page { display: flex; flex-direction: column; gap: 12px; max-width: 800px; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line2) transparent; padding-right: 6px; }
+.modes-page > * { flex: none; }
+.recipe-tabs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.recipe-card { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.recipe-head { display: flex; align-items: center; gap: 10px; }
+.recipe-name { width: 260px; }
+.recipe-name.bad { color: var(--red); }
+.bad-text { color: var(--red); margin: 0; }
+.recipe-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px 24px; }
+.recipe-group { display: flex; flex-direction: column; gap: 4px; }
+.recipe-row.keep .recipe-label { color: var(--muted); }
+.recipe-label { flex: 1; min-width: 0; font-size: 13px; }
+.recipe-steps { padding: 12px 14px; }
+.recipe-steps ol { margin: 6px 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; }
+.recipe-row { display: flex; flex-direction: column; align-items: stretch; gap: 2px; }
+.recipe-line { display: flex; align-items: center; gap: 8px; min-height: 32px; }
+.recipe-line > :last-child { width: 170px; flex: none; }
+.recipe-why { margin: 0 0 4px; font-size: 12px; line-height: 1.4; color: var(--muted); }
+.wizard { gap: 12px; }
+.wizard-q { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.wizard-q .recipe-label { flex: none; width: 70px; }

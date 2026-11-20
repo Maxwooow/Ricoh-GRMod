@@ -9,6 +9,7 @@
  *   ratio          added aspect ratios
  *   battery        the battery percentage (GR IV)
  *   grid           custom grid lines (GR IV)
+ *   modes          user mode recipes, written to the card as a start-up script (GR IV)
  *   wallpaper      power-off pictures
  *   crop           the crop editor of a power-off picture
  *   files          what kind of file was dropped
@@ -22,5 +23,6 @@ export * from './pages/image-control';
 export * from './pages/ratio';
 export * from './pages/battery';
 export * from './pages/grid';
+export * from './pages/modes';
 export * from './pages/wallpaper';
 export * from './pages/crop';

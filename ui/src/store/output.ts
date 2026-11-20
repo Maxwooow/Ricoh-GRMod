@@ -17,10 +17,15 @@ import { canEject } from './photo';
 import { recordBuild, refreshCopies } from './copies';
 
 // ------------------------------------------------------------------ volumes
-async function listing(root: string): Promise<card.CardListing> {
+export async function listing(root: string): Promise<card.CardListing> {
   const rootEntries = await host.list(root);
   const scriptDir = rootEntries.find((e) => e.dir && e.name.toLowerCase() === card.SCRIPT_DIR);
-  return { root: rootEntries, script: scriptDir ? await host.list(host.join(root, scriptDir.name)) : [] };
+  const script = scriptDir ? await host.list(host.join(root, scriptDir.name)) : [];
+  // The script's first line tells a user mode recipe from GR Mod 0.7's power-off images (cardRole).
+  const file = scriptDir && script.find((e) => !e.dir && e.name.toLowerCase() === card.SCRIPT_FILE && e.size > 0 && e.size < 65536);
+  let scriptHead: string | undefined;
+  if (file) { try { const b = await host.read(host.join(root, scriptDir.name, file.name)); scriptHead = String.fromCharCode(...b.subarray(0, Math.min(b.length, 120))).split('\n')[0]; } catch { /* role without it */ } }
+  return { root: rootEntries, script, ...(scriptHead !== undefined ? { scriptHead } : {}) };
 }
 let refreshing = false;
 export async function refreshVolumes(): Promise<void> {
@@ -77,7 +82,7 @@ export function hasNameErrors(s: State = state): boolean {
 const stamp = (): string => { const d = new Date(); const p = (n: number): string => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
 
 /** A stamp whose `GRMOD\parked-<stamp>` folder does not exist on the card yet (two writes can fall into the same second). */
-async function freshStamp(root: string): Promise<string> {
+export async function freshStamp(root: string): Promise<string> {
   const base = stamp();
   let taken: string[] = [];
   try { taken = (await host.list(host.join(root, card.PARK_ROOT))).map((e) => e.name.toLowerCase()); } catch { /* no such folder yet */ }
@@ -88,7 +93,7 @@ async function freshStamp(root: string): Promise<string> {
   return base;
 }
 
-async function runPlan(root: string, steps: card.PlanStep[]): Promise<number> {
+export async function runPlan(root: string, steps: card.PlanStep[]): Promise<number> {
   let moved = 0;
   for (const st of steps) {
     if (st.op === 'move') { await host.move(host.join(root, ...st.from), host.join(root, ...st.to)); moved++; }

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { CAMERA_GRID, card, GR3X_FILM_IDS, GRID_LINE_COUNT, LANGS } from '@grmod/core';
-import type { CameraModel, CustomGrid, FirmwareInfo, FirmwareSummary, LangCode, PresetResult, RatioPreview, ShadeTone, SlotId } from '@grmod/core';
+import type { CameraModel, CustomGrid, FirmwareInfo, FirmwareSummary, LangCode, PresetResult, RatioPreview, ShadeTone, SlotId, usermode } from '@grmod/core';
 
 /** How dark the live-view shade is: black at 50 % or grey at 25 % (core's ShadeTone). */
 export type { ShadeTone };
@@ -11,7 +11,7 @@ import { t, uiLangPref } from '../i18n';
 import type { Crop } from '../pixels';
 import { SUPPORTED_LINES } from '../releases.gen';
 
-export type Page = 'ic' | 'ratio' | 'battery' | 'grid' | 'wall' | 'copies';
+export type Page = 'ic' | 'ratio' | 'battery' | 'grid' | 'modes' | 'wall' | 'copies';
 /** The camera's own grids, as custom grid lines (a fresh copy to edit). */
 export const cameraGrid = (): CustomGrid => ({ g3: [...CAMERA_GRID.g3], g4: [...CAMERA_GRID.g4] });
 /** Grid lines as saved in the project: eight booleans per style, else the camera's own. */
@@ -59,7 +59,7 @@ export interface BuildRecord { sha256: string; time: number; slots: { id: SlotId
 /** `warn` is an optional caution shown under the lines (used where something is deleted for good). */
 /** A guided tour: `overview` is the one of the first start, the others belong to a page. */
 export type TourId = 'overview' | Page;
-export const TOUR_IDS: readonly TourId[] = ['overview', 'ic', 'ratio', 'battery', 'grid', 'wall', 'copies'];
+export const TOUR_IDS: readonly TourId[] = ['overview', 'ic', 'ratio', 'battery', 'grid', 'modes', 'wall', 'copies'];
 /** The tour being shown: `steps` are the indices of its steps that have something to point at; a replay can be skipped. */
 export interface TourState { id: TourId; steps: number[]; index: number; replay: boolean }
 /** `reset`: the firmware written is the official one; the dialog asks in red whether the camera's settings were reset first. */
@@ -98,6 +98,8 @@ export interface State {
   filmGrain: boolean;
   /** GR IV 1.20 / 1.21: pre-flash (TTL) metering for a GF-2 class flash in the two red-eye flash modes (off by default). */
   flashTtl: boolean;
+  /** GR IV: user mode recipes (settings the camera applies once from a card script), and the one shown. */
+  recipes: usermode.Recipe[]; activeRecipe: number;
   /** ADJ lever slots in the build: 5 (the camera's) to 8 (GR IV). */
   adjSlots: number;
   /** GR IV, experimental: .cube presets of added slots get hue sectors of their own (core color/hue.ts). */
@@ -132,7 +134,7 @@ export const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', te
 export const emptySlots = (): Record<SlotId, SlotState> => Object.fromEntries(SLOT_IDS.map(id => [id, emptySlot()])) as Record<SlotId, SlotState>;
 export let state: State = {
   ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: cameraLang(), langAuto: uiLangPref() === '',
-  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hdr: false, exposurePreview: false, filmGrain: false, shadowLearn: false, ratioShade: false, ratioShadeTone: 'dark', battery: false, customGrid: false, gridLines: cameraGrid(), flashTtl: false, adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [],
+  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hdr: false, exposurePreview: false, filmGrain: false, shadowLearn: false, ratioShade: false, ratioShadeTone: 'dark', battery: false, customGrid: false, gridLines: cameraGrid(), flashTtl: false, recipes: [], activeRecipe: 0, adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [],
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
