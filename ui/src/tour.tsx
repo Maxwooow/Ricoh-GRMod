@@ -78,6 +78,10 @@ export const TOURS: Record<TourId, Step[]> = {
   grid: [
     { target: 'grid-switch', title: 'navGrid', body: 'tGridB', side: 'bottom' },
   ],
+  modes: [
+    { target: 'recipe-add', title: 'navModes', body: 'tModesB', side: 'bottom' },
+    { target: 'recipe-steps', title: 'rcpStepsTitle', body: 'tModesStepsB', side: 'top' },
+  ],
   wall: [
     step(undefined, 'WallMenu'),
     step('wall-add', 'WallAdd'),

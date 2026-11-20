@@ -191,3 +191,31 @@ export function planEntryCard(l: CardListing, files: { name: string; data: Uint8
   }
   return steps;
 }
+
+// ---------------------------------------------------------------- user mode recipe
+
+/**
+ * Steps that make the card apply a user mode recipe (usermode/recipe.ts) at the next power-on: the
+ * firmware file and an earlier start-up script (a recipe, or GR Mod 0.7's power-off images) are
+ * moved aside, so are the done files of earlier recipes; the factory-menu entry files are written
+ * where they are missing (the camera runs the script only with Script enabled in that menu), and
+ * the script last.
+ */
+export function planRecipeCard(l: CardListing, entry: { name: string; data: Uint8Array }[], script: string, isDoneFile: (name: string) => boolean, stamp: string): PlanStep[] {
+  if (!/^[\x09\x0a\x20-\x7e]*$/.test(script) || script.length === 0) throw new Error('script must be non-empty ASCII');
+  for (const f of entry) if (!/^[A-Z0-9]{1,8}\.[A-Z0-9]{1,3}$/.test(f.name) || f.data.length === 0 || f.data.length > 4096) throw new Error(`unexpected entry file ${f.name}`);
+  const steps: PlanStep[] = [];
+  const park = parkDir(stamp);
+  for (const e of l.root) {
+    if (e.dir) continue;
+    if (FIRMWARE_FILES.some((n) => eq(n, e.name)) || isDoneFile(e.name)) steps.push({ op: 'move', from: [e.name], to: [...park, e.name] });
+  }
+  for (const e of l.script) {
+    if (!e.dir && eq(e.name, SCRIPT_FILE)) steps.push({ op: 'move', from: [SCRIPT_DIR, e.name], to: [...park, SCRIPT_DIR, e.name] });
+  }
+  for (const f of entry) if (!has(l.root, f.name)) steps.push({ op: 'write', path: [f.name], data: f.data });
+  const bytes = new Uint8Array(script.length);
+  for (let i = 0; i < script.length; i++) bytes[i] = script.charCodeAt(i);
+  steps.push({ op: 'write', path: [SCRIPT_DIR, SCRIPT_FILE], data: bytes });
+  return steps;
+}

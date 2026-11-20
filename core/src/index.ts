@@ -3,6 +3,7 @@ export * as color from './color';
 export * as jpeg from './jpeg';
 export * as wallpaper from './wallpaper';
 export * as card from './card';
+export * as usermode from './usermode';
 export * from './app';
 export { FirmwareError } from './fw';
 export { ColorError } from './color';

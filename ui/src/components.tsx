@@ -24,6 +24,7 @@ export const Ico = {
   more: <svg viewBox="0 0 20 20" fill="currentColor"><circle cx="4.5" cy="10" r="1.4" /><circle cx="10" cy="10" r="1.4" /><circle cx="15.5" cy="10" r="1.4" /></svg>,
   x: <svg viewBox="0 0 20 20" {...P}><path d="M5.5 5.5l9 9M14.5 5.5l-9 9" /></svg>,
   check: <svg viewBox="0 0 20 20" {...P} strokeWidth={2}><path d="M4.5 10.5l3.6 3.6 7.4-8" /></svg>,
+  dial: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="7.2" /><circle cx="10" cy="10" r="2.4" /><path d="M10 2.8v2.6M15.1 4.9l-1.8 1.8M17.2 10h-2.6M4.9 4.9l1.8 1.8" /></svg>,
   plus: <svg viewBox="0 0 20 20" {...P}><path d="M10 4.5v11M4.5 10h11" /></svg>,
   crop: <svg viewBox="0 0 20 20" {...P}><path d="M5.5 2.5v10.5a1.5 1.5 0 0 0 1.5 1.5h10.5M2.5 5.5h10.5a1.5 1.5 0 0 1 1.5 1.5v10.5" /></svg>,
   refresh: <svg viewBox="0 0 20 20" {...P}><path d="M16 10a6 6 0 1 1-1.8-4.3M16 3.5v3h-3" /></svg>,

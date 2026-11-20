@@ -8,6 +8,7 @@ import { allSlotKeys, renderIcon, runPreset } from './slots';
 import { encodeWall } from './wall';
 import { cancelRatioRefresh, ratiosChanged, refreshRatios } from './ratios';
 import { refreshCopies } from './copies';
+import { recipesOffered } from './recipes';
 
 // ------------------------------------------------------------------ guided tours
 export function startTour(id: TourId, steps: number[], replay: boolean): void {
@@ -43,6 +44,7 @@ export function endTour(): void {
 export function pageOffered(page: Page, s: State = state): boolean {
   if (page === 'battery') return s.info ? !!s.info.features.batteryPercent : !isGr3(s.model);
   if (page === 'grid') return s.info ? !!s.info.features.customGrid : !isGr3(s.model);
+  if (page === 'modes') return recipesOffered(s);
   return true;
 }
 

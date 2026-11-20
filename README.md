@@ -52,6 +52,7 @@ Use only firmware intended for your camera model and a base version listed above
 - **Battery percentage:** show the charge as a number in steps of 10 % instead of bars, on the GR IV (firmware 1.11, 1.20 and 1.21).
 - **Exposure preview and display options:** access additional preview and automatic screen-brightness settings on supported GR IV firmware.
 - **Custom grid lines:** choose which lines the camera's 3x3 and 4x4 grids draw, on the GR IV (firmware 1.11, 1.20 and 1.21).
+- **User mode recipes:** put a set of shooting settings (aperture, ISO Auto limits, minimum shutter speed, focus, metering, file format, Image Control, white balance and more) on the card; the GR IV applies it once at power-on and you save it to a User Mode Box or the mode dial. Uses the camera's start-up script; no firmware change (GR IV 1.11, 1.20 and 1.21, desktop app).
 
 Features vary by camera model and firmware version. The app only offers options supported by the selected firmware.
 

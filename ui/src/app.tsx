@@ -11,11 +11,11 @@ import { t, uiLangPref } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
 import { FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
-import { BatteryPage, CropEditor, GridPage, ImageControlPage, RatioPage, WallpaperPage } from './pages';
+import { BatteryPage, CropEditor, GridPage, ImageControlPage, ModesPage, RatioPage, WallpaperPage } from './pages';
 import { Tour, replayTour, restartTours } from './tour';
 import { UpdatePill, UpdateWatcher, checkForUpdate, openWhatsNew } from './updates';
 import {
-  pageOffered, getState, isGr3, backupCopies, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setAppLanguage, setModel, setPage, setShowAll, useStore, wallReady,
+  pageOffered, recipeReady, writeRecipe, getState, isGr3, backupCopies, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setAppLanguage, setModel, setPage, setShowAll, useStore, wallReady,
 } from './store';
 import type { State } from './store';
 
@@ -28,6 +28,7 @@ function Sidebar() {
   const info = useStore((s) => !!s.info);
   const battery = useStore((s) => pageOffered('battery', s));
   const grid = useStore((s) => pageOffered('grid', s));
+  const modes = useStore((s) => pageOffered('modes', s));
   return (
     <aside className="sidebar">
       <nav>
@@ -35,6 +36,7 @@ function Sidebar() {
         <button className={`nav ${page === 'ratio' ? 'on' : ''}`} data-tour="nav-ratio" onClick={() => setPage('ratio')}>{Ico.ratio}<span>{t('navRatio')}</span></button>
         {battery && <button className={`nav ${page === 'battery' ? 'on' : ''}`} data-tour="nav-battery" onClick={() => setPage('battery')}>{Ico.battery}<span>{t('navBatteryPage')}</span></button>}
         {grid && <button className={`nav ${page === 'grid' ? 'on' : ''}`} data-tour="nav-grid" onClick={() => setPage('grid')}>{Ico.grid}<span>{t('navGridPage')}</span></button>}
+        {modes && <button className={`nav ${page === 'modes' ? 'on' : ''}`} data-tour="nav-modes" onClick={() => setPage('modes')}>{Ico.dial}<span>{t('navModes')}</span></button>}
         {(!isGr3(model) || menuPics || !info) && <button className={`nav ${page === 'wall' ? 'on' : ''}`} data-tour="nav-wall" onClick={() => setPage('wall')}>{Ico.image}<span>{t('navWall')}</span></button>}
       </nav>
       <div className="grow" />
@@ -89,6 +91,8 @@ function CopyActions() {
 
 /** Whether the page's output buttons can make a firmware file now. */
 function canOutput(s: State): boolean {
+  // The recipes page writes its script (and the factory-menu entry files), not a firmware.
+  if (s.page === 'modes') return pageOffered('modes', s) && !!s.info && !s.busy && recipeReady(s.recipes[s.activeRecipe], s);
   const isIC = s.page === 'ic' || s.page === 'ratio' || s.page === 'battery' || s.page === 'grid'; const isWall = s.page === 'wall';
   return !!s.info && s.info.models.includes(s.model) && (isIC ? s.info.capabilities.build : isWall ? (s.info.capabilities.wallpaper || s.info.capabilities.menuPictures) : s.info.capabilities.factoryEntry) && !s.busy && (isIC ? (pendingChanges(s).length + ratioSpecs(s).length > 0 || extrasOn(s) || (s.model !== 'MONO' && s.info.family !== 'gr3x' && s.extras.length > 0) || menuPictures(s).length > 0) && !hasNameErrors(s) && !hasRatioErrors(s) : isWall ? wallReady(s) && !hasNameErrors(s) && !hasRatioErrors(s) : true);
 }
@@ -99,7 +103,7 @@ function OutputBar() {
   // Image Control (with its switches), the added ratios and the power-off images go into one firmware file: every page writes the same thing.
   const can = canOutput(s);
   const role: Key | '' = s.role === 'firmware' ? 'roleFirmware' : s.role === 'wallpaper' ? 'roleWallpaper' : s.role === 'mixed' ? 'roleMixed' : s.role === 'empty' ? 'roleEmpty' : '';
-  const run = (kind: 'card' | 'folder'): void => { void outputFirmware({ kind }); };
+  const run = (kind: 'card' | 'folder'): void => { void (s.page === 'modes' ? writeRecipe(kind) : outputFirmware({ kind })); };
   return (
     <footer className="outbar">
       <div className="out-card" data-tour="card">
@@ -152,6 +156,7 @@ export function App() {
   const fwOpen = useStore((s) => !!s.info);
   const batteryOk = useStore((s) => pageOffered('battery', s));
   const gridOk = useStore((s) => pageOffered('grid', s));
+  const modesOk = useStore((s) => pageOffered('modes', s));
   const ready = useStore((s) => s.ready);
   if (!host.available) return <div className="nohost">{t('hostMissing')}</div>;
   if (isMobile) return <Crashed><MobileApp /></Crashed>;
@@ -159,7 +164,7 @@ export function App() {
     <div className="app" onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault(); }} onDrop={(e) => e.preventDefault()}>
       <Sidebar />
       <main className="main">
-        <div className="stage">{ready ? (page === 'ratio' ? <RatioPage /> : page === 'battery' && batteryOk ? <BatteryPage /> : page === 'grid' && gridOk ? <GridPage /> : page === 'wall' && (!gr3 || menuPicsReady || !fwOpen) ? <WallpaperPage /> : page === 'copies' ? <CopiesPage /> : <ImageControlPage />) : <div className="page"><span className="spinner" /></div>}</div>
+        <div className="stage">{ready ? (page === 'ratio' ? <RatioPage /> : page === 'battery' && batteryOk ? <BatteryPage /> : page === 'grid' && gridOk ? <GridPage /> : page === 'modes' && modesOk ? <ModesPage /> : page === 'wall' && (!gr3 || menuPicsReady || !fwOpen) ? <WallpaperPage /> : page === 'copies' ? <CopiesPage /> : <ImageControlPage />) : <div className="page"><span className="spinner" /></div>}</div>
         <OutputBar />
       </main>
       <CropEditor />
@@ -175,7 +180,7 @@ export function App() {
 
 // ------------------------------------------------------------------ Android: the same pages in a phone layout
 
-const PAGE_TITLE: Record<string, Key> = { ic: 'navIC', ratio: 'navRatio', battery: 'navBatteryPage', grid: 'navGridPage', wall: 'navWall', copies: 'navIC' };
+const PAGE_TITLE: Record<string, Key> = { ic: 'navIC', ratio: 'navRatio', battery: 'navBatteryPage', grid: 'navGridPage', modes: 'navModes', wall: 'navWall', copies: 'navIC' };
 
 function MobileTop({ onSettings, wide }: { onSettings: () => void; wide: boolean }) {
   const page = useStore((s) => s.page);
