@@ -10,8 +10,8 @@
  *    and the file records it in the third feature byte, which `inspect` reads back and verifies;
  *  - it composes with every other addition: the same words are written as without it, apart from
  *    its own entry and the icon bound;
- *  - the diagnostic variant differs only in its own code; the HDR gain map's test counters, which
- *    use the same byte, are refused with it.
+ *  - the diagnostic variant differs only in its own code; it builds with the HDR gain map's test
+ *    counters (the shown step is no longer kept in their words).
  * What the hook does when it runs is checked in an emulator by tools/battery/check.py.
  */
 import { describe, expect, it } from 'vitest';
@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { Engine, fw } from '../src';
 import type { BuildOptions } from '../src/app/engine';
 import type { ExtraSlotSpec, ShutdownPictureSpec } from '../src/fw';
-import { BATTERY_ICON_DISAGREES, BATTERY_ICON_H, BATTERY_ICON_ID, BATTERY_ICON_W, CAMERA_BATTERY, ICON_BATTERY, batteryIcons, batteryInside, drawBatteryIcon } from '../src/fw/aspect/battery';
+import { BATTERY_ICON_DISAGREES, BATTERY_ICON_H, BATTERY_ICON_ID, BATTERY_ICON_W, BATTERY_SHOWN, CAMERA_BATTERY, ICON_BATTERY, batteryIcons, batteryInside, drawBatteryIcon } from '../src/fw/aspect/battery';
 
 const P = fileURLToPath(new URL('../testdata/private/', import.meta.url));
 const have = existsSync(P + 'official.bin');
@@ -81,7 +81,9 @@ describe.skipIf(!have)('battery percentage', () => {
     const s = sections(built.file);
     expect(wordAt(official.rtos, GET_BATTERY_ICON)).toBe(0xe3510001);
     expect(wordAt(s.rtos, GET_BATTERY_ICON) >>> 24).toBe(0xea);
-    expect(wordAt(s.rtos, ZERO_FILL_END)).toBe(0x55837300);
+    // The zero fill reaches the heap over the unused sbrk arena, where the shown step is kept.
+    expect(wordAt(s.rtos, ZERO_FILL_END)).toBe(0x55837340);
+    expect(BATTERY_SHOWN).toBe(0x55837300);
     const drawn = batteryIcons();
     expect(drawn.map((x) => x.id)).toEqual(Array.from({ length: 12 }, (_, k) => BATTERY_ICON_ID + k));
     for (const { id, px } of drawn) {
@@ -182,7 +184,8 @@ describe.skipIf(!have)('battery percentage', () => {
       expect(va).toBeGreaterThanOrEqual(hook);
       expect(va).toBeLessThan(hook + 0x180);
     }
-    // The HDR gain map's test counters are kept in the battery's byte: not both in one build.
-    await expect(eng.buildFirmware([], [], [], { batteryPercent: true, hdrGainMap: true, hdrDiag: true })).rejects.toThrow(/test counters/);
+    // The HDR gain map's test counters no longer share a word with the shown step.
+    const hdrDiag = await eng.buildFirmware([], [], [], { batteryPercent: true, hdrGainMap: true, hdrDiag: true });
+    expect(Object.values(hdrDiag.checks).every((v) => v === true)).toBe(true);
   }, 600_000);
 });

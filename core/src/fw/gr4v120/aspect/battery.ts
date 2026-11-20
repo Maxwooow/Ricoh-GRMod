@@ -34,17 +34,25 @@
 import { FirmwareError } from '../../types';
 import { adr } from '../target';
 import { movImmediate, movWord } from './arm';
-import { ICON_CATALOG, LOOKUP_BOUNDS, Patch, Program, concat, u16le, u32le } from './build';
-import { extendZeroFill } from './lookstash';
+import { ICON_CATALOG, LOOKUP_BOUNDS, Patch, Program, concat, expectWord, u16le, u32le } from './build';
 
 const GET_BATTERY_ICON = adr(0x533a98a0);
 const HOLDER_GUARD = adr(0x5537efbc);
 const HOLDER = adr(0x5537ee98);
 /**
- * One byte in the 44 zero-filled bytes before the heap: the shown step + 1 (0: none yet). Free in
- * every build but the HDR gain map's test builds (`HDR_COUNTERS`), which `installExtensions` refuses.
+ * The shown step + 1 (0: none yet), one byte. Not in the 44 zero-filled bytes before 0x55839040,
+ * whose words the other additions take (the learned shadow correction, Flash TTL), but after
+ * them: the 64 bytes from 0x55839040 are the start-up arena of the C library's sbrk (0x530668dc and
+ * 0x5315F0D8 start it there and stop at 0x55839080 or at the stack), which nothing in the firmware
+ * calls; no instruction or data word refers to the 64 bytes otherwise. The camera's heap (operator
+ * new) starts at 0x55839080 (its first block is set up at 0x53AD3684). `extendBatteryZeroFill`
+ * makes the start-up zero fill reach 0x55839080, so the byte starts at 0.
  */
-export const BATTERY_SHOWN = adr(0x55839014);
+export const BATTERY_SHOWN = adr(0x55839040);
+/** Literal: end of the start-up zero fill (0x55839014, or 0x55839040 once an addition extends it). */
+const ZERO_FILL_END = adr(0x53000460);
+/** The end of the sbrk arena, where the camera's heap starts. */
+const ARENA_END = adr(0x55839080);
 
 /**
  * Icons: 10 %, 20 %, ..., 100 %, then the two diagnostic ones. 1.20: after Direct Flash's settings
@@ -195,7 +203,6 @@ export function installBatteryPercent(patch: Patch, iconbin: Uint8Array, diag = 
   const p = new Program(patch);
   p.expect(GET_BATTERY_ICON, 'cmp r1,#1', 'GetBatteryIcon has moved');
   p.expect(GET_BATTERY_ICON + 4, 'mov ip,sp', 'GetBatteryIcon has moved');
-  extendZeroFill(patch);
   // The diagnostic variant differs in two branches only: to its icon instead of the camera's.
   const fallback = diag ? 'icon' : 'camera';
   // In: r1 on battery, r2 step, r3 external power. Out: r0 the icon. For the camera's own icon
@@ -226,4 +233,16 @@ export function installBatteryPercent(patch: Patch, iconbin: Uint8Array, diag = 
     `unknown:movw r0,#${BATTERY_ICON_UNKNOWN};b ${fallback};` +
     `disagrees:movw r0,#${BATTERY_ICON_DISAGREES};b ${fallback};`);
   return installIcons(patch, iconbin, batteryIcons());
+}
+
+/**
+ * The start-up zero fill up to the heap, over the sbrk arena that keeps BATTERY_SHOWN. Last of all
+ * (`installExtensions`): the other additions extend the fill to 0x55839040 and expect it there or
+ * at its official end.
+ */
+export function extendBatteryZeroFill(patch: Patch): void {
+  const w = patch.word(ZERO_FILL_END);
+  if (w === ARENA_END) return;
+  if (w !== adr(0x55839040)) expectWord(patch, ZERO_FILL_END, adr(0x55839014));
+  patch.setWord(ZERO_FILL_END, ARENA_END, 'start-up zero fill also clears the unused sbrk arena before the heap (battery percentage)');
 }

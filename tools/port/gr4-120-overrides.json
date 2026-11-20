@@ -1010,5 +1010,21 @@
  "0x53e98bd8": {
   "new": "0x53ecee00",
   "reason": "GridView vtable (shade.ts): 2 references agree; slot 19 holds GridView::Draw 0x5359bb14 (1.11 0x53578848 -> 0x5359bb14 aligned), slots 0..21 are the 1.11 slots' functions at the same shift"
+ },
+ "0x55837340": {
+  "new": "0x55839080",
+  "reason": "heap proper (operator new): its first block is set up by movw/movt at 0x53ad3684 (1.11 0x53aab340); the end of the sbrk arena (movw/movt at 0x530668e0, 1.11 0x5306569c), 64 bytes after the arena start 0x55839040, as in 1.11"
+ },
+ "0x53065698": {
+  "new": "0x530668dc",
+  "reason": "the C library's sbrk with the arena 0x55839040..0x55839080 (1.11 0x55837300..0x55837340); same code; its only caller, _sbrk_r 0x5306697c, has no caller"
+ },
+ "0x5315de98": {
+  "new": "0x5315f0d8",
+  "reason": "the second sbrk (arena from 0x55839040 up to the stack); same code; no caller"
+ },
+ "0x53aab340": {
+  "new": "0x53ad3684",
+  "reason": "movw r3,#0x9080 of the heap set-up (1.11 movw r3,#0x7340); same code"
  }
 }

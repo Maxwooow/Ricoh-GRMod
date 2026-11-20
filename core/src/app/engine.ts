@@ -1067,8 +1067,6 @@ export class Engine {
     const batteryPercent = !!(options && options.batteryPercent);
     if (batteryPercent && !this.info.features.batteryPercent) throw new FirmwareError('bad-edit', 'the battery percentage needs GR IV firmware 1.11, 1.20 or 1.21');
     if (batteryPercent && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the battery percentage cannot be combined with the clarity-table soft focus of 0.4.x');
-    // Its shown-step byte is where the HDR gain map's test builds keep their counters (aspect/battery.ts BATTERY_SHOWN).
-    if (batteryPercent && hdrGainMap && options.hdrDiag) throw new FirmwareError('bad-edit', 'the battery percentage cannot be combined with the HDR gain map\u2019s test counters');
     if (options && options.customGrid !== undefined && !Gr4Program111.aspect.validCustomGrid(options.customGrid)) throw new FirmwareError('bad-edit', 'custom grid: eight lines on or off for each style');
     const customGrid = options && options.customGrid && !Gr4Program111.aspect.isCameraGrid(options.customGrid) ? { g3: [...options.customGrid.g3], g4: [...options.customGrid.g4] } : undefined;
     if (customGrid && !this.info.features.customGrid) throw new FirmwareError('bad-edit', 'custom grid lines need GR IV firmware 1.11, 1.20 or 1.21');

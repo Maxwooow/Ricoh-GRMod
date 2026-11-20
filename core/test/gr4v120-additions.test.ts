@@ -82,8 +82,9 @@ for (const [release, path] of Object.entries(FILES)) {
       expect((await eng.buildFirmware([], [], [], { dateStamp: true, batteryPercent: false })).sha256).toBe(plain.sha256);
     }, 600_000);
 
-    it('refuses the battery percentage with the HDR gain map\'s test counters (they share a byte)', async () => {
-      await expect(eng.buildFirmware([], [], [], { batteryPercent: true, hdrGainMap: true, hdrDiag: true })).rejects.toThrow(/test counters/);
-    });
+    it('builds the battery percentage with the HDR gain map\'s test counters (they no longer share a word)', async () => {
+      const b = await eng.buildFirmware([], [], [], { batteryPercent: true, hdrGainMap: true, hdrDiag: true });
+      expect(Object.values(b.checks).every((v) => v === true)).toBe(true);
+    }, 600_000);
   });
 }

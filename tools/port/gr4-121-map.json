@@ -43,7 +43,8 @@
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/battery/check.py",
     "core/src/fw/gr4v120/aspect/shadowml.ts",
-    "tools/gr4v120/shadowml/test_fw.py"
+    "tools/gr4v120/shadowml/test_fw.py",
+    "core/src/fw/gr4v120/aspect/battery.ts"
    ]
   },
   "0x53000930": {
@@ -10108,7 +10109,8 @@
     "core/src/fw/gr4v120/aspect/slots.ts",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/battery/check.py",
-    "core/src/fw/gr4v120/aspect/shadowml.ts"
+    "core/src/fw/gr4v120/aspect/shadowml.ts",
+    "core/src/fw/gr4v120/aspect/battery.ts"
    ]
   },
   "0x53154a70": {
@@ -10729,6 +10731,43 @@
    "why": "the emulator's heap in tools/*/shadowml/fwemu.py, inside the heap: the 1.21 RAM layout is unchanged (start-up literals 0x53000454..0x53000460 equal)",
    "files": [
     "tools/gr4v120/shadowml/fwemu.py"
+   ]
+  },
+  "0x530668dc": {
+   "new": "0x530668d4",
+   "how": "override",
+   "ok": true,
+   "why": "the C library's sbrk (arena 0x55839040..0x55839080); same code; its only caller, _sbrk_r 0x53066974, has no caller",
+   "files": [
+    "core/src/fw/gr4v120/aspect/battery.ts"
+   ]
+  },
+  "0x5315f0d8": {
+   "new": "0x5315f0d8",
+   "how": "override",
+   "ok": true,
+   "why": "the second sbrk (arena from 0x55839040 up to the stack); same code at the same place; no caller",
+   "files": [
+    "core/src/fw/gr4v120/aspect/battery.ts"
+   ]
+  },
+  "0x53ad3684": {
+   "new": "0x53ad4c4c",
+   "how": "override",
+   "ok": true,
+   "why": "movw r3,#0x9080 of the heap set-up; same code",
+   "files": [
+    "core/src/fw/gr4v120/aspect/battery.ts"
+   ]
+  },
+  "0x55839080": {
+   "new": "0x55839080",
+   "how": "override",
+   "ok": true,
+   "why": "heap proper: movw/movt at 0x53ad4c4c (1.20 0x53ad3684); the end of the sbrk arena (movw/movt at 0x530668d8, 1.20 0x530668e0); the zero fill ends at 0x55839014 in both",
+   "files": [
+    "core/src/fw/gr4v120/aspect/battery.ts",
+    "tools/gr4v120/battery/check.py"
    ]
   }
  }

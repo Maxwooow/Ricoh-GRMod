@@ -11,7 +11,7 @@ note tag 0x0216), run in order as one session. Needs the Python packages unicorn
 
  1. Static: GetBatteryIcon (0x533A98A0) of BUILT-RTOS starts with a branch, OFFICIAL-RTOS with
     `cmp r1,#1`, and the rest of the function is the same; the start-up zero fill reaches the heap
-    (0x55839040), so the byte the hook keeps (0x55839014) starts at 0.
+    (0x55839080, over the unused sbrk arena), so the byte the hook keeps (0x55839040) starts at 0.
  2. Without a usable report (holder not built, no service, no buffer, a report that does not say
     "battery", a charge over 100), for every r1 0..2, r2 0..5, r3 0..3: the official icon, or
     with --diag and r1 = 1 the "?" icon.
@@ -41,7 +41,7 @@ ASSERT = 0x539154f8
 ZERO_FILL_END = 0x53000460
 HOLDER_GUARD = 0x5537efbc
 HOLDER = 0x5537ee98
-SHOWN = 0x55839014
+SHOWN = 0x55839040
 ICON_10 = 1100   # 1.11: 1009
 UNKNOWN, DISAGREES = ICON_10 + 10, ICON_10 + 11
 MARGIN = 4
@@ -180,7 +180,7 @@ def main():
     check((word(built, GET_BATTERY_ICON) & 0xff000000) == 0xea000000, 'built GetBatteryIcon starts with a branch')
     for a in range(GET_BATTERY_ICON + 4, FUNCTION_END, 4):
         check(word(built, a) == word(official, a), f'GetBatteryIcon word {a:#x} unchanged')
-    check(word(built, ZERO_FILL_END) == 0x55839040, 'the start-up zero fill reaches the heap')
+    check(word(built, ZERO_FILL_END) == 0x55839080, 'the start-up zero fill reaches the heap')
     print('1. static: done')
 
     cam, ref = Camera(built), Camera(official)

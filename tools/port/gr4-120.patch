@@ -188,9 +188,9 @@ diff --git a/core/src/fw/gr4v120/aspect/battery.ts b/core/src/fw/gr4v120/aspect/
   * only on a change) and for playback (0x533A9984). The hook in front of it, on battery only:
   *  - takes byte 3 when the report is there, says "battery" and is 0..100, and agrees with the step
   *    to within one (charge 50+ is step 4, 20+ step 3, 5+ step 2, else step 0..1);
-@@ -46,8 +46,12 @@
-  */
- export const BATTERY_SHOWN = adr(0x55839014);
+@@ -54,8 +54,12 @@
+ /** The end of the sbrk arena, where the camera's heap starts. */
+ const ARENA_END = adr(0x55839080);
  
 -/** Icons: 10 %, 20 %, ..., 100 %, then the two diagnostic ones. Above the power-off thumbnails (992..1003). */
 -export const BATTERY_ICON_ID = 1009;
@@ -203,7 +203,7 @@ diff --git a/core/src/fw/gr4v120/aspect/battery.ts b/core/src/fw/gr4v120/aspect/
  export const BATTERY_ICON_UNKNOWN = BATTERY_ICON_ID + 10;
  export const BATTERY_ICON_DISAGREES = BATTERY_ICON_ID + 11;
  export const BATTERY_ICON_W = 60;
-@@ -76,7 +80,7 @@
+@@ -84,7 +88,7 @@
  
  /** A battery: its body and its tip (x0, y0, x1, y1, inclusive), the tip on the left. */
  export interface BatteryShape { body: Box; tip: Box }
@@ -526,10 +526,10 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 -  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}) });
 +  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}), ...(ep ? { exposurePreview: true } : {}) });
    if (features.brightAuto) installBrightAuto(patch, features.brightAuto === 'balanced' ? 'balanced' : 'bright');
-   // The HDR gain map's test counters (`HDR_COUNTERS`) use the byte the battery percentage keeps.
-   if (features.batteryPercent && features.hdrGainMap && test.hdrDiag) fail('internal', 'the battery percentage cannot be combined with the HDR gain map’s test counters');
+   if (features.batteryPercent) icons = installBatteryPercent(patch, icons, !!test.batteryDiag);
+   // After the ratios: the diagonals take the point setter the grid view's layout calls then.
 @@ -1152,5 +1207,5 @@
-   if (features.shadowLearn) installShadowLearn(patch);
+   if (features.batteryPercent) extendBatteryZeroFill(patch);
    if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
    if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
 -  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true, ...(features.ratioShadeTone && features.ratioShadeTone !== 'dark' ? { ratioShadeTone: features.ratioShadeTone } : {}) } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}) } };
@@ -4798,7 +4798,7 @@ diff --git a/tools/gr4v120/battery/check.py b/tools/gr4v120/battery/check.py
 @@ -42,7 +42,7 @@
  HOLDER_GUARD = 0x5537efbc
  HOLDER = 0x5537ee98
- SHOWN = 0x55839014
+ SHOWN = 0x55839040
 -ICON_10 = 1009
 +ICON_10 = 1100   # 1.11: 1009
  UNKNOWN, DISAGREES = ICON_10 + 10, ICON_10 + 11
