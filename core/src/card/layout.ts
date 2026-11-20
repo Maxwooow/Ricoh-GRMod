@@ -9,6 +9,8 @@
  *    no factory-menu entry files;
  *  - factory-menu card: the two entry files and no firmware file (holding MENU while switching
  *    on starts either the factory menu or the firmware update).
+ *  - user mode recipe card (GR IV): `script\startup.ttl` of a recipe and this camera's two entry
+ *    files (Script has to be enabled once in the factory menu), no firmware file.
  * Files that are in the way are never deleted; they are moved into `GRMOD\parked-<stamp>\`.
  */
 export const FIRMWARE_FILE = 'fwdc248b.bin';
@@ -34,9 +36,13 @@ export interface CardListing {
   root: CardEntry[];
   /** Entries of `script\` (empty when the directory does not exist). */
   script: CardEntry[];
+  /** The first line of `script\startup.ttl`, when it was read: tells a user mode recipe from power-off images. */
+  scriptHead?: string;
 }
 
-export type CardRole = 'empty' | 'firmware' | 'wallpaper' | 'mixed' | 'other';
+export type CardRole = 'empty' | 'firmware' | 'wallpaper' | 'recipe' | 'mixed' | 'other';
+/** First line of a user mode recipe's script (usermode/recipe.ts). */
+export const RECIPE_SCRIPT_HEAD = '; GR Mod user mode recipe: ';
 
 export type PlanStep =
   | { op: 'move'; from: string[]; to: string[] }
@@ -49,6 +55,7 @@ export function cardRole(l: CardListing): CardRole {
   // The script is what makes a card act as a power-off image card; image files alone are inert.
   const fw = FIRMWARE_FILES.some(name => has(l.root, name));
   const script = has(l.script, SCRIPT_FILE);
+  if (script && l.scriptHead?.startsWith(RECIPE_SCRIPT_HEAD)) return 'recipe';
   if (fw && script) return 'mixed';
   if (fw) return 'firmware';
   if (script) return 'wallpaper';
@@ -213,6 +220,8 @@ export function planRecipeCard(l: CardListing, entry: { name: string; data: Uint
   for (const e of l.script) {
     if (!e.dir && eq(e.name, SCRIPT_FILE)) steps.push({ op: 'move', from: [SCRIPT_DIR, e.name], to: [...park, SCRIPT_DIR, e.name] });
   }
+  // The other camera family's entry files go aside (as planEntryCard); this family's are written where missing.
+  for (const step of parkEntryFiles(l, park)) if (step.op === 'move' && !entry.some((f) => eq(f.name, step.from[0]))) steps.push(step);
   for (const f of entry) if (!has(l.root, f.name)) steps.push({ op: 'write', path: [f.name], data: f.data });
   const bytes = new Uint8Array(script.length);
   for (let i = 0; i < script.length; i++) bytes[i] = script.charCodeAt(i);

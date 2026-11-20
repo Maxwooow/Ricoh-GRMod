@@ -19,6 +19,7 @@
 // Checked on a GR IV 1.21: every kind of value below (word, snap distance, APEX number, negative
 // EV) set from a card script and read back in the camera's menus.
 
+import { RECIPE_SCRIPT_HEAD } from '../card/layout';
 import { MODEL_FILE, MODEL_FILE_MAGIC, MODEL_INFO } from '../wallpaper/script';
 
 /** The GR IV models a recipe script runs on (product bytes of `E:\BlkCtl15.bin`). */
@@ -106,6 +107,20 @@ export function recipeChoice(id: RecipeSettingId, choice: string): RecipeChoice 
   return recipeSetting(id).choices.find((c) => c.id === choice);
 }
 
+/** The settings of a recipe this model takes (the Monochrome has no colour settings). */
+export function recipeSettingsFor(recipe: Recipe, model: RecipeModel): RecipeSetting[] {
+  return RECIPE_SETTINGS.filter((s) => recipe.values[s.id] !== undefined && !(s.colourOnly && model === 'MONO'));
+}
+
+/** What keeps a recipe from being written, apart from its name: nothing to set, or ISO Auto limits the wrong way round. */
+export function recipeProblem(recipe: Recipe, model: RecipeModel): 'empty' | 'iso-limits' | null {
+  if (recipeSettingsFor(recipe, model).length === 0) return 'empty';
+  const up = recipe.values.isoUpper !== undefined ? recipeChoice('isoUpper', recipe.values.isoUpper) : undefined;
+  const low = recipe.values.isoLower !== undefined ? recipeChoice('isoLower', recipe.values.isoLower) : undefined;
+  if (up && low && Number(low.value) > Number(up.value)) return 'iso-limits';
+  return null;
+}
+
 /** The settings of a recipe that this model takes, in script order, as `[property, value]`. */
 export function recipeLines(recipe: Recipe, model: RecipeModel): [string, string][] {
   const out: [string, string][] = [];
@@ -127,7 +142,7 @@ export const recipeDoneFile = (id: string): string => `GRUM${id}.TXT`;
 const DONE_FILE = /^GRUM[0-9A-F]{4}\.TXT$/i;
 export const isRecipeDoneFile = (name: string): boolean => DONE_FILE.test(name);
 
-const HEADER = '; GR Mod user mode recipe: ';
+const HEADER = RECIPE_SCRIPT_HEAD;
 
 /**
  * The start-up script for one recipe. At power-on it
@@ -142,8 +157,10 @@ export function recipeScript(recipe: Recipe, model: RecipeModel, doneId: string)
   if (!validRecipeName(recipe.name)) throw new RangeError('recipe name must be 1..32 printable ASCII characters without quotes');
   if (!RECIPE_MODELS.includes(model)) throw new RangeError(`unknown model "${String(model)}"`);
   if (!/^[0-9A-F]{4}$/.test(doneId)) throw new RangeError('done id must be 4 upper-case hex digits');
+  const problem = recipeProblem(recipe, model);
+  if (problem === 'empty') throw new RangeError('the recipe changes nothing');
+  if (problem === 'iso-limits') throw new RangeError('the ISO Auto lower limit is above the upper limit');
   const lines = recipeLines(recipe, model);
-  if (lines.length === 0) throw new RangeError('the recipe changes nothing');
   const done = `'C:\\${recipeDoneFile(doneId)}'`;
   const L: string[] = [];
   const exitIf = (condition: string): void => { L.push(`if ${condition} then`, '    exit', 'endif'); };
@@ -184,7 +201,8 @@ export function recipeScript(recipe: Recipe, model: RecipeModel, doneId: string)
 /** The recipe name of a script this module wrote (by its first line), or null. */
 export function recipeScriptName(script: string): string | null {
   if (!script.startsWith(HEADER)) return null;
-  const name = script.slice(HEADER.length, script.indexOf('\n'));
+  const end = script.indexOf('\n');
+  const name = script.slice(HEADER.length, end < 0 ? undefined : end);
   return validRecipeName(name) ? name : null;
 }
 

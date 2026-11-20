@@ -1,10 +1,10 @@
 import { card, usermode } from '@grmod/core';
 import type { CameraModel } from '@grmod/core';
-import { host, HostError, isMobile, sha256Hex } from '../host';
+import { host, isMobile } from '../host';
 import { t } from '../i18n';
 import { State, ask, fail, isGr3, set, state, toast } from './core';
 import { scheduleSave } from './families';
-import { doneToast, refreshVolumes } from './output';
+import { doneToast, freshStamp, listing, refreshVolumes, runPlan } from './output';
 
 type Recipe = usermode.Recipe;
 type SettingId = usermode.RecipeSettingId;
@@ -22,18 +22,21 @@ export function recipesOffered(s: State = state): boolean {
   return s.info ? s.info.family === 'gr4' && s.info.capabilities.factoryEntry : !isGr3(s.model);
 }
 
-/** Recipes as saved in the project: valid names, known settings and choices only (else none). */
+/**
+ * Recipes as saved in the project, with known settings and choices only. A name is kept as typed,
+ * even one that cannot be written yet (being edited when the app closed): it is checked on writing.
+ */
 export function savedRecipes(v: unknown): Recipe[] {
   if (!Array.isArray(v)) return [];
   const out: Recipe[] = [];
   for (const r of v.slice(0, MAX_RECIPES)) {
-    if (!r || typeof r.name !== 'string' || !usermode.validRecipeName(r.name)) continue;
+    if (!r || typeof r !== 'object') continue;
     const values: Recipe['values'] = {};
     for (const s of usermode.RECIPE_SETTINGS) {
       const c = r.values?.[s.id];
       if (typeof c === 'string' && s.choices.some((x) => x.id === c)) values[s.id] = c;
     }
-    out.push({ name: r.name, values });
+    out.push({ name: typeof r.name === 'string' ? r.name.slice(0, 40) : '', values });
   }
   return out;
 }
@@ -56,7 +59,8 @@ export function addRecipe(example?: number): void {
   if (state.recipes.length >= MAX_RECIPES) return;
   const from = example !== undefined ? usermode.EXAMPLE_RECIPES[example] : undefined;
   const r: Recipe = from ? copy(from) : { name: '', values: {} };
-  r.name = freeName(from ? from.name : t('recipeNew'));
+  // The script takes ASCII names only: the default is the same in every language.
+  r.name = freeName(from ? from.name : 'Recipe');
   set((s) => ({ recipes: [...s.recipes, r], activeRecipe: s.recipes.length }));
   scheduleSave();
 }
@@ -78,19 +82,27 @@ export function setRecipeValue(index: number, id: SettingId, choice: string | un
   });
 }
 
+/** The model the script is written for: the chosen GR IV model (the Monochrome has no colour settings). */
+const recipeModel = (m: CameraModel): usermode.RecipeModel => (m === 'MONO' || m === 'HDF' ? m : 'STANDARD');
+
 export function recipeNameProblem(r: Recipe, s: State = state): string | null {
   if (!usermode.validRecipeName(r.name)) return t('recipeNameRule', { n: usermode.RECIPE_NAME_MAX });
   if (s.recipes.filter((x) => x.name.toLowerCase() === r.name.toLowerCase()).length > 1) return t('recipeNameTaken');
   return null;
 }
-export const recipeCount = (r: Recipe): number => Object.keys(r.values).length;
-/** A recipe can be written: a usable name and at least one setting. */
-export const recipeReady = (r: Recipe | undefined, s: State = state): boolean => !!r && !recipeNameProblem(r, s) && recipeCount(r) > 0;
-
-/** The model the script is written for: the chosen GR IV model (the script itself runs on any GR IV). */
-const recipeModel = (m: CameraModel): usermode.RecipeModel => (m === 'MONO' || m === 'HDF' ? m : 'STANDARD');
+/** What keeps the recipe from being written, as shown: its name, nothing to set, or the ISO Auto limits. */
+export function recipeProblem(r: Recipe, s: State = state): string | null {
+  const name = recipeNameProblem(r, s);
+  if (name) return name;
+  const p = usermode.recipeProblem(r, recipeModel(s.model));
+  return p === 'empty' ? t('recipeEmpty') : p === 'iso-limits' ? t('recipeIsoLimits') : null;
+}
+/** The settings the recipe changes on the chosen model. */
+export const recipeCount = (r: Recipe, s: State = state): number => usermode.recipeSettingsFor(r, recipeModel(s.model)).length;
+export const recipeReady = (r: Recipe | undefined, s: State = state): boolean => !!r && !recipeProblem(r, s);
 const doneId = (): string => Math.floor(Math.random() * 0x10000).toString(16).toUpperCase().padStart(4, '0');
-const stamp = (): string => { const d = new Date(); const p = (n: number): string => String(n).padStart(2, '0'); return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`; };
+/** A write in progress (set before the first await: a second click waits for nothing and does nothing). */
+let writing = false;
 
 /**
  * Write the selected recipe: to the selected card (the firmware file and an earlier script are moved
@@ -99,42 +111,24 @@ const stamp = (): string => { const d = new Date(); const p = (n: number): strin
 export async function writeRecipe(dest: 'card' | 'folder'): Promise<void> {
   const r = state.recipes[state.activeRecipe];
   const info = state.info;
-  if (!r || !info || state.busy || !recipesOffered()) return;
-  if (!recipeReady(r)) { toast(recipeNameProblem(r) ?? t('recipeEmpty'), 'error'); return; }
-  const model = recipeModel(state.model);
-  const lines = usermode.RECIPE_SETTINGS.filter((s) => r.values[s.id] !== undefined && !(s.colourOnly && model === 'MONO'))
-    .map((s) => `${t(('rcp_' + s.id) as Parameters<typeof t>[0])}  ·  ${usermode.recipeChoice(s.id, r.values[s.id]!)!.label}`);
-  if (!(await ask(t('recipeConfirmTitle', { name: r.name }), lines, t('confirmOk')))) return;
-  let root: string; let volume = undefined as (typeof state.volumes)[number] | undefined;
-  if (dest === 'card') {
-    volume = state.volumes.find((v) => v.id === state.volumeId);
-    if (!volume) { toast(t('noCard'), 'error'); return; }
-    root = volume.root;
-  } else {
-    const p = await host.pickDirectory(t('pickFolder'));
-    if (!p) return;
-    root = p;
-  }
+  if (!r || !info || state.busy || writing || !recipesOffered()) return;
+  const problem = recipeProblem(r);
+  if (problem) { toast(problem, 'error'); return; }
+  writing = true;
   try {
+    const model = recipeModel(state.model);
+    const lines = usermode.recipeSettingsFor(r, model).map((s) => `${t(('rcp_' + s.id) as Parameters<typeof t>[0])}  ·  ${usermode.recipeChoice(s.id, r.values[s.id]!)!.label}`);
+    if (!(await ask(t('recipeConfirmTitle', { name: r.name }), lines, t('confirmOk')))) return;
+    const volume = dest === 'card' ? state.volumes.find((v) => v.id === state.volumeId) : undefined;
+    if (dest === 'card' && !volume) { toast(t('noCard'), 'error'); return; }
+    const root = volume ? volume.root : await host.pickDirectory(t('pickFolder'));
+    if (!root) return;
     set({ busy: t('writing') });
     const script = usermode.recipeScript(r, model, doneId());
-    let steps: card.PlanStep[];
-    if (volume) {
-      const rootEntries = await host.list(root);
-      const scriptDir = rootEntries.find((e) => e.dir && e.name.toLowerCase() === card.SCRIPT_DIR);
-      const listing: card.CardListing = { root: rootEntries, script: scriptDir ? await host.list(host.join(root, scriptDir.name)) : [] };
-      steps = card.planRecipeCard(listing, info.factoryEntry.files, script, usermode.isRecipeDoneFile, stamp());
-    } else {
-      steps = card.planRecipeCard({ root: [], script: [] }, info.factoryEntry.files, script, usermode.isRecipeDoneFile, stamp());
-    }
-    let moved = 0;
-    for (const st of steps) {
-      if (st.op === 'move') { await host.move(host.join(root, ...st.from), host.join(root, ...st.to)); moved++; continue; }
-      const res = await host.write(host.join(root, ...st.path), st.data);
-      if (res.size !== st.data.length || res.sha256 !== (await sha256Hex(st.data))) throw new HostError('verify', t('verifyFailed'));
-    }
+    const steps = card.planRecipeCard(volume ? await listing(root) : { root: [], script: [] }, info.factoryEntry.files, script, usermode.isRecipeDoneFile, await freshStamp(root));
+    const moved = await runPlan(root, steps);
     set({ busy: undefined });
     doneToast(root, volume, moved, host.join(card.SCRIPT_DIR, card.SCRIPT_FILE));
-  } catch (e) { set({ busy: undefined }); fail(e); }
+  } catch (e) { set({ busy: undefined }); fail(e); } finally { writing = false; }
   void refreshVolumes();
 }

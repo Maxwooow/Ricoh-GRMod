@@ -102,7 +102,7 @@ function OutputBar() {
   const vol = s.volumes.find((v) => v.id === s.volumeId);
   // Image Control (with its switches), the added ratios and the power-off images go into one firmware file: every page writes the same thing.
   const can = canOutput(s);
-  const role: Key | '' = s.role === 'firmware' ? 'roleFirmware' : s.role === 'wallpaper' ? 'roleWallpaper' : s.role === 'mixed' ? 'roleMixed' : s.role === 'empty' ? 'roleEmpty' : '';
+  const role: Key | '' = s.role === 'firmware' ? 'roleFirmware' : s.role === 'wallpaper' ? 'roleWallpaper' : s.role === 'mixed' ? 'roleMixed' : s.role === 'recipe' ? 'roleRecipe' : s.role === 'empty' ? 'roleEmpty' : '';
   const run = (kind: 'card' | 'folder'): void => { void (s.page === 'modes' ? writeRecipe(kind) : outputFirmware({ kind })); };
   return (
     <footer className="outbar">

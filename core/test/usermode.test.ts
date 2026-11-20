@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { planRecipeCard } from '../src/card';
-import { EXAMPLE_RECIPES, RECIPE_SETTINGS, isRecipeDoneFile, recipeChoice, recipeDoneFile, recipeLines, recipeScript, recipeScriptName, validRecipeName } from '../src/usermode';
+import { cardRole, planRecipeCard } from '../src/card';
+import { EXAMPLE_RECIPES, RECIPE_SETTINGS, isRecipeDoneFile, recipeChoice, recipeDoneFile, recipeLines, recipeProblem, recipeScript, recipeScriptName, recipeSettingsFor, validRecipeName } from '../src/usermode';
 import type { Recipe, RecipeModel } from '../src/usermode';
 import { MODEL_FILE, MODEL_FILE_MAGIC, MODEL_INFO, runScript } from '../src/wallpaper';
 import type { SimFs } from '../src/wallpaper';
@@ -75,6 +75,19 @@ describe('user mode recipe: values', () => {
     expect(mono).toContain('CommonAv');
   });
 
+  it('counts and checks the settings per model: nothing left on the Monochrome, ISO Auto limits the wrong way round', () => {
+    const colour = { name: 'c', values: { imageControl: 'Vivid', whiteBalance: 'Daylight' } };
+    expect(recipeSettingsFor(colour, 'STANDARD')).toHaveLength(2);
+    expect(recipeSettingsFor(colour, 'MONO')).toHaveLength(0);
+    expect(recipeProblem(colour, 'STANDARD')).toBeNull();
+    expect(recipeProblem(colour, 'MONO')).toBe('empty');
+    expect(() => recipeScript(colour, 'MONO', ID)).toThrow();
+    const iso = { name: 'i', values: { isoUpper: '800', isoLower: '1600' } };
+    expect(recipeProblem(iso, 'HDF')).toBe('iso-limits');
+    expect(() => recipeScript(iso, 'HDF', ID)).toThrow();
+    expect(recipeProblem({ name: 'i', values: { isoUpper: '800', isoLower: '800' } }, 'HDF')).toBeNull();
+  });
+
   it('refuses unknown choices and names that cannot go into the script', () => {
     expect(() => recipeLines({ name: 'x', values: { aperture: 'F1.4' } }, 'STANDARD')).toThrow();
     expect(validRecipeName('NYC Day')).toBe(true);
@@ -128,6 +141,7 @@ describe('user mode recipe: script', () => {
   it('names its recipe in the first line', () => {
     expect(recipeScriptName(recipeScript(EXAMPLE_RECIPES[1], 'HDF', ID))).toBe('Golden');
     expect(recipeScriptName('; power-off image rotation: STANDARD, 1 image, 5 bytes\n')).toBeNull();
+    expect(recipeScriptName('; GR Mod user mode recipe: Golden')).toBe('Golden');
   });
 
   it('is ASCII with LF line endings and a final newline', () => {
@@ -172,6 +186,18 @@ describe('user mode recipe: card', () => {
   it('on an empty card writes the entry files and the script', () => {
     const steps = planRecipeCard({ root: [], script: [] }, entry, script, isRecipeDoneFile, 's');
     expect(steps.map((s) => s.op === 'write' && s.path.join('/'))).toEqual(['00078560.636', 'DEVELOP.MOD', 'script/startup.ttl']);
+  });
+
+  it('moves the other camera family\'s factory-menu entry file aside', () => {
+    const steps = planRecipeCard({ root: [{ name: '00078490.609', dir: false, size: 20 }], script: [] }, entry, script, isRecipeDoneFile, 's');
+    expect(steps[0]).toEqual({ op: 'move', from: ['00078490.609'], to: ['GRMOD', 'parked-s', '00078490.609'] });
+  });
+
+  it('tells a recipe card from a power-off image card by the script\'s first line', () => {
+    const l = { root: [{ name: 'script', dir: true, size: 0 }], script: [{ name: 'startup.ttl', dir: false, size: 100 }] };
+    expect(cardRole({ ...l, scriptHead: script.split('\n')[0] })).toBe('recipe');
+    expect(cardRole({ ...l, scriptHead: '; power-off image rotation: STANDARD, 2 images, 5 bytes' })).toBe('wallpaper');
+    expect(cardRole(l)).toBe('wallpaper');
   });
 
   it('refuses a script that is not ASCII', () => {

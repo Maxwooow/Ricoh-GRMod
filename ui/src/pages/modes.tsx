@@ -3,7 +3,7 @@ import { DropZone, Ico, Menu, Select } from '../components';
 import { FirmwareHero } from '../firmware';
 import { t } from '../i18n';
 import type { Key } from '../i18n';
-import { MAX_RECIPES, addRecipe, loadFirmwareFile, recipeCount, recipeNameProblem, removeRecipe, renameRecipe, selectRecipe, setRecipeValue, useStore } from '../store';
+import { MAX_RECIPES, addRecipe, loadFirmwareFile, recipeCount, recipeNameProblem, recipeProblem, removeRecipe, renameRecipe, selectRecipe, setRecipeValue, useStore } from '../store';
 import { isFirmware } from './files';
 
 // ---------------------------------------------------------------- user mode recipes (GR IV)
@@ -35,6 +35,8 @@ function SettingRow({ index, id, mono }: { index: number; id: usermode.RecipeSet
 function RecipeEditor({ index }: { index: number }) {
   const r = useStore((s) => s.recipes[index]);
   const problem = useStore((s) => (s.recipes[index] ? recipeNameProblem(s.recipes[index], s) : null));
+  const other = useStore((s) => (s.recipes[index] && !problem ? recipeProblem(s.recipes[index], s) : null));
+  const count = useStore((s) => (s.recipes[index] ? recipeCount(s.recipes[index], s) : 0));
   const mono = useStore((s) => s.model === 'MONO');
   if (!r) return null;
   return (
@@ -44,11 +46,11 @@ function RecipeEditor({ index }: { index: number }) {
           className={`input recipe-name ${problem ? 'bad' : ''}`} value={r.name} maxLength={usermode.RECIPE_NAME_MAX} spellCheck={false}
           placeholder={t('name')} aria-label={t('name')} title={problem ?? undefined} onChange={(e) => renameRecipe(index, e.target.value)}
         />
-        <span className="muted small">{t('rcpCount', { n: recipeCount(r) })}</span>
+        <span className="muted small">{t('rcpCount', { n: count })}</span>
         <span className="grow" />
         <button className="btn ghost icon-only" title={t('remove')} aria-label={t('remove')} onClick={() => removeRecipe(index)}>{Ico.trash}</button>
       </div>
-      {problem && <p className="small bad-text">{problem}</p>}
+      {(problem || (other && count > 0)) && <p className="small bad-text">{problem ?? other}</p>}
       <div className="recipe-groups">
         {GROUPS.map((g) => (
           <div key={g.title} className="recipe-group">
