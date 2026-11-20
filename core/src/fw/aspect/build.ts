@@ -178,6 +178,8 @@ export interface ExtensionFeatures {
   filmGrain?: boolean;
   /** GR IV 1.20 and 1.21 (`fw/gr4v120/aspect/flttl.ts`; not built on 1.11): pre-flash (TTL) metering for a GF-2 class flash. */
   flashTtl?: boolean;
+  /** GR IV 1.20 and 1.21 (`fw/gr4v120/aspect/videoaf.ts`; not built on 1.11): movie AF driven by the phase data. */
+  videoAf?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */

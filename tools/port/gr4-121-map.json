@@ -30,7 +30,10 @@
     "tools/gr4v120/shadowml/test_fw.py",
     "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/flash/ttl/evidence.py",
-    "tools/gr4v120/flash/ttl/test_arm.py"
+    "tools/gr4v120/flash/ttl/test_arm.py",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/layout.py",
+    "tools/gr4v120/videoaf/test_inplace.py"
    ]
   },
   "0x53000460": {
@@ -4237,7 +4240,8 @@
     "tools/gr4v120/shutdown/shutdown.c",
     "tools/gr4v120/softfocus/check.py",
     "core/src/fw/gr4v120/aspect/grain.ts",
-    "tools/gr4v120/grain/fw_check.py"
+    "tools/gr4v120/grain/fw_check.py",
+    "tools/gr4v120/videoaf/test_inplace.py"
    ]
   },
   "0x53240818": {
@@ -4284,7 +4288,8 @@
     "tools/gr4v120/softfocus/check.py",
     "core/src/fw/gr4v120/aspect/shade.ts",
     "tools/gr4v120/grid/check.py",
-    "tools/gr4v120/shade/draw_check.py"
+    "tools/gr4v120/shade/draw_check.py",
+    "tools/gr4v120/videoaf/test_inplace.py"
    ]
   },
   "0x53240c58": {
@@ -8730,7 +8735,10 @@
     "core/src/fw/gr4v120/aspect/grain.ts",
     "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/grain/grain.c",
-    "core/src/fw/gr4v120/aspect/flttl.ts"
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/test_quick.py"
    ]
   },
   "0x539084f8": {
@@ -8796,7 +8804,8 @@
    "how": "aligned + refs 0x539129c8x30",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/build.ts"
+    "core/src/fw/gr4v120/aspect/build.ts",
+    "tools/gr4v120/videoaf/test_inplace.py"
    ]
   },
   "0x53912578": {
@@ -8844,7 +8853,8 @@
     "tools/gr4v120/softfocus/check.py",
     "tools/gr4v120/battery/check.py",
     "tools/gr4v120/shade/draw_check.py",
-    "tools/gr4v120/shadowml/fwemu.py"
+    "tools/gr4v120/shadowml/fwemu.py",
+    "tools/gr4v120/videoaf/test_inplace.py"
    ]
   },
   "0x53916064": {
@@ -8905,7 +8915,10 @@
    "files": [
     "core/src/fw/gr4v120/aspect/datestamp.ts",
     "tools/gr4v120/datestamp/datestamp.c",
-    "core/src/fw/gr4v120/aspect/flttl.ts"
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/test_quick.py"
    ]
   },
   "0x5391a484": {
@@ -9767,7 +9780,8 @@
     "tools/gr4v120/shutdown/gen.py",
     "tools/gr4v120/shadowml/gen.py",
     "tools/gr4v120/grain/gen.py",
-    "tools/gr4v120/flash/ttl/gen.py"
+    "tools/gr4v120/flash/ttl/gen.py",
+    "tools/gr4v120/videoaf/gen.py"
    ]
   },
   "0x5443c1d0": {
@@ -9833,7 +9847,9 @@
     "tools/gr4v120/shade/draw_check.py",
     "tools/gr4v120/shadowml/fwemu.py",
     "tools/gr4v120/grain/check.py",
-    "tools/gr4v120/grain/fw_check.py"
+    "tools/gr4v120/grain/fw_check.py",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/test_inplace.py"
    ]
   },
   "0x55001e78": {
@@ -10161,7 +10177,8 @@
     "tools/gr4v120/battery/check.py",
     "core/src/fw/gr4v120/aspect/shadowml.ts",
     "core/src/fw/gr4v120/aspect/battery.ts",
-    "core/src/fw/gr4v120/aspect/flttl.ts"
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "core/src/fw/gr4v120/aspect/build.ts"
    ]
   },
   "0x53154a70": {
@@ -10819,7 +10836,8 @@
    "why": "heap proper: movw/movt at 0x53ad4c4c (1.20 0x53ad3684); the end of the sbrk arena (movw/movt at 0x530668d8, 1.20 0x530668e0); the zero fill ends at 0x55839014 in both",
    "files": [
     "core/src/fw/gr4v120/aspect/battery.ts",
-    "tools/gr4v120/battery/check.py"
+    "tools/gr4v120/battery/check.py",
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
    ]
   },
   "0x531aa560": {
@@ -11701,7 +11719,10 @@
    "how": "aligned + refs 0x5391d79cx30",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/flttl.ts"
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/test_quick.py"
    ]
   },
   "0x5391ca74": {
@@ -11709,7 +11730,10 @@
    "how": "aligned + refs 0x5391d7acx5",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/flttl.ts"
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/test_quick.py"
    ]
   },
   "0x5391f270": {
@@ -11906,6 +11930,1584 @@
    "why": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged",
    "files": [
     "core/src/fw/gr4v120/aspect/flttl.ts"
+   ]
+  },
+  "0x5329ccc4": {
+   "new": "0x5329d514",
+   "how": "aligned + refs 0x5329d514x6",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x533ae04c": {
+   "new": "0x533ae8fc",
+   "how": "aligned + refs 0x533ae8fcx2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x533ae080": {
+   "new": "0x533ae930",
+   "how": "override",
+   "ok": true,
+   "why": "GetFocusAreaSize jump table, entry of mode 3 (aligned with the table; it holds 0x533ae998 = 1.21 of the 1.20 entry's 0x533ae0e8, and the mode 8 entry 0x533ae944 maps as ok)",
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x533ae094": {
+   "new": "0x533ae944",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x533ae0e8": {
+   "new": "0x533ae998",
+   "how": "aligned + refs 0x533ae998x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x533ae120": {
+   "new": "0x533ae9d0",
+   "how": "aligned + refs 0x533ae9d0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x533ae664": {
+   "new": "0x533aef14",
+   "how": "aligned + refs 0x533aef14x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x533ae67c": {
+   "new": "0x533aef2c",
+   "how": "override",
+   "ok": true,
+   "why": "area-type jump table, entry of mode 3 (aligned with the table; it holds 0x533af04c = 1.21 of the 1.20 entry's 0x533ae79c, and the mode 8 entry 0x533aef40 maps as ok)",
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x533ae690": {
+   "new": "0x533aef40",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x533ae6fc": {
+   "new": "0x533aefac",
+   "how": "aligned + refs 0x533aefacx4",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x533ae79c": {
+   "new": "0x533af04c",
+   "how": "aligned + refs 0x533af04cx6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x533ae7a4": {
+   "new": "0x533af054",
+   "how": "aligned + refs 0x533af054x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53608bdc": {
+   "new": "0x5360951c",
+   "how": "aligned + refs 0x5360951cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53608c00": {
+   "new": "0x53609540",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53609bb0": {
+   "new": "0x5360a4f0",
+   "how": "aligned + refs 0x5360a4f0x19",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/README.md",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/test_quick.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x53609c50": {
+   "new": "0x5360a590",
+   "how": "aligned + refs 0x5360a590x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53609c5c": {
+   "new": "0x5360a59c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360d980": {
+   "new": "0x5360e2c0",
+   "how": "aligned + refs 0x5360e2c0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/README.md",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x5360d984": {
+   "new": "0x5360e2c4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360d988": {
+   "new": "0x5360e2c8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360d9a8": {
+   "new": "0x5360e2e8",
+   "how": "aligned + refs 0x5360e2e8x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/README.md",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/untaken_quick.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x5360d9bc": {
+   "new": "0x5360e2fc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x5360d9c4": {
+   "new": "0x5360e304",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360d9c8": {
+   "new": "0x5360e308",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360d9d8": {
+   "new": "0x5360e318",
+   "how": "aligned + refs 0x5360e318x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360d9e0": {
+   "new": "0x5360e320",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360d9e4": {
+   "new": "0x5360e324",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360d9e8": {
+   "new": "0x5360e328",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360dba4": {
+   "new": "0x5360e4e4",
+   "how": "aligned + refs 0x5360e4e4x4",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/cam.py"
+   ]
+  },
+  "0x5360dd84": {
+   "new": "0x5360e6c4",
+   "how": "aligned + refs 0x5360e6c4x10",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/cam.py"
+   ]
+  },
+  "0x5360dde4": {
+   "new": "0x5360e724",
+   "how": "aligned + refs 0x5360e724x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360de18": {
+   "new": "0x5360e758",
+   "how": "aligned + refs 0x5360e758x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/README.md",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x5360de24": {
+   "new": "0x5360e764",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360de2c": {
+   "new": "0x5360e76c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360de3c": {
+   "new": "0x5360e77c",
+   "how": "aligned + refs 0x5360e77cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360de58": {
+   "new": "0x5360e798",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360dfa8": {
+   "new": "0x5360e8e8",
+   "how": "aligned + refs 0x5360e8e8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360dfc8": {
+   "new": "0x5360e908",
+   "how": "aligned + refs 0x5360e908x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360dff4": {
+   "new": "0x5360e934",
+   "how": "aligned + refs 0x5360e934x13",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/test_quick.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x5360e000": {
+   "new": "0x5360e940",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5360e7b0": {
+   "new": "0x5360f0f0",
+   "how": "aligned + refs 0x5360f0f0x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/test_quick.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x5361171c": {
+   "new": "0x5361205c",
+   "how": "aligned + refs 0x5361205cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/README.md"
+   ]
+  },
+  "0x53611a74": {
+   "new": "0x536123b4",
+   "how": "aligned + refs 0x536123b4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53611a84": {
+   "new": "0x536123c4",
+   "how": "aligned + refs 0x536123c4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/cam.py"
+   ]
+  },
+  "0x53612554": {
+   "new": "0x53612e94",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x53613e1c": {
+   "new": "0x5361475c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53613e2c": {
+   "new": "0x5361476c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x53614584": {
+   "new": "0x53614ec4",
+   "how": "aligned + refs 0x53614ec4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/README.md",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/test_quick.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x536145b0": {
+   "new": "0x53614ef0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536145f0": {
+   "new": "0x53614f30",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53614604": {
+   "new": "0x53614f44",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53614738": {
+   "new": "0x53615078",
+   "how": "aligned + refs 0x53615078x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53614744": {
+   "new": "0x53615084",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5361474c": {
+   "new": "0x5361508c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5361475c": {
+   "new": "0x5361509c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536147dc": {
+   "new": "0x5361511c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536147e0": {
+   "new": "0x53615120",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536147e8": {
+   "new": "0x53615128",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536147ec": {
+   "new": "0x5361512c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536147f0": {
+   "new": "0x53615130",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/layout.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x536147f4": {
+   "new": "0x53615134",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536147f8": {
+   "new": "0x53615138",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536147fc": {
+   "new": "0x5361513c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5361a8c0": {
+   "new": "0x5361b200",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5361a8e0": {
+   "new": "0x5361b220",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5361ed88": {
+   "new": "0x5361f6c8",
+   "how": "aligned + refs 0x5361f6c8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/test_quick.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x5361ef84": {
+   "new": "0x5361f8c4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5361ef94": {
+   "new": "0x5361f8d4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53621f6c": {
+   "new": "0x536228ac",
+   "how": "aligned + refs 0x536228acx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/test_quick.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x5362207c": {
+   "new": "0x536229bc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53622084": {
+   "new": "0x536229c4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53622088": {
+   "new": "0x536229c8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362208c": {
+   "new": "0x536229cc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/README.md",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x53622090": {
+   "new": "0x536229d0",
+   "how": "aligned + refs 0x536229d0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362209c": {
+   "new": "0x536229dc",
+   "how": "aligned + refs 0x536229dcx3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536220cc": {
+   "new": "0x53622a0c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536220d4": {
+   "new": "0x53622a14",
+   "how": "aligned + refs 0x53622a14x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/README.md",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x536220d8": {
+   "new": "0x53622a18",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536220dc": {
+   "new": "0x53622a1c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53626100": {
+   "new": "0x53626a40",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53626104": {
+   "new": "0x53626a44",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/layout.py",
+    "tools/gr4v120/videoaf/test_quick.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x53626108": {
+   "new": "0x53626a48",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53626358": {
+   "new": "0x53626c98",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362635c": {
+   "new": "0x53626c9c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x53626578": {
+   "new": "0x53626eb8",
+   "how": "aligned + refs 0x53626eb8x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536266b8": {
+   "new": "0x53626ff8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536266dc": {
+   "new": "0x5362701c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536266e0": {
+   "new": "0x53627020",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/layout.py",
+    "tools/gr4v120/videoaf/test_quick.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x536266e4": {
+   "new": "0x53627024",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362a7c8": {
+   "new": "0x5362b108",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362a8a0": {
+   "new": "0x5362b1e0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/README.md",
+    "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x5362a8ac": {
+   "new": "0x5362b1ec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x5362a8b0": {
+   "new": "0x5362b1f0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x5362a8b4": {
+   "new": "0x5362b1f4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x5362a8b8": {
+   "new": "0x5362b1f8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x5362a8bc": {
+   "new": "0x5362b1fc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x5362a8c0": {
+   "new": "0x5362b200",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362a8c4": {
+   "new": "0x5362b204",
+   "how": "aligned + refs 0x5362b204x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/README.md",
+    "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x5362a924": {
+   "new": "0x5362b264",
+   "how": "aligned + refs 0x5362b264x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362a928": {
+   "new": "0x5362b268",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362b058": {
+   "new": "0x5362b998",
+   "how": "aligned + refs 0x5362b998x4",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/cam.py"
+   ]
+  },
+  "0x5362bf84": {
+   "new": "0x5362c8c4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362bf90": {
+   "new": "0x5362c8d0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362bff0": {
+   "new": "0x5362c930",
+   "how": "aligned + refs 0x5362c930x8",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/cam.py"
+   ]
+  },
+  "0x5362c1c8": {
+   "new": "0x5362cb08",
+   "how": "aligned + refs 0x5362cb08x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/test_quick.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x5362eee0": {
+   "new": "0x5362f820",
+   "how": "aligned + refs 0x5362f820x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/cam.py"
+   ]
+  },
+  "0x5362f658": {
+   "new": "0x5362ff98",
+   "how": "aligned + refs 0x5362ff98x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/README.md",
+    "tools/gr4v120/videoaf/cam.py"
+   ]
+  },
+  "0x5362f6f4": {
+   "new": "0x53630034",
+   "how": "aligned + refs 0x53630034x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362f6f8": {
+   "new": "0x53630038",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362f6fc": {
+   "new": "0x5363003c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/README.md",
+    "tools/gr4v120/videoaf/layout.py",
+    "tools/gr4v120/videoaf/test_quick.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x5362f700": {
+   "new": "0x53630040",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362f704": {
+   "new": "0x53630044",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362f708": {
+   "new": "0x53630048",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362f714": {
+   "new": "0x53630054",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362f8e0": {
+   "new": "0x53630220",
+   "how": "aligned + refs 0x53630220x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x5362f8e4": {
+   "new": "0x53630224",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362f8e8": {
+   "new": "0x53630228",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362f8ec": {
+   "new": "0x5363022c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362f8f0": {
+   "new": "0x53630230",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362fa60": {
+   "new": "0x536303a0",
+   "how": "aligned + refs 0x536303a0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362fa74": {
+   "new": "0x536303b4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5362fb28": {
+   "new": "0x53630468",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x5362fc14": {
+   "new": "0x53630554",
+   "how": "aligned + refs 0x53630554x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53630004": {
+   "new": "0x53630944",
+   "how": "aligned + refs 0x53630944x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53630120": {
+   "new": "0x53630a60",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5363027c": {
+   "new": "0x53630bbc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536304bc": {
+   "new": "0x53630dfc",
+   "how": "aligned + refs 0x53630dfcx7",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/README.md",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/test_quick.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x536304c4": {
+   "new": "0x53630e04",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536304d0": {
+   "new": "0x53630e10",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536304d4": {
+   "new": "0x53630e14",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536304d8": {
+   "new": "0x53630e18",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536304dc": {
+   "new": "0x53630e1c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536304e0": {
+   "new": "0x53630e20",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/layout.py",
+    "tools/gr4v120/videoaf/test_quick.py"
+   ]
+  },
+  "0x536304e4": {
+   "new": "0x53630e24",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536304e8": {
+   "new": "0x53630e28",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x536304fc": {
+   "new": "0x53630e3c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53630524": {
+   "new": "0x53630e64",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53630534": {
+   "new": "0x53630e74",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53630548": {
+   "new": "0x53630e88",
+   "how": "aligned + refs 0x53630e88x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x5363056c": {
+   "new": "0x53630eac",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53630620": {
+   "new": "0x53630f60",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/README.md"
+   ]
+  },
+  "0x53630684": {
+   "new": "0x53630fc4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/cam.py"
+   ]
+  },
+  "0x53630690": {
+   "new": "0x53630fd0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53630694": {
+   "new": "0x53630fd4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53634204": {
+   "new": "0x53634b44",
+   "how": "aligned + refs 0x53634b44x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x5363821c": {
+   "new": "0x53638b5c",
+   "how": "aligned + refs 0x53638b5cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x53638350": {
+   "new": "0x53638c90",
+   "how": "aligned + refs 0x53638c90x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x53638404": {
+   "new": "0x53638d44",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x5363aacc": {
+   "new": "0x5363b40c",
+   "how": "aligned + refs 0x5363b40cx3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x5363c020": {
+   "new": "0x5363c960",
+   "how": "aligned + refs 0x5363c960x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/README.md"
+   ]
+  },
+  "0x5363efe8": {
+   "new": "0x5363f928",
+   "how": "aligned + refs 0x5363f928x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x537cf950": {
+   "new": "0x537d0668",
+   "how": "aligned + refs 0x537d0668x101",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/layout.py",
+    "tools/gr4v120/videoaf/test_quick.py"
+   ]
+  },
+  "0x53902f30": {
+   "new": "0x53903bc8",
+   "how": "aligned + refs 0x53903bc8x855",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/cam.py"
+   ]
+  },
+  "0x53911d14": {
+   "new": "0x539129ac",
+   "how": "aligned + refs 0x539129acx29",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x5395110c": {
+   "new": "0x539526d4",
+   "how": "aligned + refs 0x539526d4x34",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/README.md",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/sim_follow.py"
+   ]
+  },
+  "0x53951160": {
+   "new": "0x53952728",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53951b04": {
+   "new": "0x539530cc",
+   "how": "aligned + refs 0x539530ccx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/README.md",
+    "tools/gr4v120/videoaf/cam.py"
+   ]
+  },
+  "0x53951b0c": {
+   "new": "0x539530d4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53951b1c": {
+   "new": "0x539530e4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53951b20": {
+   "new": "0x539530e8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53951b28": {
+   "new": "0x539530f0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53951b2c": {
+   "new": "0x539530f4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53951b30": {
+   "new": "0x539530f8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53951b34": {
+   "new": "0x539530fc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/layout.py",
+    "tools/gr4v120/videoaf/test_quick.py"
+   ]
+  },
+  "0x53951b38": {
+   "new": "0x53953100",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53951b3c": {
+   "new": "0x53953104",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/test_quick.py"
+   ]
+  },
+  "0x53951b40": {
+   "new": "0x53953108",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53951b44": {
+   "new": "0x5395310c",
+   "how": "aligned + refs 0x5395310cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/test_quick.py"
+   ]
+  },
+  "0x53951b8c": {
+   "new": "0x53953154",
+   "how": "aligned + refs 0x53953154x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53951bac": {
+   "new": "0x53953174",
+   "how": "aligned + refs 0x53953174x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/test_quick.py"
+   ]
+  },
+  "0x53951e30": {
+   "new": "0x539533f8",
+   "how": "aligned + refs 0x539533f8x38",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/cam.py"
+   ]
+  },
+  "0x53952f14": {
+   "new": "0x539544dc",
+   "how": "aligned + refs 0x539544dcx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/README.md",
+    "tools/gr4v120/videoaf/cam.py"
+   ]
+  },
+  "0x53952fe4": {
+   "new": "0x539545ac",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53952ff0": {
+   "new": "0x539545b8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53edf05c": {
+   "new": "0x53ee06ec",
+   "how": "override",
+   "ok": true,
+   "why": "CafProcess vtable, movie-state-1 callback slot (aligned; it holds 0x536123b4 = 1.21 of the 1.20 slot's 0x53611a74)",
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x53edf068": {
+   "new": "0x53ee06f8",
+   "how": "override",
+   "ok": true,
+   "why": "CafProcess vtable, movie-state-0 callback slot (aligned; it holds 0x536123c4 = 1.21 of the 1.20 slot's 0x53611a84)",
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/layout.py",
+    "tools/gr4v120/videoaf/test_quick.py"
+   ]
+  },
+  "0x53ee0cc8": {
+   "new": "0x53ee2358",
+   "how": "aligned + refs 0x53ee2358x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/videoaf/vafquick.c"
+   ]
+  },
+  "0x54211d38": {
+   "new": "0x54213528",
+   "how": "aligned + refs 0x54213528x7",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/README.md"
+   ]
+  },
+  "0x54211d3c": {
+   "new": "0x5421352c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x54211e50": {
+   "new": "0x54213640",
+   "how": "aligned + refs 0x54213640x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x54211e54": {
+   "new": "0x54213644",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x54212080": {
+   "new": "0x54213870",
+   "how": "aligned + refs 0x54213870x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts"
+   ]
+  },
+  "0x542120fc": {
+   "new": "0x542138ec",
+   "how": "aligned + refs 0x542138ecx6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/README.md"
+   ]
+  },
+  "0x5583907c": {
+   "new": "0x5583907c",
+   "how": "override",
+   "ok": true,
+   "why": "movie AF state pointer: the last word of the sbrk arena before the heap (0x55839040..0x55839080, see 0x55839080: the arena and the heap are where they are in 1.20); a GR Mod word, no firmware reference",
+   "files": [
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/videoaf/cam.py",
+    "tools/gr4v120/videoaf/test_quick.py"
    ]
   }
  }
