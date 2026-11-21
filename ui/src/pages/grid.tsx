@@ -1,12 +1,9 @@
 import { useState } from 'react';
 import { isCameraGrid } from '@grmod/core';
-import { DropZone, Ico, Segmented } from '../components';
-import { FirmwareHero } from '../firmware';
+import { Ico, Segmented, Switch } from '../components';
 import { t } from '../i18n';
 import type { Key } from '../i18n';
-import { loadFirmwareFile, setCustomGrid, setGridLine, useStore } from '../store';
-import { FeatureRow } from './features';
-import { isFirmware } from './files';
+import { setCustomGrid, setGridLine, useStore } from '../store';
 
 // ---------------------------------------------------------------- custom grid lines
 type GridStyle = 'g3' | 'g4';
@@ -28,21 +25,26 @@ const GRID_GROUPS: { id: GridLineDef['group']; name: Key }[] = [{ id: 'h', name:
 /** The camera's grid colour: UI palette 16, black at 50 %. */
 const GRID_COLOUR = 'rgba(0,0,0,.5)';
 
-/** A plain stand-in for the live view: sky, a horizon, a path and a tree. */
+/** The stand-in for the live view: plain mid grey, on which the lines (and the hidden ones) show alike. */
+const GRID_BACKDROP = '#8a8a8a';
 function GridScene() {
+  return <rect x="0" y="0" width="720" height="480" fill={GRID_BACKDROP} />;
+}
+
+/** The capsule's small picture of the grids: 3x3 and 4x4 side by side, only the lines that are on. */
+export function GridThumb() {
+  const lines = useStore((s) => s.gridLines);
+  const on = useStore((s) => s.customGrid);
+  const xy = (at: GridLineDef['at']) => ({ x1: at[0] * 720, y1: at[1] * 480, x2: at[2] * 720, y2: at[3] * 480 });
   return (
-    <>
-      <defs>
-        <linearGradient id="grid-sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#5f7f9c" /><stop offset="0.55" stopColor="#a9b8c2" /><stop offset="0.56" stopColor="#6f7a56" /><stop offset="1" stopColor="#3e4632" />
-        </linearGradient>
-      </defs>
-      <rect x="0" y="0" width="720" height="480" fill="url(#grid-sky)" />
-      <path d="M300 480 L350 268 L372 268 L460 480 Z" fill="#8c8673" opacity="0.75" />
-      <rect x="500" y="170" width="12" height="110" fill="#3b3326" />
-      <circle cx="506" cy="160" r="52" fill="#2f3d27" />
-      <path d="M0 262 Q120 236 240 258 T480 252 T720 262 L720 270 L0 270 Z" fill="#55613f" opacity="0.8" />
-    </>
+    <div className={`grid-thumbs ${on ? '' : 'off'}`} aria-hidden>
+      {(['g3', 'g4'] as GridStyle[]).map((g) => (
+        <svg key={g} viewBox="0 0 720 480" className="grid-thumb">
+          <GridScene />
+          {GRID_LINES[g].map((d, i) => (lines[g][i] ? <line key={i} {...xy(d.at)} stroke={GRID_COLOUR} strokeWidth={14} /> : null))}
+        </svg>
+      ))}
+    </div>
   );
 }
 
@@ -83,28 +85,23 @@ function GridLinesEditor() {
   );
 }
 
-/** The custom grid page: the switch, then the editor (dimmed while the switch is off). */
-export function GridPage() {
-  const info = useStore((s) => s.info);
+/** The custom grid's own view on the additions page: its switch, then the editor (dimmed while the switch is off). */
+export function GridDetail() {
   const on = useStore((s) => s.customGrid);
   const same = useStore((s) => isCameraGrid(s.gridLines));
   const menu = useStore((s) => !!s.info?.features.gridMenu);
   return (
-    <DropZone className="page" accept={isFirmware} onFiles={(f) => { void loadFirmwareFile(f[0]); }}>
-      <header className="page-head">
-        <span className="page-icon">{Ico.grid}</span>
-        <h1>{t('navGridPage')}</h1>
-      </header>
-      {!info && <FirmwareHero />}
-      {info && (
-        <div className={`grid-page ${on ? '' : 'off'}`} data-tour-page="grid">
-          <div className="card extras">
-            <FeatureRow icon={Ico.grid} title={t('navGrid')} sub={t(menu ? 'gridSubMenu' : 'gridSub')} on={on} onChange={setCustomGrid} tour="grid-switch" />
-          </div>
-          {on && same && <p className="muted small">{t('gridSameAsCamera')}</p>}
-          <GridLinesEditor />
+    <div className={`grid-page ${on ? '' : 'off'}`} data-tour-page="extras">
+      <div className={`capsule grid-switch ${on ? 'on' : ''}`} data-tour="grid-switch">
+        <div className="capsule-top">
+          <span className="page-icon soft-ico">{Ico.grid}</span>
+          <b className="capsule-title">{t('navGrid')}</b>
+          <Switch checked={on} onChange={setCustomGrid} label={t('navGrid')} />
         </div>
-      )}
-    </DropZone>
+        <p className="capsule-sub muted small">{t(menu ? 'gridSubMenu' : 'gridSub')}</p>
+      </div>
+      {on && same && <p className="muted small">{t('gridSameAsCamera')}</p>}
+      <GridLinesEditor />
+    </div>
   );
 }

@@ -2,7 +2,7 @@ import type { CameraModel, LangCode } from '@grmod/core';
 import { engine, EngineError } from '../engine';
 import { host } from '../host';
 import { setUiLangPref, t, uiLangPref } from '../i18n';
-import { Page, State, TOUR_IDS, TourId, cameraLang, fail, isGr3, set, slotOf, state, supportedList, toast } from './core';
+import { ExtrasView, Page, State, TOUR_IDS, TourId, cameraLang, fail, isGr3, set, slotOf, state, supportedList, toast } from './core';
 import { LEGACY_FW_GROUP_NAME, cancelSave, enterFamily, familyOf, fwGroupOf, fwKey, keptFirmware, leaveFamily, saveProject, scheduleSave } from './families';
 import { allSlotKeys, renderIcon, runPreset } from './slots';
 import { encodeWall } from './wall';
@@ -39,16 +39,21 @@ export function endTour(): void {
 }
 
 // ------------------------------------------------------------------ settings
-/** Pages of additions that only some firmware has: offered when the open firmware has the addition, or, with none open yet, for the GR IV. */
-export function pageOffered(page: Page, s: State = state): boolean {
-  if (page === 'grid') return s.info ? !!s.info.features.customGrid : !isGr3(s.model);
+/** Every page is offered (the power-off pictures' is checked by `setPage`). */
+export function pageOffered(_page: Page, _s: State = state): boolean {
   return true;
+}
+/** The custom grid (its card on the additions page): with a firmware that has it. */
+export const gridOffered = (s: State = state): boolean => !!s.info?.features.customGrid;
+/** The additions page: the list, or the custom grid's editor. */
+export function setExtrasView(v: ExtrasView): void {
+  set({ extrasView: v === 'grid' && !gridOffered() ? 'list' : v });
 }
 
 export function setPage(page: Page): void {
   if (page === 'wall' && isGr3(state.model) && state.info && !state.info.capabilities.menuPictures) return; // power-off pictures: GR III / IIIx with the End Screen menu
   if (!pageOffered(page)) return;
-  set({ page }); scheduleSave(); if (page === 'copies') void refreshCopies();
+  set({ page, extrasView: 'list' }); scheduleSave(); if (page === 'copies') void refreshCopies();
 }
 export async function setAppLanguage(v: '' | 'zh' | 'en'): Promise<void> {
   if (v === uiLangPref()) return;

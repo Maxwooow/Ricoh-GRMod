@@ -11,7 +11,10 @@ import { t, uiLangPref } from '../i18n';
 import type { Crop } from '../pixels';
 import { SUPPORTED_LINES } from '../releases.gen';
 
-export type Page = 'ic' | 'ratio' | 'grid' | 'wall' | 'copies';
+/** `extras`: the additions (switches, the custom grid); 0.8.16 and earlier had a page of its own for the grid (`grid`). */
+export type Page = 'ic' | 'ratio' | 'extras' | 'wall' | 'copies';
+/** What the additions page shows: the list of additions, or the custom grid's editor (opened from its card). */
+export type ExtrasView = 'list' | 'grid';
 /** The camera's own grids, as custom grid lines (a fresh copy to edit). */
 export const cameraGrid = (): CustomGrid => ({ g3: [...CAMERA_GRID.g3], g4: [...CAMERA_GRID.g4] });
 /** Grid lines as saved in the project: eight booleans per style, else the camera's own. */
@@ -59,13 +62,13 @@ export interface BuildRecord { sha256: string; time: number; slots: { id: SlotId
 /** `warn` is an optional caution shown under the lines (used where something is deleted for good). */
 /** A guided tour: `overview` is the one of the first start, the others belong to a page. */
 export type TourId = 'overview' | Page;
-export const TOUR_IDS: readonly TourId[] = ['overview', 'ic', 'ratio', 'grid', 'wall', 'copies'];
+export const TOUR_IDS: readonly TourId[] = ['overview', 'ic', 'ratio', 'extras', 'wall', 'copies'];
 /** The tour being shown: `steps` are the indices of its steps that have something to point at; a replay can be skipped. */
 export interface TourState { id: TourId; steps: number[]; index: number; replay: boolean }
 /** `reset`: the firmware written is the official one; the dialog asks in red whether the camera's settings were reset first. */
 export interface Confirm { title: string; warn?: string; reset?: boolean; lines: string[]; ok: string; resolve: (v: boolean) => void }
 export interface State {
-  ready: boolean; page: Page;
+  ready: boolean; page: Page; extrasView: ExtrasView;
   fwName?: string; fwBusy: boolean; info?: FirmwareInfo; raw?: Uint8Array;
   model: CameraModel; lang: LangCode;
   /** The camera language follows the system's (lang is then systemCameraLang()): the app language is "follow system". */
@@ -137,7 +140,7 @@ export const availableSlots = (s: State = state): SlotId[] => s.info ? shownSlot
 export const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', text: '', style: 'film' } });
 export const emptySlots = (): Record<SlotId, SlotState> => Object.fromEntries(SLOT_IDS.map(id => [id, emptySlot()])) as Record<SlotId, SlotState>;
 export let state: State = {
-  ready: false, page: 'ic', fwBusy: false, model: 'HDF', lang: cameraLang(), langAuto: uiLangPref() === '',
+  ready: false, page: 'ic', extrasView: 'list', fwBusy: false, model: 'HDF', lang: cameraLang(), langAuto: uiLangPref() === '',
   slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hdr: false, exposurePreview: false, filmGrain: false, shadowLearn: false, ratioShade: false, ratioShadeTone: 'dark', shadePreview: '75', battery: false, customGrid: false, gridLines: cameraGrid(), flashTtl: false, videoAf: false, awbLearn: false, adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [],
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };

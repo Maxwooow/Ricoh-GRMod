@@ -52,6 +52,11 @@ SET_POINTS = 0x5359191c
 SET_COLOUR = 0x53591a74
 SET_VISIBLE = 0x535acd84
 CURRENT_USERDATA = 0x53240c38
+# The shade's "added ratio selected" asks first whether the camera is in movie mode: the setting root and its
+# capture settings' movie test (core/src/fw/gr4v120/aspect/shade.ts). Answered: not in movie mode.
+SETTINGS_PROP = 0x53750008
+IS_MOVIE = 0x5377cab8
+PROP = 0x600e0000
 ASPECT_BYTE = 0x49f
 COLOUR = 16
 
@@ -121,13 +126,14 @@ class Emu:
         self.mu = mu
         self.calls = []
         self.stubs = {}
+        self.base = {SETTINGS_PROP: ('settings', PROP), IS_MOVIE: ('movie', 0)}
         mu.hook_add(UC_HOOK_CODE, self._hook)
 
     def _hook(self, uc, addr, size, ud):
-        if addr in self.stubs:
+        if addr in self.stubs or addr in self.base:
             lr = uc.reg_read(UC_ARM_REG_LR)
             args = tuple(uc.reg_read(r) for r in (UC_ARM_REG_R0, UC_ARM_REG_R1))
-            name, ret = self.stubs[addr]
+            name, ret = self.stubs[addr] if addr in self.stubs else self.base[addr]
             self.calls.append((name,) + args)
             if ret is not None:
                 uc.reg_write(UC_ARM_REG_R0, ret)

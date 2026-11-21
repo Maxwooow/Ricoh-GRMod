@@ -48,6 +48,11 @@
  *       to the corner of the window (the same fractions and rounding as the bands, centred in the
  *       frame) before the line view's own setter. The layout runs whenever UpdateViewGrid sets the
  *       frame (slot 6 -> 7), so a change of ratio lays them out again.
+ * 3. Movies: the aspect setting stays the photos' in movie mode, and a movie is recorded at its own
+ *    size, so in movie mode nothing of the added ratio is drawn (no bands, the grid lines and the
+ *    diagonals on the whole picture, the view's visibility as the grid's). "Selected" is asked of
+ *    the camera's own movie test, the one the Image Control screen asks for its photo / movie list
+ *    (the setting root 0x53750008, its capture settings at +4, 0x5377CAB8 != 0).
  */
 import { FirmwareError } from '../../types';
 import { adr } from '../target';
@@ -67,6 +72,9 @@ const FILL_FACTORY = adr(0x5323d7f0);
 const FILL_GET = adr(0x5323d968);
 const FILL_RECT = adr(0x5323e1c0);
 const CAPTURE_ASPECT = adr(0x5377d960);
+/** The setting root and its capture settings' movie test (non-zero in movie mode). */
+const SETTING_ROOT = adr(0x53750008);
+const IS_MOVIE = adr(0x5377cab8);
 /** The capture aspect getter calls of the live-view mode function and of its mode check. */
 const LIVE_MODE_CALLS = [adr(0x538b40e0), adr(0x53664424)] as const;
 const MARK = 0xf6;
@@ -131,8 +139,8 @@ export function installRatioShade(geometry: Program, get: number, scale: number,
   const live = p.emit(`push {r4,lr};bl #${CAPTURE_ASPECT};mov r4,r0;bl #${get};cmp r0,#0;movne r0,#0;moveq r0,r4;pop {r4,pc};`);
   for (const call of LIVE_MODE_CALLS) p.patch.setWord(call, assembleWords(`bl #${live}`, call)[0], 'live-view mode: added ratios as 3:2');
 
-  // r0 = the geometry row of the selected still ratio, or 0. Keeps r4-r11.
-  const selected = p.emit(`push {r4,lr};bl #${CURRENT_USERDATA};cmp r0,#0;beq none;ldrb r0,[r0,#${ASPECT_BYTE}];bl #${get};pop {r4,pc};none:pop {r4,pc};`);
+  // r0 = the geometry row of the selected still ratio, or 0 (also in movie mode). Keeps r4-r11.
+  const selected = p.emit(`push {r4,lr};bl #${SETTING_ROOT};ldr r0,[r0,#4];bl #${IS_MOVIE};cmp r0,#0;movne r0,#0;bne none;bl #${CURRENT_USERDATA};cmp r0,#0;beq none;ldrb r0,[r0,#${ASPECT_BYTE}];bl #${get};pop {r4,pc};none:pop {r4,pc};`);
 
   // Constructor: clear +0xF4..+0xF7 (r5 = 0 there).
   p.patch.setWord(GRID_CTOR_CLEAR, assembleWords('str r5,[r4,#0xf4]', GRID_CTOR_CLEAR)[0], 'grid view constructor: clear the shade mark');

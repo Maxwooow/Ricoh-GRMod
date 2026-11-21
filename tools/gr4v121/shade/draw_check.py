@@ -66,6 +66,7 @@ MODE_CHECK_FN = 0x53664d4c
 LIVE_MODE_CALLS = (0x538b4d88, 0x53664d64)
 CAPTURE_ASPECT = 0x5377e5f0
 SETTINGS_PROP = 0x53750a58
+IS_MOVIE = 0x5377d748  # the capture settings' movie test (0x53750a58's +4); the shade asks it
 MODE_OVERRIDE = (0x53892af0, 0x53892bc0)
 ASSERT = 0x53916230
 TONES = {'dark': 16, 'light': 19}
@@ -104,6 +105,7 @@ FRAME = 0x600c0000
 PIXELS = 0x61000000
 
 failures = []
+MOVIE = 0  # what the movie test answers (movie mode: non-zero)
 
 
 def check(cond, what):
@@ -154,13 +156,15 @@ class Emu:
         self.mu = mu
         self.calls = []
         self.stubs = {}
+        # Asked by the shade's "added ratio selected" (any function that runs it): movie mode or not.
+        self.base = {SETTINGS_PROP: ('settings', PROP), IS_MOVIE: ('movie', MOVIE)}
         mu.hook_add(UC_HOOK_CODE, self._hook)
 
     def _hook(self, uc, addr, size, ud):
-        if addr in self.stubs:
+        if addr in self.stubs or addr in self.base:
             lr = uc.reg_read(UC_ARM_REG_LR)
             args = tuple(uc.reg_read(r) for r in (UC_ARM_REG_R0, UC_ARM_REG_R1))
-            name, ret = self.stubs[addr]
+            name, ret = self.stubs[addr] if addr in self.stubs else self.base[addr]
             self.calls.append((name,) + args)
             if ret is not None:
                 uc.reg_write(UC_ARM_REG_R0, ret)
@@ -506,6 +510,43 @@ def layout_checks(new, old, ids, other_lines=False):
     print(f'layout: {n} cases; with an added ratio the diagonals ({diagonals} point calls) run corner to corner of its window; {rest}')
 
 
+def movie_checks(new, old, ids):
+    """Movie mode: the aspect setting keeps an added ratio, the screen shows none of it: SetVisible as
+    the grid, the native Draw on the whole frame (no band, the lines on the whole picture), the
+    official diagonals."""
+    global MOVIE
+    MOVIE = 1
+    n = 0
+    try:
+        aspects = [0, *ids]
+        a = update_grid(new, aspects, True)
+        for (grid, aspect), (visible, mark, regs) in a.items():
+            check(visible == [(VIEW, grid)], f'movie: UpdateViewGrid grid={grid} aspect={aspect}: SetVisible {visible}')
+            n += 1
+        full = (0, 0, 720, 480)
+        for aspect in aspects:
+            for mark in (1, 3):
+                for style in (0, 1):
+                    for code in (range(SETTING[2] + 1) if SETTING else (0,)):
+                        px, after, kept, _ = draw(new, aspect, mark, 720, 480, style=style, code=code)
+                        what = f'movie: Draw aspect {aspect} mark {mark} style {style} code {code}'
+                        check(kept, what + ': registers or SP not kept')
+                        check(after['calls'] == [('grid draw', VIEW, CTX), ('base draw', VIEW, CTX)], f'{what}: calls {after["calls"]}')
+                        check(after['frames'] == [full, full], f'{what}: frames {after["frames"]}')
+                        check(after['lines'] == native_lines(new, full, style), f'{what}: lines differ from the native Draw')
+                        check(after['children'] == [(c, 1) for c in CHILD], f'{what}: line views drawn {after["children"]}')
+                        check(all(p == CANVAS_FILL for p in px), what + ': pixels changed')
+                        n += 1
+        for style in (0, 1):
+            for aspect in aspects:
+                got, want = layout(new, style, 720, 480, aspect), layout(old, style, 720, 480, aspect)
+                check(got == want, f'movie: layout style {style} aspect {aspect}: {got}, want {want}')
+                n += 1
+    finally:
+        MOVIE = 0
+    print(f'movie mode: {n} cases; with an added ratio selected nothing of it is drawn (grid view, Draw, diagonals as official)')
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     opts = sys.argv[1:]
@@ -648,6 +689,7 @@ def main():
             print(f'    {name}: horizontal lines at y = {ys}, vertical at x = {xs}')
 
     layout_checks(new, old, ids, other_lines)
+    movie_checks(new, old, ids)
 
     if failures:
         print(f'{len(failures)} FAILED:')

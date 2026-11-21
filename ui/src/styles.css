@@ -316,7 +316,8 @@ svg { width: 18px; height: 18px; flex: none; }
 .grid-edit .btn.small[aria-pressed='false'] { border-style: dashed; color: var(--muted); }
 .grid-edit p { margin: 0; }
 /* Custom grid page: the switch, then the editor, dimmed while the switch is off. */
-.grid-page { display: flex; flex-direction: column; gap: 14px; max-width: 900px; }
+.grid-page { display: flex; flex-direction: column; gap: 14px; max-width: 900px; min-height: 0; overflow-y: auto; padding-right: 3px; }
+.grid-page > .capsule { flex: none; max-width: 640px; }
 .grid-page .grid-edit { padding: 0; }
 .grid-page .grid-edit-preview { width: min(100%, 520px); }
 .grid-page.off .grid-edit { opacity: 0.45; pointer-events: none; }
@@ -329,6 +330,36 @@ svg { width: 18px; height: 18px; flex: none; }
 .extras .soft-switch { padding: 8px 14px; }
 .extras .soft-switch + .soft-switch { border-top: 1px solid var(--line); }
 .mono-ic { display: flex; flex-direction: column; gap: 12px; max-width: 440px; }
+.mono-ic .btn { align-self: flex-start; }
+/* Additions page: one capsule per addition, in as many columns as the page has room for (each at
+   least 280px wide), each capsule as tall as what it holds, filling the columns in turn. Scrolls on its own on the desktop. */
+.capsules { flex: 1; min-height: 0; overflow-y: auto; columns: 280px auto; column-gap: 12px; padding: 2px 3px 8px 0; }
+.capsules > .capsule { break-inside: avoid; margin-bottom: 12px; }
+.capsule { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 14px; border: 1px solid var(--line); border-radius: 20px; background: var(--bg); transition: border-color 0.15s, background 0.15s, box-shadow 0.15s; min-width: 0; }
+.capsule.on { border-color: color-mix(in srgb, var(--blue) 45%, var(--line2)); background: color-mix(in srgb, var(--blue-bg) 45%, var(--side)); }
+.capsule-top { display: flex; align-items: center; gap: 10px; min-height: 32px; }
+.capsule-top .soft-ico { width: 32px; height: 32px; flex: none; border-radius: 10px; }
+.capsule.on .capsule-top .soft-ico { color: var(--blue); background: var(--blue-bg); }
+.capsule-title { flex: 1; min-width: 0; font-weight: 600; line-height: 1.3; }
+.capsule-sub { margin: 0; line-height: 1.45; }
+.capsule-choice { margin-top: auto; padding-top: 2px; }
+.capsule-choice .seg { display: flex; width: 100%; }
+.capsule-choice .seg button { flex: 1; padding: 0 6px; white-space: nowrap; }
+/* A capsule with settings of its own: a row that opens them. */
+.capsule-open { margin-top: auto; display: flex; align-items: center; gap: 6px; width: 100%; height: 34px; padding: 0 12px; border: 1px solid var(--line2); border-radius: 17px; background: var(--bg); color: var(--text); font-weight: 500; font-size: 13.5px; cursor: pointer; transition: background 0.1s, border-color 0.1s; }
+.capsule-open:hover { background: var(--hover); }
+.capsule-open .capsule-chev { margin-left: auto; font-size: 18px; line-height: 1; color: var(--muted); }
+.grid-thumbs { display: flex; gap: 8px; }
+.grid-thumbs.off { opacity: 0.5; }
+.grid-thumb { flex: 1; min-width: 0; max-width: 96px; height: auto; border-radius: 6px; display: block; }
+/* The custom grid's editor, opened from its capsule: back to the list in the header. */
+.page-head.sub { gap: 8px; }
+.page-head .back-btn { margin-left: -6px; }
+.page-head .crumbs { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.page-head .crumb-up { color: var(--muted); cursor: pointer; }
+.page-head .crumb-up:hover { color: var(--text); }
+.page-head .crumb-sep { color: var(--faint); font-weight: 400; }
+.page-head .m-crumb { display: none; }
 .switch { flex: none; position: relative; width: 34px; height: 20px; padding: 0; border: 0; border-radius: 10px; background: var(--line2); cursor: pointer; transition: background 0.18s; }
 .switch i { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform 0.18s cubic-bezier(0.22, 0.8, 0.24, 1); }
 .switch.on { background: var(--blue); }
@@ -590,6 +621,9 @@ html.mobile-app body { background: var(--side); font-size: 15px; }
 .app.mobile .page { min-height: 100%; padding: 12px 16px 24px; }
 .app.mobile .page-head { height: auto; min-height: 32px; margin-bottom: 12px; }
 .app.mobile .page-head h1, .app.mobile .page-head .page-icon { display: none; }
+.app.mobile .capsules, .app.mobile .grid-page { overflow: visible; flex: none; min-height: auto; padding-right: 0; }
+.app.mobile .page-head.sub .m-crumb { display: block; font-weight: 600; font-size: 16px; }
+.app.mobile .grid-page .grid-edit-body { flex-direction: column; }
 .app.mobile .head-right { margin-left: auto; flex: none; justify-content: flex-end; }
 /* the output buttons and the page tabs float over the page (app.tsx MobileActions, MobileTabs; glass.tsx) */
 .app.mobile { --dock-b: calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 10px); --dock-h: 64px; --act-h: 48px; }

@@ -8000,7 +8000,9 @@
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/shutdown/shutdown.c",
     "tools/gr4v120/shade/draw_check.py",
-    "core/src/fw/gr4v120/aspect/flttl.ts"
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/grid/check.py"
    ]
   },
   "0x53750028": {
@@ -13750,6 +13752,16 @@
     "core/src/fw/gr4v120/aspect/awb2.ts",
     "core/src/fw/gr4v120/aspect/battery.ts",
     "tools/gr4v120/awb2/test_fw.py"
+   ]
+  },
+  "0x5377cab8": {
+   "new": "0x5377d748",
+   "how": "aligned + refs 0x5377d748x47",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/grid/check.py",
+    "tools/gr4v120/shade/draw_check.py"
    ]
   }
  }

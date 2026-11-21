@@ -49,6 +49,7 @@ export const Ico = {
   flash: <svg viewBox="0 0 20 20" {...P}><path d="M11.8 2.6L5.4 11h4.2l-1.8 6.4 6.8-8.8h-4.4l1.6-6z" /></svg>,
   hdr: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="3.2" /><path d="M10 2.2v2.2M10 15.6v2.2M2.2 10h2.2M15.6 10h2.2M4.5 4.5l1.6 1.6M13.9 13.9l1.6 1.6M4.5 15.5l1.6-1.6M13.9 6.1l1.6-1.6" /></svg>,
   battery: <svg viewBox="0 0 20 20" {...P}><rect x="4.2" y="6" width="13" height="8" rx="1.6" /><path d="M2.6 8.6v2.8" /><path d="M7.4 8.4v3.2M10 8.4h1.8v3.2H10zM14.6 8.4l-1.2 3.2" strokeWidth="1.1" /></svg>,
+  extras: <svg viewBox="0 0 20 20" {...P}><rect x="2.6" y="3.2" width="14.8" height="5.6" rx="2.8" /><circle cx="14.6" cy="6" r="1.5" fill="currentColor" stroke="none" /><rect x="2.6" y="11.2" width="14.8" height="5.6" rx="2.8" /><circle cx="5.4" cy="14" r="1.5" /></svg>,
   grid: <svg viewBox="0 0 20 20" {...P}><rect x="2.8" y="4.2" width="14.4" height="11.6" rx="1.6" /><path d="M7.6 4.2v11.6M12.4 4.2v11.6M2.8 8.1h14.4M2.8 11.9h14.4" /></svg>,
   /* a tone curve lifted in the shadows */
   shadow: <svg viewBox="0 0 20 20" {...P}><rect x="2.8" y="2.8" width="14.4" height="14.4" rx="2" /><path d="M5 15C6.4 9.6 9.6 6.6 15 5" /><path d="M5 15l10-10" strokeDasharray="1.2 2" /></svg>,
