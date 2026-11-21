@@ -52,6 +52,7 @@ import { extendBatteryZeroFill, installBatteryPercent } from './battery';
 import { installCustomGrid, isCameraGrid, validCustomGrid } from './grid';
 import type { CustomGrid } from './grid';
 import { installRatioShade } from './shade';
+import { GRID_SELECT, SHADE_SETTING, installGridStyleMenu, installShadeList, installShadePalette, installTtlFlashNames, installViewAssets, shadeStillLine } from './viewmenu';
 import type { ShadeTone } from './shade';
 import { installExposurePreviewOff } from './lvpreview';
 import { FRAME_LOOK, LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
@@ -1107,6 +1108,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl;
   if (features.customGrid && (!validCustomGrid(features.customGrid) || isCameraGrid(features.customGrid))) fail('internal', 'a custom grid must differ from the camera’s');
   if (features.ratioShade && ratios.length === 0) fail('internal', 'the live-view shade needs an added ratio');
+  if (features.ratioShadeTone !== undefined && features.ratioShadeTone !== 'dark') fail('bad-edit', 'the live-view shade is chosen in the camera menu on this firmware');
   if (extra) revision = 3;
   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
@@ -1134,7 +1136,11 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
     const menu = installMenu(patch, ratios, installed.ids);
     const { p, get, scale } = buildGeometry(patch, ratios);
     installDevelop(p, scale, ratios);
-    if (features.ratioShade) installRatioShade(p, get, scale, features.ratioShadeTone ?? 'dark');
+    // Test 084: how dark is chosen in the camera menu (`viewmenu.ts`); the tone of 1.11 does not apply.
+    if (features.ratioShade) {
+      installRatioShade(p, get, scale, SHADE_SETTING);
+      installShadePalette(patch);
+    }
     installRaw(patch, ratios);
     installState(patch, ratios, menu.activeBitmap);
     installImageIdentity(patch, ratios);
@@ -1147,6 +1153,10 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   const ep = features.exposurePreview ? lineOpts : null;
   if (ep && test.exposurePreviewOff) fail('internal', 'exposure preview: the setting or always off, not both');
   if (features.adjSoftFocus) icons = installAdjSoftFocus(patch, icons, ep ? 0x15 : 0x14);
+  // Test 084: the custom grids as values of the Grid Style list (its record in place, before any
+  // addition copies the list table), their texts and icons, and the shade's.
+  if (features.customGrid || features.ratioShade) icons = installViewAssets(patch, icons, { ...(features.customGrid ? { grid: features.customGrid } : {}), shade: !!features.ratioShade });
+  if (features.customGrid) installGridStyleMenu(patch, features.customGrid);
   // Before the date imprint's menu, which copies the list table with Flash Mode's records.
   if (features.directFlash) icons = installDirectFlash(patch, icons, !!test.directFlashDiag);
   if (features.monoUnlock) installMonoUnlock(patch);
@@ -1157,6 +1167,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
     icons = installExposurePreviewAssets(patch, icons, lineOpts);
     stillLines.push(...exposurePreviewStillLines(patch, lineOpts));
   }
+  if (features.ratioShade) stillLines.push(shadeStillLine(patch));
   if (features.dateStamp) {
     const fixed = test.dateStampFixed;
     // From 0.8.2 (builds with the guard) the imprint goes by the picture's look.
@@ -1167,7 +1178,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
     if (!fixed) icons = installDateStampMenu(patch, icons, stillLines);
     if (look && slots.length === 0) installLookStash(patch);
   }
-  if (stillLines.length && (!features.dateStamp || test.dateStampFixed)) installStillLines(patch, stillLines, lineOpts ? 'exposure preview and soft focus' : 'HDR gain map');
+  if (stillLines.length && (!features.dateStamp || test.dateStampFixed)) installStillLines(patch, stillLines, lineOpts ? 'exposure preview and soft focus' : hdrDraw ? 'HDR gain map' : 'live-view shade');
   // Halation: added slots that have it, Cinema slots with a preset that are asked to.
   const halation: HalationLook[] = [];
   slots.forEach((x, k) => {
@@ -1196,6 +1207,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   // The HDR line's list: after the additions that copy the list table first.
   if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
   if (lineOpts) installExposurePreviewLists(patch, lineOpts);
+  if (features.ratioShade) installShadeList(patch);
   // Exposure preview on the ADJ lever: the function table copied with a 22nd function (after soft
   // focus and Direct Flash, which change its records in place; before the ADJ slots' module, which reads it).
   const adjTable = ep ? installExposurePreviewAdj(patch, ep) : 0;
@@ -1208,7 +1220,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   if (features.brightAuto) installBrightAuto(patch, features.brightAuto === 'balanced' ? 'balanced' : 'bright');
   if (features.batteryPercent) icons = installBatteryPercent(patch, icons, !!test.batteryDiag);
   // After the ratios: the diagonals take the point setter the grid view's layout calls then.
-  if (features.customGrid) installCustomGrid(patch, features.customGrid);
+  if (features.customGrid) installCustomGrid(patch, features.customGrid, GRID_SELECT);
   // Last: appended after everything else, so every other addition keeps its place without it.
   if (features.shadowLearn) installShadowLearn(patch);
   // Film grain: last, so that everything appended before it stays where it is in builds without it.
@@ -1218,10 +1230,11 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
     // Its state pointer is the second of the HDR test counters (FLTTL_SLOT): one or the other.
     if (features.hdrGainMap && test.hdrDiag) fail('bad-edit', 'flash TTL cannot be built together with the HDR diagnostics (same RAM word)');
     installFlashTtl(patch);
+    installTtlFlashNames(patch);
   }
   // Very last: the zero fill over the sbrk arena; the additions above expect it at 0x55839040 or its official end.
   if (features.batteryPercent) extendBatteryZeroFill(patch);
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true, ...(features.ratioShadeTone && features.ratioShadeTone !== 'dark' ? { ratioShadeTone: features.ratioShadeTone } : {}) } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}) } };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}) } };
 }

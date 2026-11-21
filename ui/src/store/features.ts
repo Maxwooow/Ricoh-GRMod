@@ -90,6 +90,16 @@ export function setFlashTtl(flashTtl: boolean): void {
   set({ flashTtl }); scheduleSave();
 }
 export function flashTtlOn(s: State = state): boolean { return !!s.flashTtl && !!s.info?.features.flashTtl; }
+/**
+ * "Flash enhancements": Direct Flash and, where the firmware has it (GR IV 1.20 / 1.21), flash TTL, one switch
+ * in the interface. On when either is (a project saved with only one of them).
+ */
+export function setFlashPlus(on: boolean): void {
+  const f = state.info?.features;
+  if (on && !f?.directFlash && !f?.flashTtl) return;
+  set({ directFlash: on && !!f?.directFlash, flashTtl: on && !!f?.flashTtl }); scheduleSave();
+}
+export function flashPlusOn(s: State = state): boolean { return directFlashOn(s) || flashTtlOn(s); }
 /** ADJ lever slots (5..8): the camera's five unless the firmware can have more. */
 export function setAdjSlots(adjSlots: number): void {
   if (!(Number.isInteger(adjSlots) && adjSlots >= 5 && adjSlots <= (state.info?.features.maxAdjSlots ?? 5))) return;

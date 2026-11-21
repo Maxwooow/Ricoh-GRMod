@@ -282,7 +282,7 @@ On GR IV 1.20 (= GR IV Monochrome 1.10) the same code is in the generated port (
 
 ## Battery percentage
 
-`core/src/fw/aspect/battery.ts` (GR IV 1.11; 1.20 / 1.21 in `fw/gr4v120`, `BuildOptions.batteryPercent`, the app's Battery page) shows the charge in the battery icon in steps of 10 %, a number inside a battery drawn in the camera's style, instead of the three bars, which stay full down to about 55 %. The charge is byte 3 of the sub-CPU's 16-byte power report (byte 0, low nibble: the source, 1 = battery; byte 1: voltage x10; byte 2: the 0..4 step the bars show), which CpuInformationService keeps in a double buffer and every photo records in its maker note (tag 0x0216), but which the camera never shows. A hook in front of GetBatteryIcon (0x5339A1E8, shooting screen and playback) reads it without calling anything: guard 0x5537D2FC bit 0, holder 0x5537D1D8, service [holder + 4], index [service + 0xAC] (bit 15: the writer is busy, take index - 1), report at [service + 0x5C + 4 x index] + 4. It shows 10..100 (icons 1009..1018, 60x40) when the report says battery, is 0..100 and agrees with the step to within one, and keeps the shown step until the charge is 9 or more away (one byte, 0x55837300 / 1.20 0x55839040: the first of the 64 bytes of the C library's sbrk arena, which nothing in the firmware calls, between the 44 zero-filled bytes the other additions use and the camera's heap at 0x55837340 / 0x55839080; the start-up zero fill is extended over it, last of all the additions). Below 5 %, without a usable report and on external power the camera's own icon stays. Test builds (`batteryDiag`) show "?" (no usable report) and "!" (disagrees with the step) instead. `tools/battery/check.py BUILT.rtos OFFICIAL.rtos [--diag] [--sequence CSV]` runs the hook in an emulator against a model of these rules (about 26,000 calls: every charge and step, both buffers, long sessions, registers and memory touched).
+`core/src/fw/aspect/battery.ts` (GR IV 1.11; 1.20 / 1.21 in `fw/gr4v120`, `BuildOptions.batteryPercent`, a switch of the app's Image Control page) shows the charge in the battery icon in steps of 10 %, a number inside a battery drawn in the camera's style, instead of the three bars, which stay full down to about 55 %. The charge is byte 3 of the sub-CPU's 16-byte power report (byte 0, low nibble: the source, 1 = battery; byte 1: voltage x10; byte 2: the 0..4 step the bars show), which CpuInformationService keeps in a double buffer and every photo records in its maker note (tag 0x0216), but which the camera never shows. A hook in front of GetBatteryIcon (0x5339A1E8, shooting screen and playback) reads it without calling anything: guard 0x5537D2FC bit 0, holder 0x5537D1D8, service [holder + 4], index [service + 0xAC] (bit 15: the writer is busy, take index - 1), report at [service + 0x5C + 4 x index] + 4. It shows 10..100 (icons 1009..1018, 60x40) when the report says battery, is 0..100 and agrees with the step to within one, and keeps the shown step until the charge is 9 or more away (one byte, 0x55837300 / 1.20 0x55839040: the first of the 64 bytes of the C library's sbrk arena, which nothing in the firmware calls, between the 44 zero-filled bytes the other additions use and the camera's heap at 0x55837340 / 0x55839080; the start-up zero fill is extended over it, last of all the additions). Below 5 %, without a usable report and on external power the camera's own icon stays. Test builds (`batteryDiag`) show "?" (no usable report) and "!" (disagrees with the step) instead. `tools/battery/check.py BUILT.rtos OFFICIAL.rtos [--diag] [--sequence CSV]` runs the hook in an emulator against a model of these rules (about 26,000 calls: every charge and step, both buffers, long sessions, registers and memory touched).
 
 ## Second matrix
 
@@ -377,3 +377,28 @@ numbers (1.20: bars 0x104..0x107, 1.11: 0xF4..0xF7; the hook does not use them),
 percentage's icons are 1100..1111 on 1.20 / 1.21 (1.11: 1009..1020), after Direct Flash's settings
 icons there (1004..1054). The emulator checks have copies in `tools/gr4v120/{battery,grid,shade}`
 and `tools/gr4v121/...`; `core/test/gr4v120-additions.test.ts` builds each on both releases.
+
+Test 084 (`fw/gr4v120/aspect/viewmenu.ts`, 1.20 / 1.21 only) moves two of the choices into the camera:
+
+- The shade comes with every added ratio (`BuildOptions.ratioShade` / `ratioShadeTone` do not apply; the
+  engine reports `features.shadeMenu`). How dark is a line of the still menu after Aspect Ratio, "Ratio
+  Frame Shade" (比例取景半暗), opening a list Black / 75% / 50% / 25% / 0%, kept in bits 3..5 of byte 0x109
+  of the user settings (Direct Flash's fastest shutter speed keeps bits 0..2 and reads only those): 0, the
+  byte on every camera and after a reset, is 75 %. Black is UI palette colour 1, 50 % colour 16; the palette
+  (48 ARGB words at 0x540781EC, read by the 32-bit fill through `ldr r0, [r3, r0, lsl #2]` at 0x53926304)
+  has no black at 75 % or 25 %, so its lookup reads a copy of 256 words with 0xC0000000 at 0xF0 and
+  0x40000000 at 0xF1. The shade's Draw reads the byte and a table of the colour per code (`ShadeSetting`
+  in shade.ts); 0 draws no bands (the grid lines still go in the window).
+- The custom grids are values of the camera's Grid Style list (list record 93, after 3x3 and 4x4: "Custom
+  3x3 Grid" / "Custom 4x4 Grid" when they differ from the camera's), with bit 6 of the same byte; the
+  camera's style byte (0x8D9 of the settings object) keeps 0 / 1. grid.ts's hooks (`GridSelect`) draw the
+  custom lines only with the bit set, the native ones otherwise; the layout marks what it laid out at +0xF7
+  of the grid view (0x80 / 0x81), and the Draw lays the view out first when the mark is not the one chosen
+  (the flag can change without the style, and then the camera does not lay the view out again).
+- With flash TTL, texts 135 and 137 (Flash On+Red-eye, Slow Sync+Red-eye) get " (TTL)" ("（TTL）" in
+  Japanese and Chinese) in every language.
+
+`tools/gr4v120/viewmenu/check.py BUILT.rtos OFFICIAL.rtos [--shade] [--grid JSON] [--ttl]` runs the line,
+lists and icons in an emulator; `tools/grid/check.py ... --select 0x550833b5:0x40` and
+`tools/shade/draw_check.py ... --setting 0x550833b5:3:7:c0000000,ff000000,80000000,40000000,0,c0000000,c0000000,c0000000`
+check the drawing (the grid in 3:2, 1:1, 4:3, 16:9 frames and the added ratios' windows).

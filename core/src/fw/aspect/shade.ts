@@ -84,15 +84,23 @@ const LINE_SET_POINTS = adr(0x5356e654);
 export type ShadeTone = 'dark' | 'light';
 export const SHADE_TONES: readonly ShadeTone[] = ['dark', 'light'];
 const TONE_COLOUR: Readonly<Record<ShadeTone, number>> = { dark: 16, light: 19 };
+/**
+ * A shade chosen in the camera menu (GR IV 1.20 / 1.21, `viewmenu.ts`): a field of a setting byte
+ * (bits `shift`.. of `byte`, `mask` wide) picks the colour, `colours[code]` a UI palette number,
+ * 0 for no shade (the bands are not drawn; the grid lines still go in the photo's window).
+ */
+export interface ShadeSetting { byte: number; shift: number; mask: number; colours: readonly number[] }
 
 function fail(message: string): never {
   throw new FirmwareError('unexpected-layout', message);
 }
 
 /** One rectangle: fill (x, y, w, h) held in r0..r3 unless w or h is not positive. Keeps r4-r11. Stack stays 8-byte aligned. */
-function band(n: number, colour: number): string {
+function band(n: number, colour: number | null): string {
+  // null: the colour chosen in the camera, at [sp+52].
+  const load = colour === null ? 'ldr ip,[sp,#52]' : `mov ip,#${colour}`;
   return `cmp r2,#0;ble skip${n};cmp r3,#0;ble skip${n};` +
-    `str r5,[sp];str r0,[sp,#4];str r1,[sp,#8];str r2,[sp,#12];str r3,[sp,#16];mov ip,#${colour};str ip,[sp,#20];mov ip,#0;str ip,[sp,#24];str ip,[sp,#28];` +
+    `str r5,[sp];str r0,[sp,#4];str r1,[sp,#8];str r2,[sp,#12];str r3,[sp,#16];${load};str ip,[sp,#20];mov ip,#0;str ip,[sp,#24];str ip,[sp,#28];` +
     `bl #${FILL_FACTORY};bl #${FILL_GET};mov r1,sp;bl #${FILL_RECT};skip${n}:`;
 }
 
@@ -100,11 +108,13 @@ function band(n: number, colour: number): string {
  * `get` maps an identity to its geometry row ({fx num, fx den, fy num, fy den, ...}) or 0; `scale` is r0 * r1 / r2
  * (both code of the ratios' Program). The checks read the image as it is now, after the other hooks.
  */
-export function installRatioShade(geometry: Program, get: number, scale: number, tone: ShadeTone = 'dark'): void {
+export function installRatioShade(geometry: Program, get: number, scale: number, tone: ShadeTone | ShadeSetting = 'dark'): void {
   const p = new Program(geometry.patch);
   const word = (at: number): number => p.sourceWord(at);
-  const colour = TONE_COLOUR[tone];
+  const setting = typeof tone === 'object' ? tone : null;
+  const colour = setting ? null : TONE_COLOUR[tone as ShadeTone];
   if (colour === undefined) fail('unknown shade tone');
+  if (setting && (setting.colours.length !== setting.mask + 1 || setting.colours.some((c) => !(Number.isInteger(c) && c >= 0 && c < 256)))) fail('bad shade setting');
   if (word(GRID_DRAW_SLOT) !== GRID_DRAW) fail('grid view Draw is not where it was expected');
   p.expect(GRID_CTOR_CLEAR, 'strb r5,[r4,#0xf4]', 'grid view constructor has changed');
   p.expect(UPDATE_GRID_VISIBLE, 'mov r1,r5', 'live-view grid update has changed');
@@ -132,9 +142,15 @@ export function installRatioShade(geometry: Program, get: number, scale: number,
     `push {r0,r2,r3,r4,ip,lr};cmp r5,#0;movne r0,#3;moveq r0,#1;strb r0,[r6,#${MARK}];bl #${selected};cmp r0,#0;mov r1,r5;movne r1,#1;pop {r0,r2,r3,r4,ip,lr};b #${UPDATE_GRID_VISIBLE + 4};`);
 
   // Draw(view = r0, context = r1).
-  // Stack: [sp..+31] the fill's arguments, [sp+32..+47] the saved frame, [sp+48] the geometry row.
+  // Stack: [sp..+31] the fill's arguments, [sp+32..+47] the saved frame, [sp+48] the geometry row,
+  // [sp+52] the colour chosen in the camera.
+  const colours = setting ? p.blob(Uint8Array.from(setting.colours)) : 0;
   let d = 'push {r3-r11,lr};sub sp,sp,#56;mov r4,r0;mov r5,r1;';
   d += `ldrb r0,[r4,#${MARK}];tst r0,#1;beq native;bl #${selected};movs r7,r0;beq native;str r7,[sp,#48];`;
+  if (setting) {
+    d += `movw r0,#${setting.byte & 0xffff};movt r0,#${setting.byte >>> 16};ldrb r0,[r0];${setting.shift ? `mov r0,r0,lsr #${setting.shift};` : ''}and r0,r0,#${setting.mask};`;
+    d += `movw r1,#${colours & 0xffff};movt r1,#${colours >>> 16};ldrb r0,[r1,r0];str r0,[sp,#52];cmp r0,#0;beq lines;`;
+  }
   // Canvas size: width +0x18, height +0x1A of the drawing surface (the context itself, as in the
   // native fill); a missing height is width * 2 / 3.
   d += 'ldrh r8,[r5,#0x18];ldrh r9,[r5,#0x1a];cmp r8,#0;beq lines;';

@@ -140,7 +140,13 @@ export function setLiveView(v: LiveView): void {
   if (!state.info?.features.ratioShade) return;
   set({ ratioShade: true, ratioShadeTone: v === '25' ? 'light' : 'dark' }); scheduleSave();
 }
-/** How dark the outside of the photo is, for the summaries. */
-export function toneLabel(tone: ShadeTone): string { return tone === 'light' ? '25%' : '50%'; }
-/** The live-view shade goes into a build: chosen, offered by the open firmware, and there is an added ratio. */
-export function ratioShadeOn(s: State = state, ratios = ratioSpecs(s)): boolean { return !!s.ratioShade && !!s.info?.features.ratioShade && ratios.length > 0; }
+/** How dark the outside of the photo is, for the summaries; GR IV 1.20 / 1.21: chosen in the camera. */
+export function toneLabel(tone: ShadeTone, s: State = state): string { return s.info?.features.shadeMenu ? t('shadeInCamera') : tone === 'light' ? '25%' : '50%'; }
+/**
+ * The live-view shade goes into a build: chosen (GR IV 1.20 / 1.21: always, how dark is chosen in the camera),
+ * offered by the open firmware, and there is an added ratio.
+ */
+export function ratioShadeOn(s: State = state, ratios = ratioSpecs(s)): boolean { return (!!s.ratioShade || !!s.info?.features.shadeMenu) && !!s.info?.features.ratioShade && ratios.length > 0; }
+/** GR IV 1.20 / 1.21: the shade level the ratio page previews (the camera's own choice is made in its menu; 75 % by default). */
+export type ShadePreview = '100' | '75' | '50' | '25' | '0';
+export function setShadePreview(shadePreview: ShadePreview): void { set({ shadePreview }); }

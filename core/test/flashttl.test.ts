@@ -76,7 +76,10 @@ for (const { version, path, SITES, NATIVES } of releases) describe.skipIf(!exist
         // Everything the other additions build stays where it was: flash TTL is appended after them.
         const p = rtos(plain.file);
         const end = recordStart(p);
-        const own = new Set([...SITES.map(([at]) => at)]);
+        // ... and the two red-eye Flash Modes' names (texts 135 and 137, "(TTL)" added: viewmenu.ts), each language row.
+        const catalog = version === '1.20' ? 0x5440da00 : 0x5440f200;
+        const names = Array.from({ length: 21 }, (_, l) => [135, 137].map((id) => word(p, catalog + 4 * l) + 4 * id)).flat();
+        const own = new Set([...SITES.map(([at]) => at), ...names]);
         let first = end;
         for (let i = 0; i < end; i += 4) {
           const at = 0x53000000 + i;

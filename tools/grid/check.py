@@ -2,25 +2,35 @@
 """Emulator checks of custom grid lines (core/src/fw/aspect/grid.ts, installCustomGrid). NOT part of
 the program.
 
-    python3 check.py BUILT-RTOS OFFICIAL-RTOS --grid '{"g3":[...8],"g4":[...8]}' [--window]
+    python3 check.py BUILT-RTOS OFFICIAL-RTOS --grid '{"g3":[...8],"g4":[...8]}' [--window] [--select BYTE:BIT]
 
 BUILT-RTOS / OFFICIAL-RTOS: RTOS sections (decoded). --grid: the build's custom grid, each line
 true / false (or 1 / 0), in the order top, centre, bottom horizontal; left, centre, right vertical;
 diagonal from the top left, from the bottom left. --window when BUILT-RTOS also keeps the grid in
 an added ratio's photo area (the live-view shade, aspect/shade.ts); its added ratios are read from
-the record. Needs the Python package unicorn.
+the record. --select (GR IV 1.20 / 1.21, the custom styles chosen in the camera's Grid Style list,
+gr4v120/aspect/viewmenu.ts): the setting byte's address and the bit that chooses the custom lines;
+every case then runs with the bit clear and set (the byte's other bits set too). Needs the Python
+package unicorn.
 
- 1. GridView::Draw (0x53578848) of BUILT-RTOS for both styles and several frames, with the line
+ 1. GridView::Draw (0x53578848) of BUILT-RTOS for both styles and several frames (3:2, added
+    ratios' windows, the camera's 1:1, 4:3 and 16:9), with the line
     drawer (0x53578548) stubbed: exactly the lines that are on, in order, each 2 pixels wide across
     the frame at k * (length / divisions) - 1 from its edge, drawn with the camera's colour byte
     +0xF5 (unchanged afterwards); then the base view Draw, once. For a style set to the camera's
-    own lines they are exactly the official Draw's.
- 2. The layout (0x53578678) of BUILT-RTOS for both styles and two sizes, with the line views'
+    own lines they are exactly the official Draw's. With --select: the custom lines only with the
+    bit set and a style that has lines of its own, otherwise exactly the official Draw's; a view
+    whose layout mark (+0xF7) is not the one for what is chosen is laid out first, once (the
+    mark then right); with the right mark, no layout.
+ 2. The layout (0x53578678) of BUILT-RTOS for both styles and five sizes (3:2, 3:1, 1:1, 4:3,
+    16:9), with the line views'
     setters stubbed: each diagonal that is on gets its two points (corner to corner of the bounds,
     or with --window and an added ratio selected of the ratio's window, centred), thickness 2, the
     grid's colour and SetVisible 1; each one that is off gets SetVisible 0 only. Both line views get
     the whole bounds first, as officially. +0xF5 is untouched. For a style set to the camera's own
-    lines and no added ratio selected, every call is the official layout's.
+    lines and no added ratio selected, every call is the official layout's. With --select: the
+    custom diagonals only as in 1, otherwise the camera's (both for 4x4, none for 3x3; the
+    official layout's without an added ratio); the mark +0xF7 is 0x81 / 0x80 afterwards.
 """
 import json
 import struct
@@ -174,20 +184,44 @@ def rect(e, va):
     return struct.unpack('<4i', bytes(e.mu.mem_read(va, 16)))
 
 
-def draw_lines(img, style, frame):
+def set_choice(e, select, chosen, mark=None):
+    """With --select: the setting byte (the bit as chosen, every other bit set) and the view's layout mark."""
+    if select is None:
+        return
+    byte, bit = select
+    e.w8(byte, (0xff & ~bit) | (bit if chosen else 0))
+    if mark is not None:
+        e.w8(VIEW + 0xf7, mark)
+
+
+def children(e):
+    e.w32(CHILD_VTABLE + 0x18, CHILD_FRAME)
+    for c in CHILD:
+        e.w32(c, CHILD_VTABLE)
+    e.w32(VIEW + 0xec, CHILD[0])
+    e.w32(VIEW + 0xf0, CHILD[1])
+
+
+def draw_lines(img, style, frame, select=None, chosen=False, mark=None):
     e = Emu(img)
-    e.stubs = {DRAW_LINE: ('line', None), VIEW_BASE_DRAW: ('base draw', None)}
+    e.stubs = {DRAW_LINE: ('line', None), VIEW_BASE_DRAW: ('base draw', None), SET_POINTS: ('points', None), SET_COLOUR: ('colour', None),
+               SET_VISIBLE: ('visible', None), CHILD_FRAME: ('child frame', None), CURRENT_USERDATA: ('userdata', 0)}
     lines = []
+    layouts = []
 
     def hook(uc, addr, size, ud):
         lines.append((rect(e, uc.reg_read(UC_ARM_REG_R2)), e.r8(VIEW + 0xf5)))
     e.mu.hook_add(UC_HOOK_CODE, hook, begin=DRAW_LINE, end=DRAW_LINE)
+    e.mu.hook_add(UC_HOOK_CODE, lambda uc, addr, size, ud: layouts.append(uc.reg_read(UC_ARM_REG_R0)), begin=LAYOUT, end=LAYOUT)
+    children(e)
+    e.mu.mem_write(VIEW + 0x20, struct.pack('<4i', 0, 0, frame[2], frame[3]))
     e.mu.mem_write(VIEW + 0x30, struct.pack('<4i', *frame))
     e.w8(VIEW + 0x9e, 1)
     e.w8(VIEW + 0xf4, style)
     e.w8(VIEW + 0xf5, COLOUR)
+    set_choice(e, select, chosen, mark)
     e.run(GRID_DRAW, {UC_ARM_REG_R0: VIEW, UC_ARM_REG_R1: CTX})
-    return lines, [c[0] for c in e.calls if c[0] == 'base draw'], e.r8(VIEW + 0xf5)
+    return lines, [c[0] for c in e.calls if c[0] == 'base draw'], e.r8(VIEW + 0xf5), layouts, e.r8(VIEW + 0xf7)
 
 
 def expected_lines(cfg, style, frame):
@@ -203,7 +237,7 @@ def expected_lines(cfg, style, frame):
     return out
 
 
-def layout(img, style, w, h, aspect=None):
+def layout(img, style, w, h, aspect=None, select=None, chosen=False):
     e = Emu(img)
     e.stubs = {SET_POINTS: ('points', None), SET_COLOUR: ('colour', None), SET_VISIBLE: ('visible', None),
                CHILD_FRAME: ('child frame', None), CURRENT_USERDATA: ('userdata', USERDATA if aspect is not None else 0)}
@@ -221,18 +255,16 @@ def layout(img, style, w, h, aspect=None):
             calls.append(('frame', r0, rect(e, r1)))
     for va in (SET_POINTS, SET_COLOUR, SET_VISIBLE, CHILD_FRAME):
         e.mu.hook_add(UC_HOOK_CODE, hook, begin=va, end=va)
-    e.w32(CHILD_VTABLE + 0x18, CHILD_FRAME)
-    for c in CHILD:
-        e.w32(c, CHILD_VTABLE)
-    e.w32(VIEW + 0xec, CHILD[0])
-    e.w32(VIEW + 0xf0, CHILD[1])
+    children(e)
     e.mu.mem_write(VIEW + 0x20, struct.pack('<4i', 0, 0, w, h))
     e.w8(VIEW + 0xf4, style)
     e.w8(VIEW + 0xf5, COLOUR)
+    e.w8(VIEW + 0xf7, 0x5a)
+    set_choice(e, select, chosen)
     if aspect is not None:
         e.w8(USERDATA + ASPECT_BYTE, aspect)
     e.run(LAYOUT, {UC_ARM_REG_R0: VIEW})
-    return calls, e.r8(VIEW + 0xf5)
+    return calls, e.r8(VIEW + 0xf5), e.r8(VIEW + 0xf7)
 
 
 def window(ratio, w, h):
@@ -263,43 +295,65 @@ def main():
     if any(len(grid[k]) != 8 for k in ('g3', 'g4')):
         raise SystemExit('--grid: eight lines per style')
     in_window = '--window' in opts
+    select = None
+    if '--select' in opts:
+        b, bit = opts[opts.index('--select') + 1].split(':')
+        select = (int(b, 0), int(bit, 0))
+        args = [a for a in args if a != opts[opts.index('--select') + 1]]
     new, old = Image(args[0]), Image(args[1])
     cfgs = {0: grid['g3'], 1: grid['g4']}
     camera = {0: grid['g3'] == CAMERA['g3'], 1: grid['g4'] == CAMERA['g4']}
+    choices = (False, True) if select else (True,)
+
+    def active(style, chosen):
+        return chosen and (select is None or not camera[style])
 
     # 1. Straight lines.
     n = 0
     for style in (0, 1):
-        for frame in [(0, 0, 720, 480), (0, 120, 720, 240), (60, 0, 600, 480), (8, 6, 704, 468), (0, 108, 720, 264)]:
-            got, base, after = draw_lines(new, style, frame)
-            want = expected_lines(cfgs[style], style, frame)
-            what = f'Draw style {style} frame {frame}'
-            check(got == want, f'{what}: lines {got}, want {want}')
-            check(base == ['base draw'], f'{what}: base Draw {base}')
-            check(after == COLOUR, f'{what}: colour byte {after} afterwards')
-            if camera[style]:
-                off, obase, _ = draw_lines(old, style, frame)
-                check([r for r, _ in got] == [r for r, _ in off], f'{what}: camera grid differs from the official Draw: {got} / {off}')
-            n += 1
+        # 3:2, added ratios' windows, and the camera's own 1:1, 4:3 and 16:9 (the frame fitted to the live picture).
+        for frame in [(0, 0, 720, 480), (0, 120, 720, 240), (60, 0, 600, 480), (8, 6, 704, 468), (0, 108, 720, 264),
+                      (120, 0, 480, 480), (40, 0, 640, 480), (0, 38, 720, 404)]:
+            for chosen in choices:
+                on = active(style, chosen)
+                right = 0x80 | (1 if on else 0)
+                for mark in ((right, right ^ 1, 0) if select else (None,)):
+                    got, base, after, laid, mark_after = draw_lines(new, style, frame, select, chosen, mark)
+                    want = expected_lines(cfgs[style] if on else CAMERA['g3' if style == 0 else 'g4'], style, frame)
+                    what = f'Draw style {style} frame {frame} chosen {chosen} mark {mark}'
+                    check(got == want, f'{what}: lines {got}, want {want}')
+                    check(base == ['base draw'], f'{what}: base Draw {base}')
+                    check(after == COLOUR, f'{what}: colour byte {after} afterwards')
+                    if select:
+                        check(laid == ([] if mark == right else [VIEW]), f'{what}: layouts {laid}')
+                        check(mark_after == right, f'{what}: mark {mark_after:#x} afterwards, want {right:#x}')
+                    if camera[style] or not on:
+                        off, obase, _, _, _ = draw_lines(old, style, frame)
+                        check([r for r, _ in got] == [r for r, _ in off], f'{what}: camera grid differs from the official Draw: {got} / {off}')
+                    n += 1
     print(f'straight lines: {n} cases; the lines that are on, at the native places, in the camera\u2019s colour')
 
     # 2. Diagonals.
     ids = {7 + k: parse_ratio(r) for k, r in enumerate(new.ratios())} if in_window else {}
     n = 0
     for style in (0, 1):
-        for (w, h) in [(720, 480), (720, 240)]:
+        for (w, h) in [(720, 480), (720, 240), (480, 480), (640, 480), (720, 404)]:
             cases = [(None, None)] + ([(a, window(r, w, h)) for a, r in ids.items()] + [(0, None)] if in_window else [])
             for aspect, win in cases:
-                got, after = layout(new, style, w, h, aspect)
-                want = expected_layout(cfgs[style], w, h, win)
-                what = f'layout style {style} {w}x{h} aspect {aspect}'
-                check(sorted(got, key=str) == sorted(want, key=str), f'{what}: {got}, want {want}')
-                check([c for c in got if c[0] == 'frame'] == [c for c in want if c[0] == 'frame'], f'{what}: line view frames first')
-                check(after == COLOUR, f'{what}: colour byte changed to {after}')
-                if camera[style] and win is None:
-                    off, _ = layout(old, style, w, h, aspect)
-                    check(sorted(got, key=str) == sorted(off, key=str), f'{what}: camera grid differs from the official layout: {got} / {off}')
-                n += 1
+                for chosen in choices:
+                    on = active(style, chosen)
+                    got, after, mark = layout(new, style, w, h, aspect, select, chosen)
+                    want = expected_layout(cfgs[style] if on else CAMERA['g3' if style == 0 else 'g4'], w, h, win)
+                    what = f'layout style {style} {w}x{h} aspect {aspect} chosen {chosen}'
+                    check(sorted(got, key=str) == sorted(want, key=str), f'{what}: {got}, want {want}')
+                    check([c for c in got if c[0] == 'frame'] == [c for c in want if c[0] == 'frame'], f'{what}: line view frames first')
+                    check(after == COLOUR, f'{what}: colour byte changed to {after}')
+                    if select:
+                        check(mark == 0x80 | (1 if on else 0), f'{what}: mark {mark:#x}')
+                    if (camera[style] or not on) and win is None:
+                        off, _, _ = layout(old, style, w, h, aspect)
+                        check(sorted(got, key=str) == sorted(off, key=str), f'{what}: camera grid differs from the official layout: {got} / {off}')
+                    n += 1
     print(f'diagonals: {n} cases; each one on gets its points{" (the window with an added ratio)" if in_window else ""}, thickness 2, colour and shown; off ones hidden')
 
     if failures:

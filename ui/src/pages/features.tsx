@@ -4,7 +4,7 @@ import { Ico, Segmented, Select, Switch } from '../components';
 import { isMobile } from '../host';
 import { t } from '../i18n';
 import { uiScale } from '../fit';
-import { useStore, setSoft, setDateStamp, setMonoUnlock, setDirectFlash, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain, setShadowLearn, setFlashTtl, setBrightAuto } from '../store';
+import { useStore, setSoft, setDateStamp, setMonoUnlock, setFlashPlus, flashPlusOn, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain, setShadowLearn, setBattery, setBrightAuto } from '../store';
 
 /** One switch of the firmware additions: icon, name, one line of detail. */
 export function FeatureRow({ icon, title, sub, on, onChange, tour }: { icon: ReactNode; title: string; sub: string; on: boolean; onChange: (v: boolean) => void; tour?: string }) {
@@ -16,6 +16,20 @@ export function FeatureRow({ icon, title, sub, on, onChange, tour }: { icon: Rea
         <span className="muted small ellipsis">{sub}</span>
       </div>
       <Switch checked={on} onChange={onChange} label={title} />
+    </div>
+  );
+}
+
+/** A choice of a few values in the row of an addition (icon, name, one line of detail). */
+function ChoiceRow<T extends string>({ icon, title, sub, value, on, options, onChange, tour }: { icon: ReactNode; title: string; sub: string; value: T; on: boolean; options: { value: T; label: string }[]; onChange: (v: T) => void; tour?: string }) {
+  return (
+    <div className={`soft-switch ${on ? 'on' : ''}`} data-tour={tour}>
+      <span className="page-icon soft-ico">{icon}</span>
+      <div className="soft-text">
+        <b>{title}</b>
+        <span className="muted small ellipsis">{sub}</span>
+      </div>
+      <Segmented value={value} onChange={onChange} options={options} />
     </div>
   );
 }
@@ -46,8 +60,8 @@ export function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?
   const looks = useStore((s) => s.monoUnlock);
   const gr3x = useStore(s => s.info?.family === 'gr3x');
   const dateOk = useStore(s => !!s.info?.features.dateStamp);
-  const flash = useStore((s) => s.directFlash);
-  const flashOk = useStore((s) => !!s.info?.features.directFlash);
+  const flash = useStore((s) => flashPlusOn(s));
+  const flashOk = useStore((s) => !!s.info?.features.directFlash || !!s.info?.features.flashTtl);
   const adjMax = useStore((s) => s.info?.features.maxAdjSlots ?? 5);
   const hdr = useStore((s) => s.hdr);
   const brightAuto = useStore((s) => s.brightAuto);
@@ -59,8 +73,9 @@ export function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?
   const shadowOk = useStore((s) => !!s.info?.features.shadowLearn);
   const grain = useStore((s) => s.filmGrain);
   const grainOk = useStore((s) => !!s.info?.features.filmGrain);
-  const ttl = useStore((s) => s.flashTtl);
   const ttlOk = useStore((s) => !!s.info?.features.flashTtl);
+  const battery = useStore((s) => s.battery);
+  const batteryOk = useStore((s) => !!s.info?.features.batteryPercent);
   const own = useRef<HTMLDivElement | null>(null);
   // Moved to the other column: glide from where it was (FLIP). Rectangles are in window pixels,
   // the transform is in the zoomed interface's pixels.
@@ -79,12 +94,16 @@ export function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?
       <FeatureRow icon={Ico.soft} title={t('navSoft')} sub={t(gr3x ? 'gr3xSoftSub' : 'softAdjSub')} on={soft} onChange={setSoft} tour="ic-f-soft" />
       {(!gr3x || dateOk) && <FeatureRow icon={Ico.date} title={t('navDate')} sub={t('dateSub')} on={date} onChange={setDateStamp} tour="ic-f-date" />}
       {!mono && !gr3x && <FeatureRow icon={Ico.mono} title={t(gr3x ? 'gr3xReplicaTitle' : 'navMono')} sub={t(gr3x ? 'gr3xReplicaSub' : 'monoSub')} on={looks} onChange={setMonoUnlock} tour="ic-f-mono" />}
-      {flashOk && <FeatureRow icon={Ico.flash} title={t('navFlash')} sub={t('flashSub')} on={flash} onChange={setDirectFlash} tour="ic-f-flash" />}
+      {flashOk && <FeatureRow icon={Ico.flash} title={t('navFlash')} sub={t(ttlOk ? 'flashPlusSub' : 'flashSub')} on={flash} onChange={setFlashPlus} tour="ic-f-flash" />}
       {hdrOk && <FeatureRow icon={Ico.hdr} title={t('navHdr')} sub={t('hdrSub')} on={hdr} onChange={setHdr} tour="ic-f-hdr" />}
       {previewOk && <FeatureRow icon={Ico.preview} title={t('navPreview')} sub={t('previewSub')} on={preview} onChange={setExposurePreview} tour="ic-f-preview" />}
       {shadowOk && <FeatureRow icon={Ico.shadow} title={t('navShadow')} sub={t('shadowSub')} on={shadow} onChange={setShadowLearn} tour="ic-f-shadow" />}
-      {grainOk && <FeatureRow icon={Ico.grain} title={t('navGrain')} sub={t('grainSub')} on={grain} onChange={setFilmGrain} tour="ic-f-grain" />}
-      {ttlOk && <FeatureRow icon={Ico.flash} title={t('navFlashTtl')} sub={t('flashTtlSub')} on={ttl} onChange={setFlashTtl} tour="ic-f-ttl" />}
+      {batteryOk && <FeatureRow icon={Ico.battery} title={t('navBattery')} sub={t('batterySub')} on={battery} onChange={setBattery} tour="ic-f-battery" />}
+      {grainOk && (
+        <ChoiceRow icon={Ico.grain} title={t('navGrain')} sub={t('grainSub')} on={grain} tour="ic-f-grain"
+          value={grain ? 'mod' : 'camera'} onChange={(v) => setFilmGrain(v === 'mod')}
+          options={[{ value: 'camera', label: t('grainCamera') }, { value: 'mod', label: t('grainMod') }]} />
+      )}
       {adjMax > 5 && <AdjSlotsRow max={adjMax} />}
       {brightAutoOk && !isMobile && <div className="soft-switch" data-tour="ic-f-bright"><Select value={brightAuto || 'off'} options={[{ value: 'off', label: t('brightAutoOff') }, { value: 'balanced', label: t('brightAutoBalanced') }, { value: 'bright', label: t('brightAutoBright') }]} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')} label={t('navBrightAuto')} variant="row" /></div>}
       {/* on a phone: a row like the others, the three levels side by side (as the ADJ items) */}

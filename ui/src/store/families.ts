@@ -211,7 +211,7 @@ export async function init(): Promise<void> {
       else familyDocs.gr4 = doc;
       const fam = familyOf(model), work = familyDocs[fam];
       set({ ...parseFamily(work), model,
-        page: doc.page === 'wall' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'battery' || doc.page === 'grid' || doc.page === 'ic' ? doc.page : doc.page === 'script' ? 'wall' : 'ic',
+        page: doc.page === 'wall' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'grid' || doc.page === 'ic' ? doc.page : doc.page === 'script' ? 'wall' : 'ic',
         ...langOf(doc), fwName: doc.fwName, showAll: !!doc.showAll,
         previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo',
         // GR Mod 0.8 changed the power-off page: its tour (which now says where the pictures are chosen) shows once more

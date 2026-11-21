@@ -908,7 +908,8 @@
     "core/src/fw/gr4v120/aspect/menuwide.ts",
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/hdrgain/menu_check.py"
+    "tools/gr4v120/hdrgain/menu_check.py",
+    "tools/gr4v120/viewmenu/check.py"
    ]
   },
   "0x531b5660": {
@@ -3161,7 +3162,8 @@
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/directflash/settings_check.py",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/hdrgain/menu_check.py"
+    "tools/gr4v120/hdrgain/menu_check.py",
+    "tools/gr4v120/viewmenu/check.py"
    ]
   },
   "0x531d825c": {
@@ -3174,7 +3176,8 @@
     "tools/gr4v120/datestamp/list_width_check.py",
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/hdrgain/menu_check.py"
+    "tools/gr4v120/hdrgain/menu_check.py",
+    "tools/gr4v120/viewmenu/check.py"
    ]
   },
   "0x531d826c": {
@@ -3187,7 +3190,8 @@
     "tools/gr4v120/datestamp/list_width_check.py",
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/hdrgain/menu_check.py"
+    "tools/gr4v120/hdrgain/menu_check.py",
+    "tools/gr4v120/viewmenu/check.py"
    ]
   },
   "0x531d83fc": {
@@ -4237,7 +4241,8 @@
     "tools/gr4v120/shutdown/shutdown.c",
     "tools/gr4v120/softfocus/check.py",
     "core/src/fw/gr4v120/aspect/grain.ts",
-    "tools/gr4v120/grain/fw_check.py"
+    "tools/gr4v120/grain/fw_check.py",
+    "core/src/fw/gr4v120/aspect/viewmenu.ts"
    ]
   },
   "0x53240818": {
@@ -4284,7 +4289,8 @@
     "tools/gr4v120/softfocus/check.py",
     "core/src/fw/gr4v120/aspect/shade.ts",
     "tools/gr4v120/grid/check.py",
-    "tools/gr4v120/shade/draw_check.py"
+    "tools/gr4v120/shade/draw_check.py",
+    "core/src/fw/gr4v120/aspect/viewmenu.ts"
    ]
   },
   "0x53240c58": {
@@ -4292,7 +4298,8 @@
    "how": "aligned + refs 0x53241260x2",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/directflash.ts"
+    "core/src/fw/gr4v120/aspect/directflash.ts",
+    "core/src/fw/gr4v120/aspect/viewmenu.ts"
    ]
   },
   "0x53240c5c": {
@@ -6747,7 +6754,8 @@
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "tools/gr4v120/datestamp/menu_check.py",
-    "tools/gr4v120/shutdown/menu_check.py"
+    "tools/gr4v120/shutdown/menu_check.py",
+    "core/src/fw/gr4v120/aspect/viewmenu.ts"
    ]
   },
   "0x5359d7dc": {
@@ -9343,7 +9351,8 @@
     "core/src/fw/gr4v120/aspect/directflash.ts",
     "tools/gr4v120/adjslots/check.py",
     "tools/gr4v120/datestamp/menu_check.py",
-    "tools/gr4v120/directflash/settings_check.py"
+    "tools/gr4v120/directflash/settings_check.py",
+    "core/src/fw/gr4v120/aspect/viewmenu.ts"
    ]
   },
   "0x53dd0f00": {
@@ -9703,7 +9712,8 @@
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/directflash/check.py",
     "tools/gr4v120/directflash/settings_check.py",
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/viewmenu/check.py"
    ]
   },
   "0x5440c5e0": {
@@ -9724,7 +9734,8 @@
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/directflash/check.py",
     "tools/gr4v120/directflash/settings_check.py",
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/viewmenu/check.py"
    ]
   },
   "0x5440c600": {
@@ -10001,7 +10012,9 @@
     "tools/gr4v120/hdrgain/check.py",
     "tools/gr4v120/hdrgain/menu_check.py",
     "tools/gr4v120/slotparams/slot_params.c",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/viewmenu.ts",
+    "tools/gr4v120/viewmenu/check.py"
    ]
   },
   "0x5537b29c": {
@@ -10550,7 +10563,9 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/shade.ts",
-    "tools/gr4v120/shade/draw_check.py"
+    "tools/gr4v120/shade/draw_check.py",
+    "core/src/fw/gr4v120/aspect/viewmenu.ts",
+    "tools/gr4v120/viewmenu/check.py"
    ]
   },
   "0x5537ee98": {
@@ -11906,6 +11921,119 @@
    "why": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged",
    "files": [
     "core/src/fw/gr4v120/aspect/flttl.ts"
+   ]
+  },
+  "0x531b3070": {
+   "new": "0x531b3454",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/viewmenu.ts"
+   ]
+  },
+  "0x531b3080": {
+   "new": "0x531b3464",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/viewmenu.ts"
+   ]
+  },
+  "0x531d0ce0": {
+   "new": "0x531d12e8",
+   "how": "aligned + refs 0x531d12e8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/viewmenu.ts"
+   ]
+  },
+  "0x531d36cc": {
+   "new": "0x531d3cd4",
+   "how": "aligned + refs 0x531d3cd4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/viewmenu.ts"
+   ]
+  },
+  "0x531d3704": {
+   "new": "0x531d3d0c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/viewmenu.ts"
+   ]
+  },
+  "0x531d372c": {
+   "new": "0x531d3d34",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/viewmenu.ts"
+   ]
+  },
+  "0x531d53d8": {
+   "new": "0x531d59e0",
+   "how": "aligned + refs 0x531d59e0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/viewmenu.ts"
+   ]
+  },
+  "0x531d6e08": {
+   "new": "0x531d7410",
+   "how": "aligned + refs 0x531d7410x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/viewmenu.ts"
+   ]
+  },
+  "0x532a04f4": {
+   "new": "0x532a0d44",
+   "how": "aligned + refs 0x532a0d44x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/viewmenu.ts"
+   ]
+  },
+  "0x53391238": {
+   "new": "0x53391ae8",
+   "how": "aligned + refs 0x53391ae8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/viewmenu.ts"
+   ]
+  },
+  "0x539262fc": {
+   "new": "0x539278c0",
+   "how": "aligned + refs 0x539278c0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/viewmenu.ts",
+    "tools/gr4v120/viewmenu/check.py"
+   ]
+  },
+  "0x53de5658": {
+   "new": "0x53de6cf8",
+   "how": "aligned + refs 0x53de6cf8x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/viewmenu.ts"
+   ]
+  },
+  "0x531b304c": {
+   "new": "0x531b3430",
+   "how": "aligned + refs 0x531b3430x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/viewmenu/check.py"
+   ]
+  },
+  "0x53338b58": {
+   "new": "0x533393a8",
+   "how": "aligned + refs 0x533393a8x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/viewmenu/check.py"
    ]
   }
  }

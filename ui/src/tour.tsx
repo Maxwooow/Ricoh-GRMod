@@ -55,6 +55,9 @@ export const TOURS: Record<TourId, Step[]> = {
     { target: 'ic-f-flash', title: 'navFlash', body: 'tIcFFlashB', side: 'top' },
     { target: 'ic-f-hdr', title: 'navHdr', body: 'tIcFHdrB', side: 'top' },
     { target: 'ic-f-preview', title: 'navPreview', body: 'tIcFPreviewB', side: 'top' },
+    { target: 'ic-f-shadow', title: 'navShadow', body: 'tIcFShadowB', side: 'top' },
+    { target: 'ic-f-battery', title: 'navBattery', body: 'tIcFBatteryB', side: 'top' },
+    { target: 'ic-f-grain', title: 'navGrain', body: 'tIcFGrainB', side: 'top' },
     { target: 'ic-f-adj', title: 'navAdjSlots', body: 'tIcFAdjB', side: 'top' },
     { target: 'ic-f-bright', title: 'navBrightAuto', body: 'tIcFBrightB', side: 'top' },
     step('ic-tabs', 'IcTabs', 'bottom'),
@@ -71,9 +74,6 @@ export const TOURS: Record<TourId, Step[]> = {
     step('ratio-backdrop', 'RatioBackdrop', 'bottom'),
     step('ratio-frame', 'RatioFrame', 'left'),
     step('write', 'IcWrite', 'top'),
-  ],
-  battery: [
-    { target: 'battery-switch', title: 'navBattery', body: 'tBatteryB', side: 'bottom' },
   ],
   grid: [
     { target: 'grid-switch', title: 'navGrid', body: 'tGridB', side: 'bottom' },

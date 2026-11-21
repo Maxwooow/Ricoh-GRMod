@@ -3,6 +3,7 @@
 of the program.
 
     python3 draw_check.py BUILT-RTOS OFFICIAL-RTOS PLAIN-RTOS [--tone dark|light] [--other-lines]
+                          [--setting BYTE:SHIFT:MASK:ARGB,ARGB,...]
 
 BUILT-RTOS / OFFICIAL-RTOS: RTOS sections (decoded). BUILT-RTOS is a build with the shade; its
 added ratios are read from the record at the end of its RTOS section. PLAIN-RTOS is the same build
@@ -10,7 +11,10 @@ without the shade. --tone is the tone BUILT-RTOS was made with. --other-lines wh
 addition of BUILT-RTOS changes which grid lines the native Draw and the layout draw: in 3 the lines
 are then only checked to lie in the window, not compared with the official Draw's, and in 4 only the
 diagonals' points are checked (each one shown runs corner to corner of the window, or of the bounds
-without an added ratio). Needs the Python packages unicorn and capstone.
+without an added ratio). --setting (GR IV 1.20 / 1.21, gr4v121/aspect/viewmenu.ts): the shade is chosen
+in the camera, a field of a setting byte (address, shift, mask) picks it; the ARGB colour each stored
+code must give (0: no shade). Every Draw case of the 720x480 canvas then runs with each code (the
+bits below the field set, those above clear), the others with code 0. Needs the Python packages unicorn and capstone.
 
  0. The live-view mode (0x538B4D70) and its check (0x53664D4C), patched, plain and official, for
     every capture aspect (factory, each added ratio, an unknown one) and, for the check, every
@@ -356,11 +360,15 @@ def native_lines(img, frame, style):
     e.mu.mem_write(VIEW + FRAME_OFF, struct.pack('<4i', *frame))
     e.w8(VIEW + 0x9e, 1)
     e.w8(VIEW + 0xf4, style)
+    e.w8(VIEW + 0xf7, 0x80)  # a custom grid chosen in the camera (1.20 / 1.21): laid out with the camera's lines
     e.run(GRID_DRAW, {UC_ARM_REG_R0: VIEW, UC_ARM_REG_R1: CTX})
     return lines
 
 
-def draw(img, aspect, mark, width, height, userdata=True, frame=(0, 0, 720, 480), style=0, visible=1):
+SETTING = None
+
+
+def draw(img, aspect, mark, width, height, userdata=True, frame=(0, 0, 720, 480), style=0, visible=1, code=0):
     """The Draw slot with the camera's own grid Draw, base view Draw and fill; only the line drawer
     is stubbed (its rectangles are recorded). The view has its two line views (the diagonals) as
     children, visible as after a 4x4 layout; their Draw is stubbed and recorded with their visible
@@ -385,6 +393,12 @@ def draw(img, aspect, mark, width, height, userdata=True, frame=(0, 0, 720, 480)
     e.w32(VIEW + 0xec, CHILD[0])
     e.w32(VIEW + 0xf0, CHILD[1])
     e.w8(USERDATA + ASPECT_BYTE, aspect)
+    if SETTING:
+        byte, shift, mask, _ = SETTING
+        # The bits below the field set (Direct Flash's), the ones above clear (the custom grid's
+        # choice: the camera's lines, laid out as such, mark +0xF7 = 0x80; grid/check.py covers it).
+        e.w8(byte, ((1 << shift) - 1) | (code << shift))
+        e.w8(VIEW + 0xf7, 0x80)
     e.w8(VIEW + MARK, mark)
     e.w8(VIEW + 0x9e, visible)
     e.w8(VIEW + 0xf4, style)
@@ -497,8 +511,15 @@ def main():
     opts = sys.argv[1:]
     tone = opts[opts.index('--tone') + 1] if '--tone' in opts else 'dark'
     args = [a for a in args if a not in TONES]
-    global SHADE
+    global SHADE, SETTING
     SHADE = Image(args[1]).u32(PALETTE + TONES[tone] * 4)
+    if '--setting' in opts:
+        spec = opts[opts.index('--setting') + 1]
+        args = [a for a in args if a != spec]
+        byte, shift, mask, argbs = spec.split(':')
+        SETTING = (int(byte, 0), int(shift, 0), int(mask, 0), [int(x, 16) for x in argbs.split(',')])
+        if len(SETTING[3]) != SETTING[2] + 1:
+            raise SystemExit('--setting: one colour per code')
     new, old, plain = Image(args[0]), Image(args[1]), Image(args[2])
     ratios = new.ratios()
     if not ratios:
@@ -507,7 +528,10 @@ def main():
     other_lines = '--other-lines' in opts
     print('added ratios:', ', '.join(f'{i} = {r}' for i, r in zip(ids, ratios)))
     static(new, old)
-    print(f'tone {tone}: colour {TONES[tone]} = {SHADE:#010x}')
+    if SETTING:
+        print('shade chosen in the camera: ' + ', '.join(f'code {c} {v:#010x}' for c, v in enumerate(SETTING[3])))
+    else:
+        print(f'tone {tone}: colour {TONES[tone]} = {SHADE:#010x}')
     live_checks(new, old, plain, ids)
 
     aspects = [0, 1, 2, 3, *ids, 7 + len(ids), 255, None]
@@ -537,67 +561,70 @@ def main():
             for frame in frames:
                 for mark in (0, 1, 3):
                     for style in ((0, 1) if mark == 3 else (0,)):
-                        px, after, kept, rows = draw(new, aspect, mark, width, height, frame=frame, style=style)
-                        n += 1
-                        what = f'Draw {width}x{height} frame {frame} aspect {aspect} mark {mark} style {style}'
-                        check(kept, what + ': registers or SP not kept')
-                        check(after['children after'] == (1, 1), f'{what}: line views\' visible flags after Draw {after["children after"]}')
-                        if (mark & 1) and aspect in ids and not (mark & 2):
-                            check(all(v == 0 for _, v in after['children']), f'{what}: grid off, but line views drawn visible: {after["children"]}')
-                        else:
-                            check(after['children'] == [(c, 1) for c in CHILD], f'{what}: line views drawn {after["children"]}, want both, visible')
-                        both = [('grid draw', VIEW, CTX), ('base draw', VIEW, CTX)]
-                        if not (mark & 1) or aspect not in ids:
-                            # The native Draw on the frame as it is.
-                            check(after['calls'] == both, f'{what}: calls {after["calls"]}')
-                            check(after['frames'] == [frame, frame], f'{what}: frames {after["frames"]}')
-                            check(after['lines'] == native_lines(new, frame, style), f'{what}: lines differ from the native Draw')
-                            check(after['frame'] == frame and after['drawn'] == tuple(x & 0xffffffff for x in frame) and after['flag'] == 1,
-                                  f'{what}: frame {after["frame"]}, drawn {after["drawn"]}, flag {after["flag"]}')
-                            check(all(p == CANVAS_FILL for p in px), what + ': pixels changed')
-                            continue
-                        if mark & 2:
-                            # The camera's own lines, drawn in the window as for a picture of that shape.
-                            win = window_of(ids[aspect], frame)
-                            check(after['calls'] == both, f'{what}: calls {after["calls"]}')
-                            check(after['frames'] == [win, win], f'{what}: frame during the native Draw {after["frames"]}, want {win}')
-                            want = native_lines(new, win, style)
-                            check(after['lines'] == want, f'{what}: lines {after["lines"]}, want {want}')
-                            if not other_lines:
-                                check(want == native_lines(old, win, style), f'{what}: the lines differ from the official Draw\'s')
-                            x, y, w, h = win
-                            check(all(x <= lx and lx + lw <= x + w and y <= ly and ly + lh <= y + h for lx, ly, lw, lh in after['lines']),
-                                  f'{what}: a line outside the window {win}: {after["lines"]}')
-                            if not other_lines:
-                                check(len(after['lines']) == (4 if style == 0 else 6), f'{what}: {len(after["lines"])} lines')
-                            check(after['frame'] == frame and after['drawn'] == tuple(v & 0xffffffff for v in frame) and after['flag'] == 1,
-                                  f'{what}: after: frame {after["frame"]}, drawn {after["drawn"]}, flag {after["flag"]}')
-                            line_cases += 1
-                        else:
-                            check(after['calls'] == [('base draw', VIEW, CTX)] and not after['lines'], f'{what}: calls {after["calls"]}')
-                            check(after['frame'] == frame, f'{what}: frame {after["frame"]}')
-                        if style or frame != full:
-                            continue
-                        if width == 0:
-                            check(not px, what)
-                            continue
-                        w, h, left, top, H = expected_window(ids[aspect], width, height)
-                        check(H == rows, what + ': rows')
-                        bad = 0
-                        for y in range(rows):
-                            inside_y = top <= y < top + h
-                            row = px[y * width:(y + 1) * width]
-                            for x in range(width):
-                                want = CANVAS_FILL if inside_y and left <= x < left + w else SHADE
-                                if row[x] != want:
-                                    bad += 1
-                        check(bad == 0, f'{what}: {bad} pixels wrong (window {w}x{h}+{left}+{top})')
-                        if (width, height) == (720, 480):
-                            sw, sh, sl, st = screen_crop(ids[aspect])
-                            check((w, h, left, top) == (sw, sh, sl, st), f'{what}: window {w}x{h}+{left}+{top}, photo screen crop {sw}x{sh}+{sl}+{st}')
-                            # The lines' window on the full frame is the bands' window.
-                            check(window_of(ids[aspect], full) == (left, top, w, h), f'{what}: lines window {window_of(ids[aspect], full)}, bands window {(left, top, w, h)}')
-                        shaded_cases += 1
+                        for code in (range(SETTING[2] + 1) if SETTING and (width, height) == (720, 480) else (0,)):
+                          if SETTING:
+                              SHADE = SETTING[3][code]
+                          px, after, kept, rows = draw(new, aspect, mark, width, height, frame=frame, style=style, code=code)
+                          n += 1
+                          what = f'Draw {width}x{height} frame {frame} aspect {aspect} mark {mark} style {style} code {code}'
+                          check(kept, what + ': registers or SP not kept')
+                          check(after['children after'] == (1, 1), f'{what}: line views\' visible flags after Draw {after["children after"]}')
+                          if (mark & 1) and aspect in ids and not (mark & 2):
+                              check(all(v == 0 for _, v in after['children']), f'{what}: grid off, but line views drawn visible: {after["children"]}')
+                          else:
+                              check(after['children'] == [(c, 1) for c in CHILD], f'{what}: line views drawn {after["children"]}, want both, visible')
+                          both = [('grid draw', VIEW, CTX), ('base draw', VIEW, CTX)]
+                          if not (mark & 1) or aspect not in ids:
+                              # The native Draw on the frame as it is.
+                              check(after['calls'] == both, f'{what}: calls {after["calls"]}')
+                              check(after['frames'] == [frame, frame], f'{what}: frames {after["frames"]}')
+                              check(after['lines'] == native_lines(new, frame, style), f'{what}: lines differ from the native Draw')
+                              check(after['frame'] == frame and after['drawn'] == tuple(x & 0xffffffff for x in frame) and after['flag'] == 1,
+                                    f'{what}: frame {after["frame"]}, drawn {after["drawn"]}, flag {after["flag"]}')
+                              check(all(p == CANVAS_FILL for p in px), what + ': pixels changed')
+                              continue
+                          if mark & 2:
+                              # The camera's own lines, drawn in the window as for a picture of that shape.
+                              win = window_of(ids[aspect], frame)
+                              check(after['calls'] == both, f'{what}: calls {after["calls"]}')
+                              check(after['frames'] == [win, win], f'{what}: frame during the native Draw {after["frames"]}, want {win}')
+                              want = native_lines(new, win, style)
+                              check(after['lines'] == want, f'{what}: lines {after["lines"]}, want {want}')
+                              if not other_lines:
+                                  check(want == native_lines(old, win, style), f'{what}: the lines differ from the official Draw\'s')
+                              x, y, w, h = win
+                              check(all(x <= lx and lx + lw <= x + w and y <= ly and ly + lh <= y + h for lx, ly, lw, lh in after['lines']),
+                                    f'{what}: a line outside the window {win}: {after["lines"]}')
+                              if not other_lines:
+                                  check(len(after['lines']) == (4 if style == 0 else 6), f'{what}: {len(after["lines"])} lines')
+                              check(after['frame'] == frame and after['drawn'] == tuple(v & 0xffffffff for v in frame) and after['flag'] == 1,
+                                    f'{what}: after: frame {after["frame"]}, drawn {after["drawn"]}, flag {after["flag"]}')
+                              line_cases += 1
+                          else:
+                              check(after['calls'] == [('base draw', VIEW, CTX)] and not after['lines'], f'{what}: calls {after["calls"]}')
+                              check(after['frame'] == frame, f'{what}: frame {after["frame"]}')
+                          if style or frame != full:
+                              continue
+                          if width == 0:
+                              check(not px, what)
+                              continue
+                          w, h, left, top, H = expected_window(ids[aspect], width, height)
+                          check(H == rows, what + ': rows')
+                          bad = 0
+                          for y in range(rows):
+                              inside_y = top <= y < top + h
+                              row = px[y * width:(y + 1) * width]
+                              for x in range(width):
+                                  want = CANVAS_FILL if (inside_y and left <= x < left + w) or SHADE == 0 else SHADE
+                                  if row[x] != want:
+                                      bad += 1
+                          check(bad == 0, f'{what}: {bad} pixels wrong (window {w}x{h}+{left}+{top})')
+                          if (width, height) == (720, 480):
+                              sw, sh, sl, st = screen_crop(ids[aspect])
+                              check((w, h, left, top) == (sw, sh, sl, st), f'{what}: window {w}x{h}+{left}+{top}, photo screen crop {sw}x{sh}+{sl}+{st}')
+                              # The lines' window on the full frame is the bands' window.
+                              check(window_of(ids[aspect], full) == (left, top, w, h), f'{what}: lines window {window_of(ids[aspect], full)}, bands window {(left, top, w, h)}')
+                          shaded_cases += 1
             # No user settings at all: the native Draw only.
             if aspect in ids and width:
                 px, after, kept, _ = draw(new, aspect, 3, width, height, userdata=False)

@@ -266,12 +266,6 @@ svg { width: 18px; height: 18px; flex: none; }
 .ratio-row.on { border-color: var(--line2); background: var(--side); }
 .ratio-icon { border-radius: 5px; overflow: hidden; }
 .ratio-icon canvas { display: block; }
-/* Battery percentage page: the switch, then the icons the camera will show. */
-.battery-page { display: flex; flex-direction: column; gap: 12px; max-width: 560px; }
-.battery-page p { margin: 0; line-height: 1.5; }
-.battery-look { display: grid; gap: 8px; }
-.battery-icons { display: flex; flex-wrap: wrap; gap: 8px; }
-.battery-icons canvas { image-rendering: pixelated; }
 .ratio-in { width: 78px; flex: none; font-variant-numeric: tabular-nums; font-weight: 600; }
 .ratio-in::placeholder { font-weight: 400; color: var(--faint); }
 .ratio-name { flex: 1; min-width: 56px; width: 0; }
@@ -294,6 +288,11 @@ svg { width: 18px; height: 18px; flex: none; }
 /* The live-view shade as the camera draws it: black at 50 %, or grey at 25 %. */
 .ratio-frame.live-shade .ratio-shade { background: rgba(0, 0, 0, 0.5); }
 .ratio-frame.live-shade.tone-light .ratio-shade { background: rgba(85, 85, 85, 0.25); }
+/* GR IV 1.20 / 1.21: the level chosen in the camera, previewed */
+.ratio-frame.live-shade.level-100 .ratio-shade { background: rgb(0, 0, 0); }
+.ratio-frame.live-shade.level-75 .ratio-shade { background: rgba(0, 0, 0, 0.75); }
+.ratio-frame.live-shade.level-25 .ratio-shade { background: rgba(0, 0, 0, 0.25); }
+.ratio-frame.live-shade.level-0 .ratio-shade { background: transparent; }
 .ratio-live { flex: none; display: grid; gap: 6px; margin-top: 10px; padding: 8px 8px 0; border-top: 1px solid var(--line); }
 .ratio-live .seg { justify-self: start; }
 .ratio-live p { margin: 0; }

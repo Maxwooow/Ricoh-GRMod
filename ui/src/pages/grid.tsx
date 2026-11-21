@@ -50,6 +50,7 @@ function GridScene() {
 function GridLinesEditor() {
   const lines = useStore((s) => s.gridLines);
   const [style, setStyle] = useState<GridStyle>('g3');
+  const menu = useStore((s) => !!s.info?.features.gridMenu);
   const defs = GRID_LINES[style];
   const xy = (at: GridLineDef['at']) => ({ x1: at[0] * 720, y1: at[1] * 480, x2: at[2] * 720, y2: at[3] * 480 });
   const toggle = (i: number): void => setGridLine(style, i, !lines[style][i]);
@@ -77,7 +78,7 @@ function GridLinesEditor() {
           ))}
         </div>
       </div>
-      <p className="muted small">{t('gridHint')}</p>
+      <p className="muted small">{t(menu ? 'gridHintMenu' : 'gridHint')}</p>
     </div>
   );
 }
@@ -87,6 +88,7 @@ export function GridPage() {
   const info = useStore((s) => s.info);
   const on = useStore((s) => s.customGrid);
   const same = useStore((s) => isCameraGrid(s.gridLines));
+  const menu = useStore((s) => !!s.info?.features.gridMenu);
   return (
     <DropZone className="page" accept={isFirmware} onFiles={(f) => { void loadFirmwareFile(f[0]); }}>
       <header className="page-head">
@@ -97,7 +99,7 @@ export function GridPage() {
       {info && (
         <div className={`grid-page ${on ? '' : 'off'}`} data-tour-page="grid">
           <div className="card extras">
-            <FeatureRow icon={Ico.grid} title={t('navGrid')} sub={t('gridSub')} on={on} onChange={setCustomGrid} tour="grid-switch" />
+            <FeatureRow icon={Ico.grid} title={t('navGrid')} sub={t(menu ? 'gridSubMenu' : 'gridSub')} on={on} onChange={setCustomGrid} tour="grid-switch" />
           </div>
           {on && same && <p className="muted small">{t('gridSameAsCamera')}</p>}
           <GridLinesEditor />

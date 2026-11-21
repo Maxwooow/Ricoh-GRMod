@@ -88,6 +88,13 @@ export interface FirmwareInfo {
     customGrid?: boolean;
     /** Live view of the added ratios can show the whole frame, the part outside darkened (GR IV 1.11 / 1.20 / 1.21, `BuildOptions.ratioShade`). */
     ratioShade?: boolean;
+    /**
+     * GR IV 1.20 / 1.21 (test 084): the shade comes with every added ratio and how dark it is (black, 75 %, 50 %,
+     * 25 %, none) is chosen in the camera menu; `BuildOptions.ratioShade` and `ratioShadeTone` do not apply.
+     */
+    shadeMenu?: boolean;
+    /** GR IV 1.20 / 1.21 (test 084): the custom grids are values of their own in the camera's Grid Style list, next to its 3x3 and 4x4. */
+    gridMenu?: boolean;
     /** A learned Auto for Shadow Correction (GR IV 1.11, 1.20 and 1.21; see `aspect/shadowml.ts`). */
     shadowLearn?: boolean;
     /** GR Mod's film grain in place of the camera's Grain Effect (GR IV 1.20 and 1.21; see `gr4v120/aspect/grain.ts`). */
@@ -286,6 +293,8 @@ export interface BuildOptions {
   batteryPercent?: boolean;
   /** Test builds only: the battery percentage shows "?" (no usable report) and "!" (disagrees with the bars) instead of the camera's icon. */
   batteryDiag?: boolean;
+  /** Tests only (GR IV 1.20 / 1.21): added ratios without the shade, the plain build the shade's emulator check compares with. */
+  shadeOff?: boolean;
   /**
    * GR IV 1.11 / 1.20 / 1.21 (`features.customGrid`): which lines the camera's 3x3 and 4x4 grid styles draw, eight
    * each, on or off (see `aspect/grid.ts`; the 3x3 style may also have centre lines and diagonals).
@@ -560,7 +569,7 @@ export class Engine {
       family: 'gr4', filename: 'fwdc248b.bin', models: ['STANDARD', 'HDF', 'MONO'],
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
       capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, menuPictures: true, lookLayout: true },
-      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, batteryPercent: true, customGrid: true, ratioShade: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== Gr4Program111 ? { filmGrain: true } : {}), shadowLearn: true, ...(g4 !== Gr4Program111 ? { flashTtl: true } : {}) },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, batteryPercent: true, customGrid: true, ratioShade: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== Gr4Program111 ? { filmGrain: true } : {}), shadowLearn: true, ...(g4 !== Gr4Program111 ? { flashTtl: true, shadeMenu: true, gridMenu: true } : {}) },
       version: g4.FIRMWARE_VERSION,
       looks: { factory: [...g4.aspect.FACTORY_LOOK_IDS], extraFirst: g4.aspect.EXTRA_FIRST_STYLE, monoOnly: g4.aspect.FACTORY_LOOK_IDS.filter((n) => n >= 25) },
       sha256: await sha256Hex(input),
@@ -1094,9 +1103,11 @@ export class Engine {
     const customGrid = options && options.customGrid && !Gr4Program111.aspect.isCameraGrid(options.customGrid) ? { g3: [...options.customGrid.g3], g4: [...options.customGrid.g4] } : undefined;
     if (customGrid && !this.info.features.customGrid) throw new FirmwareError('bad-edit', 'custom grid lines need GR IV firmware 1.11, 1.20 or 1.21');
     if (customGrid && clarity.length > 0) throw new FirmwareError('bad-clarity', 'custom grid lines cannot be combined with the clarity-table soft focus of 0.4.x');
-    const ratioShade = !!(options && options.ratioShade) && ratios.length > 0;
+    // GR IV 1.20 / 1.21: the shade comes with every added ratio, how dark is chosen in the camera.
+    const shadeMenu = !!this.info.features.shadeMenu;
+    const ratioShade = (shadeMenu ? !(options && options.shadeOff) : !!(options && options.ratioShade)) && ratios.length > 0;
     if (ratioShade && !this.info.features.ratioShade) throw new FirmwareError('bad-edit', 'the live-view shade needs GR IV firmware 1.11, 1.20 or 1.21');
-    const ratioShadeTone = ratioShade && options.ratioShadeTone && options.ratioShadeTone !== 'dark' ? options.ratioShadeTone : undefined;
+    const ratioShadeTone = ratioShade && !shadeMenu && options.ratioShadeTone && options.ratioShadeTone !== 'dark' ? options.ratioShadeTone : undefined;
     if (ratioShadeTone && !Gr4Program111.aspect.SHADE_TONES.includes(ratioShadeTone)) throw new FirmwareError('bad-edit', 'unknown shade tone');
     if (options && options.shadowLearn !== undefined && typeof options.shadowLearn !== 'boolean') throw new FirmwareError('bad-edit', 'shadowLearn must be boolean');
     const shadowLearn = !!(options && options.shadowLearn);

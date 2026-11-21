@@ -34,8 +34,15 @@ const UDIV = adr(0x53153830);
 /** The line colour byte (a UI palette number). */
 const GRID_COLOUR = 0xf5;
 /** GridView layout (0x53578678): where it reads the style for the diagonals, and its exit. */
+const LAYOUT = adr(0x53578678);
 const LAYOUT_DIAGONALS = adr(0x535786f8);
 const LAYOUT_DONE = adr(0x53578720);
+/**
+ * A byte of the grid view (inside its 0xF8 bytes, which the camera never uses; the live-view
+ * shade's constructor patch clears it) where the layout notes whether it laid out the custom lines
+ * (0x81) or the camera's (0x80), when they are chosen in the camera (`GridSelect`).
+ */
+const GRID_LAID_OUT = 0xf7;
 /** The two diagonal line views of the grid view. */
 const DIAGONAL_VIEWS = [0xec, 0xf0] as const;
 /** The layout's calls of the line views' point setter, one per diagonal. */
@@ -66,6 +73,14 @@ const STRAIGHT: Readonly<Record<'g3' | 'g4', readonly (readonly [boolean, number
   g4: [[false, 1, 4], [false, 2, 4], [false, 3, 4], [true, 1, 4], [true, 2, 4], [true, 3, 4]],
 };
 
+/**
+ * GR IV 1.20 / 1.21 (`viewmenu.ts`): the custom styles are values of their own in the camera's Grid
+ * Style list, next to the camera's 3x3 and 4x4. Bit `bit` of `byte` set: the style the camera has
+ * (3x3 or 4x4) draws the custom lines; clear: the camera's own. A style whose custom lines are the
+ * camera's (no value of its own) always draws the camera's.
+ */
+export interface GridSelect { byte: number; bit: number }
+
 export function validCustomGrid(g: unknown): g is CustomGrid {
   const ok = (x: unknown): boolean => Array.isArray(x) && x.length === GRID_LINE_COUNT && x.every((v) => typeof v === 'boolean');
   return typeof g === 'object' && g !== null && ok((g as CustomGrid).g3) && ok((g as CustomGrid).g4);
@@ -93,14 +108,16 @@ export const gridLinesOf = (byte: number): boolean[] => Array.from({ length: GRI
  *    which keeps the diagonals in an added ratio's photo area), gives it the grid's colour and shows
  *    it; the others are hidden. Then 0x53578720 as native.
  */
-export function installCustomGrid(patch: Patch, grid: CustomGrid): void {
+export function installCustomGrid(patch: Patch, grid: CustomGrid, select?: GridSelect): void {
   if (!validCustomGrid(grid)) throw new FirmwareError('internal', 'bad custom grid');
+  if (select && !(select.bit > 0 && select.bit < 256 && (select.bit & (select.bit - 1)) === 0)) throw new FirmwareError('internal', 'bad custom grid selection');
   const p = new Program(patch);
   p.expect(GRID_HORIZONTAL, 'add r3,r7,sl', 'grid view Draw: the horizontal lines have moved');
   p.expect(GRID_HORIZONTAL - 4, `bl #${adr(0x538e99ec)}`, 'grid view Draw: the line rectangle has moved');
   p.expect(GRID_LINES_DONE, 'sub r0,fp,#0x40', 'grid view Draw: the end of the lines has moved');
   p.expect(LAYOUT_DIAGONALS, `ldrb r5,[r4,#${GRID_STYLE}]`, 'grid view layout: the diagonals have moved');
   p.expect(LAYOUT_DONE, 'sub r0,fp,#0x38', 'grid view layout: its end has moved');
+  if (select) p.expect(LAYOUT, 'mov ip,sp', 'grid view layout has moved');
   p.expect(adr(0x5357877c), `bl #${LINE_SET_COLOUR}`, 'grid view layout: the diagonal colour has moved');
   // The point setter as the layout calls it now: the line view's own, or what an addition installed
   // before put there (code appended to the image). Both calls must be unconditional BLs to it.
@@ -127,7 +144,19 @@ export function installCustomGrid(patch: Patch, grid: CustomGrid): void {
     });
     return s;
   };
-  p.hook(GRID_HORIZONTAL,
+  // With the custom styles chosen in the camera: r0 = 1 when the view (r0) draws custom lines. Uses r0, r1.
+  const differs = (style: 'g3' | 'g4'): boolean => grid[style].some((v, i) => v !== CAMERA_GRID[style][i]);
+  const active = select ? p.emit(
+    `ldrb r1,[r0,#${GRID_STYLE}];movw r0,#${select.byte & 0xffff};movt r0,#${select.byte >>> 16};ldrb r0,[r0];ands r0,r0,#${select.bit};bxeq lr;` +
+    `cmp r1,#0;mov r0,#${differs('g3') ? 1 : 0};movne r0,#${differs('g4') ? 1 : 0};bx lr;`) : 0;
+  // The flag changes without the camera laying the view out again (the style may stay the same):
+  // when the lines the layout set are not the ones chosen, the view is laid out first. r0-r3 and
+  // ip are free at the hook (the displaced instruction sets r3).
+  const choose = select
+    ? `mov r0,r4;bl #${active};ldrb r3,[r4,#${GRID_LAID_OUT}];orr r1,r0,#0x80;cmp r3,r1;beq go;mov r0,r4;bl #${LAYOUT};mov r0,r4;bl #${active};` +
+      `go:cmp r0,#0;bne custom;add r3,r7,sl;b #${GRID_HORIZONTAL + 4};custom:`
+    : '';
+  p.hook(GRID_HORIZONTAL, choose +
     `ldr r0,[fp,#-0x48];bl #${FRAME_WIDTH};mov r9,r0;ldr r0,[fp,#-0x48];bl #${FRAME_HEIGHT};mov sl,r0;` +
     `ldrb r0,[r4,#${GRID_STYLE}];cmp r0,#0;bne g4;` + straight('g3') + 'b done;' +
     'g4:' + straight('g4') +
@@ -149,7 +178,10 @@ export function installCustomGrid(patch: Patch, grid: CustomGrid): void {
     });
     return s;
   };
-  p.hook(LAYOUT_DIAGONALS,
+  const layoutChoose = select
+    ? `mov r0,r4;bl #${active};orr r1,r0,#0x80;strb r1,[r4,#${GRID_LAID_OUT}];cmp r0,#0;bne custom;ldrb r5,[r4,#${GRID_STYLE}];b #${LAYOUT_DIAGONALS + 4};custom:`
+    : '';
+  p.hook(LAYOUT_DIAGONALS, layoutChoose +
     `ldrb r0,[r4,#${GRID_STYLE}];cmp r0,#0;bne g4;` + diagonals('g3') + `b #${LAYOUT_DONE};` +
     'g4:' + diagonals('g4') + `b #${LAYOUT_DONE};`);
 }

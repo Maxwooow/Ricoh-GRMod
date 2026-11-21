@@ -41,17 +41,17 @@ Use only firmware intended for your camera model and a base version listed above
 ## Features
 
 - **Image Control presets:** add your own looks from `.cube` LUTs or `.xmp` profiles, adjust their parameters, and reorder or hide looks in the camera menu.
-- **Aspect ratios:** add custom ratios alongside the camera's factory options; on the GR IV (firmware 1.11, 1.20 and 1.21) the live view can also show the whole frame with the outside darkened.
+- **Aspect ratios:** add custom ratios alongside the camera's factory options; on the GR IV (firmware 1.11, 1.20 and 1.21) the live view can also show the whole frame with the outside darkened (on 1.20 / 1.21 how dark is chosen in the camera menu: black, 75 %, 50 %, 25 % or none).
 - **Power-off images:** add your own End Screen pictures and choose between them in the camera.
 - **Soft focus and halation:** create softer images and red or white highlight effects.
 - **Date imprint:** add a shooting date, date and time, and optionally the Image Control name to JPEGs.
 - **Monochrome looks:** use supported GR IV Monochrome looks on colour GR IV models.
-- **Direct Flash:** use guide-number-based flash exposure on supported GR IV firmware.
+- **Flash enhancements:** Direct Flash (guide-number-based flash exposure) and, on GR IV 1.20 / 1.21, pre-flash (TTL) metering for a GF-2 in the two red-eye flash modes.
 - **HDR gain maps:** create JPEGs with brighter highlights on compatible HDR displays.
 - **More ADJ options:** add ADJ lever slots on supported GR IV firmware.
 - **Battery percentage:** show the charge as a number in steps of 10 % instead of bars, on the GR IV (firmware 1.11, 1.20 and 1.21).
 - **Exposure preview and display options:** access additional preview and automatic screen-brightness settings on supported GR IV firmware.
-- **Custom grid lines:** choose which lines the camera's 3x3 and 4x4 grids draw, on the GR IV (firmware 1.11, 1.20 and 1.21).
+- **Custom grid lines:** choose which lines a 3x3 and a 4x4 grid draw, on the GR IV (firmware 1.11, 1.20 and 1.21; on 1.20 / 1.21 they are extra values of the camera's Grid Style list, next to its own).
 
 Features vary by camera model and firmware version. The app only offers options supported by the selected firmware.
 

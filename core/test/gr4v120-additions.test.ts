@@ -8,6 +8,9 @@
  *    preview included, whose bits share the second feature byte with the third byte's flag), and the
  *    file records them, which `inspect` reads back and verifies;
  *  - off, the files are those of before (golden-builds.test.ts pins the hashes);
+ *  - test 084 (`viewmenu.ts`): the shade comes with every added ratio (how dark is chosen in the camera; the
+ *    1.11 tone does not apply), the custom grids are values of the camera's Grid Style list, and flash TTL renames
+ *    the two red-eye Flash Modes;
  *  - with GRMOD_DUMP=<dir>, the RTOS sections of the official file and of the builds are written there
  *    for the emulator checks (tools/gr4v120/{battery,grid,shade}, tools/gr4v121/...).
  */
@@ -42,6 +45,7 @@ for (const [release, path] of Object.entries(FILES)) {
       eng = await Engine.open(raw);
       expect(eng.info.version).toBe(release);
       expect([eng.info.features.batteryPercent, eng.info.features.customGrid, eng.info.features.ratioShade, eng.info.features.exposurePreview]).toEqual([true, true, true, true]);
+      expect([eng.info.features.shadeMenu, eng.info.features.gridMenu]).toEqual([true, true]);
       dump('official', raw);
     });
 
@@ -50,13 +54,17 @@ for (const [release, path] of Object.entries(FILES)) {
       ['battery-diag', () => [[], { batteryPercent: true, batteryDiag: true }], (i) => expect(i.batteryPercent).toBe(true)],
       ['grid', () => [[], { customGrid: GRID }], (i) => expect(i.customGrid).toEqual(GRID)],
       ['shade', () => [testRatios(eng), { ratioShade: true }], (i) => expect([i.ratioShade, i.ratioShadeTone]).toEqual([true, undefined])],
-      ['shade-light', () => [testRatios(eng), { ratioShade: true, ratioShadeTone: 'light' }], (i) => expect([i.ratioShade, i.ratioShadeTone]).toEqual([true, 'light'])],
+      ['shade-auto', () => [testRatios(eng), {}], (i) => expect([i.ratioShade, i.ratioShadeTone]).toEqual([true, undefined])],
+      ['shade-tone', () => [testRatios(eng), { ratioShade: true, ratioShadeTone: 'light' }], (i) => expect([i.ratioShade, i.ratioShadeTone]).toEqual([true, undefined])],
+      ['shade-off', () => [testRatios(eng), { shadeOff: true }], (i) => expect(i.ratioShade).toBeUndefined()],
+      ['ttl', () => [[], { flashTtl: true }], (i) => expect(i.flashTtl).toBe(true)],
       ['shade-grid', () => [testRatios(eng), { ratioShade: true, customGrid: GRID }], (i) => expect([i.ratioShade, i.customGrid]).toEqual([true, GRID])],
       ['all', () => [testRatios(eng), {
         batteryPercent: true, customGrid: GRID, ratioShade: true, ratioShadeTone: 'light',
         dateStamp: true, adjSoftFocus: true, monoUnlock: true, directFlash: true, hdrGainMap: true, adjSlots: 8, exposurePreview: true, brightAuto: 'balanced',
+        shadowLearn: true, filmGrain: true, flashTtl: true,
       }], (i) => {
-        expect([i.batteryPercent, i.customGrid, i.ratioShade, i.ratioShadeTone]).toEqual([true, GRID, true, 'light']);
+        expect([i.batteryPercent, i.customGrid, i.ratioShade, i.ratioShadeTone, i.shadowLearn, i.filmGrain, i.flashTtl]).toEqual([true, GRID, true, undefined, true, true, true]);
         expect([i.exposurePreview, i.hdrGainMap, i.adjSlots, i.brightAuto, i.dateStamp, i.directFlash]).toEqual([true, true, 8, 'balanced', true, true]);
       }],
     ];
@@ -71,7 +79,7 @@ for (const [release, path] of Object.entries(FILES)) {
         if (i.verified) seen(i);
         dump(name, built.file);
         // The emulator check of the shade compares with the same build without it.
-        if (DUMP && options.ratioShade) dump(`${name}-plain`, (await eng.buildFirmware([], ratios, [], { ...options, ratioShade: false })).file);
+        if (DUMP && ratios.length > 0 && !options.shadeOff) dump(`${name}-plain`, (await eng.buildFirmware([], ratios, [], { ...options, shadeOff: true })).file);
       }, 600_000);
     }
 
