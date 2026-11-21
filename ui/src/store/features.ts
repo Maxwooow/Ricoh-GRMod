@@ -105,6 +105,11 @@ export function setVideoAf(videoAf: boolean): void {
   set({ videoAf }); scheduleSave();
 }
 export function videoAfOn(s: State = state): boolean { return !!s.videoAf && !!s.info?.features.videoAf; }
+export function setAwbLearn(awbLearn: boolean): void {
+  if (awbLearn && !state.info?.features.awbLearn) return;
+  set({ awbLearn }); scheduleSave();
+}
+export function awbLearnOn(s: State = state): boolean { return !!s.awbLearn && !!s.info?.features.awbLearn; }
 /** ADJ lever slots (5..8): the camera's five unless the firmware can have more. */
 export function setAdjSlots(adjSlots: number): void {
   if (!(Number.isInteger(adjSlots) && adjSlots >= 5 && adjSlots <= (state.info?.features.maxAdjSlots ?? 5))) return;
@@ -113,7 +118,7 @@ export function setAdjSlots(adjSlots: number): void {
 /** The ADJ lever slots the build gets (5: none added). */
 export function adjSlotsOf(s: State = state): number { const max = s.info?.features.maxAdjSlots ?? 5; return s.adjSlots > 5 && s.adjSlots <= max ? s.adjSlots : 5; }
 /** Any addition that is not a slot or a ratio. */
-export function extrasOn(s: State = state): boolean { return !!brightAutoOf(s) || exposurePreviewOn(s) || filmGrainOn(s) || flashTtlOn(s) || videoAfOn(s) || softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hasLookLayout(s) || directFlashOn(s) || adjSlotsOf(s) > 5 || hdrOn(s) || batteryOn(s) || !!customGridOf(s) || shadowLearnOn(s); }
+export function extrasOn(s: State = state): boolean { return !!brightAutoOf(s) || exposurePreviewOn(s) || filmGrainOn(s) || flashTtlOn(s) || videoAfOn(s) || awbLearnOn(s) || softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hasLookLayout(s) || directFlashOn(s) || adjSlotsOf(s) > 5 || hdrOn(s) || batteryOn(s) || !!customGridOf(s) || shadowLearnOn(s); }
 const MINUS = '\u2212';
 const strengthLabel = (st: SoftFocusStrength | 'custom'): string => t(st === 'weak' ? 'softWeak' : st === 'medium' ? 'softMedium' : st === 'strong' ? 'softStrong' : 'softCustom');
 /** "−2 weak / −3 medium" (−1 first), for confirmations and the copies page. */

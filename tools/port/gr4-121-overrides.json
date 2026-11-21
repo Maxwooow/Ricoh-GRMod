@@ -350,5 +350,17 @@
  "0x5583907c": {
   "new": "0x5583907c",
   "reason": "movie AF state pointer: the last word of the sbrk arena before the heap (0x55839040..0x55839080, see 0x55839080: the arena and the heap are where they are in 1.20); a GR Mod word, no firmware reference"
+ },
+ "0x550b896c": {
+  "new": "0x550b8974",
+  "reason": "the shooting sequence controller's +0x124 (awb2.ts): the controller 0x550b8848 -> 0x550b8850 (refs; its getter 1.20 0x5367dd74, 1.21 0x5367e6b4, movw 0x0848 -> 0x0850); the charge check (1.20 0x5367f3a4, 1.21 0x5367fce4) stores +0x124 in both (strb r5 / strbeq r7, [.., #0x124])"
+ },
+ "0x5537e7c0": {
+  "new": "0x5537e7c8",
+  "reason": "the flash data manager's pointer (awb2.ts): +0x10 of the static object of its getter; the getter (1.20 0x53797a30, 1.21 0x537986c0) is the same code with its guard word 0x5537e7c4 -> 0x5537e7cc and the object 0x5537e7b0 -> 0x5537e7b8 (refs), so +8"
+ },
+ "0x55839078": {
+  "new": "0x55839078",
+  "reason": "GR Mod's own word in the C library's sbrk arena before the heap (awb2.ts, as BATTERY_SHOWN at 0x55839040): the arena ends at 0x55839080 and the start-up zero fill at 0x55839014 in both releases"
  }
 }

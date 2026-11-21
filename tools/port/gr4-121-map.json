@@ -33,7 +33,8 @@
     "tools/gr4v120/flash/ttl/test_arm.py",
     "tools/gr4v120/videoaf/cam.py",
     "tools/gr4v120/videoaf/layout.py",
-    "tools/gr4v120/videoaf/test_inplace.py"
+    "tools/gr4v120/videoaf/test_inplace.py",
+    "tools/gr4v120/awb2/test_fw.py"
    ]
   },
   "0x53000460": {
@@ -50,7 +51,8 @@
     "tools/gr4v120/battery/check.py",
     "core/src/fw/gr4v120/aspect/shadowml.ts",
     "tools/gr4v120/shadowml/test_fw.py",
-    "core/src/fw/gr4v120/aspect/battery.ts"
+    "core/src/fw/gr4v120/aspect/battery.ts",
+    "tools/gr4v120/awb2/test_fw.py"
    ]
   },
   "0x53000930": {
@@ -8746,7 +8748,9 @@
     "core/src/fw/gr4v120/aspect/flttl.ts",
     "core/src/fw/gr4v120/aspect/videoaf.ts",
     "tools/gr4v120/videoaf/cam.py",
-    "tools/gr4v120/videoaf/test_quick.py"
+    "tools/gr4v120/videoaf/test_quick.py",
+    "core/src/fw/gr4v120/aspect/awb2.ts",
+    "tools/gr4v120/awb2/test_fw.py"
    ]
   },
   "0x539084f8": {
@@ -9860,7 +9864,8 @@
     "tools/gr4v120/grain/check.py",
     "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/videoaf/cam.py",
-    "tools/gr4v120/videoaf/test_inplace.py"
+    "tools/gr4v120/videoaf/test_inplace.py",
+    "tools/gr4v120/awb2/test_fw.py"
    ]
   },
   "0x55001e78": {
@@ -10191,7 +10196,8 @@
     "core/src/fw/gr4v120/aspect/shadowml.ts",
     "core/src/fw/gr4v120/aspect/battery.ts",
     "core/src/fw/gr4v120/aspect/flttl.ts",
-    "core/src/fw/gr4v120/aspect/build.ts"
+    "core/src/fw/gr4v120/aspect/build.ts",
+    "core/src/fw/gr4v120/aspect/awb2.ts"
    ]
   },
   "0x53154a70": {
@@ -10852,7 +10858,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/battery.ts",
     "tools/gr4v120/battery/check.py",
-    "core/src/fw/gr4v120/aspect/videoaf.ts"
+    "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "core/src/fw/gr4v120/aspect/awb2.ts",
+    "tools/gr4v120/awb2/test_fw.py"
    ]
   },
   "0x531aa560": {
@@ -11669,7 +11677,8 @@
    "how": "aligned + refs 0x537986c0x35",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/flttl.ts"
+    "core/src/fw/gr4v120/aspect/flttl.ts",
+    "core/src/fw/gr4v120/aspect/awb2.ts"
    ]
   },
   "0x53798088": {
@@ -13636,6 +13645,111 @@
     "core/src/fw/gr4v120/aspect/videoaf.ts",
     "tools/gr4v120/videoaf/cam.py",
     "tools/gr4v120/videoaf/test_quick.py"
+   ]
+  },
+  "0x539609d4": {
+   "new": "0x53961f9c",
+   "how": "aligned + refs 0x53961f9cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/awb2.ts",
+    "tools/gr4v120/awb2/test_fw.py"
+   ]
+  },
+  "0x53960b8c": {
+   "new": "0x53962154",
+   "how": "aligned + refs 0x53962154x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/awb2.ts"
+   ]
+  },
+  "0x53960ba4": {
+   "new": "0x5396216c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/awb2.ts"
+   ]
+  },
+  "0x53960bb0": {
+   "new": "0x53962178",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/awb2.ts"
+   ]
+  },
+  "0x53960bb8": {
+   "new": "0x53962180",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/awb2.ts"
+   ]
+  },
+  "0x53960e90": {
+   "new": "0x53962458",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/awb2.ts",
+    "tools/gr4v120/awb2/test_fw.py"
+   ]
+  },
+  "0x54252890": {
+   "new": "0x54254080",
+   "how": "aligned + refs 0x54254080x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/awb2.ts"
+   ]
+  },
+  "0x550b8848": {
+   "new": "0x550b8850",
+   "how": "refs 0x550b8850x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/awb2.ts"
+   ]
+  },
+  "0x550b896c": {
+   "new": "0x550b8974",
+   "how": "override",
+   "ok": true,
+   "why": "the shooting sequence controller's +0x124 (awb2.ts): the controller 0x550b8848 -> 0x550b8850 (refs; its getter 1.20 0x5367dd74, 1.21 0x5367e6b4, movw 0x0848 -> 0x0850); the charge check (1.20 0x5367f3a4, 1.21 0x5367fce4) stores +0x124 in both (strb r5 / strbeq r7, [.., #0x124])",
+   "files": [
+    "core/src/fw/gr4v120/aspect/awb2.ts",
+    "tools/gr4v120/awb2/test_fw.py"
+   ]
+  },
+  "0x5537e7b0": {
+   "new": "0x5537e7b8",
+   "how": "refs 0x5537e7b8x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/awb2.ts"
+   ]
+  },
+  "0x5537e7c0": {
+   "new": "0x5537e7c8",
+   "how": "override",
+   "ok": true,
+   "why": "the flash data manager's pointer (awb2.ts): +0x10 of the static object of its getter; the getter (1.20 0x53797a30, 1.21 0x537986c0) is the same code with its guard word 0x5537e7c4 -> 0x5537e7cc and the object 0x5537e7b0 -> 0x5537e7b8 (refs), so +8",
+   "files": [
+    "core/src/fw/gr4v120/aspect/awb2.ts",
+    "tools/gr4v120/awb2/test_fw.py"
+   ]
+  },
+  "0x55839078": {
+   "new": "0x55839078",
+   "how": "override",
+   "ok": true,
+   "why": "GR Mod's own word in the C library's sbrk arena before the heap (awb2.ts, as BATTERY_SHOWN at 0x55839040): the arena ends at 0x55839080 and the start-up zero fill at 0x55839014 in both releases",
+   "files": [
+    "core/src/fw/gr4v120/aspect/awb2.ts",
+    "core/src/fw/gr4v120/aspect/battery.ts",
+    "tools/gr4v120/awb2/test_fw.py"
    ]
   }
  }

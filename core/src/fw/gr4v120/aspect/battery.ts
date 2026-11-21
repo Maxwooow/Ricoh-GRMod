@@ -46,7 +46,8 @@ const HOLDER = adr(0x5537ee98);
  * 0x5315F0D8 start it there and stop at 0x55839080 or at the stack), which nothing in the firmware
  * calls; no instruction or data word refers to the 64 bytes otherwise. The camera's heap (operator
  * new) starts at 0x55839080 (its first block is set up at 0x53AD3684). `extendBatteryZeroFill`
- * makes the start-up zero fill reach 0x55839080, so the byte starts at 0.
+ * makes the start-up zero fill reach 0x55839080, so the byte starts at 0. The learned auto white
+ * balance keeps its state pointer in the same arena, at 0x55839078 (`awb2.ts`), and runs the same fill.
  */
 export const BATTERY_SHOWN = adr(0x55839040);
 /** Literal: end of the start-up zero fill (0x55839014, or 0x55839040 once an addition extends it). */
