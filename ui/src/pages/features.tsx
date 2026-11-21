@@ -4,7 +4,7 @@ import { Ico, Segmented, Select, Switch } from '../components';
 import { isMobile } from '../host';
 import { t } from '../i18n';
 import { uiScale } from '../fit';
-import { useStore, setSoft, setDateStamp, setMonoUnlock, setFlashPlus, flashPlusOn, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain, setShadowLearn, setBattery, setBrightAuto } from '../store';
+import { useStore, setSoft, setDateStamp, setMonoUnlock, setFlashPlus, flashPlusOn, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain, setShadowLearn, setBattery, setVideoAf, setBrightAuto } from '../store';
 
 /** One switch of the firmware additions: icon, name, one line of detail. */
 export function FeatureRow({ icon, title, sub, on, onChange, tour }: { icon: ReactNode; title: string; sub: string; on: boolean; onChange: (v: boolean) => void; tour?: string }) {
@@ -76,6 +76,8 @@ export function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?
   const ttlOk = useStore((s) => !!s.info?.features.flashTtl);
   const battery = useStore((s) => s.battery);
   const batteryOk = useStore((s) => !!s.info?.features.batteryPercent);
+  const vaf = useStore((s) => s.videoAf);
+  const vafOk = useStore((s) => !!s.info?.features.videoAf);
   const own = useRef<HTMLDivElement | null>(null);
   // Moved to the other column: glide from where it was (FLIP). Rectangles are in window pixels,
   // the transform is in the zoomed interface's pixels.
@@ -104,6 +106,7 @@ export function FeatureSwitches({ mono, boxRef, from }: { mono: boolean; boxRef?
           value={grain ? 'mod' : 'camera'} onChange={(v) => setFilmGrain(v === 'mod')}
           options={[{ value: 'camera', label: t('grainCamera') }, { value: 'mod', label: t('grainMod') }]} />
       )}
+      {vafOk && <FeatureRow icon={Ico.movie} title={t('navVideoAf')} sub={t('videoAfSub')} on={vaf} onChange={setVideoAf} tour="ic-f-vaf" />}
       {adjMax > 5 && <AdjSlotsRow max={adjMax} />}
       {brightAutoOk && !isMobile && <div className="soft-switch" data-tour="ic-f-bright"><Select value={brightAuto || 'off'} options={[{ value: 'off', label: t('brightAutoOff') }, { value: 'balanced', label: t('brightAutoBalanced') }, { value: 'bright', label: t('brightAutoBright') }]} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')} label={t('navBrightAuto')} variant="row" /></div>}
       {/* on a phone: a row like the others, the three levels side by side (as the ADJ items) */}

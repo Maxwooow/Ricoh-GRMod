@@ -79,7 +79,7 @@ for (const [release, path] of Object.entries(FILES)) {
         if (i.verified) seen(i);
         dump(name, built.file);
         // The emulator check of the shade compares with the same build without it.
-        if (DUMP && ratios.length > 0 && !options.shadeOff) dump(`${name}-plain`, (await eng.buildFirmware([], ratios, [], { ...options, shadeOff: true })).file);
+        if (DUMP && ratios && ratios.length > 0 && !options.shadeOff) dump(`${name}-plain`, (await eng.buildFirmware([], ratios, [], { ...options, shadeOff: true })).file);
       }, 600_000);
     }
 
