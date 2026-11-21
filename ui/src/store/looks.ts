@@ -10,10 +10,10 @@ const FACTORY_LOOK_NAMES: Record<number, { zh: string; en: string }> = {
   11: { zh: '标准', en: 'Standard' }, 12: { zh: '鲜艳', en: 'Vivid' }, 13: { zh: '单色', en: 'Monotone' },
   14: { zh: '软单色', en: 'Soft Monotone' }, 15: { zh: '硬单色', en: 'Hard Monotone' }, 16: { zh: '高对比度黑白', en: 'Hi-Contrast B&W' },
   17: { zh: '正片', en: 'Positive Film' }, 18: { zh: '电影（黄色）', en: 'Cinema (Yellow)' }, 19: { zh: '电影（绿色）', en: 'Cinema (Green)' },
-  20: { zh: '留银冲洗', en: 'Bleach Bypass' }, 21: { zh: '怀旧', en: 'Retro' }, 22: { zh: 'HDR色调', en: 'HDR Tone' },
+  20: { zh: '留银冲洗', en: 'Bleach Bypass' }, 21: { zh: '怀旧', en: 'Retro' }, 22: { zh: 'HDR 色调', en: 'HDR Tone' },
   23: { zh: '正负逆冲', en: 'Cross Processing' }, 24: { zh: '负片', en: 'Negative Film' }, 25: { zh: '标准（单色）', en: 'Standard (mono)' },
   26: { zh: '柔和（单色）', en: 'Soft (mono)' }, 27: { zh: '高对比度（单色）', en: 'High Contrast (mono)' }, 28: { zh: '颗粒感（单色）', en: 'Grainy (mono)' },
-  29: { zh: '无颗粒感（单色）', en: 'Solid (mono)' }, 30: { zh: 'HDR色调（单色）', en: 'HDR Tone (mono)' },
+  29: { zh: '无颗粒感（单色）', en: 'Solid (mono)' }, 30: { zh: 'HDR 色调（单色）', en: 'HDR Tone (mono)' },
   // Firmware 1.20 (the camera's texts): Pictorialist is offered on no model (not listed, see
   // UNRELEASED_LOOKS), Solarized on the Monochrome (and with the B&W looks unlocked).
   31: { zh: '画意摄影效果', en: 'Pictorialist Effect' }, 32: { zh: '中途曝光效果', en: 'Solarized Effect' },
@@ -24,7 +24,7 @@ const GR3_LOOK_NAMES: Record<number, { zh: string; en: string }> = {
   11: { zh: '标准', en: 'Standard' }, 12: { zh: '鲜艳', en: 'Vivid' }, 13: { zh: '单色', en: 'Monotone' },
   14: { zh: '软单色', en: 'Soft Monotone' }, 15: { zh: '硬单色', en: 'Hard Monotone' }, 16: { zh: '高对比度黑白', en: 'Hi-Contrast B&W' },
   17: { zh: '正片', en: 'Positive Film' }, 18: { zh: '留银冲洗', en: 'Bleach Bypass' }, 19: { zh: '怀旧', en: 'Retro' },
-  20: { zh: 'HDR色调', en: 'HDR Tone' }, 21: { zh: '正负逆冲', en: 'Cross Processing' }, 22: { zh: '负片', en: 'Negative Film' },
+  20: { zh: 'HDR 色调', en: 'HDR Tone' }, 21: { zh: '正负逆冲', en: 'Cross Processing' }, 22: { zh: '负片', en: 'Negative Film' },
 };
 const factoryLookKey = (id: number): string => `f${id}`;
 /** GR III's keys: g<look> for its own looks and its films (64..). */
