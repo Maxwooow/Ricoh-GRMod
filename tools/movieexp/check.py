@@ -26,6 +26,15 @@ The screen and the ISO button (test 089b), also on both images:
      still only, the build for a still and a movie; with any of the function's other conditions
      set, neither sends it.
 
+The dials and the values (test 089c):
+  8. the function of a dial (0x533F7844), for every function the settings can give (0..6) and
+     still / movie: the official gives "nothing" for a movie unless it is exposure compensation
+     (3), the build gives the function as for a still; for a still both the same;
+  9. the seven places that hand "movie" to CaptureReadyModel's texts (shutter speed, aperture, ISO
+     icon, ISO value; shooting screen and exposure-setting view): each function is run up to its
+     call of the text function, with still and movie; the official passes the movie flag, the
+     build 0, and every other argument register is the same.
+
     python3 check.py 1.20|1.21 OFFICIAL-RTOS BUILT-RTOS
 """
 import itertools
@@ -33,7 +42,7 @@ import struct
 import sys
 
 from unicorn import Uc, UC_ARCH_ARM, UC_MODE_ARM, UC_HOOK_CODE
-from unicorn.arm_const import UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2, UC_ARM_REG_R4, UC_ARM_REG_R5, UC_ARM_REG_R11, UC_ARM_REG_SP, UC_ARM_REG_LR, UC_ARM_REG_PC
+from unicorn.arm_const import UC_ARM_REG_C1_C0_2, UC_ARM_REG_FPEXC, UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2, UC_ARM_REG_R4, UC_ARM_REG_R5, UC_ARM_REG_R11, UC_ARM_REG_SP, UC_ARM_REG_LR, UC_ARM_REG_PC
 
 BASE = 0x53000000
 A120 = dict(start=0x53259a44, stop=0x53259b30, single=0x532406a4, settings=0x53240c38, log=0x539154f8,
@@ -128,6 +137,21 @@ SCREEN = {'1.20': dict(layout=0x5318bbb0, layout_end=0x5318bca0, items=0x53dc08e
           '1.21': dict(layout=0x5318bb88, layout_end=0x5318bc78, items=0x53dc1ee8, positions=0x53dc0fc4,
                        iso=0x53396bf4, iso_end=0x53396ce8, settings=0x53240c38 + 0x608, getter=0x5329bb60)}
 THIS = 0x62000000
+STATE = THIS + 0x4000   # the shooting screen's values (this + 0x4EC); +0x980: still / movie
+# 8, 9: per release: the dial function; the auto exposure's "movie"; (name, function, end, call of the text function, text function, movie from)
+DIAL_FN = {'1.20': dict(fn=0x533f7844, end=0x533f789c, ae_movie=0x5377cab8, mapping=0x533f75d0),
+         '1.21': dict(fn=0x533f7844 + 0x928, end=0x533f789c + 0x928, ae_movie=0x5377d748, mapping=0x533f75d0 + 0x928)}
+TEXTS = {'1.20': [('shutter speed', 0x533a83cc, 0x533a842c, 0x533a8428, 0x533a8270, 'ae'),
+                  ('aperture, screen', 0x5318c30c, 0x5318c410, 0x5318c350, 0x533a8688, 'state'),
+                  ('aperture, setting', 0x531bd7b8, 0x531bd8e0, 0x531bd81c, 0x533a8688, 'ae'),
+                  ('ISO icon, screen', 0x5318c4f0, 0x5318c544, 0x5318c518, 0x533a88fc, 'state'),
+                  ('ISO icon, setting', 0x533a8998, 0x533a89e0, 0x533a89dc, 0x533a88fc, 'ae'),
+                  ('ISO text, screen', 0x5318c544, 0x5318c654, 0x5318c594, 0x533a89e0, 'state'),
+                  ('ISO text, setting', 0x533a8a94, 0x533a8b2c, 0x533a8b18, 0x533a89e0, 'ae')]}
+_SHIFT = {'shutter speed': 0x8b0, 'aperture, screen': -0x28, 'aperture, setting': 0x60c, 'ISO icon, screen': -0x28,
+          'ISO icon, setting': 0x8b0, 'ISO text, screen': -0x28, 'ISO text, setting': 0x8b0}
+_TEXT121 = {0x533a8270: 0x533a8b20, 0x533a8688: 0x533a8f38, 0x533a88fc: 0x533a91ac, 0x533a89e0: 0x533a9290}
+TEXTS['1.21'] = [(n, f + _SHIFT[n], e + _SHIFT[n], c + _SHIFT[n], _TEXT121[t], src) for n, f, e, c, t, src in TEXTS['1.20']]
 
 
 class Function:
@@ -137,6 +161,8 @@ class Function:
         self.img = open(path, 'rb').read()
         self.begin, self.end, self.native = begin, end, native
         self.uc = Uc(UC_ARCH_ARM, UC_MODE_ARM)
+        self.uc.reg_write(UC_ARM_REG_C1_C0_2, self.uc.reg_read(UC_ARM_REG_C1_C0_2) | (0xf << 20))   # VFP on
+        self.uc.reg_write(UC_ARM_REG_FPEXC, 0x40000000)
         self.uc.mem_map(BASE, (len(self.img) + 0xfff) & ~0xfff)
         self.uc.mem_write(BASE, self.img)
         for base in (LIVE, THIS, STACK):
@@ -188,6 +214,78 @@ def placements(fn, movie, state, layout):
     fn.on_call = on_call
     fn.run(THIS, memory)
     return placed
+
+
+def dial_checks(release, official, built):
+    a = DIAL_FN[release]
+    bad = []
+    got = {}
+    for name, path in (('official', official), ('built', built)):
+        fn = Function(path, a['fn'], a['end'])
+        for movie in (0, 1):
+            for function in range(7):
+                fn.result = lambda target, movie=movie, function=function: function if target == a['mapping'] else movie if target == a['ae_movie'] else LIVE
+                fn.on_call = lambda uc, target: None
+                fn.run(THIS, {})
+                got[name, movie, function] = fn.uc.reg_read(UC_ARM_REG_R0)
+    for movie in (0, 1):
+        for function in range(7):
+            o, n = got['official', movie, function], got['built', movie, function]
+            if o != (function if not movie or function == 3 else 0):
+                bad.append(('8 official dial function', movie, function, o))
+            if n != function:
+                bad.append(('8 built dial function', movie, function, n))
+    print(f'{release}: dial function for a movie: official', [got['official', 1, f] for f in range(7)], 'built', [got['built', 1, f] for f in range(7)])
+    return bad
+
+
+def text_checks(release, official, built):
+    ae_movie = DIAL_FN[release]['ae_movie']
+    bad = []
+    seen = []
+    for name, begin, end, call, text, source in TEXTS[release]:
+        got = {}
+        for label, path in (('official', official), ('built', built)):
+            fn = Function(path, begin, end)
+            for movie in (0, 1):
+                reached = {}
+
+                def on_call(uc, target, reached=reached, fn=fn):
+                    if target == text:
+                        reached['r'] = tuple(uc.reg_read(r) for r in (UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2))
+                        uc.emu_stop()
+                fn.on_call = on_call
+                fn.result = lambda target, movie=movie: movie if target == ae_movie else LIVE
+                memory = {THIS + 0x4ec: struct.pack('<I', STATE), STATE + 0x980: bytes([movie]), LIVE + 4: struct.pack('<I', LIVE)}
+                uc = fn.uc
+                for base in (LIVE, THIS, STACK):
+                    uc.mem_write(base, bytes(0x10000))
+                for at, data in memory.items():
+                    uc.mem_write(at, data)
+                uc.reg_write(UC_ARM_REG_SP, STACK + 0x8000); uc.reg_write(UC_ARM_REG_LR, 0x6fff0000)
+                uc.reg_write(UC_ARM_REG_R0, THIS); uc.reg_write(UC_ARM_REG_R1, THIS + 0x100); uc.reg_write(UC_ARM_REG_R2, 1)
+                fn.calls = []
+                try:
+                    uc.emu_start(begin, 0x6fff0000, count=20000)
+                except Exception as e:   # noqa: BLE001
+                    if 'r' not in reached:
+                        raise SystemExit(f'{name}: {e}')
+                if 'r' not in reached:
+                    bad.append(('9 the text function is not reached', name, label, movie)); continue
+                got[label, movie] = reached['r']
+        if len(got) != 4:
+            continue
+        for movie in (0, 1):
+            o, n = got['official', movie], got['built', movie]
+            if o[2] != movie:
+                bad.append(('9 the official does not pass the movie flag', name, movie, o))
+            if n[2] != 0:
+                bad.append(('9 the build does not pass 0', name, movie, n))
+            if o[:2] != n[:2]:
+                bad.append(('9 other arguments differ', name, movie, o, n))
+        seen.append(name)
+    print(f'{release}: "movie" argument now 0 at:', ', '.join(seen))
+    return bad
 
 
 def screen_checks(release, official, built):
@@ -254,7 +352,7 @@ def screen_checks(release, official, built):
 def main():
     release, official, built = sys.argv[1:4]
     adr = addresses(release)
-    screen_bad = screen_checks(release, official, built)
+    screen_bad = screen_checks(release, official, built) + dial_checks(release, official, built) + text_checks(release, official, built)
     for b in screen_bad[:20]:
         print('FAIL', b)
     off, new = Machine(official, adr), Machine(built, adr)

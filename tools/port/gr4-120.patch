@@ -3122,13 +3122,13 @@ diff --git a/core/src/fw/gr4v120/aspect/movieexp.ts b/core/src/fw/gr4v120/aspect
 new file mode 100644
 --- /dev/null
 +++ b/core/src/fw/gr4v120/aspect/movieexp.ts
-@@ -0,0 +1,154 @@
+@@ -0,0 +1,211 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * Movie exposure by the mode dial (test builds only so far; GR IV 1.20 and 1.21): movies are
 + * recorded in the exposure mode of the mode dial (P, Av, Tv, M, the user modes), with the ISO
 + * setting of the still mode, instead of always in P with ISO auto; the movie screen shows shutter
-+ * speed, aperture and ISO, and the ISO button works.
++ * speed, aperture and ISO, and the dials and the ISO button work as for stills.
 + *
 + * What the camera does. The exposure mode handed to the auto exposure is worked out in one place,
 + * the update of the shooting mode at 0x532599DC (1.20 addresses), from the mode dial:
@@ -3168,10 +3168,21 @@ new file mode 100644
 + *      functions (0x5318C218, 0x5318C410, 0x5318C654) do not look at still / movie themselves.
 + *  (5) The ISO function of the buttons (0x53396344: sends command 0x47, the ISO setting) returns
 + *      without doing anything for a movie; that branch is not taken any more.
-+ * The dials need nothing: their handlers (CaptureReadySwitchFunctionModel, 0x53392BC8 and its two
-+ * siblings) choose what a dial does from the effective shooting mode, which is what (1) changes,
-+ * and the commands they send (0x39..0x40: Tv, Av, ISO, exposure compensation up / down) are
-+ * carried out by the shooting-mode controller without a look at still / movie.
++ *
++ * The dials and the values (test 089c; in 089b the three items stayed empty, the dials did nothing
++ * and the ISO setting opened by the ISO button showed no value; the exposure did follow the mode
++ * and the values set for stills):
++ *  (6) What a dial does comes from 0x533F7844: the function set for the effective shooting mode,
++ *      and for a movie (as the auto exposure sees it, 0x5377CAB8) everything but exposure
++ *      compensation is made "nothing". That is not done any more: the three dial handlers
++ *      (CaptureReadySwitchFunctionModel, 0x53392BC8 and its two siblings) then send the same
++ *      commands as for a still (0x39..0x40: Tv, Av, ISO, exposure compensation up / down), which
++ *      the shooting-mode controller carries out without a look at still / movie.
++ *  (7) CaptureReadyModel's texts for the shutter speed (0x533A8270), the aperture (0x533A8688),
++ *      the ISO icon (0x533A88FC) and the ISO value (0x533A89E0) take a "movie" argument and give
++ *      an empty text (no icon) when it is set. The shooting screen's three items and the
++ *      exposure-setting view (0x531BF1F8, the ISO setting among it) now pass 0: eight places, the
++ *      argument loaded right before each call.
 + *
 + * Not looked at yet, for the camera test: shutter speeds slower than the frame rate, ISO values
 + * above the movie's own range.
@@ -3203,6 +3214,30 @@ new file mode 100644
 +const LAYOUT_Y = [440, 440, 680, 680] as const;
 +/** (5) `beq <return>` after `bl STILL_MOVIE_GETTER; cmp r0, #1` in the buttons' ISO function. */
 +const ISO_BUTTON_MOVIE = byRelease({ '1.20': 0x53396400, '1.21': 0x53396cb0 });
++
++/** The auto exposure's "movie" (`bl` target of the places below). */
++const AE_IS_MOVIE = byRelease({ '1.20': 0x5377cab8, '1.21': 0x5377d748 });
++/** (6) `bne <keep>` after `bl AE_IS_MOVIE; cmp r0, #1`; then `cmp r4, #3; movne r4, #0`. */
++const DIAL_FUNCTION_MOVIE = byRelease({ '1.20': 0x533f7888, '1.21': 0x533f81b0 });
++/** (7) The texts' functions, and the places that load their "movie" argument (r2): [place, the word there, the call's distance, the function]. */
++const TEXT_TV = byRelease({ '1.20': 0x533a8270, '1.21': 0x533a8b20 });
++const TEXT_AV = byRelease({ '1.20': 0x533a8688, '1.21': 0x533a8f38 });
++const ICON_ISO = byRelease({ '1.20': 0x533a88fc, '1.21': 0x533a91ac });
++const TEXT_ISO = byRelease({ '1.20': 0x533a89e0, '1.21': 0x533a9290 });
++const MOV_R2_R5 = 0xe1a02005;
++const MOV_R2_R0 = 0xe1a02000;
++const LDRB_R2_R3_980 = 0xe5d32980;
++const LDRB_R2_IP_980 = 0xe5dc2980;
++const MOVIE_ARGUMENTS: readonly { at: number; word: number; call: number; link: boolean; to: number; what: string }[] = [
++  { at: byRelease({ '1.20': 0x533a841c, '1.21': 0x533a8ccc }), word: MOV_R2_R5, call: 0x0c, link: false, to: TEXT_TV, what: 'shutter speed text' },
++  { at: byRelease({ '1.20': 0x5318c344, '1.21': 0x5318c31c }), word: LDRB_R2_R3_980, call: 0x0c, link: true, to: TEXT_AV, what: 'aperture text, shooting screen' },
++  { at: byRelease({ '1.20': 0x531bd80c, '1.21': 0x531bde18 }), word: MOV_R2_R0, call: 0x10, link: true, to: TEXT_AV, what: 'aperture text, exposure setting' },
++  { at: byRelease({ '1.20': 0x5318c514, '1.21': 0x5318c4ec }), word: LDRB_R2_R3_980, call: 0x04, link: true, to: ICON_ISO, what: 'ISO icon, shooting screen' },
++  { at: byRelease({ '1.20': 0x533a89c8, '1.21': 0x533a9278 }), word: MOV_R2_R0, call: 0x14, link: false, to: ICON_ISO, what: 'ISO icon, exposure setting' },
++  { at: byRelease({ '1.20': 0x5318c57c, '1.21': 0x5318c554 }), word: LDRB_R2_IP_980, call: 0x18, link: true, to: TEXT_ISO, what: 'ISO text, shooting screen' },
++  { at: byRelease({ '1.20': 0x533a8b10, '1.21': 0x533a93c0 }), word: MOV_R2_R5, call: 0x08, link: true, to: TEXT_ISO, what: 'ISO text, exposure setting' },
++];
++const MOV_R2_0 = 0xe3a02000;
 +
 +const NOP = 0xe1a00000;
 +const BX_LR = 0xe12fff1e;
@@ -3276,6 +3311,28 @@ new file mode 100644
 +  expectWord(patch, ISO_BUTTON_MOVIE, 0x0affffdf);
 +  expectWord(patch, ISO_BUTTON_MOVIE + 0x14, 0xe3a01047);
 +  patch.setWord(ISO_BUTTON_MOVIE, NOP, 'movie exposure: the ISO button also for movies');
++
++  // (6) bl AE_IS_MOVIE; cmp r0, #1; bne keep; cmp r4, #3; movne r4, #0; keep: mov r0, r4
++  expectWord(patch, DIAL_FUNCTION_MOVIE - 8, branchWord(DIAL_FUNCTION_MOVIE - 8, AE_IS_MOVIE, 14, true));
++  expectWord(patch, DIAL_FUNCTION_MOVIE - 4, 0xe3500001);
++  expectWord(patch, DIAL_FUNCTION_MOVIE, 0x1a000001);
++  expectWord(patch, DIAL_FUNCTION_MOVIE + 4, 0xe3540003);
++  expectWord(patch, DIAL_FUNCTION_MOVIE + 8, 0x13a04000);
++  expectWord(patch, DIAL_FUNCTION_MOVIE + 12, 0xe1a00004);
++  patch.setWord(DIAL_FUNCTION_MOVIE, branchWord(DIAL_FUNCTION_MOVIE, DIAL_FUNCTION_MOVIE + 12), 'movie exposure: the dials as for a still');
++
++  // (7) The functions begin with the test of the argument (r2; the shutter speed's has it in r5 by then).
++  expectWord(patch, TEXT_TV + 0x40, 0xe3550000); // cmp r5, #0 (mov r5, r2 at +0x20)
++  expectWord(patch, TEXT_TV + 0x20, 0xe1a05002);
++  expectWord(patch, TEXT_AV, 0xe3520000); // cmp r2, #0
++  expectWord(patch, ICON_ISO + 8, 0xe1a04002); // mov r4, r2
++  expectWord(patch, ICON_ISO + 0x1c, 0xe3540000); // cmp r4, #0
++  expectWord(patch, TEXT_ISO + 4, 0xe3520000); // cmp r2, #0
++  for (const { at, word, call, link, to } of MOVIE_ARGUMENTS) {
++    expectWord(patch, at, word);
++    expectWord(patch, at + call, branchWord(at + call, to, 14, link));
++  }
++  for (const { at, what } of MOVIE_ARGUMENTS) patch.setWord(at, MOV_R2_0, `movie exposure: ${what}`);
 +}
 diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/package.ts
 --- a/core/src/fw/gr4v120/aspect/package.ts
