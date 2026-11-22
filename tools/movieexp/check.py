@@ -35,6 +35,12 @@ The dials and the values (test 089c):
      call of the text function, with still and movie; the official passes the movie flag, the
      build 0, and every other argument register is the same.
 
+Bulb from the dial (test 089d):
+ 10. the shutter-speed step (0x5325A958) in M, one step slower at the slowest shutter speed, bulb
+     state 0, with "ISO auto" answered no and yes: the official sets the bulb state when the
+     answer is no (and steps plainly when yes); the build does the same for a still, and for a
+     movie always steps plainly, without setting the bulb state.
+
     python3 check.py 1.20|1.21 OFFICIAL-RTOS BUILT-RTOS
 """
 import itertools
@@ -239,6 +245,52 @@ def dial_checks(release, official, built):
     return bad
 
 
+STEP = {'1.20': dict(fn=0x5325a958, end=0x5325ab08, site=0x5325aa78, base_mode=0x5329b24c, bulb=0x5329b4d0, settings=0x53240c38,
+                     iso_auto=0x53258b68, set_bulb=0x532b63f0, set_tv=0x5325a90c)}
+STEP['1.21'] = dict(fn=0x5325a958 + 0x84c, end=0x5325ab08 + 0x84c, site=0x5325aa78 + 0x84c, base_mode=0x5329b24c + 0x850, bulb=0x5329b4d0 + 0x850,
+                    settings=0x53240c38 + 0x608, iso_auto=0x53258b68 + 0x84c, set_bulb=0x532b63f0 + 0x850, set_tv=0x5325a90c + 0x84c)
+
+
+def bulb_checks(release, official, built):
+    a = STEP[release]
+    bad = []
+    got = {}
+    for label, path in (('official', official), ('built', built)):
+        img = open(path, 'rb').read()
+        word = struct.unpack_from('<I', img, a['site'] - BASE)[0]
+        target = a['site'] + 8 + ((word & 0xffffff) - (1 << 24 if word & 0x800000 else 0)) * 4
+        native = () if target == a['iso_auto'] else (target, target + 8, target + 16)   # the appended five instructions
+        fn = Function(path, a['fn'], a['end'], native=native)
+        for movie in (0, 1):
+            for iso_auto in (0, 1):
+                fn.result = lambda t, iso_auto=iso_auto: {a['settings']: LIVE, a['base_mode']: 5, a['bulb']: 0, a['iso_auto']: iso_auto}.get(t, LIVE)
+                fn.on_call = lambda uc, t: None
+                uc = fn.uc
+                for base in (LIVE, THIS, STACK):
+                    uc.mem_write(base, bytes(0x10000))
+                uc.mem_write(LIVE + 0xb76, bytes([movie])); uc.mem_write(LIVE + 4, struct.pack('<I', LIVE))
+                uc.reg_write(UC_ARM_REG_SP, STACK + 0x8000); uc.reg_write(UC_ARM_REG_LR, 0x6fff0000)
+                uc.reg_write(UC_ARM_REG_R0, THIS); uc.reg_write(UC_ARM_REG_R1, 0)   # the controller; 0: slower
+                fn.calls = []
+                try:
+                    uc.emu_start(a['fn'], 0x6fff0000, count=20000)
+                except Exception as e:   # noqa: BLE001
+                    if uc.reg_read(UC_ARM_REG_PC) != 0x6fff0000:
+                        raise SystemExit(f'shutter-speed step: {e}')
+                targets = [c[0] for c in fn.calls]
+                bulb = [c for c in fn.calls if c[0] == a['set_bulb']]
+                got[label, movie, iso_auto] = ('bulb' if bulb and bulb[0][2] == 1 else 'step' if a['set_tv'] in targets else '?', a['iso_auto'] in targets)
+    for movie in (0, 1):
+        for iso_auto in (0, 1):
+            o, n = got['official', movie, iso_auto], got['built', movie, iso_auto]
+            if o != (('step' if iso_auto else 'bulb'), True):
+                bad.append(('10 official step', movie, iso_auto, o))
+            if n != (o if not movie else ('step', False)):
+                bad.append(('10 built step', movie, iso_auto, n))
+    print(f'{release}: M, slower at the limit, fixed ISO: official still {got["official", 0, 0][0]}, movie {got["official", 1, 0][0]}; built still {got["built", 0, 0][0]}, movie {got["built", 1, 0][0]}')
+    return bad
+
+
 def text_checks(release, official, built):
     ae_movie = DIAL_FN[release]['ae_movie']
     bad = []
@@ -352,7 +404,7 @@ def screen_checks(release, official, built):
 def main():
     release, official, built = sys.argv[1:4]
     adr = addresses(release)
-    screen_bad = screen_checks(release, official, built) + dial_checks(release, official, built) + text_checks(release, official, built)
+    screen_bad = screen_checks(release, official, built) + dial_checks(release, official, built) + text_checks(release, official, built) + bulb_checks(release, official, built)
     for b in screen_bad[:20]:
         print('FAIL', b)
     off, new = Machine(official, adr), Machine(built, adr)

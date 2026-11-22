@@ -59,8 +59,15 @@
  *      exposure-setting view (0x531BF1F8, the ISO setting among it) now pass 0: seven places, the
  *      argument loaded right before each call.
  *
- * Not looked at yet, for the camera test: shutter speeds slower than the frame rate, ISO values
- * above the movie's own range.
+ *
+ * Bulb from the dial (test 089d; 089c works: values shown, dials and ISO setting as for stills, and
+ * the camera itself keeps the shutter speed within the movie's range, 1/60 at 60p, in Tv):
+ *  (8) In M with a fixed ISO, one step slower than the slowest shutter speed is B (then T, B+T):
+ *      the shutter-speed step (0x5325A958) sets the bulb state when the dial goes slower at the
+ *      limit, unless the ISO is auto (0x53258B68). For a movie that limit is the movie's, so one
+ *      step past 1/60 went to B, which (3) records in P. For a movie the step now answers the
+ *      "ISO auto" question with yes: the shutter speed stops at the limit as in Tv. A B / T set
+ *      for stills before changing to movie is still recorded in P, and the dial leads out of it.
  */
 import { FirmwareError } from '../../types';
 import { assembleWords, branchWord } from './arm';
@@ -113,6 +120,10 @@ const MOVIE_ARGUMENTS: readonly { at: number; word: number; call: number; link: 
   { at: byRelease({ '1.20': 0x533a8b10, '1.21': 0x533a93c0 }), word: MOV_R2_R5, call: 0x08, link: true, to: TEXT_ISO, what: 'ISO text, exposure setting' },
 ];
 const MOV_R2_0 = 0xe3a02000;
+/** (8) `bl ISO_AUTO_NOW` in the shutter-speed step (r5 = the settings, r0 = the controller); then `cmp r0, #0; bne <plain step>`. */
+const BULB_STEP_SITE = byRelease({ '1.20': 0x5325aa78, '1.21': 0x5325b2c4 });
+const ISO_AUTO_NOW = byRelease({ '1.20': 0x53258b68, '1.21': 0x532593b4 });
+const BULB_STATE_SETTER = byRelease({ '1.20': 0x532b63f0, '1.21': 0x532b6c40 });
 
 const NOP = 0xe1a00000;
 const BX_LR = 0xe12fff1e;
@@ -208,4 +219,24 @@ export function installMovieExposure(patch: Patch): void {
     expectWord(patch, at + call, branchWord(at + call, to, 14, link));
   }
   for (const { at, what } of MOVIE_ARGUMENTS) patch.setWord(at, MOV_R2_0, `movie exposure: ${what}`);
+
+  // (8) mov r0, r7; bl ISO_AUTO_NOW; cmp r0, #0; bne plain; mov r0, r5; mov r1, #1; bl BULB_STATE_SETTER
+  expectWord(patch, BULB_STEP_SITE - 4, 0xe1a00007);
+  expectWord(patch, BULB_STEP_SITE, branchWord(BULB_STEP_SITE, ISO_AUTO_NOW, 14, true));
+  expectWord(patch, BULB_STEP_SITE + 4, 0xe3500000);
+  expectWord(patch, BULB_STEP_SITE + 8, 0x1affffc7);
+  expectWord(patch, BULB_STEP_SITE + 12, 0xe1a00005);
+  expectWord(patch, BULB_STEP_SITE + 16, 0xe3a01001);
+  expectWord(patch, BULB_STEP_SITE + 20, branchWord(BULB_STEP_SITE + 20, BULB_STATE_SETTER, 14, true));
+  // r5 is the step's own copy of the settings (mov r5, r0 after the getter, kept to its end); r1 is set anew after the call.
+  const noBulb = patch.append((at) => [
+    ...assembleWords(
+      `ldrb r1, [r5, #0xb76]
+       cmp r1, #1
+       moveq r0, #1
+       bxeq lr`, at),
+    branchWord(at + 16, ISO_AUTO_NOW),
+  ], 4);
+  if (noBulb % 4 !== 0) fail('unaligned code');
+  patch.setWord(BULB_STEP_SITE, branchWord(BULB_STEP_SITE, noBulb, 14, true), 'movie exposure: the shutter speed stops at the movie limit in M');
 }
