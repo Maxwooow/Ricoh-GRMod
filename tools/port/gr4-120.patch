@@ -3181,7 +3181,7 @@ new file mode 100644
 + *  (7) CaptureReadyModel's texts for the shutter speed (0x533A8270), the aperture (0x533A8688),
 + *      the ISO icon (0x533A88FC) and the ISO value (0x533A89E0) take a "movie" argument and give
 + *      an empty text (no icon) when it is set. The shooting screen's three items and the
-+ *      exposure-setting view (0x531BF1F8, the ISO setting among it) now pass 0: eight places, the
++ *      exposure-setting view (0x531BF1F8, the ISO setting among it) now pass 0: seven places, the
 + *      argument loaded right before each call.
 + *
 + * Not looked at yet, for the camera test: shutter speeds slower than the frame rate, ISO values
