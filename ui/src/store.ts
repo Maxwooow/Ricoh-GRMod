@@ -13,6 +13,7 @@
  *   photo     the preview photo
  *   output    memory cards, building and writing firmware
  *   copies    firmware copies on the card and their backups
+ *   tools     undo, inspect and compare, shortcuts, the preset library, project export / import, snapshots
  */
 export * from './store/core';
 export * from './store/families';
@@ -25,3 +26,4 @@ export * from './store/ratios';
 export * from './store/photo';
 export * from './store/output';
 export * from './store/copies';
+export * from './store/tools';

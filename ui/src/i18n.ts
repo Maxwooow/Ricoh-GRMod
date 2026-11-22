@@ -143,6 +143,7 @@ const zh = {
   navDate: '时间戳', dateSub: '将日期（可附加影像控制名称）打印在照片上', dateLine: '时间戳  ·  [拍摄辅助] › [拍摄时间戳]（\'26 10 08 / 2026.10.08 17:34，各可附加名称）',
   navAdjSlots: 'ADJ 栏目数', adjSlotsSub: '增加 ADJ 拨杆的栏目数量', adjSlotsLine: 'ADJ 栏目  ·  {n} 个（在[自定义设定] › [ADJ 模式设定]中设定）',
   navBrightAuto: '显示屏自动亮度', brightAutoOff: '自动亮度 · 原厂', brightAutoBalanced: '自动亮度 · 稍亮', brightAutoBright: '自动亮度 · 最亮',
+  closeLabel: '关闭',
   navShadow: '改进版阴影校正', shadowSub: '阴影校正设为[自动]时，根据画面估计暗部提亮程度（原厂的[自动]因计算溢出，实拍时基本不进行校正）。固定档位和[关闭]保持不变。',
   shadowLine: '阴影校正 · 学习型自动  ·  阴影校正选[自动]时生效',
   navGrain: '颗粒效果', grainSub: '可选择原厂颗粒或优化的胶片颗粒：仅改变明暗，叠加多种大小的颗粒，中间调效果最明显，天空、肤色和深暗部效果较弱。',
@@ -157,7 +158,9 @@ const zh = {
   navFlash: '闪光灯功能增强', flashSub: '直闪模式：闪光灯以固定功率闪光时，照相机根据对焦距离和输入的闪光灯 GN 值设定曝光。',
   flashPlusSub: '直闪模式（固定功率闪光，根据对焦距离和 GN 值设定曝光）＋ 闪光 TTL（GF-2 在两种带[消减红眼]的闪光模式下使用预闪测光）。', flashLine: '直闪模式  ·  闪光模式第 5 项（固定功率，按对焦距离曝光）',
   navMono: '黑白预设', monoSub: '解锁 GR IV Monochrome 的影像控制风格', monoLine: '黑白预设  ·  解锁 GR IV Monochrome 的影像控制风格',
-  extraTitle: '新增槽位', chkChanges: '{n} 项更改', chkCount: '{n} 个', chkPictures: '{n} 张', chkHidden: '隐藏 {n} 个', chkRatios: '新增长宽比', extraSub: '在 Cinema 之后增加影像控制槽位，最多 {n} 个', extraAdd: '新增槽位', extraCountLabel: '新增 {n} 个', extraNone: '不新增',
+  navHlg: 'HLG 照片', hlgSub: '机内直出 BT.2100 HLG HDR 照片（基于 HDR 色调槽位）', hlgLine: 'HLG 照片  ·  机内直出 BT.2100 HLG（Rec.2020 + CICP）',
+  extraTitle: '新增槽位', extraSub: '在 Cinema 之后增加影像控制槽位，最多 {n} 个', extraAdd: '新增槽位', extraCountLabel: '新增 {n} 个', extraNone: '不新增',
+  chkChanges: '{n} 项更改', chkCount: '{n} 个', chkPictures: '{n} 张', chkHidden: '隐藏 {n} 个', chkRatios: '新增长宽比',
   prevSlot: '上一个槽位', nextSlot: '下一个槽位',
   halation: '光晕', haloLabel: '光晕', halationSub: '在照相机的影像控制参数调整中设定。此处仅用于预览。', gr3xHalationRowsSub: '在照相机的影像控制参数调整中设定（GR III：[光晕]关闭 / 1 / 2 / 3，[颜色]红 / 白）。此处仅用于预览。', gr3xHalationSub: '强度写入固件（GR III 没有可用的参数滑块）。仅应用于照片，实时显示中不显示。', haloPreview: '预览', haloOff: '关闭', haloWeak: '弱', haloMedium: '中', haloStrong: '强', haloRed: '红', haloWhite: '白',
   haloOn: '开启', halationCinemaSub: '开启后，在此预设槽位的参数控制栏中添加[光晕]设定。',
@@ -192,7 +195,7 @@ const zh = {
   pushStart: '开始推送', pushStop: '停止', pushClose: '关闭', pushShareLog: '发送日志', pushRetry: '重试', pushDetails: '日志', pushPreparing: '正在准备文件…',
   pushOnlyGr4: '无线推送仅支持 GR IV 系列。使用 GR III / IIIx 时，请保存至设备，再通过读卡器写入存储卡。',
   pushVpn: '设备正在使用 VPN。推送前请关闭 VPN，或在 VPN 设定中允许 GR Mod 绕过 VPN。', pushPerm: '需要 Bluetooth® 和附近设备权限，才能查找照相机。',
-  pushBtOff: '设备 Bluetooth® 未开启', mSettings: '设定', saveTitle: '存储到设备', rename: '重命名', saveStart: '存储', mWhatsNew: '更新内容', followSystem: '跟随系统', uiLanguage: '界面语言',
+  pushBtOff: '设备 Bluetooth® 未开启', mSettings: '设定', saveTitle: '存储到设备', rename: '重命名', saveStart: '存储', mWhatsNew: '更新内容', followSystem: '跟随系统', wallBuiltIn: '内置图片', wallBuiltInHint: '单击即可添加，之后可像其他图片一样裁剪和重命名。', wallBuiltInFull: '已达到图片数量上限，请先删除一张。', appearance: '外观', themeLight: '浅色', themeDark: '深色', uiLanguage: '界面语言',
   // the phone app: where it differs from the desktop wording, the key + 'M' (t() picks it on the phone)
   wallEmptyM: '添加图片', dropFirmwareSubM: '轻触以选择设备中的文件', dropPresetM: '选择 .xmp / .cube 文件', dropFirmwareM: '导入官方固件 .bin 文件',
   tOvFirmwareBM: '轻触此处打开设定。选择正确的机型后，可从理光官方网站下载固件；也可导入设备中已下载的固件。新版（1.21、1.20）和旧版（1.11）固件均可使用。照相机安装新版固件后，无法恢复至旧版。',
@@ -223,6 +226,43 @@ const zh = {
   aUpdOpenSettings: '打开设定', aUpdContinue: '继续', aUpdLatest: '已是最新版本（{v}）', aUpdFailed: '无法检查或下载更新：{e}',
   aUpdChecksum: '下载的文件校验不符，已删除。请稍后重试。', aUpdInstallFailed: '无法安装更新：{e}',
  mCrashed: '界面发生错误。请将以下内容截图并发送给开发者。', mReload: '重新加载',
+  // QoL wave A: save warning, error hints, project export / import, app language
+  saveFailed: '项目没有保存成功，关闭程序后改动可能丢失。请检查磁盘空间和权限',
+  hintFirmware: '固件文件不对、已损坏或不受支持，请使用官方原始固件', hintUnsupportedHere: '这台相机的固件不支持该功能',
+  hintConflict: 'HLG 照片模式不能与 HDR 增益图同时开启，请关掉其中一个', hintFwFull: '固件里放不下这些改动，请减少关机画面或胶片数量',
+  hintTooMany: '添加的比例或图片超过上限，请减少一些', hintCardFull: '存储卡或磁盘已满，请腾出空间后重试',
+  hintRemoved: '存储卡或磁盘已断开或未就绪，请重新插入后重试', hintNotFound: '找不到文件，它可能已被移动，或存储卡已拔出',
+  hintDenied: '没有权限访问该位置，请换一个文件夹，或检查存储卡是否写保护', hintOffline: '连不上 GR Mod 程序，请关闭窗口后重新打开',
+  projectMenu: '项目', projectExport: '导出项目…', projectImport: '导入项目…', projectWorking: '正在处理项目…',
+  projectExported: '项目已导出（含 {n} 个附属文件）', projectExported1: '项目已导出（含 1 个附属文件）', projectExported0: '项目已导出', projectImportOk: '导入', projectImported: '项目已导入', projectBad: '这不是有效的 GR Mod 项目文件', projectTooNew: '这个项目文件来自更新的 GR Mod，请先更新',
+  projectImportTitle: '导入项目', projectImportLine: '文件来自 GR Mod {v}，含 {n} 个附属文件', projectImportWarn: '当前项目（影像控制、比例、关机画面和设置）将被替换。官方固件不受影响',
+  // QoL wave B
+  undo: '撤销', undoExtra: '已删除新增槽位', undoWall: '已移除关机画面', undoRatio: '已移除长宽比', undoGone: '这次删除已无法撤销', undoFull: '已达上限，无法撤销',
+  inspectFw: '查看固件文件…', inspectTitle: '查看固件文件', inspectDrop: '拖入或选择任意 .bin 固件', inspectAgain: '换一个文件', inspectRef: '对照的官方固件', inspectKind: '类型', inspectVerified: '校验', inspectChanged: '改动字节', inspectFeatures: '功能', inspectNone: '无',
+  inspectNeedsOpen: '请先打开一个官方固件作为对照，再查看其他固件文件。', inspectUnreadable: '无法读取这个文件：它不是 GR Mod 能识别的固件。', inspectSize: '文件大小不像固件（应为约 1 MB 到 200 MB）。', inspectYes: '是', inspectNo: '否', inspectBusy: '正在读取…',
+  inspectSlots: '槽位', inspectRatios: '新增长宽比', inspectExtras: '新增影像控制槽位', inspectPictures: '关机画面', inspectLayout: '菜单顺序', inspectLayoutValue: '已调整顺序，隐藏 {n} 个',
+  inspectKindOfficial: '官方原版', inspectKindModified: '修改版', inspectKindBridge: '1.12 桥接固件', inspectKindUnknown: '无法识别',
+  exportConfirmTitle: '导出固件', exportConfirmOk: '导出',
+  shortcutsMenu: '键盘快捷键', shortcutsHint: '{m}+E 导出到文件夹 · {m}+Z 撤销删除 · 影像控制页 ← → 切换槽位 · 长宽比页 ↑ ↓ 切换比例', exportFolderKey: '导出到文件夹（{m}+E）',
+  // QoL wave C
+  libSave: '存入预设库', libApply: '从预设库应用', libTitleSave: '存入预设库', libTitleApply: '预设库', libName: '名称', libSaveBtn: '保存', libEmpty: '预设库里还没有适用于这台相机的预设。先在某个槽位载入预设，再点“存入预设库”。', libNoPreset: '先载入并转换好预设，才能存入预设库。',
+  libSaved: '已存入预设库：{name}', libApplied: '已应用预设：{name}', libSaveFailed: '预设库写入失败', libWrongFamily: '这个预设属于另一类相机，不能用在当前相机上', libMissing: '预设库里找不到这个预设的文件', libDeleteTitle: '从预设库删除这个预设？', libDelete: '从预设库删除', libFamilyGr4: 'GR IV', libFamilyGr3: 'GR III / IIIx',
+  compareWith: '对比对象',
+  // QoL batch D1
+  preflightGone: '存储卡 {c} 已不在，请重新插入后再试', preflightSpace: '存储卡 {c} 空间不足：需要约 {need}，可用 {free}。请腾出空间后再试',
+  hintWriteProtected: '存储卡可能处于写保护状态，请拨开卡侧的锁定开关后重试',
+  snapshotFailed: '无法保存项目的自动备份。本次操作不受影响', snapshotTitle: '恢复较早的版本', snapshotEmpty: '还没有备份。导入项目、新建项目或生成固件时会自动保存。', projectRestore: '恢复较早的版本…',
+  snapshotRestoreBtn: '恢复', snapshotRestoreTitle: '恢复较早的版本', snapshotRestoreOk: '恢复', snapshotRestoreWarn: '当前项目将被替换。恢复前会先备份当前状态，之后可以再恢复回来', snapshotRestored: '已恢复所选版本', snapshotMissing: '这份备份已丢失或无法读取',
+  snapshotSlots: '槽位 {n}', snapshotExtras: '新增槽位 {n}', snapshotRatios: '比例 {n}', snapshotPictures: '关机画面 {n}',
+  snapshotReason_import: '导入前', snapshotReason_new: '新建项目前', snapshotReason_build: '生成固件后', snapshotReason_restore: '恢复前',
+  projectNew: '新建项目…', newProjectTitle: '新建项目', newProjectLine: '当前相机的影像控制、新增槽位、比例、关机画面和开关将被清空', newProjectWarn: '清空前会自动备份，可在“恢复较早的版本”中找回。官方固件、预设库、界面语言和另一类相机的项目不受影响', newProjectOk: '新建', newProjectDone: '已新建项目',
+  cmpFileBtn: '与另一个文件对比…', cmpFileAnother: '换一个对比文件…', cmpFileBack: '只看单个文件', cmpFileWith: '对比文件',
+  // QoL batch D2
+  exportCube: '导出为 .cube', exportCubeTip: '把这个槽位的色彩渲染成标准 33 点 .cube 查找表，可在 Lightroom、Resolve、Photoshop 里预览（不含光晕和颗粒）', exportCubeDone: '已导出 {name}', exportCubeNone: '先载入并转换好预设，才能导出 .cube',
+  extraDuplicate: '复制这个槽位', extraDuplicateFull: '已达上限（最多 {n} 个新增槽位），先删除一个', extraDuplicated: '已复制：{name}', extraDuplicateFailed: '复制槽位失败',
+  batchProgress: '正在导入预设 {i} / {n}', batchAddTitle: '再新增槽位来放剩下的预设？', batchAddLine: '还有 {n} 个预设没有空槽位。', batchAddOk: '新增槽位', batchAddFiles: '{n} 个预设：{names}',
+  batchDone: '已应用 {n} 个预设', batchSkipped: '{n} 个跳过（没有空槽位）', batchFailed: '{n} 个失败：{names}',
+  libRename: '重命名', libRenameExists: '预设库里已有同名预设', libSearch: '按名称或文件名搜索', libSortNew: '最新在前', libSortName: '按名称', libNoMatch: '没有匹配的预设',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -368,6 +408,7 @@ const en: typeof zh = {
   navDate: 'Date imprint', dateSub: 'Print the date (and the look\'s name) on photos', dateLine: 'Date imprint  ·  Shooting Assist › Date Imprint (\'26 10 08 / 2026.10.08 17:34, each with or without the look\'s name)',
   navAdjSlots: 'ADJ lever items', adjSlotsSub: 'More items on the ADJ lever', adjSlotsLine: 'ADJ lever  ·  {n} items (set in Customize Settings › ADJ Mode Setting)',
   navBrightAuto: 'Auto screen brightness', brightAutoOff: 'Auto brightness · stock', brightAutoBalanced: 'Auto brightness · brighter', brightAutoBright: 'Auto brightness · brightest',
+  closeLabel: 'Close',
   navShadow: 'Improved Shadow Correction', shadowSub: 'With Shadow Correction on Auto, the camera estimates from the scene how much to lift the shadows (its own Auto overflows and hardly ever corrects on real photos). The fixed levels and Off are unchanged.',
   shadowLine: 'Shadow Correction · learned Auto  ·  when Shadow Correction is set to Auto',
   navGrain: 'Grain Effect', grainSub: 'The camera\'s grain, or optimized film grain: on the brightness only, a few sizes, strongest in the midtones, fading out in sky, skin and deep shadows.',
@@ -382,7 +423,9 @@ const en: typeof zh = {
   navFlash: 'Flash enhancements', flashSub: 'Direct Flash: when the flash fires at a fixed power, the camera sets the exposure from the focus distance and the flash\'s guide number you enter.',
   flashPlusSub: 'Direct Flash (fixed power, exposure from the focus distance and guide number) + flash TTL (pre-flash metering for a GF-2 in the two red-eye flash modes).', flashLine: 'Direct Flash  ·  a fifth Flash Mode (fixed power, exposure from the focus distance)',
   navMono: 'B&W presets', monoSub: 'Unlock the looks of the GR IV Monochrome', monoLine: 'B&W presets  ·  the looks of the GR IV Monochrome unlocked',
-  extraTitle: 'Added slots', chkChanges: '{n} changes', chkCount: '{n}', chkPictures: '{n}', chkHidden: '{n} hidden', chkRatios: 'Added aspect ratios', extraSub: 'More Image Control slots after the Cinema ones, at most {n}', extraAdd: 'Add slot', extraCountLabel: '{n} added', extraNone: 'None',
+  navHlg: 'HLG Photo', hlgSub: 'In-camera BT.2100 HLG HDR photos (via HDR Tone slot)', hlgLine: 'HLG Photo  ·  In-camera BT.2100 HLG (Rec.2020 + CICP)',
+  extraTitle: 'Added slots', extraSub: 'More Image Control slots after the Cinema ones, at most {n}', extraAdd: 'Add slot', extraCountLabel: '{n} added', extraNone: 'None',
+  chkChanges: '{n} changes', chkCount: '{n}', chkPictures: '{n}', chkHidden: '{n} hidden', chkRatios: 'Added aspect ratios',
   prevSlot: 'Previous slot', nextSlot: 'Next slot',
   halation: 'Halation', haloLabel: 'Halo', halationSub: 'Set in the camera, in Image Control\'s parameter adjustment. Here it is only previewed', gr3xHalationRowsSub: 'Set in the camera, in Image Control\'s parameter adjustment (GR III: Halation Off / 1 / 2 / 3, Colour red / white). Here it is only previewed', gr3xHalationSub: 'Built into the firmware at this strength (the GR III has no spare parameter slider). Only in the photos, not in live view', haloPreview: 'Preview', haloOff: 'Off', haloWeak: 'Weak', haloMedium: 'Medium', haloStrong: 'Strong', haloRed: 'Red', haloWhite: 'White',
   haloOn: 'On', halationCinemaSub: 'When on, this slot\'s Toning becomes Halation in the camera (Off / On, Fn for strength and colour); the loaded preset does not use Toning. Off keeps it as it is',
@@ -417,7 +460,7 @@ const en: typeof zh = {
   pushStart: 'Send', pushStop: 'Stop', pushClose: 'Close', pushShareLog: 'Send log', pushRetry: 'Retry', pushDetails: 'Log', pushPreparing: 'Preparing the file…',
   pushOnlyGr4: 'Only the GR IV family takes firmware over Wi-Fi. For a GR III / IIIx, save it to the device and copy it to a card.',
   pushVpn: 'A VPN is on: switch it off, or let GR Mod bypass it, before sending.', pushPerm: 'Bluetooth and nearby-devices permissions are needed to find the camera',
-  pushBtOff: 'Bluetooth is off', mSettings: 'Settings', saveTitle: 'Save to device', rename: 'Rename', saveStart: 'Save', mWhatsNew: 'What\'s new', followSystem: 'Follow system', uiLanguage: 'App language',
+  pushBtOff: 'Bluetooth is off', mSettings: 'Settings', saveTitle: 'Save to device', rename: 'Rename', saveStart: 'Save', mWhatsNew: 'What\'s new', followSystem: 'Follow system', wallBuiltIn: 'Built-in pictures', wallBuiltInHint: 'Click one to add it; crop and rename it like any other picture.', wallBuiltInFull: 'The list is full: remove a picture first.', appearance: 'Appearance', themeLight: 'Light', themeDark: 'Dark', uiLanguage: 'App language',
   wallEmptyM: 'Add images', dropFirmwareSubM: 'Tap to choose a file on the device', dropPresetM: 'Choose .xmp / .cube', dropFirmwareM: 'Import an official firmware .bin',
   tOvFirmwareBM: 'Tap here to open the settings: choose the right model and download the firmware from the official source, or import a firmware file already on this device. Both the new (1.21, 1.20) and the earlier firmware (1.11) can be used; a camera that installs the new one cannot go back to the earlier one.',
   tOvFirmwareBG3M: 'Tap here to open the settings: choose the right model and download the firmware from the official source, or import a firmware file already on this device. Both the new (GR III 2.21, 2.20 / GR IIIx 1.71, 1.70) and the earlier firmware (2.10 / 1.60) can be used; a camera that installs the new one cannot go back to the earlier one.',
@@ -446,24 +489,69 @@ const en: typeof zh = {
   aUpdOpenSettings: 'Open settings', aUpdContinue: 'Continue', aUpdLatest: 'GR Mod is up to date ({v})', aUpdFailed: 'Could not check or download the update: {e}',
   aUpdChecksum: 'The downloaded file did not match and was deleted. Please try again later.', aUpdInstallFailed: 'Could not install the update: {e}',
  mCrashed: 'Something went wrong in the interface. Please send a screenshot of this to the developer.', mReload: 'Reload',
+  // QoL wave A: save warning, error hints, project export / import, app language
+  saveFailed: 'The project could not be saved, so recent changes may be lost on exit. Check disk space and permissions',
+  hintFirmware: 'The firmware file is wrong, damaged or unsupported. Use the original official firmware', hintUnsupportedHere: 'This camera\'s firmware does not support that feature',
+  hintConflict: 'HLG photo mode and the HDR gain map cannot both be on. Turn one of them off', hintFwFull: 'The firmware has no room for all these changes. Use fewer power-off pictures or films',
+  hintTooMany: 'Too many added ratios or pictures. Remove some', hintCardFull: 'The card or disk is full. Free some space and try again',
+  hintRemoved: 'The card or disk was removed or is not ready. Reinsert it and try again', hintNotFound: 'File not found. It may have been moved, or the card was removed',
+  hintDenied: 'Permission denied. Pick another folder, or check that the card is not write-protected', hintOffline: 'Cannot reach the GR Mod program. Close this window and open it again',
+  projectMenu: 'Project', projectExport: 'Export project…', projectImport: 'Import project…', projectWorking: 'Working on the project…',
+  projectExported: 'Project exported ({n} attached files)', projectExported1: 'Project exported (1 attached file)', projectExported0: 'Project exported', projectImportOk: 'Import', projectImported: 'Project imported', projectBad: 'This is not a valid GR Mod project file', projectTooNew: 'This project file comes from a newer GR Mod. Update first',
+  projectImportTitle: 'Import project', projectImportLine: 'File from GR Mod {v}, with {n} attached files', projectImportWarn: 'The current project (Image Control, ratios, power-off pictures and settings) will be replaced. The official firmware is not touched',
+  // QoL wave B
+  undo: 'Undo', undoExtra: 'Added slot removed', undoWall: 'Power-off image removed', undoRatio: 'Aspect ratio removed', undoGone: 'That delete can no longer be undone', undoFull: 'Cannot undo: the list is full again',
+  inspectFw: 'Inspect a firmware file…', inspectTitle: 'Inspect a firmware file', inspectDrop: 'Drop or choose any firmware .bin', inspectAgain: 'Choose another file', inspectRef: 'Compared with the open firmware', inspectKind: 'Type', inspectVerified: 'Verified', inspectChanged: 'Changed bytes', inspectFeatures: 'Features', inspectNone: 'none',
+  inspectNeedsOpen: 'Open an official firmware first as the reference, then inspect other firmware files.', inspectUnreadable: 'This file cannot be read: GR Mod does not recognise it as a firmware.', inspectSize: 'The file size does not look like a firmware (about 1 MB to 200 MB).', inspectYes: 'Yes', inspectNo: 'No', inspectBusy: 'Reading…',
+  inspectSlots: 'Slots', inspectRatios: 'Added aspect ratios', inspectExtras: 'Added Image Control slots', inspectPictures: 'Power-off images', inspectLayout: 'Menu order', inspectLayoutValue: 'reordered, {n} hidden',
+  inspectKindOfficial: 'Official, unmodified', inspectKindModified: 'Modified', inspectKindBridge: '1.12 bridge firmware', inspectKindUnknown: 'Not recognised',
+  exportConfirmTitle: 'Export firmware', exportConfirmOk: 'Export',
+  shortcutsMenu: 'Keyboard shortcuts', shortcutsHint: '{m}+E export to a folder · {m}+Z undo a delete · Left / Right: slot on Image Control · Up / Down: ratio on Aspect ratio', exportFolderKey: 'Export to a folder ({m}+E)',
+  // QoL wave C
+  libSave: 'Save to library', libApply: 'Apply from library', libTitleSave: 'Save to library', libTitleApply: 'Preset library', libName: 'Name', libSaveBtn: 'Save', libEmpty: 'The library has no presets for this camera yet. Load a preset on a slot, then choose "Save to library".', libNoPreset: 'Load a preset and let it convert before saving it to the library.',
+  libSaved: 'Saved to the library: {name}', libApplied: 'Applied: {name}', libSaveFailed: 'Could not write the preset library', libWrongFamily: 'This preset belongs to another camera family and cannot be used on this camera', libMissing: 'The library has no file for this preset', libDeleteTitle: 'Delete this preset from the library?', libDelete: 'Delete from library', libFamilyGr4: 'GR IV', libFamilyGr3: 'GR III / IIIx',
+  compareWith: 'Compare with',
+  // QoL batch D1
+  preflightGone: 'Card {c} is no longer there. Reinsert it and try again', preflightSpace: 'Not enough space on card {c}: about {need} needed, {free} free. Free some space and try again',
+  hintWriteProtected: 'The card may be write-protected. Slide its lock switch to unlocked and try again',
+  snapshotFailed: 'Could not keep an automatic backup of the project. Your action is not affected', snapshotTitle: 'Restore an earlier version', snapshotEmpty: 'No backups yet. One is kept when you import a project, start a new one or build a firmware.', projectRestore: 'Restore an earlier version…',
+  snapshotRestoreBtn: 'Restore', snapshotRestoreTitle: 'Restore an earlier version', snapshotRestoreOk: 'Restore', snapshotRestoreWarn: 'The current project will be replaced. It is backed up first, so you can come back to it', snapshotRestored: 'Earlier version restored', snapshotMissing: 'This backup is missing or cannot be read',
+  snapshotSlots: 'Slots: {n}', snapshotExtras: 'Added slots: {n}', snapshotRatios: 'Ratios: {n}', snapshotPictures: 'Pictures: {n}',
+  snapshotReason_import: 'Before an import', snapshotReason_new: 'Before a new project', snapshotReason_build: 'After a build', snapshotReason_restore: 'Before a restore',
+  projectNew: 'New project…', newProjectTitle: 'New project', newProjectLine: 'The open camera\'s Image Control, added slots, ratios, power-off pictures and switches are cleared', newProjectWarn: 'A backup is kept first (Restore an earlier version). The official firmware, the preset library, the interface language and the other camera family\'s project are not touched', newProjectOk: 'Start new', newProjectDone: 'New project started',
+  cmpFileBtn: 'Compare with another file…', cmpFileAnother: 'Compare with a different file…', cmpFileBack: 'Single file', cmpFileWith: 'Compared with',
+  // QoL batch D2
+  exportCube: 'Export look as .cube', exportCubeTip: 'Render this slot\'s colour as a standard 33-point .cube LUT to preview in Lightroom, Resolve or Photoshop (no halation or grain)', exportCubeDone: 'Exported {name}', exportCubeNone: 'Load and convert a preset first to export a .cube',
+  extraDuplicate: 'Duplicate this slot', extraDuplicateFull: 'The limit of {n} added slots is reached, remove one first', extraDuplicated: 'Duplicated: {name}', extraDuplicateFailed: 'Could not duplicate the slot',
+  batchProgress: 'Importing preset {i} of {n}', batchAddTitle: 'Add slots for the remaining presets?', batchAddLine: '{n} presets have no empty slot left.', batchAddOk: 'Add slots', batchAddFiles: '{n} presets: {names}',
+  batchDone: '{n} presets applied', batchSkipped: '{n} skipped (no free slot)', batchFailed: '{n} failed: {names}',
+  libRename: 'Rename', libRenameExists: 'The library already has a preset with this name', libSearch: 'Search by name or file name', libSortNew: 'Newest first', libSortName: 'By name', libNoMatch: 'No preset matches',
 };
 export type Key = keyof typeof zh;
 /** Both dictionaries (tests compare them). */
 export const DICTS = { zh, en };
-/** The interface language the user picked in the phone app ('' = as the system), kept in the web view's storage. */
+/**
+ * The app language, kept by the page and in the saved project (`uiLang`); the camera menu language follows it.
+ * '' follows the system. An explicit "Follow system" is stored as 'auto' (and read back as ''), so that a stored
+ * choice can be told from nothing stored. Project import and snapshot restore never change the language.
+ */
 const UI_LANG_KEY = 'grmod.uiLang';
+/** The language the user picked: 'zh' | 'en', or '' to follow the system (also when nothing was ever stored). */
 export function uiLangPref(): '' | 'zh' | 'en' {
   try { const v = localStorage.getItem(UI_LANG_KEY); return v === 'zh' || v === 'en' ? v : ''; } catch { return ''; }
 }
-/** Changes the interface language; the page reloads in it unless `reload` is false (store.ts setAppLanguage saves the work first). */
+/** Stores the language ('' = follow system, kept as 'auto'); the page reloads in it unless `reload` is false (store.ts setAppLanguage saves the work first). */
 export function setUiLangPref(v: '' | 'zh' | 'en', reload = true): void {
-  try { if (v) localStorage.setItem(UI_LANG_KEY, v); else localStorage.removeItem(UI_LANG_KEY); } catch { /* not kept */ }
-  if (reload) window.setTimeout(() => window.location.reload(), 120);
+  try { localStorage.setItem(UI_LANG_KEY, v || 'auto'); } catch { /* not kept */ }
+  if (reload && typeof window !== 'undefined') window.setTimeout(() => window.location.reload(), 120);
 }
-const systemZh = (navigator.language || 'zh').toLowerCase().startsWith('zh');
-/** The interface language in use. */
+const systemZh = ((typeof navigator !== 'undefined' && navigator.language) || 'en').toLowerCase().startsWith('zh');
+/** The interface language in use (fixed for the life of the page). */
 export const UI_LANG: 'zh' | 'en' = uiLangPref() || (systemZh ? 'zh' : 'en');
 const dict = UI_LANG === 'zh' ? zh : en;
+if (typeof document !== 'undefined' && document.documentElement) document.documentElement.lang = UI_LANG;
+/** The language t() speaks, for code that formats text itself (release notes, credits). */
+export const uiLangCode = (): 'zh' | 'en' => UI_LANG;
 /** The phone app (Android, iOS): its own wording where the desktop's would be wrong (no dragging, no card). */
 const capx = (globalThis as unknown as { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string } }).Capacitor;
 const PHONE = !!capx?.isNativePlatform?.() && ['android', 'ios'].includes(capx.getPlatform?.() ?? '');

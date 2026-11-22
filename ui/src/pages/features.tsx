@@ -4,7 +4,7 @@ import { FirmwareHero } from '../firmware';
 import { t } from '../i18n';
 import {
   useStore, loadFirmwareFile, gridOffered, setExtrasView, setSoft, setDateStamp, setMonoUnlock, setFlashPlus, flashPlusOn, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain,
-  setShadowLearn, setBattery, setVideoAf, setAwbLearn, setBrightAuto, setCustomGrid,
+  setShadowLearn, setBattery, setVideoAf, setAwbLearn, setBrightAuto, setCustomGrid, setHlgPhoto,
 } from '../store';
 import { isFirmware } from './files';
 import { GridDetail, GridThumb } from './grid';
@@ -68,6 +68,8 @@ function ExtrasList() {
   const soft = useStore((s) => s.soft);
   const date = useStore((s) => s.dateStamp);
   const looks = useStore((s) => s.monoUnlock);
+  const hlg = useStore((s) => s.hlgPhoto);
+  const hlgOk = useStore((s) => !!s.info?.features.hlgPhoto);
   const gr3x = useStore((s) => s.info?.family === 'gr3x');
   const dateOk = useStore((s) => !!s.info?.features.dateStamp);
   const flash = useStore((s) => flashPlusOn(s));
@@ -99,6 +101,7 @@ function ExtrasList() {
       <FeatureCapsule icon={Ico.soft} title={t('navSoft')} sub={t(gr3x ? 'gr3xSoftSub' : 'softAdjSub')} on={soft} onChange={setSoft} tour="ex-f-soft" />
       {(!gr3x || dateOk) && <FeatureCapsule icon={Ico.date} title={t('navDate')} sub={t('dateSub')} on={date} onChange={setDateStamp} tour="ex-f-date" />}
       {!mono && !gr3x && <FeatureCapsule icon={Ico.mono} title={t('navMono')} sub={t('monoSub')} on={looks} onChange={setMonoUnlock} tour="ex-f-mono" />}
+      {!mono && !gr3x && hlgOk && <FeatureCapsule icon={Ico.hlg} title={t('navHlg')} sub={t('hlgSub')} on={hlg} onChange={setHlgPhoto} />}
       {flashOk && <FeatureCapsule icon={Ico.flash} title={t('navFlash')} sub={t(ttlOk ? 'flashPlusSub' : 'flashSub')} on={flash} onChange={setFlashPlus} tour="ex-f-flash" />}
       {hdrOk && <FeatureCapsule icon={Ico.hdr} title={t('navHdr')} sub={t('hdrSub')} on={hdr} onChange={setHdr} tour="ex-f-hdr" />}
       {previewOk && <FeatureCapsule icon={Ico.preview} title={t('navPreview')} sub={t('previewSub')} on={preview} onChange={setExposurePreview} tour="ex-f-preview" />}

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { Engine, SHUTDOWN_H, SHUTDOWN_W, card, fw, jpeg, wallpaper } from '../src';
 
 const P = fileURLToPath(new URL('../testdata/private/', import.meta.url));
@@ -18,7 +20,8 @@ const have = existsSync(P + 'official.bin');
 // The fixtures besides the official file (hand-made test firmware A / B / C of 0.1, two XMP presets, the
 // decoded payload): a test that reads them is skipped when they are not there.
 const fixtures = (...names: string[]): boolean => names.every((n) => existsSync(P + n));
-const OUT = '/tmp/claude-0/-home-claude/88a14fdf-ef79-5caf-8cde-fe4ab6536e46/scratchpad/e2e/';
+/** Built files are kept here for a look by hand: GRMOD_E2E_OUT, or grmod-e2e in the system's temporary folder. */
+const OUT = join(process.env.GRMOD_E2E_OUT ?? join(tmpdir(), 'grmod-e2e'), '/');
 
 describe.skipIf(!have)('engine end to end', () => {
   let eng: Engine;

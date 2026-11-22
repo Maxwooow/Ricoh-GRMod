@@ -23,6 +23,13 @@ const info = () => ({
   slots: [], factoryRatios: ['3:2', '1:1'], factoryEntry: { files: [] },
 });
 let store;
+/** A modified export asks what the build contains first (QoL wave B): answer it when it is asked. */
+const exportFolder = async () => {
+  const pending = store.outputFirmware({ kind: 'folder' });
+  await vi.advanceTimersByTimeAsync(0);
+  if (store.getState().confirm) store.answerConfirm(true);
+  await pending;
+};
 beforeEach(async () => {
   vi.resetModules(); vi.clearAllMocks(); vi.useFakeTimers();
   mocks.host.available = false;
@@ -49,7 +56,7 @@ describe('GR IIIx UI family isolation', () => {
     await store.adoptFirmware('fwdc243b.bin', '1.60', new Uint8Array([1]));
     await vi.advanceTimersByTimeAsync(1);
     store.setSoft(true);
-    await store.outputFirmware({ kind: 'folder' });
+    await exportFolder();
     expect(mocks.engine.build).not.toHaveBeenCalled();
     expect(mocks.host.write).not.toHaveBeenCalled();
   });
@@ -64,7 +71,7 @@ describe('GR IIIx UI family isolation', () => {
     for (const r of ['4:3', '16:9', '65:24', '17:6', '3:4', '7:6', '5:4']) store.addRatio(r);
     await vi.advanceTimersByTimeAsync(1);
     expect(store.getState().ratios.map(r => r.ratio)).toEqual(['4:3', '16:9', '65:24', '17:6', '3:4', '7:6', '5:4']);
-    await store.outputFirmware({ kind: 'folder' });
+    await exportFolder();
     expect(mocks.engine.build).toHaveBeenCalledWith([], ['4:3', '16:9', '65:24', '17:6', '3:4', '7:6', '5:4'].map(ratio => ({ ratio, name: ratio })), [], { adjSoftFocus: false, dateStamp: false, monoUnlock: false });
     expect(mocks.host.write).toHaveBeenCalledWith('/chosen/fwdc243b.bin', new Uint8Array([9, 2]));
   });
@@ -75,7 +82,7 @@ describe('GR IIIx UI family isolation', () => {
     store.setDateStamp(true); store.setMonoUnlock(true);
     await vi.advanceTimersByTimeAsync(1);
     expect(store.getState()).toMatchObject({ soft: true, dateStamp: false, monoUnlock: false });
-    await store.outputFirmware({ kind: 'folder' });
+    await exportFolder();
     expect(mocks.engine.build.mock.calls[0].slice(2)).toEqual([
       [{ level: -1, strength: 'weak' }, { level: -2, strength: 'medium' }, { level: -3, strength: 'strong' }],
       { adjSoftFocus: false, dateStamp: false, monoUnlock: false },
@@ -103,7 +110,7 @@ describe('GR IIIx UI family isolation', () => {
     await store.adoptFirmware('fwdc243b.bin', '1.60', new Uint8Array([1]));
     expect(store.getState()).toMatchObject({ soft: true, monoUnlock: true });
     await vi.advanceTimersByTimeAsync(1);
-    await store.outputFirmware({ kind: 'folder' });
+    await exportFolder();
     const [requests, ratios, soft, options] = mocks.engine.build.mock.calls.at(-1);
     expect(requests).toHaveLength(1);
     expect(requests[0]).toMatchObject({ slot: 'CY', preset });
@@ -125,7 +132,7 @@ describe('GR IIIx UI family isolation', () => {
     store.getState().slots.F9.preset = { fileName: 'CineStill-800T.cube', kind: 'cube', text: '', result: preset };
     store.setActiveSlot('F9');
     await vi.advanceTimersByTimeAsync(1);
-    await store.outputFirmware({ kind: 'folder' });
+    await exportFolder();
     expect(mocks.engine.build.mock.calls.at(-1)[0][0]).toMatchObject({ slot: 'F9', preset });
     expect(mocks.engine.build.mock.calls.at(-1)[3].monoUnlock).toBe(false);
     store.setModel('HDF');
@@ -237,6 +244,19 @@ describe('GR IIIx UI family isolation', () => {
     await store.outputFirmware({ kind: 'folder' }, true); // nothing open: returns before asking
     expect(mocks.host.write).not.toHaveBeenCalled();
   });
+  it.each(['outputFirmware'])('cancels GR IV %s when the user switches to IIIx in the folder picker', async action => {
+    const gr4 = { ...info(), family: 'gr4', models: ['HDF'], filename: 'fwdc248b.bin' };
+    gr4.capabilities = { ...gr4.capabilities, factoryEntry: true };
+    mocks.engine.open.mockResolvedValueOnce(gr4);
+    await store.adoptFirmware('fwdc248b.bin', '1.11', new Uint8Array([1]));
+    let finish;
+    mocks.host.pickDirectory.mockImplementationOnce(() => new Promise(resolve => { finish = resolve; }));
+    store.setSoft(true);
+    const pending = store[action]({ kind: 'folder' });
+    store.setModel('GR3X_HDF'); store.answerConfirm(true); await vi.advanceTimersByTimeAsync(0); finish('/chosen'); await pending;
+    expect(mocks.host.write).not.toHaveBeenCalled();
+    expect(mocks.engine.build).not.toHaveBeenCalled();
+  });
   it('opens GR III 2.10 as its own model in the same family and writes fwdc239b.bin', async () => {
     mocks.engine.open.mockResolvedValue({ ...info(), version: '2.10', filename: 'fwdc239b.bin', models: ['GR3_HDF'], });
     expect(await store.adoptFirmware('fwdc239b.bin', '2.10', new Uint8Array([1]))).toBe(true);
@@ -245,7 +265,7 @@ describe('GR IIIx UI family isolation', () => {
     store.addRatio('4:3');
     await vi.advanceTimersByTimeAsync(1);
     store.setSoft(true);
-    await store.outputFirmware({ kind: 'folder' });
+    await exportFolder();
     expect(mocks.engine.build.mock.calls.at(-1).slice(2)).toEqual([
       [{ level: -1, strength: 'weak' }, { level: -2, strength: 'medium' }, { level: -3, strength: 'strong' }],
       { adjSoftFocus: false, dateStamp: false, monoUnlock: false },
@@ -257,7 +277,7 @@ describe('GR IIIx UI family isolation', () => {
     await store.adoptFirmware('fwdc239b.bin', '2.10', new Uint8Array([1]));
     store.setModel('GR3X_HDF');
     expect(store.getState()).toMatchObject({ model: 'GR3X_HDF', info: undefined, raw: undefined, fwName: undefined });
-    await store.outputFirmware({ kind: 'folder' });
+    await exportFolder();
     expect(mocks.host.write).not.toHaveBeenCalled();
   });
   it('does not open another camera\'s kept firmware; a 0.8.x kept file moves to its camera\'s place', async () => {

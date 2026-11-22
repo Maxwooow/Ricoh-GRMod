@@ -51,6 +51,7 @@ function FirmwareLine({ info, builds, lang, name }: { info: CopyInfo | undefined
           {s.softFocus?.length > 0 && <span className="chip tiny" title={softText(s.softFocus)}><b>{t('navSoft')}</b><span className="ellipsis">{softText(s.softFocus)}</span></span>}
           {s.dateStamp && <span className="chip tiny" title={t('dateLine')}><b>{t('navDate')}</b></span>}
           {s.monoUnlock && <span className="chip tiny" title={t('monoLine')}><b>{t('navMono')}</b></span>}
+          {s.hlgPhoto && <span className="chip tiny" title={t('hlgLine')}><b>HLG HDR</b></span>}
           {s.directFlash && <span className="chip tiny" title={t('flashLine')}><b>{t('navFlash')}</b></span>}
           {s.adjSlots && <span className="chip tiny" title={t('adjSlotsLine', { n: s.adjSlots })}><b>ADJ {s.adjSlots}</b></span>}
           {s.hdrGainMap && <span className="chip tiny" title={t('hdrLine')}><b>HDR</b></span>}

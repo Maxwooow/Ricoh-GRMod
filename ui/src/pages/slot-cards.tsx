@@ -5,9 +5,10 @@ import { DropZone, FileButton, Ico, IconCanvas, Prop, Segmented, Select } from '
 import { isMobile } from '../host';
 import { t } from '../i18n';
 import type { Key } from '../i18n';
-import { loadIconImage, loadPresetFile, nameProblem, removePreset, setActiveSlot, setIcon, setName, useStore, extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, filmCountChoosable, removeFilm, setFilmCount } from '../store';
+import { loadIconImage, loadPresetFile, nameProblem, removePreset, setActiveSlot, setIcon, setName, useStore, extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, filmCountChoosable, removeFilm, setFilmCount, duplicateExtraProblem, duplicateExtraSlot, loadPresetFiles } from '../store';
 import type { ExtraSlot, SlotKey } from '../store';
 import { isPreset } from './files';
+import { LibraryButtons } from '../library';
 
 export function SlotCard({ id }: { id: SlotId }) {
   const slot = useStore((s) => s.slots[id]);
@@ -24,7 +25,7 @@ export function SlotCard({ id }: { id: SlotId }) {
   const p = slot.preset;
   const first = id === 'CY'; // the one the tour points at
   return (
-    <DropZone className={`card ${active ? 'on' : ''}`} tour={first ? 'ic-slot' : undefined} accept={isPreset} onFiles={(f) => { void loadPresetFile(id, f[0]); }}>
+    <DropZone className={`card ${active ? 'on' : ''}`} tour={first ? 'ic-slot' : undefined} accept={isPreset} onFiles={(f) => { void loadPresetFiles(f, id); }}>
       <div className="card-in" {...pick(() => setActiveSlot(id))}>
         <div className="card-head">
           <IconCanvas pixels={slot.icon.mode !== 'keep' && slot.icon.pixels ? slot.icon.pixels : off.icon} />
@@ -39,7 +40,7 @@ export function SlotCard({ id }: { id: SlotId }) {
         </div>
         <div className="props">
           <Prop label={t('preset')} tour={first ? 'ic-preset' : undefined}>
-            {!p && <FileButton className="btn dashed fill" accept=".xmp,.cube" onFiles={(f) => { void loadPresetFile(id, f[0]); }}>{Ico.plus}<span>{t('dropPreset')}</span></FileButton>}
+            {!p && <FileButton className="btn dashed fill" accept=".xmp,.cube" multiple onFiles={(f) => { void loadPresetFiles(f, id); }}>{Ico.plus}<span>{t('dropPreset')}</span></FileButton>}
             {p && (
               <div className="preset">
                 <div className={`file-chip ${p.error ? 'bad' : ''}`}>
@@ -55,6 +56,7 @@ export function SlotCard({ id }: { id: SlotId }) {
                 )}
               </div>
             )}
+            <LibraryButtons k={id} />
           </Prop>
           <Prop label={t('icon')} tour={first ? 'ic-icon' : undefined}>
             <div className="chips">
@@ -148,12 +150,13 @@ export function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
   const active = useStore((s) => s.activeSlot === x.key);
   const name = useStore((s) => extraName(x, s));
   const nameBad = useStore((s) => extraNameProblem(x, s));
+  const dupProblem = useStore((s) => duplicateExtraProblem(s));
   const problem = useStore((s) => extraProblem(x, s));
   const tile = useStore((s) => s.info!.tiles[x.icon.style]);
   const p = x.preset;
   const k = x.key;
   return (
-    <DropZone className={`card ${active ? 'on' : ''}`} accept={isPreset} onFiles={(f) => { void loadPresetFile(k, f[0]); }}>
+    <DropZone className={`card ${active ? 'on' : ''}`} accept={isPreset} onFiles={(f) => { void loadPresetFiles(f, k); }}>
       <div className="card-in" {...pick(() => setActiveSlot(k))}>
         <div className="card-head">
           <IconCanvas pixels={x.icon.pixels ?? tile} />
@@ -164,11 +167,12 @@ export function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
               <span className={`count ${nameBad ? 'bad' : ''}`}>{nameBad || `${name.length}/${EXTRA_NAME_MAX}`}</span>
             </div>
           </div>
+          <button className="btn ghost icon-only extra-x" title={dupProblem ?? t('extraDuplicate')} aria-label={t('extraDuplicate')} disabled={!!dupProblem} onClick={() => duplicateExtraSlot(k)}>{Ico.copy}</button>
           <button className="btn ghost icon-only extra-x" title={t('extraRemove')} aria-label={t('extraRemove')} onClick={() => removeExtraSlot(k)}>{Ico.x}</button>
         </div>
         <div className="props">
           <Prop label={t('preset')}>
-            {!p && <FileButton className="btn dashed fill" accept=".xmp,.cube" onFiles={(f) => { void loadPresetFile(k, f[0]); }}>{Ico.plus}<span>{t('dropPreset')}</span></FileButton>}
+            {!p && <FileButton className="btn dashed fill" accept=".xmp,.cube" multiple onFiles={(f) => { void loadPresetFiles(f, k); }}>{Ico.plus}<span>{t('dropPreset')}</span></FileButton>}
             {p && (
               <div className="preset">
                 <div className={`file-chip ${p.error ? 'bad' : ''}`}>
@@ -183,6 +187,7 @@ export function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
                 )}
               </div>
             )}
+            <LibraryButtons k={k} />
           </Prop>
           <Prop label={t('icon')}>
             <div className="chips">

@@ -24,6 +24,7 @@ export const Ico = {
   more: <svg viewBox="0 0 20 20" fill="currentColor"><circle cx="4.5" cy="10" r="1.4" /><circle cx="10" cy="10" r="1.4" /><circle cx="15.5" cy="10" r="1.4" /></svg>,
   x: <svg viewBox="0 0 20 20" {...P}><path d="M5.5 5.5l9 9M14.5 5.5l-9 9" /></svg>,
   check: <svg viewBox="0 0 20 20" {...P} strokeWidth={2}><path d="M4.5 10.5l3.6 3.6 7.4-8" /></svg>,
+  copy: <svg viewBox="0 0 20 20" {...P}><rect x="7" y="7" width="9" height="9" rx="1.8" /><path d="M13 7V5.2A1.7 1.7 0 0 0 11.3 3.5H5.2A1.7 1.7 0 0 0 3.5 5.2v6.1A1.7 1.7 0 0 0 5.2 13H7" /></svg>,
   plus: <svg viewBox="0 0 20 20" {...P}><path d="M10 4.5v11M4.5 10h11" /></svg>,
   crop: <svg viewBox="0 0 20 20" {...P}><path d="M5.5 2.5v10.5a1.5 1.5 0 0 0 1.5 1.5h10.5M2.5 5.5h10.5a1.5 1.5 0 0 1 1.5 1.5v10.5" /></svg>,
   refresh: <svg viewBox="0 0 20 20" {...P}><path d="M16 10a6 6 0 1 1-1.8-4.3M16 3.5v3h-3" /></svg>,
@@ -60,6 +61,7 @@ export const Ico = {
   wb: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="6.6" /><path d="M10 3.4a6.6 6.6 0 0 0 0 13.2z" fill="currentColor" stroke="none" opacity="0.35" /><path d="M10 3.4v13.2" /></svg>,
   preview: <svg viewBox="0 0 20 20" {...P}><path d="M1.8 10c2.2-3.6 5-5.4 8.2-5.4s6 1.8 8.2 5.4c-2.2 3.6-5 5.4-8.2 5.4S4 13.6 1.8 10z" /><circle cx="10" cy="10" r="2.6" /></svg>,
   mono: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="7.2" /><path d="M10 2.8a7.2 7.2 0 0 1 0 14.4z" fill="currentColor" stroke="none" /></svg>,
+  hlg: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="4" /><path d="M10 2.2v2.2M10 15.6v2.2M2.2 10h2.2M15.6 10h2.2M4.5 4.5l1.6 1.6M13.9 13.9l1.6 1.6M4.5 15.5l1.6-1.6M13.9 6.1l1.6-1.6" /></svg>,
   help: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="7.2" /><path d="M7.9 8a2.2 2.2 0 1 1 3.3 1.9c-.8.5-1.2 1-1.2 1.8" /><circle cx="10" cy="13.9" r="0.6" fill="currentColor" /></svg>,
   external: <svg viewBox="0 0 20 20" {...P}><path d="M8 5H5.5A1.5 1.5 0 0 0 4 6.5v8A1.5 1.5 0 0 0 5.5 16h8a1.5 1.5 0 0 0 1.5-1.5V12M11 4h5v5M16 4l-7 7" /></svg>,
 };
@@ -423,7 +425,7 @@ export function Toasts() {
         <div key={x.id} className={`toast ${x.kind}`} role="status">
           <span className="toast-text">{x.text}</span>
           {x.action && <button className="toast-action" onClick={() => { x.action!.run(); dismissToast(x.id); }}>{x.action.label}</button>}
-          <button className="toast-x" aria-label="close" onClick={() => dismissToast(x.id)}>{Ico.x}</button>
+          <button className="toast-x" aria-label={t('closeLabel')} onClick={() => dismissToast(x.id)}>{Ico.x}</button>
         </div>
       ))}
     </div>
@@ -535,9 +537,10 @@ export function ConfirmDialog() {
   const c = useStore((s) => s.confirm);
   useEffect(() => {
     if (!c) return;
-    const key = (e: KeyboardEvent): void => { if (e.key === 'Escape') answerConfirm(false); };
-    window.addEventListener('keydown', key);
-    return () => window.removeEventListener('keydown', key);
+    // Capture phase and stopped: a confirmation sits on top of the dialog that asked (the library's delete), so one Escape closes only it.
+    const key = (e: KeyboardEvent): void => { if (e.key === 'Escape') { e.stopPropagation(); answerConfirm(false); } };
+    window.addEventListener('keydown', key, true);
+    return () => window.removeEventListener('keydown', key, true);
   }, [c]);
   if (!c) return null;
   return (

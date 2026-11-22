@@ -1026,5 +1026,21 @@
  "0x53aab340": {
   "new": "0x53ad3684",
   "reason": "movw r3,#0x9080 of the heap set-up (1.11 movw r3,#0x7340); same code"
+ },
+ "0x531c8c34": {
+  "new": "0x531ca1e0",
+  "reason": "fork HLG photo (fw/aspect/hlg.ts HDR_SCALE_SHOOTING; 1.20 as in gr4v120/aspect/hlg.ts): the shooting detail line's slider scale, movw r3,#0x261 in 1.20 (1.11 #0x23b, the renumbered icon), checked by expectWord; its playback twin 0x531cc27c -> 0x531cda58 is the override above; 0x531ca1e0 is placed in 1.21 by its code window (gr4-121-map)"
+ },
+ "0x53dbad84": {
+  "new": "0x53de55f0",
+  "reason": "fork HLG photo (HDR_INTENSE_TABLE_3): addrmap aligned it with 2 agreeing references (left manual: data); same [1, 2, 3, 0] word, checked by expectWord, as its three neighbours that map ok"
+ },
+ "0x54049de8": {
+  "new": "0x54081348",
+  "reason": "fork HLG photo (STD_MA_DESC_VA, Standard's neutral multi-axis block): the 1.20 module's value; 0x54081348 has 107 references that all agree in the 1.20 -> 1.21 map (the aligned guess 0x54080aa0 has one reference elsewhere)"
+ },
+ "0x5501adbc": {
+  "new": "0x5501c118",
+  "reason": "fork HLG photo (STD_REC_VA, Standard's tone record in RAM): the 1.20 module's value; 0x5501c118 has 9 agreeing references in the 1.20 -> 1.21 map; the T_REC table it belongs to (0x55053780 -> 0x55054800) is the override above"
  }
 }

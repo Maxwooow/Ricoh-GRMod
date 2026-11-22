@@ -2,9 +2,9 @@ import { GR3X_FILM_IDS, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_MAX_PICTURE
 import type { CameraModel } from '@grmod/core';
 import { engine } from '../engine';
 import { host, isMobile } from '../host';
-import { uiLangPref } from '../i18n';
+import { uiLangPref, t } from '../i18n';
 import { ensureIconFont } from '../pixels';
-import { ExtraSlot, RatioItem, SLOT_IDS, SlotKey, State, TOUR_IDS, WallItem, emptySlots, isGr3, savedGridLines, set, state } from './core';
+import { ExtraSlot, RatioItem, SLOT_IDS, SlotKey, State, TOUR_IDS, WallItem, emptySlots, isGr3, savedGridLines, set, state, toast } from './core';
 import { langOf, openFirmware } from './settings';
 import { allSlotKeys, renderIcon, runPreset, validHalation } from './slots';
 import { gr3SavedKeys, normalizeLookHidden, normalizeLookOrder } from './looks';
@@ -12,6 +12,7 @@ import { encodeWall, menuNameOf, newMenuId, validMenuId } from './wall';
 import { loadPreviewPhoto } from './photo';
 import { refreshVolumes } from './output';
 import { loadBuilds } from './copies';
+import { isThemePref, setThemePref, themePref } from '../theme';
 
 // ------------------------------------------------------------------ camera families
 /**
@@ -21,9 +22,9 @@ import { loadBuilds } from './copies';
  * there too); GR III / IIIx's is `project-gr3.json`, its presets `gr3-preset-…` (its films reuse
  * the ids CY and CG). Switching to the other camera keeps this one's work and brings back that one's.
  */
-type Family = 'gr4' | 'gr3';
+export type Family = 'gr4' | 'gr3';
 export const familyOf = (m: CameraModel): Family => (isGr3(m) ? 'gr3' : 'gr4');
-const GR3_PROJECT = 'project-gr3.json';
+export const GR3_PROJECT = 'project-gr3.json';
 /** The official file each camera takes (GR IV, GR III, GR IIIx: one file for all of each one's models),
  * kept once downloaded or opened: switching to another camera opens its file again without a download. */
 type FwGroup = 'gr4' | 'gr3' | 'gr3x';
@@ -46,15 +47,17 @@ export async function keptFirmware(g: FwGroup, legacyName?: string): Promise<Uin
   return lg === g ? legacy : null;
 }
 export const presetKey = (id: SlotKey, fam: Family = familyOf(state.model)): string => (fam === 'gr3' ? 'gr3-preset-' : 'preset-') + id.toLowerCase();
-type FamilyDoc = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+export type FamilyDoc = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 /** Each family's saved work as last loaded or saved; the open family's is taken from the state when saved. */
-const familyDocs: Record<Family, FamilyDoc | null> = { gr4: null, gr3: null };
+export const familyDocs: Record<Family, FamilyDoc | null> = { gr4: null, gr3: null };
 /** GR III work found in `project.json` itself (a data folder of the GR III test builds): its presets are `preset-…`. */
 let gr3Legacy = false;
 /** Changes whenever the open family changes: work still being loaded for the previous one is dropped. */
 let familyGen = 0;
 /** True while the open family's files are being read: a save meanwhile writes its work as loaded. */
 let familyLoading = false;
+/** A family's files stop loading and a load still running is stale (project import and new project). */
+export function endFamilyLoad(): void { familyLoading = false; ++familyGen; }
 
 function familyData(s: State): FamilyDoc {
   return {
@@ -68,7 +71,7 @@ function familyData(s: State): FamilyDoc {
     lookOrder: s.lookOrder, lookHidden: s.lookHidden, lookOrder3: s.lookOrder3, lookHidden3: s.lookHidden3,
     wall: s.wall.map((w) => ({ id: w.id, name: w.name, kind: 'image', width: w.width, height: w.height, crop: w.crop, ...(w.menuName !== undefined ? { menuName: w.menuName } : {}), ...(w.menuId ? { menuId: w.menuId } : {}) })),
     ratios: s.ratios.map((r) => ({ id: r.id, ratio: r.ratio, name: r.name })),
-    brightAuto: s.brightAuto, soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock, directFlash: s.directFlash, hdr: s.hdr, exposurePreview: s.exposurePreview, flashTtl: s.flashTtl, videoAf: s.videoAf, awbLearn: s.awbLearn, filmGrain: s.filmGrain, shadowLearn: s.shadowLearn, ratioShade: s.ratioShade, ratioShadeTone: s.ratioShadeTone, battery: s.battery, customGrid: s.customGrid, gridLines: s.gridLines, adjSlots: s.adjSlots, filmCount: s.filmCount,
+    brightAuto: s.brightAuto, soft: s.soft, dateStamp: s.dateStamp, monoUnlock: s.monoUnlock, hlgPhoto: s.hlgPhoto, directFlash: s.directFlash, hdr: s.hdr, exposurePreview: s.exposurePreview, flashTtl: s.flashTtl, videoAf: s.videoAf, awbLearn: s.awbLearn, filmGrain: s.filmGrain, shadowLearn: s.shadowLearn, ratioShade: s.ratioShade, ratioShadeTone: s.ratioShadeTone, battery: s.battery, customGrid: s.customGrid, gridLines: s.gridLines, adjSlots: s.adjSlots, filmCount: s.filmCount,
   };
 }
 
@@ -97,7 +100,7 @@ function parseFamily(doc: FamilyDoc | null): Partial<State> {
     lookOrder3: gr3SavedKeys(doc?.lookOrder3), lookHidden3: gr3SavedKeys(doc?.lookHidden3).filter((k) => k !== 'g11'),
     brightAuto: doc?.brightAuto === 'balanced' ? 'balanced' : doc?.brightAuto === true || doc?.brightAuto === 'bright' ? 'bright' : false,
     soft: doc?.soft === true || (!!doc?.softFocus && typeof doc.softFocus === 'object' && Object.keys(doc.softFocus).length > 0),
-    dateStamp: doc?.dateStamp === true, monoUnlock: doc?.monoUnlock === true, directFlash: doc?.directFlash === true, hdr: doc?.hdr === true, exposurePreview: doc?.exposurePreview === true, filmGrain: doc?.filmGrain === true, shadowLearn: doc?.shadowLearn === true, ratioShade: doc?.ratioShade === true, ratioShadeTone: doc?.ratioShadeTone === 'light' ? 'light' : 'dark', battery: doc?.battery === true, customGrid: doc?.customGrid === true, gridLines: savedGridLines(doc?.gridLines), flashTtl: doc?.flashTtl === true, videoAf: doc?.videoAf === true, awbLearn: doc?.awbLearn === true, adjSlots: typeof doc?.adjSlots === 'number' && Number.isInteger(doc.adjSlots) && doc.adjSlots >= 5 && doc.adjSlots <= 8 ? doc.adjSlots : 5,
+    dateStamp: doc?.dateStamp === true, monoUnlock: doc?.monoUnlock === true, hlgPhoto: doc?.hlgPhoto === true && doc?.hdr !== true, directFlash: doc?.directFlash === true, hdr: doc?.hdr === true, exposurePreview: doc?.exposurePreview === true, filmGrain: doc?.filmGrain === true, shadowLearn: doc?.shadowLearn === true, ratioShade: doc?.ratioShade === true, ratioShadeTone: doc?.ratioShadeTone === 'light' ? 'light' : 'dark', battery: doc?.battery === true, customGrid: doc?.customGrid === true, gridLines: savedGridLines(doc?.gridLines), flashTtl: doc?.flashTtl === true, videoAf: doc?.videoAf === true, awbLearn: doc?.awbLearn === true, adjSlots: typeof doc?.adjSlots === 'number' && Number.isInteger(doc.adjSlots) && doc.adjSlots >= 5 && doc.adjSlots <= 8 ? doc.adjSlots : 5,
     filmCount: Number.isInteger(doc?.filmCount) && doc!.filmCount >= 0 && doc!.filmCount <= GR3X_FILM_IDS.length ? doc!.filmCount : doc && doc.filmCount === undefined && doc.slots ? 9 : 0,
   };
 }
@@ -143,7 +146,7 @@ async function loadFamilyFiles(doc: FamilyDoc | null, fam: Family, gen: number):
 }
 
 /** The open family's work to save: the state, but presets and pictures still being read as they were saved. */
-function currentFamilyDoc(): FamilyDoc {
+export function currentFamilyDoc(): FamilyDoc {
   const data = familyData(state), doc = familyDocs[familyOf(state.model)];
   if (!familyLoading || !doc) return data;
   for (const id of SLOT_IDS) if (!data.slots[id].preset && doc.slots?.[id]?.preset) data.slots[id].preset = doc.slots[id].preset;
@@ -172,11 +175,16 @@ export function enterFamily(fam: Family): void {
 }
 
 // ------------------------------------------------------------------ persistence
-let saveTimer: ReturnType<typeof setTimeout> | undefined;
+export let saveTimer: ReturnType<typeof setTimeout> | undefined;
 /** Drops a save that is still waiting (the work on screen is about to be replaced). */
 export function cancelSave(): void { clearTimeout(saveTimer); }
+/** While a project is being imported, edits made by the import itself are not saved (project import, store/tools.ts). */
+let importingProject = false;
+export function setImportingProject(v: boolean): void { importingProject = v; }
+/** Drop a save that is waiting (the project import replaces the work it would have saved). */
+export function cancelPendingSave(): void { clearTimeout(saveTimer); }
 export function scheduleSave(): void {
-  if (!host.available || !state.ready) return;
+  if (!host.available || !state.ready || importingProject) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => { void saveProject(); }, 400);
 }
@@ -185,13 +193,47 @@ export async function saveProject(): Promise<void> {
   familyDocs[familyOf(s.model)] = currentFamilyDoc();
   const doc = {
     ...(familyDocs.gr4 ?? {}),
-    v: 1, page: s.page, model: s.model, lang: s.lang, langAuto: s.langAuto, uiLang: uiLangPref(), fwName: s.fwName, showAll: s.showAll, previewMode: s.previewMode, ratioBackdrop: s.ratioBackdrop,
+    v: 1, page: s.page, model: s.model, lang: s.lang, langAuto: s.langAuto, uiLang: uiLangPref(), theme: themePref(), fwName: s.fwName, showAll: s.showAll, previewMode: s.previewMode, ratioBackdrop: s.ratioBackdrop,
     tours: s.toursSeen, toursV: 2,
+    compareWith: s.compareWith,
   };
   try {
     await host.storeSet('project.json', JSON.stringify(doc));
     if (familyDocs.gr3) await host.storeSet(GR3_PROJECT, JSON.stringify({ v: 1, ...familyDocs.gr3 }));
-  } catch (e) { console.warn('save failed', e); }
+    saveFailing = false;
+  } catch (e) {
+    console.warn('save failed', e);
+    // One toast per failure streak: saves are debounced and a full disk would otherwise toast on every edit.
+    if (!saveFailing) { saveFailing = true; toast(t('saveFailed'), 'error'); }
+  }
+}
+/** True from the first failed save until the next successful one. */
+let saveFailing = false;
+/** The next failed save toasts again (a new or imported project starts a new streak). */
+export function clearSaveFailing(): void { saveFailing = false; }
+/**
+ * The project documents (project.json as `doc`, project-gr3.json as `gr3Doc` or null) become the
+ * state, then the open camera's kept firmware, presets and pictures are read. Shared by init() and
+ * by importing a project, so that old project files keep working through one path.
+ */
+export async function restoreProject(doc: FamilyDoc, gr3Doc: FamilyDoc | null): Promise<void> {
+  familyDocs.gr4 = null; familyDocs.gr3 = null; gr3Legacy = false;
+  const model: CameraModel = ['GR3', 'GR3_HDF', 'GR3X', 'GR3X_HDF', 'HDF', 'STANDARD', 'MONO'].includes(doc.model) ? doc.model : 'HDF';
+  if (gr3Doc && gr3Doc.v === 1) { familyDocs.gr4 = doc; familyDocs.gr3 = gr3Doc; }
+  else if (familyOf(model) === 'gr3') { familyDocs.gr3 = doc; gr3Legacy = true; } // a GR III project of the test builds
+  else familyDocs.gr4 = doc;
+  const fam = familyOf(model), work = familyDocs[fam];
+  set({ ...parseFamily(work), model,
+    page: doc.page === 'wall' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'extras' || doc.page === 'ic' ? doc.page : doc.page === 'script' ? 'wall' : doc.page === 'grid' ? 'extras' : 'ic',
+    ...langOf(doc), fwName: doc.fwName, showAll: !!doc.showAll,
+    previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo',
+    compareWith: typeof doc.compareWith === 'string' && doc.compareWith ? doc.compareWith : 'orig',
+    // GR Mod 0.8 changed the power-off page: its tour (which now says where the pictures are chosen) shows once more
+    toursSeen: TOUR_IDS.filter((id) => Array.isArray(doc.tours) && doc.tours.includes(id) && (id !== 'wall' || doc.toursV >= 2)) });
+  // The kept file of the camera that was open (a 0.8.x data folder: its one file moves to its camera's place).
+  const fwRaw = await keptFirmware(fwGroupOf(model), doc.fwName);
+  if (fwRaw) await openFirmware(fwRaw, LEGACY_FW_GROUP_NAME[fwGroupOf(model)], false);
+  await loadFamilyFiles(work, fam, familyGen);
 }
 export async function init(): Promise<void> {
   if (!host.available) { set({ ready: true }); return; }
@@ -203,23 +245,10 @@ export async function init(): Promise<void> {
     const raw = await host.storeGet('project.json');
     const doc = raw ? JSON.parse(new TextDecoder().decode(raw)) : null;
     if (doc && doc.v === 1) {
-      const model: CameraModel = ['GR3', 'GR3_HDF', 'GR3X', 'GR3X_HDF', 'HDF', 'STANDARD', 'MONO'].includes(doc.model) ? doc.model : 'HDF';
       const gr3Raw = await host.storeGet(GR3_PROJECT).catch(() => null);
-      const gr3Doc = gr3Raw ? JSON.parse(new TextDecoder().decode(gr3Raw)) : null;
-      if (gr3Doc && gr3Doc.v === 1) { familyDocs.gr4 = doc; familyDocs.gr3 = gr3Doc; }
-      else if (familyOf(model) === 'gr3') { familyDocs.gr3 = doc; gr3Legacy = true; } // a GR III project of the test builds
-      else familyDocs.gr4 = doc;
-      const fam = familyOf(model), work = familyDocs[fam];
-      set({ ...parseFamily(work), model,
-        page: doc.page === 'wall' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'extras' || doc.page === 'ic' ? doc.page : doc.page === 'script' ? 'wall' : doc.page === 'grid' ? 'extras' : 'ic',
-        ...langOf(doc), fwName: doc.fwName, showAll: !!doc.showAll,
-        previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo',
-        // GR Mod 0.8 changed the power-off page: its tour (which now says where the pictures are chosen) shows once more
-        toursSeen: TOUR_IDS.filter((id) => Array.isArray(doc.tours) && doc.tours.includes(id) && (id !== 'wall' || doc.toursV >= 2)) });
-      // The kept file of the camera that was open (a 0.8.x data folder: its one file moves to its camera's place).
-      const fwRaw = await keptFirmware(fwGroupOf(model), doc.fwName);
-      if (fwRaw) await openFirmware(fwRaw, LEGACY_FW_GROUP_NAME[fwGroupOf(model)], false);
-      await loadFamilyFiles(work, fam, familyGen);
+      await restoreProject(doc, gr3Raw ? JSON.parse(new TextDecoder().decode(gr3Raw)) : null);
+      // The appearance the work was saved with (the page's storage may be gone with its port); start-up only, an import keeps the current one.
+      if (isThemePref(doc.theme) && doc.theme !== themePref()) setThemePref(doc.theme);
     } else {
       const fwRaw = await keptFirmware(fwGroupOf(state.model));
       if (fwRaw) await openFirmware(fwRaw, LEGACY_FW_GROUP_NAME[fwGroupOf(state.model)], false);

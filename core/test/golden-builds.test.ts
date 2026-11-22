@@ -30,6 +30,10 @@ const FILES: Record<string, string | undefined> = {
   'gr3-2.10': process.env.GRMOD_GR3_FIRMWARE, 'gr3-2.20': process.env.GRMOD_GR3_220_FIRMWARE, 'gr3-2.21': process.env.GRMOD_GR3_221_FIRMWARE,
   'gr3x-1.60': process.env.GRMOD_GR3X_FIRMWARE, 'gr3x-1.70': process.env.GRMOD_GR3X_170_FIRMWARE, 'gr3x-1.71': process.env.GRMOD_GR3X_171_FIRMWARE,
 };
+// @decision DEC-HLG-GOLDEN-001: the HLG photo mode adds `hlgPhoto` to the file information and to what a file reads
+// back as; it is left out of those two hashes, so the hashes pinned before HLG stay valid while every built file must
+// still be byte for byte the same. HLG builds have their own tests (hlg-121.test.ts).
+const HLG_FIELD = 'hlgPhoto';
 const sha = (b: Uint8Array | string): string => createHash('sha256').update(b).digest('hex');
 type Args = Parameters<Engine['buildFirmware']>;
 
@@ -116,14 +120,14 @@ describe('golden builds', () => {
     it.skipIf(!path || !existsSync(path))(release, async () => {
       const raw = new Uint8Array(readFileSync(path!));
       const eng = await Engine.open(raw);
-      const got: Record<string, string> = { version: eng.info.version, info: sha(JSON.stringify(eng.info, (_, v) => (ArrayBuffer.isView(v) ? sha(new Uint8Array((v as Uint8Array).buffer, (v as Uint8Array).byteOffset, (v as Uint8Array).byteLength)) : v))) };
+      const got: Record<string, string> = { version: eng.info.version, info: sha(JSON.stringify(eng.info, (k, v) => k === HLG_FIELD ? undefined : (ArrayBuffer.isView(v) ? sha(new Uint8Array((v as Uint8Array).buffer, (v as Uint8Array).byteOffset, (v as Uint8Array).byteLength)) : v))) };
       for (const [name, args] of eng.info.family === 'gr4' ? gr4Recipes(eng) : gr3Recipes(eng)) {
         try {
           const built = await eng.buildFirmware(...args());
           got[name] = sha(built.file);
           // what the program reads back from its own file is part of the contract too
           const seen = await eng.inspect(built.file);
-          got[name + ' / inspect'] = sha(JSON.stringify(seen, (_, v) => (ArrayBuffer.isView(v) ? sha(new Uint8Array((v as Uint8Array).buffer, (v as Uint8Array).byteOffset, (v as Uint8Array).byteLength)) : v)));
+          got[name + ' / inspect'] = sha(JSON.stringify(seen, (k, v) => k === HLG_FIELD ? undefined : (ArrayBuffer.isView(v) ? sha(new Uint8Array((v as Uint8Array).buffer, (v as Uint8Array).byteOffset, (v as Uint8Array).byteLength)) : v)));
         } catch (e) {
           got[name] = 'refused: ' + String((e as Error).message).slice(0, 160);
         }

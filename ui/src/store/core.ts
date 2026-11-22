@@ -10,6 +10,8 @@ import type { ParkedEntry, Volume } from '../host';
 import { t, uiLangPref } from '../i18n';
 import type { Crop } from '../pixels';
 import { SUPPORTED_LINES } from '../releases.gen';
+import type { Key } from '../i18n';
+import type { LibraryEntry, SnapshotEntry } from './tools';
 
 /** `extras`: the additions (switches, the custom grid); 0.8.16 and earlier had a page of its own for the grid (`grid`). */
 export type Page = 'ic' | 'ratio' | 'extras' | 'wall' | 'copies';
@@ -67,6 +69,10 @@ export const TOUR_IDS: readonly TourId[] = ['overview', 'ic', 'ratio', 'extras',
 export interface TourState { id: TourId; steps: number[]; index: number; replay: boolean }
 /** `reset`: the firmware written is the official one; the dialog asks in red whether the camera's settings were reset first. */
 export interface Confirm { title: string; warn?: string; reset?: boolean; lines: string[]; ok: string; resolve: (v: boolean) => void }
+/** A firmware file being inspected: `error` is `needs-open` (no official firmware to compare with), `unreadable` (not a file the engine can read) or `size`. */
+export interface InspectView { name: string; size: number; busy: boolean; summary?: FirmwareSummary; error?: 'needs-open' | 'unreadable' | 'size';
+  /** QoL D1: a second file compared with the first (absent in plain single-file inspect). */
+  other?: { name: string; size: number; busy: boolean; summary?: FirmwareSummary; error?: 'unreadable' | 'size' } }
 export interface State {
   ready: boolean; page: Page; extrasView: ExtrasView;
   fwName?: string; fwBusy: boolean; info?: FirmwareInfo; raw?: Uint8Array;
@@ -78,7 +84,7 @@ export interface State {
   ratios: RatioItem[]; activeRatio?: string; ratioBackdrop: RatioBackdrop;
   /** GR IV rear-LCD Auto curve, off by default. */
   brightAuto: false | 'bright' | 'balanced';
-  soft: boolean; dateStamp: boolean; monoUnlock: boolean;
+  soft: boolean; dateStamp: boolean; monoUnlock: boolean; hlgPhoto: boolean;
   /** GR IV: Direct Flash, a fifth Flash Mode (GR III / IIIx have the GF-2 mode of their own). */
   directFlash: boolean;
   /** An HDR gain map in the JPEGs (switched in the camera: Shooting menu › HDR). */
@@ -113,6 +119,12 @@ export interface State {
   /** GR III / IIIx: how many films the build has (1..info.features.maxFilms). */
   filmCount: number;
   previewMode: PreviewMode; photoRev: number; activeSlot: SlotKey;
+  /** QoL wave C. Preset library entries of both cameras (loaded on first use, see loadLibrary). */
+  library: LibraryEntry[];
+  /** QoL wave C. What the left side of the photo preview shows: `orig` (the photo as it is, the default) or another slot's key. View state, saved with previewMode. */
+  compareWith: string;
+  /** The library dialog: which slot it works on and whether it saves that slot's preset or applies an entry to it. */
+  libraryPicker?: { slot: SlotKey; mode: 'save' | 'apply' };
   /** Added Image Control slots, in the camera's order (none by default). */
   extras: ExtraSlot[];
   /** Image Control menu order (`f11`..`f30`, or an added slot's key) and hidden keys. Empty = factory order, nothing hidden. */
@@ -125,6 +137,10 @@ export interface State {
   copySource: CopySource; parked: ParkedEntry[]; backups: ParkedEntry[]; copySel: string[]; copyInfo: Record<string, CopyInfo>; builds: BuildRecord[];
   busy?: string; toasts: Toast[]; confirm?: Confirm; cropId?: string; onlineOpen: boolean;
   tour?: TourState; toursSeen: TourId[];
+  /** QoL wave B: the "Inspect a firmware file" dialog (open while set). */
+  inspectView?: InspectView;
+  /** QoL D1: the "Restore an earlier version" dialog (open while set). */
+  snapshotsView?: { entries: SnapshotEntry[]; busy: boolean };
   /** Android: a firmware file on its way to the camera over Wi-Fi (camera.tsx shows the dialog while it is set). */
   push?: { file: Uint8Array; label: string; stock: boolean };
 }
@@ -141,7 +157,7 @@ export const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', te
 export const emptySlots = (): Record<SlotId, SlotState> => Object.fromEntries(SLOT_IDS.map(id => [id, emptySlot()])) as Record<SlotId, SlotState>;
 export let state: State = {
   ready: false, page: 'ic', extrasView: 'list', fwBusy: false, model: 'HDF', lang: cameraLang(), langAuto: uiLangPref() === '',
-  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hdr: false, exposurePreview: false, filmGrain: false, shadowLearn: false, ratioShade: false, ratioShadeTone: 'dark', shadePreview: '75', battery: false, customGrid: false, gridLines: cameraGrid(), flashTtl: false, videoAf: false, awbLearn: false, adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', volumes: [],
+  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, hlgPhoto: false, directFlash: false, hdr: false, exposurePreview: false, filmGrain: false, shadowLearn: false, ratioShade: false, ratioShadeTone: 'dark', shadePreview: '75', battery: false, customGrid: false, gridLines: cameraGrid(), flashTtl: false, videoAf: false, awbLearn: false, adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', library: [], compareWith: 'orig', volumes: [],
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();
@@ -150,8 +166,21 @@ export function set(patch: Partial<State> | ((s: State) => Partial<State>)): voi
   listeners.forEach((l) => l());
 }
 export const getState = (): State => state;
+/**
+ * @decision DEC-UI-STORE-001
+ * @title useStore refuses an unstable selector outside production builds
+ * @status accepted
+ * @rationale useSyncExternalStore compares successive snapshots with Object.is; a selector that builds a new array or object per call (filter, map, sort, a literal)
+ *   never settles and React throws error #185, which blanked the whole app once (libraryFor in LibraryDialog). Select stable fields and derive with useMemo. In dev and
+ *   test, calling the selector twice on the same state and comparing makes that mistake fail loudly at its source. The same snapshot is the server snapshot, so renderToString works.
+ */
 export function useStore<T>(sel: (s: State) => T): T {
-  return useSyncExternalStore((l) => { listeners.add(l); return () => listeners.delete(l); }, () => sel(state));
+  const snap = (): T => {
+    const a = sel(state);
+    if (!import.meta.env.PROD && !Object.is(a, sel(state))) throw new Error('useStore: the selector returns a new array/object on every call, so the snapshot never settles (React error #185). Select stable fields and derive the value with useMemo.');
+    return a;
+  };
+  return useSyncExternalStore((l) => { listeners.add(l); return () => listeners.delete(l); }, snap, snap);
 }
 export function setSlot(id: SlotId, patch: Partial<SlotState> | ((s: SlotState) => Partial<SlotState>)): void {
   set((s) => ({ slots: { ...s.slots, [id]: { ...s.slots[id], ...(typeof patch === 'function' ? patch(s.slots[id]) : patch) } } }));
@@ -171,10 +200,11 @@ export function setWall(id: string, patch: Partial<WallItem>): void {
 
 // ------------------------------------------------------------------ toasts / confirm
 let toastSeq = 0;
-export function toast(text: string, kind: Toast['kind'] = 'info', action?: Toast['action']): void {
+export function toast(text: string, kind: Toast['kind'] = 'info', action?: Toast['action']): number {
   const id = ++toastSeq;
   set((s) => ({ toasts: [...s.toasts.slice(-2), { id, text, kind, action }] }));
   setTimeout(() => dismissToast(id), kind === 'error' ? 9000 : action ? 12000 : 4500);
+  return id;
 }
 export function dismissToast(id: number): void { set((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) })); }
 export function ask(title: string, lines: string[], ok: string, warn?: string, reset = false): Promise<boolean> {
@@ -201,10 +231,45 @@ export function askOfficial(lines: string[], warn?: string): Promise<boolean> {
 export function answerConfirm(v: boolean): void { const c = state.confirm; set({ confirm: undefined }); c?.resolve(v); }
 /** The official releases a firmware file can be, for the message an unusable file gets. */
 export function supportedList(): string { return SUPPORTED_LINES.map((l) => `${l.name} ${l.versions.join(' / ')}`).join(t('listSep')); }
+
+// ------------------------------------------------------------------ plain-language error hints
+/**
+ * @decision DEC-QOL-HINT-001
+ * @title Known error codes get a plain-language hint; the short code stays for bug reports
+ * @status accepted
+ * @rationale fail() used to toast `Error · code · message`, which means nothing to most users. The
+ *   codes below are the user-actionable ones thrown by the engine (core FirmwareError / JpegError)
+ *   and the host (shell/internal/server/errors.go, plus the client-side `offline` / `no-host`). A host
+ *   `io` error carries only the OS text, so card-full and card-removed are told apart by that text.
+ *   Unknown codes keep the old `code · message` format.
+ */
+/** Codes meaning "this is not a firmware file GR Mod can open" (also used by openFirmware's own toast). */
+const FIRMWARE_CODES = ['unsupported-firmware', 'too-short', 'unexpected-layout', 'bad-checksum', 'bad-footer', 'bad-stream', 'bad-stream-length', 'bad-decoded-length', 'bad-models'];
+export const isBadFirmwareCode = (code: string): boolean => code === 'unsupported-firmware' || code.startsWith('bad-') || code === 'too-short';
+const ERROR_HINTS: Record<string, Key> = {
+  ...Object.fromEntries(FIRMWARE_CODES.map((c) => [c, 'hintFirmware' as Key])),
+  'gr3x-unsupported': 'hintUnsupportedHere', 'feature-unsupported': 'hintUnsupportedHere', 'bad-hlg': 'hintConflict', 'no-space': 'hintFwFull',
+  'too-many-ratios': 'hintTooMany', 'too-many-pictures': 'hintTooMany',
+  'not-found': 'hintNotFound', forbidden: 'hintDenied', 'too-large': 'errTooBig', network: 'fwNetError', checksum: 'fwChecksum',
+  offline: 'hintOffline', 'no-host': 'hintOffline',
+};
+/** The hint for an error code (and message, for the host's catch-all `io`), or undefined for a code without one. */
+export function errorHint(code: string, message = ''): Key | undefined {
+  if (code === 'io') {
+    if (/no space left|not enough space|disk (is )?full|enospc|quota/i.test(message)) return 'hintCardFull';
+    if (/read-only file system|write.protect|erofs|permission denied|access is denied|eacces|eperm/i.test(message)) return 'hintWriteProtected';
+    if (/not ready|no such device|enodev|input\/output error|i\/o error|removed|unplugged|no longer available/i.test(message)) return 'hintRemoved';
+    return undefined;
+  }
+  return Object.prototype.hasOwnProperty.call(ERROR_HINTS, code) ? ERROR_HINTS[code] : undefined;
+}
+/** Exported for the tests. A code with a plain-language hint (errorHint) shows the hint and the short code; others show code and message. */
 export function fail(e: unknown): void {
   const code = e instanceof HostError || e instanceof EngineError ? e.code : '';
   const msg = e instanceof Error ? e.message : String(e);
   console.error(e);
+  const hint = code ? errorHint(code, msg) : undefined;
+  if (hint) { toast(`${t('error')} · ${t(hint)} (${code})`.slice(0, 220), 'error'); return; }
   toast(`${t('error')}${code ? ` · ${code}` : ''}${msg && msg !== code ? ` · ${msg}` : ''}`.slice(0, 220), 'error');
 }
 
