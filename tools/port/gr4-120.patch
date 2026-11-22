@@ -377,7 +377,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  import type { HalationLook } from './halation';
  import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
  import type { LookLayout } from './looks';
-@@ -49,25 +54,30 @@
+@@ -49,25 +54,31 @@
  import { installCustomGrid, isCameraGrid, validCustomGrid } from './grid';
  import type { CustomGrid } from './grid';
  import { installRatioShade } from './shade';
@@ -385,6 +385,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  import type { ShadeTone } from './shade';
 -import { LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
 +import { installExposurePreviewOff } from './lvpreview';
++import { installMovieExposure } from './movieexp';
 +import { FRAME_LOOK, LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
  import type { ShutdownPictureSpec } from './shutdown';
 -import { adr, adrHEX, adrText } from '../target';
@@ -416,7 +417,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  export const LANGUAGES = 21;
  const ROW_STRIDE = TEXT_CAPACITY * 4;
  const NATIVE_ICON_CATALOG = adr(0x55014280);
-@@ -90,10 +100,10 @@
+@@ -90,10 +101,10 @@
    return id;
  }
  
@@ -430,7 +431,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  }
  
  export interface RatioSpec {
-@@ -155,11 +165,11 @@
+@@ -155,11 +166,11 @@
    /** ADJ lever slots, 6 to 8 (see `adjslots.ts`); absent or 5: the camera's five. */
    adjSlots?: number;
    /**
@@ -445,7 +446,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    softFocusMenu?: boolean;
    /** The battery icon shows the charge in steps of 10 % instead of the bars (see `battery.ts`). */
    batteryPercent?: boolean;
-@@ -174,13 +184,13 @@
+@@ -174,13 +185,13 @@
    ratioShadeTone?: ShadeTone;
    /** A learned Auto for Shadow Correction (see `shadowml.ts`); GR IV 1.11, 1.20 and 1.21. Off unless asked for. */
    shadowLearn?: boolean;
@@ -463,7 +464,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    awbLearn?: boolean;
  }
  
-@@ -191,11 +201,22 @@
+@@ -191,11 +202,24 @@
    dateStampDiag?: boolean;
    /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
    directFlashDiag?: boolean;
@@ -480,6 +481,8 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 -}
 +  /** Exposure preview off (issue #17), always on: the live view keeps a normal brightness (`lvpreview.ts`). */
 +  exposurePreviewOff?: boolean;
++  /** Movies in the exposure mode of the mode dial, with the still mode's ISO setting (`movieexp.ts`). */
++  movieExposure?: boolean;
 +}
 +
 +/** Test builds only: the halation module's status (the 44 bytes before the heap; Direct Flash diagnostics' word otherwise). */
@@ -487,7 +490,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  export interface AspectResult {
    revision: BuildRevision;
-@@ -358,7 +379,7 @@
+@@ -358,7 +382,7 @@
    for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
    const rowsStart = TEXT_CATALOG + 0x100;
    const end = rowsStart + LANGUAGES * ROW_STRIDE;
@@ -496,7 +499,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    patch.extendTo(end - BASE);
    patch.write(ICON_CATALOG, icons);
    const relocated: number[] = [];
-@@ -370,8 +391,15 @@
+@@ -370,8 +394,15 @@
    // language directory themselves.
    patch.setWord(adr(0x534013f8), movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
    patch.setWord(adr(0x534013fc), movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
@@ -514,7 +517,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    }
    for (const [low, high] of [[adr(0x535967cc), adr(0x535967d0)], [adr(0x53595db4), adr(0x53595dbc)]] as const) {
      patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
-@@ -402,7 +430,10 @@
+@@ -402,7 +433,10 @@
  // --------------------------------------------------------------------------------------------
  // crop_icons.py
  
@@ -526,7 +529,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
    const parts: Uint8Array[] = [iconbin];
-@@ -494,7 +525,7 @@
+@@ -494,7 +528,7 @@
    // Complete language rows again, now wide enough for the new names; every original entry is kept.
    let priorColumns = TEXT_CAPACITY;
    for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
@@ -535,7 +538,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    for (const id of allIds) upper = Math.max(upper, textId(id));
    const columns = Math.max(priorColumns, upper + 1);
    const catalogs: Uint8Array[] = [];
-@@ -623,7 +654,7 @@
+@@ -623,7 +657,7 @@
    p.hook(adr(0x538b40ec), out);
    out = `push {r0-r3,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r0,r3;bne #${adrHEX(0x538B41CC)};b #${p.target(adr(0x538b41b4))};`;
    p.hook(adr(0x538b41b4), out);
@@ -544,7 +547,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x53664430), out);
    // Both callers select the cropped window only for their original 2..5 range; a computed window
    // is invisible if selector 0 copies the untouched full canvas instead.
-@@ -686,7 +717,7 @@
+@@ -686,7 +720,7 @@
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
    out += adrText('cmp r2,#5;beq #0x5367298C;b #0x536728E8;');
@@ -553,7 +556,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x536728e4), out);
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
-@@ -707,8 +738,8 @@
+@@ -707,8 +741,8 @@
      out = '';
      for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
      out += `bic ip,ip,#4;b #${resume};custom:`;
@@ -564,7 +567,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      out += adrText('ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;');
      p.hook(entry, out);
    }
-@@ -794,7 +825,7 @@
+@@ -794,7 +828,7 @@
    const get = p.emit(lookup + 'mov r0,#0;bx lr;');
    // The native code at 0x53726698 divides s15 by the crop magnification; the other branch writes
    // it directly. Both contracts are kept.
@@ -573,7 +576,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x537266e8), code);
    // r8 / sb are the source dimensions: exact known sizes first, then fit the ratio for anything else.
    code = `push {r0,r4-r7,r10,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;beq old;mov r4,r0;mov r5,r8;mov r6,sb;`;
-@@ -928,7 +959,7 @@
+@@ -928,7 +962,7 @@
  function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
    const priorSave = branchTarget(adr(0x533f3674), patch.word(adr(0x533f3674)));
    const priorLoad = branchTarget(adr(0x533f3254), patch.word(adr(0x533f3254)));
@@ -582,7 +585,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    expectWord(patch, adr(0x5381d6bc), 0xe1a0c00d);
    // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
    const rects: Uint8Array[] = [];
-@@ -1066,13 +1097,24 @@
+@@ -1066,13 +1100,24 @@
   * features this is `installRatios`, byte for byte. With features the revision is 3.
   */
  export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
@@ -608,7 +611,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    if (extra) revision = 3;
    if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
    if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
-@@ -1083,8 +1125,12 @@
+@@ -1083,8 +1128,12 @@
    });
    if (features.brightAuto !== undefined && ![true, false, 'bright', 'balanced'].includes(features.brightAuto)) fail('bad-edit', 'brightAuto must be boolean, bright or balanced');
    if (features.shadowLearn !== undefined && typeof features.shadowLearn !== 'boolean') fail('bad-edit', 'shadowLearn must be boolean');
@@ -623,7 +626,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    const patch = new Patch(rtos);
    const ramCopy = new DataView(patch.read(BASE + 0x450, 12).buffer);
    if (ramCopy.getUint32(0, true) !== RAM.source || ramCopy.getUint32(4, true) !== RAM.destination || ramCopy.getUint32(8, true) !== RAM.length) {
-@@ -1098,27 +1144,49 @@
+@@ -1098,27 +1147,49 @@
      const menu = installMenu(patch, ratios, installed.ids);
      const { p, get, scale } = buildGeometry(patch, ratios);
      installDevelop(p, scale, ratios);
@@ -678,7 +681,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    // Halation: added slots that have it, Cinema slots with a preset that are asked to.
    const halation: HalationLook[] = [];
    slots.forEach((x, k) => {
-@@ -1146,19 +1214,41 @@
+@@ -1146,19 +1217,43 @@
    if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
    // The HDR line's list: after the additions that copy the list table first.
    if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
@@ -720,6 +723,8 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 -  if (features.batteryPercent) extendBatteryZeroFill(patch);
 +  // (Movie AF and the learned white balance keep their state pointers in the arena: they need the zero fill there too.)
 +  if (features.batteryPercent || features.videoAf || features.awbLearn) extendBatteryZeroFill(patch);
++  // Test builds: after everything, so that a build with it differs from the one without only by its own words.
++  if (test.movieExposure) installMovieExposure(patch);
    if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
    if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
 -  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true, ...(features.ratioShadeTone && features.ratioShadeTone !== 'dark' ? { ratioShadeTone: features.ratioShadeTone } : {}) } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}) } };
@@ -3113,6 +3118,104 @@ diff --git a/core/src/fw/gr4v120/aspect/monounlock.ts b/core/src/fw/gr4v120/aspe
    for (const at of LOOK_FLAGS) {
      const word = patch.word(at & ~3);
      const shift = (at & 3) * 8;
+diff --git a/core/src/fw/gr4v120/aspect/movieexp.ts b/core/src/fw/gr4v120/aspect/movieexp.ts
+new file mode 100644
+--- /dev/null
++++ b/core/src/fw/gr4v120/aspect/movieexp.ts
+@@ -0,0 +1,93 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/**
++ * Movie exposure by the mode dial (test builds only so far; GR IV 1.20 and 1.21): movies are
++ * recorded in the exposure mode of the mode dial (P, Av, Tv, M, the user modes), with the ISO
++ * setting of the still mode, instead of always in P with ISO auto.
++ *
++ * What the camera does. The exposure mode handed to the auto exposure is worked out in one place,
++ * the update of the shooting mode at 0x532599DC (1.20 addresses), from the mode dial:
++ *
++ *   base mode      0x53258D1C  dial position -> 0 P, 1 Tv, 2 Av, 5 M, 7 Sn, the user mode's own
++ *   virtual mode   0x53258DF0  still: the base mode (M with ISO auto -> 4; Sn by its settings)
++ *                              movie (settings +0xB76 == 1): always 0, P        <-- (1)
++ *   auto flags     0x53258E7C  Tv / Av / ISO chosen by the camera, from the virtual mode; for
++ *                              P, Tv, Av and Sn the ISO is auto only when the ISO setting is
++ *                              AUTO (+0xC3F), a check that is skipped for movies            <-- (2)
++ *   exposure mode  0x53258F58  from the flags: 0 P, 1 Tv, 2 Av, 3..7 the same with a fixed ISO
++ *                              and the two M; M with the shutter speed at B / T: 9 bulb, 10 time
++ *                              (0 when +0xB74 is 1 or 2)                                      <-- (3)
++ *
++ * The auto exposure itself (the library behind AeLiveViewExposure) is not limited to P for movies:
++ * it has program lines of its own for a movie in Tv, Av, M with ISO auto and M (0x5368FBB8: the
++ * lines 0x11, 6, 0x0A and 0x0B when the record's movie flag is set), and several places that treat
++ * "movie and M" apart. Only the three places above keep a movie in P.
++ *
++ * The changes:
++ *  (1) the movie branch of the virtual mode is not taken: a movie gets the virtual mode a still
++ *      would get;
++ *  (2) the ISO setting is looked at for movies too;
++ *  (3) for a movie, the bulb / time modes are never chosen (M with the shutter speed at B or T
++ *      records in P): the value read from +0xB74 for that decision reads 1 for a movie. It is used
++ *      for nothing else.
++ * With the mode dial at P and the ISO at AUTO everything is as in the official firmware.
++ *
++ * Not looked at yet, for the camera test: what the dials and the screen do in a movie with these
++ * modes, shutter speeds slower than the frame rate, ISO values above the movie's own range.
++ */
++import { FirmwareError } from '../../types';
++import { assembleWords, branchWord } from './arm';
++import { Patch, expectWord } from './build';
++import { byRelease } from '../target';
++
++/** `ldrb r0, [r0, #0xb76]; bx lr`: 0 still, 1 movie. */
++const STILL_MOVIE_GETTER = byRelease({ '1.20': 0x5329b310, '1.21': 0x5329bb60 });
++/** `ldrb r0, [r0, #0xb74]; bx lr`: 1 or 2 keeps M out of bulb / time. */
++const BULB_GATE_GETTER = byRelease({ '1.20': 0x5329b300, '1.21': 0x5329bb50 });
++/** (1) `bne <movie: P>` after `bl STILL_MOVIE_GETTER; cmp r0, #0` in the virtual mode. */
++const VIRTUAL_MODE_MOVIE = byRelease({ '1.20': 0x53258e14, '1.21': 0x53259660 });
++/** (2) `ldmne sp, {r4-r9, fp, sp, pc}` (movie: return) after `bl STILL_MOVIE_GETTER; cmp r0, #0` in the auto flags. */
++const ISO_SETTING_MOVIE = byRelease({ '1.20': 0x53258f3c, '1.21': 0x53259788 });
++/** (3) `bl BULB_GATE_GETTER` in the update of the shooting mode (r0 = the settings). */
++const BULB_GATE_SITE = byRelease({ '1.20': 0x53259aec, '1.21': 0x5325a338 });
++
++const NOP = 0xe1a00000;
++const BX_LR = 0xe12fff1e;
++const CMP_R0_0 = 0xe3500000;
++
++function fail(message: string): never {
++  throw new FirmwareError('internal', `movie exposure: ${message}`);
++}
++
++export function installMovieExposure(patch: Patch): void {
++  expectWord(patch, STILL_MOVIE_GETTER, 0xe5d00b76);
++  expectWord(patch, STILL_MOVIE_GETTER + 4, BX_LR);
++  expectWord(patch, BULB_GATE_GETTER, 0xe5d00b74);
++  expectWord(patch, BULB_GATE_GETTER + 4, BX_LR);
++  // (1) mov r5, r0; bl getter; cmp r0, #0; bne movie
++  expectWord(patch, VIRTUAL_MODE_MOVIE - 8, branchWord(VIRTUAL_MODE_MOVIE - 8, STILL_MOVIE_GETTER, 14, true));
++  expectWord(patch, VIRTUAL_MODE_MOVIE - 4, CMP_R0_0);
++  expectWord(patch, VIRTUAL_MODE_MOVIE, 0x1a00000a);
++  expectWord(patch, VIRTUAL_MODE_MOVIE + 4, 0xe3540007); // cmp r4, #7: the still's path
++  // (2) mov r0, r8; bl getter; cmp r0, #0; ldmne (return)
++  expectWord(patch, ISO_SETTING_MOVIE - 8, branchWord(ISO_SETTING_MOVIE - 8, STILL_MOVIE_GETTER, 14, true));
++  expectWord(patch, ISO_SETTING_MOVIE - 4, CMP_R0_0);
++  expectWord(patch, ISO_SETTING_MOVIE, 0x189dabf0);
++  expectWord(patch, ISO_SETTING_MOVIE + 4, 0xe1a00008); // mov r0, r8: the still's path
++  // (3) mov r0, r5; bl getter; mov sb, r0
++  expectWord(patch, BULB_GATE_SITE - 4, 0xe1a00005);
++  expectWord(patch, BULB_GATE_SITE, branchWord(BULB_GATE_SITE, BULB_GATE_GETTER, 14, true));
++  expectWord(patch, BULB_GATE_SITE + 4, 0xe1a09000);
++
++  // As the getter (r0 = the settings; returns in r0), r1 also changes: the caller sets r1 anew
++  // before it is read (mov r1, r6 at +0x20), as after any call.
++  const gate = patch.append((at) => assembleWords(
++    `ldrb r1, [r0, #0xb76]
++     ldrb r0, [r0, #0xb74]
++     cmp r1, #1
++     moveq r0, #1
++     bx lr`, at), 4);
++  if (gate % 4 !== 0) fail('unaligned code');
++  patch.setWord(VIRTUAL_MODE_MOVIE, NOP, 'movie exposure: virtual shooting mode as for a still');
++  patch.setWord(ISO_SETTING_MOVIE, NOP, 'movie exposure: the ISO setting also for movies');
++  patch.setWord(BULB_GATE_SITE, branchWord(BULB_GATE_SITE, gate, 14, true), 'movie exposure: no bulb / time for a movie');
++}
 diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/package.ts
 --- a/core/src/fw/gr4v120/aspect/package.ts
 +++ b/core/src/fw/gr4v120/aspect/package.ts
