@@ -13994,7 +13994,8 @@
    "how": "aligned + refs 0x53398320x1",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/lamp.ts"
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x533990e0": {
@@ -14116,7 +14117,8 @@
    "how": "aligned + refs 0x53de67fcx1",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/lamp.ts"
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x53de52bc": {
@@ -14124,7 +14126,8 @@
    "how": "aligned + refs 0x53de695cx1",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/lamp.ts"
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x54335c78": {
@@ -14150,7 +14153,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "tools/gr4v120/lamp/check.py"
+    "tools/gr4v120/lamp/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts"
    ]
   },
   "0x531dcb8c": {
@@ -14158,7 +14162,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "tools/gr4v120/lamp/check.py"
+    "tools/gr4v120/lamp/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts"
    ]
   },
   "0x531dcb9c": {
@@ -14166,7 +14171,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "tools/gr4v120/lamp/check.py"
+    "tools/gr4v120/lamp/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts"
    ]
   },
   "0x531dcc0c": {
@@ -14174,7 +14180,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "tools/gr4v120/lamp/check.py"
+    "tools/gr4v120/lamp/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts"
    ]
   },
   "0x531dcc10": {
@@ -14182,7 +14189,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "tools/gr4v120/lamp/check.py"
+    "tools/gr4v120/lamp/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts"
    ]
   },
   "0x531dcc20": {
@@ -14190,7 +14198,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "tools/gr4v120/lamp/check.py"
+    "tools/gr4v120/lamp/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts"
    ]
   },
   "0x5339b7b8": {
@@ -14247,6 +14256,78 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/adjslots.ts"
+   ]
+  },
+  "0x53397ad0": {
+   "new": "0x53398380",
+   "how": "aligned + refs 0x53398380x194",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts"
+   ]
+  },
+  "0x53397bd8": {
+   "new": "0x53398488",
+   "how": "aligned + refs 0x53398488x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts"
+   ]
+  },
+  "0x53397ca0": {
+   "new": "0x53398550",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts"
+   ]
+  },
+  "0x53397e3c": {
+   "new": "0x533986ec",
+   "how": "aligned + refs 0x533986ecx8",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts"
+   ]
+  },
+  "0x533990a4": {
+   "new": "0x53399954",
+   "how": "aligned + refs 0x53399954x9",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts"
+   ]
+  },
+  "0x531dcb80": {
+   "new": "0x531dd188",
+   "how": "aligned + refs 0x531dd188x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x531dcc04": {
+   "new": "0x531dd20c",
+   "how": "aligned + refs 0x531dd20cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x5329ecec": {
+   "new": "0x5329f53c",
+   "how": "aligned + refs 0x5329f53cx5",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x5329ecf8": {
+   "new": "0x5329f548",
+   "how": "aligned + refs 0x5329f548x5",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/lamp/check.py"
    ]
   }
  }

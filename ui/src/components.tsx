@@ -46,6 +46,7 @@ export const Ico = {
   soft: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="3.3" /><circle cx="10" cy="10" r="7.2" strokeDasharray="1.4 2.35" /></svg>,
   date: <svg viewBox="0 0 20 20" {...P}><rect x="2.8" y="4.4" width="14.4" height="12" rx="2" /><path d="M2.8 8.2h14.4M6.6 2.8v3M13.4 2.8v3M6.4 11.4h1.6M9.2 11.4h1.6M12 11.4h1.6M6.4 13.8h1.6M9.2 13.8h1.6" /></svg>,
   adj: <svg viewBox="0 0 20 20" {...P}><rect x="1.8" y="6.6" width="3.4" height="3.4" rx="0.8" /><rect x="6.4" y="6.6" width="3.4" height="3.4" rx="0.8" /><rect x="11" y="6.6" width="3.4" height="3.4" rx="0.8" /><rect x="15.6" y="6.6" width="2.6" height="3.4" rx="0.8" /><path d="M3.5 13.4h13" /></svg>,
+  lamp: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="3.2" /><path d="M10 2.6v2M10 15.4v2M2.6 10h2M15.4 10h2M4.8 4.8l1.4 1.4M13.8 13.8l1.4 1.4M4.8 15.2l1.4-1.4M13.8 6.2l1.4-1.4" /></svg>,
   flash: <svg viewBox="0 0 20 20" {...P}><path d="M11.8 2.6L5.4 11h4.2l-1.8 6.4 6.8-8.8h-4.4l1.6-6z" /></svg>,
   hdr: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="3.2" /><path d="M10 2.2v2.2M10 15.6v2.2M2.2 10h2.2M15.6 10h2.2M4.5 4.5l1.6 1.6M13.9 13.9l1.6 1.6M4.5 15.5l1.6-1.6M13.9 6.1l1.6-1.6" /></svg>,
   battery: <svg viewBox="0 0 20 20" {...P}><rect x="4.2" y="6" width="13" height="8" rx="1.6" /><path d="M2.6 8.6v2.8" /><path d="M7.4 8.4v3.2M10 8.4h1.8v3.2H10zM14.6 8.4l-1.2 3.2" strokeWidth="1.1" /></svg>,

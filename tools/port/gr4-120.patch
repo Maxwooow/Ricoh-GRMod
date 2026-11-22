@@ -521,7 +521,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +  /** A learned auto white balance for the three Auto modes (`awb2.ts`); 1.20 and 1.21. Off unless asked for. */
    awbLearn?: boolean;
 -  /** Not on 1.11 (the engine refuses it there): 1.20 and 1.21 only. */
-+  /** The front lamp kept lit, switched in the still menu, on the ADJ lever and by an Fn function (`lamp.ts`); 1.20 and 1.21. Test builds only so far. */
++  /** The front lamp kept lit, switched in the still menu, on the ADJ lever and by an Fn function (`lamp.ts`); 1.20 and 1.21. */
    constantLight?: boolean;
  }
  
@@ -2632,11 +2632,11 @@ diff --git a/core/src/fw/gr4v120/aspect/lamp.ts b/core/src/fw/gr4v120/aspect/lam
 new file mode 100644
 --- /dev/null
 +++ b/core/src/fw/gr4v120/aspect/lamp.ts
-@@ -0,0 +1,474 @@
+@@ -0,0 +1,522 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * The lamp on the front of the camera (AF assist light and self-timer lamp, one LED) kept lit:
-+ * "Constant Light", Off / On (GR IV firmware 1.20 and 1.21; test builds only so far).
++ * "Constant Light", Off / On (GR IV firmware 1.20 and 1.21).
 + *
 + * Where it can be switched:
 + *  - a line of the still shooting menu, "Constant Light", after AF Assist Light, opening a list
@@ -2644,7 +2644,8 @@ new file mode 100644
 + *  - an ADJ lever function (the next number after the camera's 0x14 and exposure preview's 0x15),
 + *    offered by ADJ Mode Setting, with the values Off / On;
 + *  - an Fn function, 0x29, offered for the Fn, ISO, Drive and White Balance / Image Control
-+ *    buttons (the list those four share): each press switches the lamp on or off.
++ *    buttons (the list those four share) and for the Movie button, pressed and held (a list
++ *    each): each press, or hold, switches the lamp on or off.
 + * It is not a setting: the lamp is off when the camera starts, and is switched off when the camera
 + * shuts down. Nothing is kept in the user settings.
 + *
@@ -2684,8 +2685,14 @@ new file mode 100644
 + *    +0x1B4) is copied with 0x29 at its end; name (0x5338FBAC) and icon (0x533914BC) get a case at
 + *    their entries; the function switch gets a case before its bounds check (0x5339910C): on a
 + *    press (r6 = 0, as the camera's own cases) the lamp is switched over, then the switch's common
-+ *    end (0x5339927C). The Movie button's two lists (0x53DE515C, 0x53DE52BC), which go through
-+ *    another switch (0x53397A70), are left as they are.
++ *    end (0x5339927C). The Movie button has its own lists (pressed: 35 bytes at 0x53DE515C, vector
++ *    +0x1C0; held: 37 bytes at 0x53DE52BC, vector +0x1CC), copied the same way, and its own switch
++ *    0x53397A70 (this, shared pointer, event): event 2 takes the pressed function, 3 the held one,
++ *    both to the jump table at 0x53397BD8, which gets the case before its bounds check (the lamp
++ *    switched over, then the switch's end 0x53397AD0, where function 0 goes); event 4 has a table of
++ *    its own for the held function (0x53397CA0: nothing but for Preview, an assertion for the
++ *    functions the held list does not offer), where 0x29 gets the entry of the functions that do
++ *    nothing.
 + *
 + * Going back to a firmware without this: an Fn button left on 0x29 does nothing there (the
 + * official switch logs it and returns); an ADJ slot left on the added function must be set to
@@ -2745,7 +2752,6 @@ new file mode 100644
 +
 +const FN_NAME_OF = adr(0x5338fbac); // (resources, function) -> text: cmp r1, #0 first
 +const FN_ICON_OF = adr(0x533914bc); // (resources, function, variant) -> icon: cmp r1, #0 first
-+const FN_LIST = adr(0x53de50c4); // the functions of the Fn, ISO, Drive and White Balance buttons
 +const FN_LIST_OFFICIAL = [
 +  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16,
 +  0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x2d, 0x2c, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x2b, 0x23, 0x24,
@@ -2758,6 +2764,22 @@ new file mode 100644
 +const FN_SWITCH_BOUND = adr(0x5339910c); // cmp r2, #0x2d
 +const FN_SWITCH_END = adr(0x5339927c); // the cases' common end
 +const FN_SWITCH_DEFAULT = adr(0x5339b0d4);
++/** The Movie button's lists: [list, its official bytes, movw r4, movt r4, add r6 r4 #length]. */
++const MOVIE_LIST_PRESSED = [
++  0x00, 0x01, 0x02, 0x03, 0x04, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16,
++  0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x2d, 0x2c, 0x1e, 0x1f, 0x20, 0x22, 0x2b, 0x23, 0x24,
++];
++const FN_LISTS: readonly (readonly [number, readonly number[], number, number, number, string])[] = [
++  [adr(0x53de50c4), FN_LIST_OFFICIAL, FN_LIST_LOW, FN_LIST_HIGH, FN_LIST_LENGTH, 'Fn'],
++  [adr(0x53de515c), MOVIE_LIST_PRESSED, adr(0x531dcb88), adr(0x531dcb8c), adr(0x531dcb9c), 'Movie button'],
++  [adr(0x53de52bc), [...MOVIE_LIST_PRESSED, 0x25, 0x26], adr(0x531dcc0c), adr(0x531dcc10), adr(0x531dcc20), 'held Movie button'],
++];
++const MOVIE_SWITCH = adr(0x53397a70); // (this, shared pointer, event 2 / 3 / 4)
++const MOVIE_SWITCH_BOUND = adr(0x53397bd8); // cmp sl, #0x2d (events 2 and 3: the function in sl)
++const MOVIE_SWITCH_END = adr(0x53397ad0); // the stack check and the return
++const MOVIE_SWITCH_DEFAULT = adr(0x533990a4);
++const MOVIE_HELD_BOUND = adr(0x53397ca0); // cmp r0, #0x2d (event 4: the held function)
++const MOVIE_HELD_DEFAULT = adr(0x53397e3c);
 +
 +/** In `LANGS` order (cs da en fi fr de el hu it ja ko nl pl pt ru zh-CN es sv th zh-TW tr). */
 +export const LAMP_NAMES: readonly string[] = [
@@ -3057,17 +3079,30 @@ new file mode 100644
 +  return table;
 +}
 +
-+/** The Fn function 0x29, for the four buttons that share the first function list. */
++/** The Fn function 0x29: the four buttons that share the first function list, and the Movie button (pressed, held). */
 +export function installLampFn(patch: Patch, code: LampCode): void {
 +  expectWord(patch, FN_NAME_OF, 0xe3510000); // cmp r1, #0
 +  expectWord(patch, FN_NAME_OF + 4, 0x1a000001); // bne 0x5338FBBC
 +  expectWord(patch, FN_ICON_OF, 0xe3510000); // cmp r1, #0
 +  expectWord(patch, FN_ICON_OF + 4, 0x1a000003); // bne 0x533914D4
-+  expectWord(patch, FN_LIST_LOW, movWord(4, lo(FN_LIST)));
-+  expectWord(patch, FN_LIST_HIGH, movWord(4, hi(FN_LIST), true));
-+  expectWord(patch, FN_LIST_LENGTH, 0xe2846000 | FN_LIST_OFFICIAL.length); // add r6, r4, #39
-+  const official = patch.read(FN_LIST, FN_LIST_OFFICIAL.length);
-+  if (!FN_LIST_OFFICIAL.every((v, i) => official[i] === v) || FN_LIST_OFFICIAL.includes(FN_LAMP)) fail('unexpected-layout', 'Fn function list is not the official one');
++  for (const [at, bytes, low, high, length] of FN_LISTS) {
++    expectWord(patch, low, movWord(4, lo(at)));
++    expectWord(patch, high, movWord(4, hi(at), true));
++    expectWord(patch, length, 0xe2846000 | bytes.length); // add r6, r4, #length
++    const official = patch.read(at, bytes.length);
++    if (!bytes.every((v, i) => official[i] === v) || bytes.includes(FN_LAMP)) fail('unexpected-layout', 'Fn function list is not the official one');
++  }
++  // The Movie button's switch: the function in sl for events 2 and 3; 0x29 goes to the defaults.
++  expectWord(patch, MOVIE_SWITCH, 0xe1a0c00d);
++  expectWord(patch, MOVIE_SWITCH_BOUND, 0xe35a002d); // cmp sl, #0x2d
++  expectWord(patch, MOVIE_SWITCH_BOUND + 4, 0x979ff10a); // ldrls pc, [pc, sl, lsl #2]
++  expectWord(patch, MOVIE_SWITCH_BOUND + 12, MOVIE_SWITCH_END); // function 0 (none): the end
++  expectWord(patch, MOVIE_SWITCH_BOUND + 12 + FN_LAMP * 4, MOVIE_SWITCH_DEFAULT);
++  expectWord(patch, MOVIE_SWITCH_END, 0xe51b2030); // ldr r2, [fp, #-0x30]
++  expectWord(patch, MOVIE_HELD_BOUND, 0xe350002d); // cmp r0, #0x2d
++  expectWord(patch, MOVIE_HELD_BOUND + 4, 0x979ff100); // ldrls pc, [pc, r0, lsl #2]
++  expectWord(patch, MOVIE_HELD_BOUND + 12, MOVIE_SWITCH_END);
++  expectWord(patch, MOVIE_HELD_BOUND + 12 + FN_LAMP * 4, MOVIE_HELD_DEFAULT);
 +  // "Offered on this model": cases for 0x19..0x2d only, 0x29 with those that are always offered.
 +  expectWord(patch, FN_AVAILABLE, 0xe2400019); // sub r0, r0, #0x19
 +  expectWord(patch, FN_AVAILABLE + 0x10, 0xe3500014); // cmp r0, #0x14
@@ -3092,10 +3127,12 @@ new file mode 100644
 +     other: cmp r1, #0; b #${FN_ICON_OF + 4}`, a), 16);
 +  patch.setWord(FN_ICON_OF, branchWord(FN_ICON_OF, icon), 'constant light: Fn function icon');
 +
-+  const list = patch.append(Uint8Array.from([...FN_LIST_OFFICIAL, FN_LAMP]), 16);
-+  patch.setWord(FN_LIST_LOW, movWord(4, lo(list)), 'constant light: Fn function list, low half');
-+  patch.setWord(FN_LIST_HIGH, movWord(4, hi(list), true), 'constant light: Fn function list, high half');
-+  patch.setWord(FN_LIST_LENGTH, 0xe2846000 | (FN_LIST_OFFICIAL.length + 1), 'constant light: Fn function list length');
++  for (const [, bytes, low, high, length, name] of FN_LISTS) {
++    const list = patch.append(Uint8Array.from([...bytes, FN_LAMP]), 16);
++    patch.setWord(low, movWord(4, lo(list)), `constant light: ${name} function list, low half`);
++    patch.setWord(high, movWord(4, hi(list), true), `constant light: ${name} function list, high half`);
++    patch.setWord(length, 0xe2846000 | (bytes.length + 1), `constant light: ${name} function list length`);
++  }
 +
 +  // The switch: on a press (r6 = 0) the lamp is switched over; then the common end, as function 0.
 +  const press = patch.append((a) => assembleWords(
@@ -3106,6 +3143,17 @@ new file mode 100644
 +     native: cmp r2, #0x2d
 +     b #${FN_SWITCH_BOUND + 4}`, a), 16);
 +  patch.setWord(FN_SWITCH_BOUND, branchWord(FN_SWITCH_BOUND, press), 'constant light: Fn function');
++
++  // The Movie button, pressed (event 2) or held (event 3): the lamp switched over, then the end.
++  const movie = patch.append((a) => assembleWords(
++    `cmp sl, #${FN_LAMP}; bne native
++     bl #${code.toggle}
++     b #${MOVIE_SWITCH_END}
++     native: cmp sl, #0x2d
++     b #${MOVIE_SWITCH_BOUND + 4}`, a), 16);
++  patch.setWord(MOVIE_SWITCH_BOUND, branchWord(MOVIE_SWITCH_BOUND, movie), 'constant light: the Movie button');
++  // Event 4 of the held function: nothing, as for the functions the held list offers.
++  patch.setWord(MOVIE_HELD_BOUND + 12 + FN_LAMP * 4, MOVIE_SWITCH_END, 'constant light: the held Movie button, event 4');
 +}
 diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/looks.ts
 --- a/core/src/fw/gr4v120/aspect/looks.ts

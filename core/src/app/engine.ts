@@ -105,6 +105,8 @@ export interface FirmwareInfo {
     videoAf?: boolean;
     /** A learned auto white balance for the three Auto modes (GR IV 1.20 and 1.21; see `gr4v120/aspect/awb2.ts`). */
     awbLearn?: boolean;
+    /** Constant Light can be added: the front lamp kept lit, switched in the still menu, on the ADJ lever and by an Fn function (GR IV 1.20 / 1.21, `BuildOptions.constantLight`). */
+    constantLight?: boolean;
     /** GR III / IIIx: the most films a build can have (9; 20 on GR III 2.10, where
      * the number is chosen with BuildOptions.filmCount and Halation is set in the camera). */
     maxFilms?: number };
@@ -360,7 +362,7 @@ export interface BuildOptions {
    */
   awbLearn?: boolean;
   /**
-   * Constant Light (GR IV 1.20 and 1.21; test builds only so far, not announced in `features`): the lamp on the front of
+   * Constant Light (GR IV 1.20 and 1.21, `features.constantLight`): the lamp on the front of
    * the camera kept lit, switched by a line of the still menu, an ADJ lever function and an Fn function
    * (`gr4v120/aspect/lamp.ts`). Off when the camera starts and when it shuts down.
    */
@@ -600,7 +602,7 @@ export class Engine {
       family: 'gr4', filename: 'fwdc248b.bin', models: ['STANDARD', 'HDF', 'MONO'],
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
       capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, menuPictures: true, lookLayout: true },
-      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, batteryPercent: true, customGrid: true, ratioShade: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== Gr4Program111 ? { filmGrain: true } : {}), shadowLearn: true, ...(g4 !== Gr4Program111 ? { flashTtl: true, shadeMenu: true, gridMenu: true } : {}), ...(g4 !== Gr4Program111 ? { videoAf: true } : {}), ...(g4 !== Gr4Program111 ? { awbLearn: true } : {}) },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, batteryPercent: true, customGrid: true, ratioShade: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== Gr4Program111 ? { filmGrain: true } : {}), shadowLearn: true, ...(g4 !== Gr4Program111 ? { flashTtl: true, shadeMenu: true, gridMenu: true } : {}), ...(g4 !== Gr4Program111 ? { videoAf: true } : {}), ...(g4 !== Gr4Program111 ? { awbLearn: true } : {}), ...(g4 !== Gr4Program111 ? { constantLight: true } : {}) },
       version: g4.FIRMWARE_VERSION,
       looks: { factory: [...g4.aspect.FACTORY_LOOK_IDS], extraFirst: g4.aspect.EXTRA_FIRST_STYLE, monoOnly: g4.aspect.FACTORY_LOOK_IDS.filter((n) => n >= 25) },
       sha256: await sha256Hex(input),
@@ -1165,8 +1167,7 @@ export class Engine {
     if (awbLearn && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the learned white balance cannot be combined with the clarity-table soft focus of 0.4.x');
     if (options && options.constantLight !== undefined && typeof options.constantLight !== 'boolean') throw new FirmwareError('bad-edit', 'constantLight must be boolean');
     const constantLight = !!(options && options.constantLight);
-    // Where movie AF is (GR IV 1.20 and 1.21): the same program.
-    if (constantLight && !this.info.features.videoAf) throw new FirmwareError('bad-edit', 'Constant Light needs GR IV firmware 1.20 or 1.21');
+    if (constantLight && !this.info.features.constantLight) throw new FirmwareError('bad-edit', 'Constant Light needs GR IV firmware 1.20 or 1.21');
     if (constantLight && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Constant Light cannot be combined with the clarity-table soft focus of 0.4.x');
     if (hdrGainMap && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the HDR gain map cannot be combined with the clarity-table soft focus of 0.4.x');
     if (directFlash && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Direct Flash cannot be combined with the clarity-table soft focus of 0.4.x');

@@ -24,7 +24,9 @@ tools/gr4v120/datestamp/menu_check.py), next to a build of the same recipe witho
  6. The Fn function 0x29: name and icon of every function, the list of the four buttons (as data
     and as the list controller's vector, filled by the camera's own code), the function switch for
     every function, pressed and released: 0x29 switches the lamp over on a press and nothing else,
-    every other function goes where it goes in the control.
+    every other function goes where it goes in the control. The Movie button: its two lists (pressed,
+    held) the same way, its switch 0x53397A70 for every function and event (2 pressed, 3 held, 4):
+    0x29 switches the lamp over on events 2 and 3, nothing and no assertion on 4.
  7. The text in the 21 languages, the icon.
 
     python3 check.py BUILT-RTOS CONTROL-RTOS
@@ -511,13 +513,15 @@ def check_fn(new, ctl, lamp_set):
     na, nb = new.u32(0x531dcb18) & 0xff, ctl.u32(0x531dcb18) & 0xff
     fa, fb = list(new.rd(la, na)), list(ctl.rd(lb, nb))
     check(fb == FN_LIST_OFFICIAL and lb == 0x53de50c4 and fa == fb + [FN_LAMP], f'Fn function list {fa}')
-    # the Movie button's two lists: untouched
-    for low, high, length in ((0x531dcb88, 0x531dcb8c, 0x531dcb9c), (0x531dcc0c, 0x531dcc10, 0x531dcc20)):
-        check(new.movw_movt(low, high) == ctl.movw_movt(low, high) and new.u32(length) == ctl.u32(length), 'a Movie button list changed')
+    # the Movie button's two lists (pressed, held)
+    for low, high, length, official_at, official_n in ((0x531dcb88, 0x531dcb8c, 0x531dcb9c, 0x53de515c, 35), (0x531dcc0c, 0x531dcc10, 0x531dcc20, 0x53de52bc, 37)):
+        ma, mb = list(new.rd(new.movw_movt(low, high), new.u32(length) & 0xff)), list(ctl.rd(ctl.movw_movt(low, high), ctl.u32(length) & 0xff))
+        check(ctl.movw_movt(low, high) == official_at and len(mb) == official_n and ma == mb + [FN_LAMP], f'Movie button list {ma}')
     for model in (0, 1, 2):
-        va, vb = fn_vector_model(new, model), fn_vector_model(ctl, model)
-        check(va == vb + [FN_LAMP] and len(vb) >= 36, f'model {model}: the list controller\'s vector {va} (control {vb})')
-    print(f'  Fn: names / icons of 0..0x33, the four buttons\' list {len(fa)} functions ({FN_LAMP:#x} last), the vector the camera builds from it for each model; the Movie button\'s lists as they are')
+        for fill, vec, least in ((0x531dcafc, 0x1b4, 36), (0x531dcb80, 0x1c0, 32), (0x531dcc04, 0x1cc, 34)):
+            va, vb = fn_vector_model(new, model, fill, vec), fn_vector_model(ctl, model, fill, vec)
+            check(va == vb + [FN_LAMP] and len(vb) >= least, f'model {model}: the list controller\'s vector +{vec:#x} {va} (control {vb})')
+    print(f'  Fn: names / icons of 0..0x33, the lists of the four buttons ({len(fa)} functions) and of the Movie button, pressed and held ({FN_LAMP:#x} last in each), the vectors the camera builds from them for each model')
     # the switch
     toggles = 0
     for f in list(range(0x30)):
@@ -549,15 +553,69 @@ def check_fn(new, ctl, lamp_set):
     print(f'  the function switch: {FN_LAMP:#x} switches the lamp over on a press, nothing on release, no assertion; functions 0..0x2f otherwise as the control')
 
 
-def fn_vector_model(img, model):
+def fn_vector_model(img, model, fill=0x531dcafc, vec=0x1b4):
     e = Emu(img, model)
     this = 0x70000000
     e.stubs[0x53241b48] = lambda: 0x70200000
     e.stubs[0x532406a4] = lambda: 0x70200000
     e.stubs[0x539084f8] = lambda: 0
-    e.call(0x531dcafc, (this,), limit=2_000_000)
-    a, b = e.u32(this + 0x1b4), e.u32(this + 0x1b8)
+    e.call(fill, (this,), limit=2_000_000)
+    a, b = e.u32(this + vec), e.u32(this + vec + 4)
     return list(e.mu.mem_read(a, b - a))
+
+
+def run_movie_switch(img, fn, event):
+    """The Movie button's switch 0x53397A70 (this, shared pointer, event) with `fn` as the button's function."""
+    e = lamp_emu(img)
+    sp_pair = 0x70300000
+    e.mu.mem_write(sp_pair, struct.pack('<2I', 0x70300100, 0))
+    trace = []
+    lo, hi = 0x53397a70, 0x533990e0
+    state = {'prev': 0}
+
+    def hook(uc, addr, size, ud):
+        prev, state['prev'] = state['prev'], addr
+        if lo <= prev < hi and not (lo <= addr < hi) and addr != 0x100:
+            if addr >= dm.BASE + dm.OFFICIAL_LEN:
+                trace.append('ours')
+                return
+            trace.append(addr)
+            # the button's function (pressed 0x5329ECEC, held 0x5329ECF8); everything else returns 0
+            uc.reg_write(UC_ARM_REG_R0, fn if addr in (0x5329ecec, 0x5329ecf8) else 0)
+            uc.reg_write(UC_ARM_REG_PC, uc.reg_read(UC_ARM_REG_LR))
+            state['prev'] = 0
+    e.mu.hook_add(UC_HOOK_CODE, hook)
+    mu = e.mu
+    for r, v in zip((UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2), (0x70000000, sp_pair, event)):
+        mu.reg_write(r, v)
+    mu.reg_write(UC_ARM_REG_SP, 0x600f0000)
+    mu.reg_write(UC_ARM_REG_LR, 0x100)
+    try:
+        mu.emu_start(0x53397a70, 0x100, count=200000)
+    except UcError as ex:
+        trace.append(f'error {ex}')
+    done = mu.reg_read(UC_ARM_REG_PC) == 0x100 and mu.reg_read(UC_ARM_REG_SP) == 0x600f0000
+    return done, trace, e
+
+
+def check_movie_button(new, ctl):
+    for f in range(0x30):
+        for event in (2, 3, 4, 1, 5):
+            dn, tn, en = run_movie_switch(new, f, event)
+            dc, tc, ec = run_movie_switch(ctl, f, event)
+            if f == FN_LAMP and event in (2, 3):
+                check(dn and 0x539154f8 not in tn and en.events == ['on'] and en.u32(LAMP_WORD) == HANDLE, f'Movie button, {f:#x} event {event}: {tn} {en.events}')
+                check(0x539154f8 in tc and dc, f'control Movie button, {f:#x} event {event}: {tc}')
+                # the rest as function 0 (none)
+                d0, t0, _ = run_movie_switch(ctl, 0, event)
+                check([t for t in tn if t != 'ours'] == t0, f'Movie button, {f:#x} event {event}: {tn} (function 0: {t0})')
+            elif f == FN_LAMP and event == 4:
+                d0, t0, _ = run_movie_switch(ctl, 0, event)
+                check(dn and tn == t0 and en.events == [] and en.u32(LAMP_WORD) == 0, f'Movie button, {f:#x} event 4: {tn}')
+                check(0x539154f8 in tc, f'control Movie button, {f:#x} event 4: {tc}')
+            else:
+                check(dn == dc and [t for t in tn if t != 'ours'] == tc and en.events == [] and en.u32(LAMP_WORD) == 0, f'Movie button, function {f:#x} event {event}: {tn} (control {tc})')
+    print(f'  the Movie button\'s switch: {FN_LAMP:#x} switches the lamp over when pressed (event 2) and when held (3), nothing on event 4, no assertion; functions 0..0x2f otherwise as the control')
 
 
 # ------------------------------------------------------------------------------------------------
@@ -598,6 +656,7 @@ def main():
     check_adj(new, ctl, lamp_set)
     print('6. Fn')
     check_fn(new, ctl, lamp_set)
+    check_movie_button(new, ctl)
     print('7. text and icon')
     check_texts(new, ctl)
     if failures:

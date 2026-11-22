@@ -193,7 +193,7 @@ export interface ExtensionFeatures {
   videoAf?: boolean;
   /** A learned auto white balance for the three Auto modes (`awb2.ts`); 1.20 and 1.21. Off unless asked for. */
   awbLearn?: boolean;
-  /** The front lamp kept lit, switched in the still menu, on the ADJ lever and by an Fn function (`lamp.ts`); 1.20 and 1.21. Test builds only so far. */
+  /** The front lamp kept lit, switched in the still menu, on the ADJ lever and by an Fn function (`lamp.ts`); 1.20 and 1.21. */
   constantLight?: boolean;
 }
 

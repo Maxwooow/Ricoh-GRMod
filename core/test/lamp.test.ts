@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * Constant Light (GR IV 1.20 and 1.21; test builds): the front lamp kept lit, switched by a line of
+ * Constant Light (GR IV 1.20 and 1.21): the front lamp kept lit, switched by a line of
  * the still menu, an ADJ lever function and an Fn function (`src/fw/gr4v120/aspect/lamp.ts`). Needs
  * the official files (GRMOD_GR4_120_FIRMWARE, GRMOD_GR4_121_FIRMWARE). What the firmware does with
  * it is checked in an emulator by `tools/gr4v120/lamp/check.py` (1.21: `tools/gr4v121/lamp`).
@@ -36,6 +36,7 @@ describe.each(files)('Constant Light: GR IV %s', (release, path) => {
 
   it('builds alone, verifies and reads back', async () => {
     const eng = await Engine.open(official);
+    expect(eng.info.features.constantLight).toBe(true);
     const b = await eng.buildFirmware([], [], [], { constantLight: true });
     expect(Object.values(b.checks).every((v) => v === true)).toBe(true);
     const s = await eng.inspect(b.file);
@@ -83,6 +84,7 @@ describe.each(files)('Constant Light: GR IV %s', (release, path) => {
 describe.skipIf(!existsSync(file111))('Constant Light: not on GR IV 1.11', () => {
   it('is refused', async () => {
     const eng = await Engine.open(new Uint8Array(readFileSync(file111)));
+    expect(eng.info.features.constantLight).toBeUndefined();
     await expect(eng.buildFirmware([], [], [], { constantLight: true })).rejects.toMatchObject({ code: 'bad-edit' });
   });
 });

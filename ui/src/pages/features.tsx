@@ -4,7 +4,7 @@ import { FirmwareHero } from '../firmware';
 import { t } from '../i18n';
 import {
   useStore, loadFirmwareFile, gridOffered, setExtrasView, setSoft, setDateStamp, setMonoUnlock, setFlashPlus, flashPlusOn, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain,
-  setShadowLearn, setBattery, setVideoAf, setAwbLearn, setBrightAuto, setCustomGrid,
+  setShadowLearn, setBattery, setVideoAf, setAwbLearn, setConstantLight, setBrightAuto, setCustomGrid,
 } from '../store';
 import { isFirmware } from './files';
 import { GridDetail, GridThumb } from './grid';
@@ -91,6 +91,8 @@ function ExtrasList() {
   const vafOk = useStore((s) => !!s.info?.features.videoAf);
   const awb = useStore((s) => s.awbLearn);
   const awbOk = useStore((s) => !!s.info?.features.awbLearn);
+  const lamp = useStore((s) => s.constantLight);
+  const lampOk = useStore((s) => !!s.info?.features.constantLight);
   const gridOk = useStore((s) => gridOffered(s));
   // the level names without their "Auto brightness · " prefix, first letter up
   const level = (key: 'brightAutoOff' | 'brightAutoBalanced' | 'brightAutoBright'): string => ((x) => x.charAt(0).toUpperCase() + x.slice(1))(t(key).split(' · ').pop()!);
@@ -111,6 +113,7 @@ function ExtrasList() {
       )}
       {vafOk && <FeatureCapsule icon={Ico.movie} title={t('navVideoAf')} sub={t('videoAfSub')} on={vaf} onChange={setVideoAf} tour="ex-f-vaf" />}
       {awbOk && <FeatureCapsule icon={Ico.wb} title={t('navAwb')} sub={t('awbSub')} on={awb} onChange={setAwbLearn} tour="ex-f-awb" />}
+      {lampOk && <FeatureCapsule icon={Ico.lamp} title={t('navLamp')} sub={t('lampSub')} on={lamp} onChange={setConstantLight} tour="ex-f-lamp" />}
       {gridOk && <GridCapsule />}
       {adjMax > 5 && (
         <ChoiceCapsule icon={Ico.adj} title={t('navAdjSlots')} sub={t('adjSlotsSub')} on={adj > 5} tour="ex-f-adj"
