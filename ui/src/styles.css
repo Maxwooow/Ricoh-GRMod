@@ -194,6 +194,12 @@ svg { width: 18px; height: 18px; flex: none; }
 .dialog-lines { margin: 0 0 12px; padding: 0; list-style: none; font-size: 13.5px; display: grid; gap: 4px; }
 .dialog-lines li { padding: 6px 10px; background: var(--chip); border-radius: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dialog-lines.last { margin-bottom: 18px; }
+/* The confirmation's lines as capsules that fill each row; with many of them the list scrolls and the
+   warning and the buttons stay in view. */
+.dialog.confirm { width: 560px; max-height: calc(100% - 48px); display: flex; flex-direction: column; }
+.dialog.confirm > * { flex: none; }
+.dialog.confirm > .dialog-lines { flex: 0 1 auto; min-height: 48px; overflow-y: auto; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 6px; }
+.dialog.confirm .dialog-lines li { max-width: 100%; padding: 5px 12px; border-radius: 999px; }
 .dialog-warn { margin: 0 0 18px; padding: 9px 12px; border-radius: 6px; background: var(--amber-bg); color: var(--amber); font-size: 13.5px; }
 .dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .dialog-actions.spread { align-items: center; padding-top: 14px; }
@@ -333,8 +339,11 @@ svg { width: 18px; height: 18px; flex: none; }
 .mono-ic .btn { align-self: flex-start; }
 /* Additions page: one capsule per addition, in as many columns as the page has room for (each at
    least 280px wide), each capsule as tall as what it holds, filling the columns in turn. Scrolls on its own on the desktop. */
-.capsules { flex: 1; min-height: 0; overflow-y: auto; columns: 280px auto; column-gap: 12px; padding: 2px 3px 8px 0; }
-.capsules > .capsule { break-inside: avoid; margin-bottom: 12px; }
+.capsules { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; padding: 2px 3px 8px 0; }
+/* The columns in a box of their own height: in the scrolling box itself (a fixed height) they would
+   run on sideways, past the window's right edge. */
+.capsules-flow { columns: 280px auto; column-gap: 12px; }
+.capsules-flow > .capsule { break-inside: avoid; margin-bottom: 12px; }
 .capsule { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px 14px; border: 1px solid var(--line); border-radius: 20px; background: var(--bg); transition: border-color 0.15s, background 0.15s, box-shadow 0.15s; min-width: 0; }
 .capsule.on { border-color: color-mix(in srgb, var(--blue) 45%, var(--line2)); background: color-mix(in srgb, var(--blue-bg) 45%, var(--side)); }
 .capsule-top { display: flex; align-items: center; gap: 10px; min-height: 32px; }

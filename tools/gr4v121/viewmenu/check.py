@@ -56,7 +56,7 @@ GRID_LINE_DRAW = 0x531b3430
 LIST_TABLE_SITE = (0x531d8864, 0x531d8874)
 BUILDER = 0x531b5878
 TEXT_CATALOG = dm.TEXT_CATALOG
-SHADE_NAMES_EN = 'Ratio Frame Shade'
+SHADE_NAMES_EN = 'Matte Brightness'
 
 
 def list_record(img, rec):

@@ -3,8 +3,8 @@ import { GR3X_RATIO_NAME_MAX } from '@grmod/core';
 import { DropZone, FileButton, Ico, RatioIcon, Segmented } from '../components';
 import { FirmwareHero } from '../firmware';
 import { t } from '../i18n';
-import { addRatio, loadFirmwareFile, loadPreviewFile, previewPhoto, maxRatios, ratioName, ratioProblem, removeRatio, setActiveRatio, setRatio, setRatioBackdrop, liveViewOf, setLiveView, setShadePreview, useStore } from '../store';
-import type { LiveView, RatioItem, ShadePreview } from '../store';
+import { addRatio, loadFirmwareFile, loadPreviewFile, previewPhoto, maxRatios, ratioName, ratioProblem, removeRatio, setActiveRatio, setRatio, setRatioBackdrop, liveViewOf, setLiveView, useStore } from '../store';
+import type { LiveView, RatioItem } from '../store';
 import { isFirmware, isImage } from './files';
 import { pick } from './slot-cards';
 
@@ -45,10 +45,10 @@ function RatioPane({ r }: { r?: RatioItem }) {
   const rev = useStore((s) => s.photoRev);
   const backdrop = useStore((s) => s.ratioBackdrop);
   // With the live-view shade the camera darkens the outside (black at 50 % or grey at 25 %); the preview does the same.
-  // GR IV 1.20 / 1.21: always, as dark as chosen in the camera; the preview shows the level picked here.
+  // GR IV 1.20 / 1.21: always, as bright as chosen in the camera (Matte Brightness); the preview shows its default, 75 %.
   const menu = useStore((s) => !!s.info?.features.shadeMenu);
   const shade = useStore((s) => (s.ratioShade || menu) && !!s.info?.features.ratioShade);
-  const tone = useStore((s) => (menu ? `level-${s.shadePreview}` : `tone-${s.ratioShadeTone}`));
+  const tone = useStore((s) => (menu ? 'level-75' : `tone-${s.ratioShadeTone}`));
   const photo = useMemo(() => previewPhoto(), [rev]); // eslint-disable-line react-hooks/exhaustive-deps
   const ref = useRef<HTMLCanvasElement>(null);
   const showPhoto = backdrop === 'photo' && !!photo;
@@ -103,7 +103,6 @@ export function RatioPage() {
   const shadeOk = !!info?.features.ratioShade;
   const live = useStore((s) => liveViewOf(s));
   const shadeMenu = !!info?.features.shadeMenu;
-  const preview = useStore((s) => s.shadePreview);
   return (
     <DropZone className="page" accept={isFirmware} onFiles={(f) => { void loadFirmwareFile(f[0]); }}>
       <header className="page-head">
@@ -130,12 +129,7 @@ export function RatioPage() {
               </div>
             )}
             {shadeOk && shadeMenu && (
-              <div className="ratio-live" data-tour="ratio-live">
-                <span className="muted small">{t('ratioLiveMenu')}</span>
-                <Segmented<ShadePreview> value={preview} onChange={setShadePreview}
-                  options={[{ value: '100', label: t('shadeBlack') }, { value: '75', label: '75%' }, { value: '50', label: '50%' }, { value: '25', label: '25%' }, { value: '0', label: '0%' }]} />
-                <p className="muted small">{t('ratioLiveMenuTip')}</p>
-              </div>
+              <p className="ratio-live muted small" data-tour="ratio-live">{t('ratioLiveMenuTip')}</p>
             )}
             {shadeOk && !shadeMenu && (
               <div className="ratio-live" data-tour="ratio-live">

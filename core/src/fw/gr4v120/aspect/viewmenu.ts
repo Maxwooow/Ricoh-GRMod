@@ -4,7 +4,7 @@
  * Flash Modes that flash TTL meters.
  *
  *  - The shade of the added ratios (`shade.ts`) is chosen in the camera: a line of the still
- *    shooting menu after Aspect Ratio, "Ratio Frame Shade", opening a list Black / 75% / 50% /
+ *    shooting menu after Aspect Ratio, "Matte Brightness", opening a list Black / 75% / 50% /
  *    25% / 0% (how dark the part outside the photo is drawn; 75 % by default). Built with every
  *    added ratio; without one there is neither the shade nor the line.
  *     * Kept in bits 3..5 of byte 0x109 of the user settings (Direct Flash's fastest shutter speed
@@ -105,10 +105,10 @@ export const CUSTOM_GRID_NAMES: Readonly<Record<'custom3' | 'custom4', readonly 
   ],
 };
 export const SHADE_NAMES: readonly string[] = [
-  'Ztmavení mimo poměr', 'Mørkning uden for format', 'Ratio Frame Shade', 'Kuvasuhteen varjostus', 'Assombr. hors format', 'Abdunkeln außerhalb',
-  'Σκίαση εκτός πλαισίου', 'Sötétítés a kereten kívül', 'Oscuram. fuori formato', '比率外の減光', '비율 외 어둡게', 'Verduisteren buiten kader',
-  'Przyciemn. poza kadrem', 'Escurecer fora do formato', 'Затемнение вне кадра', '比例取景半暗', 'Oscurecer fuera formato', 'Mörka utanför formatet',
-  'ความมืดนอกกรอบ', '比例取景半暗', 'Kare dışı karartma',
+  'Jas masky', 'Maskens lysstyrke', 'Matte Brightness', 'Maskin kirkkaus', 'Luminosité du cache', 'Maskenhelligkeit',
+  'Φωτεινότητα μάσκας', 'Maszk fényereje', 'Luminosità maschera', 'マスクの明るさ', '마스크 밝기', 'Helderheid masker',
+  'Jasność maski', 'Brilho da máscara', 'Яркость маски', '遮幅亮度', 'Brillo de máscara', 'Maskens ljusstyrka',
+  'ความสว่างมาสก์', '遮幅亮度', 'Maske parlaklığı',
 ];
 export const SHADE_BLACK_NAMES: readonly string[] = [
   'Černá', 'Sort', 'Black', 'Musta', 'Noir', 'Schwarz', 'Μαύρο', 'Fekete', 'Nero', '黒', '검정', 'Zwart', 'Czarny', 'Preto',

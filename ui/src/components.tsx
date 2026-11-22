@@ -542,7 +542,7 @@ export function ConfirmDialog() {
   if (!c) return null;
   return (
     <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) answerConfirm(false); }}>
-      <div className="dialog" role="alertdialog" aria-modal="true">
+      <div className="dialog confirm" role="alertdialog" aria-modal="true">
         <h3>{c.title}</h3>
         {c.lines.length > 0 && <ul className={`dialog-lines ${c.warn ? '' : 'last'}`}>{c.lines.map((l) => (isMobile ? <SwipeLine key={l} text={l} /> : <li key={l}>{l}</li>))}</ul>}
         {c.warn && <p className="dialog-warn">{c.warn}</p>}

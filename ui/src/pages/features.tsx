@@ -95,7 +95,7 @@ function ExtrasList() {
   // the level names without their "Auto brightness · " prefix, first letter up
   const level = (key: 'brightAutoOff' | 'brightAutoBalanced' | 'brightAutoBright'): string => ((x) => x.charAt(0).toUpperCase() + x.slice(1))(t(key).split(' · ').pop()!);
   return (
-    <div className="capsules" data-tour="ex-list" data-tour-page="extras">
+    <div className="capsules" data-tour="ex-list" data-tour-page="extras"><div className="capsules-flow">
       <FeatureCapsule icon={Ico.soft} title={t('navSoft')} sub={t(gr3x ? 'gr3xSoftSub' : 'softAdjSub')} on={soft} onChange={setSoft} tour="ex-f-soft" />
       {(!gr3x || dateOk) && <FeatureCapsule icon={Ico.date} title={t('navDate')} sub={t('dateSub')} on={date} onChange={setDateStamp} tour="ex-f-date" />}
       {!mono && !gr3x && <FeatureCapsule icon={Ico.mono} title={t('navMono')} sub={t('monoSub')} on={looks} onChange={setMonoUnlock} tour="ex-f-mono" />}
@@ -122,7 +122,7 @@ function ExtrasList() {
           value={brightAuto || 'off'} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')}
           options={([['off', 'brightAutoOff'], ['balanced', 'brightAutoBalanced'], ['bright', 'brightAutoBright']] as const).map(([value, key]) => ({ value, label: level(key) }))} />
       )}
-    </div>
+    </div></div>
   );
 }
 
