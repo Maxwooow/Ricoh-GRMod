@@ -3122,12 +3122,13 @@ diff --git a/core/src/fw/gr4v120/aspect/movieexp.ts b/core/src/fw/gr4v120/aspect
 new file mode 100644
 --- /dev/null
 +++ b/core/src/fw/gr4v120/aspect/movieexp.ts
-@@ -0,0 +1,93 @@
+@@ -0,0 +1,154 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * Movie exposure by the mode dial (test builds only so far; GR IV 1.20 and 1.21): movies are
 + * recorded in the exposure mode of the mode dial (P, Av, Tv, M, the user modes), with the ISO
-+ * setting of the still mode, instead of always in P with ISO auto.
++ * setting of the still mode, instead of always in P with ISO auto; the movie screen shows shutter
++ * speed, aperture and ISO, and the ISO button works.
 + *
 + * What the camera does. The exposure mode handed to the auto exposure is worked out in one place,
 + * the update of the shooting mode at 0x532599DC (1.20 addresses), from the mode dial:
@@ -3154,10 +3155,26 @@ new file mode 100644
 + *  (3) for a movie, the bulb / time modes are never chosen (M with the shutter speed at B or T
 + *      records in P): the value read from +0xB74 for that decision reads 1 for a movie. It is used
 + *      for nothing else.
-+ * With the mode dial at P and the ISO at AUTO everything is as in the official firmware.
++ * With the mode dial at P and the ISO at AUTO the exposure is as in the official firmware.
 + *
-+ * Not looked at yet, for the camera test: what the dials and the screen do in a movie with these
-+ * modes, shutter speeds slower than the frame rate, ISO values above the movie's own range.
++ * The screen and the ISO button (test 089b; in 089 the mode icon followed the dial, but no value
++ * was shown and the ISO button did nothing):
++ *  (4) The shooting screen's items are a table: 47 items, each with an "exists" byte per still /
++ *      movie (0x53DC08E0, two rows of 0x30) and a position per layout (0x53DBF9BC, four layouts of
++ *      0x30 x/y pairs: still, movie, and the two for the 1280x720 output). Shutter speed (item
++ *      30), aperture (31) and ISO (32) do not exist for movies and have no position in the movie
++ *      layouts. They now exist there, at the still layouts' positions (the bottom line is the
++ *      same in both: mode icon, then these three, exposure compensation, battery). Their update
++ *      functions (0x5318C218, 0x5318C410, 0x5318C654) do not look at still / movie themselves.
++ *  (5) The ISO function of the buttons (0x53396344: sends command 0x47, the ISO setting) returns
++ *      without doing anything for a movie; that branch is not taken any more.
++ * The dials need nothing: their handlers (CaptureReadySwitchFunctionModel, 0x53392BC8 and its two
++ * siblings) choose what a dial does from the effective shooting mode, which is what (1) changes,
++ * and the commands they send (0x39..0x40: Tv, Av, ISO, exposure compensation up / down) are
++ * carried out by the shooting-mode controller without a look at still / movie.
++ *
++ * Not looked at yet, for the camera test: shutter speeds slower than the frame rate, ISO values
++ * above the movie's own range.
 + */
 +import { FirmwareError } from '../../types';
 +import { assembleWords, branchWord } from './arm';
@@ -3174,6 +3191,18 @@ new file mode 100644
 +const ISO_SETTING_MOVIE = byRelease({ '1.20': 0x53258f3c, '1.21': 0x53259788 });
 +/** (3) `bl BULB_GATE_GETTER` in the update of the shooting mode (r0 = the settings). */
 +const BULB_GATE_SITE = byRelease({ '1.20': 0x53259aec, '1.21': 0x5325a338 });
++
++/** (4) "exists" bytes of the shooting screen's items: row 0 still, row 1 movie, 0x30 bytes each. */
++const SCREEN_ITEMS = byRelease({ '1.20': 0x53dc08e0, '1.21': 0x53dc1ee8 });
++/** (4) positions: four layouts (still, movie, still 1280x720, movie 1280x720) of 0x30 (x, y) pairs of words. */
++const SCREEN_POSITIONS = byRelease({ '1.20': 0x53dbf9bc, '1.21': 0x53dc0fc4 });
++const ITEM_ROW = 0x30;
++const LAYOUT = 0x180;
++/** Shutter speed, aperture, ISO: x in the two still layouts; y is 440 (720x480) and 680 (1280x720). */
++const EXPOSURE_ITEMS = [{ item: 30, x: 40 }, { item: 31, x: 200 }, { item: 32, x: 330 }] as const;
++const LAYOUT_Y = [440, 440, 680, 680] as const;
++/** (5) `beq <return>` after `bl STILL_MOVIE_GETTER; cmp r0, #1` in the buttons' ISO function. */
++const ISO_BUTTON_MOVIE = byRelease({ '1.20': 0x53396400, '1.21': 0x53396cb0 });
 +
 +const NOP = 0xe1a00000;
 +const BX_LR = 0xe12fff1e;
@@ -3215,6 +3244,38 @@ new file mode 100644
 +  patch.setWord(VIRTUAL_MODE_MOVIE, NOP, 'movie exposure: virtual shooting mode as for a still');
 +  patch.setWord(ISO_SETTING_MOVIE, NOP, 'movie exposure: the ISO setting also for movies');
 +  patch.setWord(BULB_GATE_SITE, branchWord(BULB_GATE_SITE, gate, 14, true), 'movie exposure: no bulb / time for a movie');
++
++  // (4) The items: rows as in the official tables (still: all three exist; movie: none of them,
++  // exposure compensation (33) and the battery (34) do), positions only in the still layouts.
++  const movieRow = SCREEN_ITEMS + ITEM_ROW;
++  expectWord(patch, SCREEN_ITEMS + 28, 0x01010101);
++  expectWord(patch, SCREEN_ITEMS + 32, 0x01010101);
++  expectWord(patch, movieRow + 28, 0x00000000);
++  expectWord(patch, movieRow + 32, 0x00010100);
++  for (const { item, x } of EXPOSURE_ITEMS) {
++    for (const layout of [0, 1, 2, 3]) {
++      const at = SCREEN_POSITIONS + layout * LAYOUT + item * 8;
++      const still = layout % 2 === 0;
++      expectWord(patch, at, still ? x : 0);
++      expectWord(patch, at + 4, still ? LAYOUT_Y[layout] : 0);
++    }
++  }
++  patch.setWord(movieRow + 28, 0x01010000, 'movie exposure: shutter speed and aperture on the movie screen');
++  patch.setWord(movieRow + 32, 0x00010101, 'movie exposure: ISO on the movie screen');
++  for (const { item, x } of EXPOSURE_ITEMS) {
++    for (const layout of [1, 3]) {
++      const at = SCREEN_POSITIONS + layout * LAYOUT + item * 8;
++      patch.setWord(at, x, 'movie exposure: position on the movie screen');
++      patch.setWord(at + 4, LAYOUT_Y[layout], 'movie exposure: position on the movie screen');
++    }
++  }
++
++  // (5) bl getter; cmp r0, #1; beq return; ...; mov r1, #0x47
++  expectWord(patch, ISO_BUTTON_MOVIE - 8, branchWord(ISO_BUTTON_MOVIE - 8, STILL_MOVIE_GETTER, 14, true));
++  expectWord(patch, ISO_BUTTON_MOVIE - 4, 0xe3500001);
++  expectWord(patch, ISO_BUTTON_MOVIE, 0x0affffdf);
++  expectWord(patch, ISO_BUTTON_MOVIE + 0x14, 0xe3a01047);
++  patch.setWord(ISO_BUTTON_MOVIE, NOP, 'movie exposure: the ISO button also for movies');
 +}
 diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/package.ts
 --- a/core/src/fw/gr4v120/aspect/package.ts

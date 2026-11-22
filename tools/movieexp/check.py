@@ -16,6 +16,16 @@ Checked:
      exposure modes (9, 10) never come out: P (0) instead;
   4. built, movie, dial at P, ISO AUTO: exactly the official's movie.
 
+The screen and the ISO button (test 089b), also on both images:
+  5. the shooting screen's layout function (0x5318BBB0), for still and movie, both states and
+     the two layouts of each: every item the official places is placed at the same position;
+     for a movie the build also places shutter speed, aperture and ISO (items 30..32) where the
+     still layout of the same size has them; for a still nothing changes;
+  6. the item tables apart from that: unchanged;
+  7. the buttons' ISO function (0x53396344): the official sends the ISO command (0x47) for a
+     still only, the build for a still and a movie; with any of the function's other conditions
+     set, neither sends it.
+
     python3 check.py 1.20|1.21 OFFICIAL-RTOS BUILT-RTOS
 """
 import itertools
@@ -23,7 +33,7 @@ import struct
 import sys
 
 from unicorn import Uc, UC_ARCH_ARM, UC_MODE_ARM, UC_HOOK_CODE
-from unicorn.arm_const import UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R4, UC_ARM_REG_R5, UC_ARM_REG_R11, UC_ARM_REG_SP, UC_ARM_REG_LR, UC_ARM_REG_PC
+from unicorn.arm_const import UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2, UC_ARM_REG_R4, UC_ARM_REG_R5, UC_ARM_REG_R11, UC_ARM_REG_SP, UC_ARM_REG_LR, UC_ARM_REG_PC
 
 BASE = 0x53000000
 A120 = dict(start=0x53259a44, stop=0x53259b30, single=0x532406a4, settings=0x53240c38, log=0x539154f8,
@@ -110,9 +120,143 @@ def inputs(c, movie):
     return live, ctrl
 
 
+# ------------------------------------------------------------------------------------------------
+# The screen and the ISO button
+
+SCREEN = {'1.20': dict(layout=0x5318bbb0, layout_end=0x5318bca0, items=0x53dc08e0, positions=0x53dbf9bc,
+                       iso=0x53396344, iso_end=0x53396438, settings=0x53240c38, getter=0x5329b310),
+          '1.21': dict(layout=0x5318bb88, layout_end=0x5318bc78, items=0x53dc1ee8, positions=0x53dc0fc4,
+                       iso=0x53396bf4, iso_end=0x53396ce8, settings=0x53240c38 + 0x608, getter=0x5329bb60)}
+THIS = 0x62000000
+
+
+class Function:
+    """One function of the image; everything it calls is recorded and returns `result(target)`."""
+
+    def __init__(self, path, begin, end, native=()):
+        self.img = open(path, 'rb').read()
+        self.begin, self.end, self.native = begin, end, native
+        self.uc = Uc(UC_ARCH_ARM, UC_MODE_ARM)
+        self.uc.mem_map(BASE, (len(self.img) + 0xfff) & ~0xfff)
+        self.uc.mem_write(BASE, self.img)
+        for base in (LIVE, THIS, STACK):
+            self.uc.mem_map(base, 0x10000)
+        self.calls = []
+        self.result = lambda target: 0
+        self.on_call = lambda uc, target: None
+        self.uc.hook_add(UC_HOOK_CODE, self.step)
+
+    def step(self, uc, address, size, user):
+        if self.begin <= address < self.end or any(a <= address < a + 8 for a in self.native):
+            return
+        self.calls.append((address, uc.reg_read(UC_ARM_REG_R0), uc.reg_read(UC_ARM_REG_R1), uc.reg_read(UC_ARM_REG_R2)))
+        self.on_call(uc, address)
+        uc.reg_write(UC_ARM_REG_R0, self.result(address))
+        uc.reg_write(UC_ARM_REG_PC, uc.reg_read(UC_ARM_REG_LR))
+
+    def run(self, r0, memory):
+        uc = self.uc
+        for base in (LIVE, THIS, STACK):
+            uc.mem_write(base, bytes(0x10000))
+        for a, data in memory.items():
+            uc.mem_write(a, data)
+        sp = STACK + 0x8000
+        uc.reg_write(UC_ARM_REG_SP, sp); uc.reg_write(UC_ARM_REG_LR, 0x6fff0000); uc.reg_write(UC_ARM_REG_R0, r0)
+        self.calls = []
+        try:
+            uc.emu_start(self.begin, 0x6fff0000, count=100000)
+        except Exception:
+            if uc.reg_read(UC_ARM_REG_PC) != 0x6fff0000:
+                raise
+        if uc.reg_read(UC_ARM_REG_SP) != sp:
+            raise SystemExit('the stack is not where it was')
+
+
+def placements(fn, movie, state, layout):
+    """item -> (x, y) as the layout function places them (items 2..47: this + 0x15C + 4 * item)."""
+    memory = {THIS + 0x2d6: bytes([movie]), THIS + 0x2dd: bytes([state]), THIS + 0x2d4: bytes([layout])}
+    for item in range(2, 0x30):
+        memory[THIS + 0x15c + 4 * item] = struct.pack('<I', 0x1000 + item)
+    placed = {}
+
+    def on_call(uc, target):
+        r0, r1, r2 = (uc.reg_read(r) for r in (UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2))
+        if STACK <= r0 < STACK + 0x10000:   # the point's own functions: (point, x, y)
+            uc.mem_write(r0, struct.pack('<II', r1 & 0xffffffff, r2 & 0xffffffff))
+        elif 0x1000 <= r0 < 0x1030:         # place(item's object, point)
+            placed[r0 - 0x1000] = struct.unpack('<ii', uc.mem_read(r1, 8))
+    fn.on_call = on_call
+    fn.run(THIS, memory)
+    return placed
+
+
+def screen_checks(release, official, built):
+    a = SCREEN[release]
+    bad = []
+    off, new = Function(official, a['layout'], a['layout_end']), Function(built, a['layout'], a['layout_end'])
+    added = 0
+    for movie in (0, 1):
+        for state in (0, 1):
+            for layout in (movie, movie + 2):   # the layout follows still / movie (0x5318B39C): 0, 2 still; 1, 3 movie
+                o, n = placements(off, movie, state, layout), placements(new, movie, state, layout)
+                want = dict(o)
+                if movie and state == 0:
+                    still = placements(off, 0, 0, layout & ~1)   # the still layout of the same size
+                    for item in (30, 31, 32):
+                        if item in o or item not in still:
+                            bad.append(('5 item not as expected in the official layouts', movie, state, layout, item))
+                        want[item] = still[item]; added += 1
+                if n != want:
+                    bad.append(('5 placements', movie, state, layout, sorted(set(n.items()) ^ set(want.items()))))
+    # 6. the tables, byte by byte
+    oi, ni = off.img, new.img
+    items, pos = a['items'] - BASE, a['positions'] - BASE
+    changed = {i for i in range(0x60) if oi[items + i] != ni[items + i]}
+    if changed != {0x30 + 30, 0x30 + 31, 0x30 + 32} or any(ni[items + i] != 1 for i in changed):
+        bad.append(('6 item table', sorted(changed)))
+    changed = {i // 4 for i in range(0, 0x600, 4) if oi[pos + i:pos + i + 4] != ni[pos + i:pos + i + 4]}
+    want = {(layout * 0x180 + item * 8 + k) // 4 for layout in (1, 3) for item in (30, 31, 32) for k in (0, 4)}
+    if changed != want:
+        bad.append(('6 position table', sorted(changed)))
+    # 7. the ISO function
+    sent = {}
+    for name, path in (('official', official), ('built', built)):
+        fn = Function(path, a['iso'], a['iso_end'], native=(a['getter'],))
+        for movie in (0, 1):
+            for busy in range(-1, 6):   # -1: none of the other conditions; else the n-th other call answers 1
+                order = []
+
+                def result(target, order=order, busy=busy):
+                    if target == a['settings']:
+                        return LIVE
+                    order.append(target)
+                    seen = [t for t in dict.fromkeys(order)]
+                    return 1 if busy >= 0 and seen.index(target) == busy + 2 and len(seen) <= 8 else 0
+                fn.result = result
+                fn.on_call = lambda uc, target: None
+                fn.run(THIS, {LIVE + 0xb76: bytes([movie]), THIS: struct.pack('<I', 0x2000)})
+                sent[name, movie, busy] = any(c[2] == 0x47 for c in fn.calls)
+    for movie in (0, 1):
+        for busy in range(-1, 6):
+            o, n = sent['official', movie, busy], sent['built', movie, busy]
+            if busy == -1 and (o, n) != ((movie == 0), True):
+                bad.append(('7 ISO command', movie, o, n))
+            if busy >= 0 and movie == 0 and o != n:
+                bad.append(('7 ISO command with another condition, still', busy, o, n))
+            if busy >= 0 and n and not sent['official', 0, busy]:
+                bad.append(('7 ISO command sent although the official would not for a still', movie, busy))
+    blocked = sum(1 for busy in range(6) if not sent['official', 0, busy])
+    print(f'{release}: screen: {added} placements added for movies; ISO function: official still {sent["official", 0, -1]}, movie {sent["official", 1, -1]};'
+          f' built still {sent["built", 0, -1]}, movie {sent["built", 1, -1]}; {blocked} of 6 other conditions block it')
+    return bad
+
+
 def main():
     release, official, built = sys.argv[1:4]
     adr = addresses(release)
+    screen_bad = screen_checks(release, official, built)
+    for b in screen_bad[:20]:
+        print('FAIL', b)
     off, new = Machine(official, adr), Machine(built, adr)
     n = 0
     bad = []
@@ -143,6 +287,7 @@ def main():
     for b in bad[:20]:
         print('FAIL', b)
     print(f'{release}: {n} cases x 4 runs; exposure modes seen:', {k: sorted(v) for k, v in seen_modes.items()}, f'; bulb / time replaced by P in {replaced} cases')
+    bad += screen_bad
     print('FAILED' if bad else 'ok', len(bad))
     sys.exit(1 if bad else 0)
 
