@@ -914,7 +914,8 @@
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/exposure/check.py",
     "tools/gr4v120/hdrgain/menu_check.py",
-    "tools/gr4v120/viewmenu/check.py"
+    "tools/gr4v120/viewmenu/check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531b5660": {
@@ -1028,7 +1029,8 @@
    "how": "aligned + refs 0x531bbc60x1",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/exposure.ts"
+    "core/src/fw/gr4v120/aspect/exposure.ts",
+    "core/src/fw/gr4v120/aspect/lamp.ts"
    ]
   },
   "0x531bb65c": {
@@ -1194,7 +1196,8 @@
     "core/src/fw/gr4v120/aspect/adjslots.ts",
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/adjslots/check.py",
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bd4c4": {
@@ -1205,7 +1208,9 @@
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/adjslots/check.py",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bd4d4": {
@@ -1216,7 +1221,9 @@
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/adjslots/check.py",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bd4e0": {
@@ -1224,7 +1231,8 @@
    "how": "aligned + refs 0x531bdaecx2",
    "ok": true,
    "files": [
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bd4e4": {
@@ -1232,7 +1240,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bd4fc": {
@@ -1240,7 +1249,8 @@
    "how": "aligned + refs 0x531bdb08x1",
    "ok": true,
    "files": [
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bd500": {
@@ -1248,7 +1258,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bd58c": {
@@ -1282,7 +1293,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/adjslots/check.py",
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bd6b0": {
@@ -1338,7 +1351,8 @@
    "how": "aligned + refs 0x531be524x1",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/exposure.ts"
+    "core/src/fw/gr4v120/aspect/exposure.ts",
+    "core/src/fw/gr4v120/aspect/lamp.ts"
    ]
   },
   "0x531be238": {
@@ -1480,7 +1494,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bee94": {
@@ -1490,7 +1506,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bf028": {
@@ -1500,7 +1518,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bf030": {
@@ -1510,7 +1530,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bf0c4": {
@@ -1520,7 +1542,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bf0cc": {
@@ -1530,7 +1554,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bf29c": {
@@ -1556,7 +1582,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bf5c8": {
@@ -1566,7 +1594,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bf854": {
@@ -1626,7 +1656,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531bffdc": {
@@ -1636,7 +1668,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0030": {
@@ -1646,7 +1680,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0038": {
@@ -1656,7 +1692,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0128": {
@@ -1666,7 +1704,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0130": {
@@ -1676,7 +1716,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c01b4": {
@@ -1686,7 +1728,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c01bc": {
@@ -1696,7 +1740,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0240": {
@@ -1706,7 +1752,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0248": {
@@ -1716,7 +1764,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c029c": {
@@ -1736,7 +1786,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c02f0": {
@@ -1746,7 +1798,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0338": {
@@ -1798,7 +1852,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c043c": {
@@ -1808,7 +1864,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0498": {
@@ -1859,7 +1917,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c05dc": {
@@ -1869,7 +1929,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0654": {
@@ -1919,7 +1981,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c06e8": {
@@ -1929,7 +1993,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0900": {
@@ -2035,7 +2101,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c09e4": {
@@ -2045,7 +2113,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c09e8": {
@@ -2103,7 +2173,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0af0": {
@@ -2113,7 +2185,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0b94": {
@@ -2123,7 +2197,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0b9c": {
@@ -2133,7 +2209,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0bf4": {
@@ -2152,7 +2230,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0c0c": {
@@ -2162,7 +2242,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0c10": {
@@ -2197,7 +2279,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0cc8": {
@@ -2207,7 +2291,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0ccc": {
@@ -2241,7 +2327,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0ea4": {
@@ -2251,7 +2339,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c0f10": {
@@ -2324,7 +2414,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c1064": {
@@ -2334,7 +2426,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c1220": {
@@ -2344,7 +2438,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c1228": {
@@ -2354,7 +2450,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531c1834": {
@@ -3168,7 +3266,8 @@
     "tools/gr4v120/directflash/settings_check.py",
     "tools/gr4v120/exposure/check.py",
     "tools/gr4v120/hdrgain/menu_check.py",
-    "tools/gr4v120/viewmenu/check.py"
+    "tools/gr4v120/viewmenu/check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531d825c": {
@@ -3182,7 +3281,8 @@
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/exposure/check.py",
     "tools/gr4v120/hdrgain/menu_check.py",
-    "tools/gr4v120/viewmenu/check.py"
+    "tools/gr4v120/viewmenu/check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531d826c": {
@@ -3196,7 +3296,8 @@
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/exposure/check.py",
     "tools/gr4v120/hdrgain/menu_check.py",
-    "tools/gr4v120/viewmenu/check.py"
+    "tools/gr4v120/viewmenu/check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531d83fc": {
@@ -3546,7 +3647,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "core/src/fw/gr4v120/aspect/softfocus.ts",
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531dc844": {
@@ -3556,7 +3659,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "core/src/fw/gr4v120/aspect/softfocus.ts",
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531dc860": {
@@ -3566,7 +3671,9 @@
    "files": [
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "core/src/fw/gr4v120/aspect/softfocus.ts",
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x531dccc8": {
@@ -4248,7 +4355,8 @@
     "core/src/fw/gr4v120/aspect/grain.ts",
     "tools/gr4v120/grain/fw_check.py",
     "core/src/fw/gr4v120/aspect/viewmenu.ts",
-    "tools/gr4v120/videoaf/test_inplace.py"
+    "tools/gr4v120/videoaf/test_inplace.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x53240818": {
@@ -4354,7 +4462,8 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/datestamp-menu.ts",
-    "tools/gr4v120/shutdown/menu_check.py"
+    "tools/gr4v120/shutdown/menu_check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x532560d0": {
@@ -4609,7 +4718,8 @@
     "core/src/fw/gr4v120/aspect/adjslots.ts",
     "core/src/fw/gr4v120/aspect/softfocus.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x532a058c": {
@@ -5141,7 +5251,9 @@
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "core/src/fw/gr4v120/aspect/softfocus.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x5338f494": {
@@ -5246,7 +5358,9 @@
     "tools/gr4v120/adjslots/adjslots.c",
     "tools/gr4v120/adjslots/check.py",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x53390e58": {
@@ -6370,7 +6484,8 @@
     "tools/gr4v120/exposure/check.py",
     "tools/gr4v120/hdrgain/menu_check.py",
     "tools/gr4v120/looks/looks_check.py",
-    "tools/gr4v120/shutdown/menu_check.py"
+    "tools/gr4v120/shutdown/menu_check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x533f3678": {
@@ -6481,7 +6596,8 @@
    "files": [
     "core/src/fw/gr4v120/aspect/menuwide.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/shutdown/menu_check.py"
+    "tools/gr4v120/shutdown/menu_check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x53593d64": {
@@ -6498,7 +6614,9 @@
     "tools/gr4v120/exposure/check.py",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/shutdown/shutdown.c",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x53593e34": {
@@ -6564,7 +6682,8 @@
    "how": "aligned + refs 0x53595818x22",
    "ok": true,
    "files": [
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x53594efc": {
@@ -6572,7 +6691,8 @@
    "how": "aligned + refs 0x53595824x21",
    "ok": true,
    "files": [
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x53594f7c": {
@@ -6762,7 +6882,8 @@
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/shutdown/menu_check.py",
-    "core/src/fw/gr4v120/aspect/viewmenu.ts"
+    "core/src/fw/gr4v120/aspect/viewmenu.ts",
+    "core/src/fw/gr4v120/aspect/lamp.ts"
    ]
   },
   "0x5359d7dc": {
@@ -6856,7 +6977,9 @@
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "core/src/fw/gr4v120/aspect/softfocus.ts",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x535a257c": {
@@ -6952,7 +7075,8 @@
    "how": "aligned + refs 0x535ac854x56",
    "ok": true,
    "files": [
-    "tools/gr4v120/adjslots/check.py"
+    "tools/gr4v120/adjslots/check.py",
+    "core/src/fw/gr4v120/aspect/adjslots.ts"
    ]
   },
   "0x535acd84": {
@@ -8771,7 +8895,8 @@
     "tools/gr4v120/shadowml/fwemu.py",
     "core/src/fw/gr4v120/aspect/grain.ts",
     "tools/gr4v120/grain/fw_check.py",
-    "tools/gr4v120/grain/grain.c"
+    "tools/gr4v120/grain/grain.c",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x53908530": {
@@ -8783,7 +8908,8 @@
     "tools/gr4v120/aspect/playback_check.py",
     "tools/gr4v120/datestamp/list_width_check.py",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/shadowml/fwemu.py"
+    "tools/gr4v120/shadowml/fwemu.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x5390856c": {
@@ -8794,7 +8920,8 @@
     "tools/gr4v120/adjslots/check.py",
     "tools/gr4v120/aspect/playback_check.py",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/shadowml/fwemu.py"
+    "tools/gr4v120/shadowml/fwemu.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x53909c88": {
@@ -8868,7 +8995,8 @@
     "tools/gr4v120/battery/check.py",
     "tools/gr4v120/shade/draw_check.py",
     "tools/gr4v120/shadowml/fwemu.py",
-    "tools/gr4v120/videoaf/test_inplace.py"
+    "tools/gr4v120/videoaf/test_inplace.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x53916064": {
@@ -9331,7 +9459,9 @@
     "tools/gr4v120/adjslots/check.py",
     "tools/gr4v120/directflash/check.py",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x53dca5e0": {
@@ -9688,7 +9818,8 @@
     "tools/gr4v120/softfocus/check.py",
     "tools/gr4v120/grid/check.py",
     "tools/gr4v120/shade/draw_check.py",
-    "tools/gr4v120/grain/fw_check.py"
+    "tools/gr4v120/grain/fw_check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x543b5270": {
@@ -9702,7 +9833,8 @@
     "core/src/fw/gr4v120/aspect/directflash.ts",
     "core/src/fw/gr4v120/aspect/softfocus.ts",
     "tools/gr4v120/datestamp/menu_check.py",
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x54408b70": {
@@ -9732,7 +9864,8 @@
     "tools/gr4v120/directflash/check.py",
     "tools/gr4v120/directflash/settings_check.py",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/viewmenu/check.py"
+    "tools/gr4v120/viewmenu/check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x5440c5e0": {
@@ -9754,7 +9887,8 @@
     "tools/gr4v120/directflash/check.py",
     "tools/gr4v120/directflash/settings_check.py",
     "tools/gr4v120/exposure/check.py",
-    "tools/gr4v120/viewmenu/check.py"
+    "tools/gr4v120/viewmenu/check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x5440c600": {
@@ -9867,7 +10001,8 @@
     "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/videoaf/cam.py",
     "tools/gr4v120/videoaf/test_inplace.py",
-    "tools/gr4v120/awb2/test_fw.py"
+    "tools/gr4v120/awb2/test_fw.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x55001e78": {
@@ -9896,7 +10031,8 @@
     "core/src/fw/gr4v120/aspect/build.ts",
     "core/src/fw/gr4v120/aspect/directflash-menu.ts",
     "tools/gr4v120/datestamp/menu_check.py",
-    "tools/gr4v120/exposure/check.py"
+    "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/lamp/check.py"
    ]
   },
   "0x55013e70": {
@@ -10199,7 +10335,8 @@
     "core/src/fw/gr4v120/aspect/battery.ts",
     "core/src/fw/gr4v120/aspect/flttl.ts",
     "core/src/fw/gr4v120/aspect/build.ts",
-    "core/src/fw/gr4v120/aspect/awb2.ts"
+    "core/src/fw/gr4v120/aspect/awb2.ts",
+    "core/src/fw/gr4v120/aspect/lamp.ts"
    ]
   },
   "0x53154a70": {
@@ -10862,7 +10999,8 @@
     "tools/gr4v120/battery/check.py",
     "core/src/fw/gr4v120/aspect/videoaf.ts",
     "core/src/fw/gr4v120/aspect/awb2.ts",
-    "tools/gr4v120/awb2/test_fw.py"
+    "tools/gr4v120/awb2/test_fw.py",
+    "core/src/fw/gr4v120/aspect/lamp.ts"
    ]
   },
   "0x531aa560": {
@@ -13762,6 +13900,353 @@
     "core/src/fw/gr4v120/aspect/shade.ts",
     "tools/gr4v120/grid/check.py",
     "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x531d75d8": {
+   "new": "0x531d7be0",
+   "how": "aligned + refs 0x531d7be0x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts"
+   ]
+  },
+  "0x531dcafc": {
+   "new": "0x531dd104",
+   "how": "aligned + refs 0x531dd104x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x531dcb04": {
+   "new": "0x531dd10c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x531dcb08": {
+   "new": "0x531dd110",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x531dcb18": {
+   "new": "0x531dd120",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x5325f81c": {
+   "new": "0x53260068",
+   "how": "aligned + refs 0x53260068x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x5338fbac": {
+   "new": "0x5339045c",
+   "how": "aligned + refs 0x5339045cx14",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x5338fbbc": {
+   "new": "0x5339046c",
+   "how": "aligned + refs 0x5339046cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts"
+   ]
+  },
+  "0x533914bc": {
+   "new": "0x53391d6c",
+   "how": "aligned + refs 0x53391d6cx8",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x533914d4": {
+   "new": "0x53391d84",
+   "how": "aligned + refs 0x53391d84x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts"
+   ]
+  },
+  "0x53397a70": {
+   "new": "0x53398320",
+   "how": "aligned + refs 0x53398320x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts"
+   ]
+  },
+  "0x533990e0": {
+   "new": "0x53399990",
+   "how": "aligned + refs 0x53399990x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x5339910c": {
+   "new": "0x533999bc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x5339927c": {
+   "new": "0x53399b2c",
+   "how": "aligned + refs 0x53399b2cx139",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts"
+   ]
+  },
+  "0x5339b0d4": {
+   "new": "0x5339b984",
+   "how": "aligned + refs 0x5339b984x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts"
+   ]
+  },
+  "0x53966a78": {
+   "new": "0x53968040",
+   "how": "aligned + refs 0x53968040x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x53966c48": {
+   "new": "0x53968210",
+   "how": "aligned + refs 0x53968210x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x53966eec": {
+   "new": "0x539684b4",
+   "how": "aligned + refs 0x539684b4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x53966f14": {
+   "new": "0x539684dc",
+   "how": "aligned + refs 0x539684dcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x53967390": {
+   "new": "0x53968958",
+   "how": "aligned + refs 0x53968958x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x53967430": {
+   "new": "0x539689f8",
+   "how": "aligned + refs 0x539689f8x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x53967678": {
+   "new": "0x53968c40",
+   "how": "aligned + refs 0x53968c40x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts"
+   ]
+  },
+  "0x5396783c": {
+   "new": "0x53968e04",
+   "how": "aligned + refs 0x53968e04x41",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x53de50c4": {
+   "new": "0x53de6764",
+   "how": "aligned + refs 0x53de6764x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x53de515c": {
+   "new": "0x53de67fc",
+   "how": "aligned + refs 0x53de67fcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts"
+   ]
+  },
+  "0x53de52bc": {
+   "new": "0x53de695c",
+   "how": "aligned + refs 0x53de695cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts"
+   ]
+  },
+  "0x54335c78": {
+   "new": "0x54337468",
+   "how": "aligned + refs 0x54337468x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts"
+   ]
+  },
+  "0x55839074": {
+   "new": "0x55839074",
+   "how": "override",
+   "ok": true,
+   "why": "GR Mod's own word in the C library's sbrk arena before the heap (lamp.ts, as 0x55839078 of awb2.ts): the arena is 0x55839040..0x55839080 in both releases",
+   "files": [
+    "core/src/fw/gr4v120/aspect/lamp.ts",
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x531dcb88": {
+   "new": "0x531dd190",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x531dcb8c": {
+   "new": "0x531dd194",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x531dcb9c": {
+   "new": "0x531dd1a4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x531dcc0c": {
+   "new": "0x531dd214",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x531dcc10": {
+   "new": "0x531dd218",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x531dcc20": {
+   "new": "0x531dd228",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x5339b7b8": {
+   "new": "0x5339c068",
+   "how": "aligned + refs 0x5339c068x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x53909228": {
+   "new": "0x53909ec0",
+   "how": "aligned + refs 0x53909ec0x52",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x539092dc": {
+   "new": "0x53909f74",
+   "how": "aligned + refs 0x53909f74x53",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x53966c98": {
+   "new": "0x53968260",
+   "how": "aligned + refs 0x53968260x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x53966f30": {
+   "new": "0x539684f8",
+   "how": "aligned + refs 0x539684f8x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x539673ac": {
+   "new": "0x53968974",
+   "how": "aligned + refs 0x53968974x5",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x531c0930": {
+   "new": "0x531c0f38",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/adjslots.ts"
    ]
   }
  }

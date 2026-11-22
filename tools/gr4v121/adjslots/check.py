@@ -425,6 +425,12 @@ def run_scenario(path, n, official, sc, softfocus=False):
         # strip
         cam.run(0x531c157c)
         r['strip'] = strip_of(cam)
+        # where the strip's drawing leaves the frames and icons of slots 1..5 (test 097)
+        places = {}
+        for v in cam.log:
+            if v[0] == 'x' and isinstance(v[1], tuple) and v[1][0] in ('frame', 'icon'):
+                places[v[1]] = v[2]
+        r['places'] = places
         # can ADJ be used
         fn = cam.img.u32(VTABLE_9)
         r['open'] = cam.run(fn) & 0xff
@@ -498,8 +504,11 @@ def check_model(n, sc, results, m):
             src = (k + 1) % n
             want = src if m.disabled(m.fn[k]) else k   # (an empty slot's icon cannot be touched)
             check(got == want, f'{what}: tap {k} (from {src}): {got} want {want}')
-        x0 = frame_x(n, 0)
-        check(all((x - x0) % pitch(n) == 0 and 0 <= (x - x0) // pitch(n) < n for x in r['x']), f'{what}: selection x {r["x"]}')
+        # the fixed layout (movies): the five slots and the selection where the camera has them
+        x0, step, slots_shown = (425, 60, 5) if fixed else (frame_x(n, 0), pitch(n), n)
+        check(all((x - x0) % step == 0 and 0 <= (x - x0) // step < slots_shown for x in r['x']), f'{what}: selection x {r["x"]}')
+        want = {(kind, k): x0 + step * k + (5 if kind == 'icon' else 0) for kind in ('frame', 'icon') for k in range(5)}
+        check(r['places'] == want, f'{what}: places of slots 1..5 {r["places"]} want {want}')
 
 
 def compare_official(d):
@@ -513,6 +522,11 @@ def compare_official(d):
         b, m = run_scenario(d / 'n5.rtos', 5, False, sc)
         for pos, (ra, rb) in enumerate(zip(a, b)):
             for key in ra:
+                if key == 'places':
+                    # the official code never moves them (they are made at 425 + 60 k); the new code puts them there
+                    want = {(kind, k): 425 + 60 * k + (5 if kind == 'icon' else 0) for kind in ('frame', 'icon') for k in range(5)}
+                    check(ra[key] == {} and rb[key] == want, f'n5 vs official, {sc[0]} fixed {sc[2]} pos {pos}: places {rb[key]}')
+                    continue
                 check(ra[key] == rb[key], f'n5 vs official, {sc[0]} fixed {sc[2]} pos {pos}: {key} {ra[key]} / {rb[key]}')
         check_model(5, sc, b, m)
         count += 1

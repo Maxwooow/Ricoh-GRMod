@@ -182,6 +182,8 @@ export interface ExtensionFeatures {
   videoAf?: boolean;
   /** GR IV 1.20 and 1.21 (`fw/gr4v120/aspect/awb2.ts`; not built on 1.11): a learned auto white balance for the three Auto modes. */
   awbLearn?: boolean;
+  /** Not on 1.11 (the engine refuses it there): 1.20 and 1.21 only. */
+  constantLight?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */

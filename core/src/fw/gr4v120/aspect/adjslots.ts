@@ -57,7 +57,11 @@
  *    (the builder's own limit); with seven or eight lines the list scrolls with the cursor, as long
  *    lists do. Customize Settings is as the camera's.
  * In the fixed layout (movies) the extra slots are empty and their frames hidden: the five fixed
- * functions are as before.
+ * functions are as before, and where the camera has them: each time the strip is drawn, the frames
+ * and icons of the five slots are put at the official places (425 + 60 k) in the fixed layout and
+ * at the N-slot places otherwise (View::SetX 0x535ABF2C, the function the selection frame is moved
+ * with), and the selection frame's x is the official one in the fixed layout. (Before test 097 the
+ * five stood at their N-slot places with the room of slots 6..N empty to their right.)
  */
 import { FirmwareError } from '../../types';
 import { assembleWords, branchTarget, branchWord, movWord } from './arm';
@@ -135,6 +139,9 @@ const SLOT_FUNCTION_ASSERT = adr(0x531beba8);
 /** SlotFunction's return: sub sp, fp, #0x18; ldm sp, {r4, r5, r6, fp, sp, pc}. */
 const SLOT_FUNCTION_RETURN = adr(0x531beba0);
 const DRAW = adr(0x531c0f74);
+const IS_FIXED = adr(0x531be238); // (this) -> 1 in the fixed layout (movies)
+const VIEW_SET_X = adr(0x535abf2c); // (view, x)
+const SELECTION_SET_X = adr(0x531c0930); // bl View::SetX(selection frame, x0 + pitch * slot), slot in r2, this in r4
 const TOUCHABLE = adr(0x531bebf4);
 const TAPS = adr(0x531bd078);
 const TAP_SELECT = adr(0x531c0e84);
@@ -331,7 +338,7 @@ function moduleWithTable(code: Uint8Array, table: number): void {
   const sites: readonly (readonly [number, number])[] = [[68, 0xe3540014], [172, MOVW_TABLE], [176, 0xe34513dc], [416, MOVW_TABLE], [420, 0xe34513dc]];
   for (const [at, word] of sites) if (v.getUint32(at, true) !== word) fail('internal', 'ADJ slots: the module is not the one expected');
   const member = table + 0x3c;
-  v.setUint32(68, 0xe3540015, true);
+  v.setUint32(68, 0xe3540000 | MAX_FUNCTION, true); // cmp r4, #last
   for (const at of [172, 416]) {
     v.setUint32(at, movWord(1, lo(member)), true);
     v.setUint32(at + 4, movWord(1, hi(member), true), true);
@@ -464,10 +471,12 @@ function installMenu(patch: Patch, n: number): void {
  * Install N ADJ slots (6..8; 5 only for the emulator checks, the official layout through the new
  * code). Returns nothing; the ICONBIN data does not change.
  */
-export function installAdjSlots(patch: Patch, n: number, options: { menu?: boolean; functionTable?: number } = {}): void {
+export function installAdjSlots(patch: Patch, n: number, options: { menu?: boolean; functionTable?: number; lastFunction?: number } = {}): void {
   // Test 080: the function table copied with function 0x15 (exposure preview, `exposure.ts`).
   const functionTable = options.functionTable ?? 0;
-  MAX_FUNCTION = functionTable ? 0x15 : 0x14;
+  // Constant Light (`lamp.ts`) adds one more: `lastFunction`.
+  MAX_FUNCTION = functionTable ? options.lastFunction ?? 0x15 : 0x14;
+  if (!(MAX_FUNCTION >= 0x14 && MAX_FUNCTION <= 0x16)) fail('internal', 'ADJ slots: the last ADJ function');
   if (!(Number.isInteger(n) && n >= ADJ_SLOTS_MIN && n <= ADJ_SLOTS_MAX)) fail('internal', 'ADJ slots: 5 to 8');
   for (const [at, word] of OFFICIAL) expectWord(patch, at, word);
   const officialTable = patch.readMapped(VIEW_TABLE, OFFICIAL_VIEWS * VIEW_ENTRY);
@@ -513,7 +522,36 @@ export function installAdjSlots(patch: Patch, n: number, options: { menu?: boole
     const wrap = stub(`push {r4, lr}; mov r4, r0; bl #${tramp}; mov r0, r4; ${call}; pop {r4, pc}`);
     patch.setWord(fn, branchWord(fn, wrap), what);
   };
-  after(DRAW, `mov r1, #${n}; bl #${module + E.draw_more}`, 'ADJ slots: the strip, slots 6..N');
+  // The five slots' places: the official ones in the fixed layout (movies), the N-slot ones otherwise.
+  expectWord(patch, VIEW_SET_X, MOV_IP_SP);
+  expectWord(patch, SELECTION_SET_X - 0x14, 0xe5d421fc); // ldrb r2, [r4, #0x1fc]
+  expectWord(patch, SELECTION_SET_X, branchWord(SELECTION_SET_X, VIEW_SET_X, 14, true));
+  const layout = stub(
+    `push {r4, r5, r6, r7, r8, lr}
+     mov r4, r0
+     bl #${IS_FIXED}
+     cmp r0, #1
+     movweq r6, #425; moveq r7, #60
+     movwne r6, #${adjFrameX(n, 0)}; movne r7, #${adjPitch(n)}
+     mov r5, #0
+     next: add r8, r4, r5, lsl #2
+     ldr r0, [r8, #${ADJ_FRAMES}]; mov r1, r6; bl #${VIEW_SET_X}
+     ldr r0, [r8, #${ADJ_ICONS}]; add r1, r6, #5; bl #${VIEW_SET_X}
+     add r6, r6, r7
+     add r5, r5, #1
+     cmp r5, #5; blo next
+     pop {r4, r5, r6, r7, r8, pc}`);
+  const selection = stub(
+    `push {r0, r1, r2, lr}
+     mov r0, r4; bl #${IS_FIXED}
+     cmp r0, #1
+     pop {r0, r1, r2, lr}
+     bne #${VIEW_SET_X}
+     mov r1, #60; mul r1, r1, r2
+     movw r3, #425; add r1, r1, r3
+     b #${VIEW_SET_X}`);
+  patch.setWord(SELECTION_SET_X, branchWord(SELECTION_SET_X, selection, 14, true), 'ADJ slots: the selection frame in the fixed layout');
+  after(DRAW, `mov r1, #${n}; bl #${module + E.draw_more}; mov r0, r4; bl #${layout}`, 'ADJ slots: the strip, slots 6..N; the places of slots 1..5');
   after(TOUCHABLE, `mov r1, #${n}; bl #${module + E.touchable_more}`, 'ADJ slots: icons that can be touched, slots 6..N');
   const taps = Array.from({ length: n - 5 }, (_, j) => stub(`ldrb r3, [r0, #0x1fc]; cmp r3, #${5 + j}; bxeq lr; mov r1, #${5 + j}; b #${TAP_SELECT}`));
   const tapTable = patch.append(u32le(taps.length ? taps : [0]), 4);

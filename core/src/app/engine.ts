@@ -242,6 +242,8 @@ export interface FirmwareSummary {
   videoAf?: boolean;
   /** True when the file has the learned auto white balance. */
   awbLearn?: boolean;
+  /** True when the file has Constant Light (the front lamp kept lit; test builds). */
+  constantLight?: boolean;
   /** ADJ lever slots (6..8) when the file has more than the camera's five. */
   adjSlots?: number;
   /** True when the file's battery icon shows the charge in steps of 10 %. */
@@ -357,6 +359,12 @@ export interface BuildOptions {
    * result. Off unless asked for.
    */
   awbLearn?: boolean;
+  /**
+   * Constant Light (GR IV 1.20 and 1.21; test builds only so far, not announced in `features`): the lamp on the front of
+   * the camera kept lit, switched by a line of the still menu, an ADJ lever function and an Fn function
+   * (`gr4v120/aspect/lamp.ts`). Off when the camera starts and when it shuts down.
+   */
+  constantLight?: boolean;
   /** GR III 2.10: the number of films, 1..20 (`features.maxFilms`), each with a Halation
    * line in the camera. Absent: the nine-film T6 build. */
   filmCount?: number;
@@ -817,6 +825,7 @@ export class Engine {
       ...(features.flashTtl ? { flashTtl: true } : {}),
       ...(features.videoAf ? { videoAf: true } : {}),
       ...(features.awbLearn ? { awbLearn: true } : {}),
+      ...(features.constantLight ? { constantLight: true } : {}),
     });
     if (!specs) return modified(false, [], aligned);
     let ratios: BuiltRatio[] = [];
@@ -1154,15 +1163,20 @@ export class Engine {
     const awbLearn = !!(options && options.awbLearn);
     if (awbLearn && !this.info.features.awbLearn) throw new FirmwareError('bad-edit', 'the learned white balance needs GR IV firmware 1.20 or 1.21');
     if (awbLearn && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the learned white balance cannot be combined with the clarity-table soft focus of 0.4.x');
+    if (options && options.constantLight !== undefined && typeof options.constantLight !== 'boolean') throw new FirmwareError('bad-edit', 'constantLight must be boolean');
+    const constantLight = !!(options && options.constantLight);
+    // Where movie AF is (GR IV 1.20 and 1.21): the same program.
+    if (constantLight && !this.info.features.videoAf) throw new FirmwareError('bad-edit', 'Constant Light needs GR IV firmware 1.20 or 1.21');
+    if (constantLight && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Constant Light cannot be combined with the clarity-table soft focus of 0.4.x');
     if (hdrGainMap && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the HDR gain map cannot be combined with the clarity-table soft focus of 0.4.x');
     if (directFlash && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Direct Flash cannot be combined with the clarity-table soft focus of 0.4.x');
     if (pictures.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'power-off pictures cannot be combined with the clarity-table soft focus of 0.4.x');
     if (adjSoftFocus && clarity.length > 0) throw new FirmwareError('bad-clarity', 'soft focus on the ADJ lever and on the clarity table cannot be combined');
     if (dateStamp && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the date imprint cannot be combined with the clarity-table soft focus of 0.4.x');
     if (extraSlots.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'added slots cannot be combined with the clarity-table soft focus of 0.4.x');
-    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash && adjSlots === 5 && !hdrGainMap && !exposurePreview && !filmGrain && !shadowLearn && !flashTtl && !videoAf && !awbLearn && !options.brightAuto && !batteryPercent && !customGrid) throw new FirmwareError('bad-edit', 'nothing to change');
+    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash && adjSlots === 5 && !hdrGainMap && !exposurePreview && !filmGrain && !shadowLearn && !flashTtl && !videoAf && !awbLearn && !constantLight && !options.brightAuto && !batteryPercent && !customGrid) throw new FirmwareError('bad-edit', 'nothing to change');
     if (Object.keys(cinemaHalation).length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'halation cannot be combined with the clarity-table soft focus of 0.4.x');
-    const features = { ...(options.brightAuto ? { brightAuto: options.brightAuto } : {}), adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(hdrGainMap ? { hdrGainMap } : {}), ...(exposurePreview ? { exposurePreview } : {}), ...(softFocusMenu ? { softFocusMenu } : {}), ...(batteryPercent ? { batteryPercent } : {}), ...(customGrid ? { customGrid } : {}), ...(ratioShade ? { ratioShade } : {}), ...(ratioShadeTone ? { ratioShadeTone } : {}), ...(shadowLearn ? { shadowLearn } : {}), ...(filmGrain ? { filmGrain } : {}), ...(flashTtl ? { flashTtl } : {}), ...(videoAf ? { videoAf } : {}), ...(awbLearn ? { awbLearn } : {}) };
+    const features = { ...(options.brightAuto ? { brightAuto: options.brightAuto } : {}), adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(hdrGainMap ? { hdrGainMap } : {}), ...(exposurePreview ? { exposurePreview } : {}), ...(softFocusMenu ? { softFocusMenu } : {}), ...(batteryPercent ? { batteryPercent } : {}), ...(customGrid ? { customGrid } : {}), ...(ratioShade ? { ratioShade } : {}), ...(ratioShadeTone ? { ratioShadeTone } : {}), ...(shadowLearn ? { shadowLearn } : {}), ...(filmGrain ? { filmGrain } : {}), ...(flashTtl ? { flashTtl } : {}), ...(videoAf ? { videoAf } : {}), ...(awbLearn ? { awbLearn } : {}), ...(constantLight ? { constantLight } : {}) };
     const test = {
       ...(options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {}),
       ...(options && options.halationDiag ? { halationDiag: true } : {}),

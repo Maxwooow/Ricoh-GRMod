@@ -35,8 +35,16 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
   *    6..N are kept in a record of their own (appended, never opened) and SubMenuController reads
   *    them there for ADJ Mode Setting (record 10): the line's text, value icon x and value draw in
   *    its list builder (0x531E3E70), the line's controller id on OK (0x531E3AF4). Its list (made once
-@@ -59,11 +60,11 @@
-  * functions are as before.
+@@ -56,14 +57,18 @@
+  *    (the builder's own limit); with seven or eight lines the list scrolls with the cursor, as long
+  *    lists do. Customize Settings is as the camera's.
+  * In the fixed layout (movies) the extra slots are empty and their frames hidden: the five fixed
+- * functions are as before.
++ * functions are as before, and where the camera has them: each time the strip is drawn, the frames
++ * and icons of the five slots are put at the official places (425 + 60 k) in the fixed layout and
++ * at the N-slot places otherwise (View::SetX 0x535ABF2C, the function the selection frame is moved
++ * with), and the selection frame's x is the official one in the fixed layout. (Before test 097 the
++ * five stood at their N-slot places with the room of slots 6..N empty to their right.)
   */
  import { FirmwareError } from '../../types';
 -import { assembleWords, branchTarget, branchWord } from './arm';
@@ -49,7 +57,7 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
  
  export const ADJ_SLOTS_MIN = 5;
  export const ADJ_SLOTS_MAX = 8;
-@@ -74,7 +75,7 @@
+@@ -74,7 +79,7 @@
  export const ADJ_MENU_ID = 0x020001c0;
  export const ADJ_LIST_ID = 0x020001c1;
  /** Texts: the lines of slots 6..8 are ADJ_TEXT_ID + 1.. (ADJ_TEXT_ID itself is not used). */
@@ -58,7 +66,17 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
  /** The controller's new members and size. */
  export const ADJ_FRAMES = 0x294;
  export const ADJ_ICONS = 0x2b4;
-@@ -146,19 +147,19 @@
+@@ -134,6 +139,9 @@
+ /** SlotFunction's return: sub sp, fp, #0x18; ldm sp, {r4, r5, r6, fp, sp, pc}. */
+ const SLOT_FUNCTION_RETURN = adr(0x531beba0);
+ const DRAW = adr(0x531c0f74);
++const IS_FIXED = adr(0x531be238); // (this) -> 1 in the fixed layout (movies)
++const VIEW_SET_X = adr(0x535abf2c); // (view, x)
++const SELECTION_SET_X = adr(0x531c0930); // bl View::SetX(selection frame, x0 + pitch * slot), slot in r2, this in r4
+ const TOUCHABLE = adr(0x531bebf4);
+ const TAPS = adr(0x531bd078);
+ const TAP_SELECT = adr(0x531c0e84);
+@@ -146,19 +154,19 @@
  
  /** Official words of every place changed, checked first. */
  const OFFICIAL: readonly (readonly [number, number])[] = [
@@ -82,7 +100,7 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
    [adr(0x531be238), MOV_IP_SP], [adr(0x531beab8), MOV_IP_SP], [adr(0x535ab874), MOV_IP_SP], [adr(0x539084bc), MOV_IP_SP],
  ];
  
-@@ -254,8 +255,8 @@
+@@ -254,8 +262,8 @@
    return text.slice(0, ascii) + String(digit) + text.slice(ascii + 1);
  }
  
@@ -93,7 +111,7 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
  
  /** Texts of row l (every row of the catalog, as the program indexes languages). */
  function installTexts(patch: Patch, entries: readonly { id: number; make: (row: number) => string }[]): void {
-@@ -277,7 +278,7 @@
+@@ -277,7 +285,7 @@
  
  // --- Settings: ADJ Mode Setting's submenu record and lists, SubMenuController's list.
  const ADJ_SUBMENU = 10;
@@ -102,7 +120,7 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
  const SELECT_TABLE = adr(0x53dcd470);
  const SELECT_RECORD = 0x4c;
  const ADJ1_COUNT = adr(0x531d0b7c);
-@@ -311,9 +312,31 @@
+@@ -311,9 +319,31 @@
    [adr(0x531e3b34), 0xe5925014],
  ];
  
@@ -127,7 +145,7 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
 +  const sites: readonly (readonly [number, number])[] = [[68, 0xe3540014], [172, MOVW_TABLE], [176, 0xe34513dc], [416, MOVW_TABLE], [420, 0xe34513dc]];
 +  for (const [at, word] of sites) if (v.getUint32(at, true) !== word) fail('internal', 'ADJ slots: the module is not the one expected');
 +  const member = table + 0x3c;
-+  v.setUint32(68, 0xe3540015, true);
++  v.setUint32(68, 0xe3540000 | MAX_FUNCTION, true); // cmp r4, #last
 +  for (const at of [172, 416]) {
 +    v.setUint32(at, movWord(1, lo(member)), true);
 +    v.setUint32(at + 4, movWord(1, hi(member), true), true);
@@ -136,7 +154,7 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
  
  function installMenu(patch: Patch, n: number): void {
    // --- Checks.
-@@ -340,7 +363,7 @@
+@@ -340,7 +370,7 @@
      const k = 5 + j;
      const set = patch.append((at) => assembleWords(
        `ldr r3, [r0, #0x1a8]; ldr ip, [r0, #0x1ac]; sub ip, ip, r3; cmp r1, ip; bxhs lr
@@ -145,19 +163,21 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
         movw r2, #${lo(ADJ_EXTRA_BYTE + j)}; movt r2, #${hi(ADJ_EXTRA_BYTE + j)}
         ldrb r3, [r2]; bic r3, r3, #0x1f; orr r3, r3, r1; strb r3, [r2]; bx lr`, at), 16);
      const current = patch.append((at) => assembleWords(
-@@ -441,7 +464,10 @@
+@@ -441,7 +471,12 @@
   * Install N ADJ slots (6..8; 5 only for the emulator checks, the official layout through the new
   * code). Returns nothing; the ICONBIN data does not change.
   */
 -export function installAdjSlots(patch: Patch, n: number, options: { menu?: boolean } = {}): void {
-+export function installAdjSlots(patch: Patch, n: number, options: { menu?: boolean; functionTable?: number } = {}): void {
++export function installAdjSlots(patch: Patch, n: number, options: { menu?: boolean; functionTable?: number; lastFunction?: number } = {}): void {
 +  // Test 080: the function table copied with function 0x15 (exposure preview, `exposure.ts`).
 +  const functionTable = options.functionTable ?? 0;
-+  MAX_FUNCTION = functionTable ? 0x15 : 0x14;
++  // Constant Light (`lamp.ts`) adds one more: `lastFunction`.
++  MAX_FUNCTION = functionTable ? options.lastFunction ?? 0x15 : 0x14;
++  if (!(MAX_FUNCTION >= 0x14 && MAX_FUNCTION <= 0x16)) fail('internal', 'ADJ slots: the last ADJ function');
    if (!(Number.isInteger(n) && n >= ADJ_SLOTS_MIN && n <= ADJ_SLOTS_MAX)) fail('internal', 'ADJ slots: 5 to 8');
    for (const [at, word] of OFFICIAL) expectWord(patch, at, word);
    const officialTable = patch.readMapped(VIEW_TABLE, OFFICIAL_VIEWS * VIEW_ENTRY);
-@@ -456,7 +482,9 @@
+@@ -456,7 +491,9 @@
    }
  
    // --- The module and the view table.
@@ -168,6 +188,44 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
    const E = ADJSLOTS_ENTRY;
    const table = patch.append(adjViewTable(officialTable, n), 16);
    const stub = (body: string): number => patch.append((at) => assembleWords(body, at), 16);
+@@ -485,7 +522,36 @@
+     const wrap = stub(`push {r4, lr}; mov r4, r0; bl #${tramp}; mov r0, r4; ${call}; pop {r4, pc}`);
+     patch.setWord(fn, branchWord(fn, wrap), what);
+   };
+-  after(DRAW, `mov r1, #${n}; bl #${module + E.draw_more}`, 'ADJ slots: the strip, slots 6..N');
++  // The five slots' places: the official ones in the fixed layout (movies), the N-slot ones otherwise.
++  expectWord(patch, VIEW_SET_X, MOV_IP_SP);
++  expectWord(patch, SELECTION_SET_X - 0x14, 0xe5d421fc); // ldrb r2, [r4, #0x1fc]
++  expectWord(patch, SELECTION_SET_X, branchWord(SELECTION_SET_X, VIEW_SET_X, 14, true));
++  const layout = stub(
++    `push {r4, r5, r6, r7, r8, lr}
++     mov r4, r0
++     bl #${IS_FIXED}
++     cmp r0, #1
++     movweq r6, #425; moveq r7, #60
++     movwne r6, #${adjFrameX(n, 0)}; movne r7, #${adjPitch(n)}
++     mov r5, #0
++     next: add r8, r4, r5, lsl #2
++     ldr r0, [r8, #${ADJ_FRAMES}]; mov r1, r6; bl #${VIEW_SET_X}
++     ldr r0, [r8, #${ADJ_ICONS}]; add r1, r6, #5; bl #${VIEW_SET_X}
++     add r6, r6, r7
++     add r5, r5, #1
++     cmp r5, #5; blo next
++     pop {r4, r5, r6, r7, r8, pc}`);
++  const selection = stub(
++    `push {r0, r1, r2, lr}
++     mov r0, r4; bl #${IS_FIXED}
++     cmp r0, #1
++     pop {r0, r1, r2, lr}
++     bne #${VIEW_SET_X}
++     mov r1, #60; mul r1, r1, r2
++     movw r3, #425; add r1, r1, r3
++     b #${VIEW_SET_X}`);
++  patch.setWord(SELECTION_SET_X, branchWord(SELECTION_SET_X, selection, 14, true), 'ADJ slots: the selection frame in the fixed layout');
++  after(DRAW, `mov r1, #${n}; bl #${module + E.draw_more}; mov r0, r4; bl #${layout}`, 'ADJ slots: the strip, slots 6..N; the places of slots 1..5');
+   after(TOUCHABLE, `mov r1, #${n}; bl #${module + E.touchable_more}`, 'ADJ slots: icons that can be touched, slots 6..N');
+   const taps = Array.from({ length: n - 5 }, (_, j) => stub(`ldrb r3, [r0, #0x1fc]; cmp r3, #${5 + j}; bxeq lr; mov r1, #${5 + j}; b #${TAP_SELECT}`));
+   const tapTable = patch.append(u32le(taps.length ? taps : [0]), 4);
 diff --git a/core/src/fw/gr4v120/aspect/awb2.ts b/core/src/fw/gr4v120/aspect/awb2.ts
 new file mode 100644
 --- /dev/null
@@ -357,12 +415,13 @@ diff --git a/core/src/fw/gr4v120/aspect/brightauto.ts b/core/src/fw/gr4v120/aspe
 diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/build.ts
 --- a/core/src/fw/gr4v120/aspect/build.ts
 +++ b/core/src/fw/gr4v120/aspect/build.ts
-@@ -32,12 +32,17 @@
+@@ -32,12 +32,18 @@
  import { installDirectFlashMenu } from './directflash-menu';
  import { DATESTAMP_BYTE, installDateStamp, lookNames } from './datestamp';
  import { HDR_SWITCH_BYTE, installHdrGainMap } from './hdrgain';
 -import { hdrTopDraw, installDateStampMenu, installHdrMenu, installHdrStillLine } from './datestamp-menu';
 +import { StillLine, hdrStillLine, hdrTopDraw, installDateStampMenu, installHdrMenu, installStillLines } from './datestamp-menu';
++import { installLampAdj, installLampAssets, installLampCore, installLampFn, installLampList, lampAdjFunction, lampStillLine } from './lamp';
 +import { exposurePreviewStillLines, installExposurePreviewAdj, installExposurePreviewAssets, installExposurePreviewLists, installExposurePreviewLive } from './exposure';
  import { installMonoUnlock } from './monounlock';
  import { installBrightAuto } from './brightauto';
@@ -377,7 +436,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  import type { HalationLook } from './halation';
  import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
  import type { LookLayout } from './looks';
-@@ -49,25 +54,30 @@
+@@ -49,25 +55,30 @@
  import { installCustomGrid, isCameraGrid, validCustomGrid } from './grid';
  import type { CustomGrid } from './grid';
  import { installRatioShade } from './shade';
@@ -416,7 +475,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  export const LANGUAGES = 21;
  const ROW_STRIDE = TEXT_CAPACITY * 4;
  const NATIVE_ICON_CATALOG = adr(0x55014280);
-@@ -90,10 +100,10 @@
+@@ -90,10 +101,10 @@
    return id;
  }
  
@@ -430,7 +489,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  }
  
  export interface RatioSpec {
-@@ -155,11 +165,11 @@
+@@ -155,11 +166,11 @@
    /** ADJ lever slots, 6 to 8 (see `adjslots.ts`); absent or 5: the camera's five. */
    adjSlots?: number;
    /**
@@ -445,7 +504,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    softFocusMenu?: boolean;
    /** The battery icon shows the charge in steps of 10 % instead of the bars (see `battery.ts`). */
    batteryPercent?: boolean;
-@@ -174,13 +184,13 @@
+@@ -174,15 +185,15 @@
    ratioShadeTone?: ShadeTone;
    /** A learned Auto for Shadow Correction (see `shadowml.ts`); GR IV 1.11, 1.20 and 1.21. Off unless asked for. */
    shadowLearn?: boolean;
@@ -461,9 +520,12 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 -  /** GR IV 1.20 and 1.21 (`fw/gr4v120/aspect/awb2.ts`; not built on 1.11): a learned auto white balance for the three Auto modes. */
 +  /** A learned auto white balance for the three Auto modes (`awb2.ts`); 1.20 and 1.21. Off unless asked for. */
    awbLearn?: boolean;
+-  /** Not on 1.11 (the engine refuses it there): 1.20 and 1.21 only. */
++  /** The front lamp kept lit, switched in the still menu, on the ADJ lever and by an Fn function (`lamp.ts`); 1.20 and 1.21. Test builds only so far. */
+   constantLight?: boolean;
  }
  
-@@ -191,11 +201,22 @@
+@@ -193,11 +204,22 @@
    dateStampDiag?: boolean;
    /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
    directFlashDiag?: boolean;
@@ -487,7 +549,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  export interface AspectResult {
    revision: BuildRevision;
-@@ -358,7 +379,7 @@
+@@ -360,7 +382,7 @@
    for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
    const rowsStart = TEXT_CATALOG + 0x100;
    const end = rowsStart + LANGUAGES * ROW_STRIDE;
@@ -496,7 +558,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    patch.extendTo(end - BASE);
    patch.write(ICON_CATALOG, icons);
    const relocated: number[] = [];
-@@ -370,8 +391,15 @@
+@@ -372,8 +394,15 @@
    // language directory themselves.
    patch.setWord(adr(0x534013f8), movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
    patch.setWord(adr(0x534013fc), movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
@@ -514,7 +576,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    }
    for (const [low, high] of [[adr(0x535967cc), adr(0x535967d0)], [adr(0x53595db4), adr(0x53595dbc)]] as const) {
      patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
-@@ -402,7 +430,10 @@
+@@ -404,7 +433,10 @@
  // --------------------------------------------------------------------------------------------
  // crop_icons.py
  
@@ -526,7 +588,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
    const parts: Uint8Array[] = [iconbin];
-@@ -494,7 +525,7 @@
+@@ -496,7 +528,7 @@
    // Complete language rows again, now wide enough for the new names; every original entry is kept.
    let priorColumns = TEXT_CAPACITY;
    for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
@@ -535,7 +597,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    for (const id of allIds) upper = Math.max(upper, textId(id));
    const columns = Math.max(priorColumns, upper + 1);
    const catalogs: Uint8Array[] = [];
-@@ -623,7 +654,7 @@
+@@ -625,7 +657,7 @@
    p.hook(adr(0x538b40ec), out);
    out = `push {r0-r3,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r0,r3;bne #${adrHEX(0x538B41CC)};b #${p.target(adr(0x538b41b4))};`;
    p.hook(adr(0x538b41b4), out);
@@ -544,7 +606,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x53664430), out);
    // Both callers select the cropped window only for their original 2..5 range; a computed window
    // is invisible if selector 0 copies the untouched full canvas instead.
-@@ -686,7 +717,7 @@
+@@ -688,7 +720,7 @@
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
    out += adrText('cmp r2,#5;beq #0x5367298C;b #0x536728E8;');
@@ -553,7 +615,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x536728e4), out);
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
-@@ -707,8 +738,8 @@
+@@ -709,8 +741,8 @@
      out = '';
      for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
      out += `bic ip,ip,#4;b #${resume};custom:`;
@@ -564,7 +626,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      out += adrText('ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;');
      p.hook(entry, out);
    }
-@@ -794,7 +825,7 @@
+@@ -796,7 +828,7 @@
    const get = p.emit(lookup + 'mov r0,#0;bx lr;');
    // The native code at 0x53726698 divides s15 by the crop magnification; the other branch writes
    // it directly. Both contracts are kept.
@@ -573,7 +635,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x537266e8), code);
    // r8 / sb are the source dimensions: exact known sizes first, then fit the ratio for anything else.
    code = `push {r0,r4-r7,r10,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;beq old;mov r4,r0;mov r5,r8;mov r6,sb;`;
-@@ -928,7 +959,7 @@
+@@ -930,7 +962,7 @@
  function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
    const priorSave = branchTarget(adr(0x533f3674), patch.word(adr(0x533f3674)));
    const priorLoad = branchTarget(adr(0x533f3254), patch.word(adr(0x533f3254)));
@@ -582,7 +644,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    expectWord(patch, adr(0x5381d6bc), 0xe1a0c00d);
    // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
    const rects: Uint8Array[] = [];
-@@ -1066,13 +1097,24 @@
+@@ -1068,13 +1100,24 @@
   * features this is `installRatios`, byte for byte. With features the revision is 3.
   */
  export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
@@ -601,14 +663,14 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
    const adjSlots = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
 -  const extra = !!features.brightAuto || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade || !!features.shadowLearn;
-+  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn;
++  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn || !!features.constantLight;
    if (features.customGrid && (!validCustomGrid(features.customGrid) || isCameraGrid(features.customGrid))) fail('internal', 'a custom grid must differ from the camera’s');
    if (features.ratioShade && ratios.length === 0) fail('internal', 'the live-view shade needs an added ratio');
 +  if (features.ratioShadeTone !== undefined && features.ratioShadeTone !== 'dark') fail('bad-edit', 'the live-view shade is chosen in the camera menu on this firmware');
    if (extra) revision = 3;
    if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
    if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
-@@ -1083,8 +1125,12 @@
+@@ -1085,8 +1128,13 @@
    });
    if (features.brightAuto !== undefined && ![true, false, 'bright', 'balanced'].includes(features.brightAuto)) fail('bad-edit', 'brightAuto must be boolean, bright or balanced');
    if (features.shadowLearn !== undefined && typeof features.shadowLearn !== 'boolean') fail('bad-edit', 'shadowLearn must be boolean');
@@ -620,10 +682,11 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +  if (features.flashTtl !== undefined && typeof features.flashTtl !== 'boolean') fail('bad-edit', 'flashTtl must be boolean');
 +  if (features.videoAf !== undefined && typeof features.videoAf !== 'boolean') fail('bad-edit', 'videoAf must be boolean');
 +  if (features.awbLearn !== undefined && typeof features.awbLearn !== 'boolean') fail('bad-edit', 'awbLearn must be boolean');
++  if (features.constantLight !== undefined && typeof features.constantLight !== 'boolean') fail('bad-edit', 'constantLight must be boolean');
    const patch = new Patch(rtos);
    const ramCopy = new DataView(patch.read(BASE + 0x450, 12).buffer);
    if (ramCopy.getUint32(0, true) !== RAM.source || ramCopy.getUint32(4, true) !== RAM.destination || ramCopy.getUint32(8, true) !== RAM.length) {
-@@ -1098,27 +1144,49 @@
+@@ -1100,27 +1148,57 @@
      const menu = installMenu(patch, ratios, installed.ids);
      const { p, get, scale } = buildGeometry(patch, ratios);
      installDevelop(p, scale, ratios);
@@ -645,7 +708,9 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +  const lineOpts = features.exposurePreview || features.softFocusMenu ? { exposurePreview: !!features.exposurePreview, directFlash: !!features.directFlash, softFocus: !!features.softFocusMenu } : null;
 +  const ep = features.exposurePreview ? lineOpts : null;
 +  if (ep && test.exposurePreviewOff) fail('internal', 'exposure preview: the setting or always off, not both');
-+  if (features.adjSoftFocus) icons = installAdjSoftFocus(patch, icons, ep ? 0x15 : 0x14);
++  // The last ADJ lever function: the camera's 0x14, then exposure preview's and Constant Light's.
++  const lastAdj = 0x14 + (ep ? 1 : 0) + (features.constantLight ? 1 : 0);
++  if (features.adjSoftFocus) icons = installAdjSoftFocus(patch, icons, lastAdj);
 +  // Test 084: the custom grids as values of the Grid Style list (its record in place, before any
 +  // addition copies the list table), their texts and icons, and the shade's.
 +  if (features.customGrid || features.ratioShade) icons = installViewAssets(patch, icons, { ...(features.customGrid ? { grid: features.customGrid } : {}), shade: !!features.ratioShade });
@@ -661,6 +726,12 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +    stillLines.push(...exposurePreviewStillLines(patch, lineOpts));
 +  }
 +  if (features.ratioShade) stillLines.push(shadeStillLine(patch));
++  // Constant Light: the lamp's code, then its line (after AF Assist Light), name and icon.
++  const lamp = features.constantLight ? installLampCore(patch) : null;
++  if (lamp) {
++    icons = installLampAssets(patch, icons);
++    stillLines.push(lampStillLine(patch));
++  }
    if (features.dateStamp) {
      const fixed = test.dateStampFixed;
      // From 0.8.2 (builds with the guard) the imprint goes by the picture's look.
@@ -674,27 +745,31 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      if (look && slots.length === 0) installLookStash(patch);
    }
 -  if (hdrDraw && (!features.dateStamp || test.dateStampFixed)) installHdrStillLine(patch, hdrDraw);
-+  if (stillLines.length && (!features.dateStamp || test.dateStampFixed)) installStillLines(patch, stillLines, lineOpts ? 'exposure preview and soft focus' : hdrDraw ? 'HDR gain map' : 'live-view shade');
++  if (stillLines.length && (!features.dateStamp || test.dateStampFixed)) installStillLines(patch, stillLines, lineOpts ? 'exposure preview and soft focus' : hdrDraw ? 'HDR gain map' : features.ratioShade ? 'live-view shade' : 'constant light');
    // Halation: added slots that have it, Cinema slots with a preset that are asked to.
    const halation: HalationLook[] = [];
    slots.forEach((x, k) => {
-@@ -1146,19 +1214,41 @@
+@@ -1148,19 +1226,45 @@
    if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
    // The HDR line's list: after the additions that copy the list table first.
    if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
 +  if (lineOpts) installExposurePreviewLists(patch, lineOpts);
 +  if (features.ratioShade) installShadeList(patch);
++  if (lamp) installLampList(patch, lamp);
 +  // Exposure preview on the ADJ lever: the function table copied with a 22nd function (after soft
 +  // focus and Direct Flash, which change its records in place; before the ADJ slots' module, which reads it).
-+  const adjTable = ep ? installExposurePreviewAdj(patch, ep) : 0;
++  const epTable = ep ? installExposurePreviewAdj(patch, ep) : 0;
++  // Constant Light on the ADJ lever (one more function, after exposure preview's) and as an Fn function.
++  const adjTable = lamp ? installLampAdj(patch, lamp, lampAdjFunction(!!ep)) : epTable;
++  if (lamp) installLampFn(patch, lamp);
    // ADJ lever slots: after the other additions that copy the submenu or list table (it adds records the same way).
 -  if (adjSlots > 0) installAdjSlots(patch, adjSlots);
-+  if (adjSlots > 0) installAdjSlots(patch, adjSlots, adjTable ? { functionTable: adjTable } : {});
++  if (adjSlots > 0) installAdjSlots(patch, adjSlots, adjTable ? { functionTable: adjTable, lastFunction: lastAdj } : {});
 +  if (ep) installExposurePreviewLive(patch, ep);
 +  else if (test.exposurePreviewOff) installExposurePreviewOff(patch);
    // Last: wraps every other settings save/load and user-mode recall hook.
 -  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}) });
-+  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}), ...(ep ? { exposurePreview: true } : {}) });
++  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}), ...(ep ? { exposurePreview: true } : {}), ...(lamp ? { lastAdjFunction: lastAdj } : {}) });
    if (features.brightAuto) installBrightAuto(patch, features.brightAuto === 'balanced' ? 'balanced' : 'bright');
    if (features.batteryPercent) icons = installBatteryPercent(patch, icons, !!test.batteryDiag);
    // After the ratios: the diagonals take the point setter the grid view's layout calls then.
@@ -719,12 +794,12 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    // Very last: the zero fill over the sbrk arena; the additions above expect it at 0x55839040 or its official end.
 -  if (features.batteryPercent) extendBatteryZeroFill(patch);
 +  // (Movie AF and the learned white balance keep their state pointers in the arena: they need the zero fill there too.)
-+  if (features.batteryPercent || features.videoAf || features.awbLearn) extendBatteryZeroFill(patch);
++  if (features.batteryPercent || features.videoAf || features.awbLearn || features.constantLight) extendBatteryZeroFill(patch);
    if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
    if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
 -  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true, ...(features.ratioShadeTone && features.ratioShadeTone !== 'dark' ? { ratioShadeTone: features.ratioShadeTone } : {}) } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}) } };
 -}
-+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}), ...(features.videoAf ? { videoAf: true } : {}), ...(features.awbLearn ? { awbLearn: true } : {}) } };
++  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}), ...(features.videoAf ? { videoAf: true } : {}), ...(features.awbLearn ? { awbLearn: true } : {}), ...(features.constantLight ? { constantLight: true } : {}) } };
 +}
 diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/aspect/datestamp-menu.ts
 --- a/core/src/fw/gr4v120/aspect/datestamp-menu.ts
@@ -2270,7 +2345,7 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
    slots: number;
    /** Added ratios are installed (their module resets the ratio). */
    ratios: boolean;
-@@ -67,6 +69,11 @@
+@@ -67,6 +69,13 @@
    adjSlots?: number;
    /** 0.8.9: the HDR gain map's menu switch is installed (`hdrgain.ts`, byte 0x10A of the settings: 0 On, 1 Off). */
    hdr?: boolean;
@@ -2279,10 +2354,12 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
 +   * is the ADJ lever function 0x15 (so slots may hold it).
 +   */
 +  exposurePreview?: boolean;
++  /** The last ADJ lever function when Constant Light (`lamp.ts`) adds one: 0x15, or 0x16 with exposure preview. */
++  lastAdjFunction?: number;
  }
  
  /** Slots 6..8 (`adjslots.ts`): bytes 0x48D..0x48F of the user settings object, bits 0..4 the function, bits 5..7 of the first the slot last used (1..3: slot 6..8). */
-@@ -74,6 +81,8 @@
+@@ -74,6 +83,8 @@
  const ADJ_STILL_POSITION = 0x91e;
  /** The HDR gain map's switch (`HDR_SWITCH_BYTE`): byte 0x10E of the user settings object; 0 or 1. */
  const HDR_SWITCH = 0x10e;
@@ -2291,7 +2368,7 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
  
  /** The standard photo and movie sets' looks (the others are custom sets' looks). */
  const CURRENT_LOOKS = [0x153, 0x515];
-@@ -83,21 +92,23 @@
+@@ -83,21 +94,24 @@
  function fixSource(o: GuardOptions): string {
    const lines: string[] = ['cmp r0,#0', 'bxeq lr', 'sub r0,r0,r1'];
    LOOKS.forEach((off, i) => {
@@ -2310,7 +2387,8 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
    });
    if (!o.ratios) lines.push(`ldrb r2,[r0,#${RATIO}]`, 'cmp r2,#3', 'movhi r2,#0', `strbhi r2,[r0,#${RATIO}]`);
 +  // The last ADJ function: 0x14, 0x15 with exposure preview on the ADJ lever.
-+  const last = o.exposurePreview ? 21 : 20;
++  const last = o.lastAdjFunction ?? (o.exposurePreview ? 21 : 20);
++  if (!(last >= 20 && last <= 22)) fail('internal', 'guard: the last ADJ function');
    if (!o.adjSoftFocus) {
      ADJ_SLOTS.forEach((off, i) => {
 -      lines.push(`ldrb r2,[r0,#${off}]`, 'cmp r2,#10', `beq adjbad${i}`, 'cmp r2,#20', `bls adj${i}`, `adjbad${i}:`, 'mov r2,#0', `strb r2,[r0,#${off}]`, `adj${i}:`);
@@ -2318,7 +2396,7 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
      });
    }
    const n = o.adjSlots ?? 5;
-@@ -111,7 +122,7 @@
+@@ -111,7 +125,7 @@
          lines.push('mov r2,#0');
        } else {
          // the function: 0..0x14, soft focus (0x0A) only with soft focus on the ADJ lever
@@ -2327,7 +2405,7 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
          if (!o.adjSoftFocus) lines.push('cmp r3,#10', `beq xbad${j}`);
          lines.push(`b xok${j}`, `xbad${j}:`, 'bic r2,r2,#0x1f', `xok${j}:`);
          // the slot last used (first byte only): slots 6..n
-@@ -122,6 +133,7 @@
+@@ -122,6 +136,7 @@
      });
    }
    if (o.hdr) lines.push(`ldrb r2,[r0,#${HDR_SWITCH}]`, 'cmp r2,#1', 'movhi r2,#0', `strbhi r2,[r0,#${HDR_SWITCH}]`);
@@ -2335,7 +2413,7 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
    lines.push('bx lr');
    return lines.join(';');
  }
-@@ -138,7 +150,7 @@
+@@ -138,7 +153,7 @@
    const recallWord = p.word(RECALL);
    if (recallWord >>> 24 !== 0xeb) fail('unexpected-layout', 'user-mode recall is not a call');
    const priorRecall = branchTarget(RECALL, recallWord);
@@ -2550,6 +2628,485 @@ diff --git a/core/src/fw/gr4v120/aspect/hdrgain.ts b/core/src/fw/gr4v120/aspect/
   *
   * The file the camera writes stays as it is: the camera's header (SOI, APP1 Exif with the
   * thumbnail, APP7 "RICOH" with the screennail and maker note) and its main stream come first,
+diff --git a/core/src/fw/gr4v120/aspect/lamp.ts b/core/src/fw/gr4v120/aspect/lamp.ts
+new file mode 100644
+--- /dev/null
++++ b/core/src/fw/gr4v120/aspect/lamp.ts
+@@ -0,0 +1,474 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/**
++ * The lamp on the front of the camera (AF assist light and self-timer lamp, one LED) kept lit:
++ * "Constant Light", Off / On (GR IV firmware 1.20 and 1.21; test builds only so far).
++ *
++ * Where it can be switched:
++ *  - a line of the still shooting menu, "Constant Light", after AF Assist Light, opening a list
++ *    Off / On (controller id LAMP_LIST_ID, Horizon Correction's list controller, as HDR's);
++ *  - an ADJ lever function (the next number after the camera's 0x14 and exposure preview's 0x15),
++ *    offered by ADJ Mode Setting, with the values Off / On;
++ *  - an Fn function, 0x29, offered for the Fn, ISO, Drive and White Balance / Image Control
++ *    buttons (the list those four share): each press switches the lamp on or off.
++ * It is not a setting: the lamp is off when the camera starts, and is switched off when the camera
++ * shuts down. Nothing is kept in the user settings.
++ *
++ * Everything below was found by reading the official 1.20 code, starting from the class names and
++ * the texts of its LED code ("SelfAfAssistCommonLed", "AfAssistLed", "AF LED  ON").
++ *
++ * The lamp. LedControlFactory (one object, 0x5396783C returns it; its fields are set by its build
++ * function 0x53967678) keeps the LED objects. +0xC is the lamp itself: a 0x14-byte object (vtable
++ * 0x54335C78; constructor 0x53966EEC) with "lit" at +4, "initialised" at +5, a mutex at +8 and the
++ * device at +0x10 (+0xC on another board). Its on (0x53966C48) and off (0x53966A78) are reached
++ * through its vtable only, by the two small objects through which the self-timer (+0x10, SelfLed)
++ * and the auto focus (+0x14, AfAssistLed) ask for the lamp: each takes the mutex, sets its own flag
++ * at +8 and calls on; its off calls off, gives the mutex back and clears the flag.
++ * (+8 of the factory is another LED, a 0x74-byte StatusLed with its own task and a device handle
++ * at +0x60: test 095 took that one for the lamp, read past the lamp's 0x14 bytes and the camera
++ * lost power the moment Constant Light was switched on.)
++ *
++ * What is changed:
++ *  - LAMP_WORD (a word of the unused sbrk arena before the heap, zero at start-up, see
++ *    `battery.ts`) holds the lamp object's address while Constant Light is on, else 0;
++ *  - the lamp's off (0x53966A78), at its entry: nothing while LAMP_WORD is set. So the camera's own
++ *    uses of the lamp (AF assist, the self-timer) run as they do, with their mutex and flags, and
++ *    leave the lamp lit;
++ *  - `set` (appended): on = LAMP_WORD and the lamp's on; off = LAMP_WORD 0 and, unless the
++ *    self-timer or the auto focus has the lamp just now (their flags), the lamp's off. Nothing
++ *    when the lamp object is not there or not initialised. Neither takes the mutex;
++ *  - the shutdown model's handler of the preparation state (0x5325F81C, AppShutDownModel.cpp), at
++ *    its entry: Constant Light off;
++ *  - the menus: a list record and the still-menu line (`datestamp-menu.ts`), the ADJ function
++ *    table copied with one more record (as `exposure.ts` does for 0x15; after it when both are in
++ *    the build), the function's name and icon;
++ *  - the Fn functions: 0x29 is a number the camera does not use. 0x26..0x29 share the name and the
++ *    icon of Preview, but only 0x26 is in a list (the held Movie button's) and has a case; 0x27..0x29
++ *    are in no list and go to the default of both function switches (0x533990E0, 0x53397A70), so
++ *    no button can hold them. The list of the functions the four
++ *    buttons offer (39 bytes at 0x53DE50C4, read by 0x531DCAFC into the list controller's vector
++ *    +0x1B4) is copied with 0x29 at its end; name (0x5338FBAC) and icon (0x533914BC) get a case at
++ *    their entries; the function switch gets a case before its bounds check (0x5339910C): on a
++ *    press (r6 = 0, as the camera's own cases) the lamp is switched over, then the switch's common
++ *    end (0x5339927C). The Movie button's two lists (0x53DE515C, 0x53DE52BC), which go through
++ *    another switch (0x53397A70), are left as they are.
++ *
++ * Going back to a firmware without this: an Fn button left on 0x29 does nothing there (the
++ * official switch logs it and returns); an ADJ slot left on the added function must be set to
++ * something else first, as for exposure preview (the settings guard of a GR Mod build does it).
++ */
++import { FirmwareError } from '../../types';
++import { assembleWords, branchTarget, branchWord, movImmediate, movWord } from './arm';
++import { ICON_CATALOG, LANGUAGES, LOOKUP_BOUNDS, Patch, concat, expectWord, u16le, u32le, widenTextRows } from './build';
++import { ICON_OFF, ICON_ON, LIST_CONTROLLER_ID, LIST_SET_ITEM, StillLine, TEXT_OFF, TEXT_ON, TOP_SET_TITLE, addListRecords, hookControllerFactory, installTexts, listTemplate } from './datestamp-menu';
++import { adr } from '../target';
++
++/** The lamp object's address while Constant Light is on, else 0 (the sbrk arena, 0x55839040..0x55839080: `battery.ts`). */
++export const LAMP_WORD = adr(0x55839074);
++export const LAMP_TEXT_ID = 1040;
++/** Identity 22 of the ratio icon numbers, never given out (as 734..737, `exposure.ts`). */
++export const LAMP_ICON_ID = 738;
++export const LAMP_LIST_ID = 0x020001d4;
++/** The Fn function: a number the camera does not use (in no list, no case in its function switches). */
++export const FN_LAMP = 0x29;
++/** AF Assist Light, the still-menu line the new one follows. */
++export const AF_ASSIST_LINE_ID = 0x02000075;
++
++const FACTORY_GET = adr(0x5396783c); // LedControlFactory: the one object
++const FACTORY_BUILD = adr(0x53967678); // makes the LED objects
++const LAMP_VTABLE = adr(0x54335c78);
++const LAMP_CONSTRUCTOR = adr(0x53966eec);
++const LAMP_ON = adr(0x53966c48); // (lamp object)
++const LAMP_OFF = adr(0x53966a78); // (lamp object)
++const SHUTDOWN_PREPARATION = adr(0x5325f81c); // AppShutDownModel: the preparation state's handler
++const TOP_SET_ICON = adr(0x5359d6f4); // (menu line, icon)
++const LIST_ITEM = adr(0x53593d64); // (list, index) -> item (the ADJ controller's list view)
++const ITEM_SET_TEXT = adr(0x535a1138); // (item, text number)
++
++const ADJ_TABLE = adr(0x53dc9dfc);
++const ADJ_RECORD = 0x5c;
++const ADJ_OFFICIAL_FUNCTIONS = 21;
++const CROP = 0x13;
++const H_DRAW = 0x18;
++const H_IS_CURRENT = 0x20;
++const H_SET = 0x28;
++const H_COUNT = 0x30;
++/** Every MOVW / MOVT pair that loads the ADJ function table's address: [movw, movt, register] (as `exposure.ts`). */
++const ADJ_TABLE_SITES: readonly (readonly [number, number, number])[] = [
++  [adr(0x531bd4c4), adr(0x531bd4d4), 4], [adr(0x531bee8c), adr(0x531bee94), 2], [adr(0x531bf028), adr(0x531bf030), 3], [adr(0x531bf0c4), adr(0x531bf0cc), 2],
++  [adr(0x531bf5c0), adr(0x531bf5c8), 2], [adr(0x531bffd4), adr(0x531bffdc), 2], [adr(0x531c0030), adr(0x531c0038), 2], [adr(0x531c0128), adr(0x531c0130), 2],
++  [adr(0x531c01b4), adr(0x531c01bc), 2], [adr(0x531c0240), adr(0x531c0248), 2], [adr(0x531c02e8), adr(0x531c02f0), 7], [adr(0x531c0434), adr(0x531c043c), 2],
++  [adr(0x531c05d4), adr(0x531c05dc), 2], [adr(0x531c06d0), adr(0x531c06e8), 4], [adr(0x531c09dc), adr(0x531c09e4), 6], [adr(0x531c0ae8), adr(0x531c0af0), 2],
++  [adr(0x531c0b94), adr(0x531c0b9c), 2], [adr(0x531c0bfc), adr(0x531c0c0c), 7], [adr(0x531c0cb8), adr(0x531c0cc8), 7], [adr(0x531c0e9c), adr(0x531c0ea4), 2],
++  [adr(0x531c1060), adr(0x531c1064), 3], [adr(0x531c1220), adr(0x531c1228), 2],
++];
++const ADJ_TABLE_END = adr(0x531bd600); // the initialiser's end of the table (a literal word)
++const ADJ_NAME_OF = adr(0x5338f484); // (resources, function) -> text: cmp r1, #0 first
++const ADJ_ICON_OF = adr(0x53390e40); // (resources, function, variant) -> icon: cmp r1, #0 first
++const ADJ_LIST_LOW = adr(0x531dc834); // movw r4, #lo(list)
++const ADJ_LIST_HIGH = adr(0x531dc844); // movt r4, #hi(list)
++const ADJ_LIST_LENGTH = adr(0x531dc860); // add r6, r4, #length
++
++const FN_NAME_OF = adr(0x5338fbac); // (resources, function) -> text: cmp r1, #0 first
++const FN_ICON_OF = adr(0x533914bc); // (resources, function, variant) -> icon: cmp r1, #0 first
++const FN_LIST = adr(0x53de50c4); // the functions of the Fn, ISO, Drive and White Balance buttons
++const FN_LIST_OFFICIAL = [
++  0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16,
++  0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x2d, 0x2c, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x2b, 0x23, 0x24,
++];
++const FN_LIST_LOW = adr(0x531dcb04); // movw r4, #lo(list)
++const FN_LIST_HIGH = adr(0x531dcb08); // movt r4, #hi(list)
++const FN_LIST_LENGTH = adr(0x531dcb18); // add r6, r4, #length
++const FN_AVAILABLE = adr(0x531d75d8); // (function) -> offered on this model: only 0x19..0x2d have cases, 0x29 none
++const FN_SWITCH = adr(0x533990e0); // (this, shared pointer, function, released, key)
++const FN_SWITCH_BOUND = adr(0x5339910c); // cmp r2, #0x2d
++const FN_SWITCH_END = adr(0x5339927c); // the cases' common end
++const FN_SWITCH_DEFAULT = adr(0x5339b0d4);
++
++/** In `LANGS` order (cs da en fi fr de el hu it ja ko nl pl pt ru zh-CN es sv th zh-TW tr). */
++export const LAMP_NAMES: readonly string[] = [
++  'Trvalé světlo', 'Konstant lys', 'Constant Light', 'Jatkuva valo', 'Lumière continue', 'Dauerlicht', 'Συνεχές φως', 'Folyamatos fény',
++  'Luce continua', '補助光常時点灯', '보조광 상시 점등', 'Continu licht', 'Światło ciągłe', 'Luz contínua', 'Постоянный свет', '辅助灯常亮',
++  'Luz continua', 'Konstant ljus', 'ไฟส่องต่อเนื่อง', '輔助燈常亮', 'Sürekli ışık',
++];
++
++function fail(code: string, message: string): never {
++  throw new FirmwareError(code, message);
++}
++const lo = (v: number): number => v & 0xffff;
++const hi = (v: number): number => v >>> 16;
++
++/** The ADJ lever function's number: after the camera's 21 and, with exposure preview on the ADJ lever, its 0x15. */
++export function lampAdjFunction(exposurePreview: boolean): number {
++  return ADJ_OFFICIAL_FUNCTIONS + (exposurePreview ? 1 : 0);
++}
++
++/** The 40x40 icon: a lamp (a disc with eight rays) on the tile of the camera's ADJ and Fn icons. */
++export function drawLampIcon(): Uint8Array {
++  const px = new Uint8Array(40 * 40 * 4);
++  const cover = (x: number, y: number): number => {
++    const dx = x - 20, dy = y - 20;
++    const r = Math.hypot(dx, dy);
++    if (r <= 6.5) return 1;
++    if (r < 9.5 || r > 15) return 0;
++    // eight rays, 2.4 px wide
++    const a = Math.atan2(dy, dx);
++    const nearest = Math.round(a / (Math.PI / 4)) * (Math.PI / 4);
++    return Math.abs(r * Math.sin(a - nearest)) <= 1.2 ? 1 : 0;
++  };
++  for (let y = 0; y < 40; y++) {
++    for (let x = 0; x < 40; x++) {
++      const i = (y * 40 + x) * 4;
++      if (x < 1 || y < 1 || x > 38 || y > 38) px.set([255, 255, 255, 0], i);
++      else if (x === 1 || y === 1 || x === 38 || y === 38) px.set([128, 128, 128, 255], i);
++      else {
++        let sum = 0;
++        for (let sy = 0; sy < 4; sy++) for (let sx = 0; sx < 4; sx++) sum += cover(x + (sx + 0.5) / 4, y + (sy + 0.5) / 4);
++        const v = sum / 16;
++        px.set([Math.round(53 + (255 - 53) * v), Math.round(53 + (255 - 53) * v), Math.round(54 + (255 - 54) * v), 255], i);
++      }
++    }
++  }
++  return px;
++}
++
++/** The name and the icon (once, before the menus use them). Returns ICONBIN with the icon appended. */
++export function installLampAssets(patch: Patch, iconbin: Uint8Array): Uint8Array {
++  if (LAMP_NAMES.length !== LANGUAGES) fail('internal', 'constant light: texts');
++  widenTextRows(patch, LAMP_TEXT_ID);
++  installTexts(patch, [{ id: LAMP_TEXT_ID, names: LAMP_NAMES }]);
++  if (patch.word(ICON_CATALOG + LAMP_ICON_ID * 4) !== 0) fail('unexpected-layout', 'icon number already in use');
++  const pad = (4 - (iconbin.length % 4)) % 4;
++  const offset = iconbin.length + pad;
++  const descriptor = patch.append(concat([u16le([1, 40, 40, 0]), u32le([offset / 4])]), 16);
++  patch.write(ICON_CATALOG + LAMP_ICON_ID * 4, u32le([descriptor]));
++  for (const [site, register] of LOOKUP_BOUNDS) {
++    if ((patch.word(site) & 0xfff0f000) >>> 0 !== (0xe3000000 | (register << 12)) >>> 0) fail('unexpected-layout', 'icon bound is not a MOVW');
++    patch.setWord(site, movWord(register, Math.max(LAMP_ICON_ID, movImmediate(patch.word(site)))), 'icon upper bound');
++  }
++  return concat([iconbin, new Uint8Array(pad), drawLampIcon()]);
++}
++
++export interface LampCode {
++  /** (on: 0 / 1): Constant Light off / on. */
++  set: number;
++  /** (): the other of the two. */
++  toggle: number;
++}
++
++/**
++ * The lamp itself: `set`, the off function's redirection and the shutdown. Before the menus, which
++ * call `set`.
++ */
++export function installLampCore(patch: Patch): LampCode {
++  expectWord(patch, FACTORY_GET, 0xe1a0c00d); // mov ip, sp
++  // The factory's build function: the lamp (0x14 bytes, its constructor) into +0xC, SelfLed (made with the lamp) into +0x10, AfAssistLed into +0x14.
++  expectWord(patch, FACTORY_BUILD + 0xb8, 0xe3a00014); // mov r0, #0x14
++  expectWord(patch, FACTORY_BUILD + 0xc4, branchWord(FACTORY_BUILD + 0xc4, LAMP_CONSTRUCTOR, 14, true));
++  expectWord(patch, FACTORY_BUILD + 0xd8, 0xe584800c); // str r8, [r4, #0xc]
++  expectWord(patch, FACTORY_BUILD + 0x10c, 0xe594100c); // ldr r1, [r4, #0xc]
++  expectWord(patch, FACTORY_BUILD + 0x128, 0xe5848010); // str r8, [r4, #0x10]
++  expectWord(patch, FACTORY_BUILD + 0x160, 0xe594100c);
++  expectWord(patch, FACTORY_BUILD + 0x17c, 0xe5848014); // str r8, [r4, #0x14]
++  // The lamp's constructor and vtable: on at +8, off at +0xc.
++  expectWord(patch, LAMP_CONSTRUCTOR + 0x24, LAMP_VTABLE);
++  expectWord(patch, LAMP_VTABLE + 8, LAMP_ON);
++  expectWord(patch, LAMP_VTABLE + 0xc, LAMP_OFF);
++  // on: initialised (+5), the device (+0xc or +0x10), lit (+4).
++  expectWord(patch, LAMP_ON, 0xe1a0c00d);
++  expectWord(patch, LAMP_ON + 0xc, 0xe5d03005); // ldrb r3, [r0, #5]
++  expectWord(patch, LAMP_ON + 0x1c, 0xe590000c); // ldr r0, [r0, #0xc]
++  expectWord(patch, LAMP_ON + 0x34, 0xe5c43004); // strb r3, [r4, #4]
++  expectWord(patch, LAMP_ON + 0x3c, 0xe5940010); // ldr r0, [r4, #0x10]
++  expectWord(patch, LAMP_ON + 0x44, 0xe5933058); // ldr r3, [r3, #0x58]
++  expectWord(patch, LAMP_OFF, 0xe1a0c00d);
++  expectWord(patch, LAMP_OFF + 4, 0xe92dd818); // push {r3, r4, fp, ip, lr, pc}
++  expectWord(patch, LAMP_OFF + 0x38, 0xe5933054); // ldr r3, [r3, #0x54]
++  // SelfLed and AfAssistLed: the lamp at +4, "has the lamp" at +8 (AfAssistLed's off-if-on, 0x53967430).
++  expectWord(patch, adr(0x53967430), 0xe5d03008); // ldrb r3, [r0, #8]
++  expectWord(patch, adr(0x53966f14) + 8, 0xe5801004); // SelfLed's constructor: str r1, [r0, #4]
++  expectWord(patch, adr(0x53966f14) + 0x10, 0xe5c02008); // strb r2, [r0, #8]
++  expectWord(patch, adr(0x53967390) + 8, 0xe5801004); // AfAssistLed's constructor
++  expectWord(patch, adr(0x53967390) + 0x10, 0xe5c02008);
++  expectWord(patch, SHUTDOWN_PREPARATION, 0xe1a0c00d);
++  expectWord(patch, SHUTDOWN_PREPARATION + 4, 0xe92dd830);
++
++  const set = patch.append((at) => assembleWords(
++    `push {r4, r5, r6, lr}
++     mov r5, r0
++     bl #${FACTORY_GET}
++     mov r6, r0
++     ldr r4, [r6, #0xc]
++     cmp r4, #0; beq out
++     ldrb r1, [r4, #5]
++     cmp r1, #0; beq out
++     movw r2, #${lo(LAMP_WORD)}; movt r2, #${hi(LAMP_WORD)}
++     cmp r5, #0; beq off
++     str r4, [r2]
++     mov r0, r4
++     pop {r4, r5, r6, lr}
++     b #${LAMP_ON}
++     off: mov r1, #0; str r1, [r2]
++     ldr r1, [r6, #0x10]
++     cmp r1, #0; ldrbne r1, [r1, #8]
++     cmp r1, #0; bne out
++     ldr r1, [r6, #0x14]
++     cmp r1, #0; ldrbne r1, [r1, #8]
++     cmp r1, #0; bne out
++     mov r0, r4
++     pop {r4, r5, r6, lr}
++     b #${LAMP_OFF}
++     out: pop {r4, r5, r6, pc}`, at), 16);
++  const toggle = patch.append((at) => assembleWords(
++    `movw r0, #${lo(LAMP_WORD)}; movt r0, #${hi(LAMP_WORD)}; ldr r0, [r0]
++     cmp r0, #0; moveq r0, #1; movne r0, #0
++     b #${set}`, at), 16);
++  // The lamp's off: nothing while Constant Light is on.
++  const off = patch.append((at) => assembleWords(
++    `movw ip, #${lo(LAMP_WORD)}; movt ip, #${hi(LAMP_WORD)}; ldr ip, [ip]
++     cmp ip, #0; bxne lr
++     mov ip, sp
++     b #${LAMP_OFF + 4}`, at), 16);
++  patch.setWord(LAMP_OFF, branchWord(LAMP_OFF, off), 'constant light: the lamp is not switched off while it is on');
++  // Shutdown: off (every register kept; the handler's own first instruction, then on).
++  const shutdown = patch.append((at) => assembleWords(
++    `movw ip, #${lo(LAMP_WORD)}; movt ip, #${hi(LAMP_WORD)}; ldr ip, [ip]
++     cmp ip, #0; beq native
++     push {r0, r1, r2, r3, ip, lr}
++     mov r0, #0; bl #${set}
++     pop {r0, r1, r2, r3, ip, lr}
++     native: mov ip, sp
++     b #${SHUTDOWN_PREPARATION + 4}`, at), 16);
++  patch.setWord(SHUTDOWN_PREPARATION, branchWord(SHUTDOWN_PREPARATION, shutdown), 'constant light: off when the camera shuts down');
++  return { set, toggle };
++}
++
++/** r3 = 1 while Constant Light is on, else 0. */
++const LOAD = `movw r3, #${lo(LAMP_WORD)}; movt r3, #${hi(LAMP_WORD)}; ldr r3, [r3]
++    cmp r3, #0; movne r3, #1`;
++
++/** The still-menu line (its draw function; before the still menu is built). */
++export function lampStillLine(patch: Patch): StillLine {
++  expectWord(patch, TOP_SET_ICON, 0xe1a0c00d);
++  expectWord(patch, TOP_SET_TITLE, 0xe1a0c00d);
++  const draw = patch.append((at) => assembleWords(
++    `push {r4, lr}
++     mov r4, r1
++     ${LOAD}
++     cmp r3, #0; movweq r1, #${ICON_OFF}; movwne r1, #${ICON_ON}
++     mov r0, r4; bl #${TOP_SET_ICON}
++     mov r0, r4; movw r1, #${LAMP_TEXT_ID}
++     pop {r4, lr}; b #${TOP_SET_TITLE}`, at), 16);
++  return { draw, id: LAMP_LIST_ID, after: AF_ASSIST_LINE_ID };
++}
++
++/** The list the line opens (after the additions that copy the list table first). */
++export function installLampList(patch: Patch, code: LampCode): void {
++  expectWord(patch, LIST_SET_ITEM, 0xe1a0c00d);
++  // Count (this = r0), draw (item = r1, value i = r2), set and is current (value i = r1): Off, On.
++  const count = patch.append((at) => assembleWords('mov r0, #2; bx lr', at), 16);
++  const draw = patch.append((at) => assembleWords(
++    `cmp r2, #1; bxhi lr
++     mov r0, r1
++     movweq r1, #${ICON_ON}; movweq r2, #${TEXT_ON}
++     movwne r1, #${ICON_OFF}; movwne r2, #${TEXT_OFF}
++     b #${LIST_SET_ITEM}`, at), 16);
++  const set = patch.append((at) => assembleWords(
++    `cmp r1, #1; bxhi lr
++     mov r0, r1
++     b #${code.set}`, at), 16);
++  const current = patch.append((at) => assembleWords(
++    `${LOAD}
++     cmp r3, r1; moveq r0, #1; movne r0, #0; bx lr`, at), 16);
++  const record = listTemplate(patch);
++  const v = new DataView(record.buffer);
++  v.setUint16(4, LAMP_TEXT_ID, true);
++  v.setUint32(0x0c, count, true);
++  v.setUint32(0x14, draw, true);
++  v.setUint32(0x24, set, true);
++  v.setUint32(0x2c, current, true);
++  for (const off of [0x10, 0x18, 0x28, 0x30]) v.setUint32(off, 0, true);
++  addListRecords(patch, [{ id: LAMP_LIST_ID, record }], 'constant light');
++  hookControllerFactory(patch, `movw ip, #${lo(LAMP_LIST_ID)}; movt ip, #${hi(LAMP_LIST_ID)}
++     cmp r1, ip; bne prior
++     movw r1, #${lo(LIST_CONTROLLER_ID)}; movt r1, #${hi(LIST_CONTROLLER_ID)}`, 'constant light: the list controller');
++}
++
++/** What the word at `at` (the entry of a lookup: `cmp r1, #0`, or an earlier addition's branch) goes on to. */
++function entryTail(patch: Patch, at: number): string {
++  const first = patch.word(at);
++  if (first === 0xe3510000) return `cmp r1, #0; b #${at + 4}`;
++  if (first >>> 24 === 0xea) return `b #${branchTarget(at, first)}`;
++  return fail('unexpected-layout', 'constant light: a lookup does not start as expected');
++}
++
++/**
++ * The ADJ lever function (after every addition that changes the function table's records in place
++ * or copies it: soft focus, Direct Flash, exposure preview). `fn` is its number, `lampAdjFunction`.
++ * Returns the table's new address.
++ */
++export function installLampAdj(patch: Patch, code: LampCode, fn: number): number {
++  const at = ADJ_TABLE_SITES.map(([low, high, r]) => {
++    const a = patch.word(low), b = patch.word(high);
++    if (a !== movWord(r, movImmediate(a)) || b !== movWord(r, movImmediate(b), true)) fail('unexpected-layout', 'ADJ function table site is not a MOVW/MOVT pair');
++    return (movImmediate(a) | (movImmediate(b) << 16)) >>> 0;
++  });
++  const old = at[0];
++  if (at.some((t) => t !== old)) fail('unexpected-layout', 'ADJ function table is not where it was expected');
++  const functions = (patch.word(ADJ_TABLE_END) - old) / ADJ_RECORD;
++  if (functions !== fn || (fn !== ADJ_OFFICIAL_FUNCTIONS && fn !== ADJ_OFFICIAL_FUNCTIONS + 1) || (old === ADJ_TABLE) !== (fn === ADJ_OFFICIAL_FUNCTIONS)) fail('unexpected-layout', 'ADJ function table does not have the functions expected');
++  const crop = patch.read(old + CROP * ADJ_RECORD, ADJ_RECORD);
++  const cv = new DataView(crop.buffer);
++  if (cv.getUint32(0x10, true) !== adr(0x531bb654) || cv.getUint32(0x38, true) !== 0 || cv.getUint32(0x3c, true) !== adr(0x531bdf1c) || cv.getUint32(0x40, true) !== 0) fail('unexpected-layout', 'Crop record of the ADJ table is not as expected');
++  for (const off of [H_DRAW, H_IS_CURRENT, H_SET, H_COUNT]) if (cv.getUint32(off, true) === 0 || cv.getUint32(off + 4, true) !== 0) fail('unexpected-layout', 'Crop record of the ADJ table is not as expected');
++
++  // --- Handlers (this = r0, value index = r1), as soft focus's: Off, On.
++  const draw = patch.append((a) => assembleWords(
++    `push {r4, r5, r6, lr}
++     mov r5, r0; mov r4, r1; mov r6, #0
++     cmp r4, #0; movweq r6, #${TEXT_OFF}
++     cmp r4, #1; movweq r6, #${TEXT_ON}
++     ldr r0, [r5, #0x1f8]; uxtb r1, r4; bl #${LIST_ITEM}
++     mov r1, r6; pop {r4, r5, r6, lr}; b #${ITEM_SET_TEXT}`, a), 16);
++  const current = patch.append((a) => assembleWords(
++    `${LOAD}
++     cmp r3, r1; moveq r0, #1; movne r0, #0; bx lr`, a), 16);
++  const set = patch.append((a) => assembleWords(
++    `cmp r1, #1; bxhi lr
++     mov r0, r1
++     b #${code.set}`, a), 16);
++  const count = patch.append((a) => assembleWords('mov r0, #2; bx lr', a), 16);
++  const record = crop.slice();
++  const rv = new DataView(record.buffer);
++  rv.setUint32(H_DRAW, draw, true);
++  rv.setUint32(H_IS_CURRENT, current, true);
++  rv.setUint32(H_SET, set, true);
++  rv.setUint32(H_COUNT, count, true);
++  rv.setUint32(0x3c, 0, true); // no "disabled" check (Crop's would disable it with Crop)
++
++  // --- The table, copied with the record; every reference moved.
++  const table = patch.append(concat([patch.read(old, fn * ADJ_RECORD), record]), 16);
++  for (const [low, high, r] of ADJ_TABLE_SITES) {
++    patch.setWord(low, movWord(r, lo(table)), 'constant light: ADJ function table, low half');
++    patch.setWord(high, movWord(r, hi(table), true), 'constant light: ADJ function table, high half');
++  }
++  patch.setWord(ADJ_TABLE_END, table + (fn + 1) * ADJ_RECORD, 'constant light: end of the ADJ function table');
++
++  // --- Name and icon (before the camera's own cases, or an earlier addition's).
++  const nameTail = entryTail(patch, ADJ_NAME_OF);
++  const name = patch.append((a) => assembleWords(
++    `cmp r1, #${fn}; movweq r0, #${LAMP_TEXT_ID}; bxeq lr
++     ${nameTail}`, a), 16);
++  patch.setWord(ADJ_NAME_OF, branchWord(ADJ_NAME_OF, name), 'constant light: ADJ function name');
++  const iconTail = entryTail(patch, ADJ_ICON_OF);
++  const icon = patch.append((a) => assembleWords(
++    `cmp r1, #${fn}; bne other
++     cmp r2, #0; movne r0, #0; movweq r0, #${LAMP_ICON_ID}; bx lr
++     other: ${iconTail}`, a), 16);
++  patch.setWord(ADJ_ICON_OF, branchWord(ADJ_ICON_OF, icon), 'constant light: ADJ function icon');
++
++  // --- ADJ Mode Setting: the functions offered, the new one last.
++  const listAt = (movImmediate(patch.word(ADJ_LIST_LOW)) | (movImmediate(patch.word(ADJ_LIST_HIGH)) << 16)) >>> 0;
++  expectWord(patch, ADJ_LIST_LOW, movWord(4, lo(listAt)));
++  expectWord(patch, ADJ_LIST_HIGH, movWord(4, hi(listAt), true));
++  const lengthWord = patch.word(ADJ_LIST_LENGTH);
++  if ((lengthWord & 0xffffff00) >>> 0 !== 0xe2846000) fail('unexpected-layout', 'ADJ function list length is not as expected');
++  const list = [...patch.read(listAt, lengthWord & 0xff)];
++  if (list.includes(fn) || list.some((f) => f >= fn)) fail('unexpected-layout', 'ADJ function list is not as expected');
++  list.push(fn);
++  const newList = patch.append(Uint8Array.from(list), 16);
++  patch.setWord(ADJ_LIST_LOW, movWord(4, lo(newList)), 'constant light: ADJ function list, low half');
++  patch.setWord(ADJ_LIST_HIGH, movWord(4, hi(newList), true), 'constant light: ADJ function list, high half');
++  patch.setWord(ADJ_LIST_LENGTH, 0xe2846000 | list.length, 'constant light: ADJ function list length');
++  return table;
++}
++
++/** The Fn function 0x29, for the four buttons that share the first function list. */
++export function installLampFn(patch: Patch, code: LampCode): void {
++  expectWord(patch, FN_NAME_OF, 0xe3510000); // cmp r1, #0
++  expectWord(patch, FN_NAME_OF + 4, 0x1a000001); // bne 0x5338FBBC
++  expectWord(patch, FN_ICON_OF, 0xe3510000); // cmp r1, #0
++  expectWord(patch, FN_ICON_OF + 4, 0x1a000003); // bne 0x533914D4
++  expectWord(patch, FN_LIST_LOW, movWord(4, lo(FN_LIST)));
++  expectWord(patch, FN_LIST_HIGH, movWord(4, hi(FN_LIST), true));
++  expectWord(patch, FN_LIST_LENGTH, 0xe2846000 | FN_LIST_OFFICIAL.length); // add r6, r4, #39
++  const official = patch.read(FN_LIST, FN_LIST_OFFICIAL.length);
++  if (!FN_LIST_OFFICIAL.every((v, i) => official[i] === v) || FN_LIST_OFFICIAL.includes(FN_LAMP)) fail('unexpected-layout', 'Fn function list is not the official one');
++  // "Offered on this model": cases for 0x19..0x2d only, 0x29 with those that are always offered.
++  expectWord(patch, FN_AVAILABLE, 0xe2400019); // sub r0, r0, #0x19
++  expectWord(patch, FN_AVAILABLE + 0x10, 0xe3500014); // cmp r0, #0x14
++  expectWord(patch, FN_AVAILABLE + 0x1c + (FN_LAMP - 0x19) * 4, FN_AVAILABLE + 0xd0); // mov r0, #1
++  expectWord(patch, FN_AVAILABLE + 0xd0, 0xe3a00001);
++  // The function switch: r5 = the shared pointer's address, r6 = released, the guard stored; 0x29 goes to the default.
++  expectWord(patch, FN_SWITCH + 0x1c, 0xe1a05001); // mov r5, r1
++  expectWord(patch, FN_SWITCH + 0x24, 0xe1a06003); // mov r6, r3
++  expectWord(patch, FN_SWITCH_BOUND, 0xe352002d); // cmp r2, #0x2d
++  expectWord(patch, FN_SWITCH_BOUND + 4, 0x979ff102); // ldrls pc, [pc, r2, lsl #2]
++  expectWord(patch, FN_SWITCH_BOUND + 12 + FN_LAMP * 4, FN_SWITCH_DEFAULT);
++  expectWord(patch, FN_SWITCH_BOUND + 12, FN_SWITCH_END); // function 0 (none): the common end
++  expectWord(patch, FN_SWITCH_END, 0xe3560000); // cmp r6, #0
++
++  const name = patch.append((a) => assembleWords(
++    `cmp r1, #${FN_LAMP}; movweq r0, #${LAMP_TEXT_ID}; bxeq lr
++     cmp r1, #0; b #${FN_NAME_OF + 4}`, a), 16);
++  patch.setWord(FN_NAME_OF, branchWord(FN_NAME_OF, name), 'constant light: Fn function name');
++  const icon = patch.append((a) => assembleWords(
++    `cmp r1, #${FN_LAMP}; bne other
++     cmp r2, #0; movne r0, #0; movweq r0, #${LAMP_ICON_ID}; bx lr
++     other: cmp r1, #0; b #${FN_ICON_OF + 4}`, a), 16);
++  patch.setWord(FN_ICON_OF, branchWord(FN_ICON_OF, icon), 'constant light: Fn function icon');
++
++  const list = patch.append(Uint8Array.from([...FN_LIST_OFFICIAL, FN_LAMP]), 16);
++  patch.setWord(FN_LIST_LOW, movWord(4, lo(list)), 'constant light: Fn function list, low half');
++  patch.setWord(FN_LIST_HIGH, movWord(4, hi(list), true), 'constant light: Fn function list, high half');
++  patch.setWord(FN_LIST_LENGTH, 0xe2846000 | (FN_LIST_OFFICIAL.length + 1), 'constant light: Fn function list length');
++
++  // The switch: on a press (r6 = 0) the lamp is switched over; then the common end, as function 0.
++  const press = patch.append((a) => assembleWords(
++    `cmp r2, #${FN_LAMP}; bne native
++     cmp r6, #0; bne #${FN_SWITCH_END}
++     bl #${code.toggle}
++     b #${FN_SWITCH_END}
++     native: cmp r2, #0x2d
++     b #${FN_SWITCH_BOUND + 4}`, a), 16);
++  patch.setWord(FN_SWITCH_BOUND, branchWord(FN_SWITCH_BOUND, press), 'constant light: Fn function');
++}
 diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/looks.ts
 --- a/core/src/fw/gr4v120/aspect/looks.ts
 +++ b/core/src/fw/gr4v120/aspect/looks.ts
@@ -3145,7 +3702,7 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
  /** Second feature byte: bit 5, the learned Auto for Shadow Correction (`shadowml.ts`). */
  const FEATURE2_SHADOW_LEARN = 32;
  /** Second feature byte: bit 7, a third feature byte follows (after the bytes of bits 1 and 2). */
-@@ -95,6 +100,14 @@
+@@ -95,6 +100,16 @@
  const FEATURE3_BATTERY = 4;
  /** Third feature byte: bit 3, custom grid lines (`grid.ts`); two bytes follow, the 3x3 and the 4x4 style's lines. */
  const FEATURE3_CUSTOM_GRID = 8;
@@ -3157,17 +3714,19 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
 +const FEATURE3_VIDEO_AF = 32;
 +/** Third feature byte: bit 6, the learned auto white balance (`awb2.ts`). */
 +const FEATURE3_AWB_LEARN = 64;
++/** The front lamp kept lit (`lamp.ts`). */
++const FEATURE3_CONSTANT_LIGHT = 128;
  
  /**
   * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
-@@ -126,12 +139,12 @@
+@@ -126,12 +141,12 @@
    if (tone !== 'dark' && tone !== 'light') fail('internal', 'unknown shade tone');
    if (tone !== 'dark' && !features.ratioShade) fail('internal', 'a shade tone needs the live-view shade');
    if (features.ratioShade && specs.length === 0) fail('internal', 'the live-view shade needs an added ratio');
 -  const f3 = (features.ratioShade ? FEATURE3_RATIO_SHADE : 0) | (tone === 'light' ? FEATURE3_SHADE_LIGHT : 0) | (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0);
 -  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.shadowLearn || f3) {
 -    if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, the learned shadow correction and the third feature byte need revision 3');
-+  const f3 = (features.ratioShade ? FEATURE3_RATIO_SHADE : 0) | (tone === 'light' ? FEATURE3_SHADE_LIGHT : 0) | (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0) | (features.flashTtl ? FEATURE3_FLASH_TTL : 0) | (features.videoAf ? FEATURE3_VIDEO_AF : 0) | (features.awbLearn ? FEATURE3_AWB_LEARN : 0);
++  const f3 = (features.ratioShade ? FEATURE3_RATIO_SHADE : 0) | (tone === 'light' ? FEATURE3_SHADE_LIGHT : 0) | (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0) | (features.flashTtl ? FEATURE3_FLASH_TTL : 0) | (features.videoAf ? FEATURE3_VIDEO_AF : 0) | (features.awbLearn ? FEATURE3_AWB_LEARN : 0) | (features.constantLight ? FEATURE3_CONSTANT_LIGHT : 0);
 +  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.exposurePreview || features.softFocusMenu || features.shadowLearn || features.filmGrain || f3) {
 +    if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, bright Auto, exposure preview, the soft focus line, the learned shadow correction, the film grain and the third feature byte need revision 3');
      const adj = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
@@ -3177,7 +3736,7 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
      if (adj) bytes.push(adj);
      if (features.brightAuto) bytes.push(features.brightAuto === 'balanced' ? 2 : 1);
      if (f3) bytes.push(f3);
-@@ -226,8 +239,11 @@
+@@ -226,8 +241,11 @@
      if (f & FEATURE_DIRECT_FLASH) features.directFlash = true;
      if (p < rec.length) {
        const f2 = rec[p++];
@@ -3190,24 +3749,25 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
        if (f2 & FEATURE2_ADJ_SLOTS) {
          if (p >= rec.length) return null;
          const n = rec[p++];
-@@ -244,7 +260,10 @@
+@@ -244,7 +262,11 @@
        if (f2 & FEATURE2_MORE) {
          if (p >= rec.length) return null;
          const f3 = rec[p++];
 -        if (f3 === 0 || (f3 & ~(FEATURE3_RATIO_SHADE | FEATURE3_SHADE_LIGHT | FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID)) !== 0) return null;
-+        if (f3 === 0 || (f3 & ~(FEATURE3_RATIO_SHADE | FEATURE3_SHADE_LIGHT | FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID | FEATURE3_FLASH_TTL | FEATURE3_VIDEO_AF | FEATURE3_AWB_LEARN)) !== 0) return null;
++        if (f3 === 0 || (f3 & ~(FEATURE3_RATIO_SHADE | FEATURE3_SHADE_LIGHT | FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID | FEATURE3_FLASH_TTL | FEATURE3_VIDEO_AF | FEATURE3_AWB_LEARN | FEATURE3_CONSTANT_LIGHT)) !== 0) return null;
 +        if (f3 & FEATURE3_FLASH_TTL) features.flashTtl = true;
 +        if (f3 & FEATURE3_VIDEO_AF) features.videoAf = true;
 +        if (f3 & FEATURE3_AWB_LEARN) features.awbLearn = true;
++        if (f3 & FEATURE3_CONSTANT_LIGHT) features.constantLight = true;
          if (f3 & FEATURE3_RATIO_SHADE) {
            if (count === 0) return null;
            features.ratioShade = true;
-@@ -259,7 +278,7 @@
+@@ -259,7 +281,7 @@
          }
        }
      }
 -    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn) return null;
-+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn && !features.filmGrain && !features.flashTtl && !features.videoAf && !features.awbLearn) return null;
++    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn && !features.filmGrain && !features.flashTtl && !features.videoAf && !features.awbLearn && !features.constantLight) return null;
    }
    for (; p < rec.length; p++) if (rec[p] !== 0) return null;
    return { specs: out, features, extraSlots, shutdownPictures };
@@ -3873,7 +4433,7 @@ diff --git a/core/src/fw/gr4v120/aspect/softfocus.ts b/core/src/fw/gr4v120/aspec
   */
 -export function installAdjSoftFocus(patch: Patch, iconbin: Uint8Array): Uint8Array {
 +export function installAdjSoftFocus(patch: Patch, iconbin: Uint8Array, maxFunction = ADJ_FUNCTIONS - 1): Uint8Array {
-+  if (maxFunction !== ADJ_FUNCTIONS - 1 && maxFunction !== ADJ_FUNCTIONS) fail('internal', 'soft focus: the last ADJ function');
++  if (!(Number.isInteger(maxFunction) && maxFunction >= ADJ_FUNCTIONS - 1 && maxFunction <= ADJ_FUNCTIONS + 1)) fail('internal', 'soft focus: the last ADJ function');
    // --- Checks of the official code this relies on.
    for (const [off, value] of OFFICIAL_RECORD) expectWord(patch, ADJ_TABLE + ADJ_SOFT_FOCUS * ADJ_RECORD + off, value);
    if (ADJ_SOFT_FOCUS >= ADJ_FUNCTIONS) fail('internal', 'soft focus must reuse a record of the table');
@@ -6222,7 +6782,46 @@ diff --git a/tools/gr4v120/adjslots/check.py b/tools/gr4v120/adjslots/check.py
      return out
  
  
-@@ -519,11 +533,11 @@
+@@ -411,6 +425,12 @@
+         # strip
+         cam.run(0x531c0f74)
+         r['strip'] = strip_of(cam)
++        # where the strip's drawing leaves the frames and icons of slots 1..5 (test 097)
++        places = {}
++        for v in cam.log:
++            if v[0] == 'x' and isinstance(v[1], tuple) and v[1][0] in ('frame', 'icon'):
++                places[v[1]] = v[2]
++        r['places'] = places
+         # can ADJ be used
+         fn = cam.img.u32(VTABLE_9)
+         r['open'] = cam.run(fn) & 0xff
+@@ -484,8 +504,11 @@
+             src = (k + 1) % n
+             want = src if m.disabled(m.fn[k]) else k   # (an empty slot's icon cannot be touched)
+             check(got == want, f'{what}: tap {k} (from {src}): {got} want {want}')
+-        x0 = frame_x(n, 0)
+-        check(all((x - x0) % pitch(n) == 0 and 0 <= (x - x0) // pitch(n) < n for x in r['x']), f'{what}: selection x {r["x"]}')
++        # the fixed layout (movies): the five slots and the selection where the camera has them
++        x0, step, slots_shown = (425, 60, 5) if fixed else (frame_x(n, 0), pitch(n), n)
++        check(all((x - x0) % step == 0 and 0 <= (x - x0) // step < slots_shown for x in r['x']), f'{what}: selection x {r["x"]}')
++        want = {(kind, k): x0 + step * k + (5 if kind == 'icon' else 0) for kind in ('frame', 'icon') for k in range(5)}
++        check(r['places'] == want, f'{what}: places of slots 1..5 {r["places"]} want {want}')
+ 
+ 
+ def compare_official(d):
+@@ -499,6 +522,11 @@
+         b, m = run_scenario(d / 'n5.rtos', 5, False, sc)
+         for pos, (ra, rb) in enumerate(zip(a, b)):
+             for key in ra:
++                if key == 'places':
++                    # the official code never moves them (they are made at 425 + 60 k); the new code puts them there
++                    want = {(kind, k): 425 + 60 * k + (5 if kind == 'icon' else 0) for kind in ('frame', 'icon') for k in range(5)}
++                    check(ra[key] == {} and rb[key] == want, f'n5 vs official, {sc[0]} fixed {sc[2]} pos {pos}: places {rb[key]}')
++                    continue
+                 check(ra[key] == rb[key], f'n5 vs official, {sc[0]} fixed {sc[2]} pos {pos}: {key} {ra[key]} / {rb[key]}')
+         check_model(5, sc, b, m)
+         count += 1
+@@ -519,11 +547,11 @@
  # Menu
  
  ADJ_MENU_ID = 0x020001c0
@@ -6236,7 +6835,7 @@ diff --git a/tools/gr4v120/adjslots/check.py b/tools/gr4v120/adjslots/check.py
  SUB_CTOR, SUB_SET_CURRENT, SUB_SHOW = 0x531e4414, 0x531e361c, 0x531e4168
  SUB_DOWN, SUB_UP, SUB_OK = 0x531e3a8c, 0x531e3a44, 0x531e3af4
  SUB_DRAW_CALL = 0x531e3f90   # blx r2: a line's value draw (skipped and recorded)
-@@ -673,10 +687,10 @@
+@@ -673,10 +701,10 @@
      check(rec[0] == off_adj[0] and rec[1] == off_adj[1], f'{name}: lines record head')
      # Lists: count / row draw are ADJ Mode Setting 1's; set and is current per value.
      seltab = new.movw_movt(0x531d825c, 0x531d826c)
@@ -6249,7 +6848,7 @@ diff --git a/tools/gr4v120/adjslots/check.py b/tools/gr4v120/adjslots/check.py
          check(v('<H', r, 4)[0] == T0 + 1 + j, f'{name}: list {j} title')
          check(v('<I', r, 0x0c)[0] == v('<I', o, 0x0c)[0] and v('<I', r, 0x14)[0] == v('<I', o, 0x14)[0], f'{name}: list {j} count / draw')
          setf, cur = v('<I', r, 0x24)[0], v('<I', r, 0x2c)[0]
-@@ -690,12 +704,12 @@
+@@ -690,12 +718,12 @@
                  e.mu.mem_write(EXT + j, bytes([raw]))
                  ic = e.call(cur, (this, i))
                  fval = raw & 0x1f
@@ -6264,7 +6863,7 @@ diff --git a/tools/gr4v120/adjslots/check.py b/tools/gr4v120/adjslots/check.py
                      check(after == (raw & 0xe0) | vec[i], f'{name}: list {j} byte {raw:#x} set {i}: {after:#x}')
                  else:
                      check(after == raw, f'{name}: list {j} byte {raw:#x} set {i} (none): {after:#x}')
-@@ -708,7 +722,7 @@
+@@ -708,7 +736,7 @@
              e.call(draw, (0x70000000, 0x70700000))
              icons = [c for c in e.calls if c[0] == 'sub-icon']
              fval = raw & 0x1f
@@ -6273,7 +6872,7 @@ diff --git a/tools/gr4v120/adjslots/check.py b/tools/gr4v120/adjslots/check.py
              check(icons == [('sub-icon', 0x70700000, ICON_BASE + fval, icons[0][3] if icons else 0)], f'{name}: line {j} icon for {raw:#x}: {icons}')
  
      # SubMenuController itself, every widget function real: every other submenu as in the reference
-@@ -808,7 +822,7 @@
+@@ -808,7 +836,7 @@
                  want.append(0)
                  continue
              f = b[j] & 0x1f
@@ -6282,7 +6881,7 @@ diff --git a/tools/gr4v120/adjslots/check.py b/tools/gr4v120/adjslots/check.py
              v = (b[j] & 0xe0) | (f if ok else 0)
              if j == 0:
                  if (v >> 5) > n - 5:
-@@ -828,8 +842,16 @@
+@@ -828,8 +856,16 @@
  
  def check_calls(d, name):
      img = dm.Image(d / name)
@@ -6301,7 +6900,7 @@ diff --git a/tools/gr4v120/adjslots/check.py b/tools/gr4v120/adjslots/check.py
      # find the module in the image
      at = img.R.find(code)
      check(at > 0, f'{name}: module not found')
-@@ -856,7 +878,7 @@
+@@ -856,7 +892,7 @@
      # each is a function the firmware itself calls (a bl to it exists in the official image)
      off = dm.Image(d / 'official.rtos')
      called = set()
@@ -6310,7 +6909,7 @@ diff --git a/tools/gr4v120/adjslots/check.py b/tools/gr4v120/adjslots/check.py
          x = struct.unpack_from('<I', off.R, o)[0]
          if (x >> 24) in (0xeb, 0xea):
              called.add(0x53000000 + o + 8 + (((x & 0xffffff) ^ 0x800000) - 0x800000) * 4)
-@@ -879,6 +901,9 @@
+@@ -879,6 +915,9 @@
          images = (('n6.rtos', 6, False), ('n7.rtos', 7, False), ('n8.rtos', 8, False), ('n8sf.rtos', 8, True), ('n8all.rtos', 8, True))
      for name, n, sf in images:
          print(f'{name}:')
@@ -6538,7 +7137,7 @@ diff --git a/core/src/fw/gr4v120/patch.ts b/core/src/fw/gr4v120/patch.ts
    // Additions that append code or icons need the grown layout. The monochrome looks change 13
    // words in place: on their own (or with only same-length edits) the file keeps the official layout.
 -  const grows = !!features.brightAuto || ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash || (features.adjSlots ?? 5) > 5 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.shadowLearn;
-+  const grows = !!features.brightAuto || ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash || (features.adjSlots ?? 5) > 5 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn;
++  const grows = !!features.brightAuto || ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash || (features.adjSlots ?? 5) > 5 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn || !!features.constantLight;
    const inPlaceMono = !grows && !!features.monoUnlock;
    const inPlaceLooks = !grows && !!features.lookLayout;
    const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity, inPlaceMono, inPlaceLooks ? features.lookLayout : undefined);
