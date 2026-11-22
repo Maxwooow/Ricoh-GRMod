@@ -153,7 +153,12 @@ write_info_plist() {
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>zh-Hans</string>
+		<string>zh-Hant</string>
 		<string>en</string>
+		<string>ja</string>
+		<string>ko</string>
+		<string>es</string>
+		<string>de</string>
 	</array>
 	<key>CFBundleName</key>
 	<string>GR Mod</string>
@@ -195,20 +200,35 @@ write_info_plist() {
 PLIST
 }
 
-# write_infoplist_strings DIR writes the permission prompts in English for Macs whose language is
-# English (Contents/Resources/en.lproj/InfoPlist.strings). Every other language keeps the
-# two-language text of Info.plist: with a zh-Hans.lproj as well, macOS would show the Chinese
-# prompts on Macs in any language without a .lproj of its own (it falls back to the development
-# region, zh_CN).
+# write_infoplist_strings DIR writes the permission prompts in the interface languages other than
+# Simplified Chinese (Contents/Resources/<lang>.lproj/InfoPlist.strings). Simplified Chinese and
+# every language without a .lproj of its own keep the two-language text of Info.plist: with a
+# zh-Hans.lproj as well, macOS would show the Chinese prompts on Macs in any such language (it falls
+# back to the development region, zh_CN).
 write_infoplist_strings() {
-  mkdir -p "$1/en.lproj"
-  cat > "$1/en.lproj/InfoPlist.strings" <<'STRINGS'
-"NSRemovableVolumesUsageDescription" = "GR Mod reads and writes the memory card to install firmware and power-off images.";
-"NSDesktopFolderUsageDescription" = "GR Mod exports files to the folder you choose.";
-"NSDocumentsFolderUsageDescription" = "GR Mod exports files to the folder you choose.";
-"NSDownloadsFolderUsageDescription" = "GR Mod exports files to the folder you choose.";
-"NSAppleEventsUsageDescription" = "GR Mod uses the system dialog to let you choose an export folder.";
+  # one_lproj LANG CARD FOLDER DIALOG: the card prompt, the export folder prompt, the dialog prompt.
+  one_lproj() {
+    mkdir -p "$1/$2.lproj"
+    cat > "$1/$2.lproj/InfoPlist.strings" <<STRINGS
+"NSRemovableVolumesUsageDescription" = "$3";
+"NSDesktopFolderUsageDescription" = "$4";
+"NSDocumentsFolderUsageDescription" = "$4";
+"NSDownloadsFolderUsageDescription" = "$4";
+"NSAppleEventsUsageDescription" = "$5";
 STRINGS
+  }
+  one_lproj "$1" en "GR Mod reads and writes the memory card to install firmware and power-off images." \
+    "GR Mod exports files to the folder you choose." "GR Mod uses the system dialog to let you choose an export folder."
+  one_lproj "$1" zh-Hant "GR Mod 需要讀寫記憶卡，才能寫入韌體和結束畫面。" \
+    "GR Mod 會將檔案匯出到你選擇的資料夾。" "GR Mod 使用系統對話框讓你選擇匯出資料夾。"
+  one_lproj "$1" ja "GR Mod はファームウェアと終了画面を書き込むために、メモリーカードを読み書きします。" \
+    "GR Mod は選んだフォルダーにファイルを書き出します。" "GR Mod はシステムのダイアログで書き出し先フォルダーを選べるようにします。"
+  one_lproj "$1" ko "GR Mod는 펌웨어와 종료 화면을 쓰기 위해 메모리 카드를 읽고 씁니다." \
+    "GR Mod는 선택한 폴더로 파일을 내보냅니다." "GR Mod는 시스템 대화상자로 내보낼 폴더를 선택하게 합니다."
+  one_lproj "$1" es "GR Mod lee y escribe la tarjeta de memoria para instalar firmware y pantallas finales." \
+    "GR Mod exporta archivos a la carpeta que elijas." "GR Mod usa el cuadro de diálogo del sistema para que elijas una carpeta de exportación."
+  one_lproj "$1" de "GR Mod liest und beschreibt die Speicherkarte, um Firmware und Endbilder zu installieren." \
+    "GR Mod exportiert Dateien in den von Ihnen gewählten Ordner." "GR Mod nutzt den Systemdialog, damit Sie einen Exportordner wählen können."
 }
 
 build_mac() {

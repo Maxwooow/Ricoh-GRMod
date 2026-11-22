@@ -209,12 +209,12 @@ export function fail(e: unknown): void {
 }
 
 /**
- * The camera language (whose names Image Control changes) follows the app language: 简体中文 → zh-CN, English → en,
- * following the system → the system's language where the camera has it (else English).
+ * The camera language (whose names Image Control changes) follows the app language: 简体中文 → zh-CN, the others → the
+ * camera's same language, following the system → the system's language where the camera has it (else English).
  */
 export function cameraLang(): LangCode {
   const ui = uiLangPref();
-  return ui === 'zh' ? 'zh-CN' as LangCode : ui === 'en' ? 'en' as LangCode : systemCameraLang();
+  return ui === 'zh' ? 'zh-CN' as LangCode : ui ? ui as LangCode : systemCameraLang();
 }
 /** The camera language closest to the phone's own: its first language GR IV has, else English. */
 export function systemCameraLang(): LangCode {

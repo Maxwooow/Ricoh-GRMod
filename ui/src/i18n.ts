@@ -1,3 +1,9 @@
+import { de } from './locales/de';
+import { es } from './locales/es';
+import { ja } from './locales/ja';
+import { ko } from './locales/ko';
+import { zhTW } from './locales/zh-TW';
+
 const zh = {
   app: 'GR Mod',
   navIC: '影像控制', navWall: '结束画面', navCopies: '固件副本',
@@ -448,28 +454,50 @@ const en: typeof zh = {
  mCrashed: 'Something went wrong in the interface. Please send a screenshot of this to the developer.', mReload: 'Reload',
 };
 export type Key = keyof typeof zh;
-/** Both dictionaries (tests compare them). */
-export const DICTS = { zh, en };
+/** One language's texts: every entry of the Chinese ones. */
+export type Dict = typeof zh;
+/** The interface languages; the order of the language menu. */
+export const UI_LANGS = ['zh', 'zh-TW', 'en', 'ja', 'ko', 'es', 'de'] as const;
+export type UiLang = (typeof UI_LANGS)[number];
+/** Each language's own name, for the language menu. */
+export const UI_LANG_NAMES: Record<UiLang, string> = { zh: '简体中文', 'zh-TW': '繁體中文', en: 'English', ja: '日本語', ko: '한국어', es: 'Español', de: 'Deutsch' };
+/** Every dictionary (tests compare them). */
+export const DICTS: Record<UiLang, Dict> = { zh, 'zh-TW': zhTW, en, ja, ko, es, de };
+export const isUiLang = (v: unknown): v is UiLang => typeof v === 'string' && (UI_LANGS as readonly string[]).includes(v);
 /** The interface language the user picked in the phone app ('' = as the system), kept in the web view's storage. */
 const UI_LANG_KEY = 'grmod.uiLang';
-export function uiLangPref(): '' | 'zh' | 'en' {
-  try { const v = localStorage.getItem(UI_LANG_KEY); return v === 'zh' || v === 'en' ? v : ''; } catch { return ''; }
+export function uiLangPref(): '' | UiLang {
+  try { const v = localStorage.getItem(UI_LANG_KEY); return isUiLang(v) ? v : ''; } catch { return ''; }
 }
 /** Changes the interface language; the page reloads in it unless `reload` is false (store.ts setAppLanguage saves the work first). */
-export function setUiLangPref(v: '' | 'zh' | 'en', reload = true): void {
+export function setUiLangPref(v: '' | UiLang, reload = true): void {
   try { if (v) localStorage.setItem(UI_LANG_KEY, v); else localStorage.removeItem(UI_LANG_KEY); } catch { /* not kept */ }
   if (reload) window.setTimeout(() => window.location.reload(), 120);
 }
-const systemZh = (navigator.language || 'zh').toLowerCase().startsWith('zh');
+/** The system's language among the interface languages: its first one GR Mod has, else English. */
+export function systemUiLang(): UiLang {
+  for (const raw of navigator.languages?.length ? navigator.languages : [navigator.language || 'en']) {
+    const l = raw.toLowerCase();
+    if (l.startsWith('zh')) return /-(tw|hk|mo)\b|hant/.test(l) ? 'zh-TW' : 'zh';
+    const base = l.split('-')[0];
+    if (isUiLang(base)) return base;
+  }
+  return 'en';
+}
 /** The interface language in use. */
-export const UI_LANG: 'zh' | 'en' = uiLangPref() || (systemZh ? 'zh' : 'en');
-const dict = UI_LANG === 'zh' ? zh : en;
+export const UI_LANG: UiLang = uiLangPref() || systemUiLang();
+/** The two languages the release notes and the signed update notes are written in: Chinese for both Chinese, else English. */
+export const NOTES_LANG: 'zh' | 'en' = UI_LANG === 'zh' || UI_LANG === 'zh-TW' ? 'zh' : 'en';
+/** Chinese and Japanese punctuation (full width) in texts put together by the program. */
+export const WIDE_PUNCT = UI_LANG === 'zh' || UI_LANG === 'zh-TW' || UI_LANG === 'ja';
+const dict = DICTS[UI_LANG];
+try { document.documentElement.lang = UI_LANG === 'zh' ? 'zh-CN' : UI_LANG; } catch { /* no document (tests) */ }
 /** The phone app (Android, iOS): its own wording where the desktop's would be wrong (no dragging, no card). */
 const capx = (globalThis as unknown as { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string } }).Capacitor;
 const PHONE = !!capx?.isNativePlatform?.() && ['android', 'ios'].includes(capx.getPlatform?.() ?? '');
 export function t(key: Key, vars?: Record<string, string | number>): string {
   const own = PHONE ? (dict as Record<string, string>)[`${key}M`] : undefined;
-  let s: string = own ?? dict[key] ?? key;
+  let s: string = own ?? dict[key] ?? DICTS.en[key] ?? key;
   if (vars) for (const k of Object.keys(vars)) s = s.split(`{${k}}`).join(String(vars[k]));
   return s;
 }

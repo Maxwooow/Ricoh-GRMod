@@ -6,13 +6,14 @@ import { Ico, Switch } from './components';
 import { host, HostError } from './host';
 import type { ReleaseNote, UpdateInfo } from './host';
 import { Markdown } from './markdown';
-import { t } from './i18n';
+import { NOTES_LANG, t, UI_LANG, WIDE_PUNCT } from './i18n';
 import type { Key } from './i18n';
 import { toast } from './store';
 import builtinCredits from '../../credits.json';
 
 const SETTINGS_KEY = 'update-settings.json';
-const lang = (navigator.language || 'zh').toLowerCase().startsWith('zh') ? 'zh' : 'en';
+/** The release notes' language (they are written in Chinese and English). */
+const lang = NOTES_LANG;
 
 type Phase = 'idle' | 'checking' | 'error' | 'latest' | 'available' | 'downloading' | 'installing';
 interface UpdState { open: boolean; phase: Phase; info?: UpdateInfo; received: number; total: number; auto: boolean; message?: string }
@@ -319,7 +320,9 @@ async function loadCredits(): Promise<void> {
 
 function pick(m: Record<string, string> | undefined): string {
   if (!m) return '';
-  return m[lang] || (lang === 'zh' ? m['zh-CN'] || m['zh-TW'] : '') || m.en || m.zh || Object.values(m)[0] || '';
+  const order = UI_LANG === 'zh' ? ['zh', 'zh-CN', 'zh-TW'] : UI_LANG === 'zh-TW' ? ['zh-TW', 'zh', 'zh-CN'] : [UI_LANG];
+  for (const k of order) if (m[k]) return m[k];
+  return m.en || m.zh || Object.values(m)[0] || '';
 }
 
 function Credits() {
@@ -330,14 +333,14 @@ function Credits() {
   const edge = (): void => { const el = box.current; if (el) el.classList.toggle('more', el.scrollTop + el.clientHeight < el.scrollHeight - 2); };
   useEffect(edge, [c]);
   if (!c) return null;
-  const sep = lang === 'zh' ? '；' : '; ';
+  const sep = WIDE_PUNCT ? '；' : '; ';
   return (
     <div className="wn-credits" ref={box} onScroll={edge}>
       <div className="small wn-credits-title">{t('creditsTitle')}</div>
       {c.sections.map((s, i) => (
         <p key={i} className="muted small wn-about">
-          <b>{pick(s.title)}{lang === 'zh' ? '：' : ': '}</b>
-          {s.people.map((p) => { const n = pick(p.note); return n ? (lang === 'zh' ? `${p.name}（${n}）` : `${p.name} (${n})`) : p.name; }).join(sep)}
+          <b>{pick(s.title)}{WIDE_PUNCT ? '：' : ': '}</b>
+          {s.people.map((p) => { const n = pick(p.note); return n ? (WIDE_PUNCT ? `${p.name}（${n}）` : `${p.name} (${n})`) : p.name; }).join(sep)}
         </p>
       ))}
     </div>

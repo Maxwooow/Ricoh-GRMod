@@ -7,7 +7,7 @@ import { host, isMobile } from './host';
 import { PushDialog } from './camera';
 import { AndroidUpdate, checkUpdates, isAndroid } from './update-dialog';
 import { haptic, setBackFallback } from './host-android';
-import { t, uiLangPref } from './i18n';
+import { t, uiLangPref, UI_LANGS, UI_LANG_NAMES, isUiLang } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
 import { FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
@@ -60,8 +60,8 @@ function AppLanguage() {
   return (
     <Select<string>
       variant="row" tour="language" label={t('uiLanguage')} lead={<span className="side-label">{t('uiLanguage')}</span>} value={ui || 'auto'}
-      onChange={(v) => { void setAppLanguage(v === 'zh' || v === 'en' ? v : ''); }}
-      options={[{ value: 'auto', label: t('followSystem') }, { value: 'zh', label: '简体中文' }, { value: 'en', label: 'English' }]}
+      onChange={(v) => { void setAppLanguage(isUiLang(v) ? v : ''); }}
+      options={[{ value: 'auto', label: t('followSystem') }, ...UI_LANGS.map((l) => ({ value: l, label: UI_LANG_NAMES[l] }))]}
     />
   );
 }

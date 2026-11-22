@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { Gr, isIOS, isMobile, listen } from './host-android';
 import { host } from './host';
-import { t, UI_LANG } from './i18n';
+import { NOTES_LANG, t } from './i18n';
 import { toast } from './store';
 import { autoCheckDue, findUpdate, isSkipped, markChecked, skipVersion, type AndroidManifest } from './update-android';
 
@@ -87,7 +87,7 @@ export function AndroidUpdate() {
   };
 
   const m = 'm' in s ? s.m : undefined;
-  const notes = m?.notes ? (UI_LANG === 'zh' ? m.notes.zh || m.notes.en : m.notes.en || m.notes.zh) : '';
+  const notes = m?.notes ? (NOTES_LANG === 'zh' ? m.notes.zh || m.notes.en : m.notes.en || m.notes.zh) : '';
   const pct = s.kind === 'down' && s.total > 0 ? (s.got / s.total) * 100 : 0;
   return (
     <div className="overlay">
