@@ -3,8 +3,9 @@
  * GR Mod's version numbers, in one place.
  *
  *   node tools/version.mjs                    show them
- *   node tools/version.mjs desktop 0.8.16     the desktop program (and the UI's "what's new")
- *   node tools/version.mjs mobile 0.3.12      the Android and iOS app; Android's versionCode goes up by one
+ *   node tools/version.mjs all 0.9.1          every platform (since 0.9.0 they share one number)
+ *   node tools/version.mjs desktop 0.9.1      the desktop program (and the UI's "what's new") only
+ *   node tools/version.mjs mobile 0.9.1       the Android and iOS app only; Android's versionCode goes up by one
  *   node tools/version.mjs --check            fail when the places of one number disagree
  *
  * Desktop: package.json (shell/build.sh and the UI read it) and package-lock.json.
@@ -56,13 +57,14 @@ if (cmd === '--check') {
   const bad = [...disagreements(DESKTOP), ...disagreements(MOBILE)];
   if (bad.length) { console.error('version numbers disagree:\n  ' + bad.join('\n  ')); process.exit(1); }
   console.log(`versions agree: desktop ${DESKTOP[0].get()}, mobile ${MOBILE[0].get()} (Android versionCode ${CODE.get()})`);
-} else if (cmd === 'desktop' || cmd === 'mobile') {
+} else if (cmd === 'desktop' || cmd === 'mobile' || cmd === 'all') {
   if (!/^\d+\.\d+\.\d+$/.test(value ?? '')) { console.error(`usage: node tools/version.mjs ${cmd} X.Y.Z`); process.exit(2); }
-  for (const p of cmd === 'desktop' ? DESKTOP : MOBILE) p.set(value);
-  if (cmd === 'mobile') CODE.set(String(Number(CODE.get()) + 1));
-  console.log(cmd === 'desktop' ? `desktop ${value}` : `mobile ${value} (Android versionCode ${CODE.get()})`);
+  if (cmd !== 'mobile') for (const p of DESKTOP) p.set(value);
+  if (cmd !== 'desktop') { for (const p of MOBILE) p.set(value); CODE.set(String(Number(CODE.get()) + 1)); }
+  if (cmd !== 'mobile') console.log(`desktop ${value}`);
+  if (cmd !== 'desktop') console.log(`mobile ${value} (Android versionCode ${CODE.get()})`);
 } else if (!cmd) {
   console.log(`desktop ${DESKTOP[0].get()}\nmobile  ${MOBILE[0].get()} (Android versionCode ${CODE.get()})`);
 } else {
-  console.error('usage: node tools/version.mjs [desktop X.Y.Z | mobile X.Y.Z | --check]'); process.exit(2);
+  console.error('usage: node tools/version.mjs [all X.Y.Z | desktop X.Y.Z | mobile X.Y.Z | --check]'); process.exit(2);
 }
