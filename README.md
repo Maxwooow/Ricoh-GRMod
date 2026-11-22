@@ -41,7 +41,7 @@ Use only firmware intended for your camera model and a base version listed above
 ## Features
 
 - **Image Control presets:** add your own looks from `.cube` LUTs or `.xmp` profiles, adjust their parameters, and reorder or hide looks in the camera menu.
-- **Aspect ratios:** add custom ratios alongside the camera's factory options; on the GR IV (firmware 1.11, 1.20 and 1.21) the live view can also show the whole frame with the outside darkened (on 1.20 / 1.21 how dark is chosen in the camera menu: black, 75 %, 50 %, 25 % or none).
+- **Aspect ratios:** add custom ratios alongside the camera's factory options; on the GR IV (firmware 1.11, 1.20 and 1.21) the live view can also show the whole frame with the outside darkened (on 1.20 / 1.21 how bright is chosen in the camera menu Matte Brightness: black, 75 %, 50 %, 25 % or none; movie mode shows the plain picture).
 - **Power-off images:** add your own End Screen pictures and choose between them in the camera.
 - **Soft focus and halation:** create softer images and red or white highlight effects.
 - **Date imprint:** add a shooting date, date and time, and optionally the Image Control name to JPEGs.
@@ -51,6 +51,10 @@ Use only firmware intended for your camera model and a base version listed above
 - **More ADJ options:** add ADJ lever slots on supported GR IV firmware.
 - **Battery percentage:** show the charge as a number in steps of 10 % instead of bars, on the GR IV (firmware 1.11, 1.20 and 1.21).
 - **Exposure preview and display options:** access additional preview and automatic screen-brightness settings on supported GR IV firmware.
+- **Shadow Correction, learned Auto:** Auto lifts the shadows by an amount estimated from the scene, on the GR IV (firmware 1.11, 1.20 and 1.21).
+- **Film grain:** an optimized film grain in place of the camera's Grain Effect, on GR IV 1.20 / 1.21.
+- **Phase Detect AF for Video:** while recording, the sensor's phase data drives the lens, with less focus hunting, on GR IV 1.20 / 1.21.
+- **Learned auto white balance:** Auto, Warmth Priority and White Priority estimate the light with a learned model, on GR IV 1.20 / 1.21.
 - **Custom grid lines:** choose which lines a 3x3 and a 4x4 grid draw, on the GR IV (firmware 1.11, 1.20 and 1.21; on 1.20 / 1.21 they are extra values of the camera's Grid Style list, next to its own).
 
 Features vary by camera model and firmware version. The app only offers options supported by the selected firmware.
