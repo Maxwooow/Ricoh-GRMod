@@ -1,0 +1,3 @@
+/* The permission prompts in de (Info.plist has the English ones). */
+"NSBluetoothAlwaysUsageDescription" = "GR Mod verwendet Bluetooth, um die Kamera zu finden, ihr WLAN einzuschalten und nach dem Senden der Firmware das Update zu starten.";
+"NSLocalNetworkUsageDescription" = "GR Mod sendet die Firmware über das eigene WLAN der Kamera an die Kamera.";

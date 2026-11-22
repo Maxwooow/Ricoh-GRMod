@@ -1,0 +1,3 @@
+/* The permission prompts in zh-Hant (Info.plist has the English ones). */
+"NSBluetoothAlwaysUsageDescription" = "GR Mod 使用藍牙尋找相機、開啟相機的 Wi-Fi，並在傳送韌體後讓相機開始更新。";
+"NSLocalNetworkUsageDescription" = "GR Mod 透過相機本身的 Wi-Fi 將韌體傳送給相機。";

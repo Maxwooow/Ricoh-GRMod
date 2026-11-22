@@ -149,8 +149,8 @@ final class PushSession: BleListener {
                 nt = try ble.read(GrUUID.wlan, GrUUID.networkType, timeout: 120)
             } catch let e as BleError {
                 log.add(L.s("读取照相机无线局域网状态失败：", "Reading the camera's Wi-Fi state failed: ") + e.message)
-                throw Fail(code: "ble-auth", message: L.s("照相机不接受此设备的 Bluetooth® 连接。若已在照相机中删除此设备，请在[设置] › [蓝牙]中轻触 \(name) 旁的 ⓘ，选择[忽略此设备]，再将照相机设为配对状态并重新推送。",
-                    "The camera does not accept this device over Bluetooth. If the device was removed in the camera: in Settings › Bluetooth tap ⓘ next to \(name), choose Forget This Device, put the camera in pairing mode and send again"))
+                throw Fail(code: "ble-auth", message: L.f("照相机不接受此设备的 Bluetooth® 连接。若已在照相机中删除此设备，请在[设置] › [蓝牙]中轻触 {0} 旁的 ⓘ，选择[忽略此设备]，再将照相机设为配对状态并重新推送。",
+                    "The camera does not accept this device over Bluetooth. If the device was removed in the camera: in Settings › Bluetooth tap ⓘ next to {0}, choose Forget This Device, put the camera in pairing mode and send again", name))
             }
             PushSession.remember(peripheral)
             ev?.stage("ble", L.s("已通过 Bluetooth® 连接照相机", "Connected to the camera over Bluetooth"))
@@ -169,14 +169,14 @@ final class PushSession: BleListener {
             // 2. Wi-Fi + checks
             let vpn = CameraNet.vpnActive()
             if vpn { log.add(L.s("注意：设备正在使用 VPN。若 VPN 接管全部流量，则无法连接照相机无线局域网中的 192.168.0.1", "Note: a VPN is on. If it takes all traffic, 192.168.0.1 on the camera's Wi-Fi cannot be reached")) }
-            ev?.stage("wifi", L.s("正在连接照相机的无线局域网[\(ssid)]。请在系统提示中轻触[加入]。", "Connecting to the camera's Wi-Fi “\(ssid)”: tap Join when the system asks"))
+            ev?.stage("wifi", L.f("正在连接照相机的无线局域网[{0}]。请在系统提示中轻触[加入]。", "Connecting to the camera's Wi-Fi “{0}”: tap Join when the system asks", ssid))
             // iOS does not wait for a network to appear: a camera that has only just turned its Wi-Fi on is given a
             // few seconds first (joining too early fails with "Unable to join the network").
             if wifiJustOn { try sleep(4) }
             let manual = Fail(code: "wifi-join",
-                              message: L.s("无法自动加入照相机的无线局域网[\(ssid)]。请在[设置] › [无线局域网]中手动加入，再轻触[重试]。",
-                                           "Could not join the camera's Wi-Fi “\(ssid)” by itself. Join it under Settings › Wi-Fi, then tap Retry."),
-                              shownOnly: L.s("（密码：\(pass)）", " (password: \(pass))"))
+                              message: L.f("无法自动加入照相机的无线局域网[{0}]。请在[设置] › [无线局域网]中手动加入，再轻触[重试]。",
+                                           "Could not join the camera's Wi-Fi “{0}” by itself. Join it under Settings › Wi-Fi, then tap Retry.", ssid),
+                              shownOnly: L.f("（密码：{0}）", " (password: {0})", pass))
             do {
                 try net.join(ssid: ssid, passphrase: pass, timeout: 120, cancelled: { [weak self] in self?.cancelled ?? true })
             } catch let e as CameraNet.NetError {
@@ -204,10 +204,10 @@ final class PushSession: BleListener {
                     lastError = e.message
                     if Date() > until {
                         if otherNetwork { throw manual }
-                        throw Fail(code: "wifi", message: L.s("已连接照相机的无线局域网，但无法访问 192.168.0.1：\(lastError)。"
-                            + "请在[设置] › [隐私与安全性] › [本地网络]中开启 GR Mod" + (vpn ? "，并关闭 VPN" : "") + "，再重新推送。",
-                            "On the camera's Wi-Fi, but 192.168.0.1 cannot be reached: \(lastError). "
-                            + "Turn GR Mod on under Settings › Privacy & Security › Local Network" + (vpn ? " and switch the VPN off" : "") + ", then send again"))
+                        throw Fail(code: "wifi", message: (vpn ? L.f("已连接照相机的无线局域网，但无法访问 192.168.0.1：{0}。请在[设置] › [隐私与安全性] › [本地网络]中开启 GR Mod，并关闭 VPN，再重新推送。",
+                                     "On the camera's Wi-Fi, but 192.168.0.1 cannot be reached: {0}. Turn GR Mod on under Settings › Privacy & Security › Local Network and switch the VPN off, then send again", lastError)
+                              : L.f("已连接照相机的无线局域网，但无法访问 192.168.0.1：{0}。请在[设置] › [隐私与安全性] › [本地网络]中开启 GR Mod，再重新推送。",
+                                     "On the camera's Wi-Fi, but 192.168.0.1 cannot be reached: {0}. Turn GR Mod on under Settings › Privacy & Security › Local Network, then send again", lastError)))
                     }
                     try sleep(1)
                 }
@@ -227,15 +227,15 @@ final class PushSession: BleListener {
 
             guard let info = info, let f = file else { throw Fail(code: "file", message: L.s("尚未选择固件文件", "No firmware file chosen yet")) }
             guard let rec = info.modelFor(model) else {
-                throw Fail(code: "model", message: L.s("此固件不适用于 \(model)（文件中的机型：\(info.describe())）", "This firmware is not for the \(model) (models in the file: \(info.describe()))"))
+                throw Fail(code: "model", message: L.f("此固件不适用于 {0}（文件中的机型：{1}）", "This firmware is not for the {0} (models in the file: {1})", model, info.describe()))
             }
             let camBase = FirmwareInfo.baseOf(fwVersion)
             if rec.base != camBase {
-                throw Fail(code: "version", message: L.s("照相机当前版本为 \(fwVersion)，此固件对应版本为 \(rec.version)。目前仅支持推送同一基础版本的固件；跨版本时，请使用存储卡更新。",
-                    "The camera runs \(fwVersion); for it this firmware is \(rec.version). Only a firmware of the same base version can be sent (across versions, update from a memory card)"))
+                throw Fail(code: "version", message: L.f("照相机当前版本为 {0}，此固件对应版本为 {1}。目前仅支持推送同一基础版本的固件；跨版本时，请使用存储卡更新。",
+                    "The camera runs {0}; for it this firmware is {1}. Only a firmware of the same base version can be sent (across versions, update from a memory card)", fwVersion, rec.version))
             }
             if battery >= 0 && battery < PushSession.minBattery {
-                throw Fail(code: "battery", message: L.s("照相机电池电量为 \(battery)%。请充电至 \(PushSession.minBattery)% 以上后再推送。", "The camera's battery is at \(battery)%: charge it above \(PushSession.minBattery)% first"))
+                throw Fail(code: "battery", message: L.f("照相机电池电量为 {0}%。请充电至 {1}% 以上后再推送。", "The camera's battery is at {0}%: charge it above {1}% first", battery, PushSession.minBattery))
             }
             if hot { throw Fail(code: "hot", message: L.s("照相机过热，请等待其冷却。", "The camera is too hot: let it cool down")) }
             try check()
@@ -323,7 +323,7 @@ final class PushSession: BleListener {
                     let ready = max(putDone.addingTimeInterval(PushSession.startAfterUpload), linkSince.addingTimeInterval(PushSession.startAfterLink))
                     let now = Date()
                     if now < ready {
-                        log.detail(L.s("等待照相机准备就绪，\(Int(ceil(ready.timeIntervalSince(now)))) 秒后发送[开始更新]", "Waiting for the camera: \"start update\" in \(Int(ceil(ready.timeIntervalSince(now)))) s"))
+                        log.detail(L.f("等待照相机准备就绪，{0} 秒后发送[开始更新]", "Waiting for the camera: \"start update\" in {0} s", Int(ceil(ready.timeIntervalSince(now)))))
                         Thread.sleep(forTimeInterval: min(1, ready.timeIntervalSince(now)))
                         continue
                     }
@@ -385,7 +385,7 @@ final class PushSession: BleListener {
             result["message"] = m
             log.add(L.s("错误：", "Error: ") + m)
             if prepared && !uploaded { cancelUpdate(net) }
-            ev?.stage("failed", uploaded ? L.s("上传期间发生错误（\(m)）。请勿立即重试，请先查看照相机显示屏", "Error during the upload (\(m)). Do not try again at once: look at the camera's screen first") : L.s("错误：", "Error: ") + m)
+            ev?.stage("failed", uploaded ? L.f("上传期间发生错误（{0}）。请勿立即重试，请先查看照相机显示屏", "Error during the upload ({0}). Do not try again at once: look at the camera's screen first", m) : L.s("错误：", "Error: ") + m)
         }
     }
 
@@ -395,7 +395,7 @@ final class PushSession: BleListener {
             try check()
             do { try ble.connect(timeout: 15); return } catch let e as BleError {
                 last = e
-                log.detail(L.s("第 \(i + 1) 次 Bluetooth® 连接失败：", "Bluetooth connection attempt \(i + 1) failed: ") + e.message)
+                log.detail(L.f("第 {0} 次 Bluetooth® 连接失败：", "Bluetooth connection attempt {0} failed: ", i + 1) + e.message)
                 try sleep(2)
             }
         }

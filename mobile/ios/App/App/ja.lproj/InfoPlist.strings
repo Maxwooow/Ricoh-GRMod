@@ -1,0 +1,3 @@
+/* The permission prompts in ja (Info.plist has the English ones). */
+"NSBluetoothAlwaysUsageDescription" = "GR Mod は Bluetooth を使ってカメラを見つけ、カメラの Wi-Fi をオンにし、ファームウェアの送信後にアップデートを開始します。";
+"NSLocalNetworkUsageDescription" = "GR Mod はカメラ自身の Wi-Fi を通じてファームウェアをカメラに送信します。";

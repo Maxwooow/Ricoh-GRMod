@@ -8,7 +8,7 @@
   "scripts": {
     "test": "npm -w core test && npm -w ui test",
     "typecheck": "npm -w core run typecheck && npm -w ui run typecheck",
-    "check": "node tools/releases/generate.mjs --check && node tools/version.mjs --check && python3 tools/port/check.py && python3 tools/port/addresses.py --check",
+    "check": "node tools/releases/generate.mjs --check && node mobile/tools/native-texts.mjs --check && node tools/version.mjs --check && python3 tools/port/check.py && python3 tools/port/addresses.py --check",
     "build": "npm -w ui run build"
   }
 }
