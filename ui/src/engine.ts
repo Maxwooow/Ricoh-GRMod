@@ -6,7 +6,10 @@ export class EngineError extends Error {
 }
 
 // Built as a classic script (vite.config.ts: worker.format 'iife') so that browsers without module workers can run it; the dev server serves it as a module.
-const worker = new Worker(new URL('./worker.ts', import.meta.url), { type: import.meta.env.DEV ? 'module' : 'classic' });
+// Two literal branches: Vite 8 (rolldown) only accepts a literal `type` in the Worker options.
+const worker = import.meta.env.DEV
+  ? new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' })
+  : new Worker(new URL('./worker.ts', import.meta.url), { type: 'classic' });
 let seq = 0;
 const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void; onProgress?: (f: number) => void }>();
 worker.onmessage = (ev: MessageEvent) => {

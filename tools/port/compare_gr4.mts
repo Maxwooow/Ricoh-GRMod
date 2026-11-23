@@ -103,12 +103,14 @@ const recipe = (e: InstanceType<typeof Engine>, name: string): Args => {
     case 'full': return [testPresetRequests(e), testRatios(e), [], all];
     case 'plain': return [[], [], [], { guard: true, dateStamp: false, monoUnlock: true }];
     case 'presets': return [testPresetRequests(e), testRatios(e), [], {}];
+    // the HLG photo mode, alone (default case) and with every addition it can be combined with (not the HDR gain map)
+    case 'fullHlg': return [testPresetRequests(e), testRatios(e), [], { ...all, hdrGainMap: false, hlgPhoto: true }];
     case 'twenty': return [[], [], [], { extraSlots: Array.from({ length: 20 }, (_, k) => extra(`S${k + 1}`, k % 3 === 0)), hdrGainMap: true }];
     default: { const k = name; return [[], [], [], { [k]: k === 'adjSlots' ? 8 : k === 'shutdownPictures' ? pics(3) : k === 'extraSlots' ? [extra('X', true)] : true } as never]; }
   }
 };
 let failures = 0;
-const names = wanted.length ? wanted : ['monoUnlock', 'adjSoftFocus', 'dateStamp', 'brightAuto', 'directFlash', 'hdrGainMap', 'adjSlots', 'exposurePreview', 'extraSlots', 'shutdownPictures', 'presets', 'full', 'twenty'];
+const names = wanted.length ? wanted : ['monoUnlock', 'adjSoftFocus', 'dateStamp', 'brightAuto', 'directFlash', 'hdrGainMap', 'adjSlots', 'exposurePreview', 'extraSlots', 'shutdownPictures', 'presets', 'full', 'twenty', 'hlgPhoto', 'fullHlg'];
 for (const name of names) {
   const bo = await eOld.buildFirmware(...recipe(eOld, name)), bn = await eNew.buildFirmware(...recipe(eNew, name));
   const so = sec(bo.file), sn = sec(bn.file);

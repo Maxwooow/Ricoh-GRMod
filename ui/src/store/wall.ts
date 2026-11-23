@@ -8,6 +8,7 @@ import { cropToRgb, defaultCrop, loadBitmap, workingCopy } from '../pixels';
 import type { Crop } from '../pixels';
 import { State, WallItem, fail, set, setWall, state, toast } from './core';
 import { scheduleSave } from './families';
+import { recordDeleted } from './tools';
 
 // ------------------------------------------------------------------ power-off images
 const wallBitmaps = new Map<string, ImageBitmap>();
@@ -56,10 +57,17 @@ export async function addWallFiles(files: File[]): Promise<void> {
   scheduleSave();
 }
 export function removeWall(id: string): void {
+  const index = state.wall.findIndex((w) => w.id === id), item = state.wall[index];
   set((s) => ({ wall: s.wall.filter((w) => w.id !== id) }));
   wallBitmaps.get(id)?.close(); wallBitmaps.delete(id);
-  if (host.available) void host.storeDel('wall-' + id).catch(() => undefined);
   scheduleSave();
+  const del = (): void => { if (host.available) void host.storeDel('wall-' + id).catch(() => undefined); };
+  if (!item) { del(); return; }
+  recordDeleted(t('undoWall'), () => {
+    if (state.wall.length >= wallMax()) return false;
+    set((s) => { const wall = s.wall.slice(); wall.splice(Math.min(index, wall.length), 0, item); return { wall }; });
+    return true;
+  }, del);
 }
 export function moveWall(id: string, toIndex: number): void {
   set((s) => {

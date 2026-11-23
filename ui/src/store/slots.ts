@@ -7,8 +7,9 @@ import type { Key } from '../i18n';
 import { ensureIconFont, imageIcon, loadBitmap, textIcon } from '../pixels';
 import { HalationState, IconState, SlotKey, State, availableSlots, fail, isExtra, isGr3, patchSlot, set, setSlot, slotOf, state, toast } from './core';
 import { presetKey, scheduleSave } from './families';
-import { normalizeLookOrder } from './looks';
+import { normalizeLookOrder, lookOrderNow } from './looks';
 import { setActiveSlot } from './photo';
+import { recordDeleted } from './tools';
 
 // ------------------------------------------------------------------ presets
 const PRESET_ERRORS: Record<string, Key> = {
@@ -16,17 +17,25 @@ const PRESET_ERRORS: Record<string, Key> = {
   'not-cube': 'errNotXmp', 'bad-cube': 'errBadCube', 'gr3x-cube-only': 'gr3xCubeOnly',
 };
 /** The newest conversion of each slot: an older one that finishes later is dropped. */
-const presetRuns = new Map<SlotKey, number>();
+/**
+ * The fitting options a slot's conversion runs with: GR IV added slots also try hue sectors (the
+ * conversion keeps them only when they come out closer). Shared by runPreset and the preset library's
+ * compatibility check (fitKeyOf), so the two cannot disagree.
+ */
+export function fitOptions(id: SlotKey): { hue?: boolean } {
+  return isExtra(id) && state.info?.family !== 'gr3x' ? { hue: true } : {};
+}
+export const presetRuns = new Map<SlotKey, number>();
 let presetRun = 0;
+/** A new conversion run number (the preset library makes a running conversion stale with it). */
+export function nextPresetRun(): number { return ++presetRun; }
 export async function runPreset(id: SlotKey, fileName: string, kind: 'xmp' | 'cube', text: string): Promise<void> {
   patchSlot(id, { preset: { fileName, kind, text, busy: !!state.info?.capabilities.presets } });
   if (!state.info?.capabilities.presets) return;
   const run = ++presetRun;
   presetRuns.set(id, run);
-  // GR IV added slots also try hue sectors; the conversion keeps them only when they come out closer.
-  const hue = isExtra(id) && state.info.family !== 'gr3x';
   try {
-    const result = await engine.convert(kind, text, hue ? { hue: true } : {});
+    const result = await engine.convert(kind, text, fitOptions(id));
     if (presetRuns.get(id) !== run || slotOf(id)?.preset?.text !== text) return; // replaced, removed or converted again meanwhile
     patchSlot(id, { preset: { fileName, kind, text, busy: false, result } });
   } catch (e) {
@@ -99,16 +108,29 @@ export function addExtraSlot(): void {
   void renderIcon(key);
   scheduleSave();
 }
-export function removeExtraSlot(key: string): void {
+export function removeExtraSlot(key: string, undoable = true): void {
+  const was = state, index = was.extras.findIndex((x) => x.key === key), item = was.extras[index];
+  const orderAt = lookOrderNow(was).indexOf(key), hidden = was.lookHidden.includes(key), active = was.activeSlot === key;
   set((s) => ({ extras: s.extras.filter((x) => x.key !== key), activeSlot: s.activeSlot === key ? 'CY' : s.activeSlot, lookOrder: normalizeLookOrder(s.lookOrder, s.extras.filter((x) => x.key !== key)), lookHidden: s.lookHidden.filter((k) => k !== key) }));
-  if (host.available) void host.storeDel(presetKey(key)).catch(() => undefined);
+  const file = presetKey(key); // fixed now: the delete may run after a switch to the other family, whose files are named differently
+  const del = (): void => { if (host.available) void host.storeDel(file).catch(() => undefined); };
   scheduleSave();
+  if (!undoable || !item) { del(); return; }
+  recordDeleted(t('undoExtra'), () => {
+    if (state.extras.length >= MAX_EXTRA_SLOTS) return false;
+    set((s) => {
+      const extras = s.extras.slice(); extras.splice(Math.min(index, extras.length), 0, item);
+      const order = normalizeLookOrder(s.lookOrder, extras).filter((k) => k !== key); order.splice(orderAt < 0 ? order.length : Math.min(orderAt, order.length), 0, key);
+      return { extras, lookOrder: order, lookHidden: hidden ? [...s.lookHidden, key] : s.lookHidden, ...(active ? { activeSlot: key } : {}) };
+    });
+    return true;
+  }, del);
 }
 /** Set how many slots are added: the last ones are taken away, new empty ones appended. */
 export function setExtraCount(n: number): void {
   const want = Math.max(0, Math.min(MAX_EXTRA_SLOTS, Math.round(n)));
   while (state.extras.length < want) addExtraSlot();
-  while (state.extras.length > want) removeExtraSlot(state.extras[state.extras.length - 1].key);
+  while (state.extras.length > want) removeExtraSlot(state.extras[state.extras.length - 1].key, false);
 }
 export function setExtraName(key: string, name: string): void {
   set((s) => ({ extras: s.extras.map((x) => (x.key === key ? { ...x, name } : x)) }));

@@ -32,9 +32,10 @@
  * The submenu screens are Grain Effect's; a word (HAL_FLAG) set when Fn opens them from the
  * Halation row (and cleared from Grain Effect's) switches each of their grain-specific steps.
  */
-import { assembleWords, branchWord } from './arm';
+import { assembleWords, branchWord, movWord } from './arm';
 import { FirmwareError } from '../../types';
 import { Patch, expectWord } from './build';
+import { HDR_SCALE_ICON_ID } from './hlg';
 import { adr, adrHex, adrText, byRelease } from '../target';
 
 function fail(code: string, message: string): never {
@@ -322,7 +323,11 @@ function submenu(p: Patch, o: HalationUiOptions, field: number, put: number, s: 
   hook(p, s.default0[0], s.default0[1], `${flagTest};beq native;mov r0,#0;b #${s.default0[0] + 4};native:bl #${branchTargetOf(s.default0)};b #${s.default0[0] + 4}`, 'halation submenu: strength default');
   hook(p, s.default1[0], s.default1[1], `${flagTest};beq native;mov r0,#0;b #${s.default1[0] + 4};native:bl #${branchTargetOf(s.default1)};b #${s.default1[0] + 4}`, 'halation submenu: colour default');
   hook(p, s.scale0, 0xe3003265, `${flagTest};movw r3,#${SCALE_SIZE};movwne r3,#${SCALE_STRENGTH};b #${s.scale0 + 4}`, 'halation submenu: strength scale');
-  hook(p, s.scale1, 0xe3003261, `${flagTest};movw r3,#${SCALE_STRENGTH};movwne r3,#${o.colourScale};b #${s.scale1 + 4}`, 'halation submenu: colour scale');
+  // @decision DEC-HLG-HALATION-001: the HLG photo mode (`hlg.ts`, installed first) points this same scale
+  // at its own [OFF, 1, 2] graphic. Rows other than Halation's keep whichever scale was there, so HLG and an
+  // added slot with halation can be built together (each used to refuse the other's word here).
+  const scale1Native = p.word(s.scale1) === movWord(3, HDR_SCALE_ICON_ID) ? HDR_SCALE_ICON_ID : SCALE_STRENGTH;
+  hook(p, s.scale1, movWord(3, scale1Native), `${flagTest};movw r3,#${scale1Native};movwne r3,#${o.colourScale};b #${s.scale1 + 4}`, 'halation submenu: colour scale');
   expectWord(p, s.positions1 + 4, 0xe3a030b4);
   hook(p, s.positions1, 0xe3a02002, `${flagTest};mov r2,#2;mov r3,#0xb4;movne r2,#1;movne r3,#0x168;b #${s.positions1 + 8}`, 'halation submenu: colour has two positions');
   // Current positions: strength 0..2, colour 0..1 (the value-to-position tables after are 0, 1, 2).

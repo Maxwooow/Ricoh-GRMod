@@ -37,3 +37,4 @@ export {
   ADJ_EXTRA_BYTE, ADJ_EXTRA_OBJECT_OFFSET, ADJ_FRAMES, ADJ_ICONS, ADJ_LIST_ID, ADJ_MENU_ID, ADJ_OBJECT, ADJ_PITCH, ADJ_SLOTS_MAX, ADJ_SLOTS_MIN, ADJ_STATE, ADJ_TEXT_ID,
   adjFrameX, adjLayoutStride, adjPitch, adjViewTable, installAdjSlots, settingName,
 } from './adjslots';
+export { HOOK_SITE as HLG_HOOK_SITE, TARGET_TEXT_ID as HLG_TEXT_ID, TARGET_TONE_ID as HLG_TONE_ID, installHlgPhoto } from './hlg';

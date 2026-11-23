@@ -2427,7 +2427,8 @@
    "ok": true,
    "why": "fork A: context identical side by side (\u00b18..12 instructions, capstone), call/branch targets mapped",
    "files": [
-    "core/src/fw/aspect/halation-ui.ts"
+    "core/src/fw/aspect/halation-ui.ts",
+    "core/src/fw/aspect/hlg.ts"
    ]
   },
   "0x531cc2a0": {
@@ -4869,7 +4870,8 @@
    "ok": true,
    "why": "fork A: number text 1..3 (cmp r2,#1 entry before a mov ip,sp function): two identical bodies 0x533aad5c/0x533aae14; 0x533aae14 has the same caller (RAW submenu row 0x531ac7a4 = 1.11 0x531ab234) and the same preceding tail",
    "files": [
-    "core/src/fw/aspect/halation-ui.ts"
+    "core/src/fw/aspect/halation-ui.ts",
+    "core/src/fw/aspect/hlg.ts"
    ]
   },
   "0x5339e73c": {
@@ -8995,7 +8997,8 @@
     "tools/softfocus/check.py",
     "tools/grid/check.py",
     "tools/shade/draw_check.py",
-    "tools/shadowml/fwemu.py"
+    "tools/shadowml/fwemu.py",
+    "core/src/fw/aspect/hlg.ts"
    ]
   },
   "0x5437d7b0": {
@@ -9042,7 +9045,8 @@
     "tools/datestamp/menu_check.py",
     "tools/directflash/check.py",
     "tools/shutdown/menu_check.py",
-    "tools/softfocus/check.py"
+    "tools/softfocus/check.py",
+    "core/src/fw/aspect/hlg.ts"
    ]
   },
   "0x543f0000": {
@@ -9117,7 +9121,8 @@
     "tools/battery/check.py",
     "tools/grid/check.py",
     "tools/shade/draw_check.py",
-    "tools/shadowml/fwemu.py"
+    "tools/shadowml/fwemu.py",
+    "core/src/fw/aspect/hlg.ts"
    ]
   },
   "0x55001e78": {
@@ -9144,7 +9149,8 @@
    "files": [
     "core/src/fw/aspect/build.ts",
     "core/src/fw/aspect/directflash-menu.ts",
-    "tools/datestamp/menu_check.py"
+    "tools/datestamp/menu_check.py",
+    "core/src/fw/aspect/hlg.ts"
    ]
   },
   "0x55013410": {
@@ -9198,7 +9204,8 @@
    "why": "gamma descriptor table: accessor 0x5394e038/0x5394e040, rows of 38",
    "files": [
     "core/src/fw/aspect/slots.ts",
-    "core/src/fw/profile.ts"
+    "core/src/fw/profile.ts",
+    "core/src/fw/aspect/hlg.ts"
    ]
   },
   "0x55053504": {
@@ -9208,7 +9215,8 @@
    "why": "multi-axis table: accessor 0x5394dfe0/0x5394dfe8, rows of 38",
    "files": [
     "core/src/fw/aspect/slots.ts",
-    "core/src/fw/profile.ts"
+    "core/src/fw/profile.ts",
+    "core/src/fw/aspect/hlg.ts"
    ]
   },
   "0x55053780": {
@@ -9218,7 +9226,8 @@
    "why": "tone record table: movw/movt of its accessor 0x5394dfb4/0x5394dfbc (1.11 0x53925f9c), rows of 38 (mov r2,#0x26)",
    "files": [
     "core/src/fw/aspect/slots.ts",
-    "core/src/fw/profile.ts"
+    "core/src/fw/profile.ts",
+    "core/src/fw/aspect/hlg.ts"
    ]
   },
   "0x5508207c": {
@@ -10160,6 +10169,178 @@
    "files": [
     "core/src/fw/aspect/shade.ts",
     "tools/grid/check.py"
+   ]
+  },
+  "0x531c8c34": {
+   "new": "0x531ca1e0",
+   "how": "override",
+   "ok": true,
+   "why": "fork HLG photo (fw/aspect/hlg.ts HDR_SCALE_SHOOTING; 1.20 as in gr4v120/aspect/hlg.ts): the shooting detail line's slider scale, movw r3,#0x261 in 1.20 (1.11 #0x23b, the renumbered icon), checked by expectWord; its playback twin 0x531cc27c -> 0x531cda58 is the override above; 0x531ca1e0 is placed in 1.21 by its code window (gr4-121-map)",
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x5339b610": {
+   "new": "0x533aacc8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x5339b64c": {
+   "new": "0x533aad04",
+   "how": "aligned + refs 0x533aad04x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x5339b6b0": {
+   "new": "0x533aad68",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x5339b6c0": {
+   "new": "0x533aad78",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x5339b6d8": {
+   "new": "0x533aad90",
+   "how": "aligned + refs 0x533aad90x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x5339b75c": {
+   "new": "0x533aae14",
+   "how": "aligned + refs 0x533aaeccx1, 0x533aae14x1",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x5339b768": {
+   "new": "0x533aae20",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x5339b778": {
+   "new": "0x533aae30",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x5339b790": {
+   "new": "0x533aae48",
+   "how": "aligned + refs 0x533aae48x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x533bec24": {
+   "new": "0x533cfa34",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x533bec28": {
+   "new": "0x533cfa38",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x5380bf50": {
+   "new": "0x53832b60",
+   "how": "aligned + refs 0x53832b60x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x53dbacc4": {
+   "new": "0x53de551c",
+   "how": "aligned + refs 0x53de551cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x53dbad84": {
+   "new": "0x53de55f0",
+   "how": "override",
+   "ok": true,
+   "why": "fork HLG photo (HDR_INTENSE_TABLE_3): addrmap aligned it with 2 agreeing references (left manual: data); same [1, 2, 3, 0] word, checked by expectWord, as its three neighbours that map ok",
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x53dbaecc": {
+   "new": "0x53de5734",
+   "how": "aligned + refs 0x53de5734x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x53dbaed4": {
+   "new": "0x53de573c",
+   "how": "aligned + refs 0x53de573cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x54049de8": {
+   "new": "0x54081348",
+   "how": "override",
+   "ok": true,
+   "why": "fork HLG photo (STD_MA_DESC_VA, Standard's neutral multi-axis block): the 1.20 module's value; 0x54081348 has 107 references that all agree in the 1.20 -> 1.21 map (the aligned guess 0x54080aa0 has one reference elsewhere)",
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x5407def4": {
+   "new": "0x540b4da0",
+   "how": "refs 0x540b4da0x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x5501adbc": {
+   "new": "0x5501c118",
+   "how": "override",
+   "ok": true,
+   "why": "fork HLG photo (STD_REC_VA, Standard's tone record in RAM): the 1.20 module's value; 0x5501c118 has 9 agreeing references in the 1.20 -> 1.21 map; the T_REC table it belongs to (0x55053780 -> 0x55054800) is the override above",
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
+   ]
+  },
+  "0x55057480": {
+   "new": null,
+   "how": "RAM, unreferenced",
+   "ok": false,
+   "files": [
+    "core/src/fw/aspect/hlg.ts"
    ]
   }
  }

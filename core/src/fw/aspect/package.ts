@@ -83,6 +83,14 @@ const FEATURE2_HDR_GAIN_MAP = 1;
 const FEATURE2_ADJ_SLOTS = 2;
 /** A following byte selects 1 = bright or 2 = balanced. */
 const FEATURE2_BRIGHT_AUTO = 4;
+/**
+ * Third feature byte: bit 7, the HLG photo mode (`hlg.ts`).
+ * @decision DEC-HLG-MARK-002: the first HLG builds (based on 0.8.12 to 0.8.15) marked HLG with bit 5 of the second byte;
+ * upstream 0.8.16 gave that bit to the learned Shadow Correction, so HLG moved to the third byte's top bit
+ * (the same on 1.11, 1.20 and 1.21). A file those builds wrote reads back as Shadow Correction, not HLG.
+ * If upstream takes this bit as well (e.g. for a fourth byte), move HLG again and say so here.
+ */
+const FEATURE3_HLG_PHOTO = 128;
 /** Second feature byte: bit 5, the learned Auto for Shadow Correction (`shadowml.ts`). */
 const FEATURE2_SHADOW_LEARN = 32;
 /** Second feature byte: bit 7, a third feature byte follows (after the bytes of bits 1 and 2). */
@@ -126,7 +134,7 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
   if (tone !== 'dark' && tone !== 'light') fail('internal', 'unknown shade tone');
   if (tone !== 'dark' && !features.ratioShade) fail('internal', 'a shade tone needs the live-view shade');
   if (features.ratioShade && specs.length === 0) fail('internal', 'the live-view shade needs an added ratio');
-  const f3 = (features.ratioShade ? FEATURE3_RATIO_SHADE : 0) | (tone === 'light' ? FEATURE3_SHADE_LIGHT : 0) | (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0);
+  const f3 = (features.ratioShade ? FEATURE3_RATIO_SHADE : 0) | (tone === 'light' ? FEATURE3_SHADE_LIGHT : 0) | (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0) | (features.hlgPhoto ? FEATURE3_HLG_PHOTO : 0);
   if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.shadowLearn || f3) {
     if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, the learned shadow correction and the third feature byte need revision 3');
     const adj = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
@@ -244,7 +252,8 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
       if (f2 & FEATURE2_MORE) {
         if (p >= rec.length) return null;
         const f3 = rec[p++];
-        if (f3 === 0 || (f3 & ~(FEATURE3_RATIO_SHADE | FEATURE3_SHADE_LIGHT | FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID)) !== 0) return null;
+        if (f3 === 0 || (f3 & ~(FEATURE3_RATIO_SHADE | FEATURE3_SHADE_LIGHT | FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID | FEATURE3_HLG_PHOTO)) !== 0) return null;
+        if (f3 & FEATURE3_HLG_PHOTO) features.hlgPhoto = true;
         if (f3 & FEATURE3_RATIO_SHADE) {
           if (count === 0) return null;
           features.ratioShade = true;
@@ -259,7 +268,7 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
         }
       }
     }
-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn) return null;
+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.hlgPhoto && !features.adjSlots && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn) return null;
   }
   for (; p < rec.length; p++) if (rec[p] !== 0) return null;
   return { specs: out, features, extraSlots, shutdownPictures };

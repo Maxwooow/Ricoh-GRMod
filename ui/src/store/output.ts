@@ -11,10 +11,11 @@ import { scheduleSave } from './families';
 import { nameProblem } from './slots';
 import { extraSpecs, hasExtraErrors, lookLayoutSpec } from './looks';
 import { menuPictures, menuReady } from './wall';
-import { GR3X_SOFT_FOCUS, adjSlotsOf, batteryOn, brightAutoOf, customGridOf, directFlashOn, exposurePreviewOn, filmGrainOn, flashTtlOn, hdrOn, videoAfOn, awbLearnOn, monoUnlockOn, shadowLearnOn, softOn } from './features';
+import { GR3X_SOFT_FOCUS, adjSlotsOf, batteryOn, brightAutoOf, customGridOf, directFlashOn, exposurePreviewOn, filmGrainOn, flashTtlOn, hdrOn, videoAfOn, awbLearnOn, monoUnlockOn, shadowLearnOn, softOn, hlgPhotoOn } from './features';
 import { hasRatioErrors, ratioShadeOn, ratioSpecs, toneLabel } from './ratios';
 import { canEject } from './photo';
 import { recordBuild, refreshCopies } from './copies';
+import { preflightCard, takeSnapshot } from './tools';
 
 // ------------------------------------------------------------------ volumes
 async function listing(root: string): Promise<card.CardListing> {
@@ -119,7 +120,8 @@ export function doneToast(root: string, volume: Volume | undefined, moved: numbe
 }
 
 /** Turn a card into a firmware card holding `file` (what is in the way, such as a start-up script of GR Mod 0.7's power-off images, is moved aside). */
-export async function firmwareToCard(volume: Volume, file: Uint8Array): Promise<number> {
+export async function firmwareToCard(volume: Volume, file: Uint8Array): Promise<number | null> {
+  if (!(await preflightCard(volume, file.length))) return null; // QoL D1: refused (toasted) before anything is moved aside or written
   return runPlan(volume.root, card.planFirmwareCard(await listing(volume.root), file, await freshStamp(volume.root), firmwareFilename()));
 }
 
@@ -140,6 +142,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const soft = !stock && softOn();
   const dateStamp = !stock && !!state.dateStamp && !!state.info.features.dateStamp;
   const monoUnlock = !stock && monoUnlockOn();
+  const hlgPhoto = !stock && hlgPhotoOn();
   const directFlash = !stock && directFlashOn();
   const hdr = !stock && hdrOn();
   const exposurePreview = !stock && exposurePreviewOn();
@@ -163,7 +166,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const pictures = noPictures ? [] : menuPictures();
   const films = filmCountChoosable() ? state.filmCount : 0;
   const lookLayout = stock ? undefined : lookLayoutSpec();
-  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && !directFlash && !hdr && !exposurePreview && !filmGrain && !shadowLearn && !battery && !customGrid && !flashTtl && !videoAf && !awbLearn && !brightAuto && adjSlots === 5 && extras.length === 0 && pictures.length === 0 && films === 0 && !lookLayout) { toast(t('nothingToDo'), 'info'); return; }
+  if (!stock && changes.length === 0 && ratios.length === 0 && !soft && !dateStamp && !monoUnlock && !hlgPhoto && !directFlash && !hdr && !exposurePreview && !filmGrain && !shadowLearn && !battery && !customGrid && !flashTtl && !videoAf && !awbLearn && !brightAuto && adjSlots === 5 && extras.length === 0 && pictures.length === 0 && films === 0 && !lookLayout) { toast(t('nothingToDo'), 'info'); return; }
   const fresh = newFirmwareWarning(sourceInfo);
   // The cannot-go-back warning is a paragraph (the dialog's lines are cut to one line each).
   // GR III / IIIx cannot take a firmware over Wi-Fi (only the GR IV's camera has that interface).
@@ -171,7 +174,11 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   // everything that leaves for a camera (also a file saved on the phone for it) is confirmed first
   const toCamera = dest.kind === 'card' || dest.kind === 'camera' || dest.kind === 'phone';
   if (stock && !(await askOfficial([t('copyOfficial')], fresh && toCamera ? fresh : undefined))) return;
-  if (toCamera && !stock) {
+  // @decision DEC-QOLB-SUMMARY-001: the summary of what the build contains is asked before every
+  // modified build, to the card, the camera, the device and a folder alike (upstream asks only for the
+  // first three). Cancel returns before the destination is chosen and before engine.build runs.
+  // Its lines are 0.8.12's short form.
+  if (!stock) {
     // The check before writing: only what changes, by name; with a count where one item holds several.
     const named = (name: string, n: number, unit: Key = 'chkCount'): string => (n > 1 ? `${name}  ·  ${t(unit, { n })}` : name);
     const lines = changes.map((c) => named(state.info?.family === 'gr3x' ? (state.slots[c.id].names[state.lang] || state.info.slots.find(s => s.id === c.id)?.defaultName || c.id) : t(('slot' + c.id) as Key), c.labels.length, 'chkChanges'));
@@ -182,6 +189,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (dateStamp) lines.push(t('navDate'));
     if (monoUnlock) lines.push(t(state.info?.family === 'gr3x' ? 'gr3xReplicaTitle' : 'navMono'));
     if (brightAuto) lines.push(t('navBrightAuto'));
+    if (hlgPhoto) lines.push(t('navHlg'));
     if (directFlash) lines.push(t('navFlash'));
     if (hdr) lines.push(t('navHdr'));
     if (exposurePreview) lines.push(t('navPreview'));
@@ -196,11 +204,14 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (extras.length) lines.push(named(t('extraTitle'), extras.length));
     if (lookLayout) lines.push(lookLayout.hidden.length ? `${t('icViewOrder')}  ·  ${t('chkHidden', { n: lookLayout.hidden.length })}` : t('icViewOrder'));
     if (pictures.length) lines.push(named(t('navWall'), pictures.length, 'chkPictures'));
-    const [title, ok] = dest.kind === 'camera' ? [t('pushTitle'), t('pushStart')] : dest.kind === 'phone' ? [t('saveTitle'), t('saveStart')] : [t('confirmTitle'), t('confirmOk')];
+    const [title, ok] = dest.kind === 'camera' ? [t('pushTitle'), t('pushStart')] : dest.kind === 'phone' ? [t('saveTitle'), t('saveStart')]
+      : dest.kind === 'card' ? [t('confirmTitle'), t('confirmOk')] : [t('exportConfirmTitle'), t('exportConfirmOk')];
     if (!(await ask(title, lines, ok, fresh ?? undefined))) return;
   }
   const target = await destination(dest);
   if (!target || state.info !== sourceInfo || state.raw !== sourceRaw || state.model !== sourceModel || state.fwBusy) return;
+  // QoL D1: a card that cannot hold the file is refused before the (seconds-long) build, not mid-write; a folder is not checked.
+  if (target.volume && !(await preflightCard(target.volume, sourceRaw.length))) return;
   try {
     let file: Uint8Array;
     if (stock) file = sourceRaw;
@@ -208,7 +219,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
       set({ busy: t('building') });
       const clarity = soft && sourceInfo.features.softFocus === 'clarity' ? [...GR3X_SOFT_FOCUS] : [];
       const built = await engine.build(changes.map((c) => c.request), ratios, clarity,
-        { ...(brightAuto ? { brightAuto } : {}), adjSoftFocus: soft && sourceInfo.features.softFocus === 'adj', dateStamp, monoUnlock, ...(directFlash ? { directFlash } : {}), ...(ratioShade ? { ratioShade, ratioShadeTone: state.ratioShadeTone } : {}), ...(hdr ? { hdrGainMap: true } : {}), ...(exposurePreview ? { exposurePreview: true } : {}), ...(shadowLearn ? { shadowLearn: true } : {}), ...(battery ? { batteryPercent: true } : {}), ...(customGrid ? { customGrid } : {}), ...(filmGrain ? { filmGrain: true } : {}), ...(flashTtl ? { flashTtl: true } : {}), ...(videoAf ? { videoAf: true } : {}), ...(awbLearn ? { awbLearn: true } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}),
+        { ...(brightAuto ? { brightAuto } : {}), adjSoftFocus: soft && sourceInfo.features.softFocus === 'adj', dateStamp, monoUnlock, ...(hlgPhoto ? { hlgPhoto } : {}), ...(directFlash ? { directFlash } : {}), ...(ratioShade ? { ratioShade, ratioShadeTone: state.ratioShadeTone } : {}), ...(hdr ? { hdrGainMap: true } : {}), ...(exposurePreview ? { exposurePreview: true } : {}), ...(shadowLearn ? { shadowLearn: true } : {}), ...(battery ? { batteryPercent: true } : {}), ...(customGrid ? { customGrid } : {}), ...(filmGrain ? { filmGrain: true } : {}), ...(flashTtl ? { flashTtl: true } : {}), ...(videoAf ? { videoAf: true } : {}), ...(awbLearn ? { awbLearn: true } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(extras.length ? { extraSlots: extras } : {}), ...(pictures.length ? { shutdownPictures: pictures } : {}),
           ...(films ? { filmCount: films } : {}), ...(lookLayout ? { lookLayout } : {}) });
       if (!Object.values(built.checks).every((v) => v === true)) throw new EngineError('selfcheck-failed', 'self-check');
       file = built.file;
@@ -225,10 +236,11 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     }
     set({ busy: t('writing') });
     let moved = 0;
-    if (target.volume) moved = await firmwareToCard(target.volume, file);
+    if (target.volume) { const m = await firmwareToCard(target.volume, file); if (m === null) { set({ busy: undefined }); void refreshVolumes(); return; } moved = m; }
     else await runPlan(target.root, [{ op: 'write', path: [firmwareFilename()], data: file }]);
     set({ busy: undefined });
     doneToast(target.root, target.volume, moved, firmwareFilename());
+    if (!stock) void takeSnapshot('build');
   } catch (e) { set({ busy: undefined }); fail(e); }
   void refreshVolumes();
 }

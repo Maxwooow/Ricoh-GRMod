@@ -2,7 +2,7 @@ import type { CameraModel, LangCode } from '@grmod/core';
 import { engine, EngineError } from '../engine';
 import { host } from '../host';
 import { setUiLangPref, t, uiLangPref } from '../i18n';
-import { ExtrasView, Page, State, TOUR_IDS, TourId, cameraLang, fail, isGr3, set, slotOf, state, supportedList, toast } from './core';
+import { ExtrasView, Page, State, TOUR_IDS, TourId, cameraLang, fail, isGr3, set, slotOf, state, supportedList, toast, isBadFirmwareCode } from './core';
 import { LEGACY_FW_GROUP_NAME, cancelSave, enterFamily, familyOf, fwGroupOf, fwKey, keptFirmware, leaveFamily, saveProject, scheduleSave } from './families';
 import { allSlotKeys, renderIcon, runPreset } from './slots';
 import { encodeWall } from './wall';
@@ -57,16 +57,16 @@ export function setPage(page: Page): void {
 }
 export async function setAppLanguage(v: '' | 'zh' | 'en'): Promise<void> {
   if (v === uiLangPref()) return;
-  setUiLangPref(v, false);
+  setUiLangPref(v, false); // not reloaded here: the work is saved first
   try { sessionStorage.setItem('grmod.uiLangAdopted', v); } catch { /* none */ }
   cancelSave();
   if (host.available && state.ready) await saveProject();
-  window.setTimeout(() => window.location.reload(), 60);
+  if (typeof window !== 'undefined') window.setTimeout(() => window.location.reload(), 60);
 }
 export function langOf(doc: { uiLang?: string }): { lang: LangCode; langAuto: boolean } {
   // The app language is kept by the page (localStorage) and in the saved work: the desktop page's storage goes with
   // its port, so a saved choice the page has lost is taken back (once: the page reloads in it).
-  const saved = doc.uiLang === 'zh' || doc.uiLang === 'en' || doc.uiLang === '' ? doc.uiLang : undefined;
+  const saved = doc.uiLang === 'zh' || doc.uiLang === 'en' ? doc.uiLang : doc.uiLang === '' || doc.uiLang === 'auto' ? '' : undefined; // 'auto': an explicit Follow system
   if (saved !== undefined && saved !== uiLangPref()) {
     let reloadOnce = false;
     try { reloadOnce = sessionStorage.getItem('grmod.uiLangAdopted') !== saved; sessionStorage.setItem('grmod.uiLangAdopted', saved); } catch { /* no storage: no reload */ }
@@ -139,7 +139,7 @@ export async function openFirmware(raw: Uint8Array, name: string, persist: boole
   } catch (e) {
     set({ fwBusy: false, info: undefined, raw: undefined, fwName: undefined });
     scheduleSave();
-    if (e instanceof EngineError && (e.code === 'unsupported-firmware' || e.code.startsWith('bad-') || e.code === 'too-short')) toast(t('badFirmware', { list: supportedList() }), 'error');
+    if (e instanceof EngineError && isBadFirmwareCode(e.code)) toast(t('badFirmware', { list: supportedList() }), 'error');
     else fail(e);
     return false;
   }

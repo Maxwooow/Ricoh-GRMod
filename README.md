@@ -48,6 +48,7 @@ Use only firmware intended for your camera model and a base version listed above
 - **Monochrome looks:** use supported GR IV Monochrome looks on colour GR IV models.
 - **Flash enhancements:** Direct Flash (guide-number-based flash exposure) and, on GR IV 1.20 / 1.21, pre-flash (TTL) metering for a GF-2 in the two red-eye flash modes.
 - **HDR gain maps:** create JPEGs with brighter highlights on compatible HDR displays.
+- **HLG HDR photo:** turn the factory HDR Tone look into in-camera BT.2100 HLG capture on GR IV firmware 1.21, 1.20 and 1.11; it cannot be combined with the HDR gain map. On 1.21 it is the 1.20 code with 1.21's addresses, and it has been tried on a camera on 1.21. See [`docs/HLG_PHOTO.md`](docs/HLG_PHOTO.md).
 - **More ADJ options:** add ADJ lever slots on supported GR IV firmware.
 - **Battery percentage:** show the charge as a number in steps of 10 % instead of bars, on the GR IV (firmware 1.11, 1.20 and 1.21).
 - **Exposure preview and display options:** access additional preview and automatic screen-brightness settings on supported GR IV firmware.
@@ -92,6 +93,7 @@ You can restore the official firmware from the Image Control page or the firmwar
 - [Mobile app guide](mobile/README.md)
 - [Desktop shell guide](shell/README.md)
 - [Automatic screen brightness](docs/bright-auto.md)
+- [HLG HDR photo](docs/HLG_PHOTO.md) ([中文](docs/HLG_PHOTO_ZH.md))
 - [Development guide](docs/development.md)—tests, the generated files, adding a firmware release
 - [Releasing](docs/releasing.md)—version numbers, packages, signing, publishing
 - [Technical notes and release archive](docs/technical-notes.md)—implementation details, emulator checks, firmware research, and earlier release notes

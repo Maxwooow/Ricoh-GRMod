@@ -6,13 +6,14 @@ import { Ico, Switch } from './components';
 import { host, HostError } from './host';
 import type { ReleaseNote, UpdateInfo } from './host';
 import { Markdown } from './markdown';
-import { t } from './i18n';
+import { t, uiLangCode } from './i18n';
 import type { Key } from './i18n';
 import { toast } from './store';
 import builtinCredits from '../../credits.json';
 
 const SETTINGS_KEY = 'update-settings.json';
-const lang = (navigator.language || 'zh').toLowerCase().startsWith('zh') ? 'zh' : 'en';
+/** Release notes and credits follow the app's interface language (English unless chosen otherwise). */
+const lang = (): 'zh' | 'en' => uiLangCode();
 
 type Phase = 'idle' | 'checking' | 'error' | 'latest' | 'available' | 'downloading' | 'installing';
 interface UpdState { open: boolean; phase: Phase; info?: UpdateInfo; received: number; total: number; auto: boolean; message?: string }
@@ -20,7 +21,7 @@ interface UpdState { open: boolean; phase: Phase; info?: UpdateInfo; received: n
 let st: UpdState = { open: false, phase: 'idle', received: 0, total: 0, auto: true };
 const subs = new Set<() => void>();
 function put(patch: Partial<UpdState>): void { st = { ...st, ...patch }; subs.forEach((f) => f()); }
-function useUpd(): UpdState { return useSyncExternalStore((f) => { subs.add(f); return () => subs.delete(f); }, () => st); }
+function useUpd(): UpdState { return useSyncExternalStore((f) => { subs.add(f); return () => subs.delete(f); }, () => st, () => st); }
 
 async function loadSettings(): Promise<boolean> {
   try {
@@ -129,7 +130,7 @@ function UpdateDialog() {
   const busy = s.phase === 'downloading' || s.phase === 'installing';
   const close = (): void => { if (!busy) put({ open: false, phase: info?.available ? 'available' : 'idle' }); force((n) => n + 1); };
   const percent = s.total > 0 ? Math.min(100, (s.received / s.total) * 100) : 0;
-  const notes = info?.notes ? info.notes[lang] || info.notes.zh || info.notes.en || '' : '';
+  const notes = info?.notes ? info.notes[lang()] || info.notes.en || info.notes.zh || '' : '';
   const full = info?.available ? wnRel.find((r) => r.version === info.latest) : undefined;
   const reason = info && !info.canInstall && info.reason ? REASONS[info.reason] : undefined;
 
@@ -197,7 +198,7 @@ interface WnState { open: boolean; from?: string; loading: boolean; error: boole
 let wn: WnState = { open: false, loading: false, error: false, releases: [] };
 const wnSubs = new Set<() => void>();
 function wnPut(patch: Partial<WnState>): void { wn = { ...wn, ...patch }; wnSubs.forEach((f) => f()); }
-function useWn(): WnState { return useSyncExternalStore((f) => { wnSubs.add(f); return () => wnSubs.delete(f); }, () => wn); }
+function useWn(): WnState { return useSyncExternalStore((f) => { wnSubs.add(f); return () => wnSubs.delete(f); }, () => wn, () => wn); }
 
 async function loadNotes(): Promise<void> {
   wnPut({ loading: true, error: false });
@@ -233,7 +234,7 @@ function WhatsNewDialog() {
   const list = s.releases.filter((r) => r.version === current || !Newer(r.version, current));
   const shown = list.find((r) => r.version === s.pick) || list[0];
   // Before the release list arrives (or when it cannot), the signed notes of the last check.
-  const fallback = st.info?.latest === current && st.info.notes ? st.info.notes[lang] || st.info.notes.zh || st.info.notes.en || '' : '';
+  const fallback = st.info?.latest === current && st.info.notes ? st.info.notes[lang()] || st.info.notes.zh || st.info.notes.en || '' : '';
   let body;
   if (s.loading && !list.length) body = <div className="fw-rel idle"><span className="spinner small" /><span className="muted">{t('wnLoading')}</span></div>;
   else if (shown) body = <Markdown text={shown.body || t('wnNone')} skip={SKIP_SECTIONS} onLink={() => { void host.releasePage(shown.version); }} />;
@@ -319,25 +320,25 @@ async function loadCredits(): Promise<void> {
 
 function pick(m: Record<string, string> | undefined): string {
   if (!m) return '';
-  return m[lang] || (lang === 'zh' ? m['zh-CN'] || m['zh-TW'] : '') || m.en || m.zh || Object.values(m)[0] || '';
+  return m[lang()] || (lang() === 'zh' ? m['zh-CN'] || m['zh-TW'] : '') || m.en || m.zh || Object.values(m)[0] || '';
 }
 
 function Credits() {
-  const c = useSyncExternalStore((f) => { creditSubs.add(f); return () => creditSubs.delete(f); }, () => credits);
+  const c = useSyncExternalStore((f) => { creditSubs.add(f); return () => creditSubs.delete(f); }, () => credits, () => credits);
   useEffect(() => { void loadCredits(); }, []);
   // "more below": the list fades out at the bottom while it can still be scrolled
   const box = useRef<HTMLDivElement>(null);
   const edge = (): void => { const el = box.current; if (el) el.classList.toggle('more', el.scrollTop + el.clientHeight < el.scrollHeight - 2); };
   useEffect(edge, [c]);
   if (!c) return null;
-  const sep = lang === 'zh' ? '；' : '; ';
+  const sep = lang() === 'zh' ? '；' : '; ';
   return (
     <div className="wn-credits" ref={box} onScroll={edge}>
       <div className="small wn-credits-title">{t('creditsTitle')}</div>
       {c.sections.map((s, i) => (
         <p key={i} className="muted small wn-about">
-          <b>{pick(s.title)}{lang === 'zh' ? '：' : ': '}</b>
-          {s.people.map((p) => { const n = pick(p.note); return n ? (lang === 'zh' ? `${p.name}（${n}）` : `${p.name} (${n})`) : p.name; }).join(sep)}
+          <b>{pick(s.title)}{lang() === 'zh' ? '：' : ': '}</b>
+          {s.people.map((p) => { const n = pick(p.note); return n ? (lang() === 'zh' ? `${p.name}（${n}）` : `${p.name} (${n})`) : p.name; }).join(sep)}
         </p>
       ))}
     </div>

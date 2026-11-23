@@ -6,6 +6,8 @@ import { t } from '../i18n';
 import { addWallFiles, loadFirmwareFile, moveWall, openCrop, removeWall, useStore, setWallName, wallMax, wallMenuProblem } from '../store';
 import type { WallItem } from '../store';
 import { isFirmware, isImage } from './files';
+import { BUILT_IN_PICTURES, builtInFile, builtInFontsReady, drawBuiltIn } from '../poweroff-defaults';
+import type { BuiltInPicture } from '../poweroff-defaults';
 
 // ---------------------------------------------------------------- power-off images
 function WallCard({ w, index }: { w: WallItem; index: number }) {
@@ -73,7 +75,35 @@ export function fitTiles(n: number, w: number, h: number): { cols: number; tile:
   return best;
 }
 
+/** One built-in design as a button: its picture (drawn at full size, shown small) and its name. */
+function BuiltInThumb({ p, full }: { p: BuiltInPicture; full: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let live = true;
+    void builtInFontsReady().then(() => { if (live && ref.current && !ref.current.firstChild) ref.current.append(drawBuiltIn(p)); });
+    return () => { live = false; };
+  }, [p]);
+  return (
+    <button type="button" className="builtin-thumb" disabled={full} title={p.name}
+      onClick={() => { void builtInFile(p).then((f) => addWallFiles([f])); }}>
+      <div className="builtin-pic" ref={ref} />
+      <span className="small">{p.name}</span>
+    </button>
+  );
+}
+
+/** The built-in power-off pictures (poweroff-defaults.ts): a click adds one like a chosen file. */
+function BuiltInStrip({ full }: { full: boolean }) {
+  return (
+    <div className="builtin-strip">
+      <span className="muted small">{full ? t('wallBuiltInFull') : t('wallBuiltInHint')}</span>
+      <div className="builtin-row">{BUILT_IN_PICTURES.map((p) => <BuiltInThumb key={p.id} p={p} full={full} />)}</div>
+    </div>
+  );
+}
+
 export function WallpaperPage() {
+  const [builtIn, setBuiltIn] = useState(false);
   const wall = useStore((s) => s.wall);
   const info = useStore((s) => s.info);
   const max = wallMax();
@@ -87,11 +117,13 @@ export function WallpaperPage() {
         <h1>{t('navWall')}</h1>
         {info && (
           <div className="head-right">
+            <button type="button" className={`btn ghost small ${builtIn ? 'on' : ''}`} aria-pressed={builtIn} onClick={() => setBuiltIn((v) => !v)}>{Ico.image}<span>{t('wallBuiltIn')}</span></button>
             {wall.length > 0 && <span className={`chip ${wall.length > max ? 'warn' : ''}`}>{wall.length}/{max}</span>}
           </div>
         )}
       </header>
       {!info && <FirmwareHero />}
+      {info && builtIn && <BuiltInStrip full={wall.length >= max} />}
       {info && (
         <div className="wall-fit" ref={ref} data-tour-page="wall">
           {fit.tile > 0 && (

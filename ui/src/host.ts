@@ -85,6 +85,8 @@ const desktopHost = {
     catch (e) { if (e instanceof HostError && e.code === 'not-found') return null; throw e; }
   },
   async storeSet(key: string, data: Uint8Array | string): Promise<void> { await call('PUT', '/api/store/' + key, (typeof data === 'string' ? new TextEncoder().encode(data) : data) as unknown as BodyInit); },
+  /** Every key in the store with its size (the host's GET /api/store). */
+  async storeList(): Promise<{ key: string; size: number }[]> { return ((await (await call('GET', '/api/store')).json()) as { keys: { key: string; size: number }[] }).keys || []; },
   async storeDel(key: string): Promise<void> { await call('DELETE', '/api/store/' + key); },
   // ---- files that were moved aside on a card, and their backups on the computer
   async parked(volumeId: string): Promise<ParkedEntry[]> { return ((await (await call('GET', '/api/parked?volume=' + q(volumeId))).json()) as { entries: ParkedEntry[] }).entries || []; },

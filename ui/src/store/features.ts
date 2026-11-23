@@ -1,7 +1,7 @@
 import { CAMERA_GRID, GRID_LINE_COUNT, isCameraGrid } from '@grmod/core';
 import type { ClarityChange, CustomGrid, SoftFocusRequest, SoftFocusStrength } from '@grmod/core';
 import { t } from '../i18n';
-import { State, set, state } from './core';
+import { State, set, state, isGr3 } from './core';
 import { scheduleSave } from './families';
 import { hasLookLayout } from './looks';
 
@@ -14,7 +14,7 @@ import { hasLookLayout } from './looks';
 export function setSoft(soft: boolean): void { set({ soft }); scheduleSave(); }
 export function softOn(s: State = state): boolean { return !!s.soft; }
 
-// ------------------------------------------------------------------ date imprint, monochrome looks
+// ------------------------------------------------------------------ date imprint, monochrome looks, HLG photo
 /** Date imprint: the firmware gets the imprint and its menu (Shooting Assist > Date Imprint); it starts off. */
 export function setDateStamp(dateStamp: boolean): void {
   if (dateStamp && !state.info?.features.dateStamp) return;
@@ -25,7 +25,16 @@ export function setMonoUnlock(monoUnlock: boolean): void {
   if (monoUnlock && !state.info?.features.monoUnlock) return;
   set({ monoUnlock }); scheduleSave();
 }
-export function monoUnlockOn(s: State = state): boolean { return !!s.monoUnlock && s.model !== 'MONO' && !!s.info?.features.monoUnlock; }
+export function monoUnlockOn(s: State = state): boolean {
+  if (state.info?.family === 'gr3x') return !!s.monoUnlock && (state.info?.features.monoUnlock ?? false);
+  return !!s.monoUnlock && s.model !== 'MONO';
+}
+/** HLG HDR photo output on slot 22 (HDR Tone). */
+/** HLG photo and the HDR gain map exclude each other (see `installExtensions`): turning one on turns the other off. */
+export function setHlgPhoto(hlgPhoto: boolean): void { set(hlgPhoto ? { hlgPhoto, hdr: false } : { hlgPhoto }); scheduleSave(); }
+export function hlgPhotoOn(s: State = state): boolean {
+  return !!s.hlgPhoto && s.model !== 'MONO' && !isGr3(s.model) && !!s.info?.features.hlgPhoto;
+}
 export const GR3X_SOFT_FOCUS: readonly SoftFocusRequest[] = [
   { level: -1, strength: 'weak' }, { level: -2, strength: 'medium' }, { level: -3, strength: 'strong' },
 ];
@@ -41,7 +50,7 @@ export function setBrightAuto(brightAuto: State['brightAuto']): void {
 export function brightAutoOf(s: State = state): State['brightAuto'] { return s.info?.features.brightAuto ? s.brightAuto : false; }
 export function setHdr(hdr: boolean): void {
   if (hdr && !state.info?.features.hdrGainMap) return;
-  set({ hdr }); scheduleSave();
+  set(hdr ? { hdr, hlgPhoto: false } : { hdr }); scheduleSave();
 }
 export function hdrOn(s: State = state): boolean { return !!s.hdr && !!s.info?.features.hdrGainMap; }
 export function setExposurePreview(exposurePreview: boolean): void {
@@ -118,7 +127,7 @@ export function setAdjSlots(adjSlots: number): void {
 /** The ADJ lever slots the build gets (5: none added). */
 export function adjSlotsOf(s: State = state): number { const max = s.info?.features.maxAdjSlots ?? 5; return s.adjSlots > 5 && s.adjSlots <= max ? s.adjSlots : 5; }
 /** Any addition that is not a slot or a ratio. */
-export function extrasOn(s: State = state): boolean { return !!brightAutoOf(s) || exposurePreviewOn(s) || filmGrainOn(s) || flashTtlOn(s) || videoAfOn(s) || awbLearnOn(s) || softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hasLookLayout(s) || directFlashOn(s) || adjSlotsOf(s) > 5 || hdrOn(s) || batteryOn(s) || !!customGridOf(s) || shadowLearnOn(s); }
+export function extrasOn(s: State = state): boolean { return !!brightAutoOf(s) || exposurePreviewOn(s) || filmGrainOn(s) || flashTtlOn(s) || videoAfOn(s) || awbLearnOn(s) || softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hlgPhotoOn(s) || hasLookLayout(s) || directFlashOn(s) || adjSlotsOf(s) > 5 || hdrOn(s) || batteryOn(s) || !!customGridOf(s) || shadowLearnOn(s); }
 const MINUS = '\u2212';
 const strengthLabel = (st: SoftFocusStrength | 'custom'): string => t(st === 'weak' ? 'softWeak' : st === 'medium' ? 'softMedium' : st === 'strong' ? 'softStrong' : 'softCustom');
 /** "−2 weak / −3 medium" (−1 first), for confirmations and the copies page. */

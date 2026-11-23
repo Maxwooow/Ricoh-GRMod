@@ -357,7 +357,7 @@ diff --git a/core/src/fw/gr4v120/aspect/brightauto.ts b/core/src/fw/gr4v120/aspe
 diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/build.ts
 --- a/core/src/fw/gr4v120/aspect/build.ts
 +++ b/core/src/fw/gr4v120/aspect/build.ts
-@@ -32,12 +32,17 @@
+@@ -32,17 +32,22 @@
  import { installDirectFlashMenu } from './directflash-menu';
  import { DATESTAMP_BYTE, installDateStamp, lookNames } from './datestamp';
  import { HDR_SWITCH_BYTE, installHdrGainMap } from './hdrgain';
@@ -366,6 +366,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +import { exposurePreviewStillLines, installExposurePreviewAdj, installExposurePreviewAssets, installExposurePreviewLists, installExposurePreviewLive } from './exposure';
  import { installMonoUnlock } from './monounlock';
  import { installBrightAuto } from './brightauto';
++import { installHlgPhoto } from './hlg';
  import { installShadowLearn } from './shadowml';
 +import { installFilmGrain } from './grain';
 +import { installFlashTtl } from './flttl';
@@ -377,7 +378,12 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  import type { HalationLook } from './halation';
  import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
  import type { LookLayout } from './looks';
-@@ -49,25 +54,30 @@
+ import type { ExtraSlotSpec } from './slots';
+-import { installHlgPhoto } from './hlg';
+ import { installShutdownMenu } from './shutdown';
+ import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
+ import { installAdjSlots } from './adjslots';
+@@ -50,25 +55,30 @@
  import { installCustomGrid, isCameraGrid, validCustomGrid } from './grid';
  import type { CustomGrid } from './grid';
  import { installRatioShade } from './shade';
@@ -416,7 +422,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  export const LANGUAGES = 21;
  const ROW_STRIDE = TEXT_CAPACITY * 4;
  const NATIVE_ICON_CATALOG = adr(0x55014280);
-@@ -90,10 +100,10 @@
+@@ -91,10 +101,10 @@
    return id;
  }
  
@@ -430,7 +436,16 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  }
  
  export interface RatioSpec {
-@@ -155,11 +165,11 @@
+@@ -135,8 +145,6 @@
+   monoUnlock?: boolean;
+   /** Added Image Control slots, 1 to 20 (see `slots.ts`; up to 0.8.1 at most 6). */
+   extraSlots?: readonly ExtraSlotSpec[];
+-  /** In-camera direct BT.2100 HLG HDR photo capture on HDR Tone slot (see `hlg.ts`). */
+-  hlgPhoto?: boolean;
+   /** Image Control menu order and hidden looks (see `looks.ts`). */
+   lookLayout?: LookLayout;
+   /**
+@@ -158,12 +166,14 @@
    /** ADJ lever slots, 6 to 8 (see `adjslots.ts`); absent or 5: the camera's five. */
    adjSlots?: number;
    /**
@@ -443,9 +458,12 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 -  /** 0.8.11, GR IV 1.20 only (not built on 1.11): soft focus (with `adjSoftFocus`) also a line of the still menu. */
 +  /** 0.8.11: soft focus (with `adjSoftFocus`) also a line of the still menu (`exposure.ts`). */
    softFocusMenu?: boolean;
++  /** In-camera direct BT.2100 HLG HDR photo capture on HDR Tone slot (see `hlg.ts`). */
++  hlgPhoto?: boolean;
    /** The battery icon shows the charge in steps of 10 % instead of the bars (see `battery.ts`). */
    batteryPercent?: boolean;
-@@ -174,13 +184,13 @@
+   /** Which lines the camera's 3x3 and 4x4 grid styles draw, each on or off (see `grid.ts`); never the camera's own grids. */
+@@ -177,13 +187,13 @@
    ratioShadeTone?: ShadeTone;
    /** A learned Auto for Shadow Correction (see `shadowml.ts`); GR IV 1.11, 1.20 and 1.21. Off unless asked for. */
    shadowLearn?: boolean;
@@ -463,7 +481,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    awbLearn?: boolean;
  }
  
-@@ -191,11 +201,22 @@
+@@ -194,11 +204,22 @@
    dateStampDiag?: boolean;
    /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
    directFlashDiag?: boolean;
@@ -487,7 +505,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  export interface AspectResult {
    revision: BuildRevision;
-@@ -358,7 +379,7 @@
+@@ -361,7 +382,7 @@
    for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
    const rowsStart = TEXT_CATALOG + 0x100;
    const end = rowsStart + LANGUAGES * ROW_STRIDE;
@@ -496,7 +514,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    patch.extendTo(end - BASE);
    patch.write(ICON_CATALOG, icons);
    const relocated: number[] = [];
-@@ -370,8 +391,15 @@
+@@ -373,8 +394,15 @@
    // language directory themselves.
    patch.setWord(adr(0x534013f8), movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
    patch.setWord(adr(0x534013fc), movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
@@ -514,7 +532,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    }
    for (const [low, high] of [[adr(0x535967cc), adr(0x535967d0)], [adr(0x53595db4), adr(0x53595dbc)]] as const) {
      patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
-@@ -402,7 +430,10 @@
+@@ -405,7 +433,10 @@
  // --------------------------------------------------------------------------------------------
  // crop_icons.py
  
@@ -526,7 +544,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
    const parts: Uint8Array[] = [iconbin];
-@@ -494,7 +525,7 @@
+@@ -497,7 +528,7 @@
    // Complete language rows again, now wide enough for the new names; every original entry is kept.
    let priorColumns = TEXT_CAPACITY;
    for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
@@ -535,7 +553,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    for (const id of allIds) upper = Math.max(upper, textId(id));
    const columns = Math.max(priorColumns, upper + 1);
    const catalogs: Uint8Array[] = [];
-@@ -623,7 +654,7 @@
+@@ -626,7 +657,7 @@
    p.hook(adr(0x538b40ec), out);
    out = `push {r0-r3,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r0,r3;bne #${adrHEX(0x538B41CC)};b #${p.target(adr(0x538b41b4))};`;
    p.hook(adr(0x538b41b4), out);
@@ -544,7 +562,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x53664430), out);
    // Both callers select the cropped window only for their original 2..5 range; a computed window
    // is invisible if selector 0 copies the untouched full canvas instead.
-@@ -686,7 +717,7 @@
+@@ -689,7 +720,7 @@
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
    out += adrText('cmp r2,#5;beq #0x5367298C;b #0x536728E8;');
@@ -553,7 +571,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x536728e4), out);
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
-@@ -707,8 +738,8 @@
+@@ -710,8 +741,8 @@
      out = '';
      for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
      out += `bic ip,ip,#4;b #${resume};custom:`;
@@ -564,7 +582,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      out += adrText('ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;');
      p.hook(entry, out);
    }
-@@ -794,7 +825,7 @@
+@@ -797,7 +828,7 @@
    const get = p.emit(lookup + 'mov r0,#0;bx lr;');
    // The native code at 0x53726698 divides s15 by the crop magnification; the other branch writes
    // it directly. Both contracts are kept.
@@ -573,7 +591,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x537266e8), code);
    // r8 / sb are the source dimensions: exact known sizes first, then fit the ratio for anything else.
    code = `push {r0,r4-r7,r10,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;beq old;mov r4,r0;mov r5,r8;mov r6,sb;`;
-@@ -928,7 +959,7 @@
+@@ -931,7 +962,7 @@
  function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
    const priorSave = branchTarget(adr(0x533f3674), patch.word(adr(0x533f3674)));
    const priorLoad = branchTarget(adr(0x533f3254), patch.word(adr(0x533f3254)));
@@ -582,7 +600,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    expectWord(patch, adr(0x5381d6bc), 0xe1a0c00d);
    // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
    const rects: Uint8Array[] = [];
-@@ -1066,13 +1097,24 @@
+@@ -1069,13 +1100,24 @@
   * features this is `installRatios`, byte for byte. With features the revision is 3.
   */
  export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
@@ -600,15 +618,15 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
    const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
    const adjSlots = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
--  const extra = !!features.brightAuto || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade || !!features.shadowLearn;
-+  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn;
+-  const extra = !!features.brightAuto || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.hlgPhoto || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade || !!features.shadowLearn;
++  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.hlgPhoto || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn;
    if (features.customGrid && (!validCustomGrid(features.customGrid) || isCameraGrid(features.customGrid))) fail('internal', 'a custom grid must differ from the camera’s');
    if (features.ratioShade && ratios.length === 0) fail('internal', 'the live-view shade needs an added ratio');
 +  if (features.ratioShadeTone !== undefined && features.ratioShadeTone !== 'dark') fail('bad-edit', 'the live-view shade is chosen in the camera menu on this firmware');
-   if (extra) revision = 3;
-   if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
-   if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
-@@ -1083,8 +1125,12 @@
+   // @decision PR #5 port: the HLG photo mode and the HDR gain map are exclusive. HLG writes an HLG
+   // (BT.2100) primary image tagged by an APP2 ICC profile; the gain map assumes an SDR base image and
+   // rewrites the same JPEG writer's header blocks. Together they would make a JPEG no viewer reads right.
+@@ -1090,8 +1132,12 @@
    });
    if (features.brightAuto !== undefined && ![true, false, 'bright', 'balanced'].includes(features.brightAuto)) fail('bad-edit', 'brightAuto must be boolean, bright or balanced');
    if (features.shadowLearn !== undefined && typeof features.shadowLearn !== 'boolean') fail('bad-edit', 'shadowLearn must be boolean');
@@ -623,7 +641,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    const patch = new Patch(rtos);
    const ramCopy = new DataView(patch.read(BASE + 0x450, 12).buffer);
    if (ramCopy.getUint32(0, true) !== RAM.source || ramCopy.getUint32(4, true) !== RAM.destination || ramCopy.getUint32(8, true) !== RAM.length) {
-@@ -1098,27 +1144,49 @@
+@@ -1105,27 +1151,50 @@
      const menu = installMenu(patch, ratios, installed.ids);
      const { p, get, scale } = buildGeometry(patch, ratios);
      installDevelop(p, scale, ratios);
@@ -660,6 +678,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +    icons = installExposurePreviewAssets(patch, icons, lineOpts);
 +    stillLines.push(...exposurePreviewStillLines(patch, lineOpts));
 +  }
++  if (features.hlgPhoto) icons = installHlgPhoto(patch, icons);
 +  if (features.ratioShade) stillLines.push(shadeStillLine(patch));
    if (features.dateStamp) {
      const fixed = test.dateStampFixed;
@@ -678,7 +697,15 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    // Halation: added slots that have it, Cinema slots with a preset that are asked to.
    const halation: HalationLook[] = [];
    slots.forEach((x, k) => {
-@@ -1146,19 +1214,41 @@
+@@ -1138,7 +1207,6 @@
+     const colour = styleColour(patch, style);
+     halation.push({ style, light: colour.ownCurves ? halationLight(colour.curves, colour.postQ9) : halationLight() });
+   }
+-  if (features.hlgPhoto) icons = installHlgPhoto(patch, icons);
+   // Last: the added slots compose with the monochrome looks' visibility check.
+   if (slots.length > 0) icons = installExtraSlots(patch, icons, slots, { stashLook: (!!features.dateStamp && !!features.guard) || halation.length > 0, layout: features.lookLayout });
+   else if (features.lookLayout) {
+@@ -1154,19 +1222,41 @@
    if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
    // The HDR line's list: after the additions that copy the list table first.
    if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
@@ -722,9 +749,9 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +  if (features.batteryPercent || features.videoAf || features.awbLearn) extendBatteryZeroFill(patch);
    if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
    if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
--  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true, ...(features.ratioShadeTone && features.ratioShadeTone !== 'dark' ? { ratioShadeTone: features.ratioShadeTone } : {}) } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}) } };
+-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(features.hlgPhoto ? { hlgPhoto: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true, ...(features.ratioShadeTone && features.ratioShadeTone !== 'dark' ? { ratioShadeTone: features.ratioShadeTone } : {}) } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}) } };
 -}
-+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}), ...(features.videoAf ? { videoAf: true } : {}), ...(features.awbLearn ? { awbLearn: true } : {}) } };
++  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(features.hlgPhoto ? { hlgPhoto: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}), ...(features.videoAf ? { videoAf: true } : {}), ...(features.awbLearn ? { awbLearn: true } : {}) } };
 +}
 diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/aspect/datestamp-menu.ts
 --- a/core/src/fw/gr4v120/aspect/datestamp-menu.ts
@@ -2362,16 +2389,16 @@ diff --git a/core/src/fw/gr4v120/aspect/halation-ui.ts b/core/src/fw/gr4v120/asp
   *    value 0x531CDBD8, setter 0x531CDF1C, row items 0x531CDCD8 / 0x531CDD64, subtitle 0x531CDC98,
   *    title 0x531CD56C, backup 0x531CDEFC (0x533D03D0), cancel 0x531CD2B0 (0x533D0538).
   * RAW development (RawDevelopmentImageControlDetailSetController, the look asked from the model):
-@@ -34,7 +35,7 @@
- import { assembleWords, branchWord } from './arm';
+@@ -35,7 +36,7 @@
  import { FirmwareError } from '../../types';
  import { Patch, expectWord } from './build';
+ import { HDR_SCALE_ICON_ID } from './hlg';
 -import { adr, adrHex, adrText } from '../target';
 +import { adr, adrHex, adrText, byRelease } from '../target';
  
  function fail(code: string, message: string): never {
    throw new FirmwareError(code, message);
-@@ -92,12 +93,12 @@
+@@ -93,12 +94,12 @@
  export const HAL_SAVE = adr(0x5583902c);
  
  /** Text of Grain Effect's Strength ("Intensity"), its Size, and the icon of Grain Effect's Strength row. */
@@ -2389,7 +2416,7 @@ diff --git a/core/src/fw/gr4v120/aspect/halation-ui.ts b/core/src/fw/gr4v120/asp
  
  /** Current Toning of the selected look (shooting): 0x533CC288 (no arguments). */
  const SHOOT_CUR = adr(0x533cc288);
-@@ -170,17 +171,17 @@
+@@ -171,17 +172,17 @@
    // Slider: Grain Effect's Off / On slider (0x531CA030; its default, Grain off, is Off).
    hook(p, adr(0x531c904c), 0xe1a0c00d, `ldrb r1,[r0,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;bne #${adrHex(0x531ca030)};mov ip,sp;b #${adrHex(0x531c9050)}`, 'halation: Off / On slider');
    // Current slider position (r5 the controller): Off / On.
@@ -2410,7 +2437,7 @@ diff --git a/core/src/fw/gr4v120/aspect/halation-ui.ts b/core/src/fw/gr4v120/asp
      `push {r0,r1};ldrb r1,[r4,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;pop {r0,r1};beq tone
       push {r0,r1};bl #${SHOOT_CUR};mov r1,#0;mov r2,r6;bl #${put};mov r1,r0;pop {r0,r2};bl #${SHOOT_SET};b #${adrHex(0x531ccc34)}
       tone:${addr('r3', adr(0x53de5524))};ldrb r1,[r3,r6];bl #${SHOOT_SET};b #${adrHex(0x531ccc34)}`, 'halation: switch on / off');
-@@ -215,32 +216,32 @@
+@@ -216,32 +217,32 @@
    // ---------------------------------------------------------------- shooting: the submenu
    submenu(p, o, field, put, {
      title: adr(0x531cd578), subtitle: adr(0x531cdcc8),
@@ -2452,7 +2479,7 @@ diff --git a/core/src/fw/gr4v120/aspect/halation-ui.ts b/core/src/fw/gr4v120/asp
      `${rawHal};cmp ip,#0;beq tone
       mov r0,r6;bl #${RAW_GET};mov r1,#0;mov r2,r5;bl #${put};mov r1,r0;mov r0,r6;bl #${RAW_SET};b #${adrHex(0x531ab2e8)}
       tone:${addr('r3', adr(0x53de5524))};mov r0,r6;ldrb r1,[r3,r5];bl #${RAW_SET};b #${adrHex(0x531ab2e8)}`, 'halation: switch on / off (RAW development)');
-@@ -261,15 +262,15 @@
+@@ -262,15 +263,15 @@
    // ---------------------------------------------------------------- RAW development: the submenu
    submenu(p, o, field, put, {
      title: adr(0x531abfa4), subtitle: adr(0x531ac72c),
@@ -2474,7 +2501,7 @@ diff --git a/core/src/fw/gr4v120/aspect/halation-ui.ts b/core/src/fw/gr4v120/asp
      `bl #${adrHex(0x53381aa8)};${flagTest};beq done;${RAW_MODEL};${addr('r1', HAL_SAVE)};ldr r1,[r1];bl #${RAW_SET};done:b #${adrHex(0x531abdd4)}`, 'halation: cancel puts the setting back (RAW development)');
  }
  
-@@ -293,7 +294,7 @@
+@@ -294,7 +295,7 @@
  function submenu(p: Patch, o: HalationUiOptions, field: number, put: number, s: SubmenuSites): void {
    // In the prologue: ip still holds the caller's sp (`sub fp,ip,#4` follows), so only r1 is used
    // (test 043 used ip here: fp went wrong and the camera froze on entering the submenu).
@@ -2483,18 +2510,16 @@ diff --git a/core/src/fw/gr4v120/aspect/halation-ui.ts b/core/src/fw/gr4v120/asp
    hook(p, s.subtitle, 0xe1d310b4,
      `ldrh r1,[r3,#4];${flagTest};beq done;movw ip,#${TEXT_SIZE};cmp r1,ip;movweq r1,#${TEXT_STRENGTH};movwne r1,#${o.colourText};done:b #${s.subtitle + 4}`, 'halation submenu: row name');
    hook(p, s.icon0, 0xe1d370b2, `ldrh r7,[r3,#2];${flagTest};movwne r7,#${o.icon};b #${s.icon0 + 4}`, 'halation submenu: strength icon');
-@@ -320,8 +321,8 @@
+@@ -321,7 +322,7 @@
    // Sliders: defaults Weak and red; strength on Grain's strength scale; colour two positions on its scale.
    hook(p, s.default0[0], s.default0[1], `${flagTest};beq native;mov r0,#0;b #${s.default0[0] + 4};native:bl #${branchTargetOf(s.default0)};b #${s.default0[0] + 4}`, 'halation submenu: strength default');
    hook(p, s.default1[0], s.default1[1], `${flagTest};beq native;mov r0,#0;b #${s.default1[0] + 4};native:bl #${branchTargetOf(s.default1)};b #${s.default1[0] + 4}`, 'halation submenu: colour default');
 -  hook(p, s.scale0, 0xe300323f, `${flagTest};movw r3,#${SCALE_SIZE};movwne r3,#${SCALE_STRENGTH};b #${s.scale0 + 4}`, 'halation submenu: strength scale');
--  hook(p, s.scale1, 0xe300323b, `${flagTest};movw r3,#${SCALE_STRENGTH};movwne r3,#${o.colourScale};b #${s.scale1 + 4}`, 'halation submenu: colour scale');
 +  hook(p, s.scale0, 0xe3003265, `${flagTest};movw r3,#${SCALE_SIZE};movwne r3,#${SCALE_STRENGTH};b #${s.scale0 + 4}`, 'halation submenu: strength scale');
-+  hook(p, s.scale1, 0xe3003261, `${flagTest};movw r3,#${SCALE_STRENGTH};movwne r3,#${o.colourScale};b #${s.scale1 + 4}`, 'halation submenu: colour scale');
-   expectWord(p, s.positions1 + 4, 0xe3a030b4);
-   hook(p, s.positions1, 0xe3a02002, `${flagTest};mov r2,#2;mov r3,#0xb4;movne r2,#1;movne r3,#0x168;b #${s.positions1 + 8}`, 'halation submenu: colour has two positions');
-   // Current positions: strength 0..2, colour 0..1 (the value-to-position tables after are 0, 1, 2).
-@@ -360,6 +361,6 @@
+   // @decision DEC-HLG-HALATION-001: the HLG photo mode (`hlg.ts`, installed first) points this same scale
+   // at its own [OFF, 1, 2] graphic. Rows other than Halation's keep whichever scale was there, so HLG and an
+   // added slot with halation can be built together (each used to refuse the other's word here).
+@@ -365,6 +366,6 @@
    hook(p, adr(0x531c7c54), 0xe1a0c00d, adrText('cmp r0,#2;movhi r0,#0;mov ip,sp;b #0x531c7c58'), 'halation: Toning slider position 0..2');
    hook(p, adr(0x531a65e0), 0xe1a0c00d, adrText('cmp r0,#2;movhi r0,#0;mov ip,sp;b #0x531a65e4'), 'halation: Toning slider position 0..2 (RAW development)');
    hook(p, adr(0x533aa568), 0xe3520001, adrText('cmp r2,#2;movhi r2,#0;cmp r2,#1;b #0x533aa56c'), 'halation: Toning text 0..2');
@@ -2550,6 +2575,323 @@ diff --git a/core/src/fw/gr4v120/aspect/hdrgain.ts b/core/src/fw/gr4v120/aspect/
   *
   * The file the camera writes stays as it is: the camera's header (SOI, APP1 Exif with the
   * thumbnail, APP7 "RICOH" with the screennail and maker note) and its main stream come first,
+diff --git a/core/src/fw/gr4v120/aspect/hlg-data.ts b/core/src/fw/gr4v120/aspect/hlg-data.ts
+deleted file mode 100644
+--- a/core/src/fw/gr4v120/aspect/hlg-data.ts
++++ /dev/null
+@@ -1,13 +0,0 @@
+-// SPDX-License-Identifier: GPL-2.0-only
+-/**
+- * Binary assets for BT.2100 HLG HDR Photo mod:
+- *  - Q13 Rec.709 -> Rec.2020 Color Correction Matrix (18 bytes)
+- *  - 256-point 14-bit pre-compensated ARIB STD-B67 Tone Curve (512 bytes)
+- *  - BT.2100 HLG CICP ICC Profile (532 bytes)
+- *  - ARMv7 In-Camera APP2 ICC Injection Hook (176 bytes)
+- */
+-
+-export const HLG_MATRIX_B64 = 'qhXRCoX/JwPNHQz/9/9rBJ4b';
+-export const HLG_CURVE_B64 = 'AACvAswDpwRfBQEGlAYlB70HSgjPCEwJwwk4CqkKFQt9C+ELRQymDAUNYg27DRQObA7CDhYPaA+7DwwQXBCqEPcQRBGQEdoRJBJsErYS/RJEE4oT0BMWFFoUnhThFCQVZxWoFekVKxZsFq0W7BYsF2sXqhfoFyYYZBihGN4YGxlYGZQZzxkLGkYagRq7GvYaMBtqG6Mb3RsWHE8ciBzBHPkcMh1qHaQd3h0YHlIejh7JHgQfQR9+H7sf+R83IHQgsiDvICshZyGjId4hGiJWIpAiyyIEIz8jeCOyI+sjIyRcJJQkzSQEJTwldCWrJeIlGSZQJoYmvSbzJiknXieTJ8gn/ScyKGYomyjQKAQpOClrKZ8p0ykGKjkqbCqeKtEqBCs2K2grmivMK/0rLyxgLJIswyz0LCYtVi2ILbgt6C0ZLkkuei6pLtouCS85L2kvmC/HL/cvJjBWMIUwtDDjMBIxQDFvMZ0xzDH6MSkyVzKFMrMy4TIPMz0zajOYM8Yz8zMhNE40ezSoNNY0AzUwNV01ijW2NeM1EDY8Nmk2ljbCNu42GzdHN3M3nzfMN/s3KzhbOIo4ujjqOBg5SDl3Oac51jkFOjU6ZDqUOsM68johO1A7fzuuO907DDw7PGo8mTzIPPc8JT1UPYM9sj3hPQ8+Pz5tPpw+yj75Pig/Vj8=';
+-export const HLG_ICC_B64 = 'AAACFGxjbXMEQAAAbW50clJHQiBYWVogB+kADAABAAsACQAJYWNzcEFQUEwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAPbWAAEAAAAA0y1SSUNPAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAKZGVzYwAAAPwAAABKY3BydAAAAUgAAAA+d3RwdAAAAYgAAAAUclhZWgAAAZwAAAAUZ1hZWgAAAbAAAAAUYlhZWgAAAcQAAAAUclRSQwAAAdgAAAAQZ1RSQwAAAegAAAAQYlRSQwAAAfgAAAAQY2ljcAAAAggAAAAMbWx1YwAAAAAAAAABAAAADGVuVVMAAAAuAAAAHABSAGkAYwBvAGgAIABHAFIAIABJAFYAIABCAFQALgAyADEAMAAwACAASABMAEcAAG1sdWMAAAAAAAAAAQAAAAxlblVTAAAAIgAAABwAQwBDADAAIABQAHUAYgBsAGkAYwAgAEQAbwBtAGEAaQBuAABYWVogAAAAAAAA9tYAAQAAAADTLVhZWiAAAAAAAACsZQAAR2////+BWFlaIAAAAAAAACppAACs4wAAB61YWVogAAAAAAAAIAgAAAuuAADL/2N1cnYAAAAAAAAAAQIzAABjdXJ2AAAAAAAAAAECMwAAY3VydgAAAAAAAAABAjMAAGNpY3AAAAAACRIAAQ==';
+-export const HLG_HOOK_B64 = 'BBAb5QIMEeMIEJQFDBCUFQAAUeMiAAAKCBCR5QAAUeMfAAAKnBfR5RYAUeMcAAAaGCCU5UgwlOUDMILgTBCU5QIQQeJMEITlIcSg4QLAw+UDEMPlUBCU5QEwguD/EKDjABDD5eIQoOMBEMPlAhCg4wIQw+VAEKDjAxDD5SwQj+IEAIPiiSCg4wTAkeQEwIDkASBS4vv//xpQEJTlCR2B4lAQhOUBAKDjFNBL4jConeg=';
+diff --git a/core/src/fw/gr4v120/aspect/hlg.ts b/core/src/fw/gr4v120/aspect/hlg.ts
+--- a/core/src/fw/gr4v120/aspect/hlg.ts
++++ b/core/src/fw/gr4v120/aspect/hlg.ts
+@@ -1,6 +1,14 @@
+ // SPDX-License-Identifier: GPL-2.0-only
+ /**
+- * BT.2100 HLG HDR Still Photography mod for Ricoh GR IV (firmware 1.11).
++ * BT.2100 HLG HDR Still Photography mod for Ricoh GR IV (firmware 1.20, and 1.21 through its address table).
++ *
++ * @decision DEC-HLG-121-002: since upstream 0.8.16, 1.21 is this program with 1.21's addresses (fw/release.ts),
++ *   so every address here is `adr(1.20 address)`. Their 1.21 places are in tools/port/gr4-121-map.json: found by
++ *   tools/port/addrmap.py on the two official RTOS images (16-word code windows, relocations masked, every
++ *   reference agreeing) or, for RAM tables, the RAM image and the text catalogue, by upstream's own overrides.
++ *   ExifJpegWriter::SetupAppNInfo is the same 51 words in both releases but for one BL that names the same
++ *   target, so the hook block is the same. Texts and icons are unchanged in 1.21. Camera-tested on 1.21
++ *   (2026-11-17, a build of this port on 0.8.15). `installHlgPhoto` checks every word it replaces.
+  *
+  * Transforms the camera's "HDR Tone" (HDR色调, toneId = 22 = 0x16) image control slot into
+  * an in-camera direct BT.2100 HLG HDR photo capture mode:
+@@ -9,7 +17,7 @@
+  *  2. Gamma Descriptor: passes the 256-point 14-bit (0..16383) ARIB STD-B67 curve with S^-1
+  *     pre-compensation to bypass camera base tone curve distortion, and sets desc[5] = 0.
+  *  3. Neutral Multi-Axis Table: T_MA[22] repointed to Standard's neutral maBlock (0x54081348).
+- *  4. Slot Name: "HDR" across all 21 UI languages (Text ID 306).
++ *  4. Slot Name: "HDR" across all 21 UI languages (Text ID 323).
+  *  5. Slot Icon: Retains the camera's official HDR Tone icon in ICONBIN (0 byte overhead in ICONBIN).
+  *  6. In-Camera Automatic APP2 CICP ICC Profile Injection:
+  *     Hooks ExifJpegWriter::SetupAppNInfo at 0x53832B60.
+@@ -18,9 +26,9 @@
+  *     the JPEG workArea buffer so every JPEG saved is recognized as native HDR on Apple (iPhone/Mac),
+  *     Windows HDR, Android, and Chromium platforms.
+  *  7. HDR Tone Level 0 Option, Custom Scale Track & Filter Bypass:
+- *     Installs a custom 3-step scale graphic (ID 782) derived from the native 400x60 scale 0x23B,
++ *     Installs a custom 3-step scale graphic (ID 800) derived from the native 400x60 scale 0x261,
+  *     with rasterized icons:
+- *       - Level 0 (cx = 20): "OFF" text icon
++ *       - Level 0 (cx = 20): Official Ricoh "OFF" icon borrowed directly from native Toning scale 0xD2
+  *       - Level 1 (cx = 200): 1-bar icon
+  *       - Level 2 (cx = 380): 2-bars icon
+  *     Maps options 0..2 to internal values [0, 1, 2] across all HDR cuisine profile mapping tables.
+@@ -32,102 +40,54 @@
+ import { FirmwareError } from '../../types';
+ import { BASE, ICON_CATALOG, LOOKUP_BOUNDS, Patch, concat, expectWord, u16le, u32le } from './build';
+ import { branchWord, movImmediate, movWord } from './arm';
+-import { HLG_CURVE_B64, HLG_HOOK_B64, HLG_ICC_B64, HLG_MATRIX_B64 } from './hlg-data';
++import { HLG_CURVE, HLG_HOOK_BLOCK, HLG_MATRIX, createHdrScale } from '../../aspect/hlg';
++import { adr } from '../target';
+ 
+ export const TARGET_TONE_ID = 22; // HDR Tone
+-export const TARGET_TEXT_ID = 306; // Index 306 in text tables
+-export const HOOK_SITE = 0x53832b60; // ExifJpegWriter::SetupAppNInfo
+-
+-// Scale graphic IDs: 0x23b = native 3-step [1, 2, 3], 782 = custom 3-step [OFF, 1, 2]
+-export const HDR_SCALE_ICON_ID = 782;
+-const NATIVE_SCALE_ICON = 0x23b;
+-const NATIVE_TONING_SCALE_ICON = 0xc4; // 3-step toning scale with official Ricoh OFF icon at cx=20
+-export const HDR_SCALE_SHOOTING = 0x531ca1e0; // Shooting mode detail line slider scale
+-export const HDR_SCALE_PLAYBACK = 0x531cda58; // Playback / RAW development detail line slider scale
+-
+-// HDR Tone Level (HDR Intense) tables and UI control sites:
+-export const HDR_INTENSE_TABLE_0 = 0x53de573c; // HDR intense value mapping table (cuisine 0)
+-export const HDR_INTENSE_TABLE_1 = 0x53de551c; // HDR intense value mapping table (cuisine 1)
+-export const HDR_INTENSE_TABLE_2 = 0x53de5734; // HDR intense value mapping table (cuisine 2)
+-export const HDR_INTENSE_TABLE_3 = 0x53de55f0; // HDR intense value mapping table (cuisine 3)
+-export const HDR_INTENSE_TABLE = HDR_INTENSE_TABLE_3; // backwards compatibility
+-
+-export const HDR_INTENSE_COUNT_CMP = 0x533cfa34; // GetHdrCuisineHdrIntenseValueCount: cmp r0, #3
+-export const HDR_INTENSE_COUNT_MOV = 0x533cfa38; // GetHdrCuisineHdrIntenseValueCount: movls r0, #3
+-export const HDR_INTENSE_ASCII_CMP = 0x533aacc8; // GetImageControlParameterHdrIntenseAscii: beq #0x533aad04
+-
+-// Secondary & Raw Development formatters (0x533aae14 and 0x5339b75c)
+-export const HDR_FORMATTER1_MOV = 0x533aad68; // moveq r3, #2 -> mov r3, r2
+-export const HDR_FORMATTER1_B = 0x533aad78; // beq 0x533aad90 -> b 0x533aad90
+-export const HDR_FORMATTER2_MOV = 0x533aae20; // moveq r3, #2 -> mov r3, r2
+-export const HDR_FORMATTER2_B = 0x533aae30; // beq 0x533aae48 -> b 0x533aae48
+-
+-export const STD_REC_VA = 0x5501c118;
+-export const STD_MA_DESC_VA = 0x54081348;
+-export const T_REC_BASE = 0x55054800;
+-export const T_GAM_BASE = 0x55054158;
+-export const T_MA_BASE = 0x55054554;
+-export const NATIVE_TEXT_ROOTS = 0x55002118;
+-export const TEXT_CATALOG = 0x5440da00;
++export const TARGET_TEXT_ID = 323; // Index 323 in 1.20 text tables (1.11 was 306)
++export const HOOK_SITE = adr(0x53832b60); // ExifJpegWriter::SetupAppNInfo (1.11 was 0x5380bf50)
++
++// Scale graphic IDs: 0x261 = native 3-step [1, 2, 3] in 1.20 (1.11 was 0x23b)
++// 0xd2 = native 3-step toning scale with official Ricoh OFF icon in 1.20 (1.11 was 0xc4)
++// 800 = custom 3-step [OFF, 1, 2] in 1.20
++export const HDR_SCALE_ICON_ID = 800;
++const NATIVE_SCALE_ICON = 0x261;
++const NATIVE_TONING_SCALE_ICON = 0xd2;
++export const HDR_SCALE_SHOOTING = adr(0x531ca1e0); // Shooting mode detail line slider scale (1.11 was 0x531c8c34)
++export const HDR_SCALE_PLAYBACK = adr(0x531cda58); // Playback / RAW development detail line slider scale (1.11 was 0x531cc27c)
++
++// HDR Tone Level (HDR Intense) tables and UI control sites in 1.20:
++export const HDR_INTENSE_TABLE_0 = adr(0x53de573c); // cuisine 0 (1.11 was 0x53dbaed4)
++export const HDR_INTENSE_TABLE_1 = adr(0x53de551c); // cuisine 1 (1.11 was 0x53dbacc4)
++export const HDR_INTENSE_TABLE_2 = adr(0x53de5734); // cuisine 2 (1.11 was 0x53dbaecc)
++export const HDR_INTENSE_TABLE_3 = adr(0x53de55f0); // cuisine 3 (1.11 was 0x53dbad84)
++export const HDR_INTENSE_TABLE = HDR_INTENSE_TABLE_3;
++
++export const HDR_INTENSE_COUNT_CMP = adr(0x533cfa34); // GetHdrCuisineHdrIntenseValueCount: cmp r0, #3 (1.11 was 0x533bec24)
++export const HDR_INTENSE_COUNT_MOV = adr(0x533cfa38); // GetHdrCuisineHdrIntenseValueCount: movls r0, #3 (1.11 was 0x533bec28)
++export const HDR_INTENSE_ASCII_CMP = adr(0x533aacc8); // GetImageControlParameterHdrIntenseAscii: beq #... (1.11 was 0x5339b610)
++
++// Secondary & Raw Development formatters (0x533aad5c and 0x533aae14 in 1.20)
++export const HDR_FORMATTER1_MOV = adr(0x533aad68); // moveq r3, #2 -> mov r3, r2 (1.11 was 0x5339b6b0)
++export const HDR_FORMATTER1_B = adr(0x533aad78); // beq 0x533aad90 -> b 0x533aad90 (1.11 was 0x5339b6c0)
++export const HDR_FORMATTER2_MOV = adr(0x533aae20); // moveq r3, #2 -> mov r3, r2 (1.11 was 0x5339b768)
++export const HDR_FORMATTER2_B = adr(0x533aae30); // beq 0x533aae48 -> b 0x533aae48 (1.11 was 0x5339b778)
++
++export const STD_REC_VA = adr(0x5501c118); // 1.11 was 0x5501adbc
++export const STD_MA_DESC_VA = adr(0x54081348); // 1.11 was 0x54049de8
++export const T_REC_BASE = adr(0x55054800); // 1.11 was 0x55053780
++export const T_GAM_BASE = adr(0x55054158); // 1.11 was 0x55053138
++export const T_MA_BASE = adr(0x55054554); // 1.11 was 0x55053504
++export const NATIVE_TEXT_ROOTS = adr(0x55002118);
++export const TEXT_CATALOG = adr(0x5440da00); // 1.11 was 0x543d4ac0
+ export const LANGUAGES = 21;
+ 
+-const RAM_DEST = 0x55000000;
+-const RAM_SRC = 0x543b3100;
+-const RAM_LEN = 0x57480;
+-
+-function b64decode(s: string): Uint8Array {
+-  if (typeof atob === 'function') {
+-    const bin = atob(s);
+-    const out = new Uint8Array(bin.length);
+-    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+-    return out;
+-  }
+-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+-  const buf: number[] = [];
+-  let bits = 0; let v = 0;
+-  for (let i = 0; i < s.length; i++) {
+-    const c = s[i];
+-    if (c === '=') break;
+-    const idx = chars.indexOf(c);
+-    if (idx === -1) continue;
+-    v = (v << 6) | idx;
+-    bits += 6;
+-    if (bits >= 8) {
+-      bits -= 8;
+-      buf.push((v >> bits) & 0xff);
+-    }
+-  }
+-  return new Uint8Array(buf);
+-}
+-
+-function ascii(text: string): Uint8Array {
+-  const out = new Uint8Array(text.length);
+-  for (let i = 0; i < text.length; i++) out[i] = text.charCodeAt(i);
+-  return out;
+-}
+-
+-/** Local join (build.ts imports this module, so its `concat` is not yet initialised at load time). */
+-function join(arrays: Uint8Array[]): Uint8Array {
+-  const out = new Uint8Array(arrays.reduce((acc, a) => acc + a.length, 0));
+-  let offset = 0;
+-  for (const a of arrays) {
+-    out.set(a, offset);
+-    offset += a.length;
+-  }
+-  return out;
+-}
+-
+-export const HLG_MATRIX = b64decode(HLG_MATRIX_B64);
+-export const HLG_CURVE = b64decode(HLG_CURVE_B64);
+-export const HLG_ICC = b64decode(HLG_ICC_B64);
+-export const HLG_HOOK = b64decode(HLG_HOOK_B64);
+-
+-/** 14B header + 532B ICC + 2B zero pad = 548B (137 words) */
+-export const HLG_APP2_DATA = join([ascii('ICC_PROFILE\0\x01\x01'), HLG_ICC, new Uint8Array(2)]);
+-/** 176B hook + 548B APP2 data = 724 bytes */
+-export const HLG_HOOK_BLOCK = join([HLG_HOOK, HLG_APP2_DATA]);
+-
+-/** Maps a runtime RAM VA (0x55000000..0x55057480) to its ROM image address (0x543b3100..) for Patch writes */
++const RAM_DEST = adr(0x55000000);
++const RAM_SRC = adr(0x543b3100); // 1.11 was 0x5437b640
++const RAM_LEN = 0x58500; // 1.11 was 0x57480
++const GAMMA_DESC_WORD0 = adr(0x540b4da0); // 1.11 was 0x5407def4
++
++/** Maps a runtime RAM VA (0x55000000..0x55058500) to its ROM image address (0x543b3100..) for Patch writes */
+ export function romVa(va: number): number {
+   if (va >= RAM_DEST && va < RAM_DEST + RAM_LEN) {
+     return RAM_SRC + (va - RAM_DEST);
+@@ -136,88 +96,14 @@
+ }
+ 
+ /**
+- * Custom 400x60 scale graphic for HDR Tone Level.
+- * Based on native 3-step scale 0x23B, replacing tick marks with:
+- *  - Level 0 (cx = 20): Official Ricoh "OFF" icon borrowed directly from native Toning scale 0xC4
+- *  - Level 1 (cx = 200): 1-bar icon (Bar 1 lit, Bar 2 & 3 dimmed, y = 6..17)
+- *  - Level 2 (cx = 380): 2-bars icon (Bar 1 & 2 lit, Bar 3 dimmed, y = 6..17)
+- */
+-export function createHdrScale(native: Uint8Array, toningScale: Uint8Array): Uint8Array {
+-  if (native.length !== 400 * 60 * 4 || toningScale.length !== 400 * 60 * 4) {
+-    throw new FirmwareError('unexpected-layout', 'native scale size mismatch');
+-  }
+-  const custom = new Uint8Array(native);
+-
+-  // Clear marks at cx = 20, 200, 380 (y = 4..34) back to panel background (0, 0, 0, 191)
+-  for (const cx of [20, 200, 380]) {
+-    for (let y = 4; y < 34; y++) {
+-      for (let x = cx - 18; x <= cx + 18; x++) {
+-        if (x >= 0 && x < 400) {
+-          const i = (y * 400 + x) * 4;
+-          custom[i] = 0;
+-          custom[i + 1] = 0;
+-          custom[i + 2] = 0;
+-          custom[i + 3] = 191;
+-        }
+-      }
+-    }
+-  }
+-
+-  // 1. Copy official Ricoh "OFF" icon directly from native Toning scale 0xC4 (x = 0..40, y = 4..34)
+-  for (let y = 4; y < 34; y++) {
+-    for (let x = 0; x < 40; x++) {
+-      const i = (y * 400 + x) * 4;
+-      custom[i] = toningScale[i];
+-      custom[i + 1] = toningScale[i + 1];
+-      custom[i + 2] = toningScale[i + 2];
+-      custom[i + 3] = toningScale[i + 3];
+-    }
+-  }
+-
+-  // 2. Draw signal bar helper:
+-  // Bar 1: x = cx - 8 .. cx - 5, y = 14..17 (height 4)
+-  // Bar 2: x = cx - 2 .. cx + 1, y = 10..17 (height 8)
+-  // Bar 3: x = cx + 4 .. cx + 7, y = 6..17 (height 12)
+-  const drawBar = (cx: number, barIndex: number, lit: boolean) => {
+-    const val = lit ? 255 : 85;
+-    let x0 = 0; let x1 = 0; let y0 = 0; const y1 = 17;
+-    if (barIndex === 1) { x0 = cx - 8; x1 = cx - 5; y0 = 14; }
+-    else if (barIndex === 2) { x0 = cx - 2; x1 = cx + 1; y0 = 10; }
+-    else if (barIndex === 3) { x0 = cx + 4; x1 = cx + 7; y0 = 6; }
+-
+-    for (let y = y0; y <= y1; y++) {
+-      for (let x = x0; x <= x1; x++) {
+-        const i = (y * 400 + x) * 4;
+-        custom[i] = val;
+-        custom[i + 1] = val;
+-        custom[i + 2] = val;
+-        custom[i + 3] = 255;
+-      }
+-    }
+-  };
+-
+-  // Draw 1-bar at cx = 200 (Level 1)
+-  drawBar(200, 1, true);
+-  drawBar(200, 2, false);
+-  drawBar(200, 3, false);
+-
+-  // Draw 2-bars at cx = 380 (Level 2)
+-  drawBar(380, 1, true);
+-  drawBar(380, 2, true);
+-  drawBar(380, 3, false);
+-
+-  return custom;
+-}
+-
+-/**
+  * Install the BT.2100 HLG Photo modification into a growable RTOS image (`Patch`)
+- * and ICONBIN payload (`iconbin`).
++ * and ICONBIN payload (`iconbin`) for GR IV firmware 1.20.
+  */
+ export function installHlgPhoto(patch: Patch, iconbin: Uint8Array): Uint8Array {
+   // 1. Verify official hook sites and instructions
+   expectWord(patch, HOOK_SITE, 0xe24bd014); // sub sp, fp, #0x14
+-  expectWord(patch, HDR_SCALE_SHOOTING, 0xe300323b); // movw r3, #0x23b
+-  expectWord(patch, HDR_SCALE_PLAYBACK, 0xe300323b); // movw r3, #0x23b
++  expectWord(patch, HDR_SCALE_SHOOTING, 0xe3003261); // movw r3, #0x261
++  expectWord(patch, HDR_SCALE_PLAYBACK, 0xe3003261); // movw r3, #0x261
+   expectWord(patch, HDR_INTENSE_TABLE_0, 0x00030201); // [1, 2, 3, 0]
+   expectWord(patch, HDR_INTENSE_TABLE_1, 0x00030201); // [1, 2, 3, 0]
+   expectWord(patch, HDR_INTENSE_TABLE_2, 0x00030201); // [1, 2, 3, 0]
+@@ -233,8 +119,8 @@
+   // 2. Append HLG Tone Curve (256 uint16 = 512 bytes, 256-byte aligned)
+   const curveVa = patch.append(HLG_CURVE, 256);
+ 
+-  // 3. Append Gamma Descriptor (20 bytes): [0x540B4DA0, 1, curveVa, curveVa, curveVa]
+-  const gamDescVa = patch.append(u32le([0x540b4da0, 1, curveVa, curveVa, curveVa]), 4);
++  // 3. Append Gamma Descriptor (20 bytes): [GAMMA_DESC_WORD0, 1, curveVa, curveVa, curveVa]
++  const gamDescVa = patch.append(u32le([GAMMA_DESC_WORD0, 1, curveVa, curveVa, curveVa]), 4);
+ 
+   // 4. Append Q13 Rec.2020 Color Correction Matrix (18 bytes)
+   const matrixVa = patch.append(HLG_MATRIX, 4);
+diff --git a/core/src/fw/gr4v120/aspect/index.ts b/core/src/fw/gr4v120/aspect/index.ts
+--- a/core/src/fw/gr4v120/aspect/index.ts
++++ b/core/src/fw/gr4v120/aspect/index.ts
+@@ -37,4 +37,4 @@
+   ADJ_EXTRA_BYTE, ADJ_EXTRA_OBJECT_OFFSET, ADJ_FRAMES, ADJ_ICONS, ADJ_LIST_ID, ADJ_MENU_ID, ADJ_OBJECT, ADJ_PITCH, ADJ_SLOTS_MAX, ADJ_SLOTS_MIN, ADJ_STATE, ADJ_TEXT_ID,
+   adjFrameX, adjLayoutStride, adjPitch, adjViewTable, installAdjSlots, settingName,
+ } from './adjslots';
+-export { HOOK_SITE as HLG_HOOK_SITE, TARGET_TEXT_ID as HLG_TEXT_ID, TARGET_TONE_ID as HLG_TONE_ID, installHlgPhoto } from './hlg';
++export { HDR_SCALE_ICON_ID, installHlgPhoto } from './hlg';
 diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/looks.ts
 --- a/core/src/fw/gr4v120/aspect/looks.ts
 +++ b/core/src/fw/gr4v120/aspect/looks.ts
@@ -3142,10 +3484,10 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
 +/** Second feature byte (0.8.11): bit 3 exposure preview, bit 4 soft focus's still-menu line (`exposure.ts`). */
 +const FEATURE2_EXPOSURE_PREVIEW = 8;
 +const FEATURE2_SOFT_FOCUS_MENU = 16;
- /** Second feature byte: bit 5, the learned Auto for Shadow Correction (`shadowml.ts`). */
- const FEATURE2_SHADOW_LEARN = 32;
- /** Second feature byte: bit 7, a third feature byte follows (after the bytes of bits 1 and 2). */
-@@ -95,6 +100,14 @@
+ /**
+  * Third feature byte: bit 7, the HLG photo mode (`hlg.ts`).
+  * @decision DEC-HLG-MARK-002: the first HLG builds (based on 0.8.12 to 0.8.15) marked HLG with bit 5 of the second byte;
+@@ -103,6 +108,14 @@
  const FEATURE3_BATTERY = 4;
  /** Third feature byte: bit 3, custom grid lines (`grid.ts`); two bytes follow, the 3x3 and the 4x4 style's lines. */
  const FEATURE3_CUSTOM_GRID = 8;
@@ -3160,14 +3502,14 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
  
  /**
   * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
-@@ -126,12 +139,12 @@
+@@ -134,12 +147,12 @@
    if (tone !== 'dark' && tone !== 'light') fail('internal', 'unknown shade tone');
    if (tone !== 'dark' && !features.ratioShade) fail('internal', 'a shade tone needs the live-view shade');
    if (features.ratioShade && specs.length === 0) fail('internal', 'the live-view shade needs an added ratio');
--  const f3 = (features.ratioShade ? FEATURE3_RATIO_SHADE : 0) | (tone === 'light' ? FEATURE3_SHADE_LIGHT : 0) | (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0);
+-  const f3 = (features.ratioShade ? FEATURE3_RATIO_SHADE : 0) | (tone === 'light' ? FEATURE3_SHADE_LIGHT : 0) | (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0) | (features.hlgPhoto ? FEATURE3_HLG_PHOTO : 0);
 -  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.shadowLearn || f3) {
 -    if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, the learned shadow correction and the third feature byte need revision 3');
-+  const f3 = (features.ratioShade ? FEATURE3_RATIO_SHADE : 0) | (tone === 'light' ? FEATURE3_SHADE_LIGHT : 0) | (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0) | (features.flashTtl ? FEATURE3_FLASH_TTL : 0) | (features.videoAf ? FEATURE3_VIDEO_AF : 0) | (features.awbLearn ? FEATURE3_AWB_LEARN : 0);
++  const f3 = (features.ratioShade ? FEATURE3_RATIO_SHADE : 0) | (tone === 'light' ? FEATURE3_SHADE_LIGHT : 0) | (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0) | (features.flashTtl ? FEATURE3_FLASH_TTL : 0) | (features.videoAf ? FEATURE3_VIDEO_AF : 0) | (features.awbLearn ? FEATURE3_AWB_LEARN : 0) | (features.hlgPhoto ? FEATURE3_HLG_PHOTO : 0);
 +  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.exposurePreview || features.softFocusMenu || features.shadowLearn || features.filmGrain || f3) {
 +    if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, bright Auto, exposure preview, the soft focus line, the learned shadow correction, the film grain and the third feature byte need revision 3');
      const adj = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
@@ -3177,7 +3519,7 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
      if (adj) bytes.push(adj);
      if (features.brightAuto) bytes.push(features.brightAuto === 'balanced' ? 2 : 1);
      if (f3) bytes.push(f3);
-@@ -226,8 +239,11 @@
+@@ -234,8 +247,11 @@
      if (f & FEATURE_DIRECT_FLASH) features.directFlash = true;
      if (p < rec.length) {
        const f2 = rec[p++];
@@ -3190,24 +3532,25 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
        if (f2 & FEATURE2_ADJ_SLOTS) {
          if (p >= rec.length) return null;
          const n = rec[p++];
-@@ -244,7 +260,10 @@
+@@ -252,8 +268,11 @@
        if (f2 & FEATURE2_MORE) {
          if (p >= rec.length) return null;
          const f3 = rec[p++];
--        if (f3 === 0 || (f3 & ~(FEATURE3_RATIO_SHADE | FEATURE3_SHADE_LIGHT | FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID)) !== 0) return null;
-+        if (f3 === 0 || (f3 & ~(FEATURE3_RATIO_SHADE | FEATURE3_SHADE_LIGHT | FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID | FEATURE3_FLASH_TTL | FEATURE3_VIDEO_AF | FEATURE3_AWB_LEARN)) !== 0) return null;
+-        if (f3 === 0 || (f3 & ~(FEATURE3_RATIO_SHADE | FEATURE3_SHADE_LIGHT | FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID | FEATURE3_HLG_PHOTO)) !== 0) return null;
++        if (f3 === 0 || (f3 & ~(FEATURE3_RATIO_SHADE | FEATURE3_SHADE_LIGHT | FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID | FEATURE3_FLASH_TTL | FEATURE3_VIDEO_AF | FEATURE3_AWB_LEARN | FEATURE3_HLG_PHOTO)) !== 0) return null;
+         if (f3 & FEATURE3_HLG_PHOTO) features.hlgPhoto = true;
 +        if (f3 & FEATURE3_FLASH_TTL) features.flashTtl = true;
 +        if (f3 & FEATURE3_VIDEO_AF) features.videoAf = true;
 +        if (f3 & FEATURE3_AWB_LEARN) features.awbLearn = true;
          if (f3 & FEATURE3_RATIO_SHADE) {
            if (count === 0) return null;
            features.ratioShade = true;
-@@ -259,7 +278,7 @@
+@@ -268,7 +287,7 @@
          }
        }
      }
--    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn) return null;
-+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn && !features.filmGrain && !features.flashTtl && !features.videoAf && !features.awbLearn) return null;
+-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.hlgPhoto && !features.adjSlots && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn) return null;
++    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.hlgPhoto && !features.adjSlots && !features.exposurePreview && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn && !features.filmGrain && !features.flashTtl && !features.videoAf && !features.awbLearn) return null;
    }
    for (; p < rec.length; p++) if (rec[p] !== 0) return null;
    return { specs: out, features, extraSlots, shutdownPictures };
@@ -6537,8 +6880,8 @@ diff --git a/core/src/fw/gr4v120/patch.ts b/core/src/fw/gr4v120/patch.ts
  export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = [], clarity: readonly ClarityEdit[] = [], features: ExtensionFeatures = {}, test: TestOptions = {}): Promise<BuildResult> {
    // Additions that append code or icons need the grown layout. The monochrome looks change 13
    // words in place: on their own (or with only same-length edits) the file keeps the official layout.
--  const grows = !!features.brightAuto || ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash || (features.adjSlots ?? 5) > 5 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.shadowLearn;
-+  const grows = !!features.brightAuto || ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash || (features.adjSlots ?? 5) > 5 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn;
+-  const grows = !!features.brightAuto || ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || !!features.hlgPhoto || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash || (features.adjSlots ?? 5) > 5 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.shadowLearn;
++  const grows = !!features.brightAuto || ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || !!features.hlgPhoto || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash || (features.adjSlots ?? 5) > 5 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn;
    const inPlaceMono = !grows && !!features.monoUnlock;
    const inPlaceLooks = !grows && !!features.lookLayout;
    const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity, inPlaceMono, inPlaceLooks ? features.lookLayout : undefined);

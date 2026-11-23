@@ -159,6 +159,7 @@ svg { width: 18px; height: 18px; flex: none; }
 .menu.up { top: auto; bottom: 30px; }
 .menu { position: absolute; right: 0; top: 32px; min-width: 180px; background: var(--bg); border-radius: 8px; box-shadow: var(--shadow); padding: 4px; z-index: 30; }
 .menu button { display: block; width: 100%; text-align: left; border: 0; background: none; height: 30px; padding: 0 10px; border-radius: 5px; font-size: 13.5px; }
+.menu-title { padding: 6px 10px 2px; font-size: 11.5px; color: var(--faint); border-top: 1px solid var(--hover); margin-top: 4px; }
 .menu button:hover:not(:disabled) { background: var(--hover); }
 
 .wall-fit { flex: 1; min-height: 0; min-width: 0; overflow: hidden; }
@@ -612,6 +613,39 @@ html.look-grabbing, html.look-grabbing * { cursor: grabbing !important; }
 .look-order-reset svg { width: 14px; height: 14px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
+/* QoL wave B: inspect dialog */
+.dialog.inspect { width: 520px; max-height: calc(100% - 48px); overflow: auto; }
+.dialog.inspect.drop-over { outline: 2px dashed var(--line); }
+.inspect-slot { display: flex; align-items: center; gap: 8px; }
+/* QoL wave C: preset library */
+.lib-buttons { margin-top: 6px; }
+.lib-dialog { width: 460px; }
+.lib-save { display: grid; gap: 6px; }
+.lib-save .dialog-actions { margin-top: 10px; }
+.lib-list { margin: 0 0 14px; padding: 0; list-style: none; display: grid; gap: 4px; max-height: 320px; overflow: auto; }
+.lib-list li { display: flex; align-items: center; gap: 4px; }
+.lib-pick { flex: 1; min-width: 0; display: grid; gap: 1px; text-align: left; padding: 6px 10px; border: 0; border-radius: 6px; background: var(--chip); color: inherit; font: inherit; cursor: pointer; }
+.lib-pick:hover, .lib-pick:focus-visible { background: var(--hover); }
+.lib-tools { display: flex; gap: 8px; align-items: center; margin: 0 0 8px; flex-wrap: wrap; }
+.lib-tools .input { flex: 1; min-width: 140px; }
+.lib-rename { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.lib-rename .input { flex: 1; min-width: 120px; }
+.lib-name { font-size: 13.5px; }
+.compare-with { min-width: 0; max-width: 220px; }
+.compare-with-lead { margin-right: 6px; white-space: nowrap; }
+/* QoL batch D1: snapshots dialog, firmware compare table */
+.dialog.inspect.wide { width: 760px; }
+.compare-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 18px; table-layout: fixed; }
+.compare-table th, .compare-table td { text-align: left; padding: 4px 8px; vertical-align: top; overflow-wrap: anywhere; font-weight: normal; }
+.compare-table thead th { font-weight: 600; max-width: 0; white-space: nowrap; border-bottom: 1px solid var(--line2); }
+.compare-table tbody th { color: var(--muted); width: 24%; }
+.compare-table tr.diff { background: var(--amber-bg); }
+.compare-table tr.diff td { color: var(--text); font-weight: 600; }
+.snap-dialog { width: 520px; }
+.snap-list { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 6px; max-height: 360px; overflow: auto; }
+.snap-list li { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: var(--chip); border-radius: 6px; }
+.snap-text { flex: 1; min-width: 0; display: grid; gap: 1px; }
+
 /* ---------------------------------------------------------------- Android: phone layout (app.tsx MobileApp)
    The same pages and parts as on the desktop, stacked for a narrow, tall, touch screen: a title bar, the page
    scrolling under it, the output buttons and the page tabs at the bottom. Drawn edge to edge (viewport-fit=cover):
@@ -933,3 +967,12 @@ html.mobile-app .tour-hole { border-radius: 14px; }
 .dialog.upd .upd-notes { white-space: pre-line; margin: 2px 0 10px; line-height: 1.5; }
 .dialog.upd .upd-hint { font-size: 12.5px; margin: 0 0 6px; }
 .dialog.upd h3 .push-file { margin-left: 10px; }
+
+/* fork: built-in power-off pictures (poweroff-defaults.ts) */
+.builtin-strip { display: flex; flex-direction: column; gap: 8px; margin: 0 0 14px; }
+.builtin-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; }
+.builtin-thumb { flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: none; color: var(--muted); }
+.builtin-thumb:hover:not(:disabled) { background: var(--hover); color: var(--text); }
+.builtin-thumb:disabled { opacity: 0.45; }
+.builtin-pic { width: 132px; height: 88px; border-radius: 4px; overflow: hidden; background: #000; }
+.builtin-pic canvas { width: 100%; height: 100%; display: block; }
