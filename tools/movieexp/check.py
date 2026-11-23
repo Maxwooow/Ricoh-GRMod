@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: GPL-2.0-only
-"""Emulator check of the movie exposure test (core/src/fw/gr4v120/aspect/movieexp.ts), GR IV 1.20 and 1.21.
+"""Emulator check of the exposure modes for movies (build option movieExposure, core/src/fw/gr4v120/aspect/movieexp.ts),
+GR IV 1.20 and 1.21. Both releases' addresses are written here (the script is not one of the generated copies).
 
 NOT part of the program. Runs the firmware's own update of the shooting mode (the part from the
 mode dial to the exposure mode handed to the auto exposure, 0x53259A44..0x53259B30 in 1.20) in
-Unicorn, on the official RTOS and on a build with the test, for every combination of the inputs:
+Unicorn, on the official RTOS and on a build with the option, for every combination of the inputs:
 
   mode dial, still / movie, the user mode's own mode, the three "auto off" flags, ISO setting AUTO
   or not, ISO auto in M, the two Sn settings, shutter speed at B / T, the bulb gate, and the

@@ -105,6 +105,8 @@ export interface FirmwareInfo {
     videoAf?: boolean;
     /** A learned auto white balance for the three Auto modes (GR IV 1.20 and 1.21; see `gr4v120/aspect/awb2.ts`). */
     awbLearn?: boolean;
+    /** Movies in the exposure mode of the mode dial (GR IV 1.20 and 1.21; see `gr4v120/aspect/movieexp.ts`). */
+    movieExposure?: boolean;
     /** GR III / IIIx: the most films a build can have (9; 20 on GR III 2.10, where
      * the number is chosen with BuildOptions.filmCount and Halation is set in the camera). */
     maxFilms?: number };
@@ -242,6 +244,8 @@ export interface FirmwareSummary {
   videoAf?: boolean;
   /** True when the file has the learned auto white balance. */
   awbLearn?: boolean;
+  /** True when the file records movies in the exposure mode of the mode dial. */
+  movieExposure?: boolean;
   /** ADJ lever slots (6..8) when the file has more than the camera's five. */
   adjSlots?: number;
   /** True when the file's battery icon shows the charge in steps of 10 %. */
@@ -294,8 +298,6 @@ export interface BuildOptions {
   hdrDiag?: boolean;
   /** Test builds only (GR IV 1.20): exposure preview always off (issue #17). */
   exposurePreviewOff?: boolean;
-  /** Test builds only (GR IV 1.20 / 1.21): movies in the exposure mode of the mode dial, with the still mode's ISO setting. */
-  movieExposure?: boolean;
   /**
    * GR IV 1.11 / 1.20 / 1.21 (`features.batteryPercent`): the battery icon shows the charge in steps of 10 % (a
    * number inside the battery) instead of the bars (see `aspect/battery.ts`).
@@ -359,6 +361,14 @@ export interface BuildOptions {
    * result. Off unless asked for.
    */
   awbLearn?: boolean;
+  /**
+   * Exposure modes for movies (GR IV 1.20 and 1.21, `features.movieExposure`): movies are recorded in the exposure mode
+   * of the mode dial (P, Av, Tv, M, the user modes) with the still mode's ISO setting, instead of always in P with ISO
+   * auto; the movie screen shows shutter speed, aperture and ISO, and the dials and the ISO button work as for stills.
+   * In M the shutter speed stops at the slowest one the frame rate allows; M with B / T set for stills records in P.
+   * There is no camera menu for it. Off unless asked for.
+   */
+  movieExposure?: boolean;
   /** GR III 2.10: the number of films, 1..20 (`features.maxFilms`), each with a Halation
    * line in the camera. Absent: the nine-film T6 build. */
   filmCount?: number;
@@ -594,7 +604,7 @@ export class Engine {
       family: 'gr4', filename: 'fwdc248b.bin', models: ['STANDARD', 'HDF', 'MONO'],
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
       capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, menuPictures: true, lookLayout: true },
-      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, batteryPercent: true, customGrid: true, ratioShade: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== Gr4Program111 ? { filmGrain: true } : {}), shadowLearn: true, ...(g4 !== Gr4Program111 ? { flashTtl: true, shadeMenu: true, gridMenu: true } : {}), ...(g4 !== Gr4Program111 ? { videoAf: true } : {}), ...(g4 !== Gr4Program111 ? { awbLearn: true } : {}) },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, batteryPercent: true, customGrid: true, ratioShade: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== Gr4Program111 ? { filmGrain: true } : {}), shadowLearn: true, ...(g4 !== Gr4Program111 ? { flashTtl: true, shadeMenu: true, gridMenu: true } : {}), ...(g4 !== Gr4Program111 ? { videoAf: true } : {}), ...(g4 !== Gr4Program111 ? { awbLearn: true } : {}), ...(g4 !== Gr4Program111 ? { movieExposure: true } : {}) },
       version: g4.FIRMWARE_VERSION,
       looks: { factory: [...g4.aspect.FACTORY_LOOK_IDS], extraFirst: g4.aspect.EXTRA_FIRST_STYLE, monoOnly: g4.aspect.FACTORY_LOOK_IDS.filter((n) => n >= 25) },
       sha256: await sha256Hex(input),
@@ -819,6 +829,7 @@ export class Engine {
       ...(features.flashTtl ? { flashTtl: true } : {}),
       ...(features.videoAf ? { videoAf: true } : {}),
       ...(features.awbLearn ? { awbLearn: true } : {}),
+      ...(features.movieExposure ? { movieExposure: true } : {}),
     });
     if (!specs) return modified(false, [], aligned);
     let ratios: BuiltRatio[] = [];
@@ -1151,27 +1162,29 @@ export class Engine {
     if (options && options.videoAf !== undefined && typeof options.videoAf !== 'boolean') throw new FirmwareError('bad-edit', 'videoAf must be boolean');
     const videoAf = !!(options && options.videoAf);
     if (videoAf && !this.info.features.videoAf) throw new FirmwareError('bad-edit', 'the movie AF needs GR IV firmware 1.20 or 1.21');
-    if (options && options.movieExposure && !this.info.features.videoAf) throw new FirmwareError('bad-edit', 'the movie exposure test needs GR IV firmware 1.20 or 1.21');
     if (videoAf && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the movie AF cannot be combined with the clarity-table soft focus of 0.4.x');
     if (options && options.awbLearn !== undefined && typeof options.awbLearn !== 'boolean') throw new FirmwareError('bad-edit', 'awbLearn must be boolean');
     const awbLearn = !!(options && options.awbLearn);
     if (awbLearn && !this.info.features.awbLearn) throw new FirmwareError('bad-edit', 'the learned white balance needs GR IV firmware 1.20 or 1.21');
     if (awbLearn && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the learned white balance cannot be combined with the clarity-table soft focus of 0.4.x');
+    if (options && options.movieExposure !== undefined && typeof options.movieExposure !== 'boolean') throw new FirmwareError('bad-edit', 'movieExposure must be boolean');
+    const movieExposure = !!(options && options.movieExposure);
+    if (movieExposure && !this.info.features.movieExposure) throw new FirmwareError('bad-edit', 'the exposure modes for movies need GR IV firmware 1.20 or 1.21');
+    if (movieExposure && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the exposure modes for movies cannot be combined with the clarity-table soft focus of 0.4.x');
     if (hdrGainMap && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the HDR gain map cannot be combined with the clarity-table soft focus of 0.4.x');
     if (directFlash && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Direct Flash cannot be combined with the clarity-table soft focus of 0.4.x');
     if (pictures.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'power-off pictures cannot be combined with the clarity-table soft focus of 0.4.x');
     if (adjSoftFocus && clarity.length > 0) throw new FirmwareError('bad-clarity', 'soft focus on the ADJ lever and on the clarity table cannot be combined');
     if (dateStamp && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the date imprint cannot be combined with the clarity-table soft focus of 0.4.x');
     if (extraSlots.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'added slots cannot be combined with the clarity-table soft focus of 0.4.x');
-    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash && adjSlots === 5 && !hdrGainMap && !exposurePreview && !filmGrain && !shadowLearn && !flashTtl && !videoAf && !awbLearn && !options.brightAuto && !batteryPercent && !customGrid && !options.movieExposure) throw new FirmwareError('bad-edit', 'nothing to change');
+    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash && adjSlots === 5 && !hdrGainMap && !exposurePreview && !filmGrain && !shadowLearn && !flashTtl && !videoAf && !awbLearn && !options.brightAuto && !batteryPercent && !customGrid && !movieExposure) throw new FirmwareError('bad-edit', 'nothing to change');
     if (Object.keys(cinemaHalation).length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'halation cannot be combined with the clarity-table soft focus of 0.4.x');
-    const features = { ...(options.brightAuto ? { brightAuto: options.brightAuto } : {}), adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(hdrGainMap ? { hdrGainMap } : {}), ...(exposurePreview ? { exposurePreview } : {}), ...(softFocusMenu ? { softFocusMenu } : {}), ...(batteryPercent ? { batteryPercent } : {}), ...(customGrid ? { customGrid } : {}), ...(ratioShade ? { ratioShade } : {}), ...(ratioShadeTone ? { ratioShadeTone } : {}), ...(shadowLearn ? { shadowLearn } : {}), ...(filmGrain ? { filmGrain } : {}), ...(flashTtl ? { flashTtl } : {}), ...(videoAf ? { videoAf } : {}), ...(awbLearn ? { awbLearn } : {}) };
+    const features = { ...(options.brightAuto ? { brightAuto: options.brightAuto } : {}), adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(hdrGainMap ? { hdrGainMap } : {}), ...(exposurePreview ? { exposurePreview } : {}), ...(softFocusMenu ? { softFocusMenu } : {}), ...(batteryPercent ? { batteryPercent } : {}), ...(customGrid ? { customGrid } : {}), ...(ratioShade ? { ratioShade } : {}), ...(ratioShadeTone ? { ratioShadeTone } : {}), ...(shadowLearn ? { shadowLearn } : {}), ...(filmGrain ? { filmGrain } : {}), ...(flashTtl ? { flashTtl } : {}), ...(videoAf ? { videoAf } : {}), ...(awbLearn ? { awbLearn } : {}), ...(movieExposure ? { movieExposure } : {}) };
     const test = {
       ...(options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {}),
       ...(options && options.halationDiag ? { halationDiag: true } : {}),
       ...(options && options.hdrDiag ? { hdrDiag: true } : {}),
       ...(options && options.exposurePreviewOff ? { exposurePreviewOff: true } : {}),
-      ...(options && options.movieExposure ? { movieExposure: true } : {}),
       ...(batteryPercent && options.batteryDiag ? { batteryDiag: true } : {}),
     };
     const { decoded: _decoded, ...rest } = await this.g4.buildFirmware(this.raw, edits, ratios, clarity, features, test);

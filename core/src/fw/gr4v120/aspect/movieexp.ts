@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * Movie exposure by the mode dial (test builds only so far; GR IV 1.20 and 1.21): movies are
- * recorded in the exposure mode of the mode dial (P, Av, Tv, M, the user modes), with the ISO
- * setting of the still mode, instead of always in P with ISO auto; the movie screen shows shutter
- * speed, aperture and ISO, and the dials and the ISO button work as for stills.
+ * Exposure modes for movies (build option `movieExposure`, off unless asked for; GR IV 1.20 and
+ * 1.21): movies are recorded in the exposure mode of the mode dial (P, Av, Tv, M, the user modes),
+ * with the ISO setting of the still mode, instead of always in P with ISO auto; the movie screen
+ * shows shutter speed, aperture and ISO, and the dials and the ISO button work as for stills.
+ * There is no camera menu: it is in the firmware or not. Camera tests 089 to 089d (GR IV 1.21);
+ * the emulator checks are tools/movieexp/check.py.
  *
  * What the camera does. The exposure mode handed to the auto exposure is worked out in one place,
  * the update of the shooting mode at 0x532599DC (1.20 addresses), from the mode dial:
@@ -59,7 +61,6 @@
  *      exposure-setting view (0x531BF1F8, the ISO setting among it) now pass 0: seven places, the
  *      argument loaded right before each call.
  *
- *
  * Bulb from the dial (test 089d; 089c works: values shown, dials and ISO setting as for stills, and
  * the camera itself keeps the shutter speed within the movie's range, 1/60 at 60p, in Tv):
  *  (8) In M with a fixed ISO, one step slower than the slowest shutter speed is B (then T, B+T):
@@ -72,58 +73,58 @@
 import { FirmwareError } from '../../types';
 import { assembleWords, branchWord } from './arm';
 import { Patch, expectWord } from './build';
-import { byRelease } from '../target';
+import { adr } from '../target';
 
 /** `ldrb r0, [r0, #0xb76]; bx lr`: 0 still, 1 movie. */
-const STILL_MOVIE_GETTER = byRelease({ '1.20': 0x5329b310, '1.21': 0x5329bb60 });
+const STILL_MOVIE_GETTER = adr(0x5329b310);
 /** `ldrb r0, [r0, #0xb74]; bx lr`: 1 or 2 keeps M out of bulb / time. */
-const BULB_GATE_GETTER = byRelease({ '1.20': 0x5329b300, '1.21': 0x5329bb50 });
+const BULB_GATE_GETTER = adr(0x5329b300);
 /** (1) `bne <movie: P>` after `bl STILL_MOVIE_GETTER; cmp r0, #0` in the virtual mode. */
-const VIRTUAL_MODE_MOVIE = byRelease({ '1.20': 0x53258e14, '1.21': 0x53259660 });
+const VIRTUAL_MODE_MOVIE = adr(0x53258e14);
 /** (2) `ldmne sp, {r4-r9, fp, sp, pc}` (movie: return) after `bl STILL_MOVIE_GETTER; cmp r0, #0` in the auto flags. */
-const ISO_SETTING_MOVIE = byRelease({ '1.20': 0x53258f3c, '1.21': 0x53259788 });
+const ISO_SETTING_MOVIE = adr(0x53258f3c);
 /** (3) `bl BULB_GATE_GETTER` in the update of the shooting mode (r0 = the settings). */
-const BULB_GATE_SITE = byRelease({ '1.20': 0x53259aec, '1.21': 0x5325a338 });
+const BULB_GATE_SITE = adr(0x53259aec);
 
 /** (4) "exists" bytes of the shooting screen's items: row 0 still, row 1 movie, 0x30 bytes each. */
-const SCREEN_ITEMS = byRelease({ '1.20': 0x53dc08e0, '1.21': 0x53dc1ee8 });
+const SCREEN_ITEMS = adr(0x53dc08e0);
 /** (4) positions: four layouts (still, movie, still 1280x720, movie 1280x720) of 0x30 (x, y) pairs of words. */
-const SCREEN_POSITIONS = byRelease({ '1.20': 0x53dbf9bc, '1.21': 0x53dc0fc4 });
+const SCREEN_POSITIONS = adr(0x53dbf9bc);
 const ITEM_ROW = 0x30;
 const LAYOUT = 0x180;
 /** Shutter speed, aperture, ISO: x in the two still layouts; y is 440 (720x480) and 680 (1280x720). */
 const EXPOSURE_ITEMS = [{ item: 30, x: 40 }, { item: 31, x: 200 }, { item: 32, x: 330 }] as const;
 const LAYOUT_Y = [440, 440, 680, 680] as const;
 /** (5) `beq <return>` after `bl STILL_MOVIE_GETTER; cmp r0, #1` in the buttons' ISO function. */
-const ISO_BUTTON_MOVIE = byRelease({ '1.20': 0x53396400, '1.21': 0x53396cb0 });
+const ISO_BUTTON_MOVIE = adr(0x53396400);
 
 /** The auto exposure's "movie" (`bl` target of the places below). */
-const AE_IS_MOVIE = byRelease({ '1.20': 0x5377cab8, '1.21': 0x5377d748 });
+const AE_IS_MOVIE = adr(0x5377cab8);
 /** (6) `bne <keep>` after `bl AE_IS_MOVIE; cmp r0, #1`; then `cmp r4, #3; movne r4, #0`. */
-const DIAL_FUNCTION_MOVIE = byRelease({ '1.20': 0x533f7888, '1.21': 0x533f81b0 });
+const DIAL_FUNCTION_MOVIE = adr(0x533f7888);
 /** (7) The texts' functions, and the places that load their "movie" argument (r2): [place, the word there, the call's distance, the function]. */
-const TEXT_TV = byRelease({ '1.20': 0x533a8270, '1.21': 0x533a8b20 });
-const TEXT_AV = byRelease({ '1.20': 0x533a8688, '1.21': 0x533a8f38 });
-const ICON_ISO = byRelease({ '1.20': 0x533a88fc, '1.21': 0x533a91ac });
-const TEXT_ISO = byRelease({ '1.20': 0x533a89e0, '1.21': 0x533a9290 });
+const TEXT_TV = adr(0x533a8270);
+const TEXT_AV = adr(0x533a8688);
+const ICON_ISO = adr(0x533a88fc);
+const TEXT_ISO = adr(0x533a89e0);
 const MOV_R2_R5 = 0xe1a02005;
 const MOV_R2_R0 = 0xe1a02000;
 const LDRB_R2_R3_980 = 0xe5d32980;
 const LDRB_R2_IP_980 = 0xe5dc2980;
 const MOVIE_ARGUMENTS: readonly { at: number; word: number; call: number; link: boolean; to: number; what: string }[] = [
-  { at: byRelease({ '1.20': 0x533a841c, '1.21': 0x533a8ccc }), word: MOV_R2_R5, call: 0x0c, link: false, to: TEXT_TV, what: 'shutter speed text' },
-  { at: byRelease({ '1.20': 0x5318c344, '1.21': 0x5318c31c }), word: LDRB_R2_R3_980, call: 0x0c, link: true, to: TEXT_AV, what: 'aperture text, shooting screen' },
-  { at: byRelease({ '1.20': 0x531bd80c, '1.21': 0x531bde18 }), word: MOV_R2_R0, call: 0x10, link: true, to: TEXT_AV, what: 'aperture text, exposure setting' },
-  { at: byRelease({ '1.20': 0x5318c514, '1.21': 0x5318c4ec }), word: LDRB_R2_R3_980, call: 0x04, link: true, to: ICON_ISO, what: 'ISO icon, shooting screen' },
-  { at: byRelease({ '1.20': 0x533a89c8, '1.21': 0x533a9278 }), word: MOV_R2_R0, call: 0x14, link: false, to: ICON_ISO, what: 'ISO icon, exposure setting' },
-  { at: byRelease({ '1.20': 0x5318c57c, '1.21': 0x5318c554 }), word: LDRB_R2_IP_980, call: 0x18, link: true, to: TEXT_ISO, what: 'ISO text, shooting screen' },
-  { at: byRelease({ '1.20': 0x533a8b10, '1.21': 0x533a93c0 }), word: MOV_R2_R5, call: 0x08, link: true, to: TEXT_ISO, what: 'ISO text, exposure setting' },
+  { at: adr(0x533a841c), word: MOV_R2_R5, call: 0x0c, link: false, to: TEXT_TV, what: 'shutter speed text' },
+  { at: adr(0x5318c344), word: LDRB_R2_R3_980, call: 0x0c, link: true, to: TEXT_AV, what: 'aperture text, shooting screen' },
+  { at: adr(0x531bd80c), word: MOV_R2_R0, call: 0x10, link: true, to: TEXT_AV, what: 'aperture text, exposure setting' },
+  { at: adr(0x5318c514), word: LDRB_R2_R3_980, call: 0x04, link: true, to: ICON_ISO, what: 'ISO icon, shooting screen' },
+  { at: adr(0x533a89c8), word: MOV_R2_R0, call: 0x14, link: false, to: ICON_ISO, what: 'ISO icon, exposure setting' },
+  { at: adr(0x5318c57c), word: LDRB_R2_IP_980, call: 0x18, link: true, to: TEXT_ISO, what: 'ISO text, shooting screen' },
+  { at: adr(0x533a8b10), word: MOV_R2_R5, call: 0x08, link: true, to: TEXT_ISO, what: 'ISO text, exposure setting' },
 ];
 const MOV_R2_0 = 0xe3a02000;
 /** (8) `bl ISO_AUTO_NOW` in the shutter-speed step (r5 = the settings, r0 = the controller); then `cmp r0, #0; bne <plain step>`. */
-const BULB_STEP_SITE = byRelease({ '1.20': 0x5325aa78, '1.21': 0x5325b2c4 });
-const ISO_AUTO_NOW = byRelease({ '1.20': 0x53258b68, '1.21': 0x532593b4 });
-const BULB_STATE_SETTER = byRelease({ '1.20': 0x532b63f0, '1.21': 0x532b6c40 });
+const BULB_STEP_SITE = adr(0x5325aa78);
+const ISO_AUTO_NOW = adr(0x53258b68);
+const BULB_STATE_SETTER = adr(0x532b63f0);
 
 const NOP = 0xe1a00000;
 const BX_LR = 0xe12fff1e;

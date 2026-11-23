@@ -57,6 +57,7 @@ export const Ico = {
   grain: <svg viewBox="0 0 20 20" {...P}><rect x="2.8" y="2.8" width="14.4" height="14.4" rx="2" /><circle cx="6.6" cy="6.8" r="1" fill="currentColor" stroke="none" /><circle cx="12.2" cy="5.9" r="0.6" fill="currentColor" stroke="none" /><circle cx="9.6" cy="10.2" r="1.4" fill="currentColor" stroke="none" /><circle cx="14" cy="11.4" r="0.8" fill="currentColor" stroke="none" /><circle cx="6.2" cy="13.4" r="0.7" fill="currentColor" stroke="none" /><circle cx="11.6" cy="14.4" r="0.9" fill="currentColor" stroke="none" /></svg>,
   /* a movie camera with a focus frame */
   movie: <svg viewBox="0 0 20 20" {...P}><rect x="2" y="5.6" width="11" height="8.8" rx="1.6" /><path d="M13 8.8l4.6-2.4v7.2L13 11.2" /><path d="M5.6 8.4v-.8h.8M9.4 7.6h.8v.8M10.2 11.6v.8h-.8M6.4 12.4h-.8v-.8" /></svg>,
+  movieExp: <svg viewBox="0 0 20 20" {...P}><rect x="2" y="5.6" width="11" height="8.8" rx="1.6" /><path d="M13 8.8l4.6-2.4v7.2L13 11.2" /><path d="M4.6 10h2.6M5.9 8.7v2.6M8.4 10h2.4" /></svg>,
   wb: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="6.6" /><path d="M10 3.4a6.6 6.6 0 0 0 0 13.2z" fill="currentColor" stroke="none" opacity="0.35" /><path d="M10 3.4v13.2" /></svg>,
   preview: <svg viewBox="0 0 20 20" {...P}><path d="M1.8 10c2.2-3.6 5-5.4 8.2-5.4s6 1.8 8.2 5.4c-2.2 3.6-5 5.4-8.2 5.4S4 13.6 1.8 10z" /><circle cx="10" cy="10" r="2.6" /></svg>,
   mono: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="7.2" /><path d="M10 2.8a7.2 7.2 0 0 1 0 14.4z" fill="currentColor" stroke="none" /></svg>,
