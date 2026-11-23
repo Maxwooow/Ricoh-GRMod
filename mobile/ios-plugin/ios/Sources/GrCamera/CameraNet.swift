@@ -204,14 +204,49 @@ final class CameraNet: NSObject, URLSessionWebSocketDelegate {
         return r
     }
 
-    /// One PUT of the whole file, as GR WORLD does it.
-    func putFile(_ path: String, file: URL, timeout: TimeInterval, progress: @escaping (Int64, Int64) -> Void) throws -> Reply {
-        var req = request("PUT", path, timeout: timeout)
+    /// One PUT of the whole file, as GR WORLD does it. The transfer as a whole has no time limit (a slow
+    /// link is not a failure; PushSession.java has none either): it stops when nothing more has been sent
+    /// for `stall` seconds, or when the camera has not answered `timeout` seconds after the last byte.
+    /// What was sent is logged every 15 seconds and when it stops, so that a log shows how far it got.
+    func putFile(_ path: String, file: URL, timeout: TimeInterval, stall: TimeInterval = 60, progress: @escaping (Int64, Int64) -> Void) throws -> Reply {
+        // The request's own timeout is URLSession's idle timer; the two rules below decide here.
+        var req = request("PUT", path, timeout: 3600)
         req.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
         let total = ((try? FileManager.default.attributesOfItem(atPath: file.path))?[.size] as? NSNumber)?.int64Value ?? 0
         let done = Done()
         let t = session.uploadTask(with: req, fromFile: file) { d, r, e in done.set(d, r, e) }
-        let r = try wait(t, done, timeout: timeout, tick: { task in progress(task.countOfBytesSent, total) })
+        t.resume()
+        let started = Date()
+        var lastSent: Int64 = -1
+        var lastMove = started, lastLogged = started
+        func sentLine(_ sent: Int64, _ now: Date) -> String {
+            let secs = max(1, Int(now.timeIntervalSince(started)))
+            let percent = total > 0 ? Int(sent * 100 / total) : 0
+            return L.s("已发送 \(sent) / \(total) 字节（\(percent)%），\(secs) 秒，平均 \(sent / Int64(secs) / 1024) KB/s",
+                       "sent \(sent) / \(total) bytes (\(percent)%), \(secs) s, \(sent / Int64(secs) / 1024) KB/s on average")
+        }
+        while done.sem.wait(timeout: .now() + 0.2) == .timedOut {
+            let sent = t.countOfBytesSent
+            let now = Date()
+            progress(sent, total)
+            if sent != lastSent { lastSent = sent; lastMove = now }
+            if now.timeIntervalSince(lastLogged) >= 15 { lastLogged = now; log.detail("PUT: " + sentLine(sent, now)) }
+            let all = total > 0 && sent >= total
+            if now.timeIntervalSince(lastMove) > (all ? timeout : stall) {
+                t.cancel()
+                _ = done.sem.wait(timeout: .now() + 5)
+                log.add(L.s("上传停止：", "Upload stopped: ") + sentLine(sent, now))
+                throw NetError(message: all
+                    ? L.s("文件已全部发送，但照相机在 \(Int(timeout)) 秒内没有回应", "The whole file was sent, but the camera did not answer within \(Int(timeout)) s")
+                    : L.s("上传中断：\(Int(stall)) 秒内没有数据发送至照相机", "The upload stalled: nothing was sent to the camera for \(Int(stall)) s"))
+            }
+        }
+        progress(t.countOfBytesSent, total)
+        if let e = done.error {
+            log.add(L.s("上传停止：", "Upload stopped: ") + sentLine(t.countOfBytesSent, Date()))
+            throw NetError(message: e.localizedDescription)
+        }
+        let r = Reply(status: (done.response as? HTTPURLResponse)?.statusCode ?? 0, body: String(decoding: done.data ?? Data(), as: UTF8.self))
         log.detail("PUT \(path) (\(total)" + L.s(" 字节) -> ", " bytes) -> ") + "\(r.status) \(CameraNet.clip(r.body))")
         return r
     }

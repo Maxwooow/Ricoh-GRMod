@@ -196,21 +196,40 @@ public final class CameraNet {
             c.setDoOutput(true);
             c.setRequestProperty("Content-Type", "application/octet-stream");
             c.setFixedLengthStreamingMode(total);
+            // What was sent is logged every 15 seconds and when it stops, so that a log shows how far it got
+            // (the same lines as CameraNet.swift).
             long done = 0;
-            try (OutputStream o = c.getOutputStream(); InputStream in = new FileInputStream(f)) {
-                byte[] buf = new byte[256 * 1024];
-                int n;
-                while ((n = in.read(buf)) > 0) {
-                    o.write(buf, 0, n);
-                    done += n;
-                    p.sent(done, total);
+            final long started = System.currentTimeMillis();
+            long lastLogged = started;
+            Reply r;
+            try {
+                try (OutputStream o = c.getOutputStream(); InputStream in = new FileInputStream(f)) {
+                    byte[] buf = new byte[256 * 1024];
+                    int n;
+                    while ((n = in.read(buf)) > 0) {
+                        o.write(buf, 0, n);
+                        done += n;
+                        p.sent(done, total);
+                        long now = System.currentTimeMillis();
+                        if (now - lastLogged >= 15000) { lastLogged = now; log.detail("PUT: " + sentLine(done, total, started, now)); }
+                    }
                 }
+                int st = c.getResponseCode();
+                r = new Reply(st, readAll(c));
+            } catch (IOException e) {
+                log.add(L.s("上传停止：", "Upload stopped: ") + sentLine(done, total, started, System.currentTimeMillis()));
+                throw e;
             }
-            int st = c.getResponseCode();
-            Reply r = new Reply(st, readAll(c));
             log.detail("PUT " + path + " (" + total + L.s(" 字节) -> ", " bytes) -> ") + r.status + " " + clip(r.body));
             return r;
         } finally { c.disconnect(); }
+    }
+
+    private static String sentLine(long sent, long total, long started, long now) {
+        long secs = Math.max(1, (now - started) / 1000);
+        long percent = total > 0 ? sent * 100 / total : 0;
+        return L.s("已发送 " + sent + " / " + total + " 字节（" + percent + "%），" + secs + " 秒，平均 " + sent / secs / 1024 + " KB/s",
+                "sent " + sent + " / " + total + " bytes (" + percent + "%), " + secs + " s, " + sent / secs / 1024 + " KB/s on average");
     }
 
     static String clip(String s) { return s.length() > 1500 ? s.substring(0, 1500) + "…" : s; }
