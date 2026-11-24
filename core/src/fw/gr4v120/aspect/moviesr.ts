@@ -82,11 +82,13 @@ const SR_CURRENT = adr(0x531d67f0);
 /**
  * In `LANGS` order (cs da en fi fr de el hu it ja ko nl pl pt ru zh-CN es sv th zh-TW tr). The two Chinese say "SR" as the
  * camera's own texts do ("自动关闭SR"): the characters of 防抖 / 防震 are not in its texts of those languages.
+ * Where a language would use Sensor Shift's own name (`shift.ts`), the option says "mechanical" instead, so that the two
+ * are not taken for one thing (the comments here go on calling the option Sensor Shift).
  */
 export const MOVIESR_SENSOR_NAMES: readonly string[] = [
-  'Posun snímače', 'Sensorforskydning', 'Sensor Shift', 'Kennon siirto', 'Capteur', 'Sensor-Shift', 'Αισθητήρας', 'Érzékelő',
-  'Sensore', 'センサーシフト', '기계식', 'Sensorverschuiving', 'Matryca', 'Sensor', 'Сдвиг матрицы', '传感器SR',
-  'Sensor', 'Sensorförskjutning', 'เซ็นเซอร์', '感應器SR', 'Sensör',
+  'Mechanická', 'Mekanisk', 'Mechanical', 'Mekaaninen', 'Capteur', 'Sensor-Shift', 'Αισθητήρας', 'Érzékelő',
+  'Sensore', 'メカ式', '기계식', 'Mechanisch', 'Matryca', 'Sensor', 'Механическая', '传感器SR',
+  'Sensor', 'Mekanisk', 'เซ็นเซอร์', '感應器SR', 'Sensör',
 ];
 export const MOVIESR_ELECTRONIC_NAMES: readonly string[] = [
   'Elektronická', 'Elektronisk', 'Electronic', 'Elektroninen', 'Électronique', 'Elektronisch', 'Ηλεκτρονική', 'Elektronikus',

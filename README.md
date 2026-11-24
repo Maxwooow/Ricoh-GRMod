@@ -56,7 +56,7 @@ Use only firmware intended for your camera model and a base version listed above
 - **Phase Detect AF for Video:** while recording, the sensor's phase data drives the lens, with less focus hunting, on GR IV 1.20 / 1.21.
 - **Exposure Control in Video Mode:** movies are recorded in the mode dial's exposure mode (P / Av / Tv / M) instead of always in P, with aperture, shutter speed and ISO shown and adjustable, on GR IV 1.20 / 1.21.
 - **4K Video:** the movie menu's Framerate becomes Framerate / Resolution; 4K (3840×2160) at 30p and 24p, on GR IV 1.20 / 1.21.
-- **Sensor-Shift SR for Video:** Movie SR offers Off, Sensor Shift and Electronic; Off and Sensor Shift record the whole picture without the electronic shake reduction's crop, on GR IV 1.20 / 1.21.
+- **Sensor-Shift SR in Video Mode:** Movie SR offers Off, Mechanical (sensor shift) and Electronic; Off and Mechanical record the whole picture without the electronic shake reduction's crop, on GR IV 1.20 / 1.21.
 - **Learned auto white balance:** Auto, Warmth Priority and White Priority estimate the light with a learned model, on GR IV 1.20 / 1.21.
 - **Constant Light:** keeps the AF assist lamp lit, switched in the shooting menu, in ADJ mode or by an Fn button, on GR IV 1.20 / 1.21.
 - **Sensor Shift:** shift and turn the sensor by hand with the shake reduction unit to fine-tune the framing, from ADJ mode, the Fn button or the held Movie button, on GR IV 1.20 / 1.21.
