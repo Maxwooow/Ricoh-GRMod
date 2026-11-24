@@ -1287,7 +1287,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   if (features.awbLearn) installAwbLearn(patch);
   // Very last: the zero fill over the sbrk arena; the additions above expect it at 0x55839040 or its official end.
   // (Movie AF and the learned white balance keep their state pointers in the arena: they need the zero fill there too.)
-  if (features.batteryPercent || features.videoAf || features.awbLearn || features.constantLight || features.sensorShift || features.movieSr) extendBatteryZeroFill(patch);
+  if (features.batteryPercent || features.videoAf || features.awbLearn || features.constantLight || features.sensorShift || features.movieSr || features.movie4k) extendBatteryZeroFill(patch);
   // Exposure modes for movies: after everything, so that a build with it differs from the one without only by its
   // own words (and the record of the additions).
   if (features.movieExposure) installMovieExposure(patch);

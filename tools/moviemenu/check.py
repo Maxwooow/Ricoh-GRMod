@@ -16,7 +16,7 @@ build with them (the calls they make out replaced by recorders):
   D. the unit's property handler: 0xFA builds the state as 0xF9 does, every other property goes where it went;
   E. Movie SR's list: three rows, their icons and texts, set (the bit, the camera's setter, the state sent),
      current; the icon of the setting on the menu line and on the screen;
-  F. 4K: the switch, the sensor's drive mode and the size recorded, for 60p / 30p / 24p and the setting;
+  F. 4K: the setting taken where the live view is started; the switch, the sensor's drive mode and the size recorded follow it, for 60p / 30p / 24p, whatever the setting becomes afterwards;
   G. the Frame Rate list's set (60p clears 4K, then the camera's own code), the Resolution list (4K at 60p sets
      30p), the menu line and the two submenu lines.
 
@@ -54,6 +54,7 @@ MOVIE_SR_SET, APP_GET, SETTINGS_GET, RESOURCES_GET = B(0x533337ac, 0x53333ffc), 
 LIST_SET_ITEM, LIST_TEXT_ROW, LIST_AFTER_SET = B(0x5359e1bc, 0x5359eae4), B(0x5359e0ac, 0x5359e9d4), B(0x531daa64, 0x531db06c)
 SELECT_LOW, SELECT_HIGH = B(0x531d825c, 0x531d8864), B(0x531d826c, 0x531d8874)
 SWITCH, DRIVE_MODE, MOVIE_SIZE = B(0x538ad500, 0x538ae1a8), B(0x536568d4, 0x53657214), B(0x538b376c, 0x538b4414)
+START_SIZE_CALL, LATCH_4K = B(0x5365ba0c, 0x5365c34c), 0x55839045
 DM_STUBS = [(B(0x53891e48, 0x53892af0), 0x5e000800), (B(0x53891f18, 0x53892bc0), 0), (B(0x538f83f4, 0x538f908c), 1), (B(0x538f83d8, 0x538f9070), 0), (B(0x539154f8, 0x53916230), 0), (B(0x538ade68, 0x538aeb10), 0x5e000900)]
 FR_SET, FR_SET_CLOSE, FR_SET_KEPT, FRAME_RATE_SET, FRAME_RATE_TEXT = B(0x531d4d08, 0x531d5310), B(0x531dc390, 0x531dc998), B(0x531d4d38, 0x531d5340), B(0x53332cb0, 0x53333500), B(0x5338f348, 0x5338fbf8)
 LINE_VALUE_TEXT, TOP_SET_TITLE, SUBMENU_LINE_TEXT = B(0x5359d740, 0x5359e068), B(0x5359d48c, 0x5359ddb4), B(0x535a64b4, 0x535a6ddc)
@@ -118,7 +119,7 @@ class Emu:
 # ---- A: the image
 select = mov16(img, SELECT_LOW, SELECT_HIGH); select_plain = mov16(plain, SELECT_LOW, SELECT_HIGH)
 sr_record = select + 62 * 0x4c
-named = {SR_STATE_MOVIE, SR_PROPERTY, MARGIN_SETUP, MARGIN_UPDATE, LINE_ICON_CALL, SCREEN_ICON_TAIL, SWITCH, FR_SET}
+named = {SR_STATE_MOVIE, SR_PROPERTY, MARGIN_SETUP, MARGIN_UPDATE, LINE_ICON_CALL, SCREEN_ICON_TAIL, SWITCH, FR_SET, START_SIZE_CALL}
 if sr_record < OFFICIAL_END: named |= {sr_record + o for o in (0x0c, 0x14, 0x24, 0x2c)}
 named |= {MOVIE_MENU + 0x8c + 12 * 8, MOVIE_MENU + 0x1bc + 12 * 4}
 # may differ: the menus' shared places (the controller factory, the two "current menu" functions, the end of the official
@@ -261,8 +262,16 @@ for site, tail in ((LINE_ICON_CALL, False), (SCREEN_ICON_TAIL, True)):
 print(f'E. Movie SR: the list (Off / Sensor Shift / Electronic), its set and current, the icons ({n})')
 
 # ---- F: 4K
-def drive(e, fps, byte):
-    e.w8(MOVIE_BYTE, byte)
+def start(e, byte, before):
+    """The live view is started: the call of the size function there. Returns what the switch's byte holds afterwards."""
+    e.w8(MOVIE_BYTE, byte); e.w8(LATCH_4K, before); e.w8(LATCH_4K - 1, 0x77); e.w8(LATCH_4K + 1, 0x88)
+    e.call(START_SIZE_CALL, [0x1234], stops=[MOVIE_SIZE, START_SIZE_CALL + 4])
+    assert e.stopped == MOVIE_SIZE and e.r(0) == 0x1234 and e.mu.reg_read(UC_ARM_REG_LR) == START_SIZE_CALL + 4 and e.kept((0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11)), (byte, before)
+    assert e.r8(MOVIE_BYTE) == byte and e.r8(LATCH_4K - 1) == 0x77 and e.r8(LATCH_4K + 1) == 0x88
+    return e.r8(LATCH_4K)
+
+
+def drive(e, fps):
     obj = SCR + 0x30000; e.mu.mem_write(obj, b'\0' * 0x1000); e.w32(obj + 0x3bc, SCR + 0x500); e.w32(obj + 0x39c, SCR + 0x700)
     for a, v in DM_STUBS: e.stubs[a] = (lambda v: lambda e: v)(v)
     e.stubs[PROPS] = lambda e: SCR + 0x900
@@ -274,12 +283,20 @@ def drive(e, fps, byte):
 
 
 n = 0
-for fps, byte in itertools.product((0, 1, 2), (0, 1, 2, 3, 0xfd, 0xff)):
+assert target(plain, START_SIZE_CALL) == MOVIE_SIZE
+for fps, byte, before in itertools.product((0, 1, 2), (0, 1, 2, 3, 0xfd, 0xff), (0, 1)):
     uhd = bool(byte & 2)
-    assert drive(ep, fps, byte) == ((4, 3, 2)[fps], 2, 0)
-    assert drive(ew, fps, byte) == ((4, 6 if uhd else 3, 5 if uhd else 2)[fps], 1 if uhd and fps else 2, int(uhd)), (fps, byte, drive(ew, fps, byte))
-    n += 1
-print(f'F. 4K: the sensor\'s drive mode and the size recorded for 60p / 30p / 24p and the setting ({n}): 4K at 30p (mode 6) and 24p (mode 5), 60p always FHD (mode 4)')
+    ep.w8(MOVIE_BYTE, byte); ep.w8(LATCH_4K, before)
+    assert drive(ep, fps) == ((4, 3, 2)[fps], 2, 0)
+    assert start(ew, byte, before) == int(uhd), (byte, before)
+    for later in (byte, byte ^ 2, 0, 0xff):                    # the setting changed while the live view runs: the answers stay those of its start
+        ew.w8(MOVIE_BYTE, later)
+        assert drive(ew, fps) == ((4, 6 if uhd else 3, 5 if uhd else 2)[fps], 1 if uhd and fps else 2, int(uhd)), (fps, byte, later, drive(ew, fps))
+        assert ew.r8(LATCH_4K) == int(uhd) and ew.r8(MOVIE_BYTE) == later
+        n += 1
+ew.w8(LATCH_4K, 0); ew.w8(MOVIE_BYTE, 0xff)                    # from start-up to the first live view: FHD
+assert drive(ew, 1) == (3, 2, 0)
+print(f'F. 4K: the setting is taken where the live view is started; the sensor\'s drive mode, the size recorded and the switch for 60p / 30p / 24p follow that until the next start ({n}): 4K at 30p (mode 6) and 24p (mode 5), 60p always FHD (mode 4)')
 
 # ---- G: the menu
 n = 0

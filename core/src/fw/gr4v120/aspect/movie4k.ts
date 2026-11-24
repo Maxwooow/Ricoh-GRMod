@@ -25,8 +25,15 @@
  *    under its own number, and Resolution, a list record made from Frame Rate's;
  *  - the two settings cannot disagree: choosing 4K at 60p sets 30p (the camera's own setter);
  *    choosing 60p (the Frame Rate list's set function, at its entry) sets FHD.
- * The resolution is read when the live view is set up: after it is changed the camera takes it at
- * the next set-up (a change of the frame rate, of the shooting mode, or switching the camera on).
+ *  - one answer for as long as a live view runs. The switch is asked again later (the size recorded
+ *    is set again by 0x5365B8E4, which the live view's sequences call), while the drive mode and
+ *    the buffers are those of the live view's start; a setting changed in between would give a 4K
+ *    recording from the FHD read-out or the other way round. So the setting is copied into a byte
+ *    of the sbrk arena (`battery.ts`) where the live view is started (the call of 0x538B376C at
+ *    0x5365BA0C, in 0x5365B9A8, before any of the other three questions), and the switch answers
+ *    that byte: zero from start-up until the first live view.
+ * After the resolution is changed the camera therefore takes it at the next start of the live
+ * view (the shooting mode changed, or the camera switched on).
  *
  * Going back to a firmware without this: the bit means nothing there.
  */
@@ -48,6 +55,10 @@ export const RESOLUTION_LIST_ID = 0x020001e1;
 
 const SWITCH = adr(0x538ad500); // the "debug 4K movie" switch
 const SWITCH_CALLS = [adr(0x53652dd8), adr(0x53656934), adr(0x53656a20), adr(0x538b3788)] as const;
+const MOVIE_SIZE = adr(0x538b376c); // (movie settings object): the size recorded, by the switch and the frame rate
+const START_SIZE_CALL = adr(0x5365ba0c); // bl MOVIE_SIZE where the live view is started (0x5365B9A8)
+/** "4K in this live view": the byte after the movie shake reduction's (`moviesr.ts`, 0x55839044) in the sbrk arena, zero at start-up. */
+export const MOVIE4K_LATCH = adr(0x55839044) + 1;
 const SETTINGS = adr(0x550832a8);
 const FRAME_RATE = 0x772; // the Frame Rate setting: 0 60p, 1 30p, 2 24p
 const FRAME_RATE_SET = adr(0x53332cb0); // (settings, value)
@@ -105,6 +116,10 @@ export function installMovie4k(patch: Patch): void {
   expectWord(patch, SWITCH, 0xe3a00000); // mov r0, #0
   expectWord(patch, SWITCH + 4, 0xe12fff1e); // bx lr
   for (const call of SWITCH_CALLS) expectWord(patch, call, branchWord(call, SWITCH, 14, true));
+  expectWord(patch, MOVIE_SIZE, 0xe1a0c00d);
+  expectWord(patch, START_SIZE_CALL - 4, 0xe5c65740); // strb r5, [r6, #0x740]
+  expectWord(patch, START_SIZE_CALL, branchWord(START_SIZE_CALL, MOVIE_SIZE, 14, true));
+  expectWord(patch, START_SIZE_CALL + 4, 0xe3580001); // cmp r8, #1
   // --- The Frame Rate setting and its line.
   expectWord(patch, FRAME_RATE_SET, 0xe1a0c00d);
   expectWord(patch, FRAME_RATE_LINE_DRAW, 0xe1a0c00d);
@@ -138,12 +153,18 @@ export function installMovie4k(patch: Patch): void {
   installTexts(patch, [{ id: T.title, names: movie4kTitles(patch) }, { id: T.resolution, names: RESOLUTION_NAMES }, { id: T.fhd, names: same('FHD') }, { id: T.uhd, names: same('4K') },
     { id: T.uhd30, names: same('4K 30p') }, { id: T.uhd24, names: same('4K 24p') }]);
 
-  // --- The switch: 4K chosen.
+  // --- The switch: 4K chosen, as it was when this live view was started (the call there has only r0 for the function).
+  const latch = patch.append((at) => assembleWords(
+    `${BYTE}; ldrb r3, [r3]
+     ands r3, r3, #${MOVIE_4K_BIT}; movne r3, #1
+     movw ip, #${lo(MOVIE4K_LATCH)}; movt ip, #${hi(MOVIE4K_LATCH)}; strb r3, [ip]
+     b #${MOVIE_SIZE}`, at), 16);
+  patch.setWord(START_SIZE_CALL, branchWord(START_SIZE_CALL, latch, 14, true), '4K movies: the Resolution setting is taken when the live view is started');
   const answer = patch.append((at) => assembleWords(
-    `movw r0, #${lo(MOVIE_BYTE)}; movt r0, #${hi(MOVIE_BYTE)}; ldrb r0, [r0]
-     ands r0, r0, #${MOVIE_4K_BIT}; movne r0, #1
+    `movw r0, #${lo(MOVIE4K_LATCH)}; movt r0, #${hi(MOVIE4K_LATCH)}; ldrb r0, [r0]
+     and r0, r0, #1
      bx lr`, at), 16);
-  patch.setWord(SWITCH, branchWord(SWITCH, answer), '4K movies: the switch answers the Resolution setting');
+  patch.setWord(SWITCH, branchWord(SWITCH, answer), '4K movies: the switch answers the Resolution setting of this live view');
 
   // --- 60p chosen in the Frame Rate list (row 0): FHD. Then the function's own first instruction, and on.
   const rate = patch.append((at) => assembleWords(
