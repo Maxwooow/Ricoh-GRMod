@@ -184,6 +184,8 @@ export interface ExtensionFeatures {
   awbLearn?: boolean;
   /** GR IV 1.20 and 1.21 (`fw/gr4v120/aspect/movieexp.ts`; not built on 1.11): movies in the exposure mode of the mode dial. */
   movieExposure?: boolean;
+  /** Not on 1.11 (the engine refuses it there): 1.20 and 1.21 only. */
+  constantLight?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */

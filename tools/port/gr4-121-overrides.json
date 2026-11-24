@@ -362,5 +362,9 @@
  "0x55839078": {
   "new": "0x55839078",
   "reason": "GR Mod's own word in the C library's sbrk arena before the heap (awb2.ts, as BATTERY_SHOWN at 0x55839040): the arena ends at 0x55839080 and the start-up zero fill at 0x55839014 in both releases"
+ },
+ "0x55839074": {
+  "new": "0x55839074",
+  "reason": "GR Mod's own word in the C library's sbrk arena before the heap (lamp.ts, as 0x55839078 of awb2.ts): the arena is 0x55839040..0x55839080 in both releases"
  }
 }
