@@ -374,5 +374,9 @@
  "0x53dbf740": {
   "new": "0x53dc0d48",
   "reason": "LiveViewController's vtable: data aligned and its one reference agrees; the word at +0xc is the predicate 0x5318ae30 -> 0x5318ae08 in both"
+ },
+ "0x55839044": {
+  "new": "0x55839044",
+  "reason": "the sbrk arena before the heap (0x55839040..0x55839080), same place in 1.21 (as 0x55839040, battery.ts): the movie shake reduction's margin byte"
  }
 }

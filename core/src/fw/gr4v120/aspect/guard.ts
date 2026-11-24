@@ -34,6 +34,7 @@
 import { assembleWords, branchTarget, branchWord } from './arm';
 import { FirmwareError } from '../../types';
 import { Patch, expectWord } from './build';
+import { MOVIE_BYTE_OFFSET } from './movie4k';
 import { adr, byRelease } from '../target';
 
 function fail(code: string, message: string): never {
@@ -74,6 +75,8 @@ export interface GuardOptions {
    * is the ADJ lever function 0x15 (so slots may hold it).
    */
   exposurePreview?: boolean;
+  /** Bits of the movie options' byte (`movie4k.ts`: 0x775 of the settings object) that mean something in this build; the others are cleared. */
+  movieBits?: number;
   /** The last ADJ lever function when Constant Light (`lamp.ts`) or Sensor Shift (`shift.ts`) adds one: 0x15 .. 0x17. */
   lastAdjFunction?: number;
 }
@@ -137,6 +140,10 @@ function fixSource(o: GuardOptions): string {
   }
   if (o.hdr) lines.push(`ldrb r2,[r0,#${HDR_SWITCH}]`, 'cmp r2,#1', 'movhi r2,#0', `strbhi r2,[r0,#${HDR_SWITCH}]`);
   if (o.exposurePreview) lines.push(`ldrb r2,[r0,#${EXPOSURE_PREVIEW}]`, 'cmp r2,#2', 'movhi r2,#0', `strbhi r2,[r0,#${EXPOSURE_PREVIEW}]`);
+  if (o.movieBits !== undefined) {
+    if (!(Number.isInteger(o.movieBits) && o.movieBits > 0 && o.movieBits < 4)) fail('internal', 'guard: the movie options');
+    lines.push(`ldrb r2,[r0,#${MOVIE_BYTE_OFFSET}]`, `and r2,r2,#${o.movieBits}`, `strb r2,[r0,#${MOVIE_BYTE_OFFSET}]`);
+  }
   lines.push('bx lr');
   return lines.join(';');
 }

@@ -89,6 +89,12 @@ Version 13, 17 recordings at an outdoor light show at night (the module's record
   in the zip-line recording that gave the three searches above and, in its last 34 s, 56 small steps back and forth (5 ..
   37 units), which may show as a slight breathing.
 
+Since then (the same version number: the record is unchanged): a recording in which the phase result never changes after
+its first frames has no phase data at all, and the camera's own search is let through as if the module were not there
+(`STALL_TICKS`, `STALL_RESULT`). That is a 4K movie (`core/src/fw/gr4v120/aspect/movie4k.ts`): on a GR IV 1.21 the focus stood
+still for a whole 4K recording with every search refused (test firmware 094), and follows as the official firmware's does with
+this rule (test firmware 097, where a stub in front of the module did the same).
+
 ## Tests on the computer
 
 - `test_quick.py OFFICIAL_RTOS PATCHED_RTOS` (180 checks): the stubs as built, and the camera's own code wherever the

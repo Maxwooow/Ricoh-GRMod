@@ -269,6 +269,10 @@ struct ctx {
 #define BLIND 30u               /* frames without usable phase data after which the camera may search by itself */
 #define OUT_LIMIT 90u           /* frames of "out of focus" without a step after which it may, too */
 #define SERVO_WAIT 8u           /* standby frames before the first step */
+#define STALL_TICKS 90u         /* frames of a recording after which ... */
+#define STALL_RESULT 8u         /* ... a phase result that last changed before this frame means that there is no phase data at all: a 4K
+                                   movie (`movie4k.ts`; the phase block is not filled for that read-out).  Camera, test firmware 094 against
+                                   097: without this the focus stood still for the whole recording, every search refused */
 #define STANDBY 0xeeu           /* "state" of a standby record */
 
 struct record {                 /* 80 bytes */
@@ -810,6 +814,7 @@ static u32 may_search(const struct ctx *c, struct state *s, const u8 *object)
     u32 direct;
 
     if (!s || s->magic != MAGIC || !(c->flags & 16) || !object || !object[0x6548] || !s->frames || s->distrust || s->veto_off) return 1;
+    if (s->ticks > STALL_TICKS && s->result_tick < STALL_RESULT) return 1;   /* no phase data in this recording: the camera's own search */
     direct = !s->direct_dead && !s->direct_block;
     if (!s->moving && s->ticks >= s->fresh_from
         && !(direct && s->servo_tick && s->ticks - s->servo_tick < LOCK_LONG && s->u_median < LOCK_BIG && s->ticks - s->usable_tick <= BLIND)) {

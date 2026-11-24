@@ -1031,6 +1031,30 @@
     "tools/gr4v120/directflash/check.py"
    ]
   },
+  "0x531b2a0c": {
+   "new": "0x531b2df0",
+   "how": "aligned + refs 0x531b2df0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
+  "0x531b2c44": {
+   "new": "0x531b3028",
+   "how": "aligned + refs 0x531b3028x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
+   ]
+  },
+  "0x531b2c78": {
+   "new": "0x531b305c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
+   ]
+  },
   "0x531b304c": {
    "new": "0x531b3430",
    "how": "aligned + refs 0x531b3430x1",
@@ -2530,14 +2554,6 @@
     "core/src/fw/gr4v120/aspect/adjslots.ts"
    ]
   },
-  "0x531c0ab8": {
-   "new": "0x531c10c0",
-   "how": "aligned + refs 0x531c10c0x1",
-   "ok": true,
-   "files": [
-    "core/src/fw/gr4v120/aspect/shift.ts"
-   ]
-  },
   "0x531c0ae8": {
    "new": "0x531c10f0",
    "how": "aligned",
@@ -3528,6 +3544,22 @@
     "core/src/fw/gr4v120/aspect/datestamp-menu.ts"
    ]
   },
+  "0x531d0b24": {
+   "new": "0x531d112c",
+   "how": "aligned + refs 0x531d112cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
+  "0x531d0b4c": {
+   "new": "0x531d1154",
+   "how": "aligned + refs 0x531d1154x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
+   ]
+  },
   "0x531d0b7c": {
    "new": "0x531d1184",
    "how": "aligned + refs 0x531d1184x1",
@@ -3585,6 +3617,22 @@
    "files": [
     "core/src/fw/gr4v120/aspect/build.ts",
     "tools/gr4v120/aspect/boot_checks.py"
+   ]
+  },
+  "0x531d2b80": {
+   "new": "0x531d3188",
+   "how": "aligned + refs 0x531d3188x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
+  "0x531d2c28": {
+   "new": "0x531d3230",
+   "how": "aligned + refs 0x531d3230x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
    ]
   },
   "0x531d2e8c": {
@@ -3662,6 +3710,30 @@
     "core/src/fw/gr4v120/aspect/datestamp-menu.ts"
    ]
   },
+  "0x531d4d08": {
+   "new": "0x531d5310",
+   "how": "aligned + refs 0x531d5310x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
+  "0x531d4d38": {
+   "new": "0x531d5340",
+   "how": "aligned + refs 0x531d5340x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
+  "0x531d4e08": {
+   "new": "0x531d5410",
+   "how": "aligned + refs 0x531d5410x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
+   ]
+  },
   "0x531d4f28": {
    "new": "0x531d5530",
    "how": "aligned + refs 0x531d5530x1",
@@ -3719,6 +3791,22 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/datestamp-menu.ts"
+   ]
+  },
+  "0x531d66ec": {
+   "new": "0x531d6cf4",
+   "how": "aligned + refs 0x531d6cf4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
+  "0x531d67f0": {
+   "new": "0x531d6df8",
+   "how": "aligned + refs 0x531d6df8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
    ]
   },
   "0x531d6928": {
@@ -4059,6 +4147,14 @@
     "tools/gr4v120/datestamp/menu_check.py"
    ]
   },
+  "0x531daa64": {
+   "new": "0x531db06c",
+   "how": "aligned + refs 0x531db06cx4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
   "0x531dc364": {
    "new": "0x531dc96c",
    "how": "aligned",
@@ -4075,6 +4171,14 @@
    "files": [
     "core/src/fw/gr4v120/aspect/datestamp-menu.ts",
     "tools/gr4v120/datestamp/menu_check.py"
+   ]
+  },
+  "0x531dc390": {
+   "new": "0x531dc998",
+   "how": "aligned + refs 0x531dc998x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
    ]
   },
   "0x531dc3d8": {
@@ -4981,6 +5085,8 @@
     "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/guard.ts",
     "core/src/fw/gr4v120/aspect/halation-ui.ts",
+    "core/src/fw/gr4v120/aspect/movie4k.ts",
+    "core/src/fw/gr4v120/aspect/moviesr.ts",
     "core/src/fw/gr4v120/aspect/shift.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "core/src/fw/gr4v120/aspect/slots.ts",
@@ -5030,6 +5136,8 @@
    "files": [
     "core/src/fw/gr4v120/aspect/directflash.ts",
     "core/src/fw/gr4v120/aspect/guard.ts",
+    "core/src/fw/gr4v120/aspect/movie4k.ts",
+    "core/src/fw/gr4v120/aspect/moviesr.ts",
     "core/src/fw/gr4v120/aspect/shade.ts",
     "core/src/fw/gr4v120/aspect/shift.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
@@ -5079,6 +5187,7 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/adjslots.ts",
+    "core/src/fw/gr4v120/aspect/movie4k.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "tools/gr4v120/adjslots/adjslots.c",
     "tools/gr4v120/adjslots/check.py",
@@ -5770,6 +5879,22 @@
     "tools/gr4v120/slotparams/gen_slotparams.py"
    ]
   },
+  "0x53332cb0": {
+   "new": "0x53333500",
+   "how": "aligned + refs 0x53333500x7",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
+  "0x533337ac": {
+   "new": "0x53333ffc",
+   "how": "aligned + refs 0x53333ffcx4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
+   ]
+  },
   "0x53338b58": {
    "new": "0x533393a8",
    "how": "aligned + refs 0x533393a8x3",
@@ -6083,6 +6208,14 @@
     "tools/gr4v120/aspect/boot_checks.py"
    ]
   },
+  "0x5338f348": {
+   "new": "0x5338fbf8",
+   "how": "aligned + refs 0x5338fbf8x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
   "0x5338f484": {
    "new": "0x5338fd34",
    "how": "aligned + refs 0x5338fd34x6",
@@ -6204,6 +6337,14 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/build.ts"
+   ]
+  },
+  "0x53390e18": {
+   "new": "0x533916c8",
+   "how": "aligned + refs 0x533916c8x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
    ]
   },
   "0x53390e40": {
@@ -6354,8 +6495,7 @@
    "how": "aligned + refs 0x533986ecx8",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/lamp.ts",
-    "core/src/fw/gr4v120/aspect/shift.ts"
+    "core/src/fw/gr4v120/aspect/lamp.ts"
    ]
   },
   "0x533990a4": {
@@ -6363,8 +6503,7 @@
    "how": "aligned + refs 0x53399954x9",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/lamp.ts",
-    "core/src/fw/gr4v120/aspect/shift.ts"
+    "core/src/fw/gr4v120/aspect/lamp.ts"
    ]
   },
   "0x533990e0": {
@@ -6400,8 +6539,7 @@
    "how": "aligned + refs 0x5339b984x2",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/lamp.ts",
-    "core/src/fw/gr4v120/aspect/shift.ts"
+    "core/src/fw/gr4v120/aspect/lamp.ts"
    ]
   },
   "0x5339b7b8": {
@@ -6434,6 +6572,14 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/slots.ts"
+   ]
+  },
+  "0x533a6aec": {
+   "new": "0x533a739c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
    ]
   },
   "0x533a6f30": {
@@ -8289,6 +8435,14 @@
     "tools/gr4v120/shutdown/menu_check.py"
    ]
   },
+  "0x5359d740": {
+   "new": "0x5359e068",
+   "how": "aligned + refs 0x5359e068x28",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
   "0x5359d7dc": {
    "new": "0x5359e104",
    "how": "aligned + refs 0x5359e104x4",
@@ -8331,6 +8485,7 @@
    "how": "aligned + refs 0x5359e9d4x48",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/shutdown/shutdown.c"
    ]
@@ -8442,6 +8597,7 @@
    "how": "aligned + refs 0x535a6ddcx21",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/shutdown/shutdown.c"
@@ -9773,6 +9929,46 @@
     "core/src/fw/gr4v120/aspect/build.ts"
    ]
   },
+  "0x53652dbc": {
+   "new": "0x536536fc",
+   "how": "aligned + refs 0x536536fcx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
+  "0x53652dd8": {
+   "new": "0x53653718",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
+  "0x536568d4": {
+   "new": "0x53657214",
+   "how": "aligned + refs 0x53657214x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
+  "0x53656934": {
+   "new": "0x53657274",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
+  "0x53656a20": {
+   "new": "0x53657360",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
   "0x53658c58": {
    "new": "0x53659598",
    "how": "aligned",
@@ -9803,6 +9999,38 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/build.ts"
+   ]
+  },
+  "0x5365ab38": {
+   "new": "0x5365b478",
+   "how": "aligned + refs 0x5365b478x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
+   ]
+  },
+  "0x5365ab70": {
+   "new": "0x5365b4b0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
+   ]
+  },
+  "0x5365c850": {
+   "new": "0x5365d190",
+   "how": "aligned + refs 0x5365d190x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
+   ]
+  },
+  "0x5365c87c": {
+   "new": "0x5365d1bc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
    ]
   },
   "0x5366440c": {
@@ -10721,6 +10949,22 @@
     "core/src/fw/gr4v120/aspect/flttl.ts"
    ]
   },
+  "0x536af4bc": {
+   "new": "0x536afdfc",
+   "how": "aligned + refs 0x536afdfcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
+   ]
+  },
+  "0x536af4dc": {
+   "new": "0x536afe1c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
+   ]
+  },
   "0x536b2180": {
    "new": "0x536b2ac0",
    "how": "aligned + refs 0x536b2ac0x1",
@@ -11409,6 +11653,14 @@
     "tools/gr4v120/shade/draw_check.py"
    ]
   },
+  "0x5377db4c": {
+   "new": "0x5377e7dc",
+   "how": "aligned + refs 0x5377e7dcx3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
+   ]
+  },
   "0x537818a8": {
    "new": "0x53782538",
    "how": "aligned + refs 0x53782538x1",
@@ -11582,6 +11834,7 @@
    "how": "aligned + refs 0x537bbf6cx2",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts",
     "core/src/fw/gr4v120/aspect/shift.ts"
    ]
   },
@@ -11591,6 +11844,14 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/shift.ts"
+   ]
+  },
+  "0x537bb2d8": {
+   "new": "0x537bbff0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
    ]
   },
   "0x537cf950": {
@@ -11955,6 +12216,14 @@
     "tools/gr4v120/aspect/boot_checks.py"
    ]
   },
+  "0x538ad500": {
+   "new": "0x538ae1a8",
+   "how": "aligned + refs 0x538ae1a8x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
   "0x538aefc8": {
    "new": "0x538afc70",
    "how": "aligned + refs 0x538afc70x2",
@@ -12060,6 +12329,22 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/build.ts"
+   ]
+  },
+  "0x538b376c": {
+   "new": "0x538b4414",
+   "how": "aligned + refs 0x538b4414x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
+  "0x538b3788": {
+   "new": "0x538b4430",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/movie4k.ts"
    ]
   },
   "0x538b3dc8": {
@@ -13601,6 +13886,7 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/menuwide.ts",
+    "core/src/fw/gr4v120/aspect/movie4k.ts",
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/shutdown/menu_check.py"
    ]
@@ -14650,6 +14936,8 @@
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "core/src/fw/gr4v120/aspect/guard.ts",
     "core/src/fw/gr4v120/aspect/hdrgain.ts",
+    "core/src/fw/gr4v120/aspect/movie4k.ts",
+    "core/src/fw/gr4v120/aspect/moviesr.ts",
     "core/src/fw/gr4v120/aspect/shift.ts",
     "core/src/fw/gr4v120/aspect/slots.ts",
     "core/src/fw/gr4v120/aspect/softfocus.ts",
@@ -14705,6 +14993,7 @@
    "how": "refs 0x550b9b28x2",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts",
     "core/src/fw/gr4v120/aspect/shift.ts"
    ]
   },
@@ -14969,12 +15258,22 @@
     "core/src/fw/gr4v120/aspect/hdrgain.ts",
     "core/src/fw/gr4v120/aspect/lamp.ts",
     "core/src/fw/gr4v120/aspect/lookstash.ts",
+    "core/src/fw/gr4v120/aspect/moviesr.ts",
     "core/src/fw/gr4v120/aspect/shadowml.ts",
     "core/src/fw/gr4v120/aspect/shift.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "core/src/fw/gr4v120/aspect/slots.ts",
     "tools/gr4v120/battery/check.py",
     "tools/gr4v120/shutdown/menu_check.py"
+   ]
+  },
+  "0x55839044": {
+   "new": "0x55839044",
+   "how": "override",
+   "ok": true,
+   "why": "the sbrk arena before the heap (0x55839040..0x55839080), same place in 1.21 (as 0x55839040, battery.ts): the movie shake reduction's margin byte",
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
    ]
   },
   "0x55839048": {
@@ -15027,6 +15326,7 @@
     "core/src/fw/gr4v120/aspect/awb2.ts",
     "core/src/fw/gr4v120/aspect/battery.ts",
     "core/src/fw/gr4v120/aspect/lamp.ts",
+    "core/src/fw/gr4v120/aspect/moviesr.ts",
     "core/src/fw/gr4v120/aspect/shift.ts",
     "core/src/fw/gr4v120/aspect/videoaf.ts",
     "tools/gr4v120/awb2/test_fw.py",

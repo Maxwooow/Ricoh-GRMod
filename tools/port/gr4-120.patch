@@ -436,7 +436,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  import type { HalationLook } from './halation';
  import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
  import type { LookLayout } from './looks';
-@@ -49,25 +55,32 @@
+@@ -49,25 +55,34 @@
  import { installCustomGrid, isCameraGrid, validCustomGrid } from './grid';
  import type { CustomGrid } from './grid';
  import { installRatioShade } from './shade';
@@ -445,6 +445,8 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 -import { LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
 +import { installExposurePreviewOff } from './lvpreview';
 +import { installMovieExposure } from './movieexp';
++import { MOVIE_4K_BIT, MOVIE_SENSOR_SR_BIT, installMovie4k } from './movie4k';
++import { installMovieSr, installMovieSrAssets } from './moviesr';
 +import { installShiftAdj, installShiftAssets, installShiftCore, installShiftFn, shiftAdjFunction } from './shift';
 +import { FRAME_LOOK, LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
  import type { ShutdownPictureSpec } from './shutdown';
@@ -477,7 +479,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  export const LANGUAGES = 21;
  const ROW_STRIDE = TEXT_CAPACITY * 4;
  const NATIVE_ICON_CATALOG = adr(0x55014280);
-@@ -90,10 +103,10 @@
+@@ -90,10 +105,10 @@
    return id;
  }
  
@@ -491,7 +493,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  }
  
  export interface RatioSpec {
-@@ -155,11 +168,11 @@
+@@ -155,11 +170,11 @@
    /** ADJ lever slots, 6 to 8 (see `adjslots.ts`); absent or 5: the camera's five. */
    adjSlots?: number;
    /**
@@ -506,7 +508,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    softFocusMenu?: boolean;
    /** The battery icon shows the charge in steps of 10 % instead of the bars (see `battery.ts`). */
    batteryPercent?: boolean;
-@@ -174,21 +187,23 @@
+@@ -174,21 +189,23 @@
    ratioShadeTone?: ShadeTone;
    /** A learned Auto for Shadow Correction (see `shadowml.ts`); GR IV 1.11, 1.20 and 1.21. Off unless asked for. */
    shadowLearn?: boolean;
@@ -537,7 +539,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    movieSr?: boolean;
  }
  
-@@ -199,11 +214,22 @@
+@@ -199,11 +216,22 @@
    dateStampDiag?: boolean;
    /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
    directFlashDiag?: boolean;
@@ -561,7 +563,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  export interface AspectResult {
    revision: BuildRevision;
-@@ -366,7 +392,7 @@
+@@ -366,7 +394,7 @@
    for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
    const rowsStart = TEXT_CATALOG + 0x100;
    const end = rowsStart + LANGUAGES * ROW_STRIDE;
@@ -570,7 +572,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    patch.extendTo(end - BASE);
    patch.write(ICON_CATALOG, icons);
    const relocated: number[] = [];
-@@ -378,8 +404,15 @@
+@@ -378,8 +406,15 @@
    // language directory themselves.
    patch.setWord(adr(0x534013f8), movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
    patch.setWord(adr(0x534013fc), movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
@@ -588,7 +590,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    }
    for (const [low, high] of [[adr(0x535967cc), adr(0x535967d0)], [adr(0x53595db4), adr(0x53595dbc)]] as const) {
      patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
-@@ -410,7 +443,10 @@
+@@ -410,7 +445,10 @@
  // --------------------------------------------------------------------------------------------
  // crop_icons.py
  
@@ -600,7 +602,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
    const parts: Uint8Array[] = [iconbin];
-@@ -502,7 +538,7 @@
+@@ -502,7 +540,7 @@
    // Complete language rows again, now wide enough for the new names; every original entry is kept.
    let priorColumns = TEXT_CAPACITY;
    for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
@@ -609,7 +611,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    for (const id of allIds) upper = Math.max(upper, textId(id));
    const columns = Math.max(priorColumns, upper + 1);
    const catalogs: Uint8Array[] = [];
-@@ -631,7 +667,7 @@
+@@ -631,7 +669,7 @@
    p.hook(adr(0x538b40ec), out);
    out = `push {r0-r3,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r0,r3;bne #${adrHEX(0x538B41CC)};b #${p.target(adr(0x538b41b4))};`;
    p.hook(adr(0x538b41b4), out);
@@ -618,7 +620,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x53664430), out);
    // Both callers select the cropped window only for their original 2..5 range; a computed window
    // is invisible if selector 0 copies the untouched full canvas instead.
-@@ -694,7 +730,7 @@
+@@ -694,7 +732,7 @@
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
    out += adrText('cmp r2,#5;beq #0x5367298C;b #0x536728E8;');
@@ -627,7 +629,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x536728e4), out);
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
-@@ -715,8 +751,8 @@
+@@ -715,8 +753,8 @@
      out = '';
      for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
      out += `bic ip,ip,#4;b #${resume};custom:`;
@@ -638,7 +640,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      out += adrText('ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;');
      p.hook(entry, out);
    }
-@@ -802,7 +838,7 @@
+@@ -802,7 +840,7 @@
    const get = p.emit(lookup + 'mov r0,#0;bx lr;');
    // The native code at 0x53726698 divides s15 by the crop magnification; the other branch writes
    // it directly. Both contracts are kept.
@@ -647,7 +649,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x537266e8), code);
    // r8 / sb are the source dimensions: exact known sizes first, then fit the ratio for anything else.
    code = `push {r0,r4-r7,r10,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;beq old;mov r4,r0;mov r5,r8;mov r6,sb;`;
-@@ -936,7 +972,7 @@
+@@ -936,7 +974,7 @@
  function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
    const priorSave = branchTarget(adr(0x533f3674), patch.word(adr(0x533f3674)));
    const priorLoad = branchTarget(adr(0x533f3254), patch.word(adr(0x533f3254)));
@@ -656,7 +658,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    expectWord(patch, adr(0x5381d6bc), 0xe1a0c00d);
    // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
    const rects: Uint8Array[] = [];
-@@ -1074,13 +1110,24 @@
+@@ -1074,13 +1112,24 @@
   * features this is `installRatios`, byte for byte. With features the revision is 3.
   */
  export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
@@ -682,7 +684,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    if (extra) revision = 3;
    if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
    if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
-@@ -1091,8 +1138,16 @@
+@@ -1091,8 +1140,15 @@
    });
    if (features.brightAuto !== undefined && ![true, false, 'bright', 'balanced'].includes(features.brightAuto)) fail('bad-edit', 'brightAuto must be boolean, bright or balanced');
    if (features.shadowLearn !== undefined && typeof features.shadowLearn !== 'boolean') fail('bad-edit', 'shadowLearn must be boolean');
@@ -697,11 +699,10 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +  if (features.movieExposure !== undefined && typeof features.movieExposure !== 'boolean') fail('bad-edit', 'movieExposure must be boolean');
 +  if (features.constantLight !== undefined && typeof features.constantLight !== 'boolean') fail('bad-edit', 'constantLight must be boolean');
 +  for (const name of ['sensorShift', 'movie4k', 'movieSr'] as const) if (features[name] !== undefined && typeof features[name] !== 'boolean') fail('bad-edit', `${name} must be boolean`);
-+  if (features.movie4k || features.movieSr) fail('internal', 'not built yet');
    const patch = new Patch(rtos);
    const ramCopy = new DataView(patch.read(BASE + 0x450, 12).buffer);
    if (ramCopy.getUint32(0, true) !== RAM.source || ramCopy.getUint32(4, true) !== RAM.destination || ramCopy.getUint32(8, true) !== RAM.length) {
-@@ -1106,27 +1161,60 @@
+@@ -1106,27 +1162,61 @@
      const menu = installMenu(patch, ratios, installed.ids);
      const { p, get, scale } = buildGeometry(patch, ratios);
      installDevelop(p, scale, ratios);
@@ -750,6 +751,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +  // Sensor Shift: the module and the shooting screen's hooks, its texts and icon.
 +  const shift = features.sensorShift ? installShiftCore(patch) : null;
 +  if (shift) icons = installShiftAssets(patch, icons);
++  if (features.movieSr) icons = installMovieSrAssets(patch, icons);
    if (features.dateStamp) {
      const fixed = test.dateStampFixed;
      // From 0.8.2 (builds with the guard) the imprint goes by the picture's look.
@@ -767,7 +769,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    // Halation: added slots that have it, Cinema slots with a preset that are asked to.
    const halation: HalationLook[] = [];
    slots.forEach((x, k) => {
-@@ -1154,19 +1242,51 @@
+@@ -1154,19 +1244,54 @@
    if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
    // The HDR line's list: after the additions that copy the list table first.
    if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
@@ -783,6 +785,9 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +  // Sensor Shift on the ADJ lever (one more function, the last) and as an Fn function (after Constant Light's, which copies the lists first).
 +  const adjTable = shift ? installShiftAdj(patch, shift, shiftAdjFunction(!!ep, !!lamp)) : lampTable;
 +  if (shift) installShiftFn(patch, shift);
++  // The movie menu: Movie SR's three values; Frame Rate / Resolution (a submenu and a list more, after the others).
++  if (features.movieSr) installMovieSr(patch, shift);
++  if (features.movie4k) installMovie4k(patch);
    // ADJ lever slots: after the other additions that copy the submenu or list table (it adds records the same way).
 -  if (adjSlots > 0) installAdjSlots(patch, adjSlots);
 +  if (adjSlots > 0) installAdjSlots(patch, adjSlots, adjTable ? { functionTable: adjTable, lastFunction: lastAdj } : {});
@@ -790,7 +795,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +  else if (test.exposurePreviewOff) installExposurePreviewOff(patch);
    // Last: wraps every other settings save/load and user-mode recall hook.
 -  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}) });
-+  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}), ...(ep ? { exposurePreview: true } : {}), ...(lamp || shift ? { lastAdjFunction: lastAdj } : {}) });
++  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}), ...(ep ? { exposurePreview: true } : {}), ...(lamp || shift ? { lastAdjFunction: lastAdj } : {}), ...(features.movieSr || features.movie4k ? { movieBits: (features.movieSr ? MOVIE_SENSOR_SR_BIT : 0) | (features.movie4k ? MOVIE_4K_BIT : 0) } : {}) });
    if (features.brightAuto) installBrightAuto(patch, features.brightAuto === 'balanced' ? 'balanced' : 'bright');
    if (features.batteryPercent) icons = installBatteryPercent(patch, icons, !!test.batteryDiag);
    // After the ratios: the diagonals take the point setter the grid view's layout calls then.
@@ -815,7 +820,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    // Very last: the zero fill over the sbrk arena; the additions above expect it at 0x55839040 or its official end.
 -  if (features.batteryPercent) extendBatteryZeroFill(patch);
 +  // (Movie AF and the learned white balance keep their state pointers in the arena: they need the zero fill there too.)
-+  if (features.batteryPercent || features.videoAf || features.awbLearn || features.constantLight || features.sensorShift) extendBatteryZeroFill(patch);
++  if (features.batteryPercent || features.videoAf || features.awbLearn || features.constantLight || features.sensorShift || features.movieSr) extendBatteryZeroFill(patch);
 +  // Exposure modes for movies: after everything, so that a build with it differs from the one without only by its
 +  // own words (and the record of the additions).
 +  if (features.movieExposure) installMovieExposure(patch);
@@ -916,7 +921,33 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
    const roots = new DataView(patch.readMapped(NATIVE_TEXT_ROOTS, LANGUAGES * 4).buffer);
    const order: number[] = [];
    const seen = new Set<number>();
-@@ -345,7 +347,18 @@
+@@ -311,6 +313,25 @@
+     upper = Math.max(upper, id);
+   }
+   for (const site of patch.textBoundSites) patch.setWord(site, movWord(3, Math.max(upper, movImmediate(patch.word(site)))), 'text upper bound');
++}
++
++/** A text of the catalog in every language, in `LANGS` order (the camera's own, or one installed before). */
++export function readTexts(patch: Patch, id: number): string[] {
++  const roots = new DataView(patch.readMapped(NATIVE_TEXT_ROOTS, LANGUAGES * 4).buffer);
++  const out = new Array<string>(LANGUAGES).fill('');
++  for (let l = 0; l < LANGUAGES; l++) {
++    const k = (roots.getUint32(l * 4, true) + 4 - FIRST_TABLE_RAM) / TABLE_STRIDE;
++    if (!(Number.isInteger(k) && k >= 0 && k < LANGUAGES)) fail('unexpected-layout', 'language tables are not where they were expected');
++    const descriptor = patch.word(patch.word(TEXT_CATALOG + l * 4) + id * 4);
++    if (descriptor === 0) fail('unexpected-layout', 'text is not in the catalog');
++    const d = patch.readMapped(descriptor, 8);
++    const units = d[0];
++    const text = patch.readMapped((d[4] | (d[5] << 8) | (d[6] << 16) | (d[7] << 24)) >>> 0, units * 2);
++    let s = '';
++    for (let i = 0; i + 1 < units; i++) s += String.fromCharCode(text[i * 2] | (text[i * 2 + 1] << 8));
++    out[k] = s;
++  }
++  return out;
+ }
+ 
+ function installIcons(patch: Patch, iconbin: Uint8Array): Uint8Array {
+@@ -345,7 +366,18 @@
  // Shared with other camera-menu additions (`shutdown.ts`)
  
  export { FACTORY as CONTROLLER_FACTORY, D_RANGE_ID as SUBMENU_CONTROLLER_ID, HORIZON_ID as LIST_CONTROLLER_ID };
@@ -936,7 +967,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
  
  /** Where the submenu table (SubMenuController records, 0x64 bytes) is now: the official one or its latest copy. */
  export function submenuTable(patch: Patch): number {
-@@ -362,7 +375,7 @@
+@@ -362,7 +394,7 @@
  export function listTemplate(patch: Patch): Uint8Array {
    const r = patch.read(SELECT_TABLE + HORIZON_RECORD * SELECT_RECORD, SELECT_RECORD);
    const v = new DataView(r.buffer);
@@ -945,7 +976,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
      fail('unexpected-layout', 'Horizon Correction list record is not as expected');
    }
    return r;
-@@ -371,7 +384,7 @@
+@@ -371,7 +403,7 @@
  /**
   * Add list records (SelectMenuController, 0x4C bytes each), record i shown for controller id
   * `entries[i].id`: the list table is copied (once more) with the records at its end, the
@@ -954,7 +985,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
   * to its record (before what was there: the official code, or an earlier addition's mapping). The
   * controller factory must hand out the list controller for the ids (`hookControllerFactory`).
   * Returns the record numbers.
-@@ -407,7 +420,7 @@
+@@ -407,7 +439,7 @@
  export function submenuTemplate(patch: Patch): Uint8Array {
    const r = patch.read(SUB_TABLE + 17 * SUB_RECORD, SUB_RECORD);
    const v = new DataView(r.buffer);
@@ -963,7 +994,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
      fail('unexpected-layout', 'Reset submenu record is not as expected');
    }
    return r;
-@@ -484,7 +497,7 @@
+@@ -484,7 +516,7 @@
   * Install the menu entry. `patch` must already hold the scaffold of `build.ts` (relocated
   * catalogs) and the imprint itself. Returns the ICONBIN data with the four style icons appended.
   */
@@ -972,7 +1003,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
    // --- Checks of the official code and data this relies on.
    expectWord(patch, BUILDER, 0xe1a0c00d); // mov ip, sp
    expectWord(patch, BUILDER + 4, movWord(3, lo(MENU_TABLE)));
-@@ -495,7 +508,7 @@
+@@ -495,7 +527,7 @@
    expectWord(patch, SUB_SET_CURRENT, 0xe28134fe); // add r3, r1, #0xfe000000
    expectWord(patch, SELECT_SET_CURRENT, 0xe28134fe);
    expectWord(patch, adr(0x531e445c), 0xe3a02012); // the submenu constructor starts at record 18
@@ -981,7 +1012,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
    for (const f of [APP, SPEC_MODEL, TOP_SET_TWO_ICONS, TOP_SET_TITLE, SUB_SET_ICON, LIST_SET_ITEM, LABEL_SET_RECT]) expectWord(patch, f, 0xe1a0c00d);
    expectWord(patch, ROW_VTABLE_LITERAL, ROW_VTABLE);
    expectWord(patch, LABEL_VTABLE_LITERAL, LABEL_VTABLE);
-@@ -517,10 +530,10 @@
+@@ -517,10 +549,10 @@
  
    const subTemplate = patch.read(SUB_TABLE + D_RANGE_RECORD * SUB_RECORD, SUB_RECORD);
    const sv = new DataView(subTemplate.buffer);
@@ -994,7 +1025,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
      fail('unexpected-layout', 'Horizon Correction list record is not as expected');
    }
  
-@@ -701,9 +714,9 @@
+@@ -701,9 +733,9 @@
    relocateTable(patch, SUB_TABLE, SUB_RECORD, SUB_RECORDS + 1, [subRecord], SUB_SITES, 'date imprint: submenu records');
    patch.submenuRecords = SUB_RECORD_NUMBER + 1;
  
@@ -1007,7 +1038,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
    } else {
      const descriptor = (keep: number): Uint8Array => {
        const d = still.slice();
-@@ -790,7 +803,7 @@
+@@ -790,7 +822,7 @@
  
  /** The list's controller id (not used by the firmware) and the line / list title. */
  export const HDR_LIST_ID = 0x020001d0;
@@ -1016,7 +1047,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
  /** Color Space: the HDR line follows it. */
  const COLOR_SPACE_ID = 0x0200008d;
  /** The item only the GR IV (not HDF, not Monochrome) shows, and its visibility function. */
-@@ -822,46 +835,69 @@
+@@ -822,46 +854,69 @@
       pop {r4, lr}; b #${TOP_SET_TITLE}`, at), 16);
  }
  
@@ -1033,14 +1064,13 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
 - * HDF's), each without the model-specific items that model does not show, with the HDR line after
 - * Color Space and (when `dateDraw`) the date imprint's line at the end; the builder stores the
 - * model's at 0x55001E78 before it builds the menus (it is the only reader of that table).
-- */
--function stillMenuForModels(patch: Patch, still: Uint8Array, dateDraw: number, hdrDraw: number, what: string): void {
 + * HDF's), each without the model-specific items that model does not show, with the added `lines`
 + * after their official items (HDR after Color Space) and (when `dateDraw`) the date imprint's line
 + * at the end; the builder stores the model's at 0x55001E78 before it builds the menus (it is the
 + * only reader of that table). Up to 38 lines in the official layout; more (test 080: soft focus and
 + * exposure preview) in the wide layout of `menuwide.ts`, for all five tabs.
-+ */
+  */
+-function stillMenuForModels(patch: Patch, still: Uint8Array, dateDraw: number, hdrDraw: number, what: string): void {
 +function stillMenuForModels(patch: Patch, still: Uint8Array, dateDraw: number, lines: readonly StillLine[], what: string): void {
    const dv = new DataView(still.buffer, still.byteOffset, still.byteLength);
    const id = (i: number): number => dv.getUint32(D_ID + i * 4, true);
@@ -1108,7 +1138,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
        }
      }
      // Pages start at the same official items (none of them is dropped).
-@@ -871,9 +907,14 @@
+@@ -871,9 +926,14 @@
      d[D_COUNT] = order.length;
      return d;
    };
@@ -1126,7 +1156,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
    const builder = patch.append((at) => assembleWords(
      `push {r0, r1, r2, r3, ip, lr}
       bl #${APP}; bl #${SPEC_MODEL}; bl #${MODEL_NUMBER}
-@@ -890,8 +931,8 @@
+@@ -890,8 +950,8 @@
    patch.setWord(BUILDER, branchWord(BUILDER, builder), `${what}: still menu for this model`);
  }
  
@@ -1137,7 +1167,7 @@ diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/
    expectWord(patch, BUILDER, 0xe1a0c00d); // mov ip, sp
    expectWord(patch, BUILDER + 4, movWord(3, lo(MENU_TABLE)));
    expectWord(patch, BUILDER + 0x10, movWord(3, hi(MENU_TABLE), true));
-@@ -904,7 +945,7 @@
+@@ -904,7 +964,7 @@
    const firsts = [...still.subarray(D_FIRST, D_FIRST + 6)];
    if (still[D_PAGES] !== 6 || firsts.join() !== '0,10,18,24,30,35' || still[D_COUNT] !== MAX_ITEMS) fail('unexpected-layout', 'still menu pages are not the official ones');
    if (dv.getUint32(D_ID + HDF_ITEM * 4, true) !== 0x02000133 || dv.getUint32(D_ID + RED_FILTER_ITEM * 4, true) !== 0x02000135) fail('unexpected-layout', 'HDF and Red Filter items are not the official ones');
@@ -2356,16 +2386,17 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
   *    it is hidden. Both lists are built without hidden looks (0x533DE1E8 and 0x5338409C, through
   *    the visibility check 0x533DE144), so a hidden look could only be selected by settings an
   *    earlier firmware left; this way the lists always hold the selected look. The custom sets'
-@@ -34,7 +34,7 @@
+@@ -34,7 +34,8 @@
  import { assembleWords, branchTarget, branchWord } from './arm';
  import { FirmwareError } from '../../types';
  import { Patch, expectWord } from './build';
 -import { adr } from '../target';
++import { MOVIE_BYTE_OFFSET } from './movie4k';
 +import { adr, byRelease } from '../target';
  
  function fail(code: string, message: string): never {
    throw new FirmwareError(code, message);
-@@ -52,10 +52,12 @@
+@@ -52,10 +53,12 @@
  const RATIO = 0x49f;
  const ADJ_SLOTS = [0x920, 0x921, 0x922, 0x923, 0x924];
  export const STANDARD = 11;
@@ -2380,7 +2411,7 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
    slots: number;
    /** Added ratios are installed (their module resets the ratio). */
    ratios: boolean;
-@@ -67,6 +69,13 @@
+@@ -67,6 +70,15 @@
    adjSlots?: number;
    /** 0.8.9: the HDR gain map's menu switch is installed (`hdrgain.ts`, byte 0x10A of the settings: 0 On, 1 Off). */
    hdr?: boolean;
@@ -2389,12 +2420,14 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
 +   * is the ADJ lever function 0x15 (so slots may hold it).
 +   */
 +  exposurePreview?: boolean;
++  /** Bits of the movie options' byte (`movie4k.ts`: 0x775 of the settings object) that mean something in this build; the others are cleared. */
++  movieBits?: number;
 +  /** The last ADJ lever function when Constant Light (`lamp.ts`) or Sensor Shift (`shift.ts`) adds one: 0x15 .. 0x17. */
 +  lastAdjFunction?: number;
  }
  
  /** Slots 6..8 (`adjslots.ts`): bytes 0x48D..0x48F of the user settings object, bits 0..4 the function, bits 5..7 of the first the slot last used (1..3: slot 6..8). */
-@@ -74,6 +83,8 @@
+@@ -74,6 +86,8 @@
  const ADJ_STILL_POSITION = 0x91e;
  /** The HDR gain map's switch (`HDR_SWITCH_BYTE`): byte 0x10E of the user settings object; 0 or 1. */
  const HDR_SWITCH = 0x10e;
@@ -2403,7 +2436,7 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
  
  /** The standard photo and movie sets' looks (the others are custom sets' looks). */
  const CURRENT_LOOKS = [0x153, 0x515];
-@@ -83,21 +94,24 @@
+@@ -83,21 +97,24 @@
  function fixSource(o: GuardOptions): string {
    const lines: string[] = ['cmp r0,#0', 'bxeq lr', 'sub r0,r0,r1'];
    LOOKS.forEach((off, i) => {
@@ -2431,7 +2464,7 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
      });
    }
    const n = o.adjSlots ?? 5;
-@@ -111,7 +125,7 @@
+@@ -111,7 +128,7 @@
          lines.push('mov r2,#0');
        } else {
          // the function: 0..0x14, soft focus (0x0A) only with soft focus on the ADJ lever
@@ -2440,15 +2473,19 @@ diff --git a/core/src/fw/gr4v120/aspect/guard.ts b/core/src/fw/gr4v120/aspect/gu
          if (!o.adjSoftFocus) lines.push('cmp r3,#10', `beq xbad${j}`);
          lines.push(`b xok${j}`, `xbad${j}:`, 'bic r2,r2,#0x1f', `xok${j}:`);
          // the slot last used (first byte only): slots 6..n
-@@ -122,6 +136,7 @@
+@@ -122,6 +139,11 @@
      });
    }
    if (o.hdr) lines.push(`ldrb r2,[r0,#${HDR_SWITCH}]`, 'cmp r2,#1', 'movhi r2,#0', `strbhi r2,[r0,#${HDR_SWITCH}]`);
 +  if (o.exposurePreview) lines.push(`ldrb r2,[r0,#${EXPOSURE_PREVIEW}]`, 'cmp r2,#2', 'movhi r2,#0', `strbhi r2,[r0,#${EXPOSURE_PREVIEW}]`);
++  if (o.movieBits !== undefined) {
++    if (!(Number.isInteger(o.movieBits) && o.movieBits > 0 && o.movieBits < 4)) fail('internal', 'guard: the movie options');
++    lines.push(`ldrb r2,[r0,#${MOVIE_BYTE_OFFSET}]`, `and r2,r2,#${o.movieBits}`, `strb r2,[r0,#${MOVIE_BYTE_OFFSET}]`);
++  }
    lines.push('bx lr');
    return lines.join(';');
  }
-@@ -138,7 +153,7 @@
+@@ -138,7 +160,7 @@
    const recallWord = p.word(RECALL);
    if (recallWord >>> 24 !== 0xeb) fail('unexpected-layout', 'user-mode recall is not a call');
    const priorRecall = branchTarget(RECALL, recallWord);
@@ -3753,6 +3790,262 @@ diff --git a/core/src/fw/gr4v120/aspect/monounlock.ts b/core/src/fw/gr4v120/aspe
    for (const at of LOOK_FLAGS) {
      const word = patch.word(at & ~3);
      const shift = (at & 3) * 8;
+diff --git a/core/src/fw/gr4v120/aspect/movie4k.ts b/core/src/fw/gr4v120/aspect/movie4k.ts
+new file mode 100644
+--- /dev/null
++++ b/core/src/fw/gr4v120/aspect/movie4k.ts
+@@ -0,0 +1,251 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/**
++ * 4K movies (GR IV firmware 1.20 and 1.21): the movie menu's Frame Rate line becomes
++ * "Frame Rate / Resolution", a submenu with the camera's Frame Rate list (60p / 30p / 24p) and a
++ * new list, Resolution: FHD / 4K.
++ *
++ * What the firmware has. A complete 4K path, behind a switch that always answers no (0x538AD500:
++ * `mov r0, #0; bx lr`; one of its callers logs "[LVC] for Debug 4K Movie!"). Asked when the live
++ * view of a movie is set up:
++ *  - the sensor's drive mode (0x536568D4): 60p is mode 4 whatever the answer; 30p is mode 3, or 6
++ *    with the switch; 24p is mode 2, or 5 with it (a 4592 x 2584 read-out, 1.35x narrower than the
++ *    FHD picture);
++ *  - the size recorded (0x538B376C): FHD, or 3840 x 2160 at 30p and 24p with the switch;
++ *  - the buffers of the live view (0x53652DBC), at 30p.
++ * Camera tests 094 to 097 (hand-patched test firmware, the switch answering yes) on a GR IV 1.21.
++ *
++ * What is changed:
++ *  - the switch answers bit 1 of MOVIE_BYTE, a byte of the user settings that nothing in the
++ *    firmware uses (alignment padding before a word; the factory-defaults initialiser, run in an
++ *    emulator on all 30 default records of 1.20 and of 1.21, never writes 0x771..0x773). It is
++ *    kept with the settings and copied with the user modes; every camera has 0 there: FHD;
++ *  - the movie menu's item 12 (Frame Rate): its line shows "4K 30p" / "4K 24p" or the camera's
++ *    60p / 30p / 24p under the title "Frame Rate / Resolution", and opens a submenu record of two
++ *    lines (as Setup's End Screen in `shutdown.ts`): Frame Rate, which opens the camera's own list
++ *    under its own number, and Resolution, a list record made from Frame Rate's;
++ *  - the two settings cannot disagree: choosing 4K at 60p sets 30p (the camera's own setter);
++ *    choosing 60p (the Frame Rate list's set function, at its entry) sets FHD.
++ * The resolution is read when the live view is set up: after it is changed the camera takes it at
++ * the next set-up (a change of the frame rate, of the shooting mode, or switching the camera on).
++ *
++ * Going back to a firmware without this: the bit means nothing there.
++ */
++import { FirmwareError } from '../../types';
++import { assembleWords, branchWord } from './arm';
++import { LANGUAGES, Patch, expectWord, widenTextRows } from './build';
++import { LIST_CONTROLLER_ID, SUBMENU_CONTROLLER_ID, TOP_SET_TITLE, addListRecords, addSubmenuRecord, hookControllerFactory, installTexts, listTable, readTexts, submenuTemplate } from './datestamp-menu';
++import { menuItemWords } from './menuwide';
++import { adr } from '../target';
++
++/** Byte 0x771 of the user settings (0x775 of the settings object): bit 0 the movie shake reduction by sensor shift (`moviesr.ts`), bit 1 4K. */
++export const MOVIE_BYTE = adr(0x550832a8) + 4 + 0x771;
++export const MOVIE_BYTE_OFFSET = 0x775;
++export const MOVIE_SENSOR_SR_BIT = 1;
++export const MOVIE_4K_BIT = 2;
++export const MOVIE4K_TEXT_IDS = { title: 1044, resolution: 1045, fhd: 1046, uhd: 1047, uhd30: 1048, uhd24: 1049 } as const;
++export const FRAME_RATE_MENU_ID = 0x020001e0;
++export const RESOLUTION_LIST_ID = 0x020001e1;
++
++const SWITCH = adr(0x538ad500); // the "debug 4K movie" switch
++const SWITCH_CALLS = [adr(0x53652dd8), adr(0x53656934), adr(0x53656a20), adr(0x538b3788)] as const;
++const SETTINGS = adr(0x550832a8);
++const FRAME_RATE = 0x772; // the Frame Rate setting: 0 60p, 1 30p, 2 24p
++const FRAME_RATE_SET = adr(0x53332cb0); // (settings, value)
++const APP = adr(0x532406a4);
++const RESOURCES = adr(0x53240f98);
++const GET_SETTINGS = adr(0x53240c38);
++const FRAME_RATE_TEXT = adr(0x5338f348); // (resources + 4, frame rate) -> text 301..303
++const LINE_VALUE_TEXT = adr(0x5359d740); // (menu line, text)
++const SUBMENU_LINE_TEXT = adr(0x535a64b4); // (submenu line, text)
++const LIST_TEXT_ROW = adr(0x5359e0ac); // (list item, text)
++const LIST_AFTER_SET = adr(0x531daa64);
++const MOVIE_MENU = adr(0x53dc7bd0);
++const MOVIE_ITEM = 12;
++const FRAME_RATE_LIST_ID = 0x020000a0;
++const FRAME_RATE_LINE_DRAW = adr(0x531b2a0c);
++const FRAME_RATE_TITLE = 299;
++/** Frame Rate's list record (57 of the list table) and its handlers. */
++const FRAME_RATE_RECORD = 57;
++const LIST_RECORD = 0x4c;
++const FR_COUNT = adr(0x531d0b24);
++const FR_DRAW = adr(0x531d2b80);
++const FR_SET = adr(0x531d4d08);
++const FR_CURRENT = adr(0x531d66ec);
++const FR_SET_CLOSE = adr(0x531dc390); // +0x34: set, then LIST_AFTER_SET
++const FR_SET_KEPT = adr(0x531d4d38); // +0x3c: set with the row kept at +0x1a6
++
++/** "Resolution", in `LANGS` order (cs da en fi fr de el hu it ja ko nl pl pt ru zh-CN es sv th zh-TW tr). */
++export const RESOLUTION_NAMES: readonly string[] = [
++  'Rozlišení', 'Opløsning', 'Resolution', 'Tarkkuus', 'Résolution', 'Auflösung', 'Ανάλυση', 'Felbontás',
++  'Risoluzione', '解像度', '해상도', 'Resolutie', 'Rozdzielczość', 'Resolução', 'Разрешение', '分辨率',
++  'Resolución', 'Upplösning', 'ความละเอียด', '解析度', 'Çözünürlük',
++];
++
++function fail(code: string, message: string): never {
++  throw new FirmwareError(code, message);
++}
++const lo = (v: number): number => v & 0xffff;
++const hi = (v: number): number => v >>> 16;
++const BYTE = `movw r3, #${lo(MOVIE_BYTE)}; movt r3, #${hi(MOVIE_BYTE)}`;
++const RATE = `movw r2, #${lo(SETTINGS + FRAME_RATE)}; movt r2, #${hi(SETTINGS + FRAME_RATE)}; ldrb r2, [r2]`;
++
++/** The texts (before the menus use them): the title is the camera's own "Frame Rate" of each language, " / " and "Resolution". */
++export function movie4kTitles(patch: Patch): string[] {
++  return readTexts(patch, FRAME_RATE_TITLE).map((rate, k) => `${rate} / ${RESOLUTION_NAMES[k]}`);
++}
++
++/**
++ * The switch, the texts, the menu line, its submenu and the Resolution list. After every other
++ * addition that copies the submenu or the list table (it adds records the same way), and after the
++ * menus are made wide when they are (`menuItemWords` then names the copy the camera reads).
++ */
++export function installMovie4k(patch: Patch): void {
++  if (RESOLUTION_NAMES.length !== LANGUAGES) fail('internal', '4K movies: texts');
++  // --- The switch and its four callers.
++  expectWord(patch, SWITCH, 0xe3a00000); // mov r0, #0
++  expectWord(patch, SWITCH + 4, 0xe12fff1e); // bx lr
++  for (const call of SWITCH_CALLS) expectWord(patch, call, branchWord(call, SWITCH, 14, true));
++  // --- The Frame Rate setting and its line.
++  expectWord(patch, FRAME_RATE_SET, 0xe1a0c00d);
++  expectWord(patch, FRAME_RATE_LINE_DRAW, 0xe1a0c00d);
++  expectWord(patch, FRAME_RATE_LINE_DRAW + 0x30, branchWord(FRAME_RATE_LINE_DRAW + 0x30, FRAME_RATE_TEXT, 14, true));
++  expectWord(patch, FRAME_RATE_LINE_DRAW + 0x3c, branchWord(FRAME_RATE_LINE_DRAW + 0x3c, LINE_VALUE_TEXT, 14, true));
++  expectWord(patch, FRAME_RATE_LINE_DRAW + 0x44, 0xe300112b); // movw r1, #299
++  expectWord(patch, FRAME_RATE_LINE_DRAW + 0x50, branchWord(FRAME_RATE_LINE_DRAW + 0x50, TOP_SET_TITLE));
++  expectWord(patch, FRAME_RATE_TEXT, 0xe3510000); // cmp r1, #0
++  expectWord(patch, FRAME_RATE_TEXT + 8, 0xe300012d); // movw r0, #301 ("60p")
++  // --- Frame Rate's list record: text rows, the set function reached three ways.
++  const table = listTable(patch);
++  const official = patch.read(table + FRAME_RATE_RECORD * LIST_RECORD, LIST_RECORD);
++  const ov = new DataView(official.buffer);
++  if (ov.getUint32(0, true) !== 0x00010200 || ov.getUint32(4, true) !== 0 || ov.getUint32(0x0c, true) !== FR_COUNT || ov.getUint32(0x14, true) !== FR_DRAW || ov.getUint32(0x24, true) !== FR_SET
++    || ov.getUint32(0x2c, true) !== FR_CURRENT || ov.getUint32(0x34, true) !== FR_SET_CLOSE || ov.getUint32(0x3c, true) !== FR_SET_KEPT || [0x10, 0x18, 0x1c, 0x20, 0x28, 0x30, 0x38, 0x40, 0x44, 0x48].some((off) => ov.getUint32(off, true) !== 0)) {
++    fail('unexpected-layout', 'Frame Rate list record is not as expected');
++  }
++  expectWord(patch, FR_DRAW + 0x40, branchWord(FR_DRAW + 0x40, LIST_TEXT_ROW));
++  expectWord(patch, FR_SET, 0xe1a0c00d);
++  expectWord(patch, FR_SET + 4, 0xe92dd818); // push {r3, r4, fp, ip, lr, pc}
++  expectWord(patch, FR_SET + 0x2c, branchWord(FR_SET + 0x2c, FRAME_RATE_SET));
++  expectWord(patch, FR_SET_CLOSE + 0x10, branchWord(FR_SET_CLOSE + 0x10, FR_SET, 14, true));
++  expectWord(patch, FR_SET_CLOSE + 0x20, branchWord(FR_SET_CLOSE + 0x20, LIST_AFTER_SET));
++  expectWord(patch, FR_SET_KEPT, 0xe5d011a6); // ldrb r1, [r0, #0x1a6]
++  expectWord(patch, FR_SET_KEPT + 4, branchWord(FR_SET_KEPT + 4, FR_SET));
++
++  // --- Texts.
++  const T = MOVIE4K_TEXT_IDS;
++  const same = (text: string): string[] => new Array<string>(LANGUAGES).fill(text);
++  widenTextRows(patch, T.uhd24);
++  installTexts(patch, [{ id: T.title, names: movie4kTitles(patch) }, { id: T.resolution, names: RESOLUTION_NAMES }, { id: T.fhd, names: same('FHD') }, { id: T.uhd, names: same('4K') },
++    { id: T.uhd30, names: same('4K 30p') }, { id: T.uhd24, names: same('4K 24p') }]);
++
++  // --- The switch: 4K chosen.
++  const answer = patch.append((at) => assembleWords(
++    `movw r0, #${lo(MOVIE_BYTE)}; movt r0, #${hi(MOVIE_BYTE)}; ldrb r0, [r0]
++     ands r0, r0, #${MOVIE_4K_BIT}; movne r0, #1
++     bx lr`, at), 16);
++  patch.setWord(SWITCH, branchWord(SWITCH, answer), '4K movies: the switch answers the Resolution setting');
++
++  // --- 60p chosen in the Frame Rate list (row 0): FHD. Then the function's own first instruction, and on.
++  const rate = patch.append((at) => assembleWords(
++    `cmp r1, #0; bne native
++     ${BYTE}; ldrb ip, [r3]; bic ip, ip, #${MOVIE_4K_BIT}; strb ip, [r3]
++     native: mov ip, sp
++     b #${FR_SET + 4}`, at), 16);
++  patch.setWord(FR_SET, branchWord(FR_SET, rate), '4K movies: 60p sets FHD');
++
++  // --- The Resolution list: FHD, 4K (this = r0; draw: item = r1, row = r2; set, current: row = r1).
++  const count = patch.append((at) => assembleWords('mov r0, #2; bx lr', at), 16);
++  const draw = patch.append((at) => assembleWords(
++    `cmp r2, #1; bxhi lr
++     mov r0, r1
++     movweq r1, #${T.uhd}; movwne r1, #${T.fhd}
++     b #${LIST_TEXT_ROW}`, at), 16);
++  const set = patch.append((at) => assembleWords(
++    `cmp r1, #1; bxhi lr
++     ${BYTE}; ldrb ip, [r3]; bic ip, ip, #${MOVIE_4K_BIT}; orreq ip, ip, #${MOVIE_4K_BIT}; strb ip, [r3]
++     bxne lr
++     ${RATE}; cmp r2, #0; bxne lr
++     push {r4, lr}
++     bl #${APP}; bl #${GET_SETTINGS}
++     mov r1, #1
++     pop {r4, lr}
++     b #${FRAME_RATE_SET}`, at), 16);
++  const current = patch.append((at) => assembleWords(
++    `${BYTE}; ldrb r3, [r3]; and r3, r3, #${MOVIE_4K_BIT}; mov r3, r3, lsr #1
++     cmp r3, r1; moveq r0, #1; movne r0, #0; bx lr`, at), 16);
++  const setClose = patch.append((at) => assembleWords(
++    `push {r4, lr}
++     mov r4, r0
++     bl #${set}
++     mov r0, r4
++     pop {r4, lr}
++     b #${LIST_AFTER_SET}`, at), 16);
++  const setKept = patch.append((at) => assembleWords(`ldrb r1, [r0, #0x1a6]; b #${set}`, at), 16);
++  const record = official.slice();
++  const rv = new DataView(record.buffer);
++  rv.setUint32(0x0c, count, true);
++  rv.setUint32(0x14, draw, true);
++  rv.setUint32(0x24, set, true);
++  rv.setUint32(0x2c, current, true);
++  rv.setUint32(0x34, setClose, true);
++  rv.setUint32(0x3c, setKept, true);
++  addListRecords(patch, [{ id: RESOLUTION_LIST_ID, record }], '4K movies');
++
++  // --- The submenu: Frame Rate (the camera's list, its value as the line showed it), Resolution.
++  const lineRate = patch.append((at) => assembleWords(
++    `push {r4, r5, r6, lr}
++     mov r4, r1
++     bl #${APP}; bl #${RESOURCES}
++     ${RATE}; mov r1, r2
++     add r0, r0, #4; bl #${FRAME_RATE_TEXT}
++     mov r1, r0; mov r0, r4
++     pop {r4, r5, r6, lr}
++     b #${SUBMENU_LINE_TEXT}`, at), 16);
++  const lineResolution = patch.append((at) => assembleWords(
++    `mov r0, r1
++     ${BYTE}; ldrb r3, [r3]; ${RATE}
++     tst r3, #${MOVIE_4K_BIT}; cmpne r2, #0
++     movwne r1, #${T.uhd}; movweq r1, #${T.fhd}
++     b #${SUBMENU_LINE_TEXT}`, at), 16);
++  const sub = submenuTemplate(patch);
++  {
++    const r = new DataView(sub.buffer);
++    r.setUint16(2, T.title, true);
++    r.setUint16(8, FRAME_RATE_TITLE, true);
++    r.setUint16(10, T.resolution, true);
++    r.setUint32(0x14, FRAME_RATE_LIST_ID, true);
++    r.setUint32(0x18, RESOLUTION_LIST_ID, true);
++    r.setUint32(0x3c, lineRate, true);
++    r.setUint32(0x40, 0, true);
++    r.setUint32(0x44, lineResolution, true);
++    r.setUint32(0x48, 0, true);
++  }
++  addSubmenuRecord(patch, FRAME_RATE_MENU_ID, sub, '4K movies');
++  hookControllerFactory(patch, `movw ip, #${lo(FRAME_RATE_MENU_ID)}; movt ip, #${hi(FRAME_RATE_MENU_ID)}
++     cmp r1, ip; bne list
++     movw r1, #${lo(SUBMENU_CONTROLLER_ID)}; movt r1, #${hi(SUBMENU_CONTROLLER_ID)}; b prior
++     list: add ip, ip, #${RESOLUTION_LIST_ID - FRAME_RATE_MENU_ID}; cmp r1, ip; bne prior
++     movw r1, #${lo(LIST_CONTROLLER_ID)}; movt r1, #${hi(LIST_CONTROLLER_ID)}`, '4K movies: the submenu and the Resolution list');
++
++  // --- The movie menu's line: the value (4K with the frame rate, or the frame rate), the title; it opens the submenu.
++  const line = patch.append((at) => assembleWords(
++    `push {r4, r5, r6, lr}
++     mov r4, r1
++     ${BYTE}; ldrb r3, [r3]; ${RATE}
++     tst r3, #${MOVIE_4K_BIT}; beq plain
++     cmp r2, #1; movweq r1, #${T.uhd30}; beq have
++     cmp r2, #2; movweq r1, #${T.uhd24}; beq have
++     plain: mov r5, r2
++     bl #${APP}; bl #${RESOURCES}
++     mov r1, r5; add r0, r0, #4; bl #${FRAME_RATE_TEXT}
++     mov r1, r0
++     have: mov r0, r4; bl #${LINE_VALUE_TEXT}
++     mov r0, r4; movw r1, #${T.title}
++     pop {r4, r5, r6, lr}
++     b #${TOP_SET_TITLE}`, at), 16);
++  for (const at of menuItemWords(patch, MOVIE_MENU, MOVIE_ITEM)) {
++    if (patch.word(at.id) !== FRAME_RATE_LIST_ID || patch.word(at.draw) !== FRAME_RATE_LINE_DRAW) fail('unexpected-layout', 'movie menu > Frame Rate line is not the official one');
++    patch.setWord(at.draw, line, '4K movies: Frame Rate / Resolution, line of a submenu');
++    patch.setWord(at.id, FRAME_RATE_MENU_ID, '4K movies: Frame Rate / Resolution opens the submenu');
++  }
++}
 diff --git a/core/src/fw/gr4v120/aspect/movieexp.ts b/core/src/fw/gr4v120/aspect/movieexp.ts
 new file mode 100644
 --- /dev/null
@@ -4003,6 +4296,272 @@ new file mode 100644
 +  ], 4);
 +  if (noBulb % 4 !== 0) fail('unaligned code');
 +  patch.setWord(BULB_STEP_SITE, branchWord(BULB_STEP_SITE, noBulb, 14, true), 'movie exposure: the shutter speed stops at the movie limit in M');
++}
+diff --git a/core/src/fw/gr4v120/aspect/moviesr.ts b/core/src/fw/gr4v120/aspect/moviesr.ts
+new file mode 100644
+--- /dev/null
++++ b/core/src/fw/gr4v120/aspect/moviesr.ts
+@@ -0,0 +1,261 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/**
++ * Shake reduction for movies by sensor shift (GR IV firmware 1.20 and 1.21): the movie menu's
++ * Movie SR offers Off, Sensor Shift and Electronic instead of Off and On.
++ *
++ * What the firmware does. The shake reduction unit (a microcontroller of its own) moves the sensor
++ * when the main processor reports "shake reduction on" in the state it sends (field 0x13; built by
++ * 0x537BB254 from the still / movie mode and the two settings, sent again for the properties 0xF9,
++ * Shake Reduction, and 0x89, all settings). For a movie the firmware always reports off and, with
++ * Movie SR on, field 0x14: the unit's own movie parameters, for the electronic shake reduction that
++ * the main processor does by moving a window of the picture. For that window every movie is read
++ * with a margin of 5 % on each side (2064 x 1160, of which 1858 x 1044 are recorded as 1920 x 1080),
++ * also with Movie SR off: the flag is set for every movie live view by 0x5365C850 (when the live
++ * view is set up) and 0x5365AB38 (while it runs).
++ * Camera tests 090 to 093 (hand-patched test firmware) on a GR IV 1.21: with field 0x13 reported
++ * for a movie the unit stabilises as for stills, and without the margin the whole read-out is
++ * recorded.
++ *
++ * The setting. Movie SR itself (0x77B of the user settings; property 0xFA) stays what it is, the
++ * electronic shake reduction: 0 or 1, read by the camera's own code. "Sensor Shift" is bit 0 of
++ * MOVIE_BYTE (`movie4k.ts`), with Movie SR 0. So: Off = 0 / 0, Sensor Shift = 0 / bit, Electronic
++ * = 1 (the bit is cleared when it is chosen; Movie SR switched on another way, by an Fn button's
++ * Shake Reduction, counts as Electronic whatever the bit). A firmware without this sees Off or On.
++ *
++ * What is changed:
++ *  - Movie SR's list (record 62 of the list table): three rows, their set and "current";
++ *  - the icon of the setting on the menu line and on the shooting screen (the calls of the icon
++ *    function 0x53390E18 at 0x531B2C78 and 0x533A6AEC): the hand of the still shake reduction for
++ *    Sensor Shift, the hand with an "E" for Electronic;
++ *  - the state for the unit, a movie's field 0x13 (0x537BB2D8, `mov r2, #0`): on with Sensor
++ *    Shift, unless Sensor Shift's composition adjustment (`shift.ts`) holds the sensor;
++ *  - the state is sent again for property 0xFA too (0x536AF4DC), and at once when the list sets
++ *    the value;
++ *  - the margin: only with Electronic. As in test 093 it is decided when the live view is set up
++ *    (Movie SR as the camera side has it then) and kept for as long as that live view runs, in a
++ *    byte of the sbrk arena (`battery.ts`), so that window and margin cannot disagree: a change of
++ *    the setting moves the picture's edge at the next set-up (the shooting mode changed, or the
++ *    camera switched on).
++ * Off therefore records the whole read-out as well: about 11 % more of the scene than the
++ * official firmware's movies.
++ */
++import { FirmwareError } from '../../types';
++import { assembleWords, branchTarget, branchWord, movImmediate, movWord } from './arm';
++import { ICON_CATALOG, LANGUAGES, LOOKUP_BOUNDS, Patch, concat, expectWord, u16le, u32le, widenTextRows } from './build';
++import { LIST_SET_ITEM, TEXT_OFF, installTexts, listTable } from './datestamp-menu';
++import { MOVIE_BYTE, MOVIE_SENSOR_SR_BIT } from './movie4k';
++import type { ShiftCode } from './shift';
++import { adr } from '../target';
++
++export const MOVIESR_TEXT_IDS = { sensor: 1050, electronic: 1051 } as const;
++/** Identity 24 of the ratio icon numbers, never given out (as 734..739). */
++export const MOVIESR_ICON_ID = 740;
++/** "No margin in this live view": a byte of the sbrk arena (0x55839040..0x55839080, `battery.ts`), zero at start-up. */
++export const MOVIESR_LATCH = adr(0x55839044);
++
++const ICON_SR_OFF = 467;
++const ICON_SR_ON = 469;
++const SETTINGS = adr(0x550832a8);
++const MOVIE_SR_LIVE = 0x12c3; // Movie SR in effect (the setting kept is at 0x77f)
++const MOVIE_SR_SET = adr(0x533337ac); // (settings, value)
++const APP = adr(0x532406a4);
++const GET_SETTINGS = adr(0x53240c38);
++const ICON_OF = adr(0x53390e18); // (resources + 4, Movie SR, variant) -> icon 467 / 469
++const LINE_ICON_CALL = adr(0x531b2c78); // bl ICON_OF in the movie menu line's draw function (0x531B2C44)
++const SCREEN_ICON_TAIL = adr(0x533a6aec); // b ICON_OF: the shooting screen's icon, for a movie
++const SR_HOLDER = adr(0x550b9b20); // +4: SrMessage; its +0x60 the state
++const SR_STATE = adr(0x537bb254); // (state): build and send
++const SR_STATE_MOVIE = adr(0x537bb2d8); // mov r2, #0: field 0x13 for a movie
++const SR_PROPERTY = adr(0x536af4dc); // cmp r3, #0xf9 in the unit's property handler (0x536AF4BC)
++const MARGIN_SETUP = adr(0x5365c87c); // mov r3, #1 (then strb r3, [r5, #0x74c])
++const MARGIN_UPDATE = adr(0x5365ab70); // mov r3, #1 (then strb r3, [r6, #0x74c])
++const CAMERA_MOVIE_SR = adr(0x5377db4c); // (camera properties) -> Movie SR
++/** Movie SR's list record (62 of the list table) and its handlers. */
++const SR_RECORD = 62;
++const LIST_RECORD = 0x4c;
++const SR_TITLE = 415;
++const SR_COUNT = adr(0x531d0b4c);
++const SR_DRAW = adr(0x531d2c28);
++const SR_SET = adr(0x531d4e08);
++const SR_CURRENT = adr(0x531d67f0);
++
++/**
++ * In `LANGS` order (cs da en fi fr de el hu it ja ko nl pl pt ru zh-CN es sv th zh-TW tr). The two Chinese say "SR" as the
++ * camera's own texts do ("自动关闭SR"): the characters of 防抖 / 防震 are not in its texts of those languages.
++ */
++export const MOVIESR_SENSOR_NAMES: readonly string[] = [
++  'Posun snímače', 'Sensorforskydning', 'Sensor Shift', 'Kennon siirto', 'Capteur', 'Sensor-Shift', 'Αισθητήρας', 'Érzékelő',
++  'Sensore', 'センサーシフト', '기계식', 'Sensorverschuiving', 'Matryca', 'Sensor', 'Сдвиг матрицы', '传感器SR',
++  'Sensor', 'Sensorförskjutning', 'เซ็นเซอร์', '感應器SR', 'Sensör',
++];
++export const MOVIESR_ELECTRONIC_NAMES: readonly string[] = [
++  'Elektronická', 'Elektronisk', 'Electronic', 'Elektroninen', 'Électronique', 'Elektronisch', 'Ηλεκτρονική', 'Elektronikus',
++  'Elettronica', '電子式', '전자식', 'Elektronisch', 'Elektroniczna', 'Eletrónica', 'Электронная', '电子SR',
++  'Electrónica', 'Elektronisk', 'อิเล็กทรอนิกส์', '電子SR', 'Elektronik',
++];
++
++function fail(code: string, message: string): never {
++  throw new FirmwareError(code, message);
++}
++const lo = (v: number): number => v & 0xffff;
++const hi = (v: number): number => v >>> 16;
++
++/** The icon of Electronic: the camera's shake reduction hand (40 x 40 RGBA) with an "E" at its lower right. */
++export function drawElectronicIcon(hand: Uint8Array): Uint8Array {
++  if (hand.length !== 40 * 40 * 4) fail('internal', 'movie shake reduction: icon size');
++  const px = hand.slice();
++  const E = ['######', '######', '##....', '#####.', '#####.', '##....', '##....', '######', '######'];
++  const X = 33, Y = 30;
++  const on = (x: number, y: number): boolean => y >= 0 && y < E.length && x >= 0 && x < 6 && E[y][x] === '#';
++  for (let y = -1; y <= E.length; y++) {
++    for (let x = -1; x <= 6; x++) {
++      let near = false;
++      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) near = near || on(x + dx, y + dy);
++      if (!near || X + x > 39 || Y + y > 39) continue;
++      px.set(on(x, y) ? [255, 255, 255, 255] : [0, 0, 0, 255], ((Y + y) * 40 + X + x) * 4);
++    }
++  }
++  return px;
++}
++
++/** The texts and the icon (before the menus use them). Returns ICONBIN with the icon appended. */
++export function installMovieSrAssets(patch: Patch, iconbin: Uint8Array): Uint8Array {
++  if (MOVIESR_SENSOR_NAMES.length !== LANGUAGES || MOVIESR_ELECTRONIC_NAMES.length !== LANGUAGES) fail('internal', 'movie shake reduction: texts');
++  widenTextRows(patch, MOVIESR_TEXT_IDS.electronic);
++  installTexts(patch, [{ id: MOVIESR_TEXT_IDS.sensor, names: MOVIESR_SENSOR_NAMES }, { id: MOVIESR_TEXT_IDS.electronic, names: MOVIESR_ELECTRONIC_NAMES }]);
++  // The camera's icon: {u16 kind = 1, width, height, flags = 0, u32 offset in 4-byte units}.
++  const d = new DataView(patch.readMapped(patch.word(ICON_CATALOG + ICON_SR_ON * 4), 12).buffer);
++  if (d.getUint16(0, true) !== 1 || d.getUint16(2, true) !== 40 || d.getUint16(4, true) !== 40 || d.getUint16(6, true) !== 0) fail('unexpected-layout', 'shake reduction icon is not as expected');
++  const at = d.getUint32(8, true) * 4;
++  if (at + 6400 > iconbin.length) fail('unexpected-layout', 'shake reduction icon is not in ICONBIN');
++  if (patch.word(ICON_CATALOG + MOVIESR_ICON_ID * 4) !== 0) fail('unexpected-layout', 'icon number already in use');
++  const pad = (4 - (iconbin.length % 4)) % 4;
++  const offset = iconbin.length + pad;
++  const descriptor = patch.append(concat([u16le([1, 40, 40, 0]), u32le([offset / 4])]), 16);
++  patch.write(ICON_CATALOG + MOVIESR_ICON_ID * 4, u32le([descriptor]));
++  for (const [site, register] of LOOKUP_BOUNDS) {
++    if ((patch.word(site) & 0xfff0f000) >>> 0 !== (0xe3000000 | (register << 12)) >>> 0) fail('unexpected-layout', 'icon bound is not a MOVW');
++    patch.setWord(site, movWord(register, Math.max(MOVIESR_ICON_ID, movImmediate(patch.word(site)))), 'icon upper bound');
++  }
++  return concat([iconbin, new Uint8Array(pad), drawElectronicIcon(iconbin.slice(at, at + 6400))]);
++}
++
++/**
++ * The list, the icons, the state for the unit and the margin. `shift`: Sensor Shift's module when
++ * it is in the build (its composition adjustment holds the sensor: no shake reduction then).
++ * Before any addition that copies the list table is fine, and after: the record is changed where
++ * the table is.
++ */
++export function installMovieSr(patch: Patch, shift: ShiftCode | null): void {
++  const BYTE = `movw r3, #${lo(MOVIE_BYTE)}; movt r3, #${hi(MOVIE_BYTE)}`;
++  const LIVE = `movw ip, #${lo(SETTINGS + MOVIE_SR_LIVE)}; movt ip, #${hi(SETTINGS + MOVIE_SR_LIVE)}; ldrb ip, [ip]`;
++  // --- What this relies on.
++  expectWord(patch, ICON_OF, 0xe3510000); // cmp r1, #0
++  expectWord(patch, LINE_ICON_CALL, branchWord(LINE_ICON_CALL, ICON_OF, 14, true));
++  expectWord(patch, LINE_ICON_CALL - 8, 0xe3a02000); // mov r2, #0 (variant)
++  expectWord(patch, SCREEN_ICON_TAIL, branchWord(SCREEN_ICON_TAIL, ICON_OF));
++  expectWord(patch, MOVIE_SR_SET, 0xe1a0c00d);
++  expectWord(patch, SR_STATE, 0xe1a0c00d);
++  expectWord(patch, SR_STATE_MOVIE - 8, 0xe1a00004); // mov r0, r4
++  expectWord(patch, SR_STATE_MOVIE - 4, 0xe3a01013); // mov r1, #0x13
++  expectWord(patch, SR_STATE_MOVIE, 0xe3a02000); // mov r2, #0
++  expectWord(patch, SR_STATE_MOVIE + 8, 0xe3560000); // cmp r6, #0 (Movie SR: field 0x14)
++  expectWord(patch, SR_PROPERTY, 0xe35300f9); // cmp r3, #0xf9
++  expectWord(patch, SR_PROPERTY + 4, 0x0a000018); // beq: the state built and sent
++  expectWord(patch, SR_PROPERTY + 8, 0xe35300fb); // cmp r3, #0xfb
++  for (const [site, register] of [[MARGIN_SETUP, 5], [MARGIN_UPDATE, 6]] as const) {
++    expectWord(patch, site, 0xe3a03001); // mov r3, #1
++    expectWord(patch, site + 4, (0xe5c0374c | (register << 16)) >>> 0); // strb r3, [rX, #0x74c]
++  }
++  expectWord(patch, CAMERA_MOVIE_SR + 4, 0xe1a0c00d); // mov ip, sp
++  const record = listTable(patch) + SR_RECORD * LIST_RECORD;
++  const rv = new DataView(patch.read(record, LIST_RECORD).buffer);
++  if (rv.getUint32(0, true) !== 0x00010000 || rv.getUint16(4, true) !== SR_TITLE || rv.getUint32(0x0c, true) !== SR_COUNT || rv.getUint32(0x14, true) !== SR_DRAW || rv.getUint32(0x24, true) !== SR_SET
++    || rv.getUint32(0x2c, true) !== SR_CURRENT || [0x10, 0x18, 0x1c, 0x20, 0x28, 0x30, 0x34, 0x38, 0x3c, 0x40, 0x44, 0x48].some((off) => rv.getUint32(off, true) !== 0)) fail('unexpected-layout', 'Movie SR list record is not as expected');
++  expectWord(patch, SR_SET + 0x2c, branchWord(SR_SET + 0x2c, MOVIE_SR_SET));
++
++  // --- The list: Off, Sensor Shift, Electronic (this = r0; draw: item = r1, row = r2; set, current: row = r1).
++  const count = patch.append((at) => assembleWords('mov r0, #3; bx lr', at), 16);
++  const draw = patch.append((at) => assembleWords(
++    `cmp r2, #2; bxhi lr
++     mov r0, r1
++     movw r1, #${ICON_SR_OFF}; movw r3, #${TEXT_OFF}
++     cmp r2, #1
++     movweq r1, #${ICON_SR_ON}; movweq r3, #${MOVIESR_TEXT_IDS.sensor}
++     movwhi r1, #${MOVIESR_ICON_ID}; movwhi r3, #${MOVIESR_TEXT_IDS.electronic}
++     mov r2, r3
++     b #${LIST_SET_ITEM}`, at), 16);
++  // set: the bit, then Movie SR through the camera's own setter (its property goes to the camera side), then the state for the unit.
++  const set = patch.append((at) => assembleWords(
++    `cmp r1, #2; bxhi lr
++     push {r4, lr}
++     mov r4, r1
++     ${BYTE}; ldrb ip, [r3]; bic ip, ip, #${MOVIE_SENSOR_SR_BIT}
++     cmp r4, #1; orreq ip, ip, #${MOVIE_SENSOR_SR_BIT}
++     strb ip, [r3]
++     bl #${APP}; bl #${GET_SETTINGS}
++     cmp r4, #2; moveq r1, #1; movne r1, #0
++     bl #${MOVIE_SR_SET}
++     movw r0, #${lo(SR_HOLDER + 4)}; movt r0, #${hi(SR_HOLDER + 4)}; ldr r0, [r0]
++     cmp r0, #0; ldrne r0, [r0, #0x60]; cmpne r0, #0
++     pop {r4, lr}
++     bxeq lr
++     b #${SR_STATE}`, at), 16);
++  // current: 2 with Movie SR on, else 1 with the bit, else 0.
++  const MODE = `${LIVE}; cmp ip, #0; movne r0, #2; bne have
++     ${BYTE}; ldrb r0, [r3]; and r0, r0, #${MOVIE_SENSOR_SR_BIT}
++     have:`;
++  const current = patch.append((at) => assembleWords(
++    `${MODE} cmp r0, r1; moveq r0, #1; movne r0, #0; bx lr`, at), 16);
++  patch.setWord(record + 0x0c, count, 'movie shake reduction: three rows');
++  patch.setWord(record + 0x14, draw, 'movie shake reduction: Off, Sensor Shift, Electronic');
++  patch.setWord(record + 0x24, set, 'movie shake reduction: the row chosen');
++  patch.setWord(record + 0x2c, current, 'movie shake reduction: the row current');
++
++  // --- The icon of the setting: (resources + 4, Movie SR, variant).
++  const icon = patch.append((at) => assembleWords(
++    `cmp r2, #0; bne native
++     cmp r1, #0; movwne r0, #${MOVIESR_ICON_ID}; bxne lr
++     ${BYTE}; ldrb r3, [r3]; tst r3, #${MOVIE_SENSOR_SR_BIT}
++     movwne r0, #${ICON_SR_ON}; bxne lr
++     native: b #${ICON_OF}`, at), 16);
++  patch.setWord(LINE_ICON_CALL, branchWord(LINE_ICON_CALL, icon, 14, true), 'movie shake reduction: the menu line\'s icon');
++  patch.setWord(SCREEN_ICON_TAIL, branchWord(SCREEN_ICON_TAIL, icon), 'movie shake reduction: the shooting screen\'s icon');
++
++  // --- The state for the unit, a movie: field 0x13 = Sensor Shift chosen, Movie SR off, the sensor not held. r0, r1 kept.
++  const held = shift ? `cmp r2, #0; bxeq lr
++     push {r0, r1, r2, r3, ip, lr}
++     mov r1, #4; ${shift.loadCtx}; bl #${shift.code}
++     cmp r0, #0
++     pop {r0, r1, r2, r3, ip, lr}
++     movne r2, #0` : '';
++  const state = patch.append((at) => assembleWords(
++    `${BYTE}; ldrb r2, [r3]; and r2, r2, #${MOVIE_SENSOR_SR_BIT}
++     ${LIVE}; cmp ip, #0; movne r2, #0
++     ${held}
++     bx lr`, at), 16);
++  patch.setWord(SR_STATE_MOVIE, branchWord(SR_STATE_MOVIE, state, 14, true), 'movie shake reduction: the sensor shift on for a movie');
++  // --- The state is sent again when Movie SR changes (property 0xFA), as for Shake Reduction (0xF9).
++  const again = branchTarget(SR_PROPERTY + 4, patch.word(SR_PROPERTY + 4));
++  const property = patch.append((at) => assembleWords(
++    `cmp r3, #0xf9; cmpne r3, #0xfa
++     beq #${again}
++     b #${SR_PROPERTY + 8}`, at), 16);
++  patch.setWord(SR_PROPERTY, branchWord(SR_PROPERTY, property), 'movie shake reduction: the state sent again when Movie SR changes');
++
++  // --- The margin: with Electronic only; decided when the live view is set up (r4 = the live view), kept while it runs.
++  const LATCH = `movw r3, #${lo(MOVIESR_LATCH)}; movt r3, #${hi(MOVIESR_LATCH)}`;
++  const setup = patch.append((at) => assembleWords(
++    `push {r0, r1, r2, r3, ip, lr}
++     ldr r0, [r4, #0x3bc]; bl #${CAMERA_MOVIE_SR}
++     cmp r0, #0; moveq r1, #1; movne r1, #0
++     ${LATCH}; strb r1, [r3]
++     eor r1, r1, #1; str r1, [sp, #0xc]
++     pop {r0, r1, r2, r3, ip, pc}`, at), 16);
++  const update = patch.append((at) => assembleWords(
++    `${LATCH}; ldrb r3, [r3]
++     eor r3, r3, #1
++     bx lr`, at), 16);
++  patch.setWord(MARGIN_SETUP, branchWord(MARGIN_SETUP, setup, 14, true), 'movie shake reduction: the margin with Electronic only');
++  patch.setWord(MARGIN_UPDATE, branchWord(MARGIN_UPDATE, update, 14, true), 'movie shake reduction: the margin as decided at set-up');
 +}
 diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/package.ts
 --- a/core/src/fw/gr4v120/aspect/package.ts

@@ -59,6 +59,8 @@ import { GRID_SELECT, SHADE_SETTING, installGridStyleMenu, installShadeList, ins
 import type { ShadeTone } from './shade';
 import { installExposurePreviewOff } from './lvpreview';
 import { installMovieExposure } from './movieexp';
+import { MOVIE_4K_BIT, MOVIE_SENSOR_SR_BIT, installMovie4k } from './movie4k';
+import { installMovieSr, installMovieSrAssets } from './moviesr';
 import { installShiftAdj, installShiftAssets, installShiftCore, installShiftFn, shiftAdjFunction } from './shift';
 import { FRAME_LOOK, LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
 import type { ShutdownPictureSpec } from './shutdown';
@@ -1147,7 +1149,6 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   if (features.movieExposure !== undefined && typeof features.movieExposure !== 'boolean') fail('bad-edit', 'movieExposure must be boolean');
   if (features.constantLight !== undefined && typeof features.constantLight !== 'boolean') fail('bad-edit', 'constantLight must be boolean');
   for (const name of ['sensorShift', 'movie4k', 'movieSr'] as const) if (features[name] !== undefined && typeof features[name] !== 'boolean') fail('bad-edit', `${name} must be boolean`);
-  if (features.movie4k || features.movieSr) fail('internal', 'not built yet');
   const patch = new Patch(rtos);
   const ramCopy = new DataView(patch.read(BASE + 0x450, 12).buffer);
   if (ramCopy.getUint32(0, true) !== RAM.source || ramCopy.getUint32(4, true) !== RAM.destination || ramCopy.getUint32(8, true) !== RAM.length) {
@@ -1204,6 +1205,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   // Sensor Shift: the module and the shooting screen's hooks, its texts and icon.
   const shift = features.sensorShift ? installShiftCore(patch) : null;
   if (shift) icons = installShiftAssets(patch, icons);
+  if (features.movieSr) icons = installMovieSrAssets(patch, icons);
   if (features.dateStamp) {
     const fixed = test.dateStampFixed;
     // From 0.8.2 (builds with the guard) the imprint goes by the picture's look.
@@ -1254,12 +1256,15 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   // Sensor Shift on the ADJ lever (one more function, the last) and as an Fn function (after Constant Light's, which copies the lists first).
   const adjTable = shift ? installShiftAdj(patch, shift, shiftAdjFunction(!!ep, !!lamp)) : lampTable;
   if (shift) installShiftFn(patch, shift);
+  // The movie menu: Movie SR's three values; Frame Rate / Resolution (a submenu and a list more, after the others).
+  if (features.movieSr) installMovieSr(patch, shift);
+  if (features.movie4k) installMovie4k(patch);
   // ADJ lever slots: after the other additions that copy the submenu or list table (it adds records the same way).
   if (adjSlots > 0) installAdjSlots(patch, adjSlots, adjTable ? { functionTable: adjTable, lastFunction: lastAdj } : {});
   if (ep) installExposurePreviewLive(patch, ep);
   else if (test.exposurePreviewOff) installExposurePreviewOff(patch);
   // Last: wraps every other settings save/load and user-mode recall hook.
-  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}), ...(ep ? { exposurePreview: true } : {}), ...(lamp || shift ? { lastAdjFunction: lastAdj } : {}) });
+  if (features.guard) installSettingsGuard(patch, { slots: slots.length, ratios: ratios.length > 0, adjSoftFocus: !!features.adjSoftFocus, ...(features.lookLayout ? { hiddenLooks: features.lookLayout.hidden } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.hdrGainMap ? { hdr: true } : {}), ...(ep ? { exposurePreview: true } : {}), ...(lamp || shift ? { lastAdjFunction: lastAdj } : {}), ...(features.movieSr || features.movie4k ? { movieBits: (features.movieSr ? MOVIE_SENSOR_SR_BIT : 0) | (features.movie4k ? MOVIE_4K_BIT : 0) } : {}) });
   if (features.brightAuto) installBrightAuto(patch, features.brightAuto === 'balanced' ? 'balanced' : 'bright');
   if (features.batteryPercent) icons = installBatteryPercent(patch, icons, !!test.batteryDiag);
   // After the ratios: the diagonals take the point setter the grid view's layout calls then.
@@ -1282,7 +1287,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   if (features.awbLearn) installAwbLearn(patch);
   // Very last: the zero fill over the sbrk arena; the additions above expect it at 0x55839040 or its official end.
   // (Movie AF and the learned white balance keep their state pointers in the arena: they need the zero fill there too.)
-  if (features.batteryPercent || features.videoAf || features.awbLearn || features.constantLight || features.sensorShift) extendBatteryZeroFill(patch);
+  if (features.batteryPercent || features.videoAf || features.awbLearn || features.constantLight || features.sensorShift || features.movieSr) extendBatteryZeroFill(patch);
   // Exposure modes for movies: after everything, so that a build with it differs from the one without only by its
   // own words (and the record of the additions).
   if (features.movieExposure) installMovieExposure(patch);
