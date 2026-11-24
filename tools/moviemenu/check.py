@@ -17,7 +17,8 @@ build with them (the calls they make out replaced by recorders):
   E. Movie SR's list: three rows, their icons and texts, set (the bit, the camera's setter, the state sent),
      current; the icon of the setting on the menu line and on the screen;
   F. 4K: the setting taken where the live view is started; the switch, the sensor's drive mode and the size recorded follow it, for 60p / 30p / 24p, whatever the setting becomes afterwards;
-  G. the Frame Rate list's set (60p clears 4K, then the camera's own code), the Resolution list (4K at 60p sets
+  G. the Frame Rate record's set (the list's OK: 60p clears 4K, then the camera's own code; the camera's two functions that set a
+     row before OK do not), the Resolution list (4K at 60p sets
      30p), the menu line and the two submenu lines.
 
     python3 check.py 1.20|1.21 BUILT-WITHOUT-RTOS BUILT-WITH-RTOS [shift]      (shift: Sensor Shift is in both builds)
@@ -119,7 +120,7 @@ class Emu:
 # ---- A: the image
 select = mov16(img, SELECT_LOW, SELECT_HIGH); select_plain = mov16(plain, SELECT_LOW, SELECT_HIGH)
 sr_record = select + 62 * 0x4c
-named = {SR_STATE_MOVIE, SR_PROPERTY, MARGIN_SETUP, MARGIN_UPDATE, LINE_ICON_CALL, SCREEN_ICON_TAIL, SWITCH, FR_SET, START_SIZE_CALL}
+named = {SR_STATE_MOVIE, SR_PROPERTY, MARGIN_SETUP, MARGIN_UPDATE, LINE_ICON_CALL, SCREEN_ICON_TAIL, SWITCH, START_SIZE_CALL}
 if sr_record < OFFICIAL_END: named |= {sr_record + o for o in (0x0c, 0x14, 0x24, 0x2c)}
 named |= {MOVIE_MENU + 0x8c + 12 * 8, MOVIE_MENU + 0x1bc + 12 * 4}
 # may differ: the menus' shared places (the controller factory, the two "current menu" functions, the end of the official
@@ -165,7 +166,7 @@ for mode, still, movie, bit, live, held in itertools.product((0, 1), (0, 1), (0,
     got = state(ew, mode, still, movie, bit, live, held)
     if mode == 0: assert got == state(ep, mode, still, movie, bit, live, held), ('still', got)
     else:
-        mech = 1 if (bit & 1) and not live and not held else 0
+        mech = 1 if (bit & 1) and not movie and not held else 0      # Movie SR as the camera side has it, whatever the settings' byte says
         assert got == [(0x13, mech), (0x14, 1 if movie else 0)], (mode, still, movie, bit, live, held, got)
         assert state(ep, mode, still, movie, bit, live, held) == [(0x13, 0), (0x14, 1 if movie else 0)]
     n += 1
@@ -300,37 +301,48 @@ print(f'F. 4K: the setting is taken where the live view is started; the sensor\'
 
 # ---- G: the menu
 n = 0
+# Frame Rate's record: its set function (the list's OK) clears the bit for 60p and goes on to the camera's; the two functions that set a
+# row before OK (the row under the cursor, the row that was current) are the camera's own and call the camera's set directly
+rate = select + 57 * 0x4c
+assert u32(plain, select_plain + 57 * 0x4c + 0x24) == FR_SET and u32(img, rate + 0x24) >= OFFICIAL_END
+assert [u32(img, rate + o) for o in (0x34, 0x3c)] == [FR_SET_CLOSE, FR_SET_KEPT] and u32(img, rate) == 0x00010200
+assert target(img, FR_SET_CLOSE + 0x10) == FR_SET and target(img, FR_SET_KEPT + 4) == FR_SET and u32(img, FR_SET) == u32(plain, FR_SET) == 0xe1a0c00d
 for i, byte in itertools.product((0, 1, 2), (0, 1, 2, 3)):
     ew.w8(MOVIE_BYTE, byte)
-    ew.call(FR_SET, [SCR + 0x800, i], stops=[FR_SET + 4])
-    assert ew.stopped == FR_SET + 4 and ew.r(0) == SCR + 0x800 and ew.r(1) == i and ew.r(12) == STK and ew.kept() and ew.r8(MOVIE_BYTE) == (byte & ~2 if i == 0 else byte), (i, byte)
+    ew.call(u32(img, rate + 0x24), [SCR + 0x800, i], stops=[FR_SET])
+    assert ew.stopped == FR_SET and ew.r(0) == SCR + 0x800 and ew.r(1) == i and ew.mu.reg_read(UC_ARM_REG_LR) == STOP and ew.kept() and ew.r8(MOVIE_BYTE) == (byte & ~2 if i == 0 else byte), (i, byte)
+    for how in (FR_SET_CLOSE, FR_SET_KEPT):                   # before OK: the bit is left alone
+        ew.w8(MOVIE_BYTE, byte); ew.w8(SCR + 0x800 + 0x1a6, i)
+        ew.call(how, [SCR + 0x800, i], stops=[FR_SET + 4])
+        assert ew.stopped == FR_SET + 4 and ew.r(1) == i and ew.r8(MOVIE_BYTE) == byte, (i, byte)
     n += 1
-assert target(img, FR_SET_CLOSE + 0x10) == FR_SET and target(img, FR_SET_KEPT + 4) == FR_SET
 # the Resolution list's record: the last one whose handlers are all in the appended area and whose style is Frame Rate's
 res = None
 for k in range(126, 200):
     r = select + k * 0x4c
     if r + 0x4c > BASE + len(img): break
-    if u32(img, r) == 0x00010200 and all(u32(img, r + o) >= OFFICIAL_END for o in (0x0c, 0x14, 0x24, 0x2c, 0x34, 0x3c)) and u32(img, r + 4) == 0: res = r
+    if u32(img, r) == 0x00010200 and all(u32(img, r + o) >= OFFICIAL_END for o in (0x0c, 0x14, 0x24, 0x2c)) and u32(img, r + 4) == 0: res = r
 assert res is not None, 'the Resolution list record'
-R = {k: u32(img, res + o) for k, o in (('count', 0x0c), ('draw', 0x14), ('set', 0x24), ('current', 0x2c), ('close', 0x34), ('kept', 0x3c))}
+R = {k: u32(img, res + o) for k, o in (('count', 0x0c), ('draw', 0x14), ('set', 0x24), ('current', 0x2c))}
+assert all(u32(img, res + o) == 0 for o in (0x10, 0x18, 0x1c, 0x20, 0x28, 0x30, 0x34, 0x38, 0x3c, 0x40, 0x44, 0x48)), 'the Resolution list sets a row by OK only'
 assert ew.call(R['count'], [SCR]) == 2
 rows = []
 ew.stubs[LIST_TEXT_ROW] = lambda e: rows.append((e.r(0), e.r(1))) or None
 for i in range(4): ew.call(R['draw'], [SCR, SCR + 0x700, i])
 assert rows == [(SCR + 0x700, T['fhd']), (SCR + 0x700, T['uhd'])], rows
-for how, i, byte, fps in itertools.product(('set', 'close', 'kept'), range(3), (0, 1, 2, 3), (0, 1, 2)):
+for how, i, byte, fps in itertools.product(('set',), range(3), (0, 1, 2, 3), (0, 1, 2)):
     ew.w8(MOVIE_BYTE, byte); ew.w8(FRAME_RATE, fps); log = []
     ew.stubs[APP_GET] = lambda e: 0x5e00a000
     ew.stubs[SETTINGS_GET] = lambda e: S
     ew.stubs[FRAME_RATE_SET] = lambda e: log.append(('rate', e.r(0), e.r(1))) or 1
     ew.stubs[LIST_AFTER_SET] = lambda e: log.append(('after', e.r(0))) or None
     ctrl = SCR + 0x800; ew.w8(ctrl + 0x1a6, i)
-    ew.call(R[how], [ctrl, i if how != 'kept' else 0x55]); assert ew.kept()
+    ew.call(R[how], [ctrl, i]); assert ew.kept()
     want = [] if i > 1 else ([('rate', S, 1)] if i == 1 and fps == 0 else [])
-    if how == 'close': want = want + [('after', ctrl)]
     assert log == want and ew.r8(MOVIE_BYTE) == (byte if i > 1 else (byte & ~2) | (2 if i == 1 else 0)), (how, i, byte, fps, log)
-    for j in range(3): assert ew.call(R['current'], [ctrl, j]) == int(j == ((ew.r8(MOVIE_BYTE) >> 1) & 1))
+    for rate_now in (0, 1, 2):                                # current: 4K only with the bit and a frame rate that has it
+        ew.w8(FRAME_RATE, rate_now)
+        for j in range(3): assert ew.call(R['current'], [ctrl, j]) == int(j == int(bool(ew.r8(MOVIE_BYTE) & 2) and rate_now != 0))
     n += 1
 # the menu line and the submenu's two lines
 line = u32(img, MOVIE_MENU + 0x8c + 12 * 8)
@@ -356,5 +368,5 @@ for byte, fps in itertools.product((0, 1, 2, 3), (0, 1, 2)):
     log.clear(); ew.call(line_rate, [SCR, SCR + 0x900]); assert ew.kept() and log == [('sub', SCR + 0x900, 301 + fps)], log
     log.clear(); ew.call(line_res, [SCR, SCR + 0x900]); assert ew.kept() and log == [('sub', SCR + 0x900, T['uhd'] if uhd else T['fhd'])], log
     n += 1
-print(f'G. the menu: 60p sets FHD, 4K at 60p sets 30p; the Resolution list, the line and the submenu\'s two lines ({n})')
+print(f'G. the menu: 60p confirmed sets FHD (not the row under the cursor, not the row set again on leaving), 4K at 60p sets 30p; the Resolution list (set by OK only), the line and the submenu\'s two lines ({n})')
 print('ok')

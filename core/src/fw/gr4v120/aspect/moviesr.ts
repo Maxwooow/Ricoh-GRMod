@@ -223,6 +223,8 @@ export function installMovieSr(patch: Patch, shift: ShiftCode | null): void {
   patch.setWord(SCREEN_ICON_TAIL, branchWord(SCREEN_ICON_TAIL, icon), 'movie shake reduction: the shooting screen\'s icon');
 
   // --- The state for the unit, a movie: field 0x13 = Sensor Shift chosen, Movie SR off, the sensor not held. r0, r1 kept.
+  // Movie SR as the function itself has it (r6, from the camera side, what field 0x14 is made of just after): the two
+  // fields then always belong to the same value, also while a change of the setting is still on its way to the camera side.
   const held = shift ? `cmp r2, #0; bxeq lr
      push {r0, r1, r2, r3, ip, lr}
      mov r1, #4; ${shift.loadCtx}; bl #${shift.code}
@@ -231,7 +233,7 @@ export function installMovieSr(patch: Patch, shift: ShiftCode | null): void {
      movne r2, #0` : '';
   const state = patch.append((at) => assembleWords(
     `${BYTE}; ldrb r2, [r3]; and r2, r2, #${MOVIE_SENSOR_SR_BIT}
-     ${LIVE}; cmp ip, #0; movne r2, #0
+     cmp r6, #0; movne r2, #0
      ${held}
      bx lr`, at), 16);
   patch.setWord(SR_STATE_MOVIE, branchWord(SR_STATE_MOVIE, state, 14, true), 'movie shake reduction: the sensor shift on for a movie');

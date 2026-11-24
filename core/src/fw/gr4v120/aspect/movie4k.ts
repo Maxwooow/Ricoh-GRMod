@@ -24,7 +24,12 @@
  *    lines (as Setup's End Screen in `shutdown.ts`): Frame Rate, which opens the camera's own list
  *    under its own number, and Resolution, a list record made from Frame Rate's;
  *  - the two settings cannot disagree: choosing 4K at 60p sets 30p (the camera's own setter);
- *    choosing 60p (the Frame Rate list's set function, at its entry) sets FHD.
+ *    choosing 60p sets FHD. The Frame Rate list sets the row under the cursor at once and, left
+ *    without OK, the row that was current again; only OK (the record's set function) clears the
+ *    bit, so passing over 60p does not lose 4K. The Resolution list has no such functions: its
+ *    row is set by OK. Wherever the bit is still set at 60p (the list left another way), it
+ *    counts as FHD: the camera's own code records 60p in FHD whatever the switch says, and the
+ *    menu shows it so.
  *  - one answer for as long as a live view runs. The switch is asked again later (the size recorded
  *    is set again by 0x5365B8E4, which the live view's sequences call), while the drive mode and
  *    the buffers are those of the live view's start; a setting changed in between would give a 4K
@@ -166,13 +171,13 @@ export function installMovie4k(patch: Patch): void {
      bx lr`, at), 16);
   patch.setWord(SWITCH, branchWord(SWITCH, answer), '4K movies: the switch answers the Resolution setting of this live view');
 
-  // --- 60p chosen in the Frame Rate list (row 0): FHD. Then the function's own first instruction, and on.
+  // --- 60p confirmed in the Frame Rate list (row 0): FHD. Only the record's own set function, which the list's OK calls:
+  // the row under the cursor is set while the list is open (+0x34) and the row that was current is set again when the list
+  // is left without OK (+0x3c), both by calling 0x531D4D08 directly, and neither must lose the Resolution.
   const rate = patch.append((at) => assembleWords(
-    `cmp r1, #0; bne native
+    `cmp r1, #0; bne #${FR_SET}
      ${BYTE}; ldrb ip, [r3]; bic ip, ip, #${MOVIE_4K_BIT}; strb ip, [r3]
-     native: mov ip, sp
-     b #${FR_SET + 4}`, at), 16);
-  patch.setWord(FR_SET, branchWord(FR_SET, rate), '4K movies: 60p sets FHD');
+     b #${FR_SET}`, at), 16);
 
   // --- The Resolution list: FHD, 4K (this = r0; draw: item = r1, row = r2; set, current: row = r1).
   const count = patch.append((at) => assembleWords('mov r0, #2; bx lr', at), 16);
@@ -191,26 +196,26 @@ export function installMovie4k(patch: Patch): void {
      mov r1, #1
      pop {r4, lr}
      b #${FRAME_RATE_SET}`, at), 16);
+  // current: 4K only with the setting and a frame rate that has it (as the line and the submenu show it).
   const current = patch.append((at) => assembleWords(
-    `${BYTE}; ldrb r3, [r3]; and r3, r3, #${MOVIE_4K_BIT}; mov r3, r3, lsr #1
+    `${BYTE}; ldrb r3, [r3]; ${RATE}
+     tst r3, #${MOVIE_4K_BIT}; cmpne r2, #0
+     movne r3, #1; moveq r3, #0
      cmp r3, r1; moveq r0, #1; movne r0, #0; bx lr`, at), 16);
-  const setClose = patch.append((at) => assembleWords(
-    `push {r4, lr}
-     mov r4, r0
-     bl #${set}
-     mov r0, r4
-     pop {r4, lr}
-     b #${LIST_AFTER_SET}`, at), 16);
-  const setKept = patch.append((at) => assembleWords(`ldrb r1, [r0, #0x1a6]; b #${set}`, at), 16);
+  // The record: Frame Rate's (rows of text), without its two functions that set a row before OK: the row is set by OK alone.
   const record = official.slice();
   const rv = new DataView(record.buffer);
   rv.setUint32(0x0c, count, true);
   rv.setUint32(0x14, draw, true);
   rv.setUint32(0x24, set, true);
   rv.setUint32(0x2c, current, true);
-  rv.setUint32(0x34, setClose, true);
-  rv.setUint32(0x3c, setKept, true);
+  rv.setUint32(0x34, 0, true);
+  rv.setUint32(0x3c, 0, true);
   addListRecords(patch, [{ id: RESOLUTION_LIST_ID, record }], '4K movies');
+  // Frame Rate's record, in the table the camera reads now.
+  const rateRecord = listTable(patch) + FRAME_RATE_RECORD * LIST_RECORD;
+  expectWord(patch, rateRecord + 0x24, FR_SET);
+  patch.setWord(rateRecord + 0x24, rate, '4K movies: 60p confirmed sets FHD');
 
   // --- The submenu: Frame Rate (the camera's list, its value as the line showed it), Resolution.
   const lineRate = patch.append((at) => assembleWords(
