@@ -1,0 +1,3 @@
+/* The permission prompts in ko (Info.plist has the English ones). */
+"NSBluetoothAlwaysUsageDescription" = "GR Mod는 Bluetooth로 카메라를 찾고 카메라의 Wi-Fi를 켠 다음, 펌웨어를 보낸 후 업데이트를 시작합니다.";
+"NSLocalNetworkUsageDescription" = "GR Mod는 카메라 자체의 Wi-Fi를 통해 펌웨어를 카메라로 보냅니다.";

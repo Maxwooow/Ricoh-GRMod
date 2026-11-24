@@ -4418,7 +4418,7 @@ new file mode 100644
 +export const MOVIESR_SENSOR_NAMES: readonly string[] = [
 +  'Mechanická', 'Mekanisk', 'Mechanical', 'Mekaaninen', 'Capteur', 'Sensor-Shift', 'Αισθητήρας', 'Érzékelő',
 +  'Sensore', 'メカ式', '기계식', 'Mechanisch', 'Matryca', 'Sensor', 'Механическая', '传感器SR',
-+  'Sensor', 'Mekanisk', 'เซ็นเซอร์', '感應器SR', 'Sensör',
++  'Sensor', 'Mekanisk', 'เซ็นเซอร์', '感測器SR', 'Sensör',
 +];
 +export const MOVIESR_ELECTRONIC_NAMES: readonly string[] = [
 +  'Elektronická', 'Elektronisk', 'Electronic', 'Elektroninen', 'Électronique', 'Elektronisch', 'Ηλεκτρονική', 'Elektronikus',
@@ -4893,7 +4893,7 @@ new file mode 100644
 +export const SHIFT_NAMES: readonly string[] = [
 +  'Posun snímače', 'Sensorforskydning', 'Sensor Shift', 'Kennon siirto', 'Décalage du capteur', 'Sensorverschiebung', 'Μετατόπιση αισθητήρα', 'Érzékelő eltolása',
 +  'Spostamento sensore', 'センサーシフト', '구도 미세 조정', 'Sensorverschuiving', 'Przesunięcie matrycy', 'Deslocamento do sensor', 'Сдвиг матрицы', '传感器位移',
-+  'Desplazamiento del sensor', 'Sensorförskjutning', 'เลื่อนเซ็นเซอร์', '感應器位移', 'Sensör kaydırma',
++  'Desplazamiento del sensor', 'Sensorförskjutning', 'เลื่อนเซ็นเซอร์', '感測器位移', 'Sensör kaydırma',
 +];
 +export const SHIFT_ADJUST_NAMES: readonly string[] = [
 +  'Upravit', 'Justér', 'Adjust', 'Säädä', 'Régler', 'Einstellen', 'Ρύθμιση', 'Beállítás',

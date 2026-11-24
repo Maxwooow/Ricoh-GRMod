@@ -135,7 +135,7 @@ final class CameraNet: NSObject, URLSessionWebSocketDelegate {
                 }
                 if !known { return }   // iOS does not say: the first request to the camera tells
             }
-            log.add(L.s("第 \(attempt) 次加入照相机的无线局域网未成功", "Joining the camera's Wi-Fi did not work (attempt \(attempt))"))
+            log.add(L.f("第 {0} 次加入照相机的无线局域网未成功", "Joining the camera's Wi-Fi did not work (attempt {0})", attempt))
             NEHotspotConfigurationManager.shared.removeConfiguration(forSSID: ssid)
             joined = nil
             if attempt < 3 { Thread.sleep(forTimeInterval: 3) }

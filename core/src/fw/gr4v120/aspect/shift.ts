@@ -164,7 +164,7 @@ const LIST_RECORD = 0x4c;
 export const SHIFT_NAMES: readonly string[] = [
   'Posun snímače', 'Sensorforskydning', 'Sensor Shift', 'Kennon siirto', 'Décalage du capteur', 'Sensorverschiebung', 'Μετατόπιση αισθητήρα', 'Érzékelő eltolása',
   'Spostamento sensore', 'センサーシフト', '구도 미세 조정', 'Sensorverschuiving', 'Przesunięcie matrycy', 'Deslocamento do sensor', 'Сдвиг матрицы', '传感器位移',
-  'Desplazamiento del sensor', 'Sensorförskjutning', 'เลื่อนเซ็นเซอร์', '感應器位移', 'Sensör kaydırma',
+  'Desplazamiento del sensor', 'Sensorförskjutning', 'เลื่อนเซ็นเซอร์', '感測器位移', 'Sensör kaydırma',
 ];
 export const SHIFT_ADJUST_NAMES: readonly string[] = [
   'Upravit', 'Justér', 'Adjust', 'Säädä', 'Régler', 'Einstellen', 'Ρύθμιση', 'Beállítás',

@@ -73,10 +73,10 @@ public class GrCameraPlugin: CAPPlugin, CAPBridgedPlugin, PushEvents, UIDocument
 
     @objc func getStatus(_ call: CAPPluginCall) { work.async { call.resolve(self.status()) } }
 
-    /// The app's language ("zh" or "en"): the native messages (L.swift) follow it.
+    /// The app's language (ui/src/i18n.ts UiLang): the native messages (L.swift) follow it.
     static var language = "zh"
     @objc func setLanguage(_ call: CAPPluginCall) {
-        GrCameraPlugin.language = call.getString("lang") == "en" ? "en" : "zh"
+        GrCameraPlugin.language = call.getString("lang") ?? "zh"
         L.set(GrCameraPlugin.language)
         call.resolve()
     }

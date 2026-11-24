@@ -1,0 +1,3 @@
+/* The permission prompts in zh-Hans (Info.plist has the English ones). */
+"NSBluetoothAlwaysUsageDescription" = "GR Mod 用蓝牙找到相机、打开相机的 Wi-Fi，并在传完固件后让相机开始更新。";
+"NSLocalNetworkUsageDescription" = "GR Mod 通过相机自己的 Wi-Fi 把固件传给相机。";

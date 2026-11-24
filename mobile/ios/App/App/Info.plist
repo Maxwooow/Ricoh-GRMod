@@ -6,6 +6,16 @@
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>zh-Hans</string>
+		<string>zh-Hant</string>
+		<string>ja</string>
+		<string>ko</string>
+		<string>es</string>
+		<string>de</string>
+	</array>
 	<key>CFBundleDisplayName</key>
         <string>GR Mod</string>
 	<key>CFBundleExecutable</key>
@@ -52,9 +62,9 @@
 		<string>arm64</string>
 	</array>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>GR Mod 用蓝牙找到相机、打开相机的 Wi-Fi，并在传完固件后让相机开始更新。GR Mod uses Bluetooth to find your camera, turn on its Wi-Fi and start the update once the firmware is sent.</string>
+	<string>GR Mod uses Bluetooth to find your camera, turn on its Wi-Fi and start the update once the firmware is sent.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>GR Mod 通过相机自己的 Wi-Fi 把固件传给相机。GR Mod sends the firmware to your camera over the camera's own Wi-Fi.</string>
+	<string>GR Mod sends the firmware to your camera over the camera's own Wi-Fi.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsLocalNetworking</key>

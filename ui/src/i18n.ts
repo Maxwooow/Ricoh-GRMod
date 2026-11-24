@@ -1,3 +1,9 @@
+import { de } from './locales/de';
+import { es } from './locales/es';
+import { ja } from './locales/ja';
+import { ko } from './locales/ko';
+import { zhTW } from './locales/zh-TW';
+
 const zh = {
   app: 'GR Mod',
   navIC: '影像控制', navWall: '结束画面', navCopies: '固件副本',
@@ -155,7 +161,7 @@ const zh = {
   movieExpLine: '视频模式曝光控制',
   navAwb: '自动白平衡优化', awbSub: '自动白平衡优化使用学习型模型估计光源：减少户外偏冷和室内灯光下偏黄。', tIcFAwbB: '白平衡设为[自动]、[暖色优先]或[白色优先]时，使用基于带实测光源的公开数据集训练的模型估计光源，取代原厂估计：户外减少偏冷，室内灯光下减少偏黄。取景画面与照片使用相同的估计结果，使照片色彩与屏幕显示一致。三档仅在暖光下有所区别（[白色优先]不保留暖色，[自动]保留少量暖色，[暖色优先]保留较多暖色），户外三档相同。使用闪光灯拍摄的照片，以及预设和手动白平衡，仍使用原厂结果。',
   awbLine: '自动白平衡优化  ·  白平衡[自动]、[暖色优先]、[白色优先]时生效（闪光照片用原厂结果）',
-  navLamp: '辅助灯常亮', lampSub: '忘带手电筒了？让相机正面的对焦辅助灯保持常亮！可在菜单中选择开启，也可加入ADJ模式列表或绑定为 Fn 快捷键。', tIcFLampB: '相机正面的对焦辅助灯（也是自拍定时灯）可以手动打开并保持常亮。拍摄菜单的[AF辅助光]下方会多出[辅助灯常亮]一项。可在菜单中选择开启，也可加入ADJ模式列表或绑定为 Fn 快捷键。',
+  navLamp: '辅助灯常亮', lampSub: '忘带手电筒了？让相机正面的对焦辅助灯保持常亮！可在菜单中选择开启，也可加入ADJ模式列表或绑定为 Fn 快捷键。', tIcFLampB: '相机正面的对焦辅助灯（也是自拍定时灯）可以手动打开并保持常亮。拍摄菜单的[自动对焦辅助灯]下方会多出[辅助灯常亮]一项。可在菜单中选择开启，也可加入ADJ模式列表或绑定为 Fn 快捷键。',
   lampLine: '辅助灯常亮',
   navShift: '传感器位移', shiftSub: '通过防抖组件平移和旋转传感器从而微调构图；可加入ADJ模式列表或绑定为 Fn 快捷键。', tIcFShiftB: '相机的防抖组件可以移动传感器，[ADJ模式设定]的可选功能里会多出[传感器位移]一项；[Fn按钮设定]里，Fn 按钮和[长按影片按钮]的可选功能里也会多出这一项。调整期间，拍摄画面上快门速度、光圈和 ISO 的位置改为显示 X、Y、R：方向键平移传感器（每个方向 28 级，每级约 0.04 mm），拨盘旋转传感器（每个方向 18 级，每级 0.125°；旋转得越多，可平移的范围越小），按 DISP 回到中心，按 OK 或 Fn 结束调整并让传感器留在当前位置。调整期间以及传感器不在中心时，防抖功能关闭。关机后传感器回到中心。',
   shiftLine: '传感器位移',
@@ -468,28 +474,50 @@ const en: typeof zh = {
  mCrashed: 'Something went wrong in the interface. Please send a screenshot of this to the developer.', mReload: 'Reload',
 };
 export type Key = keyof typeof zh;
-/** Both dictionaries (tests compare them). */
-export const DICTS = { zh, en };
+/** One language's texts: every entry of the Chinese ones. */
+export type Dict = typeof zh;
+/** The interface languages; the order of the language menu. */
+export const UI_LANGS = ['zh', 'zh-TW', 'en', 'ja', 'ko', 'es', 'de'] as const;
+export type UiLang = (typeof UI_LANGS)[number];
+/** Each language's own name, for the language menu. */
+export const UI_LANG_NAMES: Record<UiLang, string> = { zh: '简体中文', 'zh-TW': '繁體中文', en: 'English', ja: '日本語', ko: '한국어', es: 'Español', de: 'Deutsch' };
+/** Every dictionary (tests compare them). */
+export const DICTS: Record<UiLang, Dict> = { zh, 'zh-TW': zhTW, en, ja, ko, es, de };
+export const isUiLang = (v: unknown): v is UiLang => typeof v === 'string' && (UI_LANGS as readonly string[]).includes(v);
 /** The interface language the user picked in the phone app ('' = as the system), kept in the web view's storage. */
 const UI_LANG_KEY = 'grmod.uiLang';
-export function uiLangPref(): '' | 'zh' | 'en' {
-  try { const v = localStorage.getItem(UI_LANG_KEY); return v === 'zh' || v === 'en' ? v : ''; } catch { return ''; }
+export function uiLangPref(): '' | UiLang {
+  try { const v = localStorage.getItem(UI_LANG_KEY); return isUiLang(v) ? v : ''; } catch { return ''; }
 }
 /** Changes the interface language; the page reloads in it unless `reload` is false (store.ts setAppLanguage saves the work first). */
-export function setUiLangPref(v: '' | 'zh' | 'en', reload = true): void {
+export function setUiLangPref(v: '' | UiLang, reload = true): void {
   try { if (v) localStorage.setItem(UI_LANG_KEY, v); else localStorage.removeItem(UI_LANG_KEY); } catch { /* not kept */ }
   if (reload) window.setTimeout(() => window.location.reload(), 120);
 }
-const systemZh = (navigator.language || 'zh').toLowerCase().startsWith('zh');
+/** The system's language among the interface languages: its first one GR Mod has, else English. */
+export function systemUiLang(): UiLang {
+  for (const raw of navigator.languages?.length ? navigator.languages : [navigator.language || 'en']) {
+    const l = raw.toLowerCase();
+    if (l.startsWith('zh')) return /-(tw|hk|mo)\b|hant/.test(l) ? 'zh-TW' : 'zh';
+    const base = l.split('-')[0];
+    if (isUiLang(base)) return base;
+  }
+  return 'en';
+}
 /** The interface language in use. */
-export const UI_LANG: 'zh' | 'en' = uiLangPref() || (systemZh ? 'zh' : 'en');
-const dict = UI_LANG === 'zh' ? zh : en;
+export const UI_LANG: UiLang = uiLangPref() || systemUiLang();
+/** The two languages the release notes and the signed update notes are written in: Chinese for both Chinese, else English. */
+export const NOTES_LANG: 'zh' | 'en' = UI_LANG === 'zh' || UI_LANG === 'zh-TW' ? 'zh' : 'en';
+/** Chinese and Japanese punctuation (full width) in texts put together by the program. */
+export const WIDE_PUNCT = UI_LANG === 'zh' || UI_LANG === 'zh-TW' || UI_LANG === 'ja';
+const dict = DICTS[UI_LANG];
+try { document.documentElement.lang = UI_LANG === 'zh' ? 'zh-CN' : UI_LANG; } catch { /* no document (tests) */ }
 /** The phone app (Android, iOS): its own wording where the desktop's would be wrong (no dragging, no card). */
 const capx = (globalThis as unknown as { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string } }).Capacitor;
 const PHONE = !!capx?.isNativePlatform?.() && ['android', 'ios'].includes(capx.getPlatform?.() ?? '');
 export function t(key: Key, vars?: Record<string, string | number>): string {
   const own = PHONE ? (dict as Record<string, string>)[`${key}M`] : undefined;
-  let s: string = own ?? dict[key] ?? key;
+  let s: string = own ?? dict[key] ?? DICTS.en[key] ?? key;
   if (vars) for (const k of Object.keys(vars)) s = s.split(`{${k}}`).join(String(vars[k]));
   return s;
 }

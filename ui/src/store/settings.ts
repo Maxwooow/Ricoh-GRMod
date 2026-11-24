@@ -1,7 +1,8 @@
 import type { CameraModel, LangCode } from '@grmod/core';
 import { engine, EngineError } from '../engine';
 import { host } from '../host';
-import { setUiLangPref, t, uiLangPref } from '../i18n';
+import { isUiLang, setUiLangPref, t, uiLangPref } from '../i18n';
+import type { UiLang } from '../i18n';
 import { ExtrasView, Page, State, TOUR_IDS, TourId, cameraLang, fail, isGr3, set, slotOf, state, supportedList, toast } from './core';
 import { LEGACY_FW_GROUP_NAME, cancelSave, enterFamily, familyOf, fwGroupOf, fwKey, keptFirmware, leaveFamily, saveProject, scheduleSave } from './families';
 import { allSlotKeys, renderIcon, runPreset } from './slots';
@@ -55,7 +56,7 @@ export function setPage(page: Page): void {
   if (!pageOffered(page)) return;
   set({ page, extrasView: 'list' }); scheduleSave(); if (page === 'copies') void refreshCopies();
 }
-export async function setAppLanguage(v: '' | 'zh' | 'en'): Promise<void> {
+export async function setAppLanguage(v: '' | UiLang): Promise<void> {
   if (v === uiLangPref()) return;
   setUiLangPref(v, false);
   try { sessionStorage.setItem('grmod.uiLangAdopted', v); } catch { /* none */ }
@@ -66,7 +67,7 @@ export async function setAppLanguage(v: '' | 'zh' | 'en'): Promise<void> {
 export function langOf(doc: { uiLang?: string }): { lang: LangCode; langAuto: boolean } {
   // The app language is kept by the page (localStorage) and in the saved work: the desktop page's storage goes with
   // its port, so a saved choice the page has lost is taken back (once: the page reloads in it).
-  const saved = doc.uiLang === 'zh' || doc.uiLang === 'en' || doc.uiLang === '' ? doc.uiLang : undefined;
+  const saved = isUiLang(doc.uiLang) || doc.uiLang === '' ? doc.uiLang : undefined;
   if (saved !== undefined && saved !== uiLangPref()) {
     let reloadOnce = false;
     try { reloadOnce = sessionStorage.getItem('grmod.uiLangAdopted') !== saved; sessionStorage.setItem('grmod.uiLangAdopted', saved); } catch { /* no storage: no reload */ }

@@ -25,6 +25,10 @@ body {
   background: var(--side); color: var(--text); font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow: hidden; overscroll-behavior: none; user-select: none;
   font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", "PingFang SC", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans CJK SC", Helvetica, Arial, sans-serif;
 }
+/* The CJK interface languages each with their own glyph forms (the html element's lang, set by i18n.ts). */
+html:lang(zh-TW) body { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", "PingFang TC", "Microsoft JhengHei UI", "Microsoft JhengHei", "Noto Sans CJK TC", Helvetica, Arial, sans-serif; }
+html:lang(ja) body { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic UI", "Meiryo UI", Meiryo, "Noto Sans CJK JP", Helvetica, Arial, sans-serif; }
+html:lang(ko) body { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Text", "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", Helvetica, Arial, sans-serif; }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 svg { width: 18px; height: 18px; flex: none; }
@@ -86,6 +90,7 @@ svg { width: 18px; height: 18px; flex: none; }
 .props { border-top: 1px solid var(--line); padding-top: 4px; }
 .prop { display: flex; align-items: flex-start; min-height: 32px; padding: 2px 0; }
 .prop-label { width: 48px; flex: none; color: var(--muted); padding-top: 4px; font-size: 13px; }
+html:lang(ja) .prop-label { width: 72px; }
 .prop-value { flex: 1; min-width: 0; display: flex; align-items: center; min-height: 28px; }
 .preset { display: grid; gap: 6px; min-width: 0; width: 100%; }
 .file-chip { display: flex; align-items: center; height: 26px; border-radius: 5px; background: var(--chip); min-width: 0; max-width: 100%; width: fit-content; }

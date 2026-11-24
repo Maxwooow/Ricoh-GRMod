@@ -145,10 +145,9 @@ public final class PushSession implements Runnable {
                 nt = ble.read(WLAN, NETWORK_TYPE);
             } catch (Ble.BleException e) {
                 log.add(L.s("读取照相机无线局域网状态失败：", "Reading the camera's Wi-Fi state failed: ") + e.getMessage());
-                throw new Fail("ble-auth", L.s("照相机不接受此设备的 Bluetooth® 连接。若已在照相机中删除此设备，请在设备的 Bluetooth® 设定中对 "
-                        + device.getName() + " 选择[取消配对]，再将照相机设为配对状态并重新推送。",
-                        "The camera does not accept this device over Bluetooth. If the device was removed in the camera: unpair "
-                        + device.getName() + " in the device's Bluetooth settings, put the camera in pairing mode and send again"));
+                throw new Fail("ble-auth", L.f("照相机不接受此设备的 Bluetooth® 连接。若已在照相机中删除此设备，请在设备的 Bluetooth® 设定中对 {0} 选择[取消配对]，再将照相机设为配对状态并重新推送。",
+                        "The camera does not accept this device over Bluetooth. If the device was removed in the camera: unpair {0} in the device's Bluetooth settings, put the camera in pairing mode and send again",
+                        device.getName()));
             }
             if (nt.length == 0 || nt[0] != 1) {
                 ble.write(WLAN, NETWORK_TYPE, new byte[]{1});
@@ -163,7 +162,7 @@ public final class PushSession implements Runnable {
             // 2. Wi-Fi + checks
             boolean vpn = CameraNet.vpnActive(ctx);
             if (vpn) log.add(L.s("注意：设备正在使用 VPN。若 VPN 不允许应用程序绕过，则无法连接照相机无线局域网中的 192.168.0.1", "Note: a VPN is on. If it does not let apps bypass it, 192.168.0.1 on the camera's Wi-Fi cannot be reached"));
-            ev.stage("wifi", L.s("正在连接照相机的无线局域网[" + ssid + "]。若 1 分钟后仍无响应，请在系统的无线局域网设定中手动添加。", "Connecting to the camera's Wi-Fi “" + ssid + "”; if nothing happens within a minute, add it on the system's Wi-Fi page"));
+            ev.stage("wifi", L.f("正在连接照相机的无线局域网[{0}]。若 1 分钟后仍无响应，请在系统的无线局域网设定中手动添加。", "Connecting to the camera's Wi-Fi “{0}”; if nothing happens within a minute, add it on the system's Wi-Fi page", ssid));
             net.join(ssid, pass, 120_000);
             CameraNet.Reply props = null;
             long until = System.currentTimeMillis() + 30_000;
@@ -174,10 +173,9 @@ public final class PushSession implements Runnable {
                 } catch (java.io.IOException e) {
                     if (CameraNet.isBindRefused(e)) {
                         log.add(L.s("Android 拒绝将连接绑定至照相机无线局域网：", "Android refused to bind the connection to the camera's Wi-Fi: ") + e.getMessage());
-                        throw new Fail("vpn", L.s((vpn ? "设备上的 VPN 不允许 GR Mod 直接连接照相机的无线局域网。" : "Android 不允许 GR Mod 直接连接照相机的无线局域网，通常由 VPN 导致。")
-                                + "请关闭 VPN，或在 VPN 设定中关闭[阻止未使用 VPN 的连接]。",
-                                (vpn ? "The VPN on the device does not let GR Mod reach the camera's Wi-Fi directly. " : "Android does not let GR Mod reach the camera's Wi-Fi directly (usually because of a VPN). ")
-                                + "Switch the VPN off first (or turn off \"Block connections without VPN\" in its settings)"));
+                        throw new Fail("vpn", (vpn ? L.s("设备上的 VPN 不允许 GR Mod 直接连接照相机的无线局域网。", "The VPN on the device does not let GR Mod reach the camera's Wi-Fi directly. ")
+                                : L.s("Android 不允许 GR Mod 直接连接照相机的无线局域网，通常由 VPN 导致。", "Android does not let GR Mod reach the camera's Wi-Fi directly (usually because of a VPN). "))
+                                + L.s("请关闭 VPN，或在 VPN 设定中关闭[阻止未使用 VPN 的连接]。", "Switch the VPN off first (or turn off \"Block connections without VPN\" in its settings)"));
                     }
                     if (System.currentTimeMillis() > until) throw new Fail("wifi", L.s("已连接照相机的无线局域网，但无法访问 192.168.0.1：", "On the camera's Wi-Fi, but 192.168.0.1 cannot be reached: ") + e.getMessage());
                     Thread.sleep(1000);
@@ -200,16 +198,15 @@ public final class PushSession implements Runnable {
             }
 
             FirmwareInfo.Model rec = info.modelFor(p.optString("model"));
-            if (rec == null) throw new Fail("model", L.s("此固件不适用于 " + p.optString("model") + "（文件中的机型：" + info.describe() + "）", "This firmware is not for the " + p.optString("model") + " (models in the file: " + info.describe() + ")"));
+            if (rec == null) throw new Fail("model", L.f("此固件不适用于 {0}（文件中的机型：{1}）", "This firmware is not for the {0} (models in the file: {1})", p.optString("model"), info.describe()));
             String camBase = FirmwareInfo.baseOf(p.optString("firmwareVersion"));
             if (!rec.base().equals(camBase)) {
-                throw new Fail("version", L.s("照相机当前版本为 " + p.optString("firmwareVersion") + "，此固件对应版本为 " + rec.version
-                        + "。目前仅支持推送同一基础版本的固件；跨版本时，请使用存储卡更新。",
-                        "The camera runs " + p.optString("firmwareVersion") + "; for it this firmware is " + rec.version
-                        + ". Only a firmware of the same base version can be sent (across versions, update from a memory card)"));
+                throw new Fail("version", L.f("照相机当前版本为 {0}，此固件对应版本为 {1}。目前仅支持推送同一基础版本的固件；跨版本时，请使用存储卡更新。",
+                        "The camera runs {0}; for it this firmware is {1}. Only a firmware of the same base version can be sent (across versions, update from a memory card)",
+                        p.optString("firmwareVersion"), rec.version));
             }
             int battery = p.optInt("battery", -1);
-            if (battery >= 0 && battery < MIN_BATTERY) throw new Fail("battery", L.s("照相机电池电量为 " + battery + "%。请充电至 " + MIN_BATTERY + "% 以上后再推送。", "The camera's battery is at " + battery + "%: charge it above " + MIN_BATTERY + "% first"));
+            if (battery >= 0 && battery < MIN_BATTERY) throw new Fail("battery", L.f("照相机电池电量为 {0}%。请充电至 {1}% 以上后再推送。", "The camera's battery is at {0}%: charge it above {1}% first", battery, MIN_BATTERY));
             if (p.optBoolean("hot", false)) throw new Fail("hot", L.s("照相机过热，请等待其冷却。", "The camera is too hot: let it cool down"));
             check();
 
@@ -356,7 +353,7 @@ public final class PushSession implements Runnable {
             log.add(L.s("错误：", "Error: ") + e);
             if (prepared && !uploaded) cancelUpdate(net);
             ev.stage("failed", uploaded
-                    ? L.s("上传期间发生错误（" + e.getMessage() + "）。请勿立即重试，请先查看照相机显示屏", "Error during the upload (" + e.getMessage() + "). Do not try again at once: look at the camera's screen first")
+                    ? L.f("上传期间发生错误（{0}）。请勿立即重试，请先查看照相机显示屏", "Error during the upload ({0}). Do not try again at once: look at the camera's screen first", e.getMessage())
                     : L.s("错误：", "Error: ") + e.getMessage());
         } finally {
             if (ws != null) ws.close();
@@ -373,7 +370,7 @@ public final class PushSession implements Runnable {
         Exception last = null;
         for (int i = 0; i < tries; i++) {
             check();
-            try { ble.connect(15_000); return; } catch (Ble.BleException e) { last = e; log.detail(L.s("第 " + (i + 1) + " 次 Bluetooth® 连接失败：", "Bluetooth connection attempt " + (i + 1) + " failed: ") + e.getMessage()); Thread.sleep(2000); }
+            try { ble.connect(15_000); return; } catch (Ble.BleException e) { last = e; log.detail(L.f("第 {0} 次 Bluetooth® 连接失败：", "Bluetooth connection attempt {0} failed: ", i + 1) + e.getMessage()); Thread.sleep(2000); }
         }
         throw new Fail("ble", L.s("无法通过 Bluetooth® 连接照相机。请确认照相机已开启，并已退出此设备上的 GR WORLD。（", "Cannot connect to the camera over Bluetooth: is it on? Is GR WORLD closed on this device? (") + (last == null ? "" : last.getMessage()) + L.s("）", ")"));
     }

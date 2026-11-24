@@ -2,7 +2,7 @@
 // the app's native GrCamera plugin through Capacitor (Java on Android, Swift on iOS: mobile/ios-plugin). There is
 // no memory card here: firmware goes to the camera over Wi-Fi (camera.ts) or into the phone's own files.
 import { useEffect, useRef } from 'react';
-import { UI_LANG } from './i18n';
+import { NOTES_LANG, UI_LANG } from './i18n';
 import type { DirEntry, FirmwareRelease, HostInfo, ParkedEntry, ParkedFailure, ReleaseNote, UpdateInfo, UpdateState, Volume } from './host';
 
 interface PluginListener { remove: () => Promise<void> }
@@ -91,7 +91,7 @@ if (isMobile) void Gr.addListener('firmwareProgress', (p: { received: number; to
 function inLanguage(body: string): string {
   const m = /\n\s*-{3,}\s*\n+\s*#\s*English\b[^\n]*\n/i.exec(body);
   if (!m) return body;
-  return (UI_LANG === 'en' ? body.slice(m.index + m[0].length) : body.slice(0, m.index)).trim();
+  return (NOTES_LANG === 'en' ? body.slice(m.index + m[0].length) : body.slice(0, m.index)).trim();
 }
 
 const info: HostInfo = { kind: platform, token: '', version: appVersion, os: platform, notes: version };

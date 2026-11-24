@@ -88,7 +88,7 @@ const SR_CURRENT = adr(0x531d67f0);
 export const MOVIESR_SENSOR_NAMES: readonly string[] = [
   'Mechanická', 'Mekanisk', 'Mechanical', 'Mekaaninen', 'Capteur', 'Sensor-Shift', 'Αισθητήρας', 'Érzékelő',
   'Sensore', 'メカ式', '기계식', 'Mechanisch', 'Matryca', 'Sensor', 'Механическая', '传感器SR',
-  'Sensor', 'Mekanisk', 'เซ็นเซอร์', '感應器SR', 'Sensör',
+  'Sensor', 'Mekanisk', 'เซ็นเซอร์', '感測器SR', 'Sensör',
 ];
 export const MOVIESR_ELECTRONIC_NAMES: readonly string[] = [
   'Elektronická', 'Elektronisk', 'Electronic', 'Elektroninen', 'Électronique', 'Elektronisch', 'Ηλεκτρονική', 'Elektronikus',
