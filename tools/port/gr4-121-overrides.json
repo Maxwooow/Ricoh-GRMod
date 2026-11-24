@@ -366,5 +366,13 @@
  "0x55839074": {
   "new": "0x55839074",
   "reason": "GR Mod's own word in the C library's sbrk arena before the heap (lamp.ts, as 0x55839078 of awb2.ts): the arena is 0x55839040..0x55839080 in both releases"
+ },
+ "0x55839048": {
+  "new": "0x55839048",
+  "reason": "the sbrk arena before the heap (0x55839040..0x55839080), same place in 1.21 (as 0x55839040, battery.ts): Sensor Shift's state"
+ },
+ "0x53dbf740": {
+  "new": "0x53dc0d48",
+  "reason": "LiveViewController's vtable: data aligned and its one reference agrees; the word at +0xc is the predicate 0x5318ae30 -> 0x5318ae08 in both"
  }
 }

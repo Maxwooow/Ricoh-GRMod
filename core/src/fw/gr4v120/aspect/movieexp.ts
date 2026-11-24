@@ -71,8 +71,8 @@
  *      for stills before changing to movie is still recorded in P, and the dial leads out of it.
  */
 import { FirmwareError } from '../../types';
-import { assembleWords, branchWord } from './arm';
-import { Patch, expectWord } from './build';
+import { assembleWords, branchTarget, branchWord } from './arm';
+import { ICON_CATALOG, Patch, expectWord } from './build';
 import { adr } from '../target';
 
 /** `ldrb r0, [r0, #0xb76]; bx lr`: 0 still, 1 movie. */
@@ -217,7 +217,10 @@ export function installMovieExposure(patch: Patch): void {
   expectWord(patch, TEXT_ISO + 4, 0xe3520000); // cmp r2, #0
   for (const { at, word, call, link, to } of MOVIE_ARGUMENTS) {
     expectWord(patch, at, word);
-    expectWord(patch, at + call, branchWord(at + call, to, 14, link));
+    // The call itself, or an earlier addition's code in its place that goes on to the function (Sensor Shift's, at the
+    // shooting screen's ISO icon: `shift.ts`): a branch of the same kind into the appended area.
+    const w = patch.word(at + call);
+    if (!(w >>> 24 === (link ? 0xeb : 0xea) && branchTarget(at + call, w) >= ICON_CATALOG - 0x40)) expectWord(patch, at + call, branchWord(at + call, to, 14, link));
   }
   for (const { at, what } of MOVIE_ARGUMENTS) patch.setWord(at, MOV_R2_0, `movie exposure: ${what}`);
 

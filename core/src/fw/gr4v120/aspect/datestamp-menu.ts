@@ -349,6 +349,17 @@ function installIcons(patch: Patch, iconbin: Uint8Array): Uint8Array {
 export { FACTORY as CONTROLLER_FACTORY, D_RANGE_ID as SUBMENU_CONTROLLER_ID, HORIZON_ID as LIST_CONTROLLER_ID };
 export { SUB_SET_ICON, LIST_SET_ITEM, SUB_RECORD, TOP_SET_TITLE, ICON_OFF, ICON_ON, TEXT_OFF, TEXT_ON };
 
+/** Where the list table (SelectMenuController records, 0x4c bytes) is now: the official one or its latest copy. */
+export function listTable(patch: Patch): number {
+  const at = SELECT_SITES.map(([low, high, r]) => {
+    const a = patch.word(low), b = patch.word(high);
+    if (a !== movWord(r, movImmediate(a)) || b !== movWord(r, movImmediate(b), true)) fail('unexpected-layout', 'list table site is not a MOVW/MOVT pair');
+    return (movImmediate(a) | (movImmediate(b) << 16)) >>> 0;
+  });
+  if (at.some((t) => t !== at[0]) || (at[0] === SELECT_TABLE) !== (patch.listRecords === 0)) fail('unexpected-layout', 'list table is not where it was expected');
+  return at[0];
+}
+
 /** Where the submenu table (SubMenuController records, 0x64 bytes) is now: the official one or its latest copy. */
 export function submenuTable(patch: Patch): number {
   const at = SUB_SITES.map(([low, high, r]) => {

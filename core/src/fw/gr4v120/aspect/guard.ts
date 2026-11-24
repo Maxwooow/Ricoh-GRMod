@@ -74,7 +74,7 @@ export interface GuardOptions {
    * is the ADJ lever function 0x15 (so slots may hold it).
    */
   exposurePreview?: boolean;
-  /** The last ADJ lever function when Constant Light (`lamp.ts`) adds one: 0x15, or 0x16 with exposure preview. */
+  /** The last ADJ lever function when Constant Light (`lamp.ts`) or Sensor Shift (`shift.ts`) adds one: 0x15 .. 0x17. */
   lastAdjFunction?: number;
 }
 
@@ -108,7 +108,7 @@ function fixSource(o: GuardOptions): string {
   if (!o.ratios) lines.push(`ldrb r2,[r0,#${RATIO}]`, 'cmp r2,#3', 'movhi r2,#0', `strbhi r2,[r0,#${RATIO}]`);
   // The last ADJ function: 0x14, 0x15 with exposure preview on the ADJ lever.
   const last = o.lastAdjFunction ?? (o.exposurePreview ? 21 : 20);
-  if (!(last >= 20 && last <= 22)) fail('internal', 'guard: the last ADJ function');
+  if (!(last >= 20 && last <= 23)) fail('internal', 'guard: the last ADJ function');
   if (!o.adjSoftFocus) {
     ADJ_SLOTS.forEach((off, i) => {
       lines.push(`ldrb r2,[r0,#${off}]`, 'cmp r2,#10', `beq adjbad${i}`, `cmp r2,#${last}`, `bls adj${i}`, `adjbad${i}:`, 'mov r2,#0', `strb r2,[r0,#${off}]`, `adj${i}:`);

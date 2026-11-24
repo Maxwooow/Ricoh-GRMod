@@ -109,6 +109,12 @@ export interface FirmwareInfo {
     movieExposure?: boolean;
     /** Constant Light can be added: the front lamp kept lit, switched in the still menu, on the ADJ lever and by an Fn function (GR IV 1.20 / 1.21, `BuildOptions.constantLight`). */
     constantLight?: boolean;
+    /** Sensor Shift can be added: the picture moved and turned by hand with the shake reduction unit (GR IV 1.20 / 1.21; see `gr4v120/aspect/shift.ts`). */
+    sensorShift?: boolean;
+    /** 4K movies can be added: Frame Rate / Resolution in the movie menu (GR IV 1.20 / 1.21; see `gr4v120/aspect/movie4k.ts`). */
+    movie4k?: boolean;
+    /** Sensor-shift shake reduction for movies can be added: Movie SR with Off / Sensor Shift / Electronic (GR IV 1.20 / 1.21; see `gr4v120/aspect/moviesr.ts`). */
+    movieSr?: boolean;
     /** GR III / IIIx: the most films a build can have (9; 20 on GR III 2.10, where
      * the number is chosen with BuildOptions.filmCount and Halation is set in the camera). */
     maxFilms?: number };
@@ -248,8 +254,14 @@ export interface FirmwareSummary {
   awbLearn?: boolean;
   /** True when the file records movies in the exposure mode of the mode dial. */
   movieExposure?: boolean;
-  /** True when the file has Constant Light (the front lamp kept lit; test builds). */
+  /** True when the file has Constant Light (the front lamp kept lit). */
   constantLight?: boolean;
+  /** True when the file has Sensor Shift. */
+  sensorShift?: boolean;
+  /** True when the file records 4K movies (Frame Rate / Resolution in the movie menu). */
+  movie4k?: boolean;
+  /** True when the file has the sensor-shift shake reduction for movies. */
+  movieSr?: boolean;
   /** ADJ lever slots (6..8) when the file has more than the camera's five. */
   adjSlots?: number;
   /** True when the file's battery icon shows the charge in steps of 10 %. */
@@ -379,6 +391,24 @@ export interface BuildOptions {
    * (`gr4v120/aspect/lamp.ts`). Off when the camera starts and when it shuts down.
    */
   constantLight?: boolean;
+  /**
+   * Sensor Shift (GR IV 1.20 and 1.21, `features.sensorShift`): the picture moved (four-way controller) and turned (dials)
+   * by hand with the shake reduction unit, on the shooting screen; started by an ADJ lever function, an Fn function of the
+   * Fn button or the Movie button pressed and held (`gr4v120/aspect/shift.ts`). Shake reduction is off while the sensor is
+   * away from the centre. Back at the centre when the camera starts.
+   */
+  sensorShift?: boolean;
+  /**
+   * 4K movies (GR IV 1.20 and 1.21, `features.movie4k`): the movie menu's Frame Rate becomes Frame Rate / Resolution, with
+   * FHD / 4K; 4K (3840 x 2160, a 1.35x crop of the FHD picture) is recorded at 30p and 24p (`gr4v120/aspect/movie4k.ts`).
+   */
+  movie4k?: boolean;
+  /**
+   * Shake reduction for movies by sensor shift (GR IV 1.20 and 1.21, `features.movieSr`): Movie SR offers Off, Sensor Shift
+   * (the shake reduction unit, the whole picture) and Electronic (the camera's own, cropped); Off no longer crops
+   * (`gr4v120/aspect/moviesr.ts`).
+   */
+  movieSr?: boolean;
   /** GR III 2.10: the number of films, 1..20 (`features.maxFilms`), each with a Halation
    * line in the camera. Absent: the nine-film T6 build. */
   filmCount?: number;
@@ -614,7 +644,7 @@ export class Engine {
       family: 'gr4', filename: 'fwdc248b.bin', models: ['STANDARD', 'HDF', 'MONO'],
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
       capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, menuPictures: true, lookLayout: true },
-      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, batteryPercent: true, customGrid: true, ratioShade: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== Gr4Program111 ? { filmGrain: true } : {}), shadowLearn: true, ...(g4 !== Gr4Program111 ? { flashTtl: true, shadeMenu: true, gridMenu: true } : {}), ...(g4 !== Gr4Program111 ? { videoAf: true } : {}), ...(g4 !== Gr4Program111 ? { awbLearn: true } : {}), ...(g4 !== Gr4Program111 ? { movieExposure: true } : {}), ...(g4 !== Gr4Program111 ? { constantLight: true } : {}) },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, batteryPercent: true, customGrid: true, ratioShade: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== Gr4Program111 ? { filmGrain: true } : {}), shadowLearn: true, ...(g4 !== Gr4Program111 ? { flashTtl: true, shadeMenu: true, gridMenu: true } : {}), ...(g4 !== Gr4Program111 ? { videoAf: true } : {}), ...(g4 !== Gr4Program111 ? { awbLearn: true } : {}), ...(g4 !== Gr4Program111 ? { movieExposure: true } : {}), ...(g4 !== Gr4Program111 ? { constantLight: true, sensorShift: true, movie4k: true, movieSr: true } : {}) },
       version: g4.FIRMWARE_VERSION,
       looks: { factory: [...g4.aspect.FACTORY_LOOK_IDS], extraFirst: g4.aspect.EXTRA_FIRST_STYLE, monoOnly: g4.aspect.FACTORY_LOOK_IDS.filter((n) => n >= 25) },
       sha256: await sha256Hex(input),
@@ -839,7 +869,7 @@ export class Engine {
       ...(features.flashTtl ? { flashTtl: true } : {}),
       ...(features.videoAf ? { videoAf: true } : {}),
       ...(features.awbLearn ? { awbLearn: true } : {}),
-      ...(features.movieExposure ? { movieExposure: true } : {}),
+      ...(features.movieExposure ? { movieExposure: true } : {}), ...(features.sensorShift ? { sensorShift: true } : {}), ...(features.movie4k ? { movie4k: true } : {}), ...(features.movieSr ? { movieSr: true } : {}),
       ...(features.constantLight ? { constantLight: true } : {}),
     });
     if (!specs) return modified(false, [], aligned);
@@ -1186,15 +1216,25 @@ export class Engine {
     const constantLight = !!(options && options.constantLight);
     if (constantLight && !this.info.features.constantLight) throw new FirmwareError('bad-edit', 'Constant Light needs GR IV firmware 1.20 or 1.21');
     if (constantLight && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Constant Light cannot be combined with the clarity-table soft focus of 0.4.x');
+    const added = (name: 'sensorShift' | 'movie4k' | 'movieSr', what: string): boolean => {
+      if (options && options[name] !== undefined && typeof options[name] !== 'boolean') throw new FirmwareError('bad-edit', `${name} must be boolean`);
+      const on = !!(options && options[name]);
+      if (on && !this.info.features[name]) throw new FirmwareError('bad-edit', `${what} needs GR IV firmware 1.20 or 1.21`);
+      if (on && clarity.length > 0) throw new FirmwareError('bad-clarity', `${what} cannot be combined with the clarity-table soft focus of 0.4.x`);
+      return on;
+    };
+    const sensorShift = added('sensorShift', 'Sensor Shift');
+    const movie4k = added('movie4k', '4K movie recording');
+    const movieSr = added('movieSr', 'the sensor-shift shake reduction for movies');
     if (hdrGainMap && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the HDR gain map cannot be combined with the clarity-table soft focus of 0.4.x');
     if (directFlash && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Direct Flash cannot be combined with the clarity-table soft focus of 0.4.x');
     if (pictures.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'power-off pictures cannot be combined with the clarity-table soft focus of 0.4.x');
     if (adjSoftFocus && clarity.length > 0) throw new FirmwareError('bad-clarity', 'soft focus on the ADJ lever and on the clarity table cannot be combined');
     if (dateStamp && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the date imprint cannot be combined with the clarity-table soft focus of 0.4.x');
     if (extraSlots.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'added slots cannot be combined with the clarity-table soft focus of 0.4.x');
-    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash && adjSlots === 5 && !hdrGainMap && !exposurePreview && !filmGrain && !shadowLearn && !flashTtl && !videoAf && !awbLearn && !constantLight && !options.brightAuto && !batteryPercent && !customGrid && !movieExposure) throw new FirmwareError('bad-edit', 'nothing to change');
+    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash && adjSlots === 5 && !hdrGainMap && !exposurePreview && !filmGrain && !shadowLearn && !flashTtl && !videoAf && !awbLearn && !constantLight && !options.brightAuto && !batteryPercent && !customGrid && !movieExposure && !sensorShift && !movie4k && !movieSr) throw new FirmwareError('bad-edit', 'nothing to change');
     if (Object.keys(cinemaHalation).length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'halation cannot be combined with the clarity-table soft focus of 0.4.x');
-    const features = { ...(options.brightAuto ? { brightAuto: options.brightAuto } : {}), adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(hdrGainMap ? { hdrGainMap } : {}), ...(exposurePreview ? { exposurePreview } : {}), ...(softFocusMenu ? { softFocusMenu } : {}), ...(batteryPercent ? { batteryPercent } : {}), ...(customGrid ? { customGrid } : {}), ...(ratioShade ? { ratioShade } : {}), ...(ratioShadeTone ? { ratioShadeTone } : {}), ...(shadowLearn ? { shadowLearn } : {}), ...(filmGrain ? { filmGrain } : {}), ...(flashTtl ? { flashTtl } : {}), ...(videoAf ? { videoAf } : {}), ...(awbLearn ? { awbLearn } : {}), ...(movieExposure ? { movieExposure } : {}), ...(constantLight ? { constantLight } : {}) };
+    const features = { ...(options.brightAuto ? { brightAuto: options.brightAuto } : {}), adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(hdrGainMap ? { hdrGainMap } : {}), ...(exposurePreview ? { exposurePreview } : {}), ...(softFocusMenu ? { softFocusMenu } : {}), ...(batteryPercent ? { batteryPercent } : {}), ...(customGrid ? { customGrid } : {}), ...(ratioShade ? { ratioShade } : {}), ...(ratioShadeTone ? { ratioShadeTone } : {}), ...(shadowLearn ? { shadowLearn } : {}), ...(filmGrain ? { filmGrain } : {}), ...(flashTtl ? { flashTtl } : {}), ...(videoAf ? { videoAf } : {}), ...(awbLearn ? { awbLearn } : {}), ...(movieExposure ? { movieExposure } : {}), ...(constantLight ? { constantLight } : {}), ...(sensorShift ? { sensorShift } : {}), ...(movie4k ? { movie4k } : {}), ...(movieSr ? { movieSr } : {}) };
     const test = {
       ...(options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {}),
       ...(options && options.halationDiag ? { halationDiag: true } : {}),

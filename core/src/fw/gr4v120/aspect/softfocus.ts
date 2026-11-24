@@ -194,7 +194,7 @@ function hi(v: number): number {
  * (relocated catalogs). Returns the ICONBIN data with the icon appended.
  */
 export function installAdjSoftFocus(patch: Patch, iconbin: Uint8Array, maxFunction = ADJ_FUNCTIONS - 1): Uint8Array {
-  if (!(Number.isInteger(maxFunction) && maxFunction >= ADJ_FUNCTIONS - 1 && maxFunction <= ADJ_FUNCTIONS + 1)) fail('internal', 'soft focus: the last ADJ function');
+  if (!(Number.isInteger(maxFunction) && maxFunction >= ADJ_FUNCTIONS - 1 && maxFunction <= ADJ_FUNCTIONS + 2)) fail('internal', 'soft focus: the last ADJ function');
   // --- Checks of the official code this relies on.
   for (const [off, value] of OFFICIAL_RECORD) expectWord(patch, ADJ_TABLE + ADJ_SOFT_FOCUS * ADJ_RECORD + off, value);
   if (ADJ_SOFT_FOCUS >= ADJ_FUNCTIONS) fail('internal', 'soft focus must reuse a record of the table');

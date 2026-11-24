@@ -474,9 +474,9 @@ function installMenu(patch: Patch, n: number): void {
 export function installAdjSlots(patch: Patch, n: number, options: { menu?: boolean; functionTable?: number; lastFunction?: number } = {}): void {
   // Test 080: the function table copied with function 0x15 (exposure preview, `exposure.ts`).
   const functionTable = options.functionTable ?? 0;
-  // Constant Light (`lamp.ts`) adds one more: `lastFunction`.
+  // Constant Light (`lamp.ts`) and Sensor Shift (`shift.ts`) add one more each: `lastFunction`.
   MAX_FUNCTION = functionTable ? options.lastFunction ?? 0x15 : 0x14;
-  if (!(MAX_FUNCTION >= 0x14 && MAX_FUNCTION <= 0x16)) fail('internal', 'ADJ slots: the last ADJ function');
+  if (!(MAX_FUNCTION >= 0x14 && MAX_FUNCTION <= 0x17)) fail('internal', 'ADJ slots: the last ADJ function');
   if (!(Number.isInteger(n) && n >= ADJ_SLOTS_MIN && n <= ADJ_SLOTS_MAX)) fail('internal', 'ADJ slots: 5 to 8');
   for (const [at, word] of OFFICIAL) expectWord(patch, at, word);
   const officialTable = patch.readMapped(VIEW_TABLE, OFFICIAL_VIEWS * VIEW_ENTRY);
