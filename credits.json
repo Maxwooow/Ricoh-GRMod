@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-11-21",
+  "updated": "2026-11-23",
   "sections": [
     {
       "title": { "zh": "代码贡献", "en": "Code" },
@@ -11,7 +11,8 @@
         { "name": "dgmaia", "url": "https://github.com/dgmaia", "note": { "zh": "GR IV 1.11 的电量百分比、自定义网格线和遮幅，[跳过指南]按钮", "en": "Battery percentage, custom grid lines and the matte on GR IV 1.11, the Skip guides button" } },
         { "name": "xxmathias", "url": "https://github.com/xxmathias", "note": { "zh": "Linux 桌面版", "en": "Linux desktop build" } },
         { "name": "xiaoyuanzi1230", "url": "https://github.com/xiaoyuanzi1230", "note": { "zh": "GR IV Monochrome 1.10 支持", "en": "GR IV Monochrome 1.10 support" } },
-        { "name": "cqkking", "url": "https://github.com/cqkking", "note": { "zh": "HLG 照片", "en": "HLG photos" } }
+        { "name": "cqkking", "url": "https://github.com/cqkking", "note": { "zh": "HLG 照片", "en": "HLG photos" } },
+        { "name": "tokim25", "url": "https://github.com/tokim25", "note": { "zh": "按风格记忆白平衡（与 Claude 合作）", "en": "White balance per look (with Claude)" } }
       ]
     },
     {

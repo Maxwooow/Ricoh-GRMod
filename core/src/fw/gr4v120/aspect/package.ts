@@ -28,7 +28,8 @@
  * its lighter colour ('light'); bit 2, the battery percentage (`battery.ts`); bit 3, custom grid
  * lines (`grid.ts`), followed by two bytes, the 3x3 and the 4x4 style's lines (line i in bit i);
  * bit 4, pre-flash (TTL) metering for a GF-2 class flash (`flttl.ts`); bit 5, movie AF driven by the
- * phase data (`videoaf.ts`); bit 6, the learned auto white balance (`awb2.ts`).
+ * phase data (`videoaf.ts`); bit 6, the learned auto white balance (`awb2.ts`). Bit 7: a fourth byte
+ * of additions follows, after those bytes: bit 0, white balance per look (`slots.ts`, needs added slots).
  * A build without them reads as before; earlier programs do not take a record with
  * this byte set.
  *
@@ -108,6 +109,10 @@ const FEATURE3_FLASH_TTL = 16;
 const FEATURE3_VIDEO_AF = 32;
 /** Third feature byte: bit 6, the learned auto white balance (`awb2.ts`). */
 const FEATURE3_AWB_LEARN = 64;
+/** Third feature byte: bit 7, a fourth feature byte follows (after the custom grid's two bytes). */
+const FEATURE3_MORE = 128;
+/** Fourth feature byte: bit 0, white balance per look (`slots.ts`, the slot-parameters module with SP_WB). */
+const FEATURE4_WB_PER_LOOK = 1;
 
 /**
  * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
@@ -140,15 +145,19 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
   if (tone !== 'dark' && !features.ratioShade) fail('internal', 'a shade tone needs the live-view shade');
   if (features.ratioShade && specs.length === 0) fail('internal', 'the live-view shade needs an added ratio');
   const f3 = (features.ratioShade ? FEATURE3_RATIO_SHADE : 0) | (tone === 'light' ? FEATURE3_SHADE_LIGHT : 0) | (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0) | (features.flashTtl ? FEATURE3_FLASH_TTL : 0) | (features.videoAf ? FEATURE3_VIDEO_AF : 0) | (features.awbLearn ? FEATURE3_AWB_LEARN : 0);
-  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.exposurePreview || features.softFocusMenu || features.shadowLearn || features.filmGrain || f3) {
+  if (features.wbPerLook && slots === 0) fail('internal', 'white balance per look needs added slots');
+  const f4 = features.wbPerLook ? FEATURE4_WB_PER_LOOK : 0;
+  const f3m = f3 | (f4 ? FEATURE3_MORE : 0);
+  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.exposurePreview || features.softFocusMenu || features.shadowLearn || features.filmGrain || f3m) {
     if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, bright Auto, exposure preview, the soft focus line, the learned shadow correction, the film grain and the third feature byte need revision 3');
     const adj = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
     if (adj && !(Number.isInteger(adj) && adj <= ADJ_SLOTS_MAX)) fail('internal', 'ADJ slots cannot be recorded');
-    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.brightAuto ? FEATURE2_BRIGHT_AUTO : 0) | (features.exposurePreview ? FEATURE2_EXPOSURE_PREVIEW : 0) | (features.softFocusMenu ? FEATURE2_SOFT_FOCUS_MENU : 0) | (features.shadowLearn ? FEATURE2_SHADOW_LEARN : 0) | (features.filmGrain ? FEATURE2_FILM_GRAIN : 0) | (f3 ? FEATURE2_MORE : 0));
+    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.brightAuto ? FEATURE2_BRIGHT_AUTO : 0) | (features.exposurePreview ? FEATURE2_EXPOSURE_PREVIEW : 0) | (features.softFocusMenu ? FEATURE2_SOFT_FOCUS_MENU : 0) | (features.shadowLearn ? FEATURE2_SHADOW_LEARN : 0) | (features.filmGrain ? FEATURE2_FILM_GRAIN : 0) | (f3m ? FEATURE2_MORE : 0));
     if (adj) bytes.push(adj);
     if (features.brightAuto) bytes.push(features.brightAuto === 'balanced' ? 2 : 1);
-    if (f3) bytes.push(f3);
+    if (f3m) bytes.push(f3m);
     if (features.customGrid) bytes.push(gridByte(features.customGrid.g3), gridByte(features.customGrid.g4));
+    if (f4) bytes.push(f4);
   }
   while (bytes.length % 4) bytes.push(0);
   return Uint8Array.from(bytes);
@@ -260,7 +269,7 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
       if (f2 & FEATURE2_MORE) {
         if (p >= rec.length) return null;
         const f3 = rec[p++];
-        if (f3 === 0 || (f3 & ~(FEATURE3_RATIO_SHADE | FEATURE3_SHADE_LIGHT | FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID | FEATURE3_FLASH_TTL | FEATURE3_VIDEO_AF | FEATURE3_AWB_LEARN)) !== 0) return null;
+        if (f3 === 0 || (f3 & ~(FEATURE3_RATIO_SHADE | FEATURE3_SHADE_LIGHT | FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID | FEATURE3_FLASH_TTL | FEATURE3_VIDEO_AF | FEATURE3_AWB_LEARN | FEATURE3_MORE)) !== 0) return null;
         if (f3 & FEATURE3_FLASH_TTL) features.flashTtl = true;
         if (f3 & FEATURE3_VIDEO_AF) features.videoAf = true;
         if (f3 & FEATURE3_AWB_LEARN) features.awbLearn = true;
@@ -275,6 +284,15 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
           const grid = { g3: gridLinesOf(rec[p++]), g4: gridLinesOf(rec[p++]) };
           if (isCameraGrid(grid)) return null;
           features.customGrid = grid;
+        }
+        if (f3 & FEATURE3_MORE) {
+          if (p >= rec.length) return null;
+          const f4 = rec[p++];
+          if (f4 === 0 || (f4 & ~FEATURE4_WB_PER_LOOK) !== 0) return null;
+          if (f4 & FEATURE4_WB_PER_LOOK) {
+            if (extraSlots === 0) return null;
+            features.wbPerLook = true;
+          }
         }
       }
     }

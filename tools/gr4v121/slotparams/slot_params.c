@@ -34,7 +34,28 @@
 #define STATE_MAGIC 0x50534c54u
 #define TBYTES (OWNERS * COMBOS * NP)
 /* magic, version, TBYTES, the fingerprint of each owner's preset, the table, checksum */
+#ifdef SP_WB
+/* White balance per look (option wbPerLook, built with -DSP_WB): the still white balance is remembered
+ * per look. The 33 bytes from StillWhiteBalance (0x11d) to StillWhiteBalanceColorTemp (0x13c, a
+ * half-word) of the settings object: the WB mode, the G-M and B-A shift of each of the 14 modes, the
+ * colour temperature. The three custom WB captures (0x13e..0x151) stay shared. One entry per style:
+ * the 38 factory styles and the 20 added ones. Record version 5 is version 4 with this block after
+ * the table; a version 4 record is still read (its table kept, no look has a WB yet). */
+#define WB_FIRST 0x11du
+#define WB_BYTES 33u
+#define WB_LOOKS 58u
+#define WB_N 30u
+#define ACTIVE_SET 0x152u         /* StillActiveImageControlSet: the photo set in use (0..3) */
+#define WB_TBYTES (WB_LOOKS + WB_LOOKS * WB_BYTES)
+_Static_assert(WB_TBYTES % 4u == 0u, "the WB block is whole words");
+#define REC_VERSION_V4 4u
+#undef REC_VERSION
+#define REC_VERSION 5u            /* 5: version 4 and the still WB of each look */
+#define REC_WORDS_V4 (3u + OWNERS + TBYTES / 4u + 1u)
+#define REC_WORDS (3u + OWNERS + TBYTES / 4u + WB_TBYTES / 4u + 1u)
+#else
 #define REC_WORDS (3u + OWNERS + TBYTES / 4u + 1u)
+#endif
 /* The record of 0.7.1..0.8.1: seven owners, no fingerprints. */
 #define OWNERS_V2 7u
 #define TBYTES_V2 (OWNERS_V2 * COMBOS * NP)
@@ -118,6 +139,10 @@ typedef struct {
     uint32_t magic, loaded, dirty, last_write;
     uint8_t t[OWNERS][COMBOS][NP];
     uint32_t fp[OWNERS];
+#ifdef SP_WB
+    uint8_t wb_have[WB_LOOKS];
+    uint8_t wb[WB_LOOKS][WB_BYTES];
+#endif
     uint32_t rec[REC_WORDS];
     Raw raw;
 } State;
@@ -253,15 +278,85 @@ static void move_owner(State *s, int c, int from, int to) {
     s->dirty = 1;
 }
 
+#ifdef SP_WB
+/* ---- white balance per look (SP_WB) ------------------------------------------------------------ */
+/* Offset of each WB field and its notifying setter (the "set and tell the listeners" entry, as the
+ * firmware's own menus use). Fields 25 (Tungsten B-A, 0x136) and 29 (colour temperature, 0x13c)
+ * are half-words. */
+static const uint16_t WB_OFF[WB_N] = {
+    0x11d, 0x11e, 0x11f, 0x120, 0x121, 0x122, 0x123, 0x124, 0x125, 0x126, 0x127, 0x128, 0x129, 0x12a, 0x12b,
+    0x12c, 0x12d, 0x12e, 0x12f, 0x130, 0x131, 0x132, 0x133, 0x134, 0x135, 0x136, 0x138, 0x139, 0x13a, 0x13c};
+#define WB_WIDE ((1u << 25) | (1u << 29))
+static const uint32_t wb_setters[WB_N] = {
+    0x532b8848, 0x532b89d4, 0x532b8b60, 0x532b8cec, 0x532b8e78, 0x532b9004, 0x532b9190, 0x532b931c,
+    0x532b94a8, 0x532b9634, 0x532b97c0, 0x532b994c, 0x532b9ad8, 0x532b9c64, 0x532b9df0,
+    0x532b9f7c, 0x532ba108, 0x532ba294, 0x532ba420, 0x532ba5ac, 0x532ba738, 0x532ba8c4, 0x532baa50,
+    0x532babdc, 0x532bad68, 0x532baf00, 0x532bb08c, 0x532bb218, 0x532bb3a4, 0x532bb538};
+typedef uint32_t (*wb_setter_fn)(void *obj, uint32_t value);
+
+static uint32_t wb_field(const volatile uint8_t *b, uint32_t k) {
+    uint32_t o = WB_OFF[k] - WB_FIRST;
+    return (WB_WIDE >> k) & 1u ? (uint32_t)b[o] | ((uint32_t)b[o + 1] << 8) : b[o];
+}
+
+/* The look of the photo set in use; WB_LOOKS when there is none. */
+static uint32_t active_look(void) {
+    uint32_t a = settings_object[ACTIVE_SET];
+    return a < 4 ? style_of((int)a) : WB_LOOKS;
+}
+
+/* The WB in the settings now belongs to `look`. */
+static void wb_take(State *s, uint32_t look) {
+    if (look >= WB_LOOKS) return;
+    for (uint32_t i = 0; i < WB_BYTES; i++) {
+        uint8_t v = settings_object[WB_FIRST + i];
+        if (s->wb[look][i] != v || !s->wb_have[look]) { s->wb[look][i] = v; s->dirty = 1; }
+    }
+    if (!s->wb_have[look]) { s->wb_have[look] = 1; s->dirty = 1; }
+}
+
+/* `look`'s WB, if it has one, through the firmware's setters; the mode last. A look never used
+ * before keeps the WB in the settings. */
+static void wb_give(State *s, uint32_t look) {
+    if (look >= WB_LOOKS || !s->wb_have[look]) return;
+    for (uint32_t n = 0; n < WB_N; n++) {
+        uint32_t k = (n + 1) % WB_N;
+        uint32_t v = wb_field(s->wb[look], k);
+        if (wb_field(&settings_object[WB_FIRST], k) != v) ((wb_setter_fn)wb_setters[k])(settings_object, v);
+    }
+}
+
+static void wb_switch(State *s, void *obj, uint32_t from, uint32_t to) {
+    if (obj != (void *)settings_object || from == to) return;
+    wb_take(s, from);
+    wb_give(s, to);
+}
+
+/* Hook of the firmware's StillActiveImageControlSet setter (the photo set in use changes). */
+uint32_t sp_active_set(void *obj, uint32_t value, uint32_t entry) {
+    uint32_t before = active_look();
+    uint32_t r = native_wrapper(obj, value, entry);
+    State *s = state();
+    if (s && s->loaded) wb_switch(s, obj, before, active_look());
+    return r;
+}
+#endif
+
 /* Hook of the firmware's "style of set c" setter (photo 0x532BC6D4..., movie 0x533062BC...; firmware 1.20). */
 uint32_t sp_style_set(void *obj, uint32_t style, uint32_t c, uint32_t entry) {
     uint32_t before = style_of((int)c);
+#ifdef SP_WB
+    uint32_t active = settings_object[ACTIVE_SET];
+#endif
     uint32_t r = native_wrapper(obj, style, entry);
     State *s = state();
     if (s && s->loaded) {
         int from = owner_of(before), to = owner(c);
         if (from < 0) from = 0;
         if (from != to) move_owner(s, (int)c, from, to);
+#ifdef SP_WB
+        if (c == active) wb_switch(s, obj, before, style_of((int)c));
+#endif
     }
     return r;
 }
@@ -363,6 +458,18 @@ static int read_record(State *s) {
         copy_bytes(&s->t[0][0][0], (const uint8_t *)&r[3], TBYTES_V2);
         return 4;
     }
+#ifdef SP_WB
+    if (size == REC_WORDS_V4 * 4) {
+        if (!store_read(st, REC_ID, REC_WORDS_V4 * 4, s->rec)) return 0;
+        if (s->rec[0] == OLD_MAGIC) return 2;
+        if (s->rec[0] != REC_MAGIC || s->rec[1] != REC_VERSION_V4 || s->rec[2] != TBYTES) return 0;
+        if (s->rec[REC_WORDS_V4 - 1] != checksum(s->rec, REC_WORDS_V4 - 1)) return 0;
+        for (uint32_t o = 0; o < OWNERS; o++) s->fp[o] = s->rec[3 + o];
+        copy_bytes(&s->t[0][0][0], (const uint8_t *)&s->rec[3 + OWNERS], TBYTES);
+        s->dirty = 1;   /* no WB yet: every look starts from the WB in the settings */
+        return 1;
+    }
+#endif
     if (size != REC_WORDS * 4) return 0;
     if (!store_read(st, REC_ID, REC_WORDS * 4, s->rec)) return 0;
     if (s->rec[0] == OLD_MAGIC) return 2;
@@ -370,6 +477,10 @@ static int read_record(State *s) {
     if (s->rec[REC_WORDS - 1] != checksum(s->rec, REC_WORDS - 1)) return 0;
     for (uint32_t o = 0; o < OWNERS; o++) s->fp[o] = s->rec[3 + o];
     copy_bytes(&s->t[0][0][0], (const uint8_t *)&s->rec[3 + OWNERS], TBYTES);
+#ifdef SP_WB
+    copy_bytes(s->wb_have, (const uint8_t *)&s->rec[3 + OWNERS + TBYTES / 4u], WB_LOOKS);
+    copy_bytes(&s->wb[0][0], (const uint8_t *)&s->rec[3 + OWNERS + TBYTES / 4u] + WB_LOOKS, WB_LOOKS * WB_BYTES);
+#endif
     return 1;
 }
 
@@ -379,6 +490,10 @@ static void write_record(State *s) {
     s->rec[0] = REC_MAGIC; s->rec[1] = REC_VERSION; s->rec[2] = TBYTES;
     for (uint32_t o = 0; o < OWNERS; o++) s->rec[3 + o] = s->fp[o];
     copy_bytes((uint8_t *)&s->rec[3 + OWNERS], &s->t[0][0][0], TBYTES);
+#ifdef SP_WB
+    copy_bytes((uint8_t *)&s->rec[3 + OWNERS + TBYTES / 4u], s->wb_have, WB_LOOKS);
+    copy_bytes((uint8_t *)&s->rec[3 + OWNERS + TBYTES / 4u] + WB_LOOKS, &s->wb[0][0], WB_LOOKS * WB_BYTES);
+#endif
     s->rec[REC_WORDS - 1] = checksum(s->rec, REC_WORDS - 1);
     s->last_write = store_write(st, REC_ID, REC_WORDS * 4, s->rec) ? 1 : 2;
     if (s->last_write == 1) s->dirty = 0;
@@ -490,6 +605,9 @@ uint32_t sp_load(uint8_t *mode, uint8_t *current, void *a2, void *a3) {
 uint32_t sp_save(uint8_t *mode) {
     uint32_t r = prior_native_save(mode);
     State *s = state();
+#ifdef SP_WB
+    if (s && s->loaded) wb_take(s, active_look());
+#endif
     if (s && s->loaded && s->dirty) write_record(s);
     return r;
 }

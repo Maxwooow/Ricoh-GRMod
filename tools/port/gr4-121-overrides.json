@@ -362,5 +362,37 @@
  "0x55839078": {
   "new": "0x55839078",
   "reason": "GR Mod's own word in the C library's sbrk arena before the heap (awb2.ts, as BATTERY_SHOWN at 0x55839040): the arena ends at 0x55839080 and the start-up zero fill at 0x55839014 in both releases"
+ },
+ "0x53100000": {
+  "new": "0x53100000",
+  "reason": "emulator stop address (test_wb_per_look.py): code that is never run"
+ },
+ "0x55400000": {
+  "new": "0x55400000",
+  "reason": "emulator scratch RAM (test_wb_per_look.py): mapped by the test, above the firmware's RAM"
+ },
+ "0x55600000": {
+  "new": "0x55600000",
+  "reason": "emulator scratch RAM (test_wb_per_look.py): its heap"
+ },
+ "0x55700000": {
+  "new": "0x55700000",
+  "reason": "emulator scratch RAM (test_wb_per_look.py): the settings store object"
+ },
+ "0x55710000": {
+  "new": "0x55710000",
+  "reason": "emulator scratch RAM (test_wb_per_look.py): settings save argument"
+ },
+ "0x55720000": {
+  "new": "0x55720000",
+  "reason": "emulator scratch RAM (test_wb_per_look.py): settings load argument"
+ },
+ "0x55730000": {
+  "new": "0x55730000",
+  "reason": "emulator scratch RAM (test_wb_per_look.py): the settings mode object"
+ },
+ "0x558f0000": {
+  "new": "0x558f0000",
+  "reason": "emulator scratch RAM (test_wb_per_look.py): the module state"
  }
 }

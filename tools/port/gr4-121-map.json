@@ -4297,7 +4297,8 @@
     "tools/gr4v120/grid/check.py",
     "tools/gr4v120/shade/draw_check.py",
     "core/src/fw/gr4v120/aspect/viewmenu.ts",
-    "tools/gr4v120/videoaf/test_inplace.py"
+    "tools/gr4v120/videoaf/test_inplace.py",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
    ]
   },
   "0x53240c58": {
@@ -4786,7 +4787,8 @@
    "files": [
     "core/src/fw/gr4v120/aspect/slots.ts",
     "tools/gr4v120/slotparams/gen_slotparams.py",
-    "tools/gr4v120/slotparams/slot_params.c"
+    "tools/gr4v120/slotparams/slot_params.c",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
    ]
   },
   "0x532bc014": {
@@ -4795,7 +4797,8 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/slots.ts",
-    "tools/gr4v120/slotparams/gen_slotparams.py"
+    "tools/gr4v120/slotparams/gen_slotparams.py",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
    ]
   },
   "0x532bc1a4": {
@@ -6350,7 +6353,8 @@
     "core/src/fw/gr4v120/aspect/guard.ts",
     "core/src/fw/gr4v120/aspect/slots.ts",
     "tools/gr4v120/adjslots/check.py",
-    "tools/gr4v120/aspect/boot_checks.py"
+    "tools/gr4v120/aspect/boot_checks.py",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
    ]
   },
   "0x533f3674": {
@@ -6370,7 +6374,8 @@
     "tools/gr4v120/exposure/check.py",
     "tools/gr4v120/hdrgain/menu_check.py",
     "tools/gr4v120/looks/looks_check.py",
-    "tools/gr4v120/shutdown/menu_check.py"
+    "tools/gr4v120/shutdown/menu_check.py",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
    ]
   },
   "0x533f3678": {
@@ -8752,7 +8757,8 @@
     "tools/gr4v120/videoaf/cam.py",
     "tools/gr4v120/videoaf/test_quick.py",
     "core/src/fw/gr4v120/aspect/awb2.ts",
-    "tools/gr4v120/awb2/test_fw.py"
+    "tools/gr4v120/awb2/test_fw.py",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
    ]
   },
   "0x539084f8": {
@@ -8771,7 +8777,8 @@
     "tools/gr4v120/shadowml/fwemu.py",
     "core/src/fw/gr4v120/aspect/grain.ts",
     "tools/gr4v120/grain/fw_check.py",
-    "tools/gr4v120/grain/grain.c"
+    "tools/gr4v120/grain/grain.c",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
    ]
   },
   "0x53908530": {
@@ -9148,7 +9155,8 @@
    "files": [
     "core/src/fw/gr4v120/aspect/slots.ts",
     "tools/gr4v120/shutdown/menu_check.py",
-    "tools/gr4v120/shutdown/shutdown.c"
+    "tools/gr4v120/shutdown/shutdown.c",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
    ]
   },
   "0x53aa65d4": {
@@ -9167,7 +9175,8 @@
    "files": [
     "core/src/fw/gr4v120/aspect/slots.ts",
     "tools/gr4v120/shutdown/menu_check.py",
-    "tools/gr4v120/shutdown/shutdown.c"
+    "tools/gr4v120/shutdown/shutdown.c",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
    ]
   },
   "0x53aa6764": {
@@ -9177,7 +9186,8 @@
    "files": [
     "core/src/fw/gr4v120/aspect/slots.ts",
     "tools/gr4v120/shutdown/menu_check.py",
-    "tools/gr4v120/shutdown/shutdown.c"
+    "tools/gr4v120/shutdown/shutdown.c",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
    ]
   },
   "0x53aa8be8": {
@@ -9212,7 +9222,8 @@
    "files": [
     "core/src/fw/gr4v120/aspect/slots.ts",
     "tools/gr4v120/shutdown/menu_check.py",
-    "tools/gr4v120/shutdown/shutdown.c"
+    "tools/gr4v120/shutdown/shutdown.c",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
    ]
   },
   "0x53b7318c": {
@@ -10010,7 +10021,8 @@
    "files": [
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/directflash/check.py",
-    "tools/gr4v120/softfocus/check.py"
+    "tools/gr4v120/softfocus/check.py",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
    ]
   },
   "0x550832a8": {
@@ -10037,7 +10049,8 @@
     "tools/gr4v120/slotparams/slot_params.c",
     "tools/gr4v120/softfocus/check.py",
     "core/src/fw/gr4v120/aspect/viewmenu.ts",
-    "tools/gr4v120/viewmenu/check.py"
+    "tools/gr4v120/viewmenu/check.py",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
    ]
   },
   "0x5537b29c": {
@@ -10109,7 +10122,8 @@
    "ok": true,
    "why": "GR Mod's own words between the start-up zero fill end and the heap: 1.21 zero fill still ends at 0x55839014 (start-up literal 0x53000460) and the heap is unchanged",
    "files": [
-    "core/src/fw/gr4v120/aspect/slots.ts"
+    "core/src/fw/gr4v120/aspect/slots.ts",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
    ]
   },
   "0x55839024": {
@@ -13762,6 +13776,347 @@
     "core/src/fw/gr4v120/aspect/shade.ts",
     "tools/gr4v120/grid/check.py",
     "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x532b7ff8": {
+   "new": "0x532b8848",
+   "how": "aligned + refs 0x532b8848x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
+   ]
+  },
+  "0x532b8184": {
+   "new": "0x532b89d4",
+   "how": "aligned + refs 0x532b89d4x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b8310": {
+   "new": "0x532b8b60",
+   "how": "aligned + refs 0x532b8b60x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b849c": {
+   "new": "0x532b8cec",
+   "how": "aligned + refs 0x532b8cecx30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b8628": {
+   "new": "0x532b8e78",
+   "how": "aligned + refs 0x532b8e78x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
+   ]
+  },
+  "0x532b87b4": {
+   "new": "0x532b9004",
+   "how": "aligned + refs 0x532b9004x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b8940": {
+   "new": "0x532b9190",
+   "how": "aligned + refs 0x532b9190x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b8acc": {
+   "new": "0x532b931c",
+   "how": "aligned + refs 0x532b931cx30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b8c58": {
+   "new": "0x532b94a8",
+   "how": "aligned + refs 0x532b94a8x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b8de4": {
+   "new": "0x532b9634",
+   "how": "aligned + refs 0x532b9634x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b8f70": {
+   "new": "0x532b97c0",
+   "how": "aligned + refs 0x532b97c0x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b90fc": {
+   "new": "0x532b994c",
+   "how": "aligned + refs 0x532b994cx30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b9288": {
+   "new": "0x532b9ad8",
+   "how": "aligned + refs 0x532b9ad8x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b9414": {
+   "new": "0x532b9c64",
+   "how": "aligned + refs 0x532b9c64x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b95a0": {
+   "new": "0x532b9df0",
+   "how": "aligned + refs 0x532b9df0x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b972c": {
+   "new": "0x532b9f7c",
+   "how": "aligned + refs 0x532b9f7cx30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b98b8": {
+   "new": "0x532ba108",
+   "how": "aligned + refs 0x532ba108x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b9a44": {
+   "new": "0x532ba294",
+   "how": "aligned + refs 0x532ba294x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b9bd0": {
+   "new": "0x532ba420",
+   "how": "aligned + refs 0x532ba420x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b9d5c": {
+   "new": "0x532ba5ac",
+   "how": "aligned + refs 0x532ba5acx30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532b9ee8": {
+   "new": "0x532ba738",
+   "how": "aligned + refs 0x532ba738x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532ba074": {
+   "new": "0x532ba8c4",
+   "how": "aligned + refs 0x532ba8c4x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532ba200": {
+   "new": "0x532baa50",
+   "how": "aligned + refs 0x532baa50x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532ba38c": {
+   "new": "0x532babdc",
+   "how": "aligned + refs 0x532babdcx30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532ba518": {
+   "new": "0x532bad68",
+   "how": "aligned + refs 0x532bad68x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532ba6b0": {
+   "new": "0x532baf00",
+   "how": "aligned + refs 0x532baf00x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532ba83c": {
+   "new": "0x532bb08c",
+   "how": "aligned + refs 0x532bb08cx23",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532ba9c8": {
+   "new": "0x532bb218",
+   "how": "aligned + refs 0x532bb218x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532bab54": {
+   "new": "0x532bb3a4",
+   "how": "aligned + refs 0x532bb3a4x30",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c"
+   ]
+  },
+  "0x532bace8": {
+   "new": "0x532bb538",
+   "how": "aligned + refs 0x532bb538x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/slot_params.c",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
+   ]
+  },
+  "0x532bbcf4": {
+   "new": "0x532bc544",
+   "how": "aligned + refs 0x532bc544x10",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/slots.ts",
+    "tools/gr4v120/slotparams/gen_slotparams.py",
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
+   ]
+  },
+  "0x532af040": {
+   "new": "0x532af890",
+   "how": "aligned (called from the same place in 0x532b7ff8 / 0x532b8848)",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
+   ]
+  },
+  "0x532af3a0": {
+   "new": "0x532afbf0",
+   "how": "aligned (called from the same place in 0x532b7ff8 / 0x532b8848)",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
+   ]
+  },
+  "0x53100000": {
+   "new": "0x53100000",
+   "how": "override",
+   "ok": true,
+   "why": "emulator stop address (test_wb_per_look.py): code that is never run",
+   "files": [
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
+   ]
+  },
+  "0x55400000": {
+   "new": "0x55400000",
+   "how": "override",
+   "ok": true,
+   "why": "emulator scratch RAM (test_wb_per_look.py): mapped by the test, above the firmware's RAM",
+   "files": [
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
+   ]
+  },
+  "0x55600000": {
+   "new": "0x55600000",
+   "how": "override",
+   "ok": true,
+   "why": "emulator scratch RAM (test_wb_per_look.py): its heap",
+   "files": [
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
+   ]
+  },
+  "0x55700000": {
+   "new": "0x55700000",
+   "how": "override",
+   "ok": true,
+   "why": "emulator scratch RAM (test_wb_per_look.py): the settings store object",
+   "files": [
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
+   ]
+  },
+  "0x55710000": {
+   "new": "0x55710000",
+   "how": "override",
+   "ok": true,
+   "why": "emulator scratch RAM (test_wb_per_look.py): settings save argument",
+   "files": [
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
+   ]
+  },
+  "0x55720000": {
+   "new": "0x55720000",
+   "how": "override",
+   "ok": true,
+   "why": "emulator scratch RAM (test_wb_per_look.py): settings load argument",
+   "files": [
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
+   ]
+  },
+  "0x55730000": {
+   "new": "0x55730000",
+   "how": "override",
+   "ok": true,
+   "why": "emulator scratch RAM (test_wb_per_look.py): the settings mode object",
+   "files": [
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
+   ]
+  },
+  "0x558f0000": {
+   "new": "0x558f0000",
+   "how": "override",
+   "ok": true,
+   "why": "emulator scratch RAM (test_wb_per_look.py): the module state",
+   "files": [
+    "tools/gr4v120/slotparams/test_wb_per_look.py"
    ]
   }
  }

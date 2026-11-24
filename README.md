@@ -55,6 +55,7 @@ Use only firmware intended for your camera model and a base version listed above
 - **Film grain:** an optimized film grain in place of the camera's Grain Effect, on GR IV 1.20 / 1.21.
 - **Phase Detect AF for Video:** while recording, the sensor's phase data drives the lens, with less focus hunting, on GR IV 1.20 / 1.21.
 - **Learned auto white balance:** Auto, Warmth Priority and White Priority estimate the light with a learned model, on GR IV 1.20 / 1.21.
+- **White balance per look:** each Image Control look, the camera's own and the added ones, remembers its own still white balance and gets it back when chosen again, on GR IV 1.20 / 1.21 with added slots.
 - **Custom grid lines:** choose which lines a 3x3 and a 4x4 grid draw, on the GR IV (firmware 1.11, 1.20 and 1.21; on 1.20 / 1.21 they are extra values of the camera's Grid Style list, next to its own).
 
 Features vary by camera model and firmware version. The app only offers options supported by the selected firmware.

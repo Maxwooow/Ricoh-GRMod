@@ -37,6 +37,7 @@ import { linkModule } from './native-link';
 import { FRAME_LOOK, STASH_ASM, installLookStash } from './lookstash';
 import { installExposureOrientation } from './datestamp';
 import { SLOT_PARAMETERS, SLOT_PARAMS_MODULE } from './slotparams-native';
+import { SLOT_PARAMS_WB_MODULE } from './slotparams-wb-native';
 import { HALATION_COLOUR_NAMES, HALATION_LOOKS, HALATION_NAMES, halationColourIcon, halationColourScale, halationIcon, installHalationModule, readHalation } from './halation';
 import { installHalationClamps, installHalationUi } from './halation-ui';
 import type { HalationLook } from './halation';
@@ -297,7 +298,7 @@ function swap(p: Patch, at: number, before: string, after: string, reason: strin
  * Install `slots` (1..MAX_EXTRA_SLOTS) into an RTOS image that already has the scaffold of
  * `build.ts` (extended catalogs), appending their icons to `iconbin`. Returns the new ICONBIN data.
  */
-export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly ExtraSlotSpec[], options: { stashLook?: boolean; layout?: LookLayout } = {}): Uint8Array {
+export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly ExtraSlotSpec[], options: { stashLook?: boolean; layout?: LookLayout; wbPerLook?: boolean } = {}): Uint8Array {
   const count = slots.length;
   if (!(count >= 1 && count <= MAX_EXTRA_SLOTS)) fail('too-many-slots', `1 to ${MAX_EXTRA_SLOTS} slots can be added`);
   if (p.textBoundSites.length === 0) fail('internal', 'the catalog scaffold is not installed');
@@ -448,7 +449,7 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
   hook(p, adr(0x5338262c), 0xe241100b, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;add r0,ip,#${RAW_FIRST_EXTRA};bx lr;native:sub r1,r1,#11;b #${adrHex(0x53382630)}`, 'added slots: RAW development look');
 
   const hiddenMask = hiddenExtras.reduce((m, id) => (m | (1 << (id - EXTRA_FIRST_STYLE))) >>> 0, 0);
-  const module = installOwnParameters(p, count, prints, hiddenMask);
+  const module = installOwnParameters(p, count, prints, hiddenMask, !!options.wbPerLook);
   installPreviewMapping(p, count);
   installChangeFunctors(p, count);
   installLookChecks(p, count);
@@ -464,6 +465,8 @@ const GETTERS = [adr(0x533c77c0), adr(0x533c7ea8), adr(0x533c8590), adr(0x533c90
 const DEFAULTS = [adr(0x533d053c), adr(0x533d0fe8), adr(0x533d1a94), adr(0x533d2b90), adr(0x533d3bac), adr(0x533d4bc8), adr(0x533d5be4), adr(0x533d6ce0), adr(0x533d7800), adr(0x533d7c40), adr(0x533d7fa0), adr(0x533d82fc), adr(0x533d8548), adr(0x533d88a8), adr(0x533d8d58), adr(0x533d9604), adr(0x533d9eb0), adr(0x533da75c), adr(0x533db778), adr(0x533dbfd4), adr(0x533dc770), adr(0x533dcf0c), adr(0x533dd6a8)];
 /** "Style of set" setters: photo standard, custom 1..3, then movie. */
 const STYLE_SETTERS = [adr(0x532bbe84), adr(0x532bc014), adr(0x532bc1a4), adr(0x532bc334), adr(0x53305a6c), adr(0x53305c00), adr(0x53305d94), adr(0x53305f28)];
+/** White balance per look (option wbPerLook): the StillActiveImageControlSet setter (the photo set in use changes). */
+const ACTIVE_SETTERS = [adr(0x532bbcf4)];
 /**
  * The values an added slot starts from and shows as its default on the parameter screen ("0"):
  * the middle of the -4..+4 scales, parameter 8 off (what Standard, which lacks it, gets), grain
@@ -496,7 +499,14 @@ function fingerprint(parts: readonly Uint8Array[]): number {
   return h || 1;
 }
 
-function installOwnParameters(p: Patch, count: number, prints: readonly number[], hiddenMask = 0): Record<string, number> {
+/**
+ * With `wbPerLook` the module is the one compiled with -DSP_WB (slotparams-wb-native.ts): it also
+ * remembers the still white balance of each look, factory and added (the WB mode, the G-M and B-A
+ * shift of each mode, the colour temperature; the custom WB captures stay shared), saved in the same
+ * record (version 5), and gives a look its own WB back through the firmware's WB setters when the
+ * look of the photo set in use, or the photo set in use, changes. One more hook: the photo set in use.
+ */
+function installOwnParameters(p: Patch, count: number, prints: readonly number[], hiddenMask = 0, wbPerLook = false): Record<string, number> {
   if (prints.length !== count) fail('internal', 'a fingerprint per added slot');
   const normalize = (at: number, reg: string, original: number, tail: string): void => {
     // The flags are set again by every native entry before use; no callee-saved register, LR or SP changes.
@@ -521,11 +531,11 @@ function installOwnParameters(p: Patch, count: number, prints: readonly number[]
   const priorSave = branchTarget(SETTINGS_SAVE, p.word(SETTINGS_SAVE));
   const priorLoad = branchTarget(SETTINGS_LOAD, p.word(SETTINGS_LOAD));
   if (priorSave < BASE + OFFICIAL_RTOS_LENGTH || priorLoad < BASE + OFFICIAL_RTOS_LENGTH) fail('internal', 'the settings save/load scaffold is not installed');
-  for (const at of [...SLOT_PARAMETERS.map((i) => GETTERS[i]), ...SLOT_PARAMETERS.map((i) => SETTERS[i]), ...STYLE_SETTERS]) expectWord(p, at, 0xe1a0c00d);
+  for (const at of [...SLOT_PARAMETERS.map((i) => GETTERS[i]), ...SLOT_PARAMETERS.map((i) => SETTERS[i]), ...STYLE_SETTERS, ...(wbPerLook ? ACTIVE_SETTERS : [])]) expectWord(p, at, 0xe1a0c00d);
   // The fingerprints, then the hidden slots (bit k: slot k; see slot_params.c).
   const printTable = p.append(u32le([...prints, hiddenMask]), 4);
   const origin = p.next(16);
-  const mod = linkModule(SLOT_PARAMS_MODULE, 'slot parameters', count, origin, {
+  const mod = linkModule(wbPerLook ? SLOT_PARAMS_WB_MODULE : SLOT_PARAMS_MODULE, 'slot parameters', count, origin, {
     prior_native_save: priorSave, prior_native_load: priorLoad, storage_singleton: adr(0x53aa958c), store_write: adr(0x53aa6764),
     store_read: adr(0x53aa6680), store_size: adr(0x53aa6524), heap_alloc: adr(0x539084bc), sp_gap: SLOT_STATE, settings_object: adr(0x550832a8), slot_prints: printTable,
   });
@@ -535,6 +545,7 @@ function installOwnParameters(p: Patch, count: number, prints: readonly number[]
     p.setWord(SETTERS[i], branchWord(SETTERS[i], mod.symbols[`sp_set_stub_${j}`]), 'added slots: own parameters (setter)');
   });
   STYLE_SETTERS.forEach((at, k) => p.setWord(at, branchWord(at, mod.symbols[`sp_style_stub_${k}`]), 'added slots: own parameters (look of a set changes)'));
+  if (wbPerLook) ACTIVE_SETTERS.forEach((at, k) => p.setWord(at, branchWord(at, mod.symbols[`sp_active_stub_${k}`]), 'white balance per look (photo set in use changes)'));
   p.setWord(SETTINGS_SAVE, branchWord(SETTINGS_SAVE, mod.symbols.sp_save), 'settings save, then the added slots\' parameters');
   p.setWord(SETTINGS_LOAD, branchWord(SETTINGS_LOAD, mod.symbols.sp_load), 'settings load, then the added slots\' parameters');
   // The module keeps its state pointer in the 44 bytes between the end of the zero fill and the

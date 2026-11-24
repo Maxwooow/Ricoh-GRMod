@@ -445,7 +445,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    softFocusMenu?: boolean;
    /** The battery icon shows the charge in steps of 10 % instead of the bars (see `battery.ts`). */
    batteryPercent?: boolean;
-@@ -174,13 +184,13 @@
+@@ -174,15 +184,19 @@
    ratioShadeTone?: ShadeTone;
    /** A learned Auto for Shadow Correction (see `shadowml.ts`); GR IV 1.11, 1.20 and 1.21. Off unless asked for. */
    shadowLearn?: boolean;
@@ -461,9 +461,16 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 -  /** GR IV 1.20 and 1.21 (`fw/gr4v120/aspect/awb2.ts`; not built on 1.11): a learned auto white balance for the three Auto modes. */
 +  /** A learned auto white balance for the three Auto modes (`awb2.ts`); 1.20 and 1.21. Off unless asked for. */
    awbLearn?: boolean;
+-  /** GR IV 1.20 and 1.21 (`fw/gr4v120/aspect/slots.ts`; not built on 1.11): every look remembers its own still white balance. */
++  /**
++   * White balance per look (`slots.ts`, `tools/gr4v120/slotparams/slot_params.c` with SP_WB): every look,
++   * factory or added, remembers its own still white balance. Needs at least one added slot; 1.20 and 1.21.
++   * Off unless asked for.
++   */
+   wbPerLook?: boolean;
  }
  
-@@ -191,11 +201,22 @@
+@@ -193,11 +207,22 @@
    dateStampDiag?: boolean;
    /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
    directFlashDiag?: boolean;
@@ -487,7 +494,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  export interface AspectResult {
    revision: BuildRevision;
-@@ -358,7 +379,7 @@
+@@ -360,7 +385,7 @@
    for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
    const rowsStart = TEXT_CATALOG + 0x100;
    const end = rowsStart + LANGUAGES * ROW_STRIDE;
@@ -496,7 +503,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    patch.extendTo(end - BASE);
    patch.write(ICON_CATALOG, icons);
    const relocated: number[] = [];
-@@ -370,8 +391,15 @@
+@@ -372,8 +397,15 @@
    // language directory themselves.
    patch.setWord(adr(0x534013f8), movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
    patch.setWord(adr(0x534013fc), movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
@@ -514,7 +521,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    }
    for (const [low, high] of [[adr(0x535967cc), adr(0x535967d0)], [adr(0x53595db4), adr(0x53595dbc)]] as const) {
      patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
-@@ -402,7 +430,10 @@
+@@ -404,7 +436,10 @@
  // --------------------------------------------------------------------------------------------
  // crop_icons.py
  
@@ -526,7 +533,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
    const parts: Uint8Array[] = [iconbin];
-@@ -494,7 +525,7 @@
+@@ -496,7 +531,7 @@
    // Complete language rows again, now wide enough for the new names; every original entry is kept.
    let priorColumns = TEXT_CAPACITY;
    for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
@@ -535,7 +542,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    for (const id of allIds) upper = Math.max(upper, textId(id));
    const columns = Math.max(priorColumns, upper + 1);
    const catalogs: Uint8Array[] = [];
-@@ -623,7 +654,7 @@
+@@ -625,7 +660,7 @@
    p.hook(adr(0x538b40ec), out);
    out = `push {r0-r3,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r0,r3;bne #${adrHEX(0x538B41CC)};b #${p.target(adr(0x538b41b4))};`;
    p.hook(adr(0x538b41b4), out);
@@ -544,7 +551,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x53664430), out);
    // Both callers select the cropped window only for their original 2..5 range; a computed window
    // is invisible if selector 0 copies the untouched full canvas instead.
-@@ -686,7 +717,7 @@
+@@ -688,7 +723,7 @@
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
    out += adrText('cmp r2,#5;beq #0x5367298C;b #0x536728E8;');
@@ -553,7 +560,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x536728e4), out);
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
-@@ -707,8 +738,8 @@
+@@ -709,8 +744,8 @@
      out = '';
      for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
      out += `bic ip,ip,#4;b #${resume};custom:`;
@@ -564,7 +571,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      out += adrText('ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;');
      p.hook(entry, out);
    }
-@@ -794,7 +825,7 @@
+@@ -796,7 +831,7 @@
    const get = p.emit(lookup + 'mov r0,#0;bx lr;');
    // The native code at 0x53726698 divides s15 by the crop magnification; the other branch writes
    // it directly. Both contracts are kept.
@@ -573,7 +580,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x537266e8), code);
    // r8 / sb are the source dimensions: exact known sizes first, then fit the ratio for anything else.
    code = `push {r0,r4-r7,r10,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;beq old;mov r4,r0;mov r5,r8;mov r6,sb;`;
-@@ -928,7 +959,7 @@
+@@ -930,7 +965,7 @@
  function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
    const priorSave = branchTarget(adr(0x533f3674), patch.word(adr(0x533f3674)));
    const priorLoad = branchTarget(adr(0x533f3254), patch.word(adr(0x533f3254)));
@@ -582,7 +589,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    expectWord(patch, adr(0x5381d6bc), 0xe1a0c00d);
    // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
    const rects: Uint8Array[] = [];
-@@ -1066,13 +1097,24 @@
+@@ -1068,13 +1103,24 @@
   * features this is `installRatios`, byte for byte. With features the revision is 3.
   */
  export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
@@ -608,7 +615,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    if (extra) revision = 3;
    if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
    if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
-@@ -1083,8 +1125,12 @@
+@@ -1085,8 +1131,14 @@
    });
    if (features.brightAuto !== undefined && ![true, false, 'bright', 'balanced'].includes(features.brightAuto)) fail('bad-edit', 'brightAuto must be boolean, bright or balanced');
    if (features.shadowLearn !== undefined && typeof features.shadowLearn !== 'boolean') fail('bad-edit', 'shadowLearn must be boolean');
@@ -620,10 +627,12 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +  if (features.flashTtl !== undefined && typeof features.flashTtl !== 'boolean') fail('bad-edit', 'flashTtl must be boolean');
 +  if (features.videoAf !== undefined && typeof features.videoAf !== 'boolean') fail('bad-edit', 'videoAf must be boolean');
 +  if (features.awbLearn !== undefined && typeof features.awbLearn !== 'boolean') fail('bad-edit', 'awbLearn must be boolean');
++  if (features.wbPerLook !== undefined && typeof features.wbPerLook !== 'boolean') fail('bad-edit', 'wbPerLook must be boolean');
++  if (features.wbPerLook && slots.length === 0) fail('bad-edit', 'white balance per look needs at least one added Image Control slot');
    const patch = new Patch(rtos);
    const ramCopy = new DataView(patch.read(BASE + 0x450, 12).buffer);
    if (ramCopy.getUint32(0, true) !== RAM.source || ramCopy.getUint32(4, true) !== RAM.destination || ramCopy.getUint32(8, true) !== RAM.length) {
-@@ -1098,27 +1144,49 @@
+@@ -1100,27 +1152,49 @@
      const menu = installMenu(patch, ratios, installed.ids);
      const { p, get, scale } = buildGeometry(patch, ratios);
      installDevelop(p, scale, ratios);
@@ -678,7 +687,16 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    // Halation: added slots that have it, Cinema slots with a preset that are asked to.
    const halation: HalationLook[] = [];
    slots.forEach((x, k) => {
-@@ -1146,19 +1214,41 @@
+@@ -1134,7 +1208,7 @@
+     halation.push({ style, light: colour.ownCurves ? halationLight(colour.curves, colour.postQ9) : halationLight() });
+   }
+   // Last: the added slots compose with the monochrome looks' visibility check.
+-  if (slots.length > 0) icons = installExtraSlots(patch, icons, slots, { stashLook: (!!features.dateStamp && !!features.guard) || halation.length > 0, layout: features.lookLayout });
++  if (slots.length > 0) icons = installExtraSlots(patch, icons, slots, { stashLook: (!!features.dateStamp && !!features.guard) || halation.length > 0, layout: features.lookLayout, wbPerLook: !!features.wbPerLook });
+   else if (features.lookLayout) {
+     validateLookLayout(features.lookLayout, 0);
+     installLookOrder(patch, features.lookLayout.order);
+@@ -1148,19 +1222,41 @@
    if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
    // The HDR line's list: after the additions that copy the list table first.
    if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
@@ -724,7 +742,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
 -  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true, ...(features.ratioShadeTone && features.ratioShadeTone !== 'dark' ? { ratioShadeTone: features.ratioShadeTone } : {}) } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}) } };
 -}
-+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}), ...(features.videoAf ? { videoAf: true } : {}), ...(features.awbLearn ? { awbLearn: true } : {}) } };
++  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}), ...(features.videoAf ? { videoAf: true } : {}), ...(features.awbLearn ? { awbLearn: true } : {}), ...(features.wbPerLook ? { wbPerLook: true } : {}) } };
 +}
 diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/aspect/datestamp-menu.ts
 --- a/core/src/fw/gr4v120/aspect/datestamp-menu.ts
@@ -3116,7 +3134,7 @@ diff --git a/core/src/fw/gr4v120/aspect/monounlock.ts b/core/src/fw/gr4v120/aspe
 diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/package.ts
 --- a/core/src/fw/gr4v120/aspect/package.ts
 +++ b/core/src/fw/gr4v120/aspect/package.ts
-@@ -22,11 +22,13 @@
+@@ -22,11 +22,14 @@
   * (0.8.6) one more byte of additions, where earlier builds have their zero padding: bit 0, the HDR
   * gain map (`hdrgain.ts`); bit 1, ADJ lever slots (`adjslots.ts`), their number (6..8) follows in
   * one more byte. Bit 2: a following bright-Auto curve byte (1 bright, 2 balanced). Bit 5: the learned
@@ -3131,11 +3149,12 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
 + * its lighter colour ('light'); bit 2, the battery percentage (`battery.ts`); bit 3, custom grid
 + * lines (`grid.ts`), followed by two bytes, the 3x3 and the 4x4 style's lines (line i in bit i);
 + * bit 4, pre-flash (TTL) metering for a GF-2 class flash (`flttl.ts`); bit 5, movie AF driven by the
-+ * phase data (`videoaf.ts`); bit 6, the learned auto white balance (`awb2.ts`).
++ * phase data (`videoaf.ts`); bit 6, the learned auto white balance (`awb2.ts`). Bit 7: a fourth byte
++ * of additions follows, after those bytes: bit 0, white balance per look (`slots.ts`, needs added slots).
   * A build without them reads as before; earlier programs do not take a record with
   * this byte set.
   *
-@@ -83,6 +85,9 @@
+@@ -83,6 +86,9 @@
  const FEATURE2_ADJ_SLOTS = 2;
  /** A following byte selects 1 = bright or 2 = balanced. */
  const FEATURE2_BRIGHT_AUTO = 4;
@@ -3145,7 +3164,7 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
  /** Second feature byte: bit 5, the learned Auto for Shadow Correction (`shadowml.ts`). */
  const FEATURE2_SHADOW_LEARN = 32;
  /** Second feature byte: bit 7, a third feature byte follows (after the bytes of bits 1 and 2). */
-@@ -95,6 +100,14 @@
+@@ -95,6 +101,18 @@
  const FEATURE3_BATTERY = 4;
  /** Third feature byte: bit 3, custom grid lines (`grid.ts`); two bytes follow, the 3x3 and the 4x4 style's lines. */
  const FEATURE3_CUSTOM_GRID = 8;
@@ -3157,10 +3176,14 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
 +const FEATURE3_VIDEO_AF = 32;
 +/** Third feature byte: bit 6, the learned auto white balance (`awb2.ts`). */
 +const FEATURE3_AWB_LEARN = 64;
++/** Third feature byte: bit 7, a fourth feature byte follows (after the custom grid's two bytes). */
++const FEATURE3_MORE = 128;
++/** Fourth feature byte: bit 0, white balance per look (`slots.ts`, the slot-parameters module with SP_WB). */
++const FEATURE4_WB_PER_LOOK = 1;
  
  /**
   * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
-@@ -126,12 +139,12 @@
+@@ -126,16 +144,20 @@
    if (tone !== 'dark' && tone !== 'light') fail('internal', 'unknown shade tone');
    if (tone !== 'dark' && !features.ratioShade) fail('internal', 'a shade tone needs the live-view shade');
    if (features.ratioShade && specs.length === 0) fail('internal', 'the live-view shade needs an added ratio');
@@ -3168,16 +3191,25 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
 -  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.shadowLearn || f3) {
 -    if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, the learned shadow correction and the third feature byte need revision 3');
 +  const f3 = (features.ratioShade ? FEATURE3_RATIO_SHADE : 0) | (tone === 'light' ? FEATURE3_SHADE_LIGHT : 0) | (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0) | (features.flashTtl ? FEATURE3_FLASH_TTL : 0) | (features.videoAf ? FEATURE3_VIDEO_AF : 0) | (features.awbLearn ? FEATURE3_AWB_LEARN : 0);
-+  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.exposurePreview || features.softFocusMenu || features.shadowLearn || features.filmGrain || f3) {
++  if (features.wbPerLook && slots === 0) fail('internal', 'white balance per look needs added slots');
++  const f4 = features.wbPerLook ? FEATURE4_WB_PER_LOOK : 0;
++  const f3m = f3 | (f4 ? FEATURE3_MORE : 0);
++  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.exposurePreview || features.softFocusMenu || features.shadowLearn || features.filmGrain || f3m) {
 +    if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, bright Auto, exposure preview, the soft focus line, the learned shadow correction, the film grain and the third feature byte need revision 3');
      const adj = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
      if (adj && !(Number.isInteger(adj) && adj <= ADJ_SLOTS_MAX)) fail('internal', 'ADJ slots cannot be recorded');
 -    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.brightAuto ? FEATURE2_BRIGHT_AUTO : 0) | (features.shadowLearn ? FEATURE2_SHADOW_LEARN : 0) | (f3 ? FEATURE2_MORE : 0));
-+    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.brightAuto ? FEATURE2_BRIGHT_AUTO : 0) | (features.exposurePreview ? FEATURE2_EXPOSURE_PREVIEW : 0) | (features.softFocusMenu ? FEATURE2_SOFT_FOCUS_MENU : 0) | (features.shadowLearn ? FEATURE2_SHADOW_LEARN : 0) | (features.filmGrain ? FEATURE2_FILM_GRAIN : 0) | (f3 ? FEATURE2_MORE : 0));
++    bytes.push((features.hdrGainMap ? FEATURE2_HDR_GAIN_MAP : 0) | (adj ? FEATURE2_ADJ_SLOTS : 0) | (features.brightAuto ? FEATURE2_BRIGHT_AUTO : 0) | (features.exposurePreview ? FEATURE2_EXPOSURE_PREVIEW : 0) | (features.softFocusMenu ? FEATURE2_SOFT_FOCUS_MENU : 0) | (features.shadowLearn ? FEATURE2_SHADOW_LEARN : 0) | (features.filmGrain ? FEATURE2_FILM_GRAIN : 0) | (f3m ? FEATURE2_MORE : 0));
      if (adj) bytes.push(adj);
      if (features.brightAuto) bytes.push(features.brightAuto === 'balanced' ? 2 : 1);
-     if (f3) bytes.push(f3);
-@@ -226,8 +239,11 @@
+-    if (f3) bytes.push(f3);
++    if (f3m) bytes.push(f3m);
+     if (features.customGrid) bytes.push(gridByte(features.customGrid.g3), gridByte(features.customGrid.g4));
++    if (f4) bytes.push(f4);
+   }
+   while (bytes.length % 4) bytes.push(0);
+   return Uint8Array.from(bytes);
+@@ -226,8 +248,11 @@
      if (f & FEATURE_DIRECT_FLASH) features.directFlash = true;
      if (p < rec.length) {
        const f2 = rec[p++];
@@ -3190,20 +3222,31 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
        if (f2 & FEATURE2_ADJ_SLOTS) {
          if (p >= rec.length) return null;
          const n = rec[p++];
-@@ -244,7 +260,10 @@
+@@ -244,7 +269,10 @@
        if (f2 & FEATURE2_MORE) {
          if (p >= rec.length) return null;
          const f3 = rec[p++];
 -        if (f3 === 0 || (f3 & ~(FEATURE3_RATIO_SHADE | FEATURE3_SHADE_LIGHT | FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID)) !== 0) return null;
-+        if (f3 === 0 || (f3 & ~(FEATURE3_RATIO_SHADE | FEATURE3_SHADE_LIGHT | FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID | FEATURE3_FLASH_TTL | FEATURE3_VIDEO_AF | FEATURE3_AWB_LEARN)) !== 0) return null;
++        if (f3 === 0 || (f3 & ~(FEATURE3_RATIO_SHADE | FEATURE3_SHADE_LIGHT | FEATURE3_BATTERY | FEATURE3_CUSTOM_GRID | FEATURE3_FLASH_TTL | FEATURE3_VIDEO_AF | FEATURE3_AWB_LEARN | FEATURE3_MORE)) !== 0) return null;
 +        if (f3 & FEATURE3_FLASH_TTL) features.flashTtl = true;
 +        if (f3 & FEATURE3_VIDEO_AF) features.videoAf = true;
 +        if (f3 & FEATURE3_AWB_LEARN) features.awbLearn = true;
          if (f3 & FEATURE3_RATIO_SHADE) {
            if (count === 0) return null;
            features.ratioShade = true;
-@@ -259,7 +278,7 @@
+@@ -257,9 +285,18 @@
+           if (isCameraGrid(grid)) return null;
+           features.customGrid = grid;
          }
++        if (f3 & FEATURE3_MORE) {
++          if (p >= rec.length) return null;
++          const f4 = rec[p++];
++          if (f4 === 0 || (f4 & ~FEATURE4_WB_PER_LOOK) !== 0) return null;
++          if (f4 & FEATURE4_WB_PER_LOOK) {
++            if (extraSlots === 0) return null;
++            features.wbPerLook = true;
++          }
++        }
        }
      }
 -    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn) return null;
@@ -3364,7 +3407,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   * overlay, RAW development and the look-visibility check (hidden on the GR IV Monochrome).
   * The adjustable parameters (saturation, contrast, grain, ...): the firmware keeps them per
   * factory style only, and whatever reads them for the selected look (live-view generator,
-@@ -33,7 +34,8 @@
+@@ -33,8 +34,10 @@
  import { assembleWords, branchTarget, branchWord, movImmediate, movWord } from './arm';
  import { BASE, ICON_CATALOG, LOOKUP_BOUNDS, OFFICIAL_RTOS_LENGTH, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z } from './build';
  import { linkModule } from './native-link';
@@ -3372,9 +3415,11 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
 +import { FRAME_LOOK, STASH_ASM, installLookStash } from './lookstash';
 +import { installExposureOrientation } from './datestamp';
  import { SLOT_PARAMETERS, SLOT_PARAMS_MODULE } from './slotparams-native';
++import { SLOT_PARAMS_WB_MODULE } from './slotparams-wb-native';
  import { HALATION_COLOUR_NAMES, HALATION_LOOKS, HALATION_NAMES, halationColourIcon, halationColourScale, halationIcon, installHalationModule, readHalation } from './halation';
  import { installHalationClamps, installHalationUi } from './halation-ui';
-@@ -42,19 +44,23 @@
+ import type { HalationLook } from './halation';
+@@ -42,19 +45,23 @@
  import { FirmwareError } from '../../types';
  import { installFactoryHidden, validateLookLayout } from './looks';
  import type { LookLayout } from './looks';
@@ -3407,7 +3452,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  /** Icon number of the first added slot's icon: slots 0..11 768..779 (780, 781 are halation's), slots 12.. 782..789 (790, 791 halation's). */
  export const EXTRA_ICON_ID = 768;
  const EXTRA_ICON_SPLIT = 12;
-@@ -98,22 +104,28 @@
+@@ -98,22 +105,28 @@
   * row's name, the colour slider's scale and the red and white row icons. (Icon 781 was the Off /
   * Weak / Strong scale up to test 042.)
   */
@@ -3448,7 +3493,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  const VARIANTS = 3;
  const CY = 18;
  const STANDARD = 11;
-@@ -121,7 +133,7 @@
+@@ -121,7 +134,7 @@
  const MA_TABLE = adr(0x55054554);
  const YCC_TABLE = adr(0x55053ce4);
  const GAMMA_TABLE = adr(0x55054158);
@@ -3457,7 +3502,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  const TABLES = [
    [TONE_TABLE, adr(0x5394dfb0), adr(0x5394dfb4), adr(0x5394dfbc)],
    [MA_TABLE, adr(0x5394dfdc), adr(0x5394dfe0), adr(0x5394dfe8)],
-@@ -137,7 +149,8 @@
+@@ -137,7 +150,8 @@
  const POST_STRIDE = 20;
  const MA_POINTERS = 8;
  const ORDER_TABLE = adr(0x53de8cd0);
@@ -3467,7 +3512,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  const TILE_BG = [53, 53, 54];
  
  function fail(code: string, message: string): never {
-@@ -256,7 +269,7 @@
+@@ -256,7 +270,7 @@
    return out;
  }
  
@@ -3476,7 +3521,16 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  // handles the new styles and otherwise runs the overwritten instruction and branches back.
  function hook(p: Patch, at: number, expected: number, body: string, reason: string): void {
    expectWord(p, at, expected);
-@@ -370,7 +383,7 @@
+@@ -284,7 +298,7 @@
+  * Install `slots` (1..MAX_EXTRA_SLOTS) into an RTOS image that already has the scaffold of
+  * `build.ts` (extended catalogs), appending their icons to `iconbin`. Returns the new ICONBIN data.
+  */
+-export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly ExtraSlotSpec[], options: { stashLook?: boolean; layout?: LookLayout } = {}): Uint8Array {
++export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly ExtraSlotSpec[], options: { stashLook?: boolean; layout?: LookLayout; wbPerLook?: boolean } = {}): Uint8Array {
+   const count = slots.length;
+   if (!(count >= 1 && count <= MAX_EXTRA_SLOTS)) fail('too-many-slots', `1 to ${MAX_EXTRA_SLOTS} slots can be added`);
+   if (p.textBoundSites.length === 0) fail('internal', 'the catalog scaffold is not installed');
+@@ -370,7 +384,7 @@
    for (const site of p.textBoundSites) p.setWord(site, movWord(3, Math.max(lastText, movImmediate(p.word(site)))), 'text upper bound');
    for (const [site, r] of LOOKUP_BOUNDS) p.setWord(site, movWord(r, Math.max(lastIcon, movImmediate(p.word(site)))), 'icon upper bound');
  
@@ -3485,7 +3539,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
    TABLES.forEach(([old, stride, low, high], t) => {
      const out: number[] = [];
      for (let v = 0; v < VARIANTS; v++) {
-@@ -383,9 +396,9 @@
+@@ -383,9 +397,9 @@
      pointer(p, low, high, 3, old, table, 'added slots: style table');
    });
  
@@ -3498,7 +3552,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
    // The common input fields (grain among them) are read as for Cinema Yellow; only the local
    // dispatch register changes, the frame's style and the table index stay the new ones. With
    // halation or the date imprint by look, the frame's style and Toning (halation) level are also
-@@ -425,13 +438,14 @@
+@@ -425,16 +439,17 @@
    hook(p, adr(0x533905d8), 0xe351000a, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;cmp r2,#0;movne r0,#0;bxne lr;${iconAsm('r0', 'ip')};bx lr;native:cmp r1,#10;b #${adrHex(0x533905dc)}`, 'added slots: ADJ icon');
    early(p, adr(0x533a66c8), textAsm('r0', 'ip'), count, 'added slots: name');
    early(p, adr(0x533a6868), iconAsm('r0', 'ip'), count, 'added slots: icon');
@@ -3518,8 +3572,59 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
 +  hook(p, adr(0x5338262c), 0xe241100b, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;add r0,ip,#${RAW_FIRST_EXTRA};bx lr;native:sub r1,r1,#11;b #${adrHex(0x53382630)}`, 'added slots: RAW development look');
  
    const hiddenMask = hiddenExtras.reduce((m, id) => (m | (1 << (id - EXTRA_FIRST_STYLE))) >>> 0, 0);
-   const module = installOwnParameters(p, count, prints, hiddenMask);
-@@ -547,11 +561,12 @@
+-  const module = installOwnParameters(p, count, prints, hiddenMask);
++  const module = installOwnParameters(p, count, prints, hiddenMask, !!options.wbPerLook);
+   installPreviewMapping(p, count);
+   installChangeFunctors(p, count);
+   installLookChecks(p, count);
+@@ -450,6 +465,8 @@
+ const DEFAULTS = [adr(0x533d053c), adr(0x533d0fe8), adr(0x533d1a94), adr(0x533d2b90), adr(0x533d3bac), adr(0x533d4bc8), adr(0x533d5be4), adr(0x533d6ce0), adr(0x533d7800), adr(0x533d7c40), adr(0x533d7fa0), adr(0x533d82fc), adr(0x533d8548), adr(0x533d88a8), adr(0x533d8d58), adr(0x533d9604), adr(0x533d9eb0), adr(0x533da75c), adr(0x533db778), adr(0x533dbfd4), adr(0x533dc770), adr(0x533dcf0c), adr(0x533dd6a8)];
+ /** "Style of set" setters: photo standard, custom 1..3, then movie. */
+ const STYLE_SETTERS = [adr(0x532bbe84), adr(0x532bc014), adr(0x532bc1a4), adr(0x532bc334), adr(0x53305a6c), adr(0x53305c00), adr(0x53305d94), adr(0x53305f28)];
++/** White balance per look (option wbPerLook): the StillActiveImageControlSet setter (the photo set in use changes). */
++const ACTIVE_SETTERS = [adr(0x532bbcf4)];
+ /**
+  * The values an added slot starts from and shows as its default on the parameter screen ("0"):
+  * the middle of the -4..+4 scales, parameter 8 off (what Standard, which lacks it, gets), grain
+@@ -482,7 +499,14 @@
+   return h || 1;
+ }
+ 
+-function installOwnParameters(p: Patch, count: number, prints: readonly number[], hiddenMask = 0): Record<string, number> {
++/**
++ * With `wbPerLook` the module is the one compiled with -DSP_WB (slotparams-wb-native.ts): it also
++ * remembers the still white balance of each look, factory and added (the WB mode, the G-M and B-A
++ * shift of each mode, the colour temperature; the custom WB captures stay shared), saved in the same
++ * record (version 5), and gives a look its own WB back through the firmware's WB setters when the
++ * look of the photo set in use, or the photo set in use, changes. One more hook: the photo set in use.
++ */
++function installOwnParameters(p: Patch, count: number, prints: readonly number[], hiddenMask = 0, wbPerLook = false): Record<string, number> {
+   if (prints.length !== count) fail('internal', 'a fingerprint per added slot');
+   const normalize = (at: number, reg: string, original: number, tail: string): void => {
+     // The flags are set again by every native entry before use; no callee-saved register, LR or SP changes.
+@@ -507,11 +531,11 @@
+   const priorSave = branchTarget(SETTINGS_SAVE, p.word(SETTINGS_SAVE));
+   const priorLoad = branchTarget(SETTINGS_LOAD, p.word(SETTINGS_LOAD));
+   if (priorSave < BASE + OFFICIAL_RTOS_LENGTH || priorLoad < BASE + OFFICIAL_RTOS_LENGTH) fail('internal', 'the settings save/load scaffold is not installed');
+-  for (const at of [...SLOT_PARAMETERS.map((i) => GETTERS[i]), ...SLOT_PARAMETERS.map((i) => SETTERS[i]), ...STYLE_SETTERS]) expectWord(p, at, 0xe1a0c00d);
++  for (const at of [...SLOT_PARAMETERS.map((i) => GETTERS[i]), ...SLOT_PARAMETERS.map((i) => SETTERS[i]), ...STYLE_SETTERS, ...(wbPerLook ? ACTIVE_SETTERS : [])]) expectWord(p, at, 0xe1a0c00d);
+   // The fingerprints, then the hidden slots (bit k: slot k; see slot_params.c).
+   const printTable = p.append(u32le([...prints, hiddenMask]), 4);
+   const origin = p.next(16);
+-  const mod = linkModule(SLOT_PARAMS_MODULE, 'slot parameters', count, origin, {
++  const mod = linkModule(wbPerLook ? SLOT_PARAMS_WB_MODULE : SLOT_PARAMS_MODULE, 'slot parameters', count, origin, {
+     prior_native_save: priorSave, prior_native_load: priorLoad, storage_singleton: adr(0x53aa958c), store_write: adr(0x53aa6764),
+     store_read: adr(0x53aa6680), store_size: adr(0x53aa6524), heap_alloc: adr(0x539084bc), sp_gap: SLOT_STATE, settings_object: adr(0x550832a8), slot_prints: printTable,
+   });
+@@ -521,6 +545,7 @@
+     p.setWord(SETTERS[i], branchWord(SETTERS[i], mod.symbols[`sp_set_stub_${j}`]), 'added slots: own parameters (setter)');
+   });
+   STYLE_SETTERS.forEach((at, k) => p.setWord(at, branchWord(at, mod.symbols[`sp_style_stub_${k}`]), 'added slots: own parameters (look of a set changes)'));
++  if (wbPerLook) ACTIVE_SETTERS.forEach((at, k) => p.setWord(at, branchWord(at, mod.symbols[`sp_active_stub_${k}`]), 'white balance per look (photo set in use changes)'));
+   p.setWord(SETTINGS_SAVE, branchWord(SETTINGS_SAVE, mod.symbols.sp_save), 'settings save, then the added slots\' parameters');
+   p.setWord(SETTINGS_LOAD, branchWord(SETTINGS_LOAD, mod.symbols.sp_load), 'settings load, then the added slots\' parameters');
+   // The module keeps its state pointer in the 44 bytes between the end of the zero fill and the
+@@ -547,11 +572,12 @@
  ];
  const FUNCTOR_AREA = [adr(0x53270000), adr(0x532a0000)] as const;
  const FUNCTOR_LOADS: Readonly<Record<number, 'half' | 'byte' | 'word'>> = {
@@ -3537,7 +3642,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  };
  const FUNCTOR_NEXT: Readonly<Record<string, readonly number[]>> = { half: [0xe3530c12], byte: [0xe3530012], word: [0xe3a02001, 0xe3a02002] };
  
-@@ -570,7 +585,7 @@
+@@ -570,7 +596,7 @@
      const found: number[] = [];
      for (let a = starts[0], k = 0; k < 30; k++, a += 4) {
        const w = p.word(a);
@@ -3546,7 +3651,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
        if (w >>> 24 === 0xea) break;
      }
      if (found.length !== 1) fail('unexpected-layout', `change functor of field 0x${field.toString(16)}: ${found.length} style loads`);
-@@ -588,10 +603,10 @@
+@@ -588,10 +614,10 @@
  /**
   * Looks shown as their own, not as Standard or with Standard's parameter list:
   *  - the parameter screens pick their list of parameters from the look (0x531C80B0 shooting,
@@ -3559,7 +3664,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   *    themselves, the icon lookup knows them (test 033);
   *  - whether a picture goes through the digital-filter step (grain, Clarity, the setting before
   *    it) is decided from the look by 0x53739A5C with a chain of compares that includes Cinema
-@@ -609,40 +624,50 @@
+@@ -609,40 +635,50 @@
  }
  
  /**
@@ -3626,7 +3731,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
      return ((p.word(next) & 0xfffff000) >>> 0) === CMP_R3;
    };
    for (const load of GENERATOR_LOADS) {
-@@ -650,11 +675,6 @@
+@@ -650,11 +686,6 @@
      if (sites.length !== load.sites) fail('unexpected-layout', `live-view parameters: ${sites.length} loads of ${load.word.toString(16)}, expected ${load.sites}`);
      for (const at of sites) {
        if (!cmpFollows(at)) fail('unexpected-layout', `live-view parameters: load at 0x${at.toString(16)} is not followed by a compare`);
@@ -3638,7 +3743,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
      }
      const map = load.kind === 'half'
        ? `sub r3,r3,#${EXTRA_FIRST_STYLE << 8};cmp r3,#${count << 8};andlo r3,r3,#0xff;orrlo r3,r3,#${CY << 8};addhs r3,r3,#${EXTRA_FIRST_STYLE << 8}`
-@@ -677,20 +697,22 @@
+@@ -677,20 +708,22 @@
  
  // -------------------------------------------------------------- RAW development
  
@@ -3666,7 +3771,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   * "absent": the parameter screen showed -4 everywhere and developing stopped the camera (reported
   * on 0.7.0). The added looks now use Cinema Yellow's row, as the shooting side does with Cinema
   * Yellow's fields; the look itself (name, icon, the style given to development) stays the added
-@@ -704,11 +726,12 @@
+@@ -704,11 +737,12 @@
    const sites: number[] = [];
    for (let at = RAW_MODEL[0]; at < RAW_MODEL[1]; at += 4) {
      if (p.word(at) !== RAW_LOOK_LOAD) continue;
@@ -3681,7 +3786,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
      }
      if (!row) continue;
      if (p.word(at + 4) !== 0xe3520000) fail('unexpected-layout', `RAW development: load at 0x${at.toString(16)} is not followed by cmp r2,#0`);
-@@ -726,31 +749,32 @@
+@@ -726,31 +760,32 @@
    // Applying a look: the row goes to the looks now selected.
    hook(p, adr(0x53382e20), 0xe1a0c00d, `push {r0-r4,lr};bl #${module.sp_raw_sync};pop {r0-r4,lr};mov ip,sp;b #${adrHex(0x53382e24)}`, 'added slots: own RAW development parameters');
    // The RAW development screen makes its list as long as the longest of its lists (0x531A2680):
@@ -3723,7 +3828,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   *    wrote Standard otherwise), and has the parameters of Cinema Yellow (each parameter's writer
   *    looks the style up in a list of the looks that have it; the added looks join every list
   *    Cinema Yellow is in);
-@@ -764,7 +788,7 @@
+@@ -764,7 +799,7 @@
  function installPictureInfo(p: Patch, count: number): void {
    const n = count - 1;
    // Writer: r1 the maker note, r2 the frame record; tail-calls 0x5380DD48(note, 0, code).
@@ -3732,7 +3837,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
    // Parameter lists: the ones with Cinema Yellow get the added styles appended (new copies).
    const calls: number[] = [];
    for (let at = PARAM_LISTS[0]; at < PARAM_LISTS[1]; at += 4) if (p.word(at) === branchWord(at, LIST_ASSIGN, 14, true) || p.word(at) === branchWord(at, LIST_ASSIGN)) calls.push(at);
-@@ -795,12 +819,12 @@
+@@ -795,12 +830,12 @@
    }
    if (extended !== PARAM_LISTS_WITH_CY) fail('unexpected-layout', `maker note parameter lists: ${extended} with Cinema Yellow, expected ${PARAM_LISTS_WITH_CY}`);
    // Readers: RAW development's record, then playback's numbering and its style.
@@ -3749,7 +3854,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  }
  
  // -------------------------------------------------------------- halation
-@@ -833,7 +857,7 @@
+@@ -833,7 +868,7 @@
   * For such a look, Cinema's Toning on the parameter screens (shooting: ImageControlDetail-
   * Controller, the style at +0x19C; RAW development: RawDevelopmentImageControlDetailSetController,
   * the look asked from the model) shows as Halation: its name (the subtitle, from a table of texts
@@ -3758,7 +3863,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   * Off / On row like Grain Effect's, and Fn opens Grain Effect's submenu as Halation's (Strength,
   * Colour); the setting is kept in the Toning byte (`halation-ui.ts`). Which looks: two tables of 64
   * bytes (by style, by RAW development's number).
-@@ -880,13 +904,13 @@
+@@ -880,13 +915,13 @@
    hook(p, adr(0x531cbf68), 0xe1d610b2, `ldrh r1,[r6,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;ldrb ip,[r5,#0x19c];push {r0};${lookupAsm('ip', 'ip', 'r0', styles)};pop {r0};cmp ip,#0;movwne r1,#${HALATION_TEXT_ID};done:b #${adrHex(0x531cbf6c)}`, 'halation: name of the parameter');
    // Shooting: list icon (controller r7, r6).
    for (const [at, ctl] of [[adr(0x531cae48), 'r7'], [adr(0x531caf38), 'r6']] as const) {
@@ -3774,7 +3879,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
    }
  
    // Off / On, Fn to the submenu (Strength, Colour); native Toning readers kept to 0..2.
-@@ -899,6 +923,8 @@
+@@ -899,6 +934,8 @@
    // The look of the picture for the JPEG step: without added slots their hook is not there.
    if (p.word(adr(0x53939148)) === 0xe5d3279c) installLookStash(p);
    else if (!isLookStashed(p)) fail('internal', 'halation: the development step does not leave the look');
@@ -5912,7 +6017,26 @@ diff --git a/tools/gr4v120/shutdown/shutdown.c b/tools/gr4v120/shutdown/shutdown
 diff --git a/tools/gr4v120/slotparams/gen_slotparams.py b/tools/gr4v120/slotparams/gen_slotparams.py
 --- a/tools/gr4v120/slotparams/gen_slotparams.py
 +++ b/tools/gr4v120/slotparams/gen_slotparams.py
-@@ -22,7 +22,7 @@
+@@ -1,6 +1,7 @@
+ # SPDX-License-Identifier: GPL-2.0-only
+ """Pre-compile slot_params.c (own adjustment parameters of the added Image Control slots) and write
+-core/src/fw/gr4v120/aspect/slotparams-native.ts.
++core/src/fw/gr4v120/aspect/slotparams-native.ts, and once more with -DSP_WB (white balance per look, option
++wbPerLook) into core/src/fw/gr4v120/aspect/slotparams-wb-native.ts.
+ 
+ As in tools/gr4v120/aspect/gen_native.py: GR Mod has no compiler at run time, so the module is compiled here
+ once per slot count (1..6), linked at a reference address with `--emit-relocs`, and stored with its
+@@ -11,7 +12,8 @@
+ The entry hooks are generated here: for each of the 13 parameters of Cinema Yellow a getter and a
+ setter stub (they replace the `mov ip,sp` at the firmware's entry and continue past it), and one
+ stub per "style of set" setter (photo and movie, standard and custom sets 1..3). Firmware addresses
+-the stubs jump to are constants in the code, so they need no relocation.
++the stubs jump to are constants in the code, so they need no relocation. The SP_WB build has one stub more,
++on the "photo set in use" setter.
+ """
+ import base64
+ import json
+@@ -22,9 +24,10 @@
  from pathlib import Path
  
  HERE = Path(__file__).resolve().parent
@@ -5920,7 +6044,131 @@ diff --git a/tools/gr4v120/slotparams/gen_slotparams.py b/tools/gr4v120/slotpara
 +REPO = HERE.parent.parent.parent
  SOURCE = HERE / 'slot_params.c'
  TARGET = REPO / 'core/src/fw/gr4v120/aspect/slotparams-native.ts'
++TARGET_WB = REPO / 'core/src/fw/gr4v120/aspect/slotparams-wb-native.ts'
  FLAGS = ['-target', 'armv7-none-eabi', '-mcpu=cortex-a9', '-marm', '-mfloat-abi=soft', '-Os', '-ffreestanding',
+          '-fno-builtin', '-fno-unwind-tables', '-fno-asynchronous-unwind-tables', '-nostdlib', '-Wall', '-Werror']
+ COUNTS = range(1, 21)
+@@ -38,11 +41,14 @@
+            0x533ce280, 0x533ce7f0, 0x533ced18, 0x533cf240, 0x533cf768]
+ PARAMS = [0, 1, 2, 3, 4, 5, 6, 8, 17, 18, 19, 20, 21]
+ STYLE_SETTERS = [0x532bbe84, 0x532bc014, 0x532bc1a4, 0x532bc334, 0x53305a6c, 0x53305c00, 0x53305d94, 0x53305f28]
++ACTIVE_SETTERS = [0x532bbcf4]  # StillActiveImageControlSet (SP_WB only)
+ EXPORTS = (['sp_load', 'sp_save', 'sp_raw_init', 'sp_raw_own', 'sp_raw_sync'] + [f'sp_get_stub_{j}' for j in range(len(PARAMS))]
+            + [f'sp_set_stub_{j}' for j in range(len(PARAMS))] + [f'sp_style_stub_{k}' for k in range(len(STYLE_SETTERS))])
+ 
+-
+-def stubs():
++EXPORTS_WB = EXPORTS + [f'sp_active_stub_{k}' for k in range(len(ACTIVE_SETTERS))]
++
++
++def stubs(wb=False):
+     out = ['/* Entry hooks, generated by gen_slotparams.py. */']
+     for j, i in enumerate(PARAMS):
+         out.append(f'''__attribute__((naked)) void sp_get_stub_{j}(void) {{ __asm__ volatile(
+@@ -58,6 +64,10 @@
+     for k, w in enumerate(STYLE_SETTERS):
+         out.append(f'''__attribute__((naked)) void sp_style_stub_{k}(void) {{ __asm__ volatile(
+  "movw r3, #{w & 0xffff:#x}\\n" "movt r3, #{w >> 16:#x}\\n" "mov r2, #{k}\\n" "b sp_style_set\\n"); }}''')
++    if wb:
++        for k, w in enumerate(ACTIVE_SETTERS):
++            out.append(f'''__attribute__((naked)) void sp_active_stub_{k}(void) {{ __asm__ volatile(
++ "movw r2, #{w & 0xffff:#x}\\n" "movt r2, #{w >> 16:#x}\\n" "b sp_active_set\\n"); }}''')
+     return '\n'.join(out) + '\n'
+ 
+ 
+@@ -68,10 +78,10 @@
+     return result.stdout
+ 
+ 
+-def compile_module(count, origin, bindings, relocs):
++def compile_module(count, origin, bindings, relocs, wb=False):
+     with tempfile.TemporaryDirectory(prefix='grmod-slotparams-') as folder:
+         d = Path(folder)
+-        (d / 'm.c').write_text(f'#define SLOT_COUNT {count}\n' + SOURCE.read_text(encoding='utf-8') + stubs(), encoding='utf-8')
++        (d / 'm.c').write_text(f'#define SLOT_COUNT {count}\n' + ('#define SP_WB 1\n' if wb else '') + SOURCE.read_text(encoding='utf-8') + stubs(wb), encoding='utf-8')
+         script = ' '.join(f'{name} = {value:#x};' for name, value in bindings.items())
+         script += (f' SECTIONS {{ . = {origin:#x}; .text : {{ *(.text*) *(.rodata*) }} '
+                    '/DISCARD/ : { *(.ARM.exidx*) *(.ARM.extab*) *(.comment*) } }')
+@@ -105,11 +115,11 @@
+     return ((word >> 4) & 0xF000) | (word & 0xFFF)
+ 
+ 
+-def make_template(count):
++def make_template(count, wb=False):
+     origin = 0x54440000
+     bindings = {symbol: 0x53411dc0 + 0x1234 * (index + 1) * 4 for index, symbol in enumerate(BINDINGS)}
+-    plain, _, _ = compile_module(count, origin, bindings, False)
+-    blob, symbols, table = compile_module(count, origin, bindings, True)
++    plain, _, _ = compile_module(count, origin, bindings, False, wb)
++    blob, symbols, table = compile_module(count, origin, bindings, True, wb)
+     if plain != blob or len(blob) % 4:
+         raise SystemExit('--emit-relocs changed the code')
+     words = list(struct.unpack('<%dI' % (len(blob) // 4), blob))
+@@ -147,7 +157,7 @@
+     if pending:
+         raise SystemExit('unpaired MOVW relocation')
+     relocs.sort()
+-    return {'blob': blob, 'relocs': relocs, 'exports': {s: symbols[s] - origin for s in EXPORTS}}
++    return {'blob': blob, 'relocs': relocs, 'exports': {s: symbols[s] - origin for s in (EXPORTS_WB if wb else EXPORTS)}}
+ 
+ 
+ def relocate(template, origin, bindings):
+@@ -169,13 +179,13 @@
+     return struct.pack('<%dI' % len(words), *words)
+ 
+ 
+-def main():
++def build(wb):
+     out = {'bindings': BINDINGS, 'variants': {}}
+     for count in COUNTS:
+-        template = make_template(count)
++        template = make_template(count, wb)
+         origin = 0x5443C1D0 + 0x10 * count
+         bindings = {symbol: 0x5372EF3C + 0x00FEDCB8 * (index + 1) % 0x00F00000 // 4 * 4 for index, symbol in enumerate(BINDINGS)}
+-        expected, symbols, _ = compile_module(count, origin, bindings, False)
++        expected, symbols, _ = compile_module(count, origin, bindings, False, wb)
+         if relocate(template, origin, bindings) != expected:
+             raise SystemExit(f'{count}: relocated template differs from a real link')
+         for symbol, offset in template['exports'].items():
+@@ -183,8 +193,13 @@
+                 raise SystemExit('export offset moved')
+         out['variants'][count] = {'code': base64.b64encode(template['blob']).decode('ascii'),
+                                   'relocs': template['relocs'], 'exports': template['exports']}
+-        print(count, len(template['blob']), 'bytes ok')
++        print('wb' if wb else 'plain', count, len(template['blob']), 'bytes ok')
++    return out
++
++
++def main():
+     version = run(['clang', '--version']).splitlines()[0]
++    out = build(False)
+     lines = [
+         '// SPDX-License-Identifier: GPL-2.0-only',
+         '// GENERATED by tools/gr4v120/slotparams/gen_slotparams.py -- do not edit.',
+@@ -204,6 +219,23 @@
+     ]
+     TARGET.write_text('\n'.join(lines), encoding='utf-8')
+     print('wrote', TARGET)
++    out = build(True)
++    lines = [
++        '// SPDX-License-Identifier: GPL-2.0-only',
++        '// GENERATED by tools/gr4v120/slotparams/gen_slotparams.py -- do not edit.',
++        '//',
++        '// The slot-parameters module of slotparams-native.ts compiled with -DSP_WB: the still white balance',
++        '// remembered per look (option wbPerLook), with one entry hook more (sp_active_stub_0, the "photo set in',
++        '// use" setter). Compiler: ' + version + ', flags ' + ' '.join(FLAGS) + ' -DSP_WB.',
++        '// One variant per slot count. Relocations as in native.ts.',
++        '',
++        "import type { NativeModule } from './native';",
++        '',
++        'export const SLOT_PARAMS_WB_MODULE: NativeModule = ' + json.dumps(out, separators=(',', ':')) + ' as unknown as NativeModule;',
++        '',
++    ]
++    TARGET_WB.write_text('\n'.join(lines), encoding='utf-8')
++    print('wrote', TARGET_WB)
+ 
+ 
+ if __name__ == '__main__':
 diff --git a/tools/gr4v120/slotparams/slot_params.c b/tools/gr4v120/slotparams/slot_params.c
 --- a/tools/gr4v120/slotparams/slot_params.c
 +++ b/tools/gr4v120/slotparams/slot_params.c
@@ -5931,7 +6179,7 @@ diff --git a/tools/gr4v120/slotparams/slot_params.c b/tools/gr4v120/slotparams/s
   *
   * The firmware keeps the parameters (saturation, hue, contrast, ...) per factory style in the
   * user settings record, and the added styles use Cinema Yellow's (18) fields: everything that
-@@ -24,13 +24,13 @@
+@@ -24,17 +24,38 @@
  #error SLOT_COUNT (1..20) is set by gen_slotparams.py
  #endif
  #define CY 18u
@@ -5947,7 +6195,32 @@ diff --git a/tools/gr4v120/slotparams/slot_params.c b/tools/gr4v120/slotparams/s
  #define STATE_MAGIC 0x50534c54u
  #define TBYTES (OWNERS * COMBOS * NP)
  /* magic, version, TBYTES, the fingerprint of each owner's preset, the table, checksum */
-@@ -48,7 +48,7 @@
++#ifdef SP_WB
++/* White balance per look (option wbPerLook, built with -DSP_WB): the still white balance is remembered
++ * per look. The 33 bytes from StillWhiteBalance (0x11d) to StillWhiteBalanceColorTemp (0x13c, a
++ * half-word) of the settings object: the WB mode, the G-M and B-A shift of each of the 14 modes, the
++ * colour temperature. The three custom WB captures (0x13e..0x151) stay shared. One entry per style:
++ * the 38 factory styles and the 20 added ones. Record version 5 is version 4 with this block after
++ * the table; a version 4 record is still read (its table kept, no look has a WB yet). */
++#define WB_FIRST 0x11du
++#define WB_BYTES 33u
++#define WB_LOOKS 58u
++#define WB_N 30u
++#define ACTIVE_SET 0x152u         /* StillActiveImageControlSet: the photo set in use (0..3) */
++#define WB_TBYTES (WB_LOOKS + WB_LOOKS * WB_BYTES)
++_Static_assert(WB_TBYTES % 4u == 0u, "the WB block is whole words");
++#define REC_VERSION_V4 4u
++#undef REC_VERSION
++#define REC_VERSION 5u            /* 5: version 4 and the still WB of each look */
++#define REC_WORDS_V4 (3u + OWNERS + TBYTES / 4u + 1u)
++#define REC_WORDS (3u + OWNERS + TBYTES / 4u + WB_TBYTES / 4u + 1u)
++#else
+ #define REC_WORDS (3u + OWNERS + TBYTES / 4u + 1u)
++#endif
+ /* The record of 0.7.1..0.8.1: seven owners, no fingerprints. */
+ #define OWNERS_V2 7u
+ #define TBYTES_V2 (OWNERS_V2 * COMBOS * NP)
+@@ -48,7 +69,7 @@
  extern uint32_t prior_native_save(uint8_t *mode);
  extern uint32_t prior_native_load(uint8_t *mode, uint8_t *current, void *a2, void *a3);
  extern volatile uint32_t sp_gap[];       /* zeroed at every start; [0] = state */
@@ -5956,7 +6229,7 @@ diff --git a/tools/gr4v120/slotparams/slot_params.c b/tools/gr4v120/slotparams/s
  /* The fingerprint of each added slot's preset in this build (matrix, curves, post-curve matrix):
   * a slot whose preset is not the one its saved values were made with starts again from neutral.
   * After them (0.8.4): one word, bit k set when added slot k is hidden from the Image Control lists. */
-@@ -93,17 +93,19 @@
+@@ -93,17 +114,19 @@
  };
  
  /* In-camera RAW development (RawDevelopmentModel): per custom base (0..3, the photo sets) and
@@ -5982,16 +6255,103 @@ diff --git a/tools/gr4v120/slotparams/slot_params.c b/tools/gr4v120/slotparams/s
  #define RAW_VALUES (RAW_ROW + 2u)
  
  typedef struct {
-@@ -251,7 +253,7 @@
+@@ -116,6 +139,10 @@
+     uint32_t magic, loaded, dirty, last_write;
+     uint8_t t[OWNERS][COMBOS][NP];
+     uint32_t fp[OWNERS];
++#ifdef SP_WB
++    uint8_t wb_have[WB_LOOKS];
++    uint8_t wb[WB_LOOKS][WB_BYTES];
++#endif
+     uint32_t rec[REC_WORDS];
+     Raw raw;
+ } State;
+@@ -251,21 +278,91 @@
      s->dirty = 1;
  }
  
 -/* Hook of the firmware's "style of set c" setter (photo 0x532BBE84..., movie 0x53305A6C...). */
++#ifdef SP_WB
++/* ---- white balance per look (SP_WB) ------------------------------------------------------------ */
++/* Offset of each WB field and its notifying setter (the "set and tell the listeners" entry, as the
++ * firmware's own menus use). Fields 25 (Tungsten B-A, 0x136) and 29 (colour temperature, 0x13c)
++ * are half-words. */
++static const uint16_t WB_OFF[WB_N] = {
++    0x11d, 0x11e, 0x11f, 0x120, 0x121, 0x122, 0x123, 0x124, 0x125, 0x126, 0x127, 0x128, 0x129, 0x12a, 0x12b,
++    0x12c, 0x12d, 0x12e, 0x12f, 0x130, 0x131, 0x132, 0x133, 0x134, 0x135, 0x136, 0x138, 0x139, 0x13a, 0x13c};
++#define WB_WIDE ((1u << 25) | (1u << 29))
++static const uint32_t wb_setters[WB_N] = {
++    0x532b7ff8, 0x532b8184, 0x532b8310, 0x532b849c, 0x532b8628, 0x532b87b4, 0x532b8940, 0x532b8acc,
++    0x532b8c58, 0x532b8de4, 0x532b8f70, 0x532b90fc, 0x532b9288, 0x532b9414, 0x532b95a0,
++    0x532b972c, 0x532b98b8, 0x532b9a44, 0x532b9bd0, 0x532b9d5c, 0x532b9ee8, 0x532ba074, 0x532ba200,
++    0x532ba38c, 0x532ba518, 0x532ba6b0, 0x532ba83c, 0x532ba9c8, 0x532bab54, 0x532bace8};
++typedef uint32_t (*wb_setter_fn)(void *obj, uint32_t value);
++
++static uint32_t wb_field(const volatile uint8_t *b, uint32_t k) {
++    uint32_t o = WB_OFF[k] - WB_FIRST;
++    return (WB_WIDE >> k) & 1u ? (uint32_t)b[o] | ((uint32_t)b[o + 1] << 8) : b[o];
++}
++
++/* The look of the photo set in use; WB_LOOKS when there is none. */
++static uint32_t active_look(void) {
++    uint32_t a = settings_object[ACTIVE_SET];
++    return a < 4 ? style_of((int)a) : WB_LOOKS;
++}
++
++/* The WB in the settings now belongs to `look`. */
++static void wb_take(State *s, uint32_t look) {
++    if (look >= WB_LOOKS) return;
++    for (uint32_t i = 0; i < WB_BYTES; i++) {
++        uint8_t v = settings_object[WB_FIRST + i];
++        if (s->wb[look][i] != v || !s->wb_have[look]) { s->wb[look][i] = v; s->dirty = 1; }
++    }
++    if (!s->wb_have[look]) { s->wb_have[look] = 1; s->dirty = 1; }
++}
++
++/* `look`'s WB, if it has one, through the firmware's setters; the mode last. A look never used
++ * before keeps the WB in the settings. */
++static void wb_give(State *s, uint32_t look) {
++    if (look >= WB_LOOKS || !s->wb_have[look]) return;
++    for (uint32_t n = 0; n < WB_N; n++) {
++        uint32_t k = (n + 1) % WB_N;
++        uint32_t v = wb_field(s->wb[look], k);
++        if (wb_field(&settings_object[WB_FIRST], k) != v) ((wb_setter_fn)wb_setters[k])(settings_object, v);
++    }
++}
++
++static void wb_switch(State *s, void *obj, uint32_t from, uint32_t to) {
++    if (obj != (void *)settings_object || from == to) return;
++    wb_take(s, from);
++    wb_give(s, to);
++}
++
++/* Hook of the firmware's StillActiveImageControlSet setter (the photo set in use changes). */
++uint32_t sp_active_set(void *obj, uint32_t value, uint32_t entry) {
++    uint32_t before = active_look();
++    uint32_t r = native_wrapper(obj, value, entry);
++    State *s = state();
++    if (s && s->loaded) wb_switch(s, obj, before, active_look());
++    return r;
++}
++#endif
++
 +/* Hook of the firmware's "style of set c" setter (photo 0x532BBE84..., movie 0x53305A6C...; firmware 1.20). */
  uint32_t sp_style_set(void *obj, uint32_t style, uint32_t c, uint32_t entry) {
      uint32_t before = style_of((int)c);
++#ifdef SP_WB
++    uint32_t active = settings_object[ACTIVE_SET];
++#endif
      uint32_t r = native_wrapper(obj, style, entry);
-@@ -265,7 +267,7 @@
+     State *s = state();
+     if (s && s->loaded) {
+         int from = owner_of(before), to = owner(c);
+         if (from < 0) from = 0;
+         if (from != to) move_owner(s, (int)c, from, to);
++#ifdef SP_WB
++        if (c == active) wb_switch(s, obj, before, style_of((int)c));
++#endif
+     }
+     return r;
  }
  
  /* ---- RAW development ------------------------------------------------------------------- */
@@ -6000,7 +6360,7 @@ diff --git a/tools/gr4v120/slotparams/slot_params.c b/tools/gr4v120/slotparams/s
  static const uint8_t RAW_POS[NP] = {0, 1, 2, 3, 4, 5, 6, 8, 14, 15, 16, RAW_ROW, RAW_ROW + 1};
  
  static int raw_owner(uint32_t look) {
-@@ -276,7 +278,7 @@
+@@ -276,7 +373,7 @@
  
  /* Cinema Yellow's bytes of a base: its row and its grain pair. */
  static volatile uint8_t *raw_row(uint8_t *m, uint32_t b) { return m + RAW_ROWS + b * RAW_BASE_STRIDE + RAW_CY * RAW_ROW; }
@@ -6009,6 +6369,233 @@ diff --git a/tools/gr4v120/slotparams/slot_params.c b/tools/gr4v120/slotparams/s
  
  static void raw_save(State *s, uint32_t b, int o) {
      volatile uint8_t *row = raw_row(s->raw.model, b), *g = raw_grain(s->raw.model, b);
+@@ -361,6 +458,18 @@
+         copy_bytes(&s->t[0][0][0], (const uint8_t *)&r[3], TBYTES_V2);
+         return 4;
+     }
++#ifdef SP_WB
++    if (size == REC_WORDS_V4 * 4) {
++        if (!store_read(st, REC_ID, REC_WORDS_V4 * 4, s->rec)) return 0;
++        if (s->rec[0] == OLD_MAGIC) return 2;
++        if (s->rec[0] != REC_MAGIC || s->rec[1] != REC_VERSION_V4 || s->rec[2] != TBYTES) return 0;
++        if (s->rec[REC_WORDS_V4 - 1] != checksum(s->rec, REC_WORDS_V4 - 1)) return 0;
++        for (uint32_t o = 0; o < OWNERS; o++) s->fp[o] = s->rec[3 + o];
++        copy_bytes(&s->t[0][0][0], (const uint8_t *)&s->rec[3 + OWNERS], TBYTES);
++        s->dirty = 1;   /* no WB yet: every look starts from the WB in the settings */
++        return 1;
++    }
++#endif
+     if (size != REC_WORDS * 4) return 0;
+     if (!store_read(st, REC_ID, REC_WORDS * 4, s->rec)) return 0;
+     if (s->rec[0] == OLD_MAGIC) return 2;
+@@ -368,6 +477,10 @@
+     if (s->rec[REC_WORDS - 1] != checksum(s->rec, REC_WORDS - 1)) return 0;
+     for (uint32_t o = 0; o < OWNERS; o++) s->fp[o] = s->rec[3 + o];
+     copy_bytes(&s->t[0][0][0], (const uint8_t *)&s->rec[3 + OWNERS], TBYTES);
++#ifdef SP_WB
++    copy_bytes(s->wb_have, (const uint8_t *)&s->rec[3 + OWNERS + TBYTES / 4u], WB_LOOKS);
++    copy_bytes(&s->wb[0][0], (const uint8_t *)&s->rec[3 + OWNERS + TBYTES / 4u] + WB_LOOKS, WB_LOOKS * WB_BYTES);
++#endif
+     return 1;
+ }
+ 
+@@ -377,6 +490,10 @@
+     s->rec[0] = REC_MAGIC; s->rec[1] = REC_VERSION; s->rec[2] = TBYTES;
+     for (uint32_t o = 0; o < OWNERS; o++) s->rec[3 + o] = s->fp[o];
+     copy_bytes((uint8_t *)&s->rec[3 + OWNERS], &s->t[0][0][0], TBYTES);
++#ifdef SP_WB
++    copy_bytes((uint8_t *)&s->rec[3 + OWNERS + TBYTES / 4u], s->wb_have, WB_LOOKS);
++    copy_bytes((uint8_t *)&s->rec[3 + OWNERS + TBYTES / 4u] + WB_LOOKS, &s->wb[0][0], WB_LOOKS * WB_BYTES);
++#endif
+     s->rec[REC_WORDS - 1] = checksum(s->rec, REC_WORDS - 1);
+     s->last_write = store_write(st, REC_ID, REC_WORDS * 4, s->rec) ? 1 : 2;
+     if (s->last_write == 1) s->dirty = 0;
+@@ -488,6 +605,9 @@
+ uint32_t sp_save(uint8_t *mode) {
+     uint32_t r = prior_native_save(mode);
+     State *s = state();
++#ifdef SP_WB
++    if (s && s->loaded) wb_take(s, active_look());
++#endif
+     if (s && s->loaded && s->dirty) write_record(s);
+     return r;
+ }
+diff --git a/tools/gr4v120/slotparams/test_wb_per_look.py b/tools/gr4v120/slotparams/test_wb_per_look.py
+new file mode 100644
+--- /dev/null
++++ b/tools/gr4v120/slotparams/test_wb_per_look.py
+@@ -0,0 +1,171 @@
++# SPDX-License-Identifier: GPL-2.0-only
++"""White balance per look (option wbPerLook, slot_params.c built with SP_WB) in a built GR IV 1.20 RTOS.
++
++Runs the patched RTOS in this release's emulator (../aspect/boot_checks.py, Machine): the hooked "style of
++set" and "photo set in use" setters, the slot-parameters module, the firmware's WB setters and their own
++code all run as built. Stubbed: the heap (bump allocator), free, the settings store (record 12 kept in a
++dict) and the two change-notification calls (no listeners: what the rest of the camera does with a WB
++change is only seen on the camera). Settings save / load go through their real entries with the native
++body stubbed, as the boot checks' settings test does. Checks a look change in the photo set in use and
++in another set, a change of the photo set in use, save and load of the record (version 5), and a
++version 4 record (the table kept, no look has a WB yet, rewritten).
++
++    python3 tools/gr4v120/slotparams/test_wb_per_look.py RTOS
++
++RTOS: the decoded RTOS section of a 1.20 build with added slots and wbPerLook. Needs unicorn.
++"""
++import os, sys, struct, random
++from pathlib import Path
++ASPECT = str(Path(__file__).resolve().parent.parent / 'aspect'); sys.path.insert(0, ASPECT); os.chdir(ASPECT)
++src = open(os.path.join(ASPECT, 'boot_checks.py')).read()
++src = src[:src.index("\nif __name__ == '__main__':")]
++import types
++bc = types.ModuleType('boot_checks'); bc.__file__ = os.path.join(ASPECT, 'boot_checks.py')
++exec(compile(src, bc.__file__, 'exec'), bc.__dict__)
++from unicorn import UC_PROT_ALL
++from unicorn import arm_const as reg
++
++# GR IV 1.20 addresses (slots.ts, slot_params.c, gen_slotparams.py).
++SETTINGS = 0x550832a8             # settings_object
++SLOT_STATE = 0x55839020
++STYLE_SET = [0x532bbe84, 0x532bc014]   # "style of set" setters, photo standard and custom 1 (hooked)
++ACTIVE_SET = 0x532bbcf4           # StillActiveImageControlSet setter (hooked)
++WB_MODE_SETTER, WB_GM_DAYLIGHT, WB_TEMP = 0x532b7ff8, 0x532b8628, 0x532bace8
++HEAP_ALLOC, HEAP_FREE = 0x539084bc, 0x539084f8
++STORAGE, STORE_WRITE, STORE_READ, STORE_SIZE = 0x53aa958c, 0x53aa6764, 0x53aa6680, 0x53aa6524
++SETTINGS_LOAD, SETTINGS_SAVE = 0x533f3254, 0x533f3674
++# State layout from the compiler (offsetof in slot_params.c with SP_WB):
++MAGIC, ST_LOADED, ST_DIRTY, ST_T, ST_HAVE, ST_WB, SIZEOF_STATE = 0x50534c54, 4, 8, 0x10, 0x8EC, 0x926, 0x282C
++WB_FIRST, WB_BYTES, REC_WORDS, REC_WORDS_V4 = 0x11D, 33, 1064, 571
++EXTRA, EXTRA_LEN = 0x55400000, 0x500000
++HEAP, FAKE_STATE = 0x55600000, 0x558F0000
++STOP = 0x53100000 + 0x4000
++
++patched = open(sys.argv[1], 'rb').read()
++m = bc.Machine(patched)
++m.uc.mem_map(EXTRA, EXTRA_LEN, UC_PROT_ALL)
++# No RTOS in the emulator: every system call (svc) is logged and returns 0 (E_OK).
++from unicorn import UC_HOOK_INTR
++syscalls = {}
++def on_intr(uc, intno, data):
++    if intno != 2: return
++    svc = struct.unpack('<I', bytes(uc.mem_read(uc.reg_read(reg.UC_ARM_REG_PC) - 4, 4)))[0] & 0xffffff
++    key = (svc, uc.reg_read(reg.UC_ARM_REG_R12))
++    syscalls[key] = syscalls.get(key, 0) + 1
++    uc.reg_write(reg.UC_ARM_REG_R0, 0)
++m.uc.hook_add(UC_HOOK_INTR, on_intr)
++m.reset(bc.random_state(random.Random(5)))
++m.uc.mem_write(EXTRA, bytes(EXTRA_LEN))
++store = {}
++heap = [HEAP]
++def rd(a, n): return bytes(m.uc.mem_read(a, n))
++def wr(a, b): m.uc.mem_write(a, b)
++def u32(a): return struct.unpack('<I', rd(a, 4))[0]
++def r(n): return m.uc.reg_read(getattr(reg, 'UC_ARM_REG_R%d' % n))
++def s_alloc(mm):
++    n = (r(0) + 15) & ~15; a = heap[0]; heap[0] += n; wr(a, bytes(n)); bc.ret(mm, a)
++def s_store_size(mm): bc.ret(mm, len(store[r(1)]) if r(1) in store else 0)
++def s_store_read(mm):
++    d = store.get(r(1));
++    if d is None or len(d) < r(2): bc.ret(mm, 0); return
++    wr(r(3), d[:r(2)]); bc.ret(mm, 1)
++def s_store_write(mm): store[r(1)] = rd(r(3), r(2)); bc.ret(mm, 1)
++STORE_OBJ = 0x55700000
++def s_storage(mm): wr(STORE_OBJ + 0x14, struct.pack('<I', STORE_OBJ + 0x100)); bc.ret(mm, STORE_OBJ)
++def native_body(mm): bc.ret(mm, 0x1234ABCD)
++STUBS = {HEAP_ALLOC: s_alloc, HEAP_FREE: lambda mm: bc.ret(mm, 0), STORAGE: s_storage,
++         STORE_WRITE: s_store_write, STORE_READ: s_store_read, STORE_SIZE: s_store_size,
++         SETTINGS_LOAD + 4: native_body, SETTINGS_SAVE + 4: native_body,
++         # The change notifications (queue a change, collect the listeners): no listeners here. What the
++         # rest of the camera does with a WB change can only be seen on the camera.
++         0x532af3a0: lambda mm: bc.ret(mm, 0), 0x532af040: lambda mm: bc.ret(mm, 0)}
++
++def call(addr, *args):
++    for i, v in enumerate(args): m.uc.reg_write(getattr(reg, 'UC_ARM_REG_R%d' % i), v)
++    m.uc.reg_write(reg.UC_ARM_REG_SP, bc.STACK + bc.STACK_SIZE - 0x1000)
++    m.uc.reg_write(reg.UC_ARM_REG_LR, STOP)
++    m.uc.reg_write(reg.UC_ARM_REG_CPSR, 0x13)
++    m.stubs = STUBS
++    problem = m.run(addr, lambda pc: pc == STOP, limit=2_000_000)
++    m.stubs = {}
++    assert not problem, "call %#x: %s (lr=%#x)" % (addr, problem, m.uc.reg_read(reg.UC_ARM_REG_LR))
++    return r(0)
++
++def wb(): return rd(SETTINGS + WB_FIRST, WB_BYTES)
++def style(c): return rd(SETTINGS + 0x153 + c, 1)[0]
++def have(look): return rd(FAKE_STATE + ST_HAVE + look, 1)[0]
++def saved(look): return rd(FAKE_STATE + ST_WB + look * WB_BYTES, WB_BYTES)
++checks = []
++def checksum(words):   # slot_params.c checksum()
++    v = 0x6a09e667
++    for i, x in enumerate(words): v = (((v ^ x) * 0x01000193) + i) & 0xffffffff
++    return v
++def check(what, ok):
++    checks.append(what); print(('ok    ' if ok else 'FAIL  ') + what)
++    if not ok: raise SystemExit(1)
++
++# The settings object is a C++ function-local static (accessor 0x53240c38): mark it constructed (guard
++# word 0x55083244, bit 0), as it is long before any menu change on the camera.
++wr(0x55083244, struct.pack('<I', u32(0x55083244) | 1))
++# A loaded module (as after the first settings load), no WB remembered yet.
++wr(FAKE_STATE, bytes(SIZEOF_STATE)); wr(FAKE_STATE, struct.pack('<III', MAGIC, 1, 0)); wr(SLOT_STATE, struct.pack('<I', FAKE_STATE))
++STD, CY, ADDED0, ADDED1 = 11, 18, 38, 39
++wr(SETTINGS + 0x152, b'\x00'); wr(SETTINGS + 0x153, bytes([STD])); wr(SETTINGS + 0x154, bytes([ADDED0]))
++P0 = bytes(random.Random(1).randrange(0, 9) for _ in range(WB_BYTES)); wr(SETTINGS + WB_FIRST, P0)
++
++call(STYLE_SET[0], SETTINGS, CY)
++check('look change in the active set: the look is now Cinema Yellow', style(0) == CY)
++check('the old look (Standard) remembers its WB', have(STD) == 1 and saved(STD) == P0)
++check('a look never used before keeps the WB in the settings', wb() == P0 and have(CY) == 0)
++
++call(WB_MODE_SETTER, SETTINGS, 4); call(WB_GM_DAYLIGHT, SETTINGS, 7); call(WB_TEMP, SETTINGS, 0x1234)
++P1 = wb()
++check('the firmware WB setters changed the WB (mode, Daylight G-M, colour temperature)', P1 != P0 and P1[0] == 4 and P1[4] == 7 and P1[31:33] == b'\x34\x12')
++
++call(STYLE_SET[0], SETTINGS, STD)
++check('back to Standard: Cinema Yellow remembers its WB', have(CY) == 1 and saved(CY) == P1)
++check('back to Standard: all 33 bytes of Standard\'s WB restored through the setters', wb() == P0)
++call(STYLE_SET[0], SETTINGS, CY)
++check('to Cinema Yellow again: its WB restored', wb() == P1)
++
++call(STYLE_SET[1], SETTINGS, ADDED1)
++check('look change in a set not in use: WB unchanged, nothing remembered', style(1) == ADDED1 and wb() == P1 and have(ADDED0) == 0 and have(ADDED1) == 0)
++
++call(ACTIVE_SET, SETTINGS, 1)
++check('photo set in use 0 -> 1: active look is the added look, which keeps the WB in the settings', rd(SETTINGS + 0x152, 1)[0] == 1 and wb() == P1)
++call(WB_MODE_SETTER, SETTINGS, 2); P2 = wb()
++call(ACTIVE_SET, SETTINGS, 0)
++check('photo set in use 1 -> 0: the added look remembers its WB, Cinema Yellow\'s comes back', have(ADDED1) == 1 and saved(ADDED1) == P2 and wb() == P1)
++
++wr(FAKE_STATE + ST_DIRTY, struct.pack('<I', 1))
++call(SETTINGS_SAVE, 0x55710000)
++rec = store.get(12)
++check('settings save writes record 12 at its new size (%d words)' % REC_WORDS, rec is not None and len(rec) == REC_WORDS * 4)
++w = struct.unpack('<%dI' % REC_WORDS, rec)
++check('record: magic GRP2, version 5, checksum valid', w[0] == 0x32505247 and w[1] == 5 and w[-1] == checksum(w[:-1]))
++wbblock = rec[(3 + 21 + 2184 // 4) * 4:]
++check('record: the WB block holds Standard, Cinema Yellow and the added look', wbblock[STD] == 1 and wbblock[CY] == 1 and wbblock[ADDED1] == 1 and wbblock[58 + STD * 33:58 + STD * 33 + 33] == P0 and wbblock[58 + ADDED1 * 33:58 + ADDED1 * 33 + 33] == P2)
++
++# A fresh start: the module loads the record it saved.
++wr(SLOT_STATE, b'\0' * 4)
++cur = 0x55720000; wr(cur, rd(SETTINGS + 4, 0x800))
++MODE_OBJ = 0x55730000; wr(MODE_OBJ, bytes(0x100))   # settings mode: no user-mode snapshots
++call(SETTINGS_LOAD, MODE_OBJ, cur, 0, 0)
++st = u32(SLOT_STATE)
++check('settings load at start: the module allocates its state (%#x bytes)' % SIZEOF_STATE, st >= HEAP and u32(st) == MAGIC)
++check('settings load: the remembered WB of each look comes back from the record', all(rd(st + ST_HAVE + k, 1)[0] == wbblock[k] for k in range(58)) and rd(st + ST_WB + CY * 33, 33) == P1)
++
++# A version 4 record (today's build): parameters kept, no WB remembered, rewritten at the next save.
++t_saved = rd(st + ST_T, 2184)
++ST_FP = 0x898
++fp_now = struct.unpack('<21I', rd(st + ST_FP, 84))
++check('the loaded state has this build\'s fingerprints for the 7 added looks', all(fp_now[1:8]))
++v4 = [w[0], 4, w[2], *fp_now, *struct.unpack('<%dI' % (2184 // 4), t_saved)]
++v4.append(checksum(v4))
++store[12] = struct.pack('<%dI' % len(v4), *v4)
++check('version 4 record has the old size (%d words)' % REC_WORDS_V4, len(store[12]) == REC_WORDS_V4 * 4)
++wr(SLOT_STATE, b'\0' * 4); call(SETTINGS_LOAD, MODE_OBJ, cur, 0, 0); st = u32(SLOT_STATE)
++check('version 4 record: the parameter table is kept', rd(st + ST_T, 2184) == t_saved)
++check('version 4 record: no look has a WB yet, and the record is marked for rewriting', not any(rd(st + ST_HAVE, 58)) and u32(st + ST_DIRTY) == 1)
++print('all %d checks passed' % len(checks))
++print('RTOS calls answered with 0:', {f'svc {a} ip={b:#x}': n for (a, b), n in sorted(syscalls.items())})
 diff --git a/tools/gr4v120/softfocus/check.py b/tools/gr4v120/softfocus/check.py
 --- a/tools/gr4v120/softfocus/check.py
 +++ b/tools/gr4v120/softfocus/check.py
