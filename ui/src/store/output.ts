@@ -153,6 +153,9 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   const awbLearn = !stock && awbLearnOn();
   const movieExposure = !stock && movieExposureOn();
   const constantLight = !stock && constantLightOn();
+  const sensorShift = !stock && sensorShiftOn();
+  const movie4k = !stock && movie4kOn();
+  const movieSr = !stock && movieSrOn();
   const brightAuto = stock ? false : brightAutoOf();
   const adjSlots = stock ? 5 : adjSlotsOf();
   if (!stock && (hasNameErrors() || hasRatioErrors())) return;
@@ -196,6 +199,9 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (awbLearn) lines.push(t('navAwb'));
     if (movieExposure) lines.push(t('navMovieExp'));
     if (constantLight) lines.push(t('navLamp'));
+    if (sensorShift) lines.push(t('navShift'));
+    if (movie4k) lines.push(t('navMovie4k'));
+    if (movieSr) lines.push(t('navMovieSr'));
     if (adjSlots > 5) lines.push(`${t('navAdjSlots')}  ·  ${t('chkCount', { n: adjSlots })}`);
     if (extras.length) lines.push(named(t('extraTitle'), extras.length));
     if (lookLayout) lines.push(lookLayout.hidden.length ? `${t('icViewOrder')}  ·  ${t('chkHidden', { n: lookLayout.hidden.length })}` : t('icViewOrder'));

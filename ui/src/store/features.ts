@@ -120,6 +120,21 @@ export function setConstantLight(constantLight: boolean): void {
   set({ constantLight }); scheduleSave();
 }
 export function constantLightOn(s: State = state): boolean { return !!s.constantLight && !!s.info?.features.constantLight; }
+export function setSensorShift(sensorShift: boolean): void {
+  if (sensorShift && !state.info?.features.sensorShift) return;
+  set({ sensorShift }); scheduleSave();
+}
+export function sensorShiftOn(s: State = state): boolean { return !!s.sensorShift && !!s.info?.features.sensorShift; }
+export function setMovie4k(movie4k: boolean): void {
+  if (movie4k && !state.info?.features.movie4k) return;
+  set({ movie4k }); scheduleSave();
+}
+export function movie4kOn(s: State = state): boolean { return !!s.movie4k && !!s.info?.features.movie4k; }
+export function setMovieSr(movieSr: boolean): void {
+  if (movieSr && !state.info?.features.movieSr) return;
+  set({ movieSr }); scheduleSave();
+}
+export function movieSrOn(s: State = state): boolean { return !!s.movieSr && !!s.info?.features.movieSr; }
 /** ADJ lever slots (5..8): the camera's five unless the firmware can have more. */
 export function setAdjSlots(adjSlots: number): void {
   if (!(Number.isInteger(adjSlots) && adjSlots >= 5 && adjSlots <= (state.info?.features.maxAdjSlots ?? 5))) return;

@@ -170,6 +170,9 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
   if (summary.awbLearn) lines.push(t('awbLine'));
   if (summary.movieExposure) lines.push(t('movieExpLine'));
   if (summary.constantLight) lines.push(t('lampLine'));
+  if (summary.sensorShift) lines.push(t('shiftLine'));
+  if (summary.movie4k) lines.push(t('movie4kLine'));
+  if (summary.movieSr) lines.push(t('movieSrLine'));
   if (summary.adjSlots) lines.push(t('adjSlotsLine', { n: summary.adjSlots }));
   if (summary.batteryPercent) lines.push(t('batteryLine'));
   if (summary.customGrid) lines.push(t('gridLine', { a: gridText(summary.customGrid, 'g3'), b: gridText(summary.customGrid, 'g4') }));

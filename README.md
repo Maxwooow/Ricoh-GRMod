@@ -54,8 +54,12 @@ Use only firmware intended for your camera model and a base version listed above
 - **Shadow Correction, learned Auto:** Auto lifts the shadows by an amount estimated from the scene, on the GR IV (firmware 1.11, 1.20 and 1.21).
 - **Film grain:** an optimized film grain in place of the camera's Grain Effect, on GR IV 1.20 / 1.21.
 - **Phase Detect AF for Video:** while recording, the sensor's phase data drives the lens, with less focus hunting, on GR IV 1.20 / 1.21.
-- **Exposure Modes for Video:** movies are recorded in the mode dial's exposure mode (P / Av / Tv / M) instead of always in P, with aperture, shutter speed and ISO shown and adjustable, on GR IV 1.20 / 1.21.
+- **Exposure Control in Video Mode:** movies are recorded in the mode dial's exposure mode (P / Av / Tv / M) instead of always in P, with aperture, shutter speed and ISO shown and adjustable, on GR IV 1.20 / 1.21.
+- **4K Video:** the movie menu's Framerate becomes Framerate / Resolution; 4K (3840×2160) at 30p and 24p, on GR IV 1.20 / 1.21.
+- **Sensor-Shift SR for Video:** Movie SR offers Off, Sensor Shift and Electronic; Off and Sensor Shift record the whole picture without the electronic shake reduction's crop, on GR IV 1.20 / 1.21.
 - **Learned auto white balance:** Auto, Warmth Priority and White Priority estimate the light with a learned model, on GR IV 1.20 / 1.21.
+- **Constant Light:** keeps the AF assist lamp lit, switched in the shooting menu, in ADJ mode or by an Fn button, on GR IV 1.20 / 1.21.
+- **Sensor Shift:** shift and turn the sensor by hand with the shake reduction unit to fine-tune the framing, from ADJ mode, the Fn button or the held Movie button, on GR IV 1.20 / 1.21.
 - **Custom grid lines:** choose which lines a 3x3 and a 4x4 grid draw, on the GR IV (firmware 1.11, 1.20 and 1.21; on 1.20 / 1.21 they are extra values of the camera's Grid Style list, next to its own).
 
 Features vary by camera model and firmware version. The app only offers options supported by the selected firmware.

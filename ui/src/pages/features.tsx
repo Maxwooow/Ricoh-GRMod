@@ -4,7 +4,7 @@ import { FirmwareHero } from '../firmware';
 import { t } from '../i18n';
 import {
   useStore, loadFirmwareFile, gridOffered, setExtrasView, setSoft, setDateStamp, setMonoUnlock, setFlashPlus, flashPlusOn, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain,
-  setShadowLearn, setBattery, setVideoAf, setMovieExposure, setAwbLearn, setConstantLight, setBrightAuto, setCustomGrid,
+  setShadowLearn, setBattery, setVideoAf, setMovieExposure, setAwbLearn, setConstantLight, setSensorShift, setMovie4k, setMovieSr, setBrightAuto, setCustomGrid,
 } from '../store';
 import { isFirmware } from './files';
 import { GridDetail, GridThumb } from './grid';
@@ -95,6 +95,12 @@ function ExtrasList() {
   const awbOk = useStore((s) => !!s.info?.features.awbLearn);
   const lamp = useStore((s) => s.constantLight);
   const lampOk = useStore((s) => !!s.info?.features.constantLight);
+  const shift = useStore((s) => s.sensorShift);
+  const shiftOk = useStore((s) => !!s.info?.features.sensorShift);
+  const m4k = useStore((s) => s.movie4k);
+  const m4kOk = useStore((s) => !!s.info?.features.movie4k);
+  const msr = useStore((s) => s.movieSr);
+  const msrOk = useStore((s) => !!s.info?.features.movieSr);
   const gridOk = useStore((s) => gridOffered(s));
   // the level names without their "Auto brightness · " prefix, first letter up
   const level = (key: 'brightAutoOff' | 'brightAutoBalanced' | 'brightAutoBright'): string => ((x) => x.charAt(0).toUpperCase() + x.slice(1))(t(key).split(' · ').pop()!);
@@ -115,8 +121,11 @@ function ExtrasList() {
       )}
       {vafOk && <FeatureCapsule icon={Ico.movie} title={t('navVideoAf')} sub={t('videoAfSub')} on={vaf} onChange={setVideoAf} tour="ex-f-vaf" />}
       {mexpOk && <FeatureCapsule icon={Ico.movieExp} title={t('navMovieExp')} sub={t('movieExpSub')} on={mexp} onChange={setMovieExposure} tour="ex-f-mexp" />}
+      {m4kOk && <FeatureCapsule icon={Ico.movie4k} title={t('navMovie4k')} sub={t('movie4kSub')} on={m4k} onChange={setMovie4k} tour="ex-f-4k" />}
+      {msrOk && <FeatureCapsule icon={Ico.movieSr} title={t('navMovieSr')} sub={t('movieSrSub')} on={msr} onChange={setMovieSr} tour="ex-f-msr" />}
       {awbOk && <FeatureCapsule icon={Ico.wb} title={t('navAwb')} sub={t('awbSub')} on={awb} onChange={setAwbLearn} tour="ex-f-awb" />}
       {lampOk && <FeatureCapsule icon={Ico.lamp} title={t('navLamp')} sub={t('lampSub')} on={lamp} onChange={setConstantLight} tour="ex-f-lamp" />}
+      {shiftOk && <FeatureCapsule icon={Ico.shift} title={t('navShift')} sub={t('shiftSub')} on={shift} onChange={setSensorShift} tour="ex-f-shift" />}
       {gridOk && <GridCapsule />}
       {adjMax > 5 && (
         <ChoiceCapsule icon={Ico.adj} title={t('navAdjSlots')} sub={t('adjSlotsSub')} on={adj > 5} tour="ex-f-adj"
