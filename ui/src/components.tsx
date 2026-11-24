@@ -74,9 +74,38 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
   return <button type="button" role="switch" aria-checked={checked} aria-label={label} className={`switch ${checked ? 'on' : ''}`} onClick={() => onChange(!checked)}><i /></button>;
 }
 
+/**
+ * A choice of a few values in one row. The chosen one is marked by a pill that slides to it (placed over the
+ * button it marks; without the pill, before the first layout, the button shows the same mark itself).
+ */
 export function Segmented<T extends string>({ value, options, onChange, tour, className }: { value: T; options: { value: T; label: ReactNode; title?: string }[]; onChange: (v: T) => void; tour?: string; className?: string }) {
+  const box = useRef<HTMLDivElement>(null);
+  const pill = useRef<HTMLSpanElement>(null);
+  const place = (): void => {
+    const b = box.current; const p = pill.current;
+    if (!b || !p) return;
+    const on = b.querySelector<HTMLElement>(':scope > button.on');
+    if (!on || !on.offsetWidth) { b.classList.remove('piled'); return; }
+    p.style.width = `${on.offsetWidth}px`;
+    p.style.height = `${on.offsetHeight}px`;
+    p.style.transform = `translate(${on.offsetLeft}px, ${on.offsetTop}px)`;
+    b.classList.add('piled');
+  };
+  useLayoutEffect(place);
+  // without a movement when it is first placed and when the row changes its size (a language, a window)
+  useLayoutEffect(() => {
+    const b = box.current; const p = pill.current;
+    if (!b || !p) return undefined;
+    const still = (): void => { p.classList.add('still'); place(); requestAnimationFrame(() => p.classList.remove('still')); };
+    const frame = requestAnimationFrame(() => p.classList.remove('still'));
+    let first = true;
+    const ro = new ResizeObserver(() => { if (first) { first = false; return; } still(); });
+    ro.observe(b);
+    return () => { cancelAnimationFrame(frame); ro.disconnect(); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div className={className ? `seg ${className}` : 'seg'} role="tablist" data-tour={tour}>
+    <div className={className ? `seg ${className}` : 'seg'} role="tablist" data-tour={tour} ref={box}>
+      <span className="seg-pill still" ref={pill} aria-hidden />
       {options.map((o) => (
         <button key={o.value} role="tab" aria-selected={o.value === value} title={o.title} aria-label={o.title} className={o.value === value ? 'on' : ''} onClick={() => onChange(o.value)}>{o.label}</button>
       ))}

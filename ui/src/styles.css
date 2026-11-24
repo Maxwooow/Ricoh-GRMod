@@ -131,6 +131,14 @@ html:lang(ja) .prop-label { width: 72px; }
 .seg { display: inline-flex; background: var(--chip); border-radius: 6px; padding: 2px; }
 .seg button { border: 0; background: none; height: 24px; padding: 0 10px; border-radius: 4px; font-size: 12.5px; color: var(--muted); }
 .seg button.on { background: var(--bg); color: var(--text); box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgba(0, 0, 0, 0.08); font-weight: 500; }
+/* the pill that marks the chosen value and slides to it (components.tsx Segmented); with it in place the button itself is bare */
+.seg { position: relative; }
+.seg > button { position: relative; z-index: 1; transition: color 0.2s ease; }
+.seg-pill { position: absolute; left: 0; top: 0; width: 0; height: 0; border-radius: 4px; background: var(--bg); box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgba(0, 0, 0, 0.08); pointer-events: none; opacity: 0;
+  transition: transform 380ms cubic-bezier(0.22, 1, 0.36, 1), width 380ms cubic-bezier(0.22, 1, 0.36, 1); }
+.seg-pill.still { transition: none; }
+.seg.piled > .seg-pill { opacity: 1; }
+.seg.piled > button.on { background: none; box-shadow: none; }
 .check { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; cursor: pointer; }
 .check.small { font-size: 12.5px; }
 .check input { accent-color: var(--blue); margin: 0; }
@@ -321,15 +329,26 @@ html:lang(ja) .prop-label { width: 72px; }
 .grid-edit-body { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
 .grid-edit-preview { width: 180px; height: auto; flex: none; border-radius: 4px; display: block; }
 .grid-edit-hit { cursor: pointer; }
+/* the lines of the preview (pages/grid.tsx): each slides to its place in the other style, is drawn along its length
+   when switched on, over the dashed mark of where it would be, and shrinks back when switched off */
+.gl { transition: transform 460ms cubic-bezier(0.22, 1, 0.36, 1); }
+.gl-mark { stroke: rgba(255, 255, 255, 0.5); transition: opacity 220ms ease, stroke 120ms ease; }
+.gl-line { stroke-dashoffset: var(--gl-length); opacity: 0; transition: stroke-dashoffset 380ms cubic-bezier(0.4, 0, 0.6, 1), opacity 80ms ease 300ms, stroke 120ms ease; }
+.gl.on .gl-line { stroke-dashoffset: 0; opacity: 1; transition: stroke-dashoffset 460ms cubic-bezier(0.22, 1, 0.36, 1), opacity 40ms ease, stroke 120ms ease; }
+.gl.on .gl-mark { opacity: 0; }
+.gl.hot .gl-mark { stroke: rgba(255, 255, 255, 0.95); }
+.gl.hot .gl-line { stroke: rgba(0, 0, 0, 0.72); }
 .grid-edit-lines { display: grid; gap: 6px; min-width: 0; }
 .grid-edit-group { display: grid; gap: 3px; }
+.grid-edit .btn.small { transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, transform 140ms cubic-bezier(0.22, 1, 0.36, 1); }
+.grid-edit .btn.small:active { transform: scale(0.95); }
 .grid-edit .btn.small[aria-pressed='true'] { background: var(--blue-bg); border-color: var(--blue); color: var(--blue); }
 .grid-edit .btn.small[aria-pressed='false'] { border-style: dashed; color: var(--muted); }
 .grid-edit p { margin: 0; }
 /* Custom grid page: the switch, then the editor, dimmed while the switch is off. */
 .grid-page { display: flex; flex-direction: column; gap: 14px; max-width: 900px; min-height: 0; overflow-y: auto; padding-right: 3px; }
 .grid-page > .capsule { flex: none; max-width: 640px; }
-.grid-page .grid-edit { padding: 0; }
+.grid-page .grid-edit { padding: 0; transition: opacity 240ms ease; }
 .grid-page .grid-edit-preview { width: min(100%, 520px); }
 .grid-page.off .grid-edit { opacity: 0.45; pointer-events: none; }
 .soft-switch .soft-ico { width: 32px; height: 32px; flex: none; }
@@ -362,8 +381,11 @@ html:lang(ja) .prop-label { width: 72px; }
 /* A capsule with settings of its own: a row that opens them. */
 .capsule-open { margin-top: auto; display: flex; align-items: center; gap: 6px; width: 100%; height: 34px; padding: 0 12px; border: 1px solid var(--line2); border-radius: 17px; background: var(--bg); color: var(--text); font-weight: 500; font-size: 13.5px; cursor: pointer; transition: background 0.1s, border-color 0.1s; }
 .capsule-open:hover { background: var(--hover); }
-.capsule-open .capsule-chev { margin-left: auto; font-size: 18px; line-height: 1; color: var(--muted); }
+.capsule-open .capsule-chev { margin-left: auto; font-size: 18px; line-height: 1; color: var(--muted); transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), color 160ms ease; }
+.capsule-open:hover .capsule-chev { transform: translateX(3px); color: var(--text); }
+.capsule-open:active { transform: scale(0.985); }
 .grid-thumbs { display: flex; gap: 8px; }
+.grid-thumbs { transition: opacity 240ms ease; }
 .grid-thumbs.off { opacity: 0.5; }
 .grid-thumb { flex: 1; min-width: 0; max-width: 96px; height: auto; border-radius: 6px; display: block; }
 /* The custom grid's editor, opened from its capsule: back to the list in the header. */
@@ -374,6 +396,15 @@ html:lang(ja) .prop-label { width: 72px; }
 .page-head .crumb-up:hover { color: var(--text); }
 .page-head .crumb-sep { color: var(--faint); font-weight: 400; }
 .page-head .m-crumb { display: none; }
+/* a page's content comes in when the page is shown; a page's head changes with a short move (the way into a
+   sub-page from the right, the way back from the left). The grid editor and the list it returns to move their
+   own parts instead (pages/grid.tsx). */
+@keyframes page-in { from { opacity: 0; transform: translateY(6px); } }
+@keyframes crumb-in { from { opacity: 0; transform: translateX(12px); } }
+.app:not(.mobile) .stage > .page > :not(.page-head):not(.overlay):not(.grid-page) { animation: page-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.page-head > * { animation: page-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.page-head.sub > * { animation-name: crumb-in; animation-duration: 340ms; }
+.page-head.sub > .back-btn { animation-name: fade; animation-duration: 240ms; }
 .switch { flex: none; position: relative; width: 34px; height: 20px; padding: 0; border: 0; border-radius: 10px; background: var(--line2); cursor: pointer; transition: background 0.18s; }
 .switch i { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); transition: transform 0.18s cubic-bezier(0.22, 0.8, 0.24, 1); }
 .switch.on { background: var(--blue); }

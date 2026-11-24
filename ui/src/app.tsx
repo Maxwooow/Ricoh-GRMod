@@ -11,11 +11,11 @@ import { t, uiLangPref, UI_LANGS, UI_LANG_NAMES, isUiLang } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
 import { FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
-import { CropEditor, ExtrasPage, ImageControlPage, RatioPage, WallpaperPage } from './pages';
+import { CropEditor, ExtrasPage, ImageControlPage, RatioPage, WallpaperPage, closeGrid } from './pages';
 import { Tour, replayTour, restartTours } from './tour';
 import { UpdatePill, UpdateWatcher, checkForUpdate, openWhatsNew } from './updates';
 import {
-  getState, isGr3, setExtrasView, backupCopies, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setAppLanguage, setModel, setPage, setShowAll, useStore, wallReady,
+  getState, isGr3, backupCopies, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setAppLanguage, setModel, setPage, setShowAll, useStore, wallReady,
 } from './store';
 import type { State } from './store';
 
@@ -472,7 +472,7 @@ function MobileApp() {
   }, []);
   // back on another page goes to the first; on the first, the app goes to the background
   // (the custom grid's editor goes back to the additions first)
-  useLayoutEffect(() => { setBackFallback(() => { const s = getState(); if (s.page === 'extras' && s.extrasView === 'grid') { setExtrasView('list'); return true; } if (s.page === 'ic') return false; setPage('ic'); return true; }); }, []);
+  useLayoutEffect(() => { setBackFallback(() => { const s = getState(); if (s.page === 'extras' && s.extrasView === 'grid') { closeGrid(); return true; } if (s.page === 'ic') return false; setPage('ic'); return true; }); }, []);
   // Switching pages: each page keeps where it was scrolled to, and the new one slides in from the side of its tab.
   const stage = useRef<HTMLDivElement>(null);
   const scrolls = useRef<Record<string, number>>({});

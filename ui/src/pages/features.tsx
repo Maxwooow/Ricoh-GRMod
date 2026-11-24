@@ -1,24 +1,25 @@
+import { useRef } from 'react';
 import type { ReactNode } from 'react';
 import { DropZone, Ico, Segmented, Switch } from '../components';
 import { FirmwareHero } from '../firmware';
 import { t } from '../i18n';
 import {
-  useStore, loadFirmwareFile, gridOffered, setExtrasView, setSoft, setDateStamp, setMonoUnlock, setFlashPlus, flashPlusOn, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain,
+  useStore, loadFirmwareFile, gridOffered, setSoft, setDateStamp, setMonoUnlock, setFlashPlus, flashPlusOn, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain,
   setShadowLearn, setBattery, setVideoAf, setMovieExposure, setAwbLearn, setConstantLight, setSensorShift, setMovie4k, setMovieSr, setBrightAuto, setCustomGrid,
 } from '../store';
 import { isFirmware } from './files';
-import { GridDetail, GridThumb } from './grid';
+import { GridDetail, GridThumb, closeGrid, openGrid, useGridArrival } from './grid';
 
 /**
  * One addition as a capsule: icon, name and its control on top, what it does below, and under that
  * a wider control (a choice of a few values) or a way into its own settings. The capsules fill the
  * page in as many columns as fit (styles.css `.capsules`).
  */
-function Capsule({ icon, title, sub, on, control, foot, tour, onOpen }: {
-  icon: ReactNode; title: string; sub: string; on: boolean; control?: ReactNode; foot?: ReactNode; tour?: string; onOpen?: () => void;
+function Capsule({ icon, title, sub, on, control, foot, tour, onOpen, morph }: {
+  icon: ReactNode; title: string; sub: string; on: boolean; control?: ReactNode; foot?: ReactNode; tour?: string; onOpen?: () => void; morph?: string;
 }) {
   return (
-    <div className={`capsule ${on ? 'on' : ''} ${onOpen ? 'opens' : ''}`} data-tour={tour}>
+    <div className={`capsule ${on ? 'on' : ''} ${onOpen ? 'opens' : ''}`} data-tour={tour} data-morph={morph}>
       <div className="capsule-top">
         <span className="page-icon soft-ico">{icon}</span>
         <b className="capsule-title">{title}</b>
@@ -57,7 +58,7 @@ function GridCapsule() {
       icon={Ico.grid} title={t('navGrid')} sub={t(menu ? 'gridSubMenu' : 'gridSub')} on={on} tour="ex-f-grid"
       control={<Switch checked={on} onChange={setCustomGrid} label={t('navGrid')} />}
       foot={<GridThumb />}
-      onOpen={() => setExtrasView('grid')}
+      onOpen={openGrid} morph="grid-card"
     />
   );
 }
@@ -104,8 +105,10 @@ function ExtrasList() {
   const gridOk = useStore((s) => gridOffered(s));
   // the level names without their "Auto brightness · " prefix, first letter up
   const level = (key: 'brightAutoOff' | 'brightAutoBalanced' | 'brightAutoBright'): string => ((x) => x.charAt(0).toUpperCase() + x.slice(1))(t(key).split(' · ').pop()!);
+  const list = useRef<HTMLDivElement>(null);
+  useGridArrival(list);
   return (
-    <div className="capsules" data-tour="ex-list" data-tour-page="extras"><div className="capsules-flow">
+    <div className="capsules" data-tour="ex-list" data-tour-page="extras" ref={list}><div className="capsules-flow">
       <FeatureCapsule icon={Ico.soft} title={t('navSoft')} sub={t(gr3x ? 'gr3xSoftSub' : 'softAdjSub')} on={soft} onChange={setSoft} tour="ex-f-soft" />
       {(!gr3x || dateOk) && <FeatureCapsule icon={Ico.date} title={t('navDate')} sub={t('dateSub')} on={date} onChange={setDateStamp} tour="ex-f-date" />}
       {!mono && !gr3x && <FeatureCapsule icon={Ico.mono} title={t('navMono')} sub={t('monoSub')} on={looks} onChange={setMonoUnlock} tour="ex-f-mono" />}
@@ -150,8 +153,8 @@ export function ExtrasPage() {
       <header className={`page-head ${grid ? 'sub' : ''}`}>
         {grid
           ? <>
-            <button type="button" className="btn ghost icon-only back-btn" data-tour="ex-back" title={t('navExtras')} aria-label={t('navExtras')} onClick={() => setExtrasView('list')}>{Ico.left}</button>
-            <h1 className="crumbs"><span className="crumb-up" onClick={() => setExtrasView('list')}>{t('navExtras')}</span><span className="crumb-sep" aria-hidden>›</span><span>{t('navGrid')}</span></h1>
+            <button type="button" className="btn ghost icon-only back-btn" data-tour="ex-back" title={t('navExtras')} aria-label={t('navExtras')} onClick={closeGrid}>{Ico.left}</button>
+            <h1 className="crumbs"><span className="crumb-up" onClick={closeGrid}>{t('navExtras')}</span><span className="crumb-sep" aria-hidden>›</span><span>{t('navGrid')}</span></h1>
             <span className="m-crumb">{t('navGrid')}</span>
           </>
           : <><span className="page-icon">{Ico.extras}</span><h1>{t('navExtras')}</h1></>}
