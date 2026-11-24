@@ -7,8 +7,9 @@ Customize your Ricoh GR with your own Image Control presets, aspect ratios, and 
 > GR Mod is an independent, open-source project. It is not a Ricoh product.
 
 <p align="center">
-  <img src="docs/images/mobile-overview-en.png" width="48%" alt="GR Mod on iPhone, iPad and Android">
-  <img src="docs/images/download-guide-en.png" width="48%" alt="Download GR Mod for desktop and Android from GitHub, or for iPhone and iPad from the App Store">
+  <img src="docs/images/mobile-overview-en.png" width="32%" alt="GR Mod on iPhone, iPad and Android">
+  <img src="docs/images/whats-new-0.8.14-0.9.1-en.jpg" width="32%" alt="What's new in GR Mod from 0.8.14 to 0.9.1">
+  <img src="docs/images/download-guide-en.png" width="32%" alt="Download GR Mod for desktop and Android from GitHub, or for iPhone and iPad from the App Store">
 </p>
 
 ## Download
