@@ -4,7 +4,7 @@ import { FirmwareHero } from '../firmware';
 import { t } from '../i18n';
 import {
   useStore, loadFirmwareFile, gridOffered, setExtrasView, setSoft, setDateStamp, setMonoUnlock, setFlashPlus, flashPlusOn, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain,
-  setShadowLearn, setBattery, setVideoAf, setAwbLearn, setBrightAuto, setCustomGrid,
+  setShadowLearn, setBattery, setVideoAf, setMovieExposure, setAwbLearn, setBrightAuto, setCustomGrid,
 } from '../store';
 import { isFirmware } from './files';
 import { GridDetail, GridThumb } from './grid';
@@ -89,6 +89,8 @@ function ExtrasList() {
   const batteryOk = useStore((s) => !!s.info?.features.batteryPercent);
   const vaf = useStore((s) => s.videoAf);
   const vafOk = useStore((s) => !!s.info?.features.videoAf);
+  const mexp = useStore((s) => s.movieExposure);
+  const mexpOk = useStore((s) => !!s.info?.features.movieExposure);
   const awb = useStore((s) => s.awbLearn);
   const awbOk = useStore((s) => !!s.info?.features.awbLearn);
   const gridOk = useStore((s) => gridOffered(s));
@@ -110,6 +112,7 @@ function ExtrasList() {
           options={[{ value: 'camera', label: t('grainCamera') }, { value: 'mod', label: t('grainMod') }]} />
       )}
       {vafOk && <FeatureCapsule icon={Ico.movie} title={t('navVideoAf')} sub={t('videoAfSub')} on={vaf} onChange={setVideoAf} tour="ex-f-vaf" />}
+      {mexpOk && <FeatureCapsule icon={Ico.movieExp} title={t('navMovieExp')} sub={t('movieExpSub')} on={mexp} onChange={setMovieExposure} tour="ex-f-mexp" />}
       {awbOk && <FeatureCapsule icon={Ico.wb} title={t('navAwb')} sub={t('awbSub')} on={awb} onChange={setAwbLearn} tour="ex-f-awb" />}
       {gridOk && <GridCapsule />}
       {adjMax > 5 && (
