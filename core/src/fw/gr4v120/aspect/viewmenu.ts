@@ -34,6 +34,8 @@ import { ICON_CATALOG, LANGUAGES, LOOKUP_BOUNDS, Patch, TEXT_CATALOG, concat, ex
 import { LIST_CONTROLLER_ID, LIST_SET_ITEM, StillLine, TOP_SET_TITLE, addListRecords, hookControllerFactory, installTexts, listTemplate } from './datestamp-menu';
 import { DIRECT_FLASH_TV_BYTE } from './directflash';
 import type { CustomGrid, GridSelect } from './grid';
+import type { FramingGuides } from './framing';
+import { drawFramingIcon, framingValues } from './framing';
 import { CAMERA_GRID } from './grid';
 import type { ShadeSetting } from './shade';
 import { adr } from '../target';
@@ -102,6 +104,22 @@ export const CUSTOM_GRID_NAMES: Readonly<Record<'custom3' | 'custom4', readonly 
     'Vlastní mřížka 4x4', 'Eget 4x4 gitter', 'Custom 4x4 Grid', 'Oma 4x4 ruudukko', 'Grille 4x4 perso', 'Eigenes 4x4 Gitter', 'Δικό σας πλέγμα 4x4',
     'Egyéni 4x4-es rács', 'Griglia 4x4 pers.', 'カスタム16分割', '사용자 16분할', 'Eigen raster 4 x 4', 'Własna siatka 4x4', 'Grelha 4x4 pers.',
     'Своя сетка 4х4', '自定义16网格', 'Cuadrícula 4x4 pers.', 'Eget rutnät 4x4', '4x4 กริดกำหนดเอง', '自訂16網格', 'Özel 4x4 Izgara',
+  ],
+};
+/**
+ * The framing guides' presets (`framing.ts`) in the Grid Style list: "Custom Grid 1" in the place of the camera's
+ * 3x3, "Custom Grid 2" in the place of its 4x4 (the same words as the names above, without the size).
+ */
+export const FRAMING_GRID_NAMES: Readonly<Record<'custom3' | 'custom4', readonly string[]>> = {
+  custom3: [
+    'Vlastní mřížka 1', 'Eget gitter 1', 'Custom Grid 1', 'Oma ruudukko 1', 'Grille perso 1', 'Eigenes Gitter 1', 'Δικό σας πλέγμα 1',
+    'Egyéni rács 1', 'Griglia pers. 1', 'カスタム分割1', '사용자 분할 1', 'Eigen raster 1', 'Własna siatka 1', 'Grelha pers. 1',
+    'Своя сетка 1', '自定义网格1', 'Cuadrícula pers. 1', 'Eget rutnät 1', 'กริดกำหนดเอง 1', '自定義網格1', 'Özel Izgara 1',
+  ],
+  custom4: [
+    'Vlastní mřížka 2', 'Eget gitter 2', 'Custom Grid 2', 'Oma ruudukko 2', 'Grille perso 2', 'Eigenes Gitter 2', 'Δικό σας πλέγμα 2',
+    'Egyéni rács 2', 'Griglia pers. 2', 'カスタム分割2', '사용자 분할 2', 'Eigen raster 2', 'Własna siatka 2', 'Grelha pers. 2',
+    'Своя сетка 2', '自定义网格2', 'Cuadrícula pers. 2', 'Eget rutnät 2', 'กริดกำหนดเอง 2', '自定義網格2', 'Özel Izgara 2',
   ],
 };
 export const SHADE_NAMES: readonly string[] = [
@@ -253,6 +271,8 @@ function addIcons(patch: Patch, iconbin: Uint8Array, icons: readonly { id: numbe
 export interface ViewMenuOptions {
   /** The custom grid lines (values of their own in the Grid Style list). */
   grid?: CustomGrid;
+  /** The framing guides' presets instead (values of their own in the Grid Style list). */
+  framing?: FramingGuides;
   /** The shade of the added ratios (its line in the still menu). */
   shade?: boolean;
 }
@@ -260,11 +280,13 @@ export interface ViewMenuOptions {
 /** Texts and icons (call once, before the menus use them). Returns ICONBIN with the icons appended. */
 export function installViewAssets(patch: Patch, iconbin: Uint8Array, o: ViewMenuOptions): Uint8Array {
   const grid = o.grid;
-  const grids = grid ? customGridValues(grid) : [];
-  const texts: { id: number; names: readonly string[] }[] = grids.map((g) => ({ id: VIEW_TEXT_IDS[g], names: CUSTOM_GRID_NAMES[g] }));
+  const framing = o.framing;
+  if (grid && framing) fail('internal', 'custom grid lines and framing guides together');
+  const grids = grid ? customGridValues(grid) : framing ? framingValues(framing) : [];
+  const texts: { id: number; names: readonly string[] }[] = grids.map((g) => ({ id: VIEW_TEXT_IDS[g], names: (framing ? FRAMING_GRID_NAMES : CUSTOM_GRID_NAMES)[g] }));
   const icons: { id: number; w: number; h: number; px: Uint8Array }[] = grid
     ? grids.map((g) => ({ id: GRID_ICON_IDS[g], w: 60, h: 40, px: drawGridIcon(g === 'custom3' ? grid.g3 : grid.g4, g === 'custom3' ? 3 : 4) }))
-    : [];
+    : framing ? grids.map((g) => ({ id: GRID_ICON_IDS[g], w: 60, h: 40, px: drawFramingIcon(framing, g === 'custom3' ? 0 : 1) })) : [];
   if (o.shade) {
     texts.push(
       { id: VIEW_TEXT_IDS.shade, names: SHADE_NAMES },
@@ -366,8 +388,8 @@ export function installShadeList(patch: Patch): void {
  * The custom styles as values of the Grid Style list (record 93, in place: before any addition
  * copies the list table) and the setup menu line's icon.
  */
-export function installGridStyleMenu(patch: Patch, grid: CustomGrid): void {
-  const values = customGridValues(grid);
+export function installGridStyleMenu(patch: Patch, grid: CustomGrid | readonly ('custom3' | 'custom4')[]): void {
+  const values = Array.isArray(grid) ? [...grid] as ('custom3' | 'custom4')[] : customGridValues(grid as CustomGrid);
   if (values.length === 0) fail('internal', 'custom grid: no style of its own');
   if (patch.listRecords !== 0) fail('internal', 'Grid Style list: the list table is already copied');
   for (const [off, fn] of Object.values(GRID_SLOTS)) {

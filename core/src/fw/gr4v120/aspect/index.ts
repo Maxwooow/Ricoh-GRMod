@@ -21,6 +21,8 @@ export type { ShutdownPictureSpec } from './shutdown';
 export { findResInsertion, readRes, resFile } from './res';
 export { Patch } from './build';
 export { CAMERA_GRID, GRID_LINE_COUNT, isCameraGrid, validCustomGrid } from './grid';
+export type { CompiledPreset, FramingBox, FramingCentre, FramingColour, FramingDash, FramingDiagonals, FramingElement, FramingFrame, FramingFrameBox, FramingGolden, FramingGrid, FramingGuides, FramingLine, FramingOutline, FramingPreset, FramingRect, FramingSafe } from './framing';
+export { CAMERA_GRID_COLOUR, CAMERA_PRESETS, DEFAULT_FRAMING_PALETTE, FRAMING_MAX_ELEMENTS, FRAMING_MAX_FRAMES, FRAMING_MAX_RECORDS, FRAMING_PALETTE_SIZE, argbOf, clonePreset, compilePreset, decodeFramingGuides, defaultFramingGuides, drawFramingIcon, encodeFramingGuides, evaluateBoxes, framingProblem, framingRects, framingValues, isCameraPreset, validFramingGuides } from './framing';
 export type { CustomGrid, GridLines } from './grid';
 export { SHADE_TONES } from './shade';
 export type { ShadeTone } from './shade';

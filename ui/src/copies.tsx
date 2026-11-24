@@ -1,5 +1,6 @@
 // Files that writes moved aside on the card (GRMOD\parked-*), and the backups of them kept on this
 // computer. The only page whose content can be longer than the window: its list scrolls by itself.
+import { framingValues } from '@grmod/core';
 import { useMemo } from 'react';
 import type { LangCode } from '@grmod/core';
 import { Ico, IconCanvas, Segmented } from './components';
@@ -56,6 +57,7 @@ function FirmwareLine({ info, builds, lang, name }: { info: CopyInfo | undefined
           {s.hdrGainMap && <span className="chip tiny" title={t('hdrLine')}><b>HDR</b></span>}
           {s.exposurePreview && <span className="chip tiny" title={t('previewLine')}><b>{t('navPreview')}</b></span>}
           {s.batteryPercent && <span className="chip tiny" title={t('batteryLine')}><b>{t('batteryChip')}</b></span>}
+          {s.framing && <span className="chip tiny" title={t('framingLine', { n: framingValues(s.framing).length })}><b>{t('gridChip')}</b></span>}
           {s.customGrid && <span className="chip tiny" title={t('gridLine', { a: gridText(s.customGrid, 'g3'), b: gridText(s.customGrid, 'g4') })}><b>{t('gridChip')}</b></span>}
           {s.ratioShade && <span className="chip tiny" title={t('ratioShadeLine', { p: toneLabel(s.ratioShadeTone ?? 'dark') })}><b>{t('ratioLiveChip')}</b><span className="ellipsis">{toneLabel(s.ratioShadeTone ?? 'dark')}</span></span>}
           {s.shadowLearn && <span className="chip tiny" title={t('shadowLine')}><b>{t('navShadow')}</b></span>}

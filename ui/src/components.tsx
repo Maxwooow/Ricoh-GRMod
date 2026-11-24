@@ -76,9 +76,10 @@ export function Switch({ checked, onChange, label }: { checked: boolean; onChang
 
 /**
  * A choice of a few values in one row. The chosen one is marked by a pill that slides to it (placed over the
- * button it marks; without the pill, before the first layout, the button shows the same mark itself).
+ * button it marks; without the pill, before the first layout, the button shows the same mark itself). `still`:
+ * the pill jumps (the editing controls of the custom grid's page, where nothing moves).
  */
-export function Segmented<T extends string>({ value, options, onChange, tour, className }: { value: T; options: { value: T; label: ReactNode; title?: string }[]; onChange: (v: T) => void; tour?: string; className?: string }) {
+export function Segmented<T extends string>({ value, options, onChange, tour, className, still }: { value: T; options: { value: T; label: ReactNode; title?: string }[]; onChange: (v: T) => void; tour?: string; className?: string; still?: boolean }) {
   const box = useRef<HTMLDivElement>(null);
   const pill = useRef<HTMLSpanElement>(null);
   const place = (): void => {
@@ -96,10 +97,10 @@ export function Segmented<T extends string>({ value, options, onChange, tour, cl
   useLayoutEffect(() => {
     const b = box.current; const p = pill.current;
     if (!b || !p) return undefined;
-    const still = (): void => { p.classList.add('still'); place(); requestAnimationFrame(() => p.classList.remove('still')); };
-    const frame = requestAnimationFrame(() => p.classList.remove('still'));
+    const fixed = (): void => { p.classList.add('still'); place(); if (!still) requestAnimationFrame(() => p.classList.remove('still')); };
+    const frame = still ? 0 : requestAnimationFrame(() => p.classList.remove('still'));
     let first = true;
-    const ro = new ResizeObserver(() => { if (first) { first = false; return; } still(); });
+    const ro = new ResizeObserver(() => { if (first) { first = false; return; } fixed(); });
     ro.observe(b);
     return () => { cancelAnimationFrame(frame); ro.disconnect(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

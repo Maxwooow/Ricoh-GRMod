@@ -6,7 +6,7 @@ menu line's icon, and the names of the two Flash Modes flash TTL meters.
 NOT part of the program. Runs the firmware's own functions, as patched, in Unicorn (the harness of
 tools/gr4v120/datestamp/menu_check.py), next to the official image:
 
-    python3 check.py BUILT-RTOS OFFICIAL-RTOS [--shade] [--grid '{"g3":[...8],"g4":[...8]}'] [--ttl]
+    python3 check.py BUILT-RTOS OFFICIAL-RTOS [--shade] [--grid '{"g3":[...8],"g4":[...8]}' | --framing g3,g4] [--ttl]
 
  --shade (a build with added ratios):
   1. The still menu (TopMenuController's builder, models 0..2): the shade's line right after Aspect
@@ -21,6 +21,9 @@ tools/gr4v120/datestamp/menu_check.py), next to the official image:
      values exactly as officially, of the custom ones their icon and text; is current and set for
      every style and every value of the byte (bit 6; the other bits kept), set calling the camera's
      setter with the style; the setup menu line's icon as officially, or the custom one's.
+ --framing (a build with framing guides, core/src/fw/gr4v120/aspect/framing.ts): the presets that are values of
+     their own (g3: Custom Grid 1, g4: Custom Grid 2); 4 as for --grid, their names "Custom Grid 1 / 2"; the
+     palette check of 3 leaves out the guides' colours (0xE0..0xE7, checked by tools/gr4v120/framing/check.py).
  --ttl:
   5. Texts 135 and 137: the official text with " (TTL)" ("（TTL）" in Japanese and Chinese), every row.
  Always: 6. texts and icons the options add (sizes, the lookup bounds).
@@ -142,14 +145,18 @@ def check_shade(new, off):
     got = [new.u32(table + 4 * i) for i in range(256)]
     want = [off.u32(PALETTE + 4 * i) for i in range(256)]
     want[0xf0], want[0xf1] = 0xc0000000, 0x40000000
+    if FRAMING:
+        for i in range(0xe0, 0xe8):
+            got[i] = want[i]
     check(got == want, 'palette copy')
     check(want[1] == 0xff000000 and want[16] == 0x80000000, 'palette colours 1 / 16')
     print(f'  palette: lookup reads {table:#x}; 1 {got[1]:#x}, 0xF0 {got[0xf0]:#x}, 16 {got[16]:#x}, 0xF1 {got[0xf1]:#x}')
 
 
 # --- 4. Grid Style --------------------------------------------------------------------------------
-def check_grid(new, off, grid):
-    values = [s for s in ('g3', 'g4') if grid[s] != CAMERA[s]]
+def check_grid(new, off, grid, values=None):
+    if values is None:
+        values = [s for s in ('g3', 'g4') if grid[s] != CAMERA[s]]
     n = 2 + len(values)
     rn, ro = handlers(list_record(new, 93)), handlers(list_record(off, 93))
     check(struct.unpack_from('<H', list_record(new, 93), 4)[0] == 558, 'Grid Style title')
@@ -237,6 +244,10 @@ def check_assets(new, shade, grid):
         print('  texts:', [dm.text(new, 1, t) for t in texts], [dm.text(new, 19, t) for t in texts])
     if shade:
         check(dm.text(new, 1, T_SHADE) == SHADE_NAMES_EN, 'shade line English name')
+    if FRAMING:
+        for s in grid or []:
+            want = 'Custom Grid ' + ('1' if s == 'g3' else '2')
+            check(dm.text(new, 1, T_CUSTOM[s]) == want, f'framing preset name {dm.text(new, 1, T_CUSTOM[s])!r}, want {want!r}')
     icons = [(i, 40, 40) for i in (I_LEVELS if shade else [])] + [(I_CUSTOM[s], 60, 40) for s in (grid or [])]
     for i, w, h in icons:
         d = new.u32(dm.ICON_CATALOG + i * 4)
@@ -248,9 +259,19 @@ def check_assets(new, shade, grid):
         print('  icons', [i for i, _, _ in icons])
 
 
+FRAMING = False
+
+
 def main():
+    global FRAMING
     opts = sys.argv[1:]
     grid = None
+    values = None
+    if '--framing' in opts:
+        spec = opts[opts.index('--framing') + 1]
+        values = [v for v in spec.split(',') if v]
+        FRAMING = True
+        opts = [o for o in opts if o != spec]
     if '--grid' in opts:
         spec = opts[opts.index('--grid') + 1]
         grid = {k: [bool(v) for v in vs] for k, vs in json.loads(spec).items()}
@@ -264,11 +285,14 @@ def main():
     if grid:
         print('4. Grid Style')
         check_grid(new, off, grid)
+    if values is not None:
+        print('4. Grid Style (framing guides)')
+        check_grid(new, off, None, values)
     if '--ttl' in opts:
         print('5. flash TTL names')
         check_ttl(new, off)
     print('6. texts and icons')
-    custom = [s for s in ('g3', 'g4') if grid and grid[s] != CAMERA[s]]
+    custom = values if values is not None else [s for s in ('g3', 'g4') if grid and grid[s] != CAMERA[s]]
     check_assets(new, shade, custom)
     if failures:
         print(f'{len(failures)} FAILURES')

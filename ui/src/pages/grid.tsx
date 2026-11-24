@@ -5,7 +5,8 @@ import { t } from '../i18n';
 import type { Key } from '../i18n';
 import type { Box } from '../motion';
 import { boxOf, flipFrom, leave, offsetTo, reducedMotion, rise, scrollerOf } from '../motion';
-import { getState, gridOffered, setCustomGrid, setExtrasView, setGridLine, useStore } from '../store';
+import { framingOffered, getState, gridOffered, setCustomGrid, setExtrasView, setGridLine, useStore } from '../store';
+import { FramingEditor, FramingThumb } from './framing';
 
 // ---------------------------------------------------------------- custom grid lines
 type GridStyle = 'g3' | 'g4';
@@ -41,6 +42,8 @@ const W = 720; const H = 480;
  */
 interface Handoff { to: 'grid' | 'list'; card: Box; picture: Box | null; style: GridStyle }
 let handoff: Handoff | null = null;
+/** The editor's parts that come in after the preview (and go before it on the way back). */
+const EDITOR_PARTS = '.grid-same, .grid-edit > .seg, .grid-edit-lines, .grid-edit > p, .fr-tools, .fr-side, .fr-palette';
 let listScroll = 0;
 let moving = false;
 /** The style the editor shows (kept while the program runs, so that the way back ends in the right picture). */
@@ -68,7 +71,7 @@ export function closeGrid(): void {
   if (!page || !card || reducedMotion()) { setExtrasView('list'); return; }
   handoff = { to: 'list', card: boxOf(card), picture: picture ? boxOf(picture) : null, style: shownStyle };
   moving = true;
-  const rest = Array.from(page.querySelectorAll('.grid-same, .grid-edit > .seg, .grid-edit-lines, .grid-edit > p'));
+  const rest = Array.from(page.querySelectorAll(EDITOR_PARTS));
   void leave(rest, 110, 1).then(() => { moving = false; setExtrasView('list'); });
 }
 
@@ -105,6 +108,11 @@ function GridScene() {
 
 /** The capsule's small picture of the grids: 3x3 and 4x4 side by side, only the lines that are on. */
 export function GridThumb() {
+  const framing = useStore((s) => framingOffered(s));
+  return framing ? <FramingThumb /> : <LinesThumb />;
+}
+
+function LinesThumb() {
   const lines = useStore((s) => s.gridLines);
   const on = useStore((s) => s.customGrid);
   const xy = (at: GridLineDef['at']) => ({ x1: at[0] * 720, y1: at[1] * 480, x2: at[2] * 720, y2: at[3] * 480 });
@@ -179,6 +187,9 @@ export function GridDetail() {
   const on = useStore((s) => s.customGrid);
   const same = useStore((s) => isCameraGrid(s.gridLines));
   const menu = useStore((s) => !!s.info?.features.gridMenu);
+  const framing = useStore((s) => framingOffered(s));
+  const [preset, setPresetState] = useState<0 | 1>(shownStyle === 'g3' ? 0 : 1);
+  const setPreset = (i: 0 | 1): void => { shownStyle = i === 0 ? 'g3' : 'g4'; setPresetState(i); };
   const root = useRef<HTMLDivElement>(null);
   // arriving from the capsule (openGrid): the switch from the capsule's place, the preview out of its small picture
   useLayoutEffect(() => {
@@ -190,7 +201,7 @@ export function GridDetail() {
     if (!h) return;
     flipFrom(page.querySelector<HTMLElement>('.grid-switch'), h.card, { scale: 'none', duration: 440 });
     flipFrom(page.querySelector<SVGElement>('.grid-edit-preview'), h.picture, { duration: 520 });
-    rise(page.querySelectorAll('.grid-same, .grid-edit > .seg, .grid-edit-lines, .grid-edit > p'), { delay: 140, stagger: 55 });
+    rise(page.querySelectorAll(EDITOR_PARTS), { delay: 140, stagger: 55 });
   }, []);
   return (
     <div className={`grid-page ${on ? '' : 'off'}`} data-tour-page="extras" ref={root}>
@@ -202,8 +213,8 @@ export function GridDetail() {
         </div>
         <p className="capsule-sub muted small">{t(menu ? 'gridSubMenu' : 'gridSub')}</p>
       </div>
-      {on && same && <p className="muted small grid-same">{t('gridSameAsCamera')}</p>}
-      <GridLinesEditor />
+      {!framing && on && same && <p className="muted small grid-same">{t('gridSameAsCamera')}</p>}
+      {framing ? <FramingEditor preset={preset} setPreset={setPreset} /> : <GridLinesEditor />}
     </div>
   );
 }

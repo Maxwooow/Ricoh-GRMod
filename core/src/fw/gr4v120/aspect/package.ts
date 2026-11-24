@@ -43,6 +43,7 @@ import { MAX_CUSTOM_RATIOS, OFFICIAL_ICONBIN_LENGTH, OFFICIAL_RTOS_LENGTH } from
 import type { AspectResult, BuildRevision, ExtensionFeatures, RatioSpec } from './build';
 import { MAX_EXTRA_SLOTS } from './slots';
 import { gridByte, gridLinesOf, isCameraGrid } from './grid';
+import { decodeFramingGuides, encodeFramingGuides, framingValues } from './framing';
 import { ADJ_SLOTS_MAX } from './adjslots';
 import { RES_ANCHOR, SHUTDOWN_MAX_PICTURES, shutdownFiles } from './shutdown';
 import { readRes, resRecords } from './res';
@@ -120,6 +121,8 @@ const FEATURE4_CONSTANT_LIGHT = 1;
 const FEATURE4_SENSOR_SHIFT = 2;
 const FEATURE4_MOVIE_4K = 4;
 const FEATURE4_MOVIE_SR = 8;
+/** Fourth feature byte: bit 4, framing guides (`framing.ts`); after the fourth byte, u16 length and the guides' bytes. */
+const FEATURE4_FRAMING = 16;
 
 /**
  * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
@@ -152,7 +155,7 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
   if (tone !== 'dark' && !features.ratioShade) fail('internal', 'a shade tone needs the live-view shade');
   if (features.ratioShade && specs.length === 0) fail('internal', 'the live-view shade needs an added ratio');
   const f3 = (features.ratioShade ? FEATURE3_RATIO_SHADE : 0) | (tone === 'light' ? FEATURE3_SHADE_LIGHT : 0) | (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0) | (features.flashTtl ? FEATURE3_FLASH_TTL : 0) | (features.videoAf ? FEATURE3_VIDEO_AF : 0) | (features.awbLearn ? FEATURE3_AWB_LEARN : 0) | (features.movieExposure ? FEATURE3_MOVIE_EXPOSURE : 0);
-  const f4 = (features.constantLight ? FEATURE4_CONSTANT_LIGHT : 0) | (features.sensorShift ? FEATURE4_SENSOR_SHIFT : 0) | (features.movie4k ? FEATURE4_MOVIE_4K : 0) | (features.movieSr ? FEATURE4_MOVIE_SR : 0);
+  const f4 = (features.constantLight ? FEATURE4_CONSTANT_LIGHT : 0) | (features.sensorShift ? FEATURE4_SENSOR_SHIFT : 0) | (features.movie4k ? FEATURE4_MOVIE_4K : 0) | (features.movieSr ? FEATURE4_MOVIE_SR : 0) | (features.framing ? FEATURE4_FRAMING : 0);
   if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.exposurePreview || features.softFocusMenu || features.shadowLearn || features.filmGrain || f3 || f4) {
     if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, bright Auto, exposure preview, the soft focus line, the learned shadow correction, the film grain and the third and fourth feature bytes need revision 3');
     const adj = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
@@ -163,6 +166,10 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
     if (f3 || f4) bytes.push(f3);
     if (features.customGrid) bytes.push(gridByte(features.customGrid.g3), gridByte(features.customGrid.g4));
     if (f4) bytes.push(f4);
+    if (features.framing) {
+      const g = encodeFramingGuides(features.framing);
+      bytes.push(g.length & 0xff, g.length >>> 8, ...g);
+    }
   }
   while (bytes.length % 4) bytes.push(0);
   return Uint8Array.from(bytes);
@@ -294,15 +301,24 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
         const f4 = p < rec.length ? rec[p] : 0;
         if (f4 !== 0) {
           p++;
-          if ((f4 & ~(FEATURE4_CONSTANT_LIGHT | FEATURE4_SENSOR_SHIFT | FEATURE4_MOVIE_4K | FEATURE4_MOVIE_SR)) !== 0) return null;
+          if ((f4 & ~(FEATURE4_CONSTANT_LIGHT | FEATURE4_SENSOR_SHIFT | FEATURE4_MOVIE_4K | FEATURE4_MOVIE_SR | FEATURE4_FRAMING)) !== 0) return null;
           if (f4 & FEATURE4_CONSTANT_LIGHT) features.constantLight = true;
           if (f4 & FEATURE4_SENSOR_SHIFT) features.sensorShift = true;
           if (f4 & FEATURE4_MOVIE_4K) features.movie4k = true;
           if (f4 & FEATURE4_MOVIE_SR) features.movieSr = true;
+          if (f4 & FEATURE4_FRAMING) {
+            if (p + 2 > rec.length || features.customGrid) return null;
+            const n = rec[p] | (rec[p + 1] << 8);
+            if (p + 2 + n > rec.length) return null;
+            const g = decodeFramingGuides(rec.slice(p + 2, p + 2 + n));
+            if (!g || framingValues(g).length === 0) return null;
+            features.framing = g;
+            p += 2 + n;
+          }
         } else if (f3 === 0) return null;
       }
     }
-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn && !features.filmGrain && !features.flashTtl && !features.videoAf && !features.awbLearn && !features.movieExposure && !features.sensorShift && !features.movie4k && !features.movieSr && !features.constantLight) return null;
+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.framing && !features.shadowLearn && !features.filmGrain && !features.flashTtl && !features.videoAf && !features.awbLearn && !features.movieExposure && !features.sensorShift && !features.movie4k && !features.movieSr && !features.constantLight) return null;
   }
   for (; p < rec.length; p++) if (rec[p] !== 0) return null;
   return { specs: out, features, extraSlots, shutdownPictures };

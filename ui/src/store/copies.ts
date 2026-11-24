@@ -1,3 +1,4 @@
+import { framingValues } from '@grmod/core';
 import { card } from '@grmod/core';
 import type { FirmwareSummary } from '@grmod/core';
 import { engine, EngineError } from '../engine';
@@ -176,6 +177,7 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
   if (summary.adjSlots) lines.push(t('adjSlotsLine', { n: summary.adjSlots }));
   if (summary.batteryPercent) lines.push(t('batteryLine'));
   if (summary.customGrid) lines.push(t('gridLine', { a: gridText(summary.customGrid, 'g3'), b: gridText(summary.customGrid, 'g4') }));
+  if (summary.framing) lines.push(t('framingLine', { n: framingValues(summary.framing).length }));
   if (summary.extraSlots?.length) lines.push(t('extraLine', { n: summary.extraSlots.length, l: summary.extraSlots.map((x) => x.name).join(' / ') }));
   if (summary.lookLayout) lines.push(t('lookOrderLine', { n: summary.lookLayout.hidden.length }));
   if (summary.shutdownPictures?.length) lines.push(t('wallMenuLine', { n: summary.shutdownPictures.length, l: summary.shutdownPictures.map((p) => p.name).join(' / ') }));
