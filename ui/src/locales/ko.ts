@@ -27,7 +27,7 @@ export const ko: Dict = {
   fwUnsupported: '아직 지원하지 않음', fwDownloading: '다운로드하는 중…', fwDownloaded: '펌웨어 {v}을(를) 다운로드했습니다', fwLicense: '다운로드하면 리코의 소프트웨어 사용권 계약에 동의하는 것으로 간주됩니다.', download: '다운로드',
   newFwWriteLine: '더 높은 버전의 펌웨어를 설치하면 이전 버전으로 되돌릴 수 없습니다.', fwNewVersion: '새 버전', fwOldVersion: '이전 버전',
   fwNewer: '리코의 최신 버전은 {v}이며, GR Mod는 아직 지원하지 않습니다. 카메라를 {v}(으)로 업데이트하면 GR Mod 펌웨어를 설치할 수 없으므로 당분간 업데이트하지 마세요.', fwChecksum: '다운로드한 파일이 정품 펌웨어와 일치하지 않습니다. 다시 다운로드하세요.',
-  preset: '프리셋', dropPreset: '.xmp / .cube를 끌어다 놓기', converting: '변환하는 중…', remove: '제거', replace: '교체',
+  preset: '프리셋', dropPreset: '.xmp / .cube를 끌어다 놓기', exportCube: '룩을 .cube로 내보내기', exportCubeTip: '이 슬롯의 색을 표준 33포인트 .cube LUT로 내보냅니다. Lightroom, Resolve, Photoshop에서 미리 볼 수 있습니다(할레이션과 그레인 제외)', exportCubeDone: '{name}을(를) 내보냈습니다', exportCubeNone: '프리셋을 먼저 불러와 변환해야 .cube를 내보낼 수 있습니다', converting: '변환하는 중…', remove: '제거', replace: '교체',
   name: '이름', icon: '아이콘', iconKeep: '원래 아이콘', iconText: '문자', iconImage: '이미지', styleFilm: '필름', stylePlain: '단색', chooseImage: '이미지 선택',
   preview: '미리보기', deltaE: '색차', original: '원본', previewPhoto: '사진', previewSwatch: '컬러 차트', compare: '전후 비교', choosePhoto: '미리보기 사진 선택', changePhoto: '미리보기 사진 변경',
   errNotXmp: '이 파일을 인식할 수 없습니다', errNoTable: '파일에 변환할 수 있는 색상 데이터가 없습니다', errLookMissing: '이 프리셋은 Lightroom의 프로필에 의존합니다. 프로필 자체를 불러오세요.', errUnsupportedTable: '지원하지 않는 색상 테이블 형식입니다',
