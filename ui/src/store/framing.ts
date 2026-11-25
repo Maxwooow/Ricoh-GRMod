@@ -204,7 +204,7 @@ export function resetFramingPreset(preset: 0 | 1): void {
 /** A ready grid to start from: its elements, whose colours are numbers into its own `palette`. */
 export interface FramingTemplate { id: string; palette: FramingColour[]; elements: FramingElement[] }
 
-const [GREY, , , , RED, , YELLOW] = FRAMING_SWATCHES;
+const [GREY, , , , RED] = FRAMING_SWATCHES;
 const frame = (num: number, den: number, style: 'box' | 'corners' | 'dashed', mask: number | null, colour = 0, extra: Partial<FramingElement> = {}): FramingElement =>
   ({ kind: 'frame', num, den, scale: 100, x: 0, y: 0, style, corner: 12, mask, colour, width: 2, ...extra } as FramingElement);
 const thirdsIn = (box: 0 | 1 | 2 | 3, colour: number): FramingElement => ({ kind: 'grid', cols: 3, rows: 3, box, dash: 'solid', colour, width: 2 });
@@ -213,16 +213,11 @@ const thirdsIn = (box: 0 | 1 | 2 | 3, colour: number): FramingElement => ({ kind
 export const FRAMING_TEMPLATES: readonly FramingTemplate[] = [
   { id: 'thirds', palette: [GREY], elements: [thirdsIn(0, 0)] },
   { id: 'quarters', palette: [GREY], elements: [{ kind: 'grid', cols: 4, rows: 4, box: 0, dash: 'solid', colour: 0, width: 2 }, { kind: 'diagonals', down: true, up: true, colour: 0, width: 2 }] },
-  { id: 'golden', palette: [GREY], elements: [{ kind: 'golden', box: 0, dash: 'solid', colour: 0, width: 2 }, { kind: 'diagonals', down: true, up: false, colour: 0, width: 1 }] },
+  { id: 'flat', palette: [WHITE, GREY], elements: [frame(185, 100, 'box', 1)] },
   { id: 'centre', palette: [HALF_WHITE, WHITE], elements: [
     { kind: 'line', axis: 'h', at: 5000, box: 0, dash: 'dashed', colour: 0, width: 1 }, { kind: 'line', axis: 'v', at: 5000, box: 0, dash: 'dashed', colour: 0, width: 1 },
-    { kind: 'safe', percent: 90, box: 0, style: 'corners', colour: 1, width: 2 }, { kind: 'centre', mark: 'cross', size: 24, box: 0, colour: 1, width: 2 }] },
+    { kind: 'safe', percent: 90, box: 0, style: 'box', colour: 1, width: 2 }, { kind: 'centre', mark: 'cross', size: 24, box: 0, colour: 1, width: 2 }] },
   { id: 'cinema', palette: [WHITE, GREY, HALF_WHITE, RED], elements: [frame(239, 100, 'corners', 1), thirdsIn(1, 2), { kind: 'centre', mark: 'cross', size: 20, box: 1, colour: 3, width: 2 }] },
-  { id: 'flat', palette: [WHITE, GREY], elements: [frame(185, 100, 'box', 1)] },
-  { id: 'square', palette: [WHITE, GREY, HALF_WHITE], elements: [frame(1, 1, 'box', 1), thirdsIn(1, 2)] },
-  { id: 'portrait', palette: [WHITE, GREY, HALF_WHITE], elements: [frame(4, 5, 'box', 1), thirdsIn(1, 2)] },
-  { id: 'vertical', palette: [WHITE, GREY, HALF_WHITE], elements: [frame(9, 16, 'box', 1), { kind: 'safe', percent: 90, box: 1, style: 'dashed', colour: 2, width: 1 }, thirdsIn(1, 2)] },
-  { id: 'multi', palette: [WHITE, YELLOW, RED], elements: [frame(16, 9, 'box', null), frame(4, 3, 'dashed', null, 1), frame(1, 1, 'corners', null, 2, { corner: 15 }), { kind: 'centre', mark: 'cross', size: 24, box: 0, colour: 0, width: 2 }] },
 ];
 
 /** A template as guides (its palette, the template in both presets), for its picture. */

@@ -405,7 +405,9 @@ html:lang(ja) .prop-label { width: 72px; }
 .fr-templates { display: grid; gap: 8px; padding: 10px 12px 12px; border: 1px solid var(--line); border-radius: 12px; }
 .fr-templates-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .fr-template-list { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
-.app.mobile .fr-template-list { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+/* phone: one row that scrolls sideways */
+.app.mobile .fr-template-list { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 100px; overflow-x: auto; scrollbar-width: none; margin: 0 -12px; padding: 0 12px 2px; }
+.app.mobile .fr-template-list::-webkit-scrollbar { display: none; }
 .fr-template { display: grid; gap: 4px; min-width: 0; padding: 4px 4px 5px; border: 1px solid var(--line2); border-radius: 9px; background: var(--bg); color: var(--text); font: inherit; font-size: 12px; text-align: center; cursor: pointer; }
 .fr-template:hover { border-color: var(--blue); }
 .fr-template:active { background: var(--hover); }

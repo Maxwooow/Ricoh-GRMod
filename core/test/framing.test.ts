@@ -40,6 +40,8 @@ function sample(): FramingGuides {
     { kind: 'line', axis: 'h', at: 5000, box: 0, dash: 'dashed', colour: 1, width: 1 },
     { kind: 'centre', mark: 'dot', size: 8, box: 1, colour: 4, width: 1 },
     { kind: 'diagonals', down: true, up: false, colour: 5, width: 1 },
+    // a 4:5 safe area in frame line A (the 1:1): a box fitted into a box
+    { kind: 'safe', percent: 80, box: 1, style: 'corners', colour: 2, width: 2, num: 4, den: 5 },
   ];
   return g;
 }
@@ -71,6 +73,20 @@ describe('Framing guides: the model', () => {
     expect(evaluateBoxes(d.boxes, { x: 0, y: 0, w: 720, h: 480 })[1]).toEqual({ x: 72 + 144, y: -24 + 24, w: 432, h: 432 });
   });
 
+  it('a safe area with a ratio of its own is fitted into its box (the picture or a frame line)', () => {
+    const one = compilePreset({ elements: [{ kind: 'safe', percent: 90, box: 0, style: 'box', colour: 0, width: 2, num: 4, den: 5 }] });
+    expect(evaluateBoxes(one.boxes, { x: 0, y: 0, w: 720, h: 480 })[1]).toEqual({ x: 187, y: 24, w: 346, h: 432 });
+    const d = compilePreset(sample().presets[1]);
+    expect(d.boxes.map((b) => b.parent)).toEqual([0, 1]);
+    // in the 1:1 frame line (216, 0, 432, 432): 80 % of its height, 4:5
+    expect(evaluateBoxes(d.boxes, { x: 0, y: 0, w: 720, h: 480 })[2]).toEqual({ x: 216 + ((432 - 277) >> 1), y: 43, w: 277, h: 346 });
+    // version 1 records (test firmware 113) still read
+    const v1 = defaultFramingGuides();
+    v1.presets[1].elements = [{ kind: 'safe', percent: 90, box: 0, style: 'box', colour: 0, width: 2 }];
+    const bytes = encodeFramingGuides(v1);
+    expect(decodeFramingGuides(Uint8Array.from([1, ...bytes.slice(1, bytes.length - 4)]))).toEqual(v1);
+  });
+
   it('the mask covers the picture outside the frame line, in four bands (empty ones not drawn)', () => {
     const rects = framingRects(compilePreset(sample().presets[0]), { x: 0, y: 0, w: 720, h: 480 });
     expect(rects.slice(0, 2).map((r) => [r.x, r.y, r.w, r.h, r.colour])).toEqual([[0, 0, 720, 89, 3], [0, 390, 720, 90, 3]]);
@@ -98,7 +114,7 @@ describe('Framing guides: the model', () => {
     const bytes = encodeFramingGuides(g);
     expect(decodeFramingGuides(bytes)).toEqual(g);
     expect(decodeFramingGuides(bytes.slice(0, bytes.length - 1))).toBeNull();
-    expect(decodeFramingGuides(Uint8Array.from([2, ...bytes.slice(1)]))).toBeNull();
+    expect(decodeFramingGuides(Uint8Array.from([3, ...bytes.slice(1)]))).toBeNull();
   });
 
   it('the list: header, boxes of 12 bytes, records of 20 with UI palette numbers from 0xE0', () => {

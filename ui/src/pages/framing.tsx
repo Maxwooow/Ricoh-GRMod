@@ -26,8 +26,7 @@ const H = 480;
 /** The grid view's frame for the camera's own aspects (tools/gr4v120/framing/check.py uses the same). */
 const ASPECTS: Record<string, FramingFrameBox> = { '3:2': { x: 0, y: 0, w: 720, h: 480 }, '1:1': { x: 120, y: 0, w: 480, h: 480 }, '4:3': { x: 40, y: 0, w: 640, h: 480 }, '16:9': { x: 0, y: 38, w: 720, h: 404 } };
 const TEMPLATE_NAMES: Record<string, Key> = {
-  thirds: 'frTplThirds', quarters: 'frTplQuarters', golden: 'frTplGolden', centre: 'frTplCentre', cinema: 'frTplCinema', flat: 'frTplFlat',
-  square: 'frTplSquare', portrait: 'frTplPortrait', vertical: 'frTplVertical', multi: 'frTplMulti',
+  thirds: 'frTplThirds', quarters: 'frTplQuarters', flat: 'frTplFlat', centre: 'frTplCentre', cinema: 'frTplCinema',
 };
 
 const KIND_NAMES: Record<FramingKind, Key> = {
@@ -96,7 +95,7 @@ export function FramingThumb() {
       {([0, 1] as const).map((i) => (
         <svg key={i} viewBox={`0 0 ${W} ${H}`} className="grid-thumb" data-morph={`grid-${i === 0 ? 'g3' : 'g4'}`}>
           <rect x={0} y={0} width={W} height={H} fill="#8a8a8a" />
-          <FramingDrawing g={g} preset={g.presets[i]} frame={ASPECTS['3:2']} least={6} />
+          <FramingDrawing g={g} preset={g.presets[i]} frame={ASPECTS['3:2']} least={9} />
         </svg>
       ))}
     </div>
@@ -192,16 +191,18 @@ function WithinPick({ preset, value, onChange }: { preset: FramingPreset; value:
   return <Seg value={String(value)} options={options} onChange={(v) => onChange(Number(v) as 0 | 1 | 2 | 3)} />;
 }
 
-/** A frame line's ratio: the usual ones, or typed. */
-function RatioPick({ num, den, onChange }: { num: number; den: number; onChange: (num: number, den: number) => void }) {
+/** A ratio: the usual ones, or typed. With `onFollow` (a safe area), first "the shape of its area" (num undefined). */
+function RatioPick({ num, den, onChange, onFollow }: { num?: number; den?: number; onChange: (num: number, den: number) => void; onFollow?: () => void }) {
   const [text, setText] = useState<string | null>(null);
   const bad = text !== null && parseRatio(text) === null;
+  const own = num !== undefined && den !== undefined;
   return (
     <div className="fr-ratios">
+      {onFollow && <button type="button" className="btn small" aria-pressed={!own} onClick={() => { setText(null); onFollow(); }}>{t('frRatioFollow')}</button>}
       {RATIOS.map(([label, n, d]) => (
-        <button key={label} type="button" className="btn small" aria-pressed={n * den === d * num} onClick={() => { setText(null); onChange(n, d); }}>{label}</button>
+        <button key={label} type="button" className="btn small" aria-pressed={own && n * den === d * num} onClick={() => { setText(null); onChange(n, d); }}>{label}</button>
       ))}
-      <input type="text" className={`fr-ratio-input ${bad ? 'bad' : ''}`} placeholder={t('frCustom')} value={text ?? ratioText(num, den)} aria-label={t('frCustom')}
+      <input type="text" className={`fr-ratio-input ${bad ? 'bad' : ''}`} placeholder={t('frCustom')} value={text ?? (own ? ratioText(num, den) : '')} aria-label={t('frCustom')}
         onChange={(e) => { setText(e.target.value); const r = parseRatio(e.target.value); if (r) onChange(r[0], r[1]); }}
         onBlur={() => setText(null)} />
     </div>
@@ -217,7 +218,7 @@ function summary(e: FramingElement): string {
     case 'grid': return `${e.cols} × ${e.rows}${within}`;
     case 'golden': return within.replace(/^ · /, '');
     case 'line': return `${t(e.axis === 'h' ? 'frHorizontal' : 'frVertical')} ${(e.at / 100).toFixed(1).replace(/\.0$/, '')}%${within}`;
-    case 'safe': return `${e.percent}%${within}`;
+    case 'safe': return `${e.percent}%${e.num !== undefined && e.den !== undefined ? ` · ${ratioText(e.num, e.den)}` : ''}${within}`;
     case 'centre': return `${t(e.mark === 'cross' ? 'frCross' : 'frDot')} ${e.size} px${within}`;
     case 'diagonals': return [e.down ? '↘' : '', e.up ? '↗' : ''].filter(Boolean).join(' ') || '—';
   }
@@ -274,7 +275,8 @@ function ElementFields({ g, preset, i, e }: { g: FramingGuides; preset: 0 | 1; i
     case 'safe':
       return (
         <>
-          <Field label={t('frSize')}><Range value={e.percent} min={50} max={99} unit="%" onChange={(v) => set({ percent: v })} /></Field>
+          <Field label={t('frSize')}><Range value={e.percent} min={1} max={99} unit="%" onChange={(v) => set({ percent: v })} /></Field>
+          <Field label={t('frRatio')}><RatioPick num={e.num} den={e.den} onChange={(num, den) => set({ num, den })} onFollow={() => set({ num: undefined, den: undefined })} /></Field>
           {within}{outline(e.style)}{stroke}
         </>
       );
@@ -314,12 +316,14 @@ function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
     const el = ref.current;
     if (!el) return;
     if (reducedMotion() || typeof el.animate !== 'function') { if (!open) setRender(false); return; }
+    // measured before anything changes it: the box is at its full height until the closing movement takes it down
     const from = run.current ? getComputedStyle(el).height : `${open ? 0 : el.offsetHeight}px`;
     const fromOpacity = run.current ? getComputedStyle(el).opacity : open ? '0' : '1';
     run.current?.cancel();
     const to = open ? `${el.scrollHeight}px` : '0px';
     el.style.overflow = 'hidden';
-    const a = el.animate([{ height: from, opacity: fromOpacity }, { height: to, opacity: open ? 1 : 0 }], { duration: open ? 300 : 220, easing: open ? EASE : EASE_EXIT });
+    // closing holds its end (fill) until the box is removed
+    const a = el.animate([{ height: from, opacity: fromOpacity }, { height: to, opacity: open ? 1 : 0 }], { duration: open ? 300 : 240, easing: open ? EASE : EASE_EXIT, fill: open ? 'none' : 'forwards' });
     run.current = a;
     a.onfinish = () => {
       if (run.current !== a) return;
@@ -328,7 +332,7 @@ function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
       if (!open) setRender(false);
     };
   }, [open, render]);
-  return render ? <div ref={ref} className="fr-collapse" style={open ? undefined : { height: 0, opacity: 0, overflow: 'hidden' }}>{children}</div> : null;
+  return render ? <div ref={ref} className="fr-collapse">{children}</div> : null;
 }
 
 function ElementCard({ g, preset, i, open, onToggle }: { g: FramingGuides; preset: 0 | 1; i: number; open: boolean; onToggle: () => void }) {
@@ -358,13 +362,13 @@ function TemplatePick({ preset, onApplied }: { preset: 0 | 1; onApplied: () => v
   useEffect(() => { setFull(false); }, [preset]);
   return (
     <div className="fr-templates">
-      <div className="fr-templates-head"><span className="fr-label">{t('frTemplates')}</span><span className="muted small">{t('frTemplatesNote')}</span></div>
+      <div className="fr-templates-head"><span className="fr-label">{t('frTemplates')}</span></div>
       <div className="fr-template-list">
         {FRAMING_TEMPLATES.map((tpl: FramingTemplate) => (
           <button key={tpl.id} type="button" className="fr-template" onClick={() => { const ok = applyFramingTemplate(preset, tpl.id); setFull(!ok); if (ok) onApplied(); }}>
             <svg viewBox={`0 0 ${W} ${H}`} aria-hidden>
               <rect x={0} y={0} width={W} height={H} fill="#8a8a8a" />
-              <FramingDrawing g={templateGuides(tpl)} preset={{ elements: tpl.elements }} frame={ASPECTS['3:2']} least={7} />
+              <FramingDrawing g={templateGuides(tpl)} preset={{ elements: tpl.elements }} frame={ASPECTS['3:2']} least={9} />
             </svg>
             <span>{t(TEMPLATE_NAMES[tpl.id])}</span>
           </button>
@@ -411,7 +415,8 @@ export function FramingEditor({ preset, setPreset }: { preset: 0 | 1; setPreset:
         <div className="fr-view">
           <svg viewBox={`0 0 ${W} ${H}`} className="grid-edit-preview fr-preview">
             <Backdrop frame={frame} />
-            <FramingDrawing g={g} preset={p} frame={frame} />
+            {/* at least 1.5 units: the picture is shown smaller than the camera's 720 x 480, where a 1 px line would vanish */}
+            <FramingDrawing g={g} preset={p} frame={frame} least={1.5} />
           </svg>
           <TemplatePick preset={preset} onApplied={() => setOpen(-1)} />
         </div>
