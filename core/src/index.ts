@@ -20,8 +20,8 @@ export { RATIO_ICON_H, RATIO_ICON_W } from './fw/aspect';
 export { batteryIcons } from './fw/aspect/battery';
 export { CAMERA_GRID, GRID_LINE_COUNT, isCameraGrid } from './fw/aspect/grid';
 export type { CustomGrid, GridLines } from './fw/aspect/grid';
-export { CAMERA_GRID_COLOUR, CAMERA_PRESETS, DEFAULT_FRAMING_PALETTE, FRAMING_MAX_ELEMENTS, FRAMING_MAX_BOXES, FRAMING_MAX_FRAMES, FRAMING_MAX_RECORDS, FRAMING_PALETTE_SIZE, argbOf, clonePreset, compilePreset, defaultFramingGuides, evaluateBoxes, framingProblem, framingRects, framingValues, isCameraPreset, validFramingGuides } from './fw/gr4v120/aspect/framing';
-export type { CompiledPreset, FramingBox, FramingCentre, FramingColour, FramingDash, FramingDiagonals, FramingElement, FramingFrame, FramingFrameBox, FramingGolden, FramingGrid, FramingGuides, FramingLine, FramingOutline, FramingPreset, FramingRect, FramingSafe } from './fw/gr4v120/aspect/framing';
+export { CAMERA_GRID_COLOUR, CAMERA_PRESETS, DEFAULT_FRAMING_PALETTE, FRAMING_MAX_ELEMENTS, FRAMING_MAX_FRAMES, FRAMING_MAX_RECORDS, FRAMING_PALETTE_SIZE, argbOf, clonePreset, compilePreset, defaultFramingGuides, evaluateBoxes, framingProblem, framingRects, framingValues, isCameraPreset, upgradeFramingGuides, validFramingGuides } from './fw/gr4v120/aspect/framing';
+export type { CompiledPreset, FramingBox, FramingCentre, FramingColour, FramingDash, FramingDiagonals, FramingElement, FramingFrame, FramingFrameBox, FramingGolden, FramingGrid, FramingGuides, FramingLine, FramingOutline, FramingPreset, FramingRect } from './fw/gr4v120/aspect/framing';
 export type { ShadeTone } from './fw/aspect';
 export type { RatioPreview } from './app';
 

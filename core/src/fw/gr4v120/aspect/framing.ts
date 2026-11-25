@@ -6,14 +6,13 @@
  * preset that draws exactly what the camera's own style draws has no value of its own.
  *
  * Elements (in the spirit of the frame lines of cinema cameras: ARRI's Frame Line Tool, RED's guides):
- *   frame      up to three frame lines A, B, C: a ratio fitted into the picture, scaled, moved; drawn as a box, as
- *              corners or dashed; optionally the part of the picture outside it darkened
- *   grid       n x m equal parts of the picture or of a frame line
- *   golden     the golden section (0.382 / 0.618) of the picture or of a frame line
- *   line       one horizontal or vertical line anywhere in the picture or in a frame line
- *   safe       a centred area in the picture or a frame line: inset by the same width on all four sides (percent of
- *              the shorter side), or a ratio of its own fitted into it; as a box, corners or dashed
- *   centre     a cross or a dot at the centre of the picture or of a frame line
+ *   frame      up to seven frames A..G (frame lines, safe areas), each in the picture or in an earlier frame: a
+ *              ratio fitted into it, or it inset by the same width on all four sides (percent of its shorter side);
+ *              scaled, moved; drawn as a box, as corners or dashed; optionally the picture outside it darkened
+ *   grid       n x m equal parts of the picture or of a frame
+ *   golden     the golden section (0.382 / 0.618) of the picture or of a frame
+ *   line       one horizontal or vertical line anywhere in the picture or in a frame
+ *   centre     a cross or a dot at the centre of the picture or of a frame
  *   diagonals  the picture's two diagonals (the camera's 4x4 has them), each on or off
  *
  * How the camera draws it. GridView::Draw (0x5359bb14) fills rectangles with the line drawer (0x5359b814: the view,
@@ -29,14 +28,14 @@
  *                       u8 colour (UI palette number), 3 bytes 0
  *
  * Box 0 is the grid view's frame (the picture: the camera fits it to the live picture, and the live-view shade of
- * the added ratios to the photo's window). Box k (1..n) is a frame line: the ratio num : den fitted into box 0
- * (its full height if box 0 is wider, else its full width), scaled, centred and moved by the offsets (fractions of
- * box 0's width and height). After them come the safe areas, each in its parent (the picture or a frame line):
- * with a ratio of its own fitted the same way; without (num 0), the parent inset by the same width on every side,
- * (shorter side x (32768 - scale) + 32768) >> 16. Seven boxes besides the picture at most.
- * An edge is box.pos + (box.size * fraction + 16384) >> 15 + pixels, along x for the left and right edges, along y for the top and bottom ones; a record whose right edge is not right of its left
+ * the added ratios to the photo's window). Box k (1..7) is frame k, in its parent (box 0 or an earlier box): the
+ * ratio num : den fitted into the parent (its full height if the parent is wider, else its full width), scaled,
+ * centred and moved by the offsets (fractions of the parent's width and height); with num 0, the parent inset by
+ * m = (shorter side x (32768 - scale) + 32768) >> 16 on every side, moved the same way.
+ * An edge is box.pos + (box.size * fraction + 16384) >> 15 + pixels, along x for the left and right edges, along
+ * y for the top and bottom ones; a record whose right edge is not right of its left
  * edge, or whose bottom is not below its top, is not drawn. So lines keep their width in pixels on any picture,
- * and everything follows the picture's shape: a frame line is fitted to the picture the camera shows (3:2, its
+ * and everything follows the picture's shape: a frame is fitted to the picture the camera shows (3:2, its
  * own 1:1, 4:3, 16:9, an added ratio's window).
  *
  * The diagonals are the grid view's two line views (+0xEC, +0xF0), laid out by its layout (0x5359b944) from
@@ -55,8 +54,8 @@ import type { GridSelect } from './grid';
 
 /** A colour of the palette, 0..255 each; `a` 255 opaque, 0 invisible. */
 export interface FramingColour { r: number; g: number; b: number; a: number }
-/** 0: the picture; 1..3: frame line A, B, C (the first, second, third frame element of the preset). */
-export type FramingBox = 0 | 1 | 2 | 3;
+/** 0: the picture; 1..7: frame A..G (the first, second... frame element of the preset). */
+export type FramingBox = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7;
 export type FramingDash = 'solid' | 'dashed';
 export type FramingOutline = 'box' | 'corners' | 'dashed';
 /** `colour`: an index into the palette; `width`: pixels of the camera's screen (720 x 480 for the 3:2 picture), 1..8. */
@@ -66,33 +65,35 @@ export interface FramingGrid extends Stroke { kind: 'grid'; /** parts across, 2.
 export interface FramingGolden extends Stroke { kind: 'golden'; box: FramingBox; dash: FramingDash }
 export interface FramingDiagonals extends Stroke { kind: 'diagonals'; /** top left to bottom right */ down: boolean; /** bottom left to top right */ up: boolean }
 export interface FramingCentre extends Stroke { kind: 'centre'; mark: 'cross' | 'dot'; /** pixels, 4..100 */ size: number; box: FramingBox }
-export interface FramingSafe extends Stroke {
-  kind: 'safe'; /** 1..99 */ percent: number; box: FramingBox; style: FramingOutline;
-  /** Its own ratio num : den (1..9999 each), fitted into its box like a frame line; absent: the box's own shape. */
-  num?: number; den?: number;
-}
+/**
+ * A frame (frame lines, safe areas): a box in the picture or in an earlier frame (`box`), drawn as an outline;
+ * other elements can be laid out in it (its letter, A..G).
+ */
 export interface FramingFrame extends Stroke {
   kind: 'frame';
-  /** The ratio num : den, 1..9999 each (2.39 : 1 is 239 : 100). */
-  num: number; den: number;
-  /** Percent of the largest size that fits in the picture, 1..100. */
+  /** The ratio num : den, 1..9999 each (2.39 : 1 is 239 : 100), fitted into its box; absent: its box inset by the same width on all four sides. */
+  num?: number; den?: number;
+  /** Percent of the largest size that fits in its box (with a ratio), or of its box less the same width on all sides, 1..100. */
   scale: number;
-  /** Offset of the centre, percent of the picture's width / height, -50..50 (positive: right / down). */
+  /** Offset of the centre, percent of its box's width / height, -50..50 (positive: right / down). */
   x: number; y: number;
+  /** The picture (0) or an earlier frame. */
+  box: FramingBox;
   style: FramingOutline;
   /** Corners: the length of each arm, percent of the frame's shorter side, 5..50. */
   corner: number;
   /** The part of the picture outside the frame darkened in this palette colour; null: not. */
   mask: number | null;
 }
-export type FramingElement = FramingLine | FramingGrid | FramingGolden | FramingDiagonals | FramingCentre | FramingSafe | FramingFrame;
+export type FramingElement = FramingLine | FramingGrid | FramingGolden | FramingDiagonals | FramingCentre | FramingFrame;
+/** A safe area of the records of version 1 and 2 (now a frame without a ratio, or with one). */
+interface LegacySafe extends Stroke { kind: 'safe'; percent: number; box: number; style: FramingOutline; num?: number; den?: number }
 export interface FramingPreset { elements: FramingElement[] }
 export interface FramingGuides { palette: FramingColour[]; presets: [FramingPreset, FramingPreset] }
 
 export const FRAMING_PALETTE_SIZE = 8;
-export const FRAMING_MAX_FRAMES = 3;
-/** Boxes of a preset besides the picture: its frame lines and its safe areas. */
-export const FRAMING_MAX_BOXES = 7;
+/** Frames of a preset (A..G): each is a box the camera works out whenever it draws the grid. */
+export const FRAMING_MAX_FRAMES = 7;
 /** Rectangles per preset: each is a fill the camera does whenever it draws the grid. */
 export const FRAMING_MAX_RECORDS = 160;
 export const FRAMING_MAX_ELEMENTS = 24;
@@ -144,9 +145,9 @@ export function framingProblem(g: unknown): string | null {
     if (typeof p !== 'object' || p === null || !Array.isArray(p.elements)) return `preset ${i + 1}: no elements`;
     if (p.elements.length > FRAMING_MAX_ELEMENTS) return `preset ${i + 1}: more than ${FRAMING_MAX_ELEMENTS} elements`;
     const frames = p.elements.filter((e) => e && e.kind === 'frame').length;
-    if (frames > FRAMING_MAX_FRAMES) return `preset ${i + 1}: more than three frame lines`;
+    if (frames > FRAMING_MAX_FRAMES) return `preset ${i + 1}: more than ${FRAMING_MAX_FRAMES} frames`;
     if (p.elements.filter((e) => e && e.kind === 'diagonals').length > 1) return `preset ${i + 1}: diagonals twice`;
-    let safes = 0;
+    let k = 0;
     for (const e of p.elements) {
       const what = `preset ${i + 1}, ${(e as { kind?: string })?.kind ?? 'element'}`;
       if (typeof e !== 'object' || e === null) return `${what}: not an object`;
@@ -159,19 +160,16 @@ export function framingProblem(g: unknown): string | null {
         case 'golden': if (!(box(e.box) && oneOf(e.dash, ['solid', 'dashed']))) return what; break;
         case 'diagonals': if (!(typeof e.down === 'boolean' && typeof e.up === 'boolean')) return what; break;
         case 'centre': if (!(oneOf(e.mark, ['cross', 'dot']) && int(e.size, 4, 100) && box(e.box))) return what; break;
-        case 'safe':
-          if (!(int(e.percent, 1, 99) && box(e.box) && oneOf(e.style, ['box', 'corners', 'dashed']))) return what;
-          if ((e.num !== undefined || e.den !== undefined) && !(int(e.num, 1, 9999) && int(e.den, 1, 9999))) return `${what}: ratio`;
-          safes += 1;
-          break;
         case 'frame':
-          if (!(int(e.num, 1, 9999) && int(e.den, 1, 9999) && int(e.scale, 1, 100) && int(e.x, -50, 50) && int(e.y, -50, 50) && oneOf(e.style, ['box', 'corners', 'dashed']) && int(e.corner, 5, 50))) return what;
+          k += 1;
+          if ((e.num !== undefined || e.den !== undefined) && !(int(e.num, 1, 9999) && int(e.den, 1, 9999))) return `${what}: ratio`;
+          if (!int(e.box, 0, k - 1)) return `${what}: in the picture or an earlier frame`;
+          if (!(int(e.scale, 1, 100) && int(e.x, -50, 50) && int(e.y, -50, 50) && oneOf(e.style, ['box', 'corners', 'dashed']) && int(e.corner, 5, 50))) return what;
           if (!(e.mask === null || int(e.mask, 0, palette.length - 1))) return `${what}: mask colour`;
           break;
         default: return `${what}: unknown kind`;
       }
     }
-    if (frames + safes > FRAMING_MAX_BOXES) return `preset ${i + 1}: more than ${FRAMING_MAX_BOXES} frame lines and safe areas`;
     const n = compilePreset(p).records.length;
     if (n > FRAMING_MAX_RECORDS) return `preset ${i + 1}: ${n} rectangles, at most ${FRAMING_MAX_RECORDS}`;
   }
@@ -221,18 +219,15 @@ function nominalBox(boxes: readonly FramingBoxDef[], k: number): { w: number; h:
  */
 export function compilePreset(preset: FramingPreset): CompiledPreset {
   const boxes: FramingBoxDef[] = [];
+  // the frames' boxes 1..n, in order (as the elements name them): with a ratio fitted into their box, without it
+  // their box inset by the same width on all four sides
   for (const e of preset.elements) {
     if (e.kind !== 'frame') continue;
-    boxes.push({ num: e.num, den: e.den, scale: Math.round((e.scale / 100) * ONE), ox: Math.round((e.x / 100) * ONE), oy: Math.round((e.y / 100) * ONE), parent: 0 });
-  }
-  // after the frame lines (whose boxes are 1..n, as the elements name them): the safe areas, each a box in its box
-  // (with a ratio: fitted into it; without: inset by the same width on all four sides)
-  const safeBox = new Map<FramingElement, number>();
-  for (const e of preset.elements) {
-    if (e.kind !== 'safe') continue;
     const own = e.num !== undefined && e.den !== undefined;
-    boxes.push({ num: own ? e.num! : 0, den: own ? e.den! : 0, scale: Math.round((e.percent / 100) * ONE), ox: 0, oy: 0, parent: e.box });
-    safeBox.set(e, boxes.length);
+    boxes.push({
+      num: own ? e.num! : 0, den: own ? e.den! : 0, scale: Math.round((e.scale / 100) * ONE),
+      ox: Math.round((e.x / 100) * ONE), oy: Math.round((e.y / 100) * ONE), parent: e.box,
+    });
   }
   const records: FramingRecord[] = [];
   const diagonals: CompiledPreset['diagonals'] = [null, null];
@@ -340,9 +335,6 @@ export function compilePreset(preset: FramingPreset): CompiledPreset {
         }
         break;
       }
-      case 'safe':
-        outline(safeBox.get(e)!, 0, 0, 1, 1, e.style, e.width, e.colour);
-        break;
       case 'frame':
         k += 1;
         outline(k, 0, 0, 1, 1, e.style, e.width, e.colour, e.corner);
@@ -365,7 +357,7 @@ export function evaluateBoxes(boxes: readonly FramingBoxDef[], frame: FramingFra
     const H = into.h | 0;
     if (b.num === 0) {
       const m = (Math.min(W, H) * (ONE - b.scale) + ONE) >> 16;
-      out.push({ x: into.x + m, y: into.y + m, w: W - 2 * m, h: H - 2 * m });
+      out.push({ x: into.x + m + ((W * b.ox) >> 15), y: into.y + m + ((H * b.oy) >> 15), w: W - 2 * m, h: H - 2 * m });
       continue;
     }
     let bw: number;
@@ -449,11 +441,11 @@ const PALETTE = adr(0x540781ec);
 const PALETTE_LOOKUP = adr(0x539262fc);
 const PALETTE_WORDS = 48;
 /** The boxes on the stack while drawing: 16 bytes each, the picture and seven more. */
-const BOX_AREA = 16 * (FRAMING_MAX_BOXES + 1);
+const BOX_AREA = 16 * (FRAMING_MAX_FRAMES + 1);
 
 /** The list of a preset (see the top of this file). Colours become UI palette numbers. */
 export function presetList(c: CompiledPreset): Uint8Array {
-  if (c.boxes.length > FRAMING_MAX_BOXES || c.boxes.some((b, i) => b.parent > i) || c.records.length > 255) fail('internal', 'framing guides: too much for one preset');
+  if (c.boxes.length > FRAMING_MAX_FRAMES || c.boxes.some((b, i) => b.parent > i) || c.records.length > 255) fail('internal', 'framing guides: too much for one preset');
   const head = Uint8Array.from([c.boxes.length, c.records.length, 0, 0]);
   const boxes = c.boxes.map((b) => u16le([b.num, b.den, b.scale, b.ox + ONE, b.oy + ONE, b.parent]));
   const records = c.records.map((r) => {
@@ -553,8 +545,10 @@ export function installFramingGuides(patch: Patch, guides: FramingGuides, select
   d += 'b nextbox;';
   // num 0: the parent inset by m = (shorter side x (32768 - scale) + 32768) >> 16 on every side
   d += 'inset:ldr r0,[sl,#8];ldr r1,[sl,#12];cmp r0,r1;movgt r0,r1;rsb r2,r2,#32768;mul r0,r0,r2;add r0,r0,#32768;mov r0,r0,asr #16;';
-  d += 'ldr r1,[sl];add r1,r1,r0;str r1,[r9];ldr r1,[sl,#4];add r1,r1,r0;str r1,[r9,#4];';
   d += 'ldr r1,[sl,#8];sub r1,r1,r0,lsl #1;str r1,[r9,#8];ldr r1,[sl,#12];sub r1,r1,r0,lsl #1;str r1,[r9,#12];';
+  // moved as a fitted box is: x = left + m + (W x offset) >> 15, y the same way
+  d += 'ldrh r1,[r6,#6];sub r1,r1,#32768;ldr r2,[sl,#8];mul r1,r2,r1;add r1,r0,r1,asr #15;ldr r2,[sl];add r1,r1,r2;str r1,[r9];';
+  d += 'ldrh r1,[r6,#8];sub r1,r1,#32768;ldr r2,[sl,#12];mul r1,r2,r1;add r1,r0,r1,asr #15;ldr r2,[sl,#4];add r1,r1,r2;str r1,[r9,#4];';
   d += 'nextbox:add r6,r6,#12;add r9,r9,#16;sub r7,r7,#1;b boxes;boxed:';
   // records: four edges, then the fill in the record's colour
   d += `ldrb r7,[r4,#${GRID_COLOUR}];`;
@@ -657,15 +651,17 @@ export function drawFramingIcon(g: FramingGuides, i: 0 | 1): Uint8Array {
 
 // ---------------------------------------------------------------------------------------------------- the record
 
+/** The kinds by their number in the record (6, a safe area, only in versions 1 and 2). */
 const KINDS = ['line', 'grid', 'golden', 'diagonals', 'centre', 'safe', 'frame'] as const;
 const OUTLINES: readonly FramingOutline[] = ['box', 'corners', 'dashed'];
 
 /**
- * The guides as bytes, for the build record (`package.ts`): version 2, the palette, each preset's elements.
- * (Version 1, test firmware 113, had no ratio of a safe area.)
+ * The guides as bytes, for the build record (`package.ts`): version 3, the palette, each preset's elements.
+ * (Version 1, test firmware 113: frames only in the picture and safe areas of their own; version 2, test firmware
+ * 114 and 115: safe areas with a ratio.)
  */
 export function encodeFramingGuides(g: FramingGuides): Uint8Array {
-  const b: number[] = [2, g.palette.length];
+  const b: number[] = [3, g.palette.length];
   for (const c of g.palette) b.push(c.r, c.g, c.b, c.a);
   for (const p of g.presets) {
     b.push(p.elements.length);
@@ -677,43 +673,86 @@ export function encodeFramingGuides(g: FramingGuides): Uint8Array {
         case 'golden': b.push(e.box, e.dash === 'dashed' ? 1 : 0); break;
         case 'diagonals': b.push(e.down ? 1 : 0, e.up ? 1 : 0); break;
         case 'centre': b.push(e.mark === 'dot' ? 1 : 0, e.size, e.box); break;
-        case 'safe': { const n = e.num ?? 0; const d = e.den ?? 0; b.push(e.percent, e.box, OUTLINES.indexOf(e.style), n & 0xff, n >>> 8, d & 0xff, d >>> 8); break; }
-        case 'frame': b.push(e.num & 0xff, e.num >>> 8, e.den & 0xff, e.den >>> 8, e.scale, e.x & 0xff, e.y & 0xff, OUTLINES.indexOf(e.style), e.corner, e.mask === null ? 255 : e.mask); break;
+        case 'frame': {
+          const n = e.num ?? 0;
+          const d = e.den ?? 0;
+          b.push(n & 0xff, n >>> 8, d & 0xff, d >>> 8, e.scale, e.x & 0xff, e.y & 0xff, OUTLINES.indexOf(e.style), e.corner, e.mask === null ? 255 : e.mask, e.box);
+          break;
+        }
       }
     }
   }
   return Uint8Array.from(b);
 }
 
-/** The guides from their bytes, or null when they are not valid guides of version 1 or 2. */
+/**
+ * Guides of the time frame lines and safe areas were apart (records of version 1 and 2, projects saved by test
+ * builds 095-099) as frames: a safe area becomes a frame (inset, or with its ratio) in its box, the frames are
+ * numbered again in their order, and what was laid out in a frame line is laid out in the same frame. Anything
+ * else is given back as it is.
+ */
+export function upgradeFramingGuides(v: unknown): unknown {
+  if (typeof v !== 'object' || v === null || !Array.isArray((v as { presets?: unknown }).presets)) return v;
+  const g = v as { palette: unknown; presets: { elements?: unknown }[] };
+  const presets = g.presets.map((p) => {
+    if (typeof p !== 'object' || p === null || !Array.isArray(p.elements)) return p;
+    const els = p.elements as Record<string, unknown>[];
+    if (!els.some((e) => e && (e.kind === 'safe' || (e.kind === 'frame' && e.box === undefined)))) return p;
+    // old frame line k (1..) -> its number among the frames
+    const lineTo: number[] = [0];
+    let n = 0;
+    for (const e of els) {
+      if (e?.kind === 'frame') { n += 1; lineTo.push(n); } else if (e?.kind === 'safe') n += 1;
+    }
+    n = 0;
+    const elements = els.map((e) => {
+      if (!e || typeof e !== 'object') return e;
+      if (e.kind === 'frame') { n += 1; return { ...e, box: 0 }; }
+      if (e.kind === 'safe') {
+        n += 1;
+        const s = e as unknown as LegacySafe;
+        const parent = lineTo[s.box] ?? 0;
+        const f: FramingFrame = { kind: 'frame', scale: s.percent, x: 0, y: 0, box: (parent < n ? parent : 0) as FramingBox, style: s.style, corner: 15, mask: null, colour: s.colour, width: s.width };
+        if (s.num !== undefined && s.den !== undefined) { f.num = s.num; f.den = s.den; }
+        return f;
+      }
+      return 'box' in e ? { ...e, box: lineTo[e.box as number] ?? 0 } : e;
+    });
+    return { ...p, elements };
+  });
+  return { ...g, presets };
+}
+
+/** The guides from their bytes, or null when they are not valid guides of version 1, 2 or 3. */
 export function decodeFramingGuides(bytes: Uint8Array): FramingGuides | null {
   let p = 0;
   const next = (): number => { if (p >= bytes.length) throw new RangeError('short'); return bytes[p++]; };
   const s8 = (v: number): number => (v > 127 ? v - 256 : v);
   try {
     const version = next();
-    if (version !== 1 && version !== 2) return null;
+    if (version < 1 || version > 3) return null;
     const n = next();
     const palette: FramingColour[] = [];
     for (let i = 0; i < n; i++) palette.push({ r: next(), g: next(), b: next(), a: next() });
-    const presets: FramingPreset[] = [];
+    const presets: { elements: unknown[] }[] = [];
     for (let i = 0; i < 2; i++) {
       const count = next();
-      const elements: FramingElement[] = [];
+      const elements: unknown[] = [];
       for (let k = 0; k < count; k++) {
         const kind = KINDS[next() - 1];
         const colour = next();
         const width = next();
         const dash = (v: number): FramingDash => (v ? 'dashed' : 'solid');
         switch (kind) {
-          case 'line': { const axis = next() ? 'v' : 'h'; const at = next() | (next() << 8); elements.push({ kind, axis, at, box: next() as FramingBox, dash: dash(next()), colour, width }); break; }
-          case 'grid': elements.push({ kind, cols: next(), rows: next(), box: next() as FramingBox, dash: dash(next()), colour, width }); break;
-          case 'golden': elements.push({ kind, box: next() as FramingBox, dash: dash(next()), colour, width }); break;
+          case 'line': { const axis = next() ? 'v' : 'h'; const at = next() | (next() << 8); elements.push({ kind, axis, at, box: next(), dash: dash(next()), colour, width }); break; }
+          case 'grid': elements.push({ kind, cols: next(), rows: next(), box: next(), dash: dash(next()), colour, width }); break;
+          case 'golden': elements.push({ kind, box: next(), dash: dash(next()), colour, width }); break;
           case 'diagonals': elements.push({ kind, down: !!next(), up: !!next(), colour, width }); break;
-          case 'centre': elements.push({ kind, mark: next() ? 'dot' : 'cross', size: next(), box: next() as FramingBox, colour, width }); break;
+          case 'centre': elements.push({ kind, mark: next() ? 'dot' : 'cross', size: next(), box: next(), colour, width }); break;
           case 'safe': {
-            const e: FramingSafe = { kind, percent: next(), box: next() as FramingBox, style: OUTLINES[next()], colour, width };
-            if (version >= 2) { const n = next() | (next() << 8); const d = next() | (next() << 8); if (n || d) { e.num = n; e.den = d; } }
+            if (version >= 3) return null;
+            const e: LegacySafe = { kind, percent: next(), box: next(), style: OUTLINES[next()], colour, width };
+            if (version === 2) { const sn = next() | (next() << 8); const sd = next() | (next() << 8); if (sn || sd) { e.num = sn; e.den = sd; } }
             elements.push(e);
             break;
           }
@@ -726,7 +765,10 @@ export function decodeFramingGuides(bytes: Uint8Array): FramingGuides | null {
             const style = OUTLINES[next()];
             const corner = next();
             const m = next();
-            elements.push({ kind, num, den, scale, x, y, style, corner, mask: m === 255 ? null : m, colour, width });
+            const f: Record<string, unknown> = { kind, scale, x, y, style, corner, mask: m === 255 ? null : m, colour, width };
+            if (version >= 3) f.box = next();
+            if (num || den) { f.num = num; f.den = den; }
+            elements.push(f);
             break;
           }
           default: return null;
@@ -735,7 +777,7 @@ export function decodeFramingGuides(bytes: Uint8Array): FramingGuides | null {
       presets.push({ elements });
     }
     if (p !== bytes.length) return null;
-    const g: FramingGuides = { palette, presets: [presets[0], presets[1]] };
+    const g = upgradeFramingGuides({ palette, presets });
     return validFramingGuides(g) ? g : null;
   } catch {
     return null;

@@ -25,23 +25,24 @@ const rtosOf = (file: Uint8Array): Uint8Array => {
   return d.subarray(r.offset, r.offset + r.size);
 };
 
-/** Frame line A 2.39:1 with a mask and thirds in it, a red centre cross; golden section, a dashed safe area, a moved 1:1, a diagonal. */
+/** Frame A 2.39:1 with a mask and thirds in it, a red centre cross; golden section, a moved 1:1, an inset dashed frame, a diagonal, a 4:5 in the 1:1. */
 function sample(): FramingGuides {
   const g = defaultFramingGuides();
   g.presets[0].elements = [
-    { kind: 'frame', num: 239, den: 100, scale: 100, x: 0, y: 0, style: 'corners', corner: 12, mask: 3, colour: 1, width: 3 },
+    { kind: 'frame', num: 239, den: 100, scale: 100, x: 0, y: 0, box: 0, style: 'corners', corner: 12, mask: 3, colour: 1, width: 3 },
     { kind: 'grid', cols: 3, rows: 3, box: 1, dash: 'solid', colour: 2, width: 2 },
     { kind: 'centre', mark: 'cross', size: 28, box: 0, colour: 4, width: 2 },
   ];
   g.presets[1].elements = [
     { kind: 'golden', box: 0, dash: 'solid', colour: 5, width: 2 },
-    { kind: 'safe', percent: 90, box: 0, style: 'dashed', colour: 7, width: 2 },
-    { kind: 'frame', num: 1, den: 1, scale: 90, x: 10, y: -5, style: 'box', corner: 15, mask: null, colour: 6, width: 2 },
+    { kind: 'frame', num: 1, den: 1, scale: 90, x: 10, y: -5, box: 0, style: 'box', corner: 15, mask: null, colour: 6, width: 2 },
+    // a safe area: the picture inset by the same width on all four sides
+    { kind: 'frame', scale: 90, x: 0, y: 0, box: 0, style: 'dashed', corner: 15, mask: null, colour: 7, width: 2 },
     { kind: 'line', axis: 'h', at: 5000, box: 0, dash: 'dashed', colour: 1, width: 1 },
     { kind: 'centre', mark: 'dot', size: 8, box: 1, colour: 4, width: 1 },
     { kind: 'diagonals', down: true, up: false, colour: 5, width: 1 },
-    // a 4:5 safe area in frame line A (the 1:1): a box fitted into a box
-    { kind: 'safe', percent: 80, box: 1, style: 'corners', colour: 2, width: 2, num: 4, den: 5 },
+    // a 4:5 frame in frame A (the 1:1): a box fitted into a box
+    { kind: 'frame', num: 4, den: 5, scale: 80, x: 0, y: 0, box: 1, style: 'corners', corner: 15, mask: null, colour: 2, width: 2 },
   ];
   return g;
 }
@@ -73,22 +74,36 @@ describe('Framing guides: the model', () => {
     expect(evaluateBoxes(d.boxes, { x: 0, y: 0, w: 720, h: 480 })[1]).toEqual({ x: 72 + 144, y: -24 + 24, w: 432, h: 432 });
   });
 
-  it('a safe area with a ratio of its own is fitted into its box (the picture or a frame line)', () => {
-    const one = compilePreset({ elements: [{ kind: 'safe', percent: 90, box: 0, style: 'box', colour: 0, width: 2, num: 4, den: 5 }] });
+  it('a frame in a frame; a frame without a ratio is its box inset by the same width on all four sides', () => {
+    const one = compilePreset({ elements: [{ kind: 'frame', num: 4, den: 5, scale: 90, x: 0, y: 0, box: 0, style: 'box', corner: 15, mask: null, colour: 0, width: 2 }] });
     expect(evaluateBoxes(one.boxes, { x: 0, y: 0, w: 720, h: 480 })[1]).toEqual({ x: 187, y: 24, w: 346, h: 432 });
     const d = compilePreset(sample().presets[1]);
     expect(d.boxes.map((b) => b.parent)).toEqual([0, 0, 1]);
-    // in the 1:1 frame line (216, 0, 432, 432): 80 % of its height, 4:5
+    // in frame A (216, 0, 432, 432): 80 % of its height, 4:5
     expect(evaluateBoxes(d.boxes, { x: 0, y: 0, w: 720, h: 480 })[3]).toEqual({ x: 216 + ((432 - 277) >> 1), y: 43, w: 277, h: 346 });
-    // without a ratio: the same width on all four sides, a share of the shorter side (89 % of a 65:24 window)
-    const inset = compilePreset({ elements: [{ kind: 'safe', percent: 89, box: 0, style: 'box', colour: 0, width: 2 }] });
+    // without a ratio: a share of the shorter side on every side (89 % of a 65:24 window), and moved like any frame
+    const inset = (x: number) => compilePreset({ elements: [{ kind: 'frame', scale: 89, x, y: 0, box: 0, style: 'box', corner: 15, mask: null, colour: 0, width: 2 }] });
     const m = Math.round((266 * 0.11) / 2);
-    expect(evaluateBoxes(inset.boxes, { x: 0, y: 107, w: 720, h: 266 })[1]).toEqual({ x: m, y: 107 + m, w: 720 - 2 * m, h: 266 - 2 * m });
-    // version 1 records (test firmware 113) still read
-    const v1 = defaultFramingGuides();
-    v1.presets[1].elements = [{ kind: 'safe', percent: 90, box: 0, style: 'box', colour: 0, width: 2 }];
-    const bytes = encodeFramingGuides(v1);
-    expect(decodeFramingGuides(Uint8Array.from([1, ...bytes.slice(1, bytes.length - 4)]))).toEqual(v1);
+    expect(evaluateBoxes(inset(0).boxes, { x: 0, y: 107, w: 720, h: 266 })[1]).toEqual({ x: m, y: 107 + m, w: 720 - 2 * m, h: 266 - 2 * m });
+    expect(evaluateBoxes(inset(10).boxes, { x: 0, y: 107, w: 720, h: 266 })[1].x).toBe(m + 72);
+    // a frame can only be in an earlier one
+    const g = sample();
+    (g.presets[1].elements[1] as { box: number }).box = 2;
+    expect(framingProblem(g)).toMatch(/earlier frame/);
+  });
+
+  it('records of version 1 and 2 (safe areas apart from frame lines) read as frames', () => {
+    // version 1: one safe area of 90 % in the picture
+    const v1 = Uint8Array.from([1, 1, 0, 0, 0, 128, 1, 6, 0, 2, 90, 0, 0, 0]);
+    expect(decodeFramingGuides(v1)?.presets[0].elements).toEqual([{ kind: 'frame', scale: 90, x: 0, y: 0, box: 0, style: 'box', corner: 15, mask: null, colour: 0, width: 2 }]);
+    // version 2: a safe area 4:5 at 80 % in the line before it, a grid in that line: frames A and B, the grid stays in A
+    const v2 = Uint8Array.from([2, 1, 0, 0, 0, 128, 3, 6, 0, 2, 80, 1, 1, 4, 0, 5, 0, 7, 0, 2, 1, 0, 1, 0, 90, 0, 0, 0, 15, 255, 2, 0, 2, 3, 3, 1, 0, 0]);
+    // the safe area comes before its line: it cannot be in it, so it goes into the picture
+    expect(decodeFramingGuides(v2)?.presets[0].elements).toEqual([
+      { kind: 'frame', num: 4, den: 5, scale: 80, x: 0, y: 0, box: 0, style: 'corners', corner: 15, mask: null, colour: 0, width: 2 },
+      { kind: 'frame', num: 1, den: 1, scale: 90, x: 0, y: 0, box: 0, style: 'box', corner: 15, mask: null, colour: 0, width: 2 },
+      { kind: 'grid', cols: 3, rows: 3, box: 2, dash: 'solid', colour: 0, width: 2 },
+    ]);
   });
 
   it('the mask covers the picture outside the frame line, in four bands (empty ones not drawn)', () => {
@@ -98,12 +113,10 @@ describe('Framing guides: the model', () => {
 
   it('rejects what the camera cannot draw', () => {
     const g = sample();
-    g.presets[0].elements.push({ kind: 'frame', num: 4, den: 3, scale: 100, x: 0, y: 0, style: 'box', corner: 15, mask: null, colour: 0, width: 2 });
-    g.presets[0].elements.push({ kind: 'frame', num: 16, den: 9, scale: 100, x: 0, y: 0, style: 'box', corner: 15, mask: null, colour: 0, width: 2 });
-    g.presets[0].elements.push({ kind: 'frame', num: 5, den: 4, scale: 100, x: 0, y: 0, style: 'box', corner: 15, mask: null, colour: 0, width: 2 });
-    expect(framingProblem(g)).toMatch(/three frame lines/);
+    for (let i = 0; i < 7; i++) g.presets[0].elements.push({ kind: 'frame', num: 4, den: 3, scale: 100 - i, x: 0, y: 0, box: 0, style: 'box', corner: 15, mask: null, colour: 0, width: 2 });
+    expect(framingProblem(g)).toMatch(/more than 7 frames/);
     const h = sample();
-    h.presets[1].elements[0] = { kind: 'grid', cols: 3, rows: 3, box: 2, dash: 'solid', colour: 0, width: 2 };
+    h.presets[1].elements[0] = { kind: 'grid', cols: 3, rows: 3, box: 4, dash: 'solid', colour: 0, width: 2 };
     expect(framingProblem(h)).toMatch(/grid/);
     const k = sample();
     k.palette = k.palette.slice(0, 3);
@@ -118,7 +131,7 @@ describe('Framing guides: the model', () => {
     const bytes = encodeFramingGuides(g);
     expect(decodeFramingGuides(bytes)).toEqual(g);
     expect(decodeFramingGuides(bytes.slice(0, bytes.length - 1))).toBeNull();
-    expect(decodeFramingGuides(Uint8Array.from([3, ...bytes.slice(1)]))).toBeNull();
+    expect(decodeFramingGuides(Uint8Array.from([4, ...bytes.slice(1)]))).toBeNull();
   });
 
   it('the list: header, boxes of 12 bytes, records of 20 with UI palette numbers from 0xE0', () => {

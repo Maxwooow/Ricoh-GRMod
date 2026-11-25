@@ -6,13 +6,13 @@
  * Each element has a colour of its own in the editor; the camera has room for eight colours in all, so the palette
  * of the guides is kept here as exactly the colours in use (both presets), in the order they are first used.
  */
-import { CAMERA_GRID, CAMERA_GRID_COLOUR, FRAMING_MAX_ELEMENTS, FRAMING_MAX_FRAMES, FRAMING_PALETTE_SIZE, clonePreset, CAMERA_PRESETS, defaultFramingGuides, framingProblem, framingValues } from '@grmod/core';
-import type { CustomGrid, FramingColour, FramingElement, FramingGuides, FramingPreset } from '@grmod/core';
+import { CAMERA_GRID, CAMERA_GRID_COLOUR, upgradeFramingGuides, FRAMING_MAX_ELEMENTS, FRAMING_MAX_FRAMES, FRAMING_PALETTE_SIZE, clonePreset, CAMERA_PRESETS, defaultFramingGuides, framingProblem, framingValues } from '@grmod/core';
+import type { CustomGrid, FramingBox, FramingColour, FramingElement, FramingGuides, FramingPreset } from '@grmod/core';
 import { State, set, state } from './core';
 import { scheduleSave } from './families';
 
 export type FramingKind = FramingElement['kind'];
-export const FRAMING_KINDS: readonly FramingKind[] = ['frame', 'grid', 'golden', 'line', 'safe', 'centre', 'diagonals'];
+export const FRAMING_KINDS: readonly FramingKind[] = ['frame', 'grid', 'golden', 'line', 'centre', 'diagonals'];
 
 /** The firmware draws framing guides (GR IV 1.20 / 1.21). */
 export const framingOffered = (s: State = state): boolean => !!s.info?.features.framing;
@@ -36,7 +36,9 @@ function linesAsPreset(lines: readonly boolean[], style: 'g3' | 'g4'): FramingPr
 
 /** The guides as saved in the project; without them, the grid lines of 0.8.x carried over. */
 export function savedFraming(v: unknown, lines: CustomGrid): FramingGuides {
-  if (framingProblem(v) === null) return JSON.parse(JSON.stringify(v)) as FramingGuides;
+  // projects of test builds 095-099 kept safe areas apart from frame lines
+  const u = upgradeFramingGuides(v);
+  if (framingProblem(u) === null) return JSON.parse(JSON.stringify(u)) as FramingGuides;
   const g = defaultFramingGuides();
   g.presets = [linesAsPreset(lines.g3, 'g3'), linesAsPreset(lines.g4, 'g4')];
   return g;
@@ -141,17 +143,16 @@ const framesOf = (p: FramingPreset): number => p.elements.filter((e) => e.kind =
 export function newElement(kind: FramingKind): { element: FramingElement; colour: FramingColour } {
   const grey = CAMERA_GRID_COLOUR;
   switch (kind) {
-    case 'frame': return { element: { kind, num: 239, den: 100, scale: 100, x: 0, y: 0, style: 'box', corner: 15, mask: null, colour: 0, width: 2 }, colour: WHITE };
+    case 'frame': return { element: { kind, num: 239, den: 100, scale: 100, x: 0, y: 0, box: 0, style: 'box', corner: 15, mask: null, colour: 0, width: 2 }, colour: WHITE };
     case 'grid': return { element: { kind, cols: 3, rows: 3, box: 0, dash: 'solid', colour: 0, width: 2 }, colour: grey };
     case 'golden': return { element: { kind, box: 0, dash: 'solid', colour: 0, width: 2 }, colour: grey };
     case 'line': return { element: { kind, axis: 'h', at: 5000, box: 0, dash: 'solid', colour: 0, width: 2 }, colour: WHITE };
-    case 'safe': return { element: { kind, percent: 90, box: 0, style: 'corners', colour: 0, width: 2 }, colour: HALF_WHITE };
     case 'centre': return { element: { kind, mark: 'cross', size: 24, box: 0, colour: 0, width: 2 }, colour: WHITE };
     case 'diagonals': return { element: { kind, down: true, up: true, colour: 0, width: 2 }, colour: grey };
   }
 }
 
-/** Whether an element of `kind` can be added to preset `p` (at most three frame lines, one diagonals, 24 elements). */
+/** Whether an element of `kind` can be added to preset `p` (at most seven frames, one diagonals, 24 elements). */
 export function canAdd(p: FramingPreset, kind: FramingKind): boolean {
   if (p.elements.length >= FRAMING_MAX_ELEMENTS) return false;
   if (kind === 'frame') return framesOf(p) < FRAMING_MAX_FRAMES;
@@ -190,7 +191,7 @@ export function removeFramingElement(preset: 0 | 1, index: number): void {
     for (const x of els) {
       if (!('box' in x)) continue;
       if (x.box === box) x.box = 0;
-      else if (x.box > box) x.box = (x.box - 1) as 0 | 1 | 2;
+      else if (x.box > box) x.box = (x.box - 1) as FramingBox;
     }
   });
 }
@@ -206,7 +207,7 @@ export interface FramingTemplate { id: string; palette: FramingColour[]; element
 
 const [GREY, , , , RED] = FRAMING_SWATCHES;
 const frame = (num: number, den: number, style: 'box' | 'corners' | 'dashed', mask: number | null, colour = 0, extra: Partial<FramingElement> = {}): FramingElement =>
-  ({ kind: 'frame', num, den, scale: 100, x: 0, y: 0, style, corner: 12, mask, colour, width: 2, ...extra } as FramingElement);
+  ({ kind: 'frame', num, den, scale: 100, x: 0, y: 0, box: 0, style, corner: 12, mask, colour, width: 2, ...extra } as FramingElement);
 const thirdsIn = (box: 0 | 1 | 2 | 3, colour: number): FramingElement => ({ kind: 'grid', cols: 3, rows: 3, box, dash: 'solid', colour, width: 2 });
 
 /** The templates offered on the page: composition aids, frame lines for other formats, combinations of both. */
@@ -216,7 +217,7 @@ export const FRAMING_TEMPLATES: readonly FramingTemplate[] = [
   { id: 'flat', palette: [WHITE, GREY], elements: [frame(185, 100, 'box', 1)] },
   { id: 'centre', palette: [HALF_WHITE, WHITE], elements: [
     { kind: 'line', axis: 'h', at: 5000, box: 0, dash: 'dashed', colour: 0, width: 1 }, { kind: 'line', axis: 'v', at: 5000, box: 0, dash: 'dashed', colour: 0, width: 1 },
-    { kind: 'safe', percent: 90, box: 0, style: 'box', colour: 1, width: 2 }, { kind: 'centre', mark: 'cross', size: 24, box: 0, colour: 1, width: 2 }] },
+    { kind: 'frame', scale: 90, x: 0, y: 0, box: 0, style: 'box', corner: 15, mask: null, colour: 1, width: 2 }, { kind: 'centre', mark: 'cross', size: 24, box: 0, colour: 1, width: 2 }] },
   { id: 'cinema', palette: [WHITE, GREY, HALF_WHITE, RED], elements: [frame(239, 100, 'corners', 1), thirdsIn(1, 2), { kind: 'centre', mark: 'cross', size: 20, box: 1, colour: 3, width: 2 }] },
 ];
 
@@ -244,4 +245,4 @@ export function applyFramingTemplate(preset: 0 | 1, id: string): boolean {
 }
 
 /** The letter of frame line `box` (1..3). */
-export const frameLetter = (box: number): string => 'ABC'[box - 1] ?? '';
+export const frameLetter = (box: number): string => 'ABCDEFG'[box - 1] ?? '';

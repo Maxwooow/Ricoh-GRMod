@@ -1,6 +1,6 @@
 /**
- * The framing guides' editor (GR IV 1.20 / 1.21): two grids of elements (frame lines, grids, golden section, single
- * lines, safe areas, centre marks, diagonals), each in a colour of its own (eight in all), on the custom grid's page;
+ * The framing guides' editor (GR IV 1.20 / 1.21): two grids of elements (frames, grids, golden section, single
+ * lines, centre marks, diagonals), each in a colour of its own (eight in all), on the custom grid's page;
  * templates to start from.
  *
  * The preview draws exactly the rectangles the camera fills (core `framingRects`, the same integer arithmetic as
@@ -10,7 +10,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { FRAMING_MAX_RECORDS, compilePreset, framingProblem, framingRects, isCameraPreset } from '@grmod/core';
-import type { FramingColour, FramingElement, FramingFrameBox, FramingGuides, FramingPreset } from '@grmod/core';
+import type { FramingBox, FramingColour, FramingElement, FramingFrameBox, FramingGuides, FramingPreset } from '@grmod/core';
 import { Ico, Segmented } from '../components';
 import { t } from '../i18n';
 import type { Key } from '../i18n';
@@ -30,7 +30,7 @@ const TEMPLATE_NAMES: Record<string, Key> = {
 };
 
 const KIND_NAMES: Record<FramingKind, Key> = {
-  frame: 'frKindFrame', grid: 'frKindGrid', golden: 'frKindGolden', line: 'frKindLine', safe: 'frKindSafe', centre: 'frKindCentre', diagonals: 'frKindDiagonals',
+  frame: 'frKindFrame', grid: 'frKindGrid', golden: 'frKindGolden', line: 'frKindLine', centre: 'frKindCentre', diagonals: 'frKindDiagonals',
 };
 const RATIOS: readonly [string, number, number][] = [
   ['2.39:1', 239, 100], ['2.35:1', 235, 100], ['2:1', 2, 1], ['1.85:1', 185, 100], ['16:9', 16, 9], ['3:2', 3, 2], ['4:3', 4, 3], ['5:4', 5, 4], ['1:1', 1, 1], ['4:5', 4, 5], ['9:16', 9, 16], ['65:24', 65, 24],
@@ -184,11 +184,11 @@ function Seg<T extends string>({ value, options, onChange }: { value: T; options
   return <Segmented<T> still value={value} onChange={onChange} options={options.map(([v, label]) => ({ value: v, label }))} />;
 }
 
-/** The picture or one of the frame lines before... any frame line of the preset (box 1..n). */
-function WithinPick({ preset, value, onChange }: { preset: FramingPreset; value: number; onChange: (v: 0 | 1 | 2 | 3) => void }) {
-  const frames = preset.elements.filter((e) => e.kind === 'frame').length;
+/** The picture or a frame of the preset (box 1..n); for a frame, only the frames before it (`before`). */
+function WithinPick({ preset, value, before, onChange }: { preset: FramingPreset; value: number; before?: number; onChange: (v: FramingBox) => void }) {
+  const frames = before ?? preset.elements.filter((e) => e.kind === 'frame').length;
   const options: [string, string][] = [['0', t('frPicture')], ...Array.from({ length: frames }, (_, k) => [String(k + 1), t('frFrame', { l: frameLetter(k + 1) })] as [string, string])];
-  return <Seg value={String(value)} options={options} onChange={(v) => onChange(Number(v) as 0 | 1 | 2 | 3)} />;
+  return <Seg value={String(value)} options={options} onChange={(v) => onChange(Number(v) as FramingBox)} />;
 }
 
 /** A ratio: the usual ones, or typed. With `onFollow` (a safe area), first "the shape of its area" (num undefined). */
@@ -214,11 +214,10 @@ function RatioPick({ num, den, onChange, onFollow }: { num?: number; den?: numbe
 function summary(e: FramingElement): string {
   const within = 'box' in e && e.box > 0 ? ` · ${t('frFrame', { l: frameLetter(e.box) })}` : '';
   switch (e.kind) {
-    case 'frame': return `${ratioText(e.num, e.den)} · ${e.scale}% · ${t(e.style === 'box' ? 'frBox' : e.style === 'corners' ? 'frCorners' : 'frDashed')}`;
+    case 'frame': return `${e.num !== undefined && e.den !== undefined ? ratioText(e.num, e.den) : t('frRatioFollow')} · ${e.scale}% · ${t(e.style === 'box' ? 'frBox' : e.style === 'corners' ? 'frCorners' : 'frDashed')}${within}`;
     case 'grid': return `${e.cols} × ${e.rows}${within}`;
     case 'golden': return within.replace(/^ · /, '');
     case 'line': return `${t(e.axis === 'h' ? 'frHorizontal' : 'frVertical')} ${(e.at / 100).toFixed(1).replace(/\.0$/, '')}%${within}`;
-    case 'safe': return `${e.percent}%${e.num !== undefined && e.den !== undefined ? ` · ${ratioText(e.num, e.den)}` : ''}${within}`;
     case 'centre': return `${t(e.mark === 'cross' ? 'frCross' : 'frDot')} ${e.size} px${within}`;
     case 'diagonals': return [e.down ? '↘' : '', e.up ? '↗' : ''].filter(Boolean).join(' ') || '—';
   }
@@ -244,8 +243,9 @@ function ElementFields({ g, preset, i, e }: { g: FramingGuides; preset: 0 | 1; i
     case 'frame':
       return (
         <>
-          <Field label={t('frRatio')}><RatioPick num={e.num} den={e.den} onChange={(num, den) => set({ num, den })} /></Field>
+          <Field label={t('frRatio')}><RatioPick num={e.num} den={e.den} onChange={(num, den) => set({ num, den })} onFollow={() => set({ num: undefined, den: undefined })} /></Field>
           <Field label={t('frSize')}><Range value={e.scale} min={1} max={100} unit="%" onChange={(v) => set({ scale: v })} /></Field>
+          <Field label={t('frWithin')}><WithinPick preset={p} value={e.box} before={p.elements.slice(0, i).filter((x) => x.kind === 'frame').length} onChange={(v) => set({ box: v })} /></Field>
           <Field label={t('frMoveX')}><Range value={e.x} min={-50} max={50} unit="%" onChange={(v) => set({ x: v })} /></Field>
           <Field label={t('frMoveY')}><Range value={e.y} min={-50} max={50} unit="%" onChange={(v) => set({ y: v })} /></Field>
           {outline(e.style)}
@@ -270,14 +270,6 @@ function ElementFields({ g, preset, i, e }: { g: FramingGuides; preset: 0 | 1; i
           <Field label={t('frAxis')}><Seg value={e.axis} options={[['h', t('frHorizontal')], ['v', t('frVertical')]]} onChange={(v) => set({ axis: v })} /></Field>
           <Field label={t('frPosition')}><Range value={e.at} min={0} max={10000} step={10} scale={100} unit="%" onChange={(v) => set({ at: v })} /></Field>
           {within}{dash}{stroke}
-        </>
-      );
-    case 'safe':
-      return (
-        <>
-          <Field label={t('frSize')}><Range value={e.percent} min={1} max={99} unit="%" onChange={(v) => set({ percent: v })} /></Field>
-          <Field label={t('frRatio')}><RatioPick num={e.num} den={e.den} onChange={(num, den) => set({ num, den })} onFollow={() => set({ num: undefined, den: undefined })} /></Field>
-          {within}{outline(e.style)}{stroke}
         </>
       );
     case 'centre':
