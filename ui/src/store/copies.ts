@@ -167,6 +167,7 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
   if (summary.shadowLearn) lines.push(t('shadowLine'));
   if (summary.filmGrain) lines.push(t('grainLine'));
   if (summary.flashTtl) lines.push(t('flashTtlLine'));
+  if (summary.subjectAf) lines.push(t('subjectAfLine'));
   if (summary.videoAf) lines.push(t('videoAfLine'));
   if (summary.awbLearn) lines.push(t('awbLine'));
   if (summary.movieExposure) lines.push(t('movieExpLine'));

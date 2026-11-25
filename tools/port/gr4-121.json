@@ -77,6 +77,10 @@
     ],
     [
       "python3",
+      "tools/gr4v121/afplain/gen.py"
+    ],
+    [
+      "python3",
       "tools/port/native_scan.py",
       "tools/port/gr4-121-map.json",
       "core/src/fw/gr4v121/aspect/native.ts",
@@ -86,7 +90,8 @@
       "core/src/fw/gr4v121/aspect/shutdown-code.ts",
       "core/src/fw/gr4v121/aspect/slotparams-native.ts",
       "core/src/fw/gr4v121/aspect/hdrgain-code.ts",
-      "core/src/fw/gr4v121/aspect/adjslots-code.ts"
+      "core/src/fw/gr4v121/aspect/adjslots-code.ts",
+      "core/src/fw/gr4v121/aspect/subjectaf-code.ts"
     ]
   ],
   "old_marker": "1.20"
