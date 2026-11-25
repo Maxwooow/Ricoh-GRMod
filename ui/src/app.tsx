@@ -11,6 +11,7 @@ import { t, uiLangPref, UI_LANGS, UI_LANG_NAMES, isUiLang } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
 import { FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
+import { InspectDialog } from './inspect';
 import { CropEditor, ExtrasPage, ImageControlPage, RatioPage, WallpaperPage, closeGrid } from './pages';
 import { Tour, replayTour, restartTours } from './tour';
 import { UpdatePill, UpdateWatcher, checkForUpdate, openWhatsNew } from './updates';
@@ -159,6 +160,7 @@ export function App() {
       </main>
       <CropEditor />
       <FirmwareOnline />
+      <InspectDialog />
       <UpdateWatcher />
       <ConfirmDialog />
       <Tour />

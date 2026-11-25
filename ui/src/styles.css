@@ -720,6 +720,18 @@ html.look-grabbing, html.look-grabbing * { cursor: grabbing !important; }
 .look-order-reset svg { width: 14px; height: 14px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
+/* The "Inspect a firmware file" dialog and its side-by-side view (inspect.tsx). */
+.dialog.inspect { width: 520px; max-height: calc(100% - 48px); overflow: auto; }
+.dialog.inspect.wide { width: 760px; }
+.dialog.inspect.drop-over { outline: 2px dashed var(--line); }
+.inspect-slot { display: flex; align-items: center; gap: 8px; }
+.compare-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 18px; table-layout: fixed; }
+.compare-table th, .compare-table td { text-align: left; padding: 4px 8px; vertical-align: top; overflow-wrap: anywhere; font-weight: normal; }
+.compare-table thead th { font-weight: 600; max-width: 0; white-space: nowrap; border-bottom: 1px solid var(--line2); }
+.compare-table tbody th { color: var(--muted); width: 24%; }
+.compare-table tr.diff { background: var(--amber-bg); }
+.compare-table tr.diff td { color: var(--text); font-weight: 600; }
+
 /* ---------------------------------------------------------------- Android: phone layout (app.tsx MobileApp)
    The same pages and parts as on the desktop, stacked for a narrow, tall, touch screen: a title bar, the page
    scrolling under it, the output buttons and the page tabs at the bottom. Drawn edge to edge (viewport-fit=cover):
