@@ -70,6 +70,7 @@ function FirmwareLine({ info, builds, lang, name }: { info: CopyInfo | undefined
           {s.sensorShift && <span className="chip tiny" title={t('shiftLine')}><b>{t('navShift')}</b></span>}
           {s.movie4k && <span className="chip tiny" title={t('movie4kLine')}><b>{t('navMovie4k')}</b></span>}
           {s.movieSr && <span className="chip tiny" title={t('movieSrLine')}><b>{t('navMovieSr')}</b></span>}
+          {s.distanceFeet && <span className="chip tiny" title={t('unitsLine')}><b>{t('navUnits')}</b><span className="ellipsis">{t('unitsFeet')}</span></span>}
         </div>
       </div>
     </>

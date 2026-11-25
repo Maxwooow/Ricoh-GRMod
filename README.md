@@ -61,6 +61,7 @@ Use only firmware intended for your camera model and a base version listed above
 - **Learned auto white balance:** Auto, Warmth Priority and White Priority estimate the light with a learned model, on GR IV 1.20 / 1.21.
 - **Constant Light:** keeps the AF assist lamp lit, switched in the shooting menu, in ADJ mode or by an Fn button, on GR IV 1.20 / 1.21.
 - **Sensor Shift:** shift and turn the sensor by hand with the shake reduction unit to fine-tune the framing, from ADJ mode, the Fn button or the held Movie button, on GR IV 1.20 / 1.21.
+- **Distance unit:** Snap Focus Distance and the manual focus scale in feet (and inches) instead of metres, on GR IV 1.20 / 1.21.
 - **Custom grid lines:** choose which lines a 3x3 and a 4x4 grid draw, on the GR IV (firmware 1.11, 1.20 and 1.21; on 1.20 / 1.21 they are extra values of the camera's Grid Style list, next to its own).
 
 Features vary by camera model and firmware version. The app only offers options supported by the selected firmware.

@@ -250,4 +250,10 @@ export const es: Dict = {
   movieSrSub: 'Movie SR del menú de vídeo ofrece tres ajustes: Off, Sensor y Electrónica. Sensor no recorta la imagen.',
   tIcFMovieSrB: 'Movie SR del menú de vídeo ofrece tres ajustes en lugar de Off / On: Off, Sensor y Electrónica. Sensor estabiliza la imagen moviendo el sensor, como en las fotos, sin recortarla; Electrónica es la reducción de vibraciones electrónica propia de la cámara, que recorta alrededor de un 5 % por cada lado.',
   movieSrLine: 'Estabilización por sensor en modo vídeo',
+  navUnits: 'Unidad de distancia',
+  unitsSub: 'Distancia enfoque inst. y la escala de distancia del enfoque manual en metros (m) o pies (ft).',
+  unitsMetre: 'Metros (m)',
+  unitsFeet: 'Pies (ft)',
+  tIcFUnitsB: 'Con Pies, Distancia enfoque inst. (de 1ft a 16ft, en el menú, en la pantalla de disparo y en el modo ADJ) y la escala de distancia del enfoque manual se muestran en pies, y la escala de corta distancia en pulgadas (in). Con Metros, como en el firmware oficial.',
+  unitsLine: 'Unidad de distancia  ·  pies (Distancia enfoque inst., escala del enfoque manual)',
 };
