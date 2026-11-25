@@ -63,6 +63,7 @@ Use only firmware intended for your camera model and a base version listed above
 - **Sensor Shift:** shift and turn the sensor by hand with the shake reduction unit to fine-tune the framing, from ADJ mode, the Fn button or the held Movie button, on GR IV 1.20 / 1.21.
 - **Distance unit:** Snap Focus Distance and the manual focus scale in feet (and inches) instead of metres, on GR IV 1.20 / 1.21.
 - **Custom grid lines:** choose which lines a 3x3 and a 4x4 grid draw, on the GR IV (firmware 1.11, 1.20 and 1.21; on 1.20 / 1.21 they are extra values of the camera's Grid Style list, next to its own).
+- **Dim-light AF:** faster contrast AF in low light (a milder peak detector, and 49 instead of 29 frames per second while it searches), on the GR IIIx (firmware 1.60).
 
 Features vary by camera model and firmware version. The app only offers options supported by the selected firmware.
 

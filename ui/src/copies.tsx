@@ -64,6 +64,7 @@ function FirmwareLine({ info, builds, lang, name }: { info: CopyInfo | undefined
           {s.filmGrain && <span className="chip tiny" title={t('grainLine')}><b>{t('navGrain')}</b></span>}
           {s.flashTtl && <span className="chip tiny" title={t('flashTtlLine')}><b>{t('navFlashTtl')}</b></span>}
           {s.videoAf && <span className="chip tiny" title={t('videoAfLine')}><b>{t('navVideoAf')}</b></span>}
+          {s.dimLightAf && <span className="chip tiny" title={t('dimAfLine')}><b>{t('navDimAf')}</b></span>}
           {s.awbLearn && <span className="chip tiny" title={t('awbLine')}><b>{t('navAwb')}</b></span>}
           {s.movieExposure && <span className="chip tiny" title={t('movieExpLine')}><b>{t('navMovieExp')}</b></span>}
           {s.constantLight && <span className="chip tiny" title={t('lampLine')}><b>{t('navLamp')}</b></span>}
