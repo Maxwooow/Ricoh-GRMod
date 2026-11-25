@@ -256,4 +256,5 @@ export const de: Dict = {
   unitsFeet: 'Fuß (ft)',
   tIcFUnitsB: 'Mit Fuß werden Fixfokus Entfernung (1ft bis 16ft, im Menü, auf dem Aufnahmebildschirm und im ADJ-Modus) und die Entfernungsskala beim manuellen Fokus in Fuß angezeigt, die Skala für kurze Entfernungen in Zoll (in). Mit Meter wie in der offiziellen Firmware.',
   unitsLine: 'Entfernungseinheit  ·  Fuß (Fixfokus Entfernung, Skala beim manuellen Fokus)',
+  undo: 'Rückgängig', undoExtra: 'Zusätzlicher Platz entfernt', undoWall: 'Endbildschirm entfernt', undoRatio: 'Seitenverhältnis entfernt', undoGone: 'Dieses Entfernen lässt sich nicht mehr rückgängig machen', undoFull: 'Rückgängig nicht möglich: die Liste ist wieder voll',
 };

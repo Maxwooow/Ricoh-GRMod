@@ -256,4 +256,5 @@ export const ko: Dict = {
   unitsFeet: '피트 (ft)',
   tIcFUnitsB: '[피트]를 선택하면 [스냅 촬영 거리]의 값(1ft~16ft, 메뉴·촬영 화면·ADJ 모드 모두)과 MF 시 거리 눈금이 피트로 바뀌고, 근거리 눈금은 인치(in)로 표시됩니다. [미터]는 공식 펌웨어와 같습니다.',
   unitsLine: '거리 단위  ·  피트(스냅 촬영 거리, MF 거리 눈금)',
+  undo: '실행 취소', undoExtra: '추가 슬롯을 삭제했습니다', undoWall: '종료 화면을 제거했습니다', undoRatio: '화상비율을 제거했습니다', undoGone: '이 삭제는 더 이상 취소할 수 없습니다', undoFull: '한도에 도달해 취소할 수 없습니다',
 };
