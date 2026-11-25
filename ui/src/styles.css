@@ -413,7 +413,8 @@ html:lang(ja) .prop-label { width: 72px; }
 .fr-template:hover { border-color: var(--blue); }
 .fr-template:active { background: var(--hover); }
 .fr-template svg { width: 100%; height: auto; display: block; border-radius: 4px; }
-.fr-template span { line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* a name on two lines at most (English ones are longer) */
+.fr-template span { line-height: 1.25; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
 /* the element cards: the only movement on this page (their height in pages/framing.tsx, the arrow here) */
 .grid-edit .fr-el-chev svg { transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important; }
 .fr-el.open .fr-el-chev svg { transform: rotate(180deg); }
