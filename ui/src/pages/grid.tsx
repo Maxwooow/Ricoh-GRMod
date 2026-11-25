@@ -43,7 +43,7 @@ const W = 720; const H = 480;
 interface Handoff { to: 'grid' | 'list'; card: Box; picture: Box | null; style: GridStyle }
 let handoff: Handoff | null = null;
 /** The editor's parts that come in after the preview (and go before it on the way back). */
-const EDITOR_PARTS = '.grid-same, .grid-edit > .seg, .grid-edit-lines, .grid-edit > p, .fr-tools, .fr-side, .fr-palette';
+const EDITOR_PARTS = '.grid-same, .grid-edit > .seg, .grid-edit-lines, .grid-edit > p, .fr-tools, .fr-side, .fr-templates';
 let listScroll = 0;
 let moving = false;
 /** The style the editor shows (kept while the program runs, so that the way back ends in the right picture). */

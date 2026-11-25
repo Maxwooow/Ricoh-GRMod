@@ -1,29 +1,34 @@
 /**
  * The framing guides' editor (GR IV 1.20 / 1.21): two grids of elements (frame lines, grids, golden section, single
- * lines, safe areas, centre marks, diagonals) in colours of a palette of eight, on the custom grid's page.
+ * lines, safe areas, centre marks, diagonals), each in a colour of its own (eight in all), on the custom grid's page;
+ * templates to start from.
  *
  * The preview draws exactly the rectangles the camera fills (core `framingRects`, the same integer arithmetic as
- * the firmware), on the picture the camera shows for a chosen aspect (its own 3:2, 1:1, 4:3, 16:9). Nothing in the
- * editing controls moves: values change at once.
+ * the firmware), on the camera's grey picture for a chosen aspect (its own 3:2, 1:1, 4:3, 16:9 or an added ratio).
+ * The editing controls do not move: values change at once. Only the element cards open and close with a movement.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { FRAMING_MAX_RECORDS, compilePreset, framingProblem, framingRects, isCameraPreset } from '@grmod/core';
 import type { FramingColour, FramingElement, FramingFrameBox, FramingGuides, FramingPreset } from '@grmod/core';
 import { Ico, Segmented } from '../components';
 import { t } from '../i18n';
 import type { Key } from '../i18n';
+import { EASE, EASE_EXIT, reducedMotion } from '../motion';
 import {
-  FRAMING_KINDS, addFramingElement, canAdd, frameLetter, previewPhoto, removeFramingElement, resetFramingPreset, setFramingColour, setFramingElement,
-  setRatioBackdrop, useStore,
+  FRAMING_KINDS, FRAMING_SWATCHES, FRAMING_TEMPLATES, addFramingElement, applyFramingTemplate, canAdd, frameLetter, framingColourOf, ratioName,
+  removeFramingElement, resetFramingPreset, setFramingElement, setFramingElementColour, templateGuides, useStore,
 } from '../store';
-import type { FramingKind } from '../store';
+import type { FramingKind, FramingTemplate } from '../store';
 
 const W = 720;
 const H = 480;
 /** The grid view's frame for the camera's own aspects (tools/gr4v120/framing/check.py uses the same). */
-const ASPECTS = { '3:2': { x: 0, y: 0, w: 720, h: 480 }, '1:1': { x: 120, y: 0, w: 480, h: 480 }, '4:3': { x: 40, y: 0, w: 640, h: 480 }, '16:9': { x: 0, y: 38, w: 720, h: 404 } } as const;
-type Aspect = keyof typeof ASPECTS;
+const ASPECTS: Record<string, FramingFrameBox> = { '3:2': { x: 0, y: 0, w: 720, h: 480 }, '1:1': { x: 120, y: 0, w: 480, h: 480 }, '4:3': { x: 40, y: 0, w: 640, h: 480 }, '16:9': { x: 0, y: 38, w: 720, h: 404 } };
+const TEMPLATE_NAMES: Record<string, Key> = {
+  thirds: 'frTplThirds', quarters: 'frTplQuarters', golden: 'frTplGolden', centre: 'frTplCentre', cinema: 'frTplCinema', flat: 'frTplFlat',
+  square: 'frTplSquare', portrait: 'frTplPortrait', vertical: 'frTplVertical', multi: 'frTplMulti',
+};
 
 const KIND_NAMES: Record<FramingKind, Key> = {
   frame: 'frKindFrame', grid: 'frKindGrid', golden: 'frKindGolden', line: 'frKindLine', safe: 'frKindSafe', centre: 'frKindCentre', diagonals: 'frKindDiagonals',
@@ -57,42 +62,27 @@ const ratioText = (num: number, den: number): string => {
 
 // ---------------------------------------------------------------- the picture
 
-/** The photo as a data URL for the SVG (once per photo). */
-function usePhotoUrl(): string | null {
-  const rev = useStore((s) => s.photoRev);
-  return useMemo(() => {
-    const p = previewPhoto();
-    if (!p) return null;
-    const c = document.createElement('canvas');
-    c.width = p.width; c.height = p.height;
-    c.getContext('2d')!.putImageData(p, 0, 0);
-    return c.toDataURL('image/jpeg', 0.85);
-  }, [rev]); // eslint-disable-line react-hooks/exhaustive-deps
-}
-
 /** What the camera draws for preset `i` on a picture: the rectangles it fills, the diagonals it lays out. */
-export function FramingDrawing({ g, preset, frame }: { g: FramingGuides; preset: FramingPreset; frame: FramingFrameBox }) {
+export function FramingDrawing({ g, preset, frame, least = 0 }: { g: FramingGuides; preset: FramingPreset; frame: FramingFrameBox; least?: number }) {
   const c = useMemo(() => compilePreset(preset), [preset]);
   const rects = useMemo(() => framingRects(c, frame), [c, frame]);
   return (
     <>
-      {rects.map((r, k) => <rect key={k} x={r.x} y={r.y} width={r.w} height={r.h} fill={css(g.palette[r.colour])} shapeRendering="crispEdges" />)}
+      {/* `least`: the thinnest a rectangle is drawn (small pictures: a line of the camera's screen is less than a pixel there) */}
+      {rects.map((r, k) => <rect key={k} x={r.x} y={r.y} width={Math.max(r.w, least)} height={Math.max(r.h, least)} fill={css(g.palette[r.colour])} shapeRendering="crispEdges" />)}
       {c.diagonals.map((d, k) => (d
-        ? <line key={`d${k}`} x1={frame.x} y1={k === 0 ? frame.y : frame.y + frame.h} x2={frame.x + frame.w} y2={k === 0 ? frame.y + frame.h : frame.y} stroke={css(g.palette[d.colour])} strokeWidth={d.width} />
+        ? <line key={`d${k}`} x1={frame.x} y1={k === 0 ? frame.y : frame.y + frame.h} x2={frame.x + frame.w} y2={k === 0 ? frame.y + frame.h : frame.y} stroke={css(g.palette[d.colour])} strokeWidth={Math.max(d.width, least)} />
         : null))}
     </>
   );
 }
 
-/** The picture behind the guides: the photo or the camera's grey, black outside the camera's aspect. */
-function Backdrop({ frame, photo }: { frame: FramingFrameBox; photo: string | null }) {
+/** The picture behind the guides: the camera's grey, black outside the aspect. */
+function Backdrop({ frame }: { frame: FramingFrameBox }) {
   return (
     <>
       <rect x={0} y={0} width={W} height={H} fill="#000" />
-      {photo
-        ? <image href={photo} x={0} y={0} width={W} height={H} preserveAspectRatio="xMidYMid slice" clipPath="url(#fr-clip)" />
-        : <rect x={frame.x} y={frame.y} width={frame.w} height={frame.h} fill="#8a8a8a" />}
-      <defs><clipPath id="fr-clip"><rect x={frame.x} y={frame.y} width={frame.w} height={frame.h} /></clipPath></defs>
+      <rect x={frame.x} y={frame.y} width={frame.w} height={frame.h} fill="#8a8a8a" />
     </>
   );
 }
@@ -106,7 +96,7 @@ export function FramingThumb() {
       {([0, 1] as const).map((i) => (
         <svg key={i} viewBox={`0 0 ${W} ${H}`} className="grid-thumb" data-morph={`grid-${i === 0 ? 'g3' : 'g4'}`}>
           <rect x={0} y={0} width={W} height={H} fill="#8a8a8a" />
-          <FramingDrawing g={g} preset={g.presets[i]} frame={ASPECTS['3:2']} />
+          <FramingDrawing g={g} preset={g.presets[i]} frame={ASPECTS['3:2']} least={6} />
         </svg>
       ))}
     </div>
@@ -140,16 +130,53 @@ function Range({ value, min, max, step = 1, unit = '', scale = 1, onChange }: { 
   );
 }
 
-/** A colour of the palette (or none, for a mask). */
-function ColourPick({ g, value, onChange, none }: { g: FramingGuides; value: number | null; onChange: (v: number | null) => void; none?: boolean }) {
+const sameColour = (a: FramingColour | null, b: FramingColour | null): boolean => !!a && !!b && a.r === b.r && a.g === b.g && a.b === b.b && a.a === b.a;
+const swatchStyle = (c: FramingColour, cell = 8): React.CSSProperties => ({
+  backgroundImage: `linear-gradient(${css(c)}, ${css(c)}), repeating-conic-gradient(#c8c8c8 0 25%, #fff 0 50%)`, backgroundSize: `100% 100%, ${cell}px ${cell}px`,
+});
+const colourName = (c: FramingColour): string => `${hex(c).toUpperCase()} · ${Math.round((c.a / 255) * 100)}%`;
+
+/**
+ * An element's colour: the usual ones, or any colour and opacity with "custom" (or none, for a mask). `onChange`
+ * says whether it was taken: the two grids together have room for eight colours.
+ */
+function ColourPick({ value, onChange, none }: { value: FramingColour | null; onChange: (c: FramingColour | null) => boolean; none?: boolean }) {
+  const [custom, setCustom] = useState(false);
+  const [full, setFull] = useState(false);
+  const usual = FRAMING_SWATCHES.some((s) => sameColour(s, value));
+  const editing = value !== null && (custom || !usual);
+  const pick = (c: FramingColour | null): void => setFull(!onChange(c));
   return (
-    <div className="fr-swatches">
-      {none && <button type="button" className={`fr-swatch none ${value === null ? 'on' : ''}`} title={t('frNone')} aria-label={t('frNone')} aria-pressed={value === null} onClick={() => onChange(null)} />}
-      {g.palette.map((c, i) => (
-        <button key={i} type="button" className={`fr-swatch ${value === i ? 'on' : ''}`} aria-pressed={value === i} aria-label={`${t('frColour')} ${i + 1}`} onClick={() => onChange(i)}>
-          <i style={{ backgroundImage: `linear-gradient(${css(c)}, ${css(c)}), repeating-conic-gradient(#c8c8c8 0 25%, #fff 0 50%)`, backgroundSize: '100% 100%, 8px 8px' }} />
+    <div className="fr-colours">
+      <div className="fr-swatches">
+        {none && <button type="button" className={`fr-swatch none ${value === null ? 'on' : ''}`} title={t('frNone')} aria-label={t('frNone')} aria-pressed={value === null} onClick={() => { setCustom(false); pick(null); }} />}
+        {FRAMING_SWATCHES.map((c, i) => {
+          const on = !editing && sameColour(c, value);
+          return (
+            <button key={i} type="button" className={`fr-swatch ${on ? 'on' : ''}`} aria-pressed={on} title={colourName(c)} aria-label={colourName(c)} onClick={() => { setCustom(false); pick(c); }}>
+              <i style={swatchStyle(c)} />
+            </button>
+          );
+        })}
+        <button type="button" className={`fr-swatch custom ${editing ? 'on' : ''}`} aria-pressed={editing} title={t('frCustomColour')} aria-label={t('frCustomColour')}
+          onClick={() => { if (value === null) pick(FRAMING_SWATCHES[2]); setCustom(true); }}>
+          <i style={editing && value ? swatchStyle(value) : undefined} />
         </button>
-      ))}
+      </div>
+      {editing && value && (
+        <div className="fr-colour-edit">
+          <label className="fr-colour-input">
+            <input type="color" value={hex(value)} onChange={(e) => {
+              const v = e.target.value;
+              pick({ r: parseInt(v.slice(1, 3), 16), g: parseInt(v.slice(3, 5), 16), b: parseInt(v.slice(5, 7), 16), a: value.a });
+            }} />
+            <span>{hex(value).toUpperCase()}</span>
+          </label>
+          <span className="fr-label fr-opacity">{t('frOpacity')}</span>
+          <Range value={Math.round((value.a / 255) * 100)} min={0} max={100} unit="%" onChange={(v) => pick({ ...value, a: Math.round((v / 100) * 255) })} />
+        </div>
+      )}
+      {full && <p className="small fr-note bad">{t('frColoursFull')}</p>}
     </div>
   );
 }
@@ -201,7 +228,7 @@ function ElementFields({ g, preset, i, e }: { g: FramingGuides; preset: 0 | 1; i
   const p = g.presets[preset];
   const stroke = (
     <>
-      <Field label={t('frColour')}><ColourPick g={g} value={e.colour} onChange={(v) => set({ colour: v ?? 0 })} /></Field>
+      <Field label={t('frColour')}><ColourPick value={framingColourOf(g, e)} onChange={(c) => setFramingElementColour(preset, i, 'colour', c)} /></Field>
       <Field label={t('frWidth')}><Range value={e.width} min={1} max={8} unit="px" onChange={(v) => set({ width: v })} /></Field>
     </>
   );
@@ -223,7 +250,7 @@ function ElementFields({ g, preset, i, e }: { g: FramingGuides; preset: 0 | 1; i
           {outline(e.style)}
           {e.style === 'corners' && <Field label={t('frCorner')}><Range value={e.corner} min={5} max={50} unit="%" onChange={(v) => set({ corner: v })} /></Field>}
           {stroke}
-          <Field label={t('frMask')}><ColourPick g={g} none value={e.mask} onChange={(v) => set({ mask: v })} /></Field>
+          <Field label={t('frMask')}><ColourPick none value={framingColourOf(g, e, 'mask')} onChange={(c) => setFramingElementColour(preset, i, 'mask', c)} /></Field>
         </>
       );
     case 'grid':
@@ -274,45 +301,76 @@ function ElementFields({ g, preset, i, e }: { g: FramingGuides; preset: 0 | 1; i
   }
 }
 
+/**
+ * What opens and closes: its height (and its contents' opacity) moves from where it is to where it goes, so a card
+ * that opens while another closes, or one clicked again half way, never jumps. With "reduce motion": at once.
+ */
+function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
+  const [render, setRender] = useState(open);
+  const ref = useRef<HTMLDivElement>(null);
+  const run = useRef<Animation | null>(null);
+  useEffect(() => { if (open) setRender(true); }, [open]);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (reducedMotion() || typeof el.animate !== 'function') { if (!open) setRender(false); return; }
+    const from = run.current ? getComputedStyle(el).height : `${open ? 0 : el.offsetHeight}px`;
+    const fromOpacity = run.current ? getComputedStyle(el).opacity : open ? '0' : '1';
+    run.current?.cancel();
+    const to = open ? `${el.scrollHeight}px` : '0px';
+    el.style.overflow = 'hidden';
+    const a = el.animate([{ height: from, opacity: fromOpacity }, { height: to, opacity: open ? 1 : 0 }], { duration: open ? 300 : 220, easing: open ? EASE : EASE_EXIT });
+    run.current = a;
+    a.onfinish = () => {
+      if (run.current !== a) return;
+      run.current = null;
+      el.style.overflow = '';
+      if (!open) setRender(false);
+    };
+  }, [open, render]);
+  return render ? <div ref={ref} className="fr-collapse" style={open ? undefined : { height: 0, opacity: 0, overflow: 'hidden' }}>{children}</div> : null;
+}
+
 function ElementCard({ g, preset, i, open, onToggle }: { g: FramingGuides; preset: 0 | 1; i: number; open: boolean; onToggle: () => void }) {
   const e = g.presets[preset].elements[i];
+  const colour = framingColourOf(g, e)!;
   const letter = e.kind === 'frame' ? frameLetter(g.presets[preset].elements.slice(0, i + 1).filter((x) => x.kind === 'frame').length) : '';
   return (
     <div className={`fr-el ${open ? 'open' : ''}`}>
       <div className="fr-el-head">
         <button type="button" className="fr-el-toggle" aria-expanded={open} onClick={onToggle}>
-          <i className="fr-el-swatch" style={{ backgroundImage: `linear-gradient(${css(g.palette[e.colour])}, ${css(g.palette[e.colour])}), repeating-conic-gradient(#c8c8c8 0 25%, #fff 0 50%)`, backgroundSize: '100% 100%, 6px 6px' }} />
+          <i className="fr-el-swatch" style={swatchStyle(colour, 6)} />
           <b>{t(KIND_NAMES[e.kind])}{letter && ` ${letter}`}</b>
           <span className="muted small ellipsis">{summary(e)}</span>
-          <span className="fr-el-chev" aria-hidden>{open ? Ico.up : Ico.down}</span>
+          <span className="fr-el-chev" aria-hidden>{Ico.down}</span>
         </button>
         <button type="button" className="btn ghost icon-only mini" title={t('frRemove')} aria-label={t('frRemove')} onClick={() => removeFramingElement(preset, i)}>{Ico.trash}</button>
       </div>
-      {open && <div className="fr-el-body"><ElementFields g={g} preset={preset} i={i} e={e} /></div>}
+      <Collapse open={open}><div className="fr-el-body"><ElementFields g={g} preset={preset} i={i} e={e} /></div></Collapse>
     </div>
   );
 }
 
-// ---------------------------------------------------------------- the palette
+// ---------------------------------------------------------------- templates
 
-function PaletteEditor({ g }: { g: FramingGuides }) {
-  const [sel, setSel] = useState<number | null>(null);
-  const c = sel === null ? null : g.palette[sel];
+function TemplatePick({ preset, onApplied }: { preset: 0 | 1; onApplied: () => void }) {
+  const [full, setFull] = useState(false);
+  useEffect(() => { setFull(false); }, [preset]);
   return (
-    <div className="fr-palette">
-      <div className="fr-palette-row">
-        <span className="fr-label">{t('frPalette')}</span>
-        <ColourPick g={g} value={sel} onChange={(v) => setSel(v === sel ? null : v)} />
+    <div className="fr-templates">
+      <div className="fr-templates-head"><span className="fr-label">{t('frTemplates')}</span><span className="muted small">{t('frTemplatesNote')}</span></div>
+      <div className="fr-template-list">
+        {FRAMING_TEMPLATES.map((tpl: FramingTemplate) => (
+          <button key={tpl.id} type="button" className="fr-template" onClick={() => { const ok = applyFramingTemplate(preset, tpl.id); setFull(!ok); if (ok) onApplied(); }}>
+            <svg viewBox={`0 0 ${W} ${H}`} aria-hidden>
+              <rect x={0} y={0} width={W} height={H} fill="#8a8a8a" />
+              <FramingDrawing g={templateGuides(tpl)} preset={{ elements: tpl.elements }} frame={ASPECTS['3:2']} least={7} />
+            </svg>
+            <span>{t(TEMPLATE_NAMES[tpl.id])}</span>
+          </button>
+        ))}
       </div>
-      {c && sel !== null && (
-        <div className="fr-palette-edit">
-          <label className="fr-colour-input"><input type="color" value={hex(c)} onChange={(e) => {
-            const v = e.target.value;
-            setFramingColour(sel, { r: parseInt(v.slice(1, 3), 16), g: parseInt(v.slice(3, 5), 16), b: parseInt(v.slice(5, 7), 16), a: c.a });
-          }} /><span>{hex(c).toUpperCase()}</span></label>
-          <Field label={t('frOpacity')}><Range value={Math.round((c.a / 255) * 100)} min={0} max={100} unit="%" onChange={(v) => setFramingColour(sel, { ...c, a: Math.round((v / 100) * 255) })} /></Field>
-        </div>
-      )}
+      {full && <p className="small fr-note bad">{t('frColoursFull')}</p>}
     </div>
   );
 }
@@ -322,12 +380,21 @@ function PaletteEditor({ g }: { g: FramingGuides }) {
 /** The grid shown in the editor (kept while the program runs; pages/grid.tsx moves its picture into the capsule). */
 export function FramingEditor({ preset, setPreset }: { preset: 0 | 1; setPreset: (p: 0 | 1) => void }) {
   const g = useStore((s) => s.framing);
-  const backdrop = useStore((s) => s.ratioBackdrop);
-  const [aspect, setAspect] = useState<Aspect>('3:2');
+  const ratios = useStore((s) => s.ratios);
+  const [aspect, setAspect] = useState<string>('3:2');
   const [open, setOpen] = useState<number>(-1);
-  const photo = usePhotoUrl();
   const p = g.presets[preset];
-  const frame = ASPECTS[aspect];
+  // the camera's own aspects, then the added ratios as the camera shows them (their window on the screen)
+  const aspects = useMemo(() => {
+    const list: { value: string; label: string; frame: FramingFrameBox }[] = Object.entries(ASPECTS).map(([k, f]) => ({ value: k, label: k, frame: f }));
+    for (const r of ratios) {
+      const sc = r.preview?.screen;
+      if (sc && sc.width > 0 && sc.height > 0) list.push({ value: `r:${r.id}`, label: ratioName(r), frame: { x: sc.left, y: sc.top, w: sc.width, h: sc.height } });
+    }
+    return list;
+  }, [ratios]);
+  const shown = aspects.find((a) => a.value === aspect) ?? aspects[0];
+  const frame = shown.frame;
   useEffect(() => { setOpen(-1); }, [preset]);
   const problem = framingProblem(g);
   const pieces = compilePreset(p).records.length;
@@ -338,16 +405,15 @@ export function FramingEditor({ preset, setPreset }: { preset: 0 | 1; setPreset:
         <Segmented<'0' | '1'> still value={String(preset) as '0' | '1'} onChange={(v) => setPreset(Number(v) as 0 | 1)} options={[{ value: '0', label: t('frPreset', { n: 1 }) }, { value: '1', label: t('frPreset', { n: 2 }) }]} />
         <span className="grow" />
         <span className="muted small">{t('frPreviewAs')}</span>
-        <Segmented<Aspect> still value={aspect} onChange={setAspect} options={(Object.keys(ASPECTS) as Aspect[]).map((a) => ({ value: a, label: a }))} />
-        {photo && <Segmented<'photo' | 'gray'> still value={backdrop} onChange={setRatioBackdrop} options={[{ value: 'photo', label: t('previewPhoto') }, { value: 'gray', label: t('ratioGray') }]} />}
+        <Segmented<string> still value={shown.value} onChange={setAspect} options={aspects.map((a) => ({ value: a.value, label: a.label }))} />
       </div>
       <div className="fr-body">
         <div className="fr-view">
           <svg viewBox={`0 0 ${W} ${H}`} className="grid-edit-preview fr-preview">
-            <Backdrop frame={frame} photo={backdrop === 'photo' ? photo : null} />
+            <Backdrop frame={frame} />
             <FramingDrawing g={g} preset={p} frame={frame} />
           </svg>
-          <PaletteEditor g={g} />
+          <TemplatePick preset={preset} onApplied={() => setOpen(-1)} />
         </div>
         <div className="fr-side">
           {same && <p className="muted small fr-note">{t('frSame', { g: t(preset === 0 ? 'grid3' : 'grid4') })}</p>}
