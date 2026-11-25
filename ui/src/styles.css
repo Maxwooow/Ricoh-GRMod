@@ -1041,3 +1041,19 @@ html.mobile-app .tour-hole { border-radius: 14px; }
 .dialog.upd .upd-notes { white-space: pre-line; margin: 2px 0 10px; line-height: 1.5; }
 .dialog.upd .upd-hint { font-size: 12.5px; margin: 0 0 6px; }
 .dialog.upd h3 .push-file { margin-left: 10px; }
+
+/* the preset library (library.tsx) */
+.lib-buttons { margin-top: 6px; }
+.lib-dialog { width: 460px; }
+.lib-save { display: grid; gap: 6px; }
+.lib-save .dialog-actions { margin-top: 10px; }
+.lib-list { margin: 0 0 14px; padding: 0; list-style: none; display: grid; gap: 4px; max-height: 320px; overflow: auto; }
+.lib-list li { display: flex; align-items: center; gap: 4px; }
+.lib-pick { flex: 1; min-width: 0; display: grid; gap: 1px; text-align: left; padding: 6px 10px; border: 0; border-radius: 6px; background: var(--chip); color: inherit; font: inherit; cursor: pointer; }
+.lib-pick:hover, .lib-pick:focus-visible { background: var(--hover); }
+.lib-tools { display: flex; gap: 8px; align-items: center; margin: 0 0 8px; flex-wrap: wrap; }
+.lib-tools .input { flex: 1; min-width: 140px; }
+.lib-rename { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.lib-rename .input { flex: 1; min-width: 120px; }
+.lib-rename .bad { color: var(--red); }
+.lib-name { font-size: 13.5px; }

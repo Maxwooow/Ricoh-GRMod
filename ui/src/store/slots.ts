@@ -16,17 +16,25 @@ const PRESET_ERRORS: Record<string, Key> = {
   'not-cube': 'errNotXmp', 'bad-cube': 'errBadCube', 'gr3x-cube-only': 'gr3xCubeOnly',
 };
 /** The newest conversion of each slot: an older one that finishes later is dropped. */
-const presetRuns = new Map<SlotKey, number>();
+export const presetRuns = new Map<SlotKey, number>();
 let presetRun = 0;
+/** A new conversion run number (the preset library makes a running conversion stale with it). */
+export function nextPresetRun(): number { return ++presetRun; }
+/**
+ * The fitting options a slot's conversion runs with: GR IV added slots also try hue sectors (the
+ * conversion keeps them only when they come out closer). Shared by runPreset and the preset library's
+ * compatibility check, so the two cannot disagree.
+ */
+export function fitOptions(id: SlotKey): { hue?: boolean } {
+  return isExtra(id) && state.info?.family !== 'gr3x' ? { hue: true } : {};
+}
 export async function runPreset(id: SlotKey, fileName: string, kind: 'xmp' | 'cube', text: string): Promise<void> {
   patchSlot(id, { preset: { fileName, kind, text, busy: !!state.info?.capabilities.presets } });
   if (!state.info?.capabilities.presets) return;
   const run = ++presetRun;
   presetRuns.set(id, run);
-  // GR IV added slots also try hue sectors; the conversion keeps them only when they come out closer.
-  const hue = isExtra(id) && state.info.family !== 'gr3x';
   try {
-    const result = await engine.convert(kind, text, hue ? { hue: true } : {});
+    const result = await engine.convert(kind, text, fitOptions(id));
     if (presetRuns.get(id) !== run || slotOf(id)?.preset?.text !== text) return; // replaced, removed or converted again meanwhile
     patchSlot(id, { preset: { fileName, kind, text, busy: false, result } });
   } catch (e) {

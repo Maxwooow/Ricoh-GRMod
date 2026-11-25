@@ -6,6 +6,7 @@
  *   families  GR IV and GR III / IIIx work kept apart, and saving the project
  *   settings  guided tours, page, model, language, opening firmware
  *   slots     presets, names, icons and halation of the Image Control slots
+ *   library   the user's own preset library: looks kept outside the project
  *   looks     the Image Control menu's order and hidden looks
  *   wall      power-off pictures
  *   features  soft focus, date imprint, monochrome looks and the other switches
@@ -19,6 +20,7 @@ export * from './store/core';
 export * from './store/families';
 export * from './store/settings';
 export * from './store/slots';
+export * from './store/library';
 export * from './store/looks';
 export * from './store/wall';
 export * from './store/features';
