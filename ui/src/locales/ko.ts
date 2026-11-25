@@ -38,7 +38,7 @@ export const ko: Dict = {
   wallMenuIncomplete: '설정이 끝나지 않은 종료 화면이 있습니다(이름 또는 이미지)', wallMenuLine: '종료 화면(카메라 메뉴에서 선택) {n}장  ·  {l}',
   lowQuality: '화질 낮음', grain: '입자 추가됨', softened: '부드럽게 처리됨', tooDetailed: '이 기종의 종료 화면 이미지는 용량이 작습니다', encodeFailed: '인코딩할 수 없음',
   overlay: '카메라 화면 표시 겹치기', done: '완료', cancel: '취소', apply: '적용',
-  card: '메모리 카드', noCard: '메모리 카드를 찾을 수 없습니다', showAll: '모든 드라이브 표시', showCardsOnly: '메모리 카드만 표시', refresh: '새로 고침',
+  card: '메모리 카드', noCard: '메모리 카드를 찾을 수 없습니다', preflightGone: '카드 {c}을(를) 찾을 수 없습니다. 다시 끼운 뒤 다시 시도하세요', preflightSpace: '카드 {c}의 공간이 부족합니다. 약 {need}가 필요하고 {free}가 남아 있습니다. 공간을 확보한 뒤 다시 시도하세요', showAll: '모든 드라이브 표시', showCardsOnly: '메모리 카드만 표시', refresh: '새로 고침',
   updCheck: '업데이트 확인', updTitle: '새 버전이 있습니다', updLatestTitle: 'GR Mod가 최신 버전입니다', updLatestBody: '현재 버전 v{v}',
   updChecking: '업데이트를 확인하는 중…', updNetError: '업데이트 서버에 연결할 수 없습니다', updNew: '새 버전', updPill: '업데이트 있음',
   updInstall: '업데이트 후 다시 시작', updDownloading: '다운로드 중', updVerifying: '검증 중', updRestarting: '다시 시작하는 중…', updLater: '나중에',

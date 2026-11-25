@@ -38,7 +38,7 @@ export const ja: Dict = {
   wallMenuIncomplete: '設定が完了していない終了画面があります（名前または画像）', wallMenuLine: '終了画面（カメラのメニューで選択）{n} 枚  ·  {l}',
   lowQuality: '画質が低め', grain: '粒子を追加', softened: 'ソフト化', tooDetailed: 'この機種の終了画面は容量が小さいため', encodeFailed: 'エンコードできません',
   overlay: 'カメラの表示を重ねる', done: '完了', cancel: 'キャンセル', apply: '適用',
-  card: 'メモリーカード', noCard: 'メモリーカードが見つかりません', showAll: 'すべてのドライブを表示', showCardsOnly: 'メモリーカードのみ表示', refresh: '更新',
+  card: 'メモリーカード', noCard: 'メモリーカードが見つかりません', preflightGone: 'カード {c} が見つかりません。挿し直してからもう一度お試しください', preflightSpace: 'カード {c} の空き容量が足りません。約 {need} が必要で、空きは {free} です。空きを作ってからもう一度お試しください', showAll: 'すべてのドライブを表示', showCardsOnly: 'メモリーカードのみ表示', refresh: '更新',
   updCheck: 'アップデートを確認', updTitle: '新しいバージョンがあります', updLatestTitle: 'GR Mod は最新です', updLatestBody: '現在のバージョン v{v}',
   updChecking: 'アップデートを確認しています…', updNetError: 'アップデートサーバーに接続できません', updNew: '新しいバージョン', updPill: 'アップデートあり',
   updInstall: 'アップデートして再起動', updDownloading: 'ダウンロード中', updVerifying: '検証中', updRestarting: '再起動しています…', updLater: 'あとで',

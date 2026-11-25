@@ -38,7 +38,7 @@ export const es: Dict = {
   wallMenuIncomplete: 'Hay una pantalla final sin terminar (nombre o imagen)', wallMenuLine: 'Pantallas finales (se eligen en el menú de la cámara) {n}  ·  {l}',
   lowQuality: 'Calidad baja', grain: 'Grano añadido', softened: 'Suavizada', tooDetailed: 'Este modelo guarda una pantalla final muy pequeña', encodeFailed: 'No se puede codificar',
   overlay: 'Indicaciones de la cámara', done: 'Listo', cancel: 'Cancelar', apply: 'Aplicar',
-  card: 'Tarjeta de memoria', noCard: 'No se encontró ninguna tarjeta de memoria', showAll: 'Mostrar todas las unidades', showCardsOnly: 'Mostrar solo tarjetas de memoria', refresh: 'Actualizar',
+  card: 'Tarjeta de memoria', noCard: 'No se encontró ninguna tarjeta de memoria', preflightGone: 'La tarjeta {c} ya no está. Vuelve a insertarla e inténtalo de nuevo', preflightSpace: 'No hay espacio suficiente en la tarjeta {c}: hacen falta unos {need} y quedan {free}. Libera espacio e inténtalo de nuevo', showAll: 'Mostrar todas las unidades', showCardsOnly: 'Mostrar solo tarjetas de memoria', refresh: 'Actualizar',
   updCheck: 'Buscar actualizaciones', updTitle: 'Hay una versión nueva', updLatestTitle: 'GR Mod está actualizado', updLatestBody: 'Versión actual v{v}',
   updChecking: 'Buscando actualizaciones…', updNetError: 'No se puede acceder al servidor de actualizaciones', updNew: 'Versión nueva', updPill: 'Actualización',
   updInstall: 'Actualizar y reiniciar', updDownloading: 'Descargando', updVerifying: 'Verificando', updRestarting: 'Reiniciando…', updLater: 'Más tarde',

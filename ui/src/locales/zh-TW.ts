@@ -38,7 +38,7 @@ export const zhTW: Dict = {
   wallMenuIncomplete: '有結束畫面尚未完成設定（名稱或圖片）', wallMenuLine: '結束畫面（在相機選單中選擇）{n} 張  ·  {l}',
   lowQuality: '畫質較低', grain: '已新增顆粒', softened: '已柔化', tooDetailed: '此機型的結束畫面圖片容量較小', encodeFailed: '無法編碼',
   overlay: '相機疊加資訊', done: '完成', cancel: '取消', apply: '應用',
-  card: '記憶卡', noCard: '未檢測到記憶卡', showAll: '顯示全部磁碟', showCardsOnly: '僅顯示記憶卡', refresh: '重新整理',
+  card: '記憶卡', noCard: '未檢測到記憶卡', preflightGone: '記憶卡 {c} 已不在，請重新插入後再試', preflightSpace: '記憶卡 {c} 空間不足：需要約 {need}，可用 {free}。請騰出空間後再試', showAll: '顯示全部磁碟', showCardsOnly: '僅顯示記憶卡', refresh: '重新整理',
   updCheck: '檢查更新', updTitle: '發現新版本', updLatestTitle: 'GR Mod 已是最新版本', updLatestBody: '當前版本 v{v}',
   updChecking: '正在檢查更新…', updNetError: '無法連線更新伺服器', updNew: '新版本', updPill: '有新版本',
   updInstall: '更新並重新啟動', updDownloading: '正在下載', updVerifying: '正在驗證', updRestarting: '正在重新啟動…', updLater: '稍後',
