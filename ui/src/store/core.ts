@@ -9,6 +9,7 @@ import { HostError } from '../host';
 import type { ParkedEntry, Volume } from '../host';
 import { t, uiLangPref } from '../i18n';
 import type { Crop } from '../pixels';
+import type { SnapshotEntry } from './project';
 import { SUPPORTED_LINES } from '../releases.gen';
 
 /** `extras`: the additions (switches, the custom grid); 0.8.16 and earlier had a page of its own for the grid (`grid`). */
@@ -137,6 +138,8 @@ export interface State {
   lookHidden3: string[];
   volumes: Volume[]; showAll: boolean; volumeId?: string; role?: card.CardRole;
   copySource: CopySource; parked: ParkedEntry[]; backups: ParkedEntry[]; copySel: string[]; copyInfo: Record<string, CopyInfo>; builds: BuildRecord[];
+  /** The "Restore an earlier version" dialog: the project snapshots, newest first (store/project.ts). */
+  snapshotsView?: { entries: SnapshotEntry[]; busy: boolean };
   busy?: string; toasts: Toast[]; confirm?: Confirm; cropId?: string; onlineOpen: boolean;
   tour?: TourState; toursSeen: TourId[];
   /** Android: a firmware file on its way to the camera over Wi-Fi (camera.tsx shows the dialog while it is set). */

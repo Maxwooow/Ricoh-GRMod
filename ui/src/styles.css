@@ -720,6 +720,12 @@ html.look-grabbing, html.look-grabbing * { cursor: grabbing !important; }
 .look-order-reset svg { width: 14px; height: 14px; }
 .sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
+/* The "Restore an earlier version" dialog (snapshots.tsx). */
+.snap-dialog { width: 520px; }
+.snap-list { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 6px; max-height: 360px; overflow: auto; }
+.snap-list li { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: var(--chip); border-radius: 6px; }
+.snap-text { flex: 1; min-width: 0; display: grid; gap: 1px; }
+
 /* ---------------------------------------------------------------- Android: phone layout (app.tsx MobileApp)
    The same pages and parts as on the desktop, stacked for a narrow, tall, touch screen: a title bar, the page
    scrolling under it, the output buttons and the page tabs at the bottom. Drawn edge to edge (viewport-fit=cover):

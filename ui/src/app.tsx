@@ -11,11 +11,12 @@ import { t, uiLangPref, UI_LANGS, UI_LANG_NAMES, isUiLang } from './i18n';
 import type { Key } from './i18n';
 import { CopiesPage } from './copies';
 import { FirmwareOnline, FirmwareRow, MODELS, modelLabel } from './firmware';
+import { SnapshotsDialog } from './snapshots';
 import { CropEditor, ExtrasPage, ImageControlPage, RatioPage, WallpaperPage, closeGrid } from './pages';
 import { Tour, replayTour, restartTours } from './tour';
 import { UpdatePill, UpdateWatcher, checkForUpdate, openWhatsNew } from './updates';
 import {
-  getState, isGr3, backupCopies, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, pendingChanges, refreshVolumes, selectVolume, setAppLanguage, setModel, setPage, setShowAll, useStore, wallReady,
+  getState, isGr3, backupCopies, extrasOn, copyList, deleteCopies, hasNameErrors, hasRatioErrors, ratioSpecs, revealBackups, writableCopy, writeCopy, menuPictures, outputFirmware, exportProject, importProject, newProject, openSnapshots, pendingChanges, refreshVolumes, selectVolume, setAppLanguage, setModel, setPage, setShowAll, useStore, wallReady,
 } from './store';
 import type { State } from './store';
 
@@ -48,6 +49,7 @@ function Sidebar() {
         <button className="about-link" data-tour="version" title={t('wnTitle')} onClick={() => openWhatsNew()}>v{host.info?.version || ''}</button>
         <UpdatePill />
         <span className="grow" />
+        <ProjectMenu />
         <HelpMenu />
       </div>
     </aside>
@@ -142,6 +144,28 @@ function HelpMenu() {
   );
 }
 
+/** The project as a file: export, import, an earlier automatic version, or a fresh start (store/project.ts). */
+function ProjectMenu() {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
+  useDismiss(open, ref, () => setOpen(false));
+  return (
+    <div className="menu-wrap" ref={ref}>
+      <button className="help-btn" title={t('projectMenu')} aria-label={t('projectMenu')} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>{Ico.more}</button>
+      <input ref={picker} type="file" accept=".json,application/json" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void importProject(f); }} />
+      {open && (
+        <div className="menu up" role="menu">
+          {host.available && <button role="menuitem" onClick={() => { setOpen(false); void exportProject(); }}>{t('projectExport')}</button>}
+          {host.available && <button role="menuitem" onClick={() => { setOpen(false); picker.current?.click(); }}>{t('projectImport')}</button>}
+          {host.available && <button role="menuitem" onClick={() => { setOpen(false); void openSnapshots(); }}>{t('projectRestore')}</button>}
+          {host.available && <button role="menuitem" onClick={() => { setOpen(false); void newProject(); }}>{t('projectNew')}</button>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function App() {
   const page = useStore((s) => s.page);
   const gr3 = useStore((s) => isGr3(s.model));
@@ -159,6 +183,7 @@ export function App() {
       </main>
       <CropEditor />
       <FirmwareOnline />
+      <SnapshotsDialog />
       <UpdateWatcher />
       <ConfirmDialog />
       <Tour />
