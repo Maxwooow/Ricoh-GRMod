@@ -344,7 +344,8 @@ html:lang(ja) .prop-label { width: 72px; }
 .grid-edit .btn.small[aria-pressed='false'] { border-style: dashed; color: var(--muted); }
 .grid-edit p { margin: 0; }
 /* Custom grid page: the switch, then the editor, dimmed while the switch is off. */
-.grid-page { display: flex; flex-direction: column; gap: 14px; max-width: 900px; min-height: 0; overflow-y: auto; padding-right: 3px; }
+/* the room of the scroll bar is kept while there is nothing to scroll: a card opening past the bottom does not push the page sideways */
+.grid-page { display: flex; flex-direction: column; gap: 14px; max-width: 900px; min-height: 0; overflow-y: auto; padding-right: 3px; scrollbar-gutter: stable; }
 .grid-page > .capsule { flex: none; max-width: 640px; }
 .grid-page .grid-edit { padding: 0; }
 .grid-page .grid-edit-preview { width: min(100%, 520px); }
