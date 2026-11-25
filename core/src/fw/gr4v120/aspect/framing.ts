@@ -11,8 +11,8 @@
  *   grid       n x m equal parts of the picture or of a frame line
  *   golden     the golden section (0.382 / 0.618) of the picture or of a frame line
  *   line       one horizontal or vertical line anywhere in the picture or in a frame line
- *   safe       a centred area (percent of the picture or of a frame line, in its shape or a ratio of its own), as a
- *              box, corners or dashed
+ *   safe       a centred area in the picture or a frame line: inset by the same width on all four sides (percent of
+ *              the shorter side), or a ratio of its own fitted into it; as a box, corners or dashed
  *   centre     a cross or a dot at the centre of the picture or of a frame line
  *   diagonals  the picture's two diagonals (the camera's 4x4 has them), each on or off
  *
@@ -31,9 +31,10 @@
  * Box 0 is the grid view's frame (the picture: the camera fits it to the live picture, and the live-view shade of
  * the added ratios to the photo's window). Box k (1..n) is a frame line: the ratio num : den fitted into box 0
  * (its full height if box 0 is wider, else its full width), scaled, centred and moved by the offsets (fractions of
- * box 0's width and height). After them come the safe areas with a ratio of their own, fitted the same way into
- * their parent (the picture or a frame line); seven boxes besides the picture at most. An edge is box.pos + (box.size * fraction + 16384) >> 15 + pixels, along x for the
- * left and right edges, along y for the top and bottom ones; a record whose right edge is not right of its left
+ * box 0's width and height). After them come the safe areas, each in its parent (the picture or a frame line):
+ * with a ratio of its own fitted the same way; without (num 0), the parent inset by the same width on every side,
+ * (shorter side x (32768 - scale) + 32768) >> 16. Seven boxes besides the picture at most.
+ * An edge is box.pos + (box.size * fraction + 16384) >> 15 + pixels, along x for the left and right edges, along y for the top and bottom ones; a record whose right edge is not right of its left
  * edge, or whose bottom is not below its top, is not drawn. So lines keep their width in pixels on any picture,
  * and everything follows the picture's shape: a frame line is fitted to the picture the camera shows (3:2, its
  * own 1:1, 4:3, 16:9, an added ratio's window).
@@ -74,7 +75,7 @@ export interface FramingFrame extends Stroke {
   kind: 'frame';
   /** The ratio num : den, 1..9999 each (2.39 : 1 is 239 : 100). */
   num: number; den: number;
-  /** Percent of the largest size that fits in the picture, 30..100. */
+  /** Percent of the largest size that fits in the picture, 1..100. */
   scale: number;
   /** Offset of the centre, percent of the picture's width / height, -50..50 (positive: right / down). */
   x: number; y: number;
@@ -90,7 +91,7 @@ export interface FramingGuides { palette: FramingColour[]; presets: [FramingPres
 
 export const FRAMING_PALETTE_SIZE = 8;
 export const FRAMING_MAX_FRAMES = 3;
-/** Boxes of a preset besides the picture: its frame lines and its safe areas with a ratio of their own. */
+/** Boxes of a preset besides the picture: its frame lines and its safe areas. */
 export const FRAMING_MAX_BOXES = 7;
 /** Rectangles per preset: each is a fill the camera does whenever it draws the grid. */
 export const FRAMING_MAX_RECORDS = 160;
@@ -145,7 +146,7 @@ export function framingProblem(g: unknown): string | null {
     const frames = p.elements.filter((e) => e && e.kind === 'frame').length;
     if (frames > FRAMING_MAX_FRAMES) return `preset ${i + 1}: more than three frame lines`;
     if (p.elements.filter((e) => e && e.kind === 'diagonals').length > 1) return `preset ${i + 1}: diagonals twice`;
-    let ratios = 0;
+    let safes = 0;
     for (const e of p.elements) {
       const what = `preset ${i + 1}, ${(e as { kind?: string })?.kind ?? 'element'}`;
       if (typeof e !== 'object' || e === null) return `${what}: not an object`;
@@ -160,16 +161,17 @@ export function framingProblem(g: unknown): string | null {
         case 'centre': if (!(oneOf(e.mark, ['cross', 'dot']) && int(e.size, 4, 100) && box(e.box))) return what; break;
         case 'safe':
           if (!(int(e.percent, 1, 99) && box(e.box) && oneOf(e.style, ['box', 'corners', 'dashed']))) return what;
-          if (e.num !== undefined || e.den !== undefined) { if (!(int(e.num, 1, 9999) && int(e.den, 1, 9999))) return `${what}: ratio`; ratios += 1; }
+          if ((e.num !== undefined || e.den !== undefined) && !(int(e.num, 1, 9999) && int(e.den, 1, 9999))) return `${what}: ratio`;
+          safes += 1;
           break;
         case 'frame':
-          if (!(int(e.num, 1, 9999) && int(e.den, 1, 9999) && int(e.scale, 30, 100) && int(e.x, -50, 50) && int(e.y, -50, 50) && oneOf(e.style, ['box', 'corners', 'dashed']) && int(e.corner, 5, 50))) return what;
+          if (!(int(e.num, 1, 9999) && int(e.den, 1, 9999) && int(e.scale, 1, 100) && int(e.x, -50, 50) && int(e.y, -50, 50) && oneOf(e.style, ['box', 'corners', 'dashed']) && int(e.corner, 5, 50))) return what;
           if (!(e.mask === null || int(e.mask, 0, palette.length - 1))) return `${what}: mask colour`;
           break;
         default: return `${what}: unknown kind`;
       }
     }
-    if (frames + ratios > FRAMING_MAX_BOXES) return `preset ${i + 1}: more than ${FRAMING_MAX_BOXES} frame lines and safe areas with a ratio`;
+    if (frames + safes > FRAMING_MAX_BOXES) return `preset ${i + 1}: more than ${FRAMING_MAX_BOXES} frame lines and safe areas`;
     const n = compilePreset(p).records.length;
     if (n > FRAMING_MAX_RECORDS) return `preset ${i + 1}: ${n} rectangles, at most ${FRAMING_MAX_RECORDS}`;
   }
@@ -188,7 +190,10 @@ const ONE = 32768;
 export interface Edge { box: number; frac: number; px: number }
 /** A rectangle from its four edges, filled in UI palette colour `colour` (an index into the user's palette here). */
 export interface FramingRecord { edges: [Edge, Edge, Edge, Edge]; colour: number }
-/** A box fitted (num : den, scaled, moved) into box `parent` (0: the picture; a frame line's box). */
+/**
+ * A box fitted (num : den, scaled, moved) into box `parent` (0: the picture; a frame line's box). With num 0, the
+ * parent inset by the same width on every side: (shorter side x (1 - scale)) / 2.
+ */
 export interface FramingBoxDef { num: number; den: number; scale: number; ox: number; oy: number; parent: number }
 export interface CompiledPreset {
   boxes: FramingBoxDef[];
@@ -220,11 +225,13 @@ export function compilePreset(preset: FramingPreset): CompiledPreset {
     if (e.kind !== 'frame') continue;
     boxes.push({ num: e.num, den: e.den, scale: Math.round((e.scale / 100) * ONE), ox: Math.round((e.x / 100) * ONE), oy: Math.round((e.y / 100) * ONE), parent: 0 });
   }
-  // after the frame lines (whose boxes are 1..n, as the elements name them): the safe areas with a ratio, in their box
+  // after the frame lines (whose boxes are 1..n, as the elements name them): the safe areas, each a box in its box
+  // (with a ratio: fitted into it; without: inset by the same width on all four sides)
   const safeBox = new Map<FramingElement, number>();
   for (const e of preset.elements) {
-    if (e.kind !== 'safe' || e.num === undefined || e.den === undefined) continue;
-    boxes.push({ num: e.num, den: e.den, scale: Math.round((e.percent / 100) * ONE), ox: 0, oy: 0, parent: e.box });
+    if (e.kind !== 'safe') continue;
+    const own = e.num !== undefined && e.den !== undefined;
+    boxes.push({ num: own ? e.num! : 0, den: own ? e.den! : 0, scale: Math.round((e.percent / 100) * ONE), ox: 0, oy: 0, parent: e.box });
     safeBox.set(e, boxes.length);
   }
   const records: FramingRecord[] = [];
@@ -333,13 +340,9 @@ export function compilePreset(preset: FramingPreset): CompiledPreset {
         }
         break;
       }
-      case 'safe': {
-        const own = safeBox.get(e);
-        if (own) { outline(own, 0, 0, 1, 1, e.style, e.width, e.colour); break; }
-        const m = (1 - e.percent / 100) / 2;
-        outline(e.box, m, m, 1 - m, 1 - m, e.style, e.width, e.colour);
+      case 'safe':
+        outline(safeBox.get(e)!, 0, 0, 1, 1, e.style, e.width, e.colour);
         break;
-      }
       case 'frame':
         k += 1;
         outline(k, 0, 0, 1, 1, e.style, e.width, e.colour, e.corner);
@@ -360,6 +363,11 @@ export function evaluateBoxes(boxes: readonly FramingBoxDef[], frame: FramingFra
     const into = out[b.parent];
     const W = into.w | 0;
     const H = into.h | 0;
+    if (b.num === 0) {
+      const m = (Math.min(W, H) * (ONE - b.scale) + ONE) >> 16;
+      out.push({ x: into.x + m, y: into.y + m, w: W - 2 * m, h: H - 2 * m });
+      continue;
+    }
     let bw: number;
     let bh: number;
     if (W * b.den >= H * b.num) {
@@ -536,13 +544,18 @@ export function installFramingGuides(patch: Patch, guides: FramingGuides, select
   d += `ldrb r0,[r4,#${GRID_STYLE}];cmp r0,#0;movw r6,#${lists[0] & 0xffff};movt r6,#${lists[0] >>> 16};movwne r6,#${lists[1] & 0xffff};movtne r6,#${lists[1] >>> 16};`;
   d += 'ldrb r7,[r6];ldrb r8,[r6,#1];add r6,r6,#4;add r9,sp,#16;';
   // boxes: fit num : den into the parent box (sl; UDIV keeps it), scale, centre, move
-  d += 'boxes:cmp r7,#0;beq boxed;ldrh r3,[r6,#10];add sl,sp,r3,lsl #4;ldrh r0,[r6];ldrh r1,[r6,#2];ldrh r2,[r6,#4];';
+  d += 'boxes:cmp r7,#0;beq boxed;ldrh r3,[r6,#10];add sl,sp,r3,lsl #4;ldrh r0,[r6];ldrh r1,[r6,#2];ldrh r2,[r6,#4];cmp r0,#0;beq inset;';
   d += 'ldr r3,[sl,#8];mul ip,r3,r1;ldr r3,[sl,#12];mul lr,r3,r0;cmp ip,lr;blt narrow;';
   d += `mul r3,r3,r2;add r3,r3,#16384;mov r3,r3,lsr #15;str r3,[r9,#12];mul r0,r3,r0;add r0,r0,r1,lsr #1;bl #${UDIV};str r0,[r9,#8];b placed;`;
   d += `narrow:ldr r3,[sl,#8];mul r3,r3,r2;add r3,r3,#16384;mov r3,r3,lsr #15;str r3,[r9,#8];mul ip,r3,r1;add ip,ip,r0,lsr #1;mov r1,r0;mov r0,ip;bl #${UDIV};str r0,[r9,#12];`;
   d += 'placed:ldrh r0,[r6,#6];sub r0,r0,#32768;ldr r2,[sl,#8];mul r0,r2,r0;mov r0,r0,asr #15;ldr r1,[r9,#8];sub r1,r2,r1;add r0,r0,r1,asr #1;ldr r1,[sl];add r0,r0,r1;str r0,[r9];';
   d += 'ldrh r0,[r6,#8];sub r0,r0,#32768;ldr r2,[sl,#12];mul r0,r2,r0;mov r0,r0,asr #15;ldr r1,[r9,#12];sub r1,r2,r1;add r0,r0,r1,asr #1;ldr r1,[sl,#4];add r0,r0,r1;str r0,[r9,#4];';
-  d += 'add r6,r6,#12;add r9,r9,#16;sub r7,r7,#1;b boxes;boxed:';
+  d += 'b nextbox;';
+  // num 0: the parent inset by m = (shorter side x (32768 - scale) + 32768) >> 16 on every side
+  d += 'inset:ldr r0,[sl,#8];ldr r1,[sl,#12];cmp r0,r1;movgt r0,r1;rsb r2,r2,#32768;mul r0,r0,r2;add r0,r0,#32768;mov r0,r0,asr #16;';
+  d += 'ldr r1,[sl];add r1,r1,r0;str r1,[r9];ldr r1,[sl,#4];add r1,r1,r0;str r1,[r9,#4];';
+  d += 'ldr r1,[sl,#8];sub r1,r1,r0,lsl #1;str r1,[r9,#8];ldr r1,[sl,#12];sub r1,r1,r0,lsl #1;str r1,[r9,#12];';
+  d += 'nextbox:add r6,r6,#12;add r9,r9,#16;sub r7,r7,#1;b boxes;boxed:';
   // records: four edges, then the fill in the record's colour
   d += `ldrb r7,[r4,#${GRID_COLOUR}];`;
   d += 'recs:cmp r8,#0;beq done;';

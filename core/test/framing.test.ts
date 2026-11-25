@@ -77,9 +77,13 @@ describe('Framing guides: the model', () => {
     const one = compilePreset({ elements: [{ kind: 'safe', percent: 90, box: 0, style: 'box', colour: 0, width: 2, num: 4, den: 5 }] });
     expect(evaluateBoxes(one.boxes, { x: 0, y: 0, w: 720, h: 480 })[1]).toEqual({ x: 187, y: 24, w: 346, h: 432 });
     const d = compilePreset(sample().presets[1]);
-    expect(d.boxes.map((b) => b.parent)).toEqual([0, 1]);
+    expect(d.boxes.map((b) => b.parent)).toEqual([0, 0, 1]);
     // in the 1:1 frame line (216, 0, 432, 432): 80 % of its height, 4:5
-    expect(evaluateBoxes(d.boxes, { x: 0, y: 0, w: 720, h: 480 })[2]).toEqual({ x: 216 + ((432 - 277) >> 1), y: 43, w: 277, h: 346 });
+    expect(evaluateBoxes(d.boxes, { x: 0, y: 0, w: 720, h: 480 })[3]).toEqual({ x: 216 + ((432 - 277) >> 1), y: 43, w: 277, h: 346 });
+    // without a ratio: the same width on all four sides, a share of the shorter side (89 % of a 65:24 window)
+    const inset = compilePreset({ elements: [{ kind: 'safe', percent: 89, box: 0, style: 'box', colour: 0, width: 2 }] });
+    const m = Math.round((266 * 0.11) / 2);
+    expect(evaluateBoxes(inset.boxes, { x: 0, y: 107, w: 720, h: 266 })[1]).toEqual({ x: m, y: 107 + m, w: 720 - 2 * m, h: 266 - 2 * m });
     // version 1 records (test firmware 113) still read
     const v1 = defaultFramingGuides();
     v1.presets[1].elements = [{ kind: 'safe', percent: 90, box: 0, style: 'box', colour: 0, width: 2 }];

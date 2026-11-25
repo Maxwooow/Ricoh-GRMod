@@ -245,7 +245,7 @@ function ElementFields({ g, preset, i, e }: { g: FramingGuides; preset: 0 | 1; i
       return (
         <>
           <Field label={t('frRatio')}><RatioPick num={e.num} den={e.den} onChange={(num, den) => set({ num, den })} /></Field>
-          <Field label={t('frSize')}><Range value={e.scale} min={30} max={100} unit="%" onChange={(v) => set({ scale: v })} /></Field>
+          <Field label={t('frSize')}><Range value={e.scale} min={1} max={100} unit="%" onChange={(v) => set({ scale: v })} /></Field>
           <Field label={t('frMoveX')}><Range value={e.x} min={-50} max={50} unit="%" onChange={(v) => set({ x: v })} /></Field>
           <Field label={t('frMoveY')}><Range value={e.y} min={-50} max={50} unit="%" onChange={(v) => set({ y: v })} /></Field>
           {outline(e.style)}
