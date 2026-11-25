@@ -118,6 +118,10 @@ export const androidHost = {
     try { await upload(typeof data === 'string' ? new TextEncoder().encode(data) : data, { to: 'store', key }); } catch (e) { throw fromPlugin(e); }
   },
   async storeDel(key: string): Promise<void> { try { await Gr.storeDelete({ key }); } catch (e) { throw fromPlugin(e); } },
+  // Project export / import, snapshots and New project list the store. The phone plugin has no listing call
+  // and the phone UI does not show the Project menu, so this fails loudly instead of answering [] (an export
+  // would then look complete without its presets).
+  async storeList(): Promise<{ key: string; size: number }[]> { return unsupported(); },
   async parked(_volumeId: string): Promise<ParkedEntry[]> { return []; },
   async parkedRead(_volumeId: string, _path: string): Promise<Uint8Array> { return unsupported(); },
   async parkedDelete(_volumeId: string, _paths: string[]): Promise<{ deleted: string[]; failed: ParkedFailure[] }> { return { deleted: [], failed: [] }; },

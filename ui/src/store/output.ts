@@ -16,6 +16,7 @@ import { hasRatioErrors, ratioShadeOn, ratioSpecs, toneLabel } from './ratios';
 import { canEject } from './photo';
 import { recordBuild, refreshCopies } from './copies';
 import { framingOf } from './framing';
+import { takeSnapshot } from './project';
 
 // ------------------------------------------------------------------ volumes
 async function listing(root: string): Promise<card.CardListing> {
@@ -243,6 +244,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     else await runPlan(target.root, [{ op: 'write', path: [firmwareFilename()], data: file }]);
     set({ busy: undefined });
     doneToast(target.root, target.volume, moved, firmwareFilename());
+    if (!stock) void takeSnapshot('build');
   } catch (e) { set({ busy: undefined }); fail(e); }
   void refreshVolumes();
 }
