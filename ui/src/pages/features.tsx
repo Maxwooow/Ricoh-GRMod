@@ -16,7 +16,7 @@ import { GridDetail, GridThumb, closeGrid, openGrid, useGridArrival } from './gr
  * page in as many columns as fit (styles.css `.capsules`).
  */
 function Capsule({ icon, title, sub, on, control, foot, tour, onOpen, morph }: {
-  icon: ReactNode; title: string; sub: string; on: boolean; control?: ReactNode; foot?: ReactNode; tour?: string; onOpen?: () => void; morph?: string;
+  icon: ReactNode; title: string; /** none: the choice under it says enough */ sub?: string; on: boolean; control?: ReactNode; foot?: ReactNode; tour?: string; onOpen?: () => void; morph?: string;
 }) {
   return (
     <div className={`capsule ${on ? 'on' : ''} ${onOpen ? 'opens' : ''}`} data-tour={tour} data-morph={morph}>
@@ -25,7 +25,7 @@ function Capsule({ icon, title, sub, on, control, foot, tour, onOpen, morph }: {
         <b className="capsule-title">{title}</b>
         {control}
       </div>
-      <p className="capsule-sub muted small">{sub}</p>
+      {sub && <p className="capsule-sub muted small">{sub}</p>}
       {foot}
       {onOpen && (
         <button type="button" className="capsule-open" onClick={onOpen}>
@@ -44,7 +44,7 @@ function FeatureCapsule({ on, onChange, ...rest }: { icon: ReactNode; title: str
 
 /** A choice of a few values (the camera's / GR Mod's grain, the ADJ items, the screen brightness). */
 function ChoiceCapsule<T extends string>({ value, options, onChange, ...rest }: {
-  icon: ReactNode; title: string; sub: string; on: boolean; tour?: string; value: T; options: { value: T; label: string }[]; onChange: (v: T) => void;
+  icon: ReactNode; title: string; sub?: string; on: boolean; tour?: string; value: T; options: { value: T; label: string }[]; onChange: (v: T) => void;
 }) {
   return <Capsule {...rest} foot={<div className="capsule-choice"><Segmented value={value} onChange={onChange} options={options} /></div>} />;
 }
@@ -132,7 +132,7 @@ function ExtrasList() {
       {lampOk && <FeatureCapsule icon={Ico.lamp} title={t('navLamp')} sub={t('lampSub')} on={lamp} onChange={setConstantLight} tour="ex-f-lamp" />}
       {shiftOk && <FeatureCapsule icon={Ico.shift} title={t('navShift')} sub={t('shiftSub')} on={shift} onChange={setSensorShift} tour="ex-f-shift" />}
       {unitsOk && (
-        <ChoiceCapsule icon={Ico.units} title={t('navUnits')} sub={t('unitsSub')} on={feet} tour="ex-f-units"
+        <ChoiceCapsule icon={Ico.units} title={t('navUnits')} on={feet} tour="ex-f-units"
           value={feet ? 'ft' : 'm'} onChange={(v) => setDistanceFeet(v === 'ft')}
           options={[{ value: 'm', label: t('unitsMetre') }, { value: 'ft', label: t('unitsFeet') }]} />
       )}
@@ -143,7 +143,7 @@ function ExtrasList() {
           options={Array.from({ length: adjMax - 4 }, (_, i) => ({ value: String(5 + i), label: String(5 + i) }))} />
       )}
       {brightAutoOk && (
-        <ChoiceCapsule icon={Ico.bright} title={t('navBrightAuto')} sub={t('brightAutoSub')} on={!!brightAuto} tour="ex-f-bright"
+        <ChoiceCapsule icon={Ico.bright} title={t('navBrightAuto')} on={!!brightAuto} tour="ex-f-bright"
           value={brightAuto || 'off'} onChange={(v) => setBrightAuto(v === 'off' ? false : v as 'bright' | 'balanced')}
           options={([['off', 'brightAutoOff'], ['balanced', 'brightAutoBalanced'], ['bright', 'brightAutoBright']] as const).map(([value, key]) => ({ value, label: level(key) }))} />
       )}

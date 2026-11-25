@@ -5,7 +5,7 @@ import type { Dict } from '../i18n';
 export const zhTW: Dict = {
   app: 'GR Mod',
   navIC: '影像控制', navWall: '結束畫面', navCopies: '韌體副本',
-  navExtras: '附加功能', gridEdit: '編輯網格線', brightAutoSub: '室外顯示設定為自動時，室內光線下螢幕更亮', monoToExtras: '轉到附加功能',
+  navExtras: '附加功能', gridEdit: '編輯網格線', monoToExtras: '轉到附加功能',
   /** The phone's tab bar with five tabs (GR IV): shorter names where the full ones do not fit. */
   navICTab: '影像控制', navRatioTab: '長寬比', navExtrasTab: '附加功能', navWallTab: '結束畫面',
   navRatio: '長寬比', ratioAdd: '新增比例', ratioFactory: '原廠', ratioGray: '灰色', ratioMax: '最多 {n} 個', ratioLine: '新增長寬比 {n}  ·  {l}',
@@ -251,7 +251,6 @@ export const zhTW: Dict = {
   tIcFMovieSrB: '影片選單的[Movie SR]由「關閉 / 開啟」變為三個選項：[關閉]、[感測器SR]和[電子SR]。[感測器SR]像拍攝靜態影像時一樣移動感測器來穩定畫面，不裁切畫面；[電子SR]是相機原有的電子防手震，畫面四周各裁去約 5%。',
   movieSrLine: '影片模式感測器防手震',
   navUnits: '距離單位',
-  unitsSub: '[快拍對焦距離]和手動對焦時的距離刻度使用公尺（m）或英尺（ft）。',
   unitsMetre: '公尺 (m)',
   unitsFeet: '英尺 (ft)',
   tIcFUnitsB: '選[英尺]時，[快拍對焦距離]的數值（1ft–16ft，選單、拍攝畫面和 ADJ 模式中皆是）和手動對焦時的距離刻度改用英尺，近距離的刻度用英寸（in）。選[公尺]時與原廠相同。',

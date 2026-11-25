@@ -5,7 +5,7 @@ import type { Dict } from '../i18n';
 export const es: Dict = {
   app: 'GR Mod',
   navIC: 'Control de imagen', navWall: 'Pantalla final', navCopies: 'Copias de firmware',
-  navExtras: 'Funciones añadidas', gridEdit: 'Editar las líneas', brightAutoSub: 'Con Ajuste vista exterior en Auto, pantalla más brillante en interiores', monoToExtras: 'Ir a Funciones añadidas',
+  navExtras: 'Funciones añadidas', gridEdit: 'Editar las líneas', monoToExtras: 'Ir a Funciones añadidas',
   /** The phone's tab bar with five tabs (GR IV): shorter names where the full ones do not fit. */
   navICTab: 'Imagen', navRatioTab: 'Formato', navExtrasTab: 'Añadidas', navWallTab: 'Pant. final',
   navRatio: 'Formato de imagen', ratioAdd: 'Añadir formato', ratioFactory: 'De fábrica', ratioGray: 'Gris', ratioMax: 'Máximo {n}', ratioLine: 'Formatos añadidos {n}  ·  {l}',
@@ -251,7 +251,6 @@ export const es: Dict = {
   tIcFMovieSrB: 'Movie SR del menú de vídeo ofrece tres ajustes en lugar de Off / On: Off, Sensor y Electrónica. Sensor estabiliza la imagen moviendo el sensor, como en las fotos, sin recortarla; Electrónica es la reducción de vibraciones electrónica propia de la cámara, que recorta alrededor de un 5 % por cada lado.',
   movieSrLine: 'Estabilización por sensor en modo vídeo',
   navUnits: 'Unidad de distancia',
-  unitsSub: 'Distancia enfoque inst. y la escala de distancia del enfoque manual en metros (m) o pies (ft).',
   unitsMetre: 'Metros (m)',
   unitsFeet: 'Pies (ft)',
   tIcFUnitsB: 'Con Pies, Distancia enfoque inst. (de 1ft a 16ft, en el menú, en la pantalla de disparo y en el modo ADJ) y la escala de distancia del enfoque manual se muestran en pies, y la escala de corta distancia en pulgadas (in). Con Metros, como en el firmware oficial.',

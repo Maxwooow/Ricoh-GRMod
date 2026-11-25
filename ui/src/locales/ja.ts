@@ -5,7 +5,7 @@ import type { Dict } from '../i18n';
 export const ja: Dict = {
   app: 'GR Mod',
   navIC: 'イメージコントロール', navWall: '終了画面', navCopies: 'ファームウェアのコピー',
-  navExtras: '追加機能', gridEdit: 'グリッド線を編集', brightAutoSub: 'アウトドアモニターがオートのとき、室内で画面を明るくします', monoToExtras: '追加機能へ',
+  navExtras: '追加機能', gridEdit: 'グリッド線を編集', monoToExtras: '追加機能へ',
   /** The phone's tab bar with five tabs (GR IV): shorter names where the full ones do not fit. */
   navICTab: 'イメージ', navRatioTab: 'アスペクト比', navExtrasTab: '追加機能', navWallTab: '終了画面',
   navRatio: 'アスペクト比', ratioAdd: '比率を追加', ratioFactory: '標準', ratioGray: 'グレー', ratioMax: '最大 {n} 個', ratioLine: '追加したアスペクト比 {n}  ·  {l}',
@@ -251,7 +251,6 @@ export const ja: Dict = {
   tIcFMovieSrB: '動画メニューの「Movie SR」が「オフ / オン」から、「オフ」「メカ式」「電子式」の 3 つに変わります。「メカ式」は静止画と同じようにセンサーを動かして画面を安定させ、クロップしません。「電子式」はカメラ本来の電子手ぶれ補正で、画面の四辺がそれぞれ約 5% クロップされます。',
   movieSrLine: '動画モードのセンサーシフト式手ぶれ補正',
   navUnits: '距離の単位',
-  unitsSub: '「スナップ撮影距離」と MF 時の距離目盛を、メートル（m）またはフィート（ft）で表示します。',
   unitsMetre: 'メートル (m)',
   unitsFeet: 'フィート (ft)',
   tIcFUnitsB: '「フィート」にすると、「スナップ撮影距離」の値（1ft〜16ft。メニュー、撮影画面、ADJ モードのすべて）と MF 時の距離目盛がフィートになり、近距離の目盛はインチ（in）になります。「メートル」は公式ファームウェアと同じです。',

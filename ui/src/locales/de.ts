@@ -5,7 +5,7 @@ import type { Dict } from '../i18n';
 export const de: Dict = {
   app: 'GR Mod',
   navIC: 'Bildsteuerung', navWall: 'Endbildschirm', navCopies: 'Firmware-Kopien',
-  navExtras: 'Zusatzfunktionen', gridEdit: 'Gitterlinien bearbeiten', brightAutoSub: 'Bei „Ansicht draußen“ auf Auto ein helleres Display in Innenräumen', monoToExtras: 'Zu den Zusatzfunktionen',
+  navExtras: 'Zusatzfunktionen', gridEdit: 'Gitterlinien bearbeiten', monoToExtras: 'Zu den Zusatzfunktionen',
   /** The phone's tab bar with five tabs (GR IV): shorter names where the full ones do not fit. */
   navICTab: 'Bild', navRatioTab: 'Format', navExtrasTab: 'Zusätze', navWallTab: 'Endbild',
   navRatio: 'Seitenverhältnis', ratioAdd: 'Format hinzufügen', ratioFactory: 'Werk', ratioGray: 'Grau', ratioMax: 'Höchstens {n}', ratioLine: 'Zusätzliche Seitenverhältnisse {n}  ·  {l}',
@@ -251,7 +251,6 @@ export const de: Dict = {
   tIcFMovieSrB: 'Movie SR im Videomenü bietet statt Aus / An drei Einstellungen: Aus, Sensor-Shift und Elektronisch. Sensor-Shift stabilisiert das Bild durch Bewegen des Sensors, wie bei Fotos, ohne es zu beschneiden; Elektronisch ist die kameraeigene elektronische Shake Reduction, die an jeder Seite etwa 5 % abschneidet.',
   movieSrLine: 'Sensor-Shift-SR im Videomodus',
   navUnits: 'Entfernungseinheit',
-  unitsSub: 'Fixfokus Entfernung und die Entfernungsskala beim manuellen Fokus in Metern (m) oder Fuß (ft).',
   unitsMetre: 'Meter (m)',
   unitsFeet: 'Fuß (ft)',
   tIcFUnitsB: 'Mit Fuß werden Fixfokus Entfernung (1ft bis 16ft, im Menü, auf dem Aufnahmebildschirm und im ADJ-Modus) und die Entfernungsskala beim manuellen Fokus in Fuß angezeigt, die Skala für kurze Entfernungen in Zoll (in). Mit Meter wie in der offiziellen Firmware.',

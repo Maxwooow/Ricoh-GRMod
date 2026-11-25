@@ -5,7 +5,7 @@ import type { Dict } from '../i18n';
 export const ko: Dict = {
   app: 'GR Mod',
   navIC: '화상 컨트롤', navWall: '종료 화면', navCopies: '펌웨어 사본',
-  navExtras: '추가 기능', gridEdit: '그리드 선 편집', brightAutoSub: '야외 모니터 설정이 자동일 때 실내에서 화면을 더 밝게 합니다', monoToExtras: '추가 기능으로 이동',
+  navExtras: '추가 기능', gridEdit: '그리드 선 편집', monoToExtras: '추가 기능으로 이동',
   /** The phone's tab bar with five tabs (GR IV): shorter names where the full ones do not fit. */
   navICTab: '화상', navRatioTab: '화상비율', navExtrasTab: '추가 기능', navWallTab: '종료 화면',
   navRatio: '화상비율', ratioAdd: '비율 추가', ratioFactory: '기본', ratioGray: '회색', ratioMax: '최대 {n}개', ratioLine: '추가한 화상비율 {n}  ·  {l}',
@@ -251,7 +251,6 @@ export const ko: Dict = {
   tIcFMovieSrB: '동영상 메뉴의 [Movie SR]이 "꺼짐 / 켜짐"에서 [꺼짐], [기계식], [전자식]의 세 가지로 바뀝니다. [기계식]은 정지 화상을 촬영할 때처럼 센서를 움직여 화면을 안정시키며 화면을 크롭하지 않습니다. [전자식]은 카메라 본래의 전자식 손떨림 보정으로, 화면의 네 변이 각각 약 5% 크롭됩니다.',
   movieSrLine: '동영상 모드 센서 시프트 손떨림 보정',
   navUnits: '거리 단위',
-  unitsSub: '[스냅 촬영 거리]와 MF 시 거리 눈금을 미터(m) 또는 피트(ft)로 표시합니다.',
   unitsMetre: '미터 (m)',
   unitsFeet: '피트 (ft)',
   tIcFUnitsB: '[피트]를 선택하면 [스냅 촬영 거리]의 값(1ft~16ft, 메뉴·촬영 화면·ADJ 모드 모두)과 MF 시 거리 눈금이 피트로 바뀌고, 근거리 눈금은 인치(in)로 표시됩니다. [미터]는 공식 펌웨어와 같습니다.',

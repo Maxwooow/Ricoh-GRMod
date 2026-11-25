@@ -7,7 +7,7 @@ import { zhTW } from './locales/zh-TW';
 const zh = {
   app: 'GR Mod',
   navIC: '影像控制', navWall: '结束画面', navCopies: '固件副本',
-  navExtras: '附加功能', gridEdit: '编辑网格线', brightAutoSub: '户外显示设定为自动时，室内光线下显示屏更亮', monoToExtras: '转到附加功能',
+  navExtras: '附加功能', gridEdit: '编辑网格线', monoToExtras: '转到附加功能',
   /** The phone's tab bar with five tabs (GR IV): shorter names where the full ones do not fit. */
   navICTab: '影像控制', navRatioTab: '长宽比', navExtrasTab: '附加功能', navWallTab: '结束画面',
   navRatio: '长宽比', ratioAdd: '添加比例', ratioFactory: '原厂', ratioGray: '灰色', ratioMax: '最多 {n} 个', ratioLine: '新增长宽比 {n}  ·  {l}',
@@ -171,7 +171,7 @@ const zh = {
   movie4kLine: '4K 视频',
   navMovieSr: '视频模式传感器防抖', movieSrSub: '影片菜单的[Movie SR]变为三个选项：关闭、传感器防抖（菜单里写作“传感器SR”）、电子防抖（“电子SR”）。使用传感器防抖时将不裁切画面。', tIcFMovieSrB: '影片菜单的[Movie SR]由“关闭 / 开启”变为三个选项：[关闭]、[传感器SR]和[电子SR]。[传感器SR]像拍摄静态图像时一样移动传感器来稳定画面，不裁切画面；[电子SR]是相机原有的电子防抖，画面四周各裁去约 5%。',
   movieSrLine: '视频模式传感器防抖',
-  navUnits: '距离单位', unitsSub: '[快拍对焦距离]和手动对焦时的距离刻度使用米（m）或英尺（ft）。', unitsMetre: '米 (m)', unitsFeet: '英尺 (ft)',
+  navUnits: '距离单位', unitsMetre: '米 (m)', unitsFeet: '英尺 (ft)',
   tIcFUnitsB: '选[英尺]时，[快拍对焦距离]的数值（1ft–16ft，菜单、拍摄画面和 ADJ 模式中都是）和手动对焦时的距离刻度改用英尺，近距离的刻度用英寸（in）。选[米]时和原厂相同。',
   unitsLine: '距离单位  ·  英尺（快拍对焦距离、手动对焦刻度）',
   navHdr: 'HDR 增益图', hdrSub: '在 JPEG 中写入 HDR 增益图，使支持 HDR 的显示屏呈现更亮的高光', hdrLine: 'HDR 增益图  ·  JPEG 带增益图（[拍摄菜单] › [HDR]开关）',
@@ -248,7 +248,7 @@ const zh = {
 const en: typeof zh = {
   app: 'GR Mod',
   navIC: 'Image Control', navWall: 'Power-off image', navCopies: 'Firmware copies',
-  navExtras: 'Additions', gridEdit: 'Edit the grid lines', brightAutoSub: 'With Outdoor View Setting on Auto, a brighter screen in indoor light', monoToExtras: 'Go to Additions',
+  navExtras: 'Additions', gridEdit: 'Edit the grid lines', monoToExtras: 'Go to Additions',
   navICTab: 'Image', navRatioTab: 'Ratio', navExtrasTab: 'Additions', navWallTab: 'Power-off',
   navRatio: 'Aspect ratio', ratioAdd: 'Add ratio', ratioFactory: 'Factory', ratioGray: 'Gray', ratioMax: 'At most {n}', ratioLine: 'Added aspect ratios {n}  ·  {l}',
   ratioLive: 'Matte brightness', ratioLiveTip: 'How dark the part outside the photo is on the screen while shooting with an added ratio. 100% shows the photo area only, as before. At 50% and 25% the whole 3:2 frame stays visible and the part outside the photo is darkened (black at 50%, gray at 25%). The photos are the same either way.', ratioShadeLine: 'Matte brightness {p}', ratioLiveChip: 'Matte',
@@ -411,7 +411,7 @@ const en: typeof zh = {
   movie4kLine: '4K Video',
   navMovieSr: 'Sensor-Shift SR in Video Mode', movieSrSub: 'The movie menu\'s Movie SR offers three settings: Off, Mechanical (sensor shift) and Electronic. Mechanical does not crop the picture.', tIcFMovieSrB: 'The movie menu\'s Movie SR offers three settings instead of Off / On: Off, Mechanical and Electronic. Mechanical steadies the picture by moving the sensor, as for stills, without cropping it; Electronic is the camera\'s own electronic shake reduction, which crops about 5 % from each side.',
   movieSrLine: 'Sensor-Shift SR in Video Mode',
-  navUnits: 'Distance Unit', unitsSub: 'Snap Focus Distance and the distance scale of manual focus in metres (m) or feet (ft).', unitsMetre: 'Metres (m)', unitsFeet: 'Feet (ft)',
+  navUnits: 'Distance Unit', unitsMetre: 'Metres (m)', unitsFeet: 'Feet (ft)',
   tIcFUnitsB: 'With Feet, Snap Focus Distance (1ft to 16ft, in the menu, on the shooting screen and in ADJ mode) and the distance scale of manual focus are in feet, the close-range scale in inches (in). Metres are as in the official firmware.',
   unitsLine: 'Distance Unit  ·  feet (Snap Focus Distance, manual focus scale)',
   navHdr: 'HDR gain map', hdrSub: 'Writes an HDR gain map into the JPEGs, so the highlights show brighter on HDR screens', hdrLine: 'HDR gain map  ·  in the JPEGs (switched in Shooting › HDR)',
