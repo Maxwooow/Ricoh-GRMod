@@ -436,7 +436,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  import type { HalationLook } from './halation';
  import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
  import type { LookLayout } from './looks';
-@@ -49,25 +55,34 @@
+@@ -49,25 +55,35 @@
  import { installCustomGrid, isCameraGrid, validCustomGrid } from './grid';
  import type { CustomGrid } from './grid';
  import { installRatioShade } from './shade';
@@ -447,6 +447,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +import { installMovieExposure } from './movieexp';
 +import { MOVIE_4K_BIT, MOVIE_SENSOR_SR_BIT, installMovie4k } from './movie4k';
 +import { installMovieSr, installMovieSrAssets } from './moviesr';
++import { installDistanceFeet } from './units';
 +import { installShiftAdj, installShiftAssets, installShiftCore, installShiftFn, shiftAdjFunction } from './shift';
 +import { FRAME_LOOK, LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
  import type { ShutdownPictureSpec } from './shutdown';
@@ -479,7 +480,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  export const LANGUAGES = 21;
  const ROW_STRIDE = TEXT_CAPACITY * 4;
  const NATIVE_ICON_CATALOG = adr(0x55014280);
-@@ -90,10 +105,10 @@
+@@ -90,10 +106,10 @@
    return id;
  }
  
@@ -493,7 +494,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  }
  
  export interface RatioSpec {
-@@ -155,11 +170,11 @@
+@@ -155,11 +171,11 @@
    /** ADJ lever slots, 6 to 8 (see `adjslots.ts`); absent or 5: the camera's five. */
    adjSlots?: number;
    /**
@@ -508,7 +509,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    softFocusMenu?: boolean;
    /** The battery icon shows the charge in steps of 10 % instead of the bars (see `battery.ts`). */
    batteryPercent?: boolean;
-@@ -174,21 +189,23 @@
+@@ -174,23 +190,25 @@
    ratioShadeTone?: ShadeTone;
    /** A learned Auto for Shadow Correction (see `shadowml.ts`); GR IV 1.11, 1.20 and 1.21. Off unless asked for. */
    shadowLearn?: boolean;
@@ -537,9 +538,12 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    movie4k?: boolean;
 +  /** Movie SR with Off / Sensor Shift / Electronic (`moviesr.ts`); 1.20 and 1.21. Off unless asked for. */
    movieSr?: boolean;
+-  /** GR IV 1.20 and 1.21 only (`fw/gr4v120/aspect/units.ts`; the engine refuses it on 1.11): distances in feet. */
++  /** Snap Focus Distance and the manual focus scale in feet and inches (`units.ts`); 1.20 and 1.21. Metres unless asked for. */
+   distanceFeet?: boolean;
  }
  
-@@ -199,11 +216,22 @@
+@@ -201,11 +219,22 @@
    dateStampDiag?: boolean;
    /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
    directFlashDiag?: boolean;
@@ -563,7 +567,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  export interface AspectResult {
    revision: BuildRevision;
-@@ -366,7 +394,7 @@
+@@ -368,7 +397,7 @@
    for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
    const rowsStart = TEXT_CATALOG + 0x100;
    const end = rowsStart + LANGUAGES * ROW_STRIDE;
@@ -572,7 +576,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    patch.extendTo(end - BASE);
    patch.write(ICON_CATALOG, icons);
    const relocated: number[] = [];
-@@ -378,8 +406,15 @@
+@@ -380,8 +409,15 @@
    // language directory themselves.
    patch.setWord(adr(0x534013f8), movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
    patch.setWord(adr(0x534013fc), movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
@@ -590,7 +594,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    }
    for (const [low, high] of [[adr(0x535967cc), adr(0x535967d0)], [adr(0x53595db4), adr(0x53595dbc)]] as const) {
      patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
-@@ -410,7 +445,10 @@
+@@ -412,7 +448,10 @@
  // --------------------------------------------------------------------------------------------
  // crop_icons.py
  
@@ -602,7 +606,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
    const parts: Uint8Array[] = [iconbin];
-@@ -502,7 +540,7 @@
+@@ -504,7 +543,7 @@
    // Complete language rows again, now wide enough for the new names; every original entry is kept.
    let priorColumns = TEXT_CAPACITY;
    for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
@@ -611,7 +615,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    for (const id of allIds) upper = Math.max(upper, textId(id));
    const columns = Math.max(priorColumns, upper + 1);
    const catalogs: Uint8Array[] = [];
-@@ -631,7 +669,7 @@
+@@ -633,7 +672,7 @@
    p.hook(adr(0x538b40ec), out);
    out = `push {r0-r3,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r0,r3;bne #${adrHEX(0x538B41CC)};b #${p.target(adr(0x538b41b4))};`;
    p.hook(adr(0x538b41b4), out);
@@ -620,7 +624,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x53664430), out);
    // Both callers select the cropped window only for their original 2..5 range; a computed window
    // is invisible if selector 0 copies the untouched full canvas instead.
-@@ -694,7 +732,7 @@
+@@ -696,7 +735,7 @@
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
    out += adrText('cmp r2,#5;beq #0x5367298C;b #0x536728E8;');
@@ -629,7 +633,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x536728e4), out);
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
-@@ -715,8 +753,8 @@
+@@ -717,8 +756,8 @@
      out = '';
      for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
      out += `bic ip,ip,#4;b #${resume};custom:`;
@@ -640,7 +644,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      out += adrText('ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;');
      p.hook(entry, out);
    }
-@@ -802,7 +840,7 @@
+@@ -804,7 +843,7 @@
    const get = p.emit(lookup + 'mov r0,#0;bx lr;');
    // The native code at 0x53726698 divides s15 by the crop magnification; the other branch writes
    // it directly. Both contracts are kept.
@@ -649,7 +653,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x537266e8), code);
    // r8 / sb are the source dimensions: exact known sizes first, then fit the ratio for anything else.
    code = `push {r0,r4-r7,r10,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;beq old;mov r4,r0;mov r5,r8;mov r6,sb;`;
-@@ -936,7 +974,7 @@
+@@ -938,7 +977,7 @@
  function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
    const priorSave = branchTarget(adr(0x533f3674), patch.word(adr(0x533f3674)));
    const priorLoad = branchTarget(adr(0x533f3254), patch.word(adr(0x533f3254)));
@@ -658,7 +662,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    expectWord(patch, adr(0x5381d6bc), 0xe1a0c00d);
    // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
    const rects: Uint8Array[] = [];
-@@ -1074,13 +1112,24 @@
+@@ -1076,13 +1115,24 @@
   * features this is `installRatios`, byte for byte. With features the revision is 3.
   */
  export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
@@ -677,14 +681,14 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
    const adjSlots = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
 -  const extra = !!features.brightAuto || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade || !!features.shadowLearn;
-+  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn || !!features.movieExposure || !!features.sensorShift || !!features.movie4k || !!features.movieSr || !!features.constantLight;
++  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.ratioShade || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn || !!features.movieExposure || !!features.sensorShift || !!features.movie4k || !!features.movieSr || !!features.constantLight || !!features.distanceFeet;
    if (features.customGrid && (!validCustomGrid(features.customGrid) || isCameraGrid(features.customGrid))) fail('internal', 'a custom grid must differ from the camera’s');
    if (features.ratioShade && ratios.length === 0) fail('internal', 'the live-view shade needs an added ratio');
 +  if (features.ratioShadeTone !== undefined && features.ratioShadeTone !== 'dark') fail('bad-edit', 'the live-view shade is chosen in the camera menu on this firmware');
    if (extra) revision = 3;
    if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
    if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
-@@ -1091,8 +1140,15 @@
+@@ -1093,8 +1143,15 @@
    });
    if (features.brightAuto !== undefined && ![true, false, 'bright', 'balanced'].includes(features.brightAuto)) fail('bad-edit', 'brightAuto must be boolean, bright or balanced');
    if (features.shadowLearn !== undefined && typeof features.shadowLearn !== 'boolean') fail('bad-edit', 'shadowLearn must be boolean');
@@ -698,11 +702,11 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +  if (features.awbLearn !== undefined && typeof features.awbLearn !== 'boolean') fail('bad-edit', 'awbLearn must be boolean');
 +  if (features.movieExposure !== undefined && typeof features.movieExposure !== 'boolean') fail('bad-edit', 'movieExposure must be boolean');
 +  if (features.constantLight !== undefined && typeof features.constantLight !== 'boolean') fail('bad-edit', 'constantLight must be boolean');
-+  for (const name of ['sensorShift', 'movie4k', 'movieSr'] as const) if (features[name] !== undefined && typeof features[name] !== 'boolean') fail('bad-edit', `${name} must be boolean`);
++  for (const name of ['sensorShift', 'movie4k', 'movieSr', 'distanceFeet'] as const) if (features[name] !== undefined && typeof features[name] !== 'boolean') fail('bad-edit', `${name} must be boolean`);
    const patch = new Patch(rtos);
    const ramCopy = new DataView(patch.read(BASE + 0x450, 12).buffer);
    if (ramCopy.getUint32(0, true) !== RAM.source || ramCopy.getUint32(4, true) !== RAM.destination || ramCopy.getUint32(8, true) !== RAM.length) {
-@@ -1106,27 +1162,61 @@
+@@ -1108,27 +1165,61 @@
      const menu = installMenu(patch, ratios, installed.ids);
      const { p, get, scale } = buildGeometry(patch, ratios);
      installDevelop(p, scale, ratios);
@@ -769,7 +773,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    // Halation: added slots that have it, Cinema slots with a preset that are asked to.
    const halation: HalationLook[] = [];
    slots.forEach((x, k) => {
-@@ -1154,19 +1244,54 @@
+@@ -1156,19 +1247,57 @@
    if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
    // The HDR line's list: after the additions that copy the list table first.
    if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
@@ -824,11 +828,14 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +  // Exposure modes for movies: after everything, so that a build with it differs from the one without only by its
 +  // own words (and the record of the additions).
 +  if (features.movieExposure) installMovieExposure(patch);
++  // Distances in feet: texts, icons and the scale's words only; last, so that a build with it differs from the one
++  // without only by its own words, texts and icons (and the record of the additions).
++  if (features.distanceFeet) icons = installDistanceFeet(patch, icons);
    if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
    if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
 -  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true, ...(features.ratioShadeTone && features.ratioShadeTone !== 'dark' ? { ratioShadeTone: features.ratioShadeTone } : {}) } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}) } };
 -}
-+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}), ...(features.videoAf ? { videoAf: true } : {}), ...(features.awbLearn ? { awbLearn: true } : {}), ...(features.movieExposure ? { movieExposure: true } : {}), ...(features.sensorShift ? { sensorShift: true } : {}), ...(features.movie4k ? { movie4k: true } : {}), ...(features.movieSr ? { movieSr: true } : {}), ...(features.constantLight ? { constantLight: true } : {}) } };
++  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.ratioShade ? { ratioShade: true } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}), ...(features.videoAf ? { videoAf: true } : {}), ...(features.awbLearn ? { awbLearn: true } : {}), ...(features.movieExposure ? { movieExposure: true } : {}), ...(features.sensorShift ? { sensorShift: true } : {}), ...(features.movie4k ? { movie4k: true } : {}), ...(features.movieSr ? { movieSr: true } : {}), ...(features.constantLight ? { constantLight: true } : {}), ...(features.distanceFeet ? { distanceFeet: true } : {}) } };
 +}
 diff --git a/core/src/fw/gr4v120/aspect/datestamp-menu.ts b/core/src/fw/gr4v120/aspect/datestamp-menu.ts
 --- a/core/src/fw/gr4v120/aspect/datestamp-menu.ts
@@ -4625,7 +4632,7 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
  /** Second feature byte: bit 5, the learned Auto for Shadow Correction (`shadowml.ts`). */
  const FEATURE2_SHADOW_LEARN = 32;
  /** Second feature byte: bit 7, a third feature byte follows (after the bytes of bits 1 and 2). */
-@@ -95,6 +100,26 @@
+@@ -95,6 +100,28 @@
  const FEATURE3_BATTERY = 4;
  /** Third feature byte: bit 3, custom grid lines (`grid.ts`); two bytes follow, the 3x3 and the 4x4 style's lines. */
  const FEATURE3_CUSTOM_GRID = 8;
@@ -4649,10 +4656,12 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
 +const FEATURE4_SENSOR_SHIFT = 2;
 +const FEATURE4_MOVIE_4K = 4;
 +const FEATURE4_MOVIE_SR = 8;
++/** Fourth feature byte: bit 4, distances in feet (`units.ts`). */
++const FEATURE4_DISTANCE_FEET = 16;
  
  /**
   * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
-@@ -126,16 +151,18 @@
+@@ -126,16 +153,18 @@
    if (tone !== 'dark' && tone !== 'light') fail('internal', 'unknown shade tone');
    if (tone !== 'dark' && !features.ratioShade) fail('internal', 'a shade tone needs the live-view shade');
    if (features.ratioShade && specs.length === 0) fail('internal', 'the live-view shade needs an added ratio');
@@ -4660,7 +4669,7 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
 -  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.shadowLearn || f3) {
 -    if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, the learned shadow correction and the third feature byte need revision 3');
 +  const f3 = (features.ratioShade ? FEATURE3_RATIO_SHADE : 0) | (tone === 'light' ? FEATURE3_SHADE_LIGHT : 0) | (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0) | (features.flashTtl ? FEATURE3_FLASH_TTL : 0) | (features.videoAf ? FEATURE3_VIDEO_AF : 0) | (features.awbLearn ? FEATURE3_AWB_LEARN : 0) | (features.movieExposure ? FEATURE3_MOVIE_EXPOSURE : 0);
-+  const f4 = (features.constantLight ? FEATURE4_CONSTANT_LIGHT : 0) | (features.sensorShift ? FEATURE4_SENSOR_SHIFT : 0) | (features.movie4k ? FEATURE4_MOVIE_4K : 0) | (features.movieSr ? FEATURE4_MOVIE_SR : 0);
++  const f4 = (features.constantLight ? FEATURE4_CONSTANT_LIGHT : 0) | (features.sensorShift ? FEATURE4_SENSOR_SHIFT : 0) | (features.movie4k ? FEATURE4_MOVIE_4K : 0) | (features.movieSr ? FEATURE4_MOVIE_SR : 0) | (features.distanceFeet ? FEATURE4_DISTANCE_FEET : 0);
 +  if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.exposurePreview || features.softFocusMenu || features.shadowLearn || features.filmGrain || f3 || f4) {
 +    if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, bright Auto, exposure preview, the soft focus line, the learned shadow correction, the film grain and the third and fourth feature bytes need revision 3');
      const adj = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
@@ -4676,7 +4685,7 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
    }
    while (bytes.length % 4) bytes.push(0);
    return Uint8Array.from(bytes);
-@@ -226,8 +253,11 @@
+@@ -226,8 +255,11 @@
      if (f & FEATURE_DIRECT_FLASH) features.directFlash = true;
      if (p < rec.length) {
        const f2 = rec[p++];
@@ -4689,7 +4698,7 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
        if (f2 & FEATURE2_ADJ_SLOTS) {
          if (p >= rec.length) return null;
          const n = rec[p++];
-@@ -244,7 +274,11 @@
+@@ -244,7 +276,11 @@
        if (f2 & FEATURE2_MORE) {
          if (p >= rec.length) return null;
          const f3 = rec[p++];
@@ -4702,23 +4711,24 @@ diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/
          if (f3 & FEATURE3_RATIO_SHADE) {
            if (count === 0) return null;
            features.ratioShade = true;
-@@ -257,9 +291,18 @@
+@@ -257,9 +293,19 @@
            if (isCameraGrid(grid)) return null;
            features.customGrid = grid;
          }
 +        const f4 = p < rec.length ? rec[p] : 0;
 +        if (f4 !== 0) {
 +          p++;
-+          if ((f4 & ~(FEATURE4_CONSTANT_LIGHT | FEATURE4_SENSOR_SHIFT | FEATURE4_MOVIE_4K | FEATURE4_MOVIE_SR)) !== 0) return null;
++          if ((f4 & ~(FEATURE4_CONSTANT_LIGHT | FEATURE4_SENSOR_SHIFT | FEATURE4_MOVIE_4K | FEATURE4_MOVIE_SR | FEATURE4_DISTANCE_FEET)) !== 0) return null;
 +          if (f4 & FEATURE4_CONSTANT_LIGHT) features.constantLight = true;
 +          if (f4 & FEATURE4_SENSOR_SHIFT) features.sensorShift = true;
 +          if (f4 & FEATURE4_MOVIE_4K) features.movie4k = true;
 +          if (f4 & FEATURE4_MOVIE_SR) features.movieSr = true;
++          if (f4 & FEATURE4_DISTANCE_FEET) features.distanceFeet = true;
 +        } else if (f3 === 0) return null;
        }
      }
 -    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn) return null;
-+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn && !features.filmGrain && !features.flashTtl && !features.videoAf && !features.awbLearn && !features.movieExposure && !features.sensorShift && !features.movie4k && !features.movieSr && !features.constantLight) return null;
++    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.shadowLearn && !features.filmGrain && !features.flashTtl && !features.videoAf && !features.awbLearn && !features.movieExposure && !features.sensorShift && !features.movie4k && !features.movieSr && !features.constantLight && !features.distanceFeet) return null;
    }
    for (; p < rec.length; p++) if (rec[p] !== 0) return null;
    return { specs: out, features, extraSlots, shutdownPictures };
@@ -5990,6 +6000,182 @@ diff --git a/core/src/fw/gr4v120/aspect/softfocus.ts b/core/src/fw/gr4v120/aspec
      patch.setWord(at, branchTo(at, getter, 14), 'ADJ soft focus: slot getter');
    });
  
+diff --git a/core/src/fw/gr4v120/aspect/units-icons.ts b/core/src/fw/gr4v120/aspect/units-icons.ts
+new file mode 100644
+--- /dev/null
++++ b/core/src/fw/gr4v120/aspect/units-icons.ts
+@@ -0,0 +1,18 @@
++// SPDX-License-Identifier: GPL-2.0-only
++// GENERATED by tools/units/labels.py -- do not edit.
++/** The feet / inch labels of the manual focus scale, 30 x 20: per pixel 0 transparent, else 1 + grey (opaque). */
++export const UNIT_LABELS: Readonly<Record<string, string>> = {
++  'ft': 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABATmbvIEBAQEBAQEBAAAAAAAAAAAAAAAAAAAAAAABNPv//7ABASGRkBABAAAAAAAAAAAAAAAAAAAAAAABjP/6YSkBAUH//yEBAAAAAAAAAAAAAAAAAAAAAAEBpf/IAQEBAUH//yEBAQEAAAAAAAAAAAAAAAAAAAG96v/xwI0Bben//+XgGgEAAAAAAAAAAAAAAAAAAAH//////8ABff//////HgEAAAAAAAAAAAAAAAAAAAEes//JIRYBAUL//yIBAQEAAAAAAAAAAAAAAAAAAAEBp//AAQEBAUH//yEBAAAAAAAAAAAAAAAAAAAAAAABp//AAQAAAUH//yEBAAAAAAAAAAAAAAAAAAAAAAABp//AAQAAAUH//yEBAAAAAAAAAAAAAAAAAAAAAAABp//AAQAAAUH//yEBAAAAAAAAAAAAAAAAAAAAAAABp//AAQAAAUH//ycBAQAAAAAAAAAAAAAAAAAAAAABp//AAQAAATz//6ZNAQAAAAAAAAAAAAAAAAAAAAABp//AAQAAARDy///2AQAAAAAAAAAAAAAAAAAAAAABhNCZAQAAAQEynL21AQAAAAAAAAAAAAAAAAAAAAABAQEBAQAAAAEBAQEBAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
++  'in': 'AAAAAAAAAAEBAQEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEMOQcBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHJ/6sBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH1/9UBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFfuEgBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEBAQEBAQAAAAAAAAAAAAAAAAAAAAGl4I8BAVHg3l/e/dZNAQEAAAAAAAAAAAAAAAAAAAHA/6cBAWH////////6KgEAAAAAAAAAAAAAAAAAAAHA/6cBAWH//5kbX///gwEAAAAAAAAAAAAAAAAAAAHA/6cBAWH//xYBAdT/nwEAAAAAAAAAAAAAAAAAAAHA/6cBAWH//wgBAcf/oAEAAAAAAAAAAAAAAAAAAAHA/6cBAWH//wgBAcf/oAEAAAAAAAAAAAAAAAAAAAHA/6cBAWH//wgBAcf/oAEAAAAAAAAAAAAAAAAAAAHA/6cBAWH//wgBAcf/oAEAAAAAAAAAAAAAAAAAAAHA/6cBAWH//wgBAcf/oAEAAAAAAAAAAAAAAAAAAAHA/6cBAWH//wgBAcf/oAEAAAAAAAAAAAAAAAAAAAGNwHoBAUXAvgUBAZLAdQEAAAAAAAAAAAAAAAAAAAEBAQEBAQEBAQEAAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
++  '16': 'AAEBAQEBAQEAAAEBAQEBAQEBAQAAAAAAAAAAAAAAAQENc6CgdAEAAQEJbrvYz5otAQEAAAAAAAAAAAAAAXru////wQEAARbS///////6WAEBAAAAAAAAAAAAAfD/////wQEBAaf///Gpzf//9hkBAAAAAAAAAAAAAcWWbf//wQEBCfr/+SgBA7n//2YBAAAAAAAAAAAAAQEBIf//wQEBH///yAEBAWj//4ABAAAAAAAAAAAAAAABIf//wQEBIf//wQEBARtWViYBAAAAAAAAAAAAAAABIf//wQEBIf//wQpMXTYCAQEBAAAAAAAAAAAAAAABIf//wQEBIf//4uP////KHwEAAAAAAAAAAAAAAAABIf//wQEBIf//////////0wYBAAAAAAAAAAAAAAABIf//wQEBIf///5QOIMv//1gBAAAAAAAAAAAAAAABIf//wQEBIf//8wkBAUX//6oBAAAAAAAAAAAAAAABIf//wQEBIf//ywEBAQ7//9UBAAAAAAAAAAAAAAABIf//wQEBH///xAEAAQb//90BAAAAAAAAAAAAAAABIf//wQEBDP7/4AEBASn//8UBAAAAAAAAAAAAAAABIf//wQEBAcj//z8BAYr//44BAAAAAAAAAAAAAAABIf//wQEAAWL///Souv///jEBAAAAAAAAAAAAAAABIf//wQEAAQOs////////fAEBAAAAAAAAAAAAAAABFb/AjAEAAAEDX7jc16pEAQEAAAAAAAAAAAAAAAABAQEBAQEAAAABAQEBAQEBAQAAAAAAAAAAAAAA',
++  '9.8': 'AAABAQEBAQEBAQAAAAAAAAAAAAABAQEBAQEBAQAAAAEBRZq4rGwLAQEAAAAAAAAAAAEBIZPO17NVAgEAAQGS///////WFwEAAAAAAAAAAQE88///////mQEBAU3///3K6P//qAEBAAAAAAAAAQfg///Mrfj//04BAa7//1UBDNH/+xYBAAAAAAAAAUn//7oDAU7//7EBAeX/6AIBAXL//1cBAAAAAAAAAXL//10BAQLu/9wBAf3/xwEAAVH//3QBAAAAAAAAAW///1QBAQHn/9kBAfn/yAEAAVP//3YBAAAAAAAAAT///5gBASn//6YBAdf/7gQBAX7//3YBAAAAAAAAAQPM//6ObNr/+zUBAZD//3MBGuD//3YBAAAAAAAAAAEk9v//////eAEBASj5///q+f///3YBAAAAAAAAAQGr///JrPb/7iEBAQFd+P///9v//3YBAAAAAAAAATT//60CAUP//5oBAQEBHWt9Sk3//3YBAAAAAAAAAXX//0wBAQHd/+EBAR00MwMBAUz//3YBAAAAAAAAAZL//zEBAAHE//0BAaT//yEBAU///3YBAQEBAQEBAYn//0cBAQHa//UBAZL//10BAZD//2EBARmmpxsBAVv//58BATb//8YBAUn///KLoP7/+hwBAZf//5cBARDu//+niOr//2UBAQKo////////cgEBAZf//5cBAQFT/P//////tgQBAAEEctb79cJPAQEAARqmphoBAAEBOLXy/Nh4BwEAAAABAQEBAQEBAQAAAQEBAQEBAAABAQEBAQEBAQEA',
++  '3.3': 'AQEBAQEBAQEBAQEBAAAAAAAAAQEBAQEBAQEBAQEBAXGcnJycnJycnE4BAAAAAAAAASmcnJycnJycnJYBAcL//////////4gBAAAAAAAAAUr///////////8BAaXg4ODg4P///4YBAAAAAAAAAT3g4ODg4PH///4BAQEBAQEBa///5x4BAAAAAAAAAQEBAQEBFt7//3sBAAAAAQFJ/P/3NwEBAAAAAAAAAAAAAAEJxf//owIBAAABAS3y//9XAQEAAAAAAAAAAAAAAQKm///FCQEAAAABGeH//30BAQAAAAAAAAAAAAABAYH//98XAQEAAAABdv///9lsAgEAAAAAAAAAAAABDvH///SqHwEBAAABBbW41P//fAEBAAAAAAAAAAABAUrYsvn/4BIBAAAAAQEBBcX/9hMBAAAAAAAAAAAAAQEBAVH//34BAAAAAAAAAWb//1YBAAAAAAAAAAAAAAAAAQLs/80BAQEBAQEAAUb//34BAAAAAAAAAQEBAQEBAAHM//QBAa2xhwEAAUP//4cBAAAAAAAAAVqxsSoBAAHJ//4BAfj/3wEBAVv//3QBAQEBAQEBAYH//1kBAQHh/+sBAdT//y0BAab//z4BAQ+bsCsBAV3//6UBAS///7QBAXz//+aHqv//2gQBAXz//7kCARTy//+qh+b//1QBAQrI///////6RQEAAXz//7kCAQFe/v//////swMBAQELgdv887k6AQEAAQ+brykBAAEBQLnz/dx/CAEAAAEBAQEBAQEBAQAAAQEBAQEBAAABAQEBAQEBAQEA',
++  '1': 'AAEBAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQENc6CgdAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAXru////wQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAfD/////wQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcWWbf//wQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEBIf//wQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIf//wQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIf//wQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIf//wQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIf//wQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIf//wQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIf//wQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIf//wQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIf//wQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIf//wQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIf//wQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIf//wQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIf//wQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABFb/AjAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQEBAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
++  '12': 'AAEBAQEBAQEAAAEBAQEBAQEBAQAAAAAAAAAAAAAAAQENc6CgdAEAAQENdb7ZzJMlAQEAAAAAAAAAAAAAAXru////wQEAAR/b///////3TwEBAAAAAAAAAAAAAfD/////wQEBAcD//+qnzP//8xgBAAAAAAAAAAAAAcWWbf//wQEBIf//7RkBAqb//3MBAAAAAAAAAAAAAQEBIf//wQEBP///qQEBAUr//5wBAAAAAAAAAAAAAAABIf//wQEBOfDwkgEAAVn//5QBAAAAAAAAAAAAAAABIf//wQEBAQEBAQEBAbL//2ABAAAAAAAAAAAAAAABIf//wQEAAAAAAAEBPP//8hABAAAAAAAAAAAAAAABIf//wQEAAAAAAAEK1///fQEBAAAAAAAAAAAAAAABIf//wQEAAAAAAQGe///TCAEAAAAAAAAAAAAAAAABIf//wQEAAAABAWP///YsAQEAAAAAAAAAAAAAAAABIf//wQEAAAEBNPj//10BAQAAAAAAAAAAAAAAAAABIf//wQEAAAEW4f//kgEBAAAAAAAAAAAAAAAAAAABIf//wQEAAQa///++BQEAAAAAAAAAAAAAAAAAAAABIf//wQEBAZX//94UAQEBAQEBAAAAAAAAAAAAAAABIf//wQEBNP///9u7u7u7u7YBAAAAAAAAAAAAAAABIf//wQEBQf////////////8BAAAAAAAAAAAAAAABFb/AjAEBLMDAwMDAwMDAwLsBAAAAAAAAAAAAAAABAQEBAQEBAQEBAQEBAQEBAQEBAAAAAAAAAAAA',
++  '9.4': 'AAABAQEBAQEBAAAAAAAAAAAAAAAAAQEBAQEBAAAAAAECUKG5o1ICAQAAAAAAAAAAAAABAXCgoBABAAAAAQKf//////+gAgEAAAAAAAAAAAABDfT/1gIBAAAAAVT///jH8///VgEAAAAAAAAAAAABX///eQEAAAAAAbH//jcBI/T/uQEAAAAAAAAAAAEBu//9HwEAAAAAAeb/zAEBAbD/+QYBAAAAAAAAAAEc/P/AAQEAAAAAAf3/qwEAAZD//xoBAAAAAAAAAAF0//9lAQAAAAAAAfn/rQEAAZL//x0BAAAAAAAAAQHQ//cRAQEBAQEAAdn/1AEBAbv//x0BAAAAAAAAAS///6oBAsn/1QIAAZT//1IBOfv//x0BAAAAAAAAAYr//08BAs3/2gIAAS78///n/v///x0BAAAAAAABBOP/7AcBAs3/2gIBAQFo/P///97//x0BAAAAAAABQ///ymFhYeH/6V0BAQEBJXB5NYz//x0BAAAAAAABff////////////8BAR40LgEBAYz//x0BAAAAAAABfv////////////8BAaf//wQBAY///xwBAQEBAQEBG0FBQUFBQdv/5D0BAZb//z0BA8v//QsBAV65WgEBAQEBAQEBAs3/2gIBAVD//+aFuv//vgEBEfv/+QwBAAAAAAAAAs3/2gIAAQO0///////yMAEBEfv/+AwBAAAAAAAAAs3/2gIAAAEHf9797qwqAQEBAV65WAEBAAAAAAAAApbAnwIAAAEBAQEBAQEBAQAAAQEBAQEAAAAAAAAAAQEBAQEA',
++  '7.9': 'AQEBAQEBAQEBAQEBAAAAAAAAAAABAQEBAQEBAQAAAZacnJycnJycnHsCAAAAAAAAAAEBKoq0tIkmAQEAAf///////////9MCAAAAAAAAAQFh+//////5VgEBAf//7ODg4Ob//9ICAAAAAAAAAST5///Y1P//9RoBAf//WAEBAVf//6IBAAAAAAAAAYD//5cBAYf//3kBAUZLFQEBAar//1ABAAAAAAAAAbn//yoBARv//8EBAQEBAQEBC/T/8goBAAAAAAAAAtH//wcBAQP1/94BAAAAAAABUv//qAEBAAAAAAAAAs3//wkBAQT3/+IBAAAAAAEBpP//VgEAAAAAAAAAAar//zIBASf//+IBAAAAAAEI8P/2DQEAAAAAAAAAAWL//7AIBaH//+IBAAAAAAFM//+uAQEAAAAAAAAAAQzk///y8P///+IBAAAAAQGe//9bAQAAAAAAAAAAAQE15////+D7/+IBAAAAAQfs//kPAQAAAAAAAAAAAQEBDlx+ZBDz/+IBAAAAAUX//7QBAQAAAAAAAAAAARQ0NA4BAQLz/+IBAAAAAZf//2ABAAAAAQEBAQEBAXf//2MBAQP1/+EBAAABBef/+hMBAAAAAT61kQgBAWT//6ABATr//8sBAAABP///uQEBAAAAAuH//2QBAR/6//+jiev//34BAAABkf//ZgEAAAAAAuH//2QBAQF1////////zAwBAAABncC+FgEAAAAAAT61jwcBAAEBUMP2+9mCDAEBAAABAQEBAQEAAAAAAQEBAQEBAAABAQEBAQEBAQEA',
++  '4.7': 'AAAAAQEBAQEBAAAAAAAAAAAAAQEBAQEBAQEBAQEBAAAAARmgoG4BAAAAAAAAAAAAATacnJycnJycnJcBAAAAAXf//24BAAAAAAAAAAAAAWD///////////8BAAABAtT/+hYBAAAAAAAAAAAAAWD//ODg4OD8//8BAAABM///sQEBAAAAAAAAAAAAAWD/3AIBAQ73/9ABAAABkP//UwEAAAAAAAAAAAAAARhLOwEAAVP//4EBAAEG6v/tCAEAAAAAAAAAAAAAAQEBAQEAAaP//zIBAAFO//+XAQEBAQEBAAAAAAAAAAAAAAABBu7/4QMBAQGs//86ATL//3oBAAAAAAAAAAAAAAABQ///lAEAARP4/9oCATf//38BAAAAAAAAAAAAAAABkv//RAEAAWf//3wBATf//38BAQAAAAAAAAAAAAEC3//uBgEAAcX//4BhYYP//7A8AQAAAAAAAAAAAAEx//+kAQAAAf////////////+oAQAAAAAAAAAAAAGA//9VAQAAAf////////////+oAQAAAAAAAAAAAQHQ//gPAQAAATxBQUFBQWr//6AnAQEBAQEBAAAAASH//7cBAQAAAQEBAQEBATf//38BAQE0tIwFAQAAAW///2cBAAAAAAAAAAAAATf//38BAAHL//9RAQABAb3//hoBAAAAAAAAAAAAATf//38BAAHL//9RAQABE/v/xwEBAAAAAAAAAAAAASXAwFoBAAE0tIoEAQABOcDAXwEAAAAAAAAAAAAAAQEBAQEBAAEBAQEBAAABAQEBAQEAAAAA',
++  '5.9': 'AQEBAQEBAQEBAQEBAAAAAAAAAAABAQEBAQEBAQAAAZugoKCgoKCgoBUBAAAAAAAAAAEBIYSztYwpAQEAAf///////////ykBAAAAAAAAAQFL9v/////6WwEBAf//+dvb29vb2x8BAAAAAAAAARHu///d0f//9hwBAf//yQEBAQEBAQEBAAAAAAAAAWH//6sDAXr//3sBAf//yQEAAAAAAAAAAAAAAAAAAZj//0EBARH+/8IBAf//yQEBAQEBAAAAAAAAAAAAAbH//x4BAQHs/98BAf//yQEkPh4BAQEAAAAAAAAAAa3//yABAQLu/+IBAf//3sP///+2FAEAAAAAAAAAAYr//0oBARz//+IBAf//////////vAEBAAAAAAAAAUP//8EMA5b//+IBAf///6xFYu///zQBAAAAAAAAAQPP///07v///+IBAa6zpAYBAXf//3ABAAAAAAAAAAEl3P///+X2/+IBAQEBAQEAAUP//48BAAAAAAAAAQEBCVZ9ZxLn/+IBAQEBAQEAATr//5QBAAAAAAAAAQ40NBIBAQHn/+IBAef41QIBAVj//4QBAQEBAQEBAVj//3gBAQHq/+EBAcL//0EBArP//1UBASKroxUBAUX//7UBAS7//8wBAWP///Smx///6QsBAav//4wBAQzv//+sh+f//38BAQOu///////4SAEBAav//4wBAQFb/v//////zg0BAAEDYrzd05wqAQEAASKrohQBAAEBQbz0/NyGDQEBAAABAQEBAQEBAQAAAQEBAQEBAAABAQEBAQEBAQEA',
++  '3.9': 'AQEBAQEBAQEBAQEBAAAAAAAAAAABAQEBAQEBAQAAAXGcnJycnJycnEgBAAAAAAAAAAEBHICyto4sAQEAAcL//////////4ABAAAAAAAAAQE98f/////7XgEBAaXg4ODg4f///30BAAAAAAAAAQjj///gz///9x0BAQEBAQEBcf//4hkBAAAAAAAAAUz//7cEAXT//3wBAAAAAQFN/f/zMAEBAAAAAAAAAYP//04BAQz9/8MBAAABATDz//5QAQEAAAAAAAAAAZv//ywBAQHn/98BAAABGuP//3cBAQAAAAAAAAAAAZf//y4BAQHq/+IBAAABef///9dnAQEAAAAAAAAAAXX//1cBARb//+IBAAABBre31v//cgEBAAAAAAAAAS7//8oPA5D//+IBAAAAAQEBBsr/8gwBAAAAAAAAAQG9///27f///+IBAAAAAAAAAWz//00BAAAAAAAAAAEc0////+j0/+IBAQEBAQEAAUv//3QBAAAAAAAAAQEBB1J8aRTi/+IBAa2xhQEAAUn//30BAAAAAAAAAQo0NBUBAQHi/+IBAfj/3QEBAWH//2oBAQEBAQEBAUL//4UBAQHl/+EBAdT//ysBAaz//zQBAROhrCIBATD//8ICASn//8wBAX3//+WGrf//0gIBAYn//6kBAQTi//+zheT//4ABAQrK///////4PQEAAYn//6gBAAFL+///////0A4BAQELg9z98rc2AQEAAROhqyEBAAEBObfy/d2IDwEBAAEBAQEBAQEBAQAAAQEBAQEBAAABAQEBAQEBAQEA',
++  '2.4': 'AAEBAQEBAQEBAQAAAAAAAAAAAAAAAQEBAQEBAAAAAQEIccHZw3MIAQEAAAAAAAAAAAABAWugoBIBAAAAAQ3I///////IDAEAAAAAAAAAAAABCvH/2gIBAAAAAYv//+Sm4P//iAEAAAAAAAAAAAABV///fgEAAAAAAeL/7BUBD+L/5gIBAAAAAAAAAAEBsv/+JAEAAAAAAf7/qwEBAZz//xABAAAAAAAAAAEV+v/GAQEAAAAAAezwlQEBAar//QsBAAAAAAAAAAFs//9qAQAAAAAAAQEBAQEBDe//1gIBAAAAAAAAAQHI//kUAQEBAQEAAAAAAAEBef//gAEAAAAAAAAAASb//7EBAcX/1gIAAAAAAAEf8//xFQEAAAAAAAAAAX///1YBAcn/2wIAAAAAAQO9//9wAQEAAAAAAAABAtv/8AkBAcn/2wIBAAABAXT//8QEAQAAAAAAAAABOf//zmFhYd//6l0BAAEBM/n/8SIBAAAAAAAAAAABcf////////////8BAAEN2v//WAEBAAAAAAAAAAABcv////////////8BAQGj//+ZAQEAAAAAAQEBAQEBGUFBQUFBQdj/5T0BAWP//9AJAQEBAQEBAVS5ZAEBAQEBAQEBAcn/2wIBAfT//9e7u7u7u0gBCfT//BUBAAAAAAAAAcn/2wIAAf///////////2gBCfT//BUBAAAAAAAAAcn/2wIAAbzAwMDAwMDAwEoBAVS5YgEBAAAAAAAAAZPAoAIAAQEBAQEBAQEBAQEBAQEBAQEAAAAAAAAAAQEBAQEA',
++};
+diff --git a/core/src/fw/gr4v120/aspect/units.ts b/core/src/fw/gr4v120/aspect/units.ts
+new file mode 100644
+--- /dev/null
++++ b/core/src/fw/gr4v120/aspect/units.ts
+@@ -0,0 +1,148 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/**
++ * Distances in feet (GR IV 1.20 and 1.21): Snap Focus Distance and the manual focus scale in feet and inches instead
++ * of metres and centimetres. Off unless asked for (`distanceFeet`); metres stay the camera's own.
++ *
++ * Where the camera shows a distance:
++ *  - Snap Focus Distance, its eight values (texts 66..73: 0.3m, 0.4m, 1m, 1.5m, 2m, 2.5m, 3.5m, 5m; ∞ is text 13).
++ *    The menu, its list, the shooting screen (0x533B5C00: the distance in cm to the text) and the ADJ lever all
++ *    show these texts. Every language has the same eight. They become 1ft, 1.3ft, 3.3ft, 4.9ft, 6.6ft, 8.2ft,
++ *    11ft and 16ft (rounded to two figures) in every language.
++ *  - The manual focus scale. Its labels are icons set by 0x53592728: the unit (0x2c3 "m" or 0x2c1 "cm") and up to
++ *    five figures at fixed places on the scale, chosen by the scale (a byte of the view, + 0x124) and the nearest
++ *    focus distance (60 or 120 mm, 0x533B1198):
++ *      m:              m, ∞, 5, 3, 1, 0.3
++ *      cm (60 mm):     cm, 30, 15, 10, 6
++ *      cm (120 mm):    cm, 30, 24, 20, 12
++ *    Each `mov r1, #icon` gets an icon of its own (UNIT_ICON_IDS): the same distance in feet or inches, at the same
++ *    place on the scale (16, 9.8, 3.3, 1 ft; 12, 5.9, 3.9, 2.4 in; 12, 9.4, 7.9, 4.7 in), and the unit ft / in. ∞
++ *    stays. The icons are drawn in the style of the camera's own labels (`tools/units/labels.py`, units-icons.ts).
++ * Not changed: the camera's other distances (the altitude of a picture's position in playback, "%dm"; the Direct
++ * Flash menu's guide numbers, which are in metres by convention).
++ *
++ * The scale's function is the same code in 1.21, moved: its address is looked up (`adr`); the words replaced are
++ * checked before they are.
++ */
++import { FirmwareError } from '../../types';
++import { adr } from '../target';
++import { movImmediate, movWord } from './arm';
++import { ICON_CATALOG, LANGUAGES, LOOKUP_BOUNDS, Patch, TEXT_CATALOG, concat, u16le, u32le, utf16z } from './build';
++import { UNIT_LABELS } from './units-icons';
++
++/** The Snap Focus Distance values (texts 66..73) in metres, as the camera has them, and in feet. */
++export const SNAP_TEXT_IDS = [66, 67, 68, 69, 70, 71, 72, 73] as const;
++export const SNAP_METRES = ['0.3m', '0.4m', '1m', '1.5m', '2m', '2.5m', '3.5m', '5m'] as const;
++export const SNAP_FEET = ['1ft', '1.3ft', '3.3ft', '4.9ft', '6.6ft', '8.2ft', '11ft', '16ft'] as const;
++
++/** The function that sets the manual focus scale's labels. */
++const SCALE_LABELS = adr(0x53592728);
++/**
++ * Its `mov r1, #icon` / `movw r1, #icon` words (offset in the function, the camera's word, the label in its place).
++ * The camera's icons: 0x2c3 m, 0x2c1 cm, 0x94 5, 0x92 3, 0x8e 1, 0x2c0 0.3, 0x93 30, 0x2b 24, 0x38 20, 0x90 12,
++ * 0x91 15, 0x8f 10, 0x95 6.
++ */
++export const SCALE_SITES: readonly (readonly [number, number, string])[] = [
++  [0x34, 0xe30012c3, 'ft'], [0x4c, 0xe3a01094, '16'], [0x58, 0xe3a01092, '9.8'], [0x64, 0xe3a0108e, '3.3'], [0x70, 0xe3a01d0b, '1'],
++  [0xcc, 0xe30012c1, 'in'], [0xd8, 0xe3a01093, '12'],
++  [0x100, 0xe3a0102b, '9.4'], [0x10c, 0xe3a01038, '7.9'], [0x118, 0xe3a01090, '4.7'],
++  [0x1a0, 0xe3a01091, '5.9'], [0x1ac, 0xe3a0108f, '3.9'], [0x1b8, 0xe3a01095, '2.4'],
++];
++/** ∞ (0x2c2) between the unit and the first figure: kept. */
++const INFINITY_SITE = [0x40, 0xe30012c2] as const;
++
++/** The labels, in the order of their icon numbers (UNIT_ICON_FIRST, ...). */
++export const UNIT_LABEL_NAMES = ['ft', 'in', '16', '9.8', '3.3', '1', '12', '9.4', '7.9', '4.7', '5.9', '3.9', '2.4'] as const;
++export const UNIT_ICON_FIRST = 1130;
++export const UNIT_ICON_IDS: Readonly<Record<string, number>> = Object.fromEntries(UNIT_LABEL_NAMES.map((name, k) => [name, UNIT_ICON_FIRST + k]));
++export const UNIT_ICON_W = 30;
++export const UNIT_ICON_H = 20;
++
++function fail(code: string, message: string): never {
++  throw new FirmwareError(code, message);
++}
++
++/** A label as RGBA: grey on an opaque outline, transparent around it. */
++export function unitLabelPixels(name: string): Uint8Array {
++  const packed = UNIT_LABELS[name];
++  if (!packed) fail('internal', `no label ${name}`);
++  const bin = atob(packed);
++  if (bin.length !== UNIT_ICON_W * UNIT_ICON_H) fail('internal', 'label size');
++  const px = new Uint8Array(bin.length * 4);
++  for (let i = 0; i < bin.length; i++) {
++    const v = bin.charCodeAt(i);
++    if (v === 0) continue;
++    px[i * 4] = px[i * 4 + 1] = px[i * 4 + 2] = v - 1;
++    px[i * 4 + 3] = 255;
++  }
++  return px;
++}
++
++function readText(patch: Patch, descriptor: number): string {
++  const head = patch.readMapped(descriptor, 8);
++  const units = head[0];
++  const address = new DataView(head.buffer, head.byteOffset).getUint32(4, true);
++  const raw = patch.readMapped(address, units * 2);
++  let s = '';
++  for (let i = 0; i < units; i++) {
++    const c = raw[i * 2] | (raw[i * 2 + 1] << 8);
++    if (c === 0) break;
++    s += String.fromCharCode(c);
++  }
++  return s;
++}
++
++/** Snap Focus Distance in feet, in every language. */
++function installSnapFeet(patch: Patch): void {
++  const records = SNAP_FEET.map((name) => {
++    const encoded = utf16z(name);
++    const address = patch.append(encoded, 4);
++    return patch.append(concat([Uint8Array.from([encoded.length / 2, 1, 0, 0]), u32le([address])]), 4);
++  });
++  for (let l = 0; l < LANGUAGES; l++) {
++    const row = patch.word(TEXT_CATALOG + l * 4);
++    SNAP_TEXT_IDS.forEach((id, k) => {
++      const old = patch.word(row + id * 4);
++      if (old === 0 || readText(patch, old) !== SNAP_METRES[k]) fail('unexpected-layout', 'the Snap Focus Distance texts are not the ones expected');
++      patch.write(row + id * 4, u32le([records[k]]));
++    });
++  }
++}
++
++/** The labels of the manual focus scale in feet and inches: the icons, then the scale's words. */
++function installScaleFeet(patch: Patch, iconbin: Uint8Array): Uint8Array {
++  if (patch.word(SCALE_LABELS + INFINITY_SITE[0]) !== INFINITY_SITE[1]) fail('unexpected-layout', 'the manual focus scale is not where it was expected');
++  for (const [offset, word] of SCALE_SITES) {
++    if (patch.word(SCALE_LABELS + offset) !== word) fail('unexpected-layout', 'the manual focus scale is not where it was expected');
++  }
++  const parts: Uint8Array[] = [iconbin];
++  let length = iconbin.length;
++  for (const name of UNIT_LABEL_NAMES) {
++    const id = UNIT_ICON_IDS[name];
++    if (patch.word(ICON_CATALOG + id * 4) !== 0) fail('unexpected-layout', 'icon number already in use');
++    const pad = (4 - (length % 4)) % 4;
++    if (pad) {
++      parts.push(new Uint8Array(pad));
++      length += pad;
++    }
++    const px = unitLabelPixels(name);
++    const offset = length;
++    parts.push(px);
++    length += px.length;
++    // {u16 kind = 1, u16 width, u16 height, u16 flags = 0, u32 offset in 4-byte units}
++    const descriptor = patch.append(concat([u16le([1, UNIT_ICON_W, UNIT_ICON_H, 0]), u32le([offset / 4])]), 16);
++    patch.write(ICON_CATALOG + id * 4, u32le([descriptor]));
++  }
++  const upper = Math.max(...Object.values(UNIT_ICON_IDS));
++  for (const [site, register] of LOOKUP_BOUNDS) {
++    if ((patch.word(site) & 0xfff0f000) >>> 0 !== (0xe3000000 | (register << 12)) >>> 0) fail('unexpected-layout', 'icon bound is not a MOVW');
++    patch.setWord(site, movWord(register, Math.max(upper, movImmediate(patch.word(site)))), 'icon upper bound');
++  }
++  for (const [offset, , label] of SCALE_SITES) patch.setWord(SCALE_LABELS + offset, movWord(1, UNIT_ICON_IDS[label]), `manual focus scale: ${label}`);
++  return concat(parts);
++}
++
++/** Distances in feet: Snap Focus Distance and the manual focus scale. Returns ICONBIN with the labels appended. */
++export function installDistanceFeet(patch: Patch, iconbin: Uint8Array): Uint8Array {
++  installSnapFeet(patch);
++  return installScaleFeet(patch, iconbin);
++}
 diff --git a/core/src/fw/gr4v120/aspect/videoaf.ts b/core/src/fw/gr4v120/aspect/videoaf.ts
 new file mode 100644
 --- /dev/null
@@ -8632,7 +8818,7 @@ diff --git a/core/src/fw/gr4v120/patch.ts b/core/src/fw/gr4v120/patch.ts
    // Additions that append code or icons need the grown layout. The monochrome looks change 13
    // words in place: on their own (or with only same-length edits) the file keeps the official layout.
 -  const grows = !!features.brightAuto || ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash || (features.adjSlots ?? 5) > 5 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.shadowLearn;
-+  const grows = !!features.brightAuto || ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash || (features.adjSlots ?? 5) > 5 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn || !!features.movieExposure || !!features.sensorShift || !!features.movie4k || !!features.movieSr || !!features.constantLight;
++  const grows = !!features.brightAuto || ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash || (features.adjSlots ?? 5) > 5 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn || !!features.movieExposure || !!features.sensorShift || !!features.movie4k || !!features.movieSr || !!features.constantLight || !!features.distanceFeet;
    const inPlaceMono = !grows && !!features.monoUnlock;
    const inPlaceLooks = !grows && !!features.lookLayout;
    const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity, inPlaceMono, inPlaceLooks ? features.lookLayout : undefined);

@@ -4,7 +4,7 @@ import { FirmwareHero } from '../firmware';
 import { t } from '../i18n';
 import {
   useStore, loadFirmwareFile, gridOffered, setExtrasView, setSoft, setDateStamp, setMonoUnlock, setFlashPlus, flashPlusOn, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain,
-  setShadowLearn, setBattery, setVideoAf, setMovieExposure, setAwbLearn, setConstantLight, setSensorShift, setMovie4k, setMovieSr, setBrightAuto, setCustomGrid,
+  setShadowLearn, setBattery, setVideoAf, setMovieExposure, setAwbLearn, setConstantLight, setSensorShift, setMovie4k, setMovieSr, setDistanceFeet, setBrightAuto, setCustomGrid,
 } from '../store';
 import { isFirmware } from './files';
 import { GridDetail, GridThumb } from './grid';
@@ -101,6 +101,8 @@ function ExtrasList() {
   const m4kOk = useStore((s) => !!s.info?.features.movie4k);
   const msr = useStore((s) => s.movieSr);
   const msrOk = useStore((s) => !!s.info?.features.movieSr);
+  const feet = useStore((s) => s.distanceFeet);
+  const unitsOk = useStore((s) => !!s.info?.features.distanceFeet);
   const gridOk = useStore((s) => gridOffered(s));
   // the level names without their "Auto brightness · " prefix, first letter up
   const level = (key: 'brightAutoOff' | 'brightAutoBalanced' | 'brightAutoBright'): string => ((x) => x.charAt(0).toUpperCase() + x.slice(1))(t(key).split(' · ').pop()!);
@@ -126,6 +128,11 @@ function ExtrasList() {
       {awbOk && <FeatureCapsule icon={Ico.wb} title={t('navAwb')} sub={t('awbSub')} on={awb} onChange={setAwbLearn} tour="ex-f-awb" />}
       {lampOk && <FeatureCapsule icon={Ico.lamp} title={t('navLamp')} sub={t('lampSub')} on={lamp} onChange={setConstantLight} tour="ex-f-lamp" />}
       {shiftOk && <FeatureCapsule icon={Ico.shift} title={t('navShift')} sub={t('shiftSub')} on={shift} onChange={setSensorShift} tour="ex-f-shift" />}
+      {unitsOk && (
+        <ChoiceCapsule icon={Ico.units} title={t('navUnits')} sub={t('unitsSub')} on={feet} tour="ex-f-units"
+          value={feet ? 'ft' : 'm'} onChange={(v) => setDistanceFeet(v === 'ft')}
+          options={[{ value: 'm', label: t('unitsMetre') }, { value: 'ft', label: t('unitsFeet') }]} />
+      )}
       {gridOk && <GridCapsule />}
       {adjMax > 5 && (
         <ChoiceCapsule icon={Ico.adj} title={t('navAdjSlots')} sub={t('adjSlotsSub')} on={adj > 5} tour="ex-f-adj"

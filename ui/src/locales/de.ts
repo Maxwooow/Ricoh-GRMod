@@ -248,4 +248,10 @@ export const de: Dict = {
   movieSrSub: 'Movie SR im Videomenü bietet drei Einstellungen: Aus, Sensor-Shift und Elektronisch. Sensor-Shift beschneidet das Bild nicht.',
   tIcFMovieSrB: 'Movie SR im Videomenü bietet statt Aus / An drei Einstellungen: Aus, Sensor-Shift und Elektronisch. Sensor-Shift stabilisiert das Bild durch Bewegen des Sensors, wie bei Fotos, ohne es zu beschneiden; Elektronisch ist die kameraeigene elektronische Shake Reduction, die an jeder Seite etwa 5 % abschneidet.',
   movieSrLine: 'Sensor-Shift-SR im Videomodus',
+  navUnits: 'Entfernungseinheit',
+  unitsSub: 'Fixfokus Entfernung und die Entfernungsskala beim manuellen Fokus in Metern (m) oder Fuß (ft).',
+  unitsMetre: 'Meter (m)',
+  unitsFeet: 'Fuß (ft)',
+  tIcFUnitsB: 'Mit Fuß werden Fixfokus Entfernung (1ft bis 16ft, im Menü, auf dem Aufnahmebildschirm und im ADJ-Modus) und die Entfernungsskala beim manuellen Fokus in Fuß angezeigt, die Skala für kurze Entfernungen in Zoll (in). Mit Meter wie in der offiziellen Firmware.',
+  unitsLine: 'Entfernungseinheit  ·  Fuß (Fixfokus Entfernung, Skala beim manuellen Fokus)',
 };
