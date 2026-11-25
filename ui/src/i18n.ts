@@ -213,7 +213,7 @@ const zh = {
   pushStart: '开始推送', pushStop: '停止', pushClose: '关闭', pushShareLog: '发送日志', pushRetry: '重试', pushDetails: '日志', pushPreparing: '正在准备文件…',
   pushOnlyGr4: '无线推送仅支持 GR IV 系列。使用 GR III / IIIx 时，请保存至设备，再通过读卡器写入存储卡。',
   pushVpn: '设备正在使用 VPN。推送前请关闭 VPN，或在 VPN 设定中允许 GR Mod 绕过 VPN。', pushPerm: '需要 Bluetooth® 和附近设备权限，才能查找照相机。',
-  pushBtOff: '设备 Bluetooth® 未开启', mSettings: '设定', saveTitle: '存储到设备', rename: '重命名', saveStart: '存储', mWhatsNew: '更新内容', followSystem: '跟随系统', uiLanguage: '界面语言',
+  pushBtOff: '设备 Bluetooth® 未开启', mSettings: '设定', saveTitle: '存储到设备', rename: '重命名', saveStart: '存储', mWhatsNew: '更新内容', followSystem: '跟随系统', appearance: '外观', themeLight: '浅色', themeDark: '深色', uiLanguage: '界面语言',
   // the phone app: where it differs from the desktop wording, the key + 'M' (t() picks it on the phone)
   wallEmptyM: '添加图片', dropFirmwareSubM: '轻触以选择设备中的文件', dropPresetM: '选择 .xmp / .cube 文件', dropFirmwareM: '导入官方固件 .bin 文件',
   tOvFirmwareBM: '轻触此处打开设定。选择正确的机型后，可从理光官方网站下载固件；也可导入设备中已下载的固件。新版（1.21、1.20）和旧版（1.11）固件均可使用。照相机安装新版固件后，无法恢复至旧版。',
@@ -453,7 +453,7 @@ const en: typeof zh = {
   pushStart: 'Send', pushStop: 'Stop', pushClose: 'Close', pushShareLog: 'Send log', pushRetry: 'Retry', pushDetails: 'Log', pushPreparing: 'Preparing the file…',
   pushOnlyGr4: 'Only the GR IV family takes firmware over Wi-Fi. For a GR III / IIIx, save it to the device and copy it to a card.',
   pushVpn: 'A VPN is on: switch it off, or let GR Mod bypass it, before sending.', pushPerm: 'Bluetooth and nearby-devices permissions are needed to find the camera',
-  pushBtOff: 'Bluetooth is off', mSettings: 'Settings', saveTitle: 'Save to device', rename: 'Rename', saveStart: 'Save', mWhatsNew: 'What\'s new', followSystem: 'Follow system', uiLanguage: 'App language',
+  pushBtOff: 'Bluetooth is off', mSettings: 'Settings', saveTitle: 'Save to device', rename: 'Rename', saveStart: 'Save', mWhatsNew: 'What\'s new', followSystem: 'Follow system', appearance: 'Appearance', themeLight: 'Light', themeDark: 'Dark', uiLanguage: 'App language',
   wallEmptyM: 'Add images', dropFirmwareSubM: 'Tap to choose a file on the device', dropPresetM: 'Choose .xmp / .cube', dropFirmwareM: 'Import an official firmware .bin',
   tOvFirmwareBM: 'Tap here to open the settings: choose the right model and download the firmware from the official source, or import a firmware file already on this device. Both the new (1.21, 1.20) and the earlier firmware (1.11) can be used; a camera that installs the new one cannot go back to the earlier one.',
   tOvFirmwareBG3M: 'Tap here to open the settings: choose the right model and download the firmware from the official source, or import a firmware file already on this device. Both the new (GR III 2.21, 2.20 / GR IIIx 1.71, 1.70) and the earlier firmware (2.10 / 1.60) can be used; a camera that installs the new one cannot go back to the earlier one.',

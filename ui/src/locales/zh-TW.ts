@@ -198,7 +198,7 @@ export const zhTW: Dict = {
   pushStart: '開始推送', pushStop: '停止', pushClose: '關閉', pushShareLog: '傳送日誌', pushRetry: '重試', pushDetails: '日誌', pushPreparing: '正在準備檔案…',
   pushOnlyGr4: '無線推送僅支援 GR IV 系列。使用 GR III / IIIx 時，請儲存至裝置，再透過讀卡器寫入記憶卡。',
   pushVpn: '裝置正在使用 VPN。推送前請關閉 VPN，或在 VPN 設定中允許 GR Mod 繞過 VPN。', pushPerm: '需要 Bluetooth® 和附近裝置權限，才能搜尋相機。',
-  pushBtOff: '裝置 Bluetooth® 未開啟', mSettings: '設定', saveTitle: '儲存到裝置', rename: '重新命名', saveStart: '儲存', mWhatsNew: '更新內容', followSystem: '跟隨系統', uiLanguage: '介面語言',
+  pushBtOff: '裝置 Bluetooth® 未開啟', mSettings: '設定', saveTitle: '儲存到裝置', rename: '重新命名', saveStart: '儲存', mWhatsNew: '更新內容', followSystem: '跟隨系統', appearance: '外觀', themeLight: '淺色', themeDark: '深色', uiLanguage: '介面語言',
   // the phone app: where it differs from the desktop wording, the key + 'M' (t() picks it on the phone)
   wallEmptyM: '新增圖片', dropFirmwareSubM: '輕觸以選擇裝置中的檔案', dropPresetM: '選擇 .xmp / .cube 檔案', dropFirmwareM: '匯入官方韌體 .bin 檔案',
   tOvFirmwareBM: '輕觸此處開啟設定。選擇正確的機型後，可從理光官方網站下載韌體；也可匯入裝置中已下載的韌體。新版（1.21、1.20）和舊版（1.11）韌體均可使用。相機安裝新版韌體後，無法恢復至舊版。',

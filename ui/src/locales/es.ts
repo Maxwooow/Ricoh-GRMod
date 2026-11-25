@@ -198,7 +198,7 @@ export const es: Dict = {
   pushStart: 'Enviar', pushStop: 'Detener', pushClose: 'Cerrar', pushShareLog: 'Enviar registro', pushRetry: 'Reintentar', pushDetails: 'Registro', pushPreparing: 'Preparando el archivo…',
   pushOnlyGr4: 'Solo la familia GR IV recibe firmware por Wi-Fi. Para una GR III / IIIx, guárdalo en el dispositivo y cópialo a una tarjeta.',
   pushVpn: 'Hay una VPN activa: desactívala, o deja que GR Mod la omita, antes de enviar.', pushPerm: 'Se necesitan los permisos de Bluetooth® y de dispositivos cercanos para buscar la cámara.',
-  pushBtOff: 'El Bluetooth® está desactivado', mSettings: 'Ajustes', saveTitle: 'Guardar en el dispositivo', rename: 'Cambiar nombre', saveStart: 'Guardar', mWhatsNew: 'Novedades', followSystem: 'Del sistema', uiLanguage: 'Idioma',
+  pushBtOff: 'El Bluetooth® está desactivado', mSettings: 'Ajustes', saveTitle: 'Guardar en el dispositivo', rename: 'Cambiar nombre', saveStart: 'Guardar', mWhatsNew: 'Novedades', followSystem: 'Del sistema', appearance: 'Apariencia', themeLight: 'Claro', themeDark: 'Oscuro', uiLanguage: 'Idioma',
   // the phone app: where it differs from the desktop wording, the key + 'M' (t() picks it on the phone)
   wallEmptyM: 'Añadir imágenes', dropFirmwareSubM: 'Toca para elegir un archivo del dispositivo', dropPresetM: 'Elegir .xmp / .cube', dropFirmwareM: 'Importar un firmware oficial .bin',
   tOvFirmwareBM: 'Toca aquí para abrir los ajustes: elige el modelo correcto y descarga el firmware de la fuente oficial, o importa un firmware que ya esté en este dispositivo. Sirven tanto el firmware nuevo (1.21, 1.20) como el anterior (1.11); una cámara que instala el nuevo ya no puede volver al anterior.',

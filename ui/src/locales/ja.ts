@@ -198,7 +198,7 @@ export const ja: Dict = {
   pushStart: '送信を開始', pushStop: '停止', pushClose: '閉じる', pushShareLog: 'ログを送る', pushRetry: '再試行', pushDetails: 'ログ', pushPreparing: 'ファイルを準備しています…',
   pushOnlyGr4: 'ワイヤレス送信は GR IV シリーズのみ対応しています。GR III / IIIx ではデバイスに保存し、カードリーダーでカードに書き込んでください。',
   pushVpn: 'デバイスで VPN が使われています。送信する前に VPN をオフにするか、VPN の設定で GR Mod が VPN を経由しないようにしてください。', pushPerm: 'カメラを探すには、Bluetooth® と付近のデバイスへのアクセス許可が必要です。',
-  pushBtOff: 'デバイスの Bluetooth® がオフです', mSettings: '設定', saveTitle: 'デバイスに保存', rename: '名前を変更', saveStart: '保存', mWhatsNew: '更新内容', followSystem: 'システムに合わせる', uiLanguage: '表示言語',
+  pushBtOff: 'デバイスの Bluetooth® がオフです', mSettings: '設定', saveTitle: 'デバイスに保存', rename: '名前を変更', saveStart: '保存', mWhatsNew: '更新内容', followSystem: 'システムに合わせる', appearance: '外観', themeLight: 'ライト', themeDark: 'ダーク', uiLanguage: '表示言語',
   // the phone app: where it differs from the desktop wording, the key + 'M' (t() picks it on the phone)
   wallEmptyM: '画像を追加', dropFirmwareSubM: 'タップしてデバイスのファイルを選択', dropPresetM: '.xmp / .cube ファイルを選択', dropFirmwareM: '純正ファームウェア .bin を読み込む',
   tOvFirmwareBM: 'ここをタップして設定を開きます。正しい機種を選ぶと、リコーの公式サイトからファームウェアをダウンロードできます。デバイスにダウンロード済みのファームウェアを読み込むこともできます。新版（1.21、1.20）と旧版（1.11）のどちらも使用できます。新版をインストールしたカメラは旧版に戻せません。',
