@@ -244,6 +244,7 @@ const zh = {
   aUpdOpenSettings: '打开设定', aUpdContinue: '继续', aUpdLatest: '已是最新版本（{v}）', aUpdFailed: '无法检查或下载更新：{e}',
   aUpdChecksum: '下载的文件校验不符，已删除。请稍后重试。', aUpdInstallFailed: '无法安装更新：{e}',
  mCrashed: '界面发生错误。请将以下内容截图并发送给开发者。', mReload: '重新加载',
+  compareWith: '对比对象',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -482,6 +483,7 @@ const en: typeof zh = {
   aUpdOpenSettings: 'Open settings', aUpdContinue: 'Continue', aUpdLatest: 'GR Mod is up to date ({v})', aUpdFailed: 'Could not check or download the update: {e}',
   aUpdChecksum: 'The downloaded file did not match and was deleted. Please try again later.', aUpdInstallFailed: 'Could not install the update: {e}',
  mCrashed: 'Something went wrong in the interface. Please send a screenshot of this to the developer.', mReload: 'Reload',
+  compareWith: 'Compare with',
 };
 export type Key = keyof typeof zh;
 /** One language's texts: every entry of the Chinese ones. */

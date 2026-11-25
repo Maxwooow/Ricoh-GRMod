@@ -256,4 +256,5 @@ export const es: Dict = {
   unitsFeet: 'Pies (ft)',
   tIcFUnitsB: 'Con Pies, Distancia enfoque inst. (de 1ft a 16ft, en el menú, en la pantalla de disparo y en el modo ADJ) y la escala de distancia del enfoque manual se muestran en pies, y la escala de corta distancia en pulgadas (in). Con Metros, como en el firmware oficial.',
   unitsLine: 'Unidad de distancia  ·  pies (Distancia enfoque inst., escala del enfoque manual)',
+  compareWith: 'Comparar con',
 };

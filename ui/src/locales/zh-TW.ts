@@ -256,4 +256,5 @@ export const zhTW: Dict = {
   unitsFeet: '英尺 (ft)',
   tIcFUnitsB: '選[英尺]時，[快拍對焦距離]的數值（1ft–16ft，選單、拍攝畫面和 ADJ 模式中皆是）和手動對焦時的距離刻度改用英尺，近距離的刻度用英寸（in）。選[公尺]時與原廠相同。',
   unitsLine: '距離單位  ·  英尺（快拍對焦距離、手動對焦刻度）',
+  compareWith: '對比對象',
 };
