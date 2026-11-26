@@ -30,6 +30,7 @@ import type { Gr3xExtras } from './extras';
 import { installGr3xCustomGrid } from './grid';
 import { GR3X_BATTERY_ICON_COUNT, GR3X_BATTERY_ICON_H, GR3X_BATTERY_ICON_W, gr3xBatteryIconPixels, installGr3xBatteryPercent } from './battery';
 import { installGr3xShadowLearn } from './shadowml';
+import { installGr3xMatte } from './matte';
 import { GR3X_SNAP_FEET, GR3X_SNAP_METRES, GR3X_SNAP_TEXT_IDS, GR3X_UNIT_ICON_H, GR3X_UNIT_ICON_W, GR3X_UNIT_LABELS, gr3xUnitLabelPixels, installGr3xScaleFeet } from './units';
 import { installGr3xGuardR10 } from './guard';
 import { gr3xRawDevelopmentWordsR10 } from './datestamp';
@@ -403,7 +404,8 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
   const shadingEntries = installGr3xShading(program);
   const softEntries = softFocus ? installGr3xAdjSoftFocus({ code, append, patch, word }, softText, softIcon, round10) : {};
   const fullRawEntries = installGr3xFullFrameRaw(program);
-  const gridEntries = extras?.customGrid ? installGr3xCustomGrid({ code, patch, word }, extras.customGrid) : {};
+  const matteEntries: Record<string, number> = extras?.ratioShade ? installGr3xMatte({ code, patch, word }, liveEntries.liveLookup, liveEntries.liveScale, extras.ratioShadeTone ?? 'dark') : {};
+  const gridEntries = extras?.customGrid ? installGr3xCustomGrid({ code, patch, word }, extras.customGrid, matteEntries.matteSetPoints) : {};
   const shadowEntries = extras?.shadowLearn ? installGr3xShadowLearn({ code, append, patch, word }) : {};
   const endScreen = pictureSub ? installGr3xEndScreen({ code, append, patch, word }, { ...endIds,
     choices: pictures.map(x => x.id!), resources: pictures.map((_, k) => GR3X_JPEG_TABLE_COUNT + k), ...(date8 ? { modeByte: true } : {}),
@@ -464,7 +466,7 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
     schema: 1, kind: 'gr3x-adj-patchset' as const, profile: profile.id,
     originalRtosSha256: profile.rtosSha256, originalLength: p.rtosLength, base: BASE,
     sites, append: { address: geometry.append.address, bytes: hex(payload) }, geometry,
-    entries: { ...geometry.entries, ...scaffold, ratioText, ratioIcon, fnCycle, ...imageEntries, ...developEntries, ...afEntries, ...mapEntries, ...liveEntries, ...rawEntries, ...shadingEntries, ...fullRawEntries, ...gridEntries, ...batteryEntries, ...shadowEntries, ...softEntries, ...dateEntries, ...lookEntries },
+    entries: { ...geometry.entries, ...scaffold, ratioText, ratioIcon, fnCycle, ...imageEntries, ...developEntries, ...afEntries, ...mapEntries, ...liveEntries, ...rawEntries, ...shadingEntries, ...fullRawEntries, ...gridEntries, ...batteryEntries, ...shadowEntries, ...matteEntries, ...softEntries, ...dateEntries, ...lookEntries },
     catalogs: { order, textRoots, textColumns: columns, iconRoot, iconCount },
     adjSoftFocus: softFocus,
     dateImprint: dateImprint ? { ...dateIds, form: dateForm, ...(round7 ? { iconOff: 296, iconOn: 297 } : {}), ...(lookNames ? { names: lookNames } : {}) } : undefined,

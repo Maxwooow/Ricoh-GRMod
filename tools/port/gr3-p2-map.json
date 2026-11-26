@@ -90,6 +90,14 @@
 "how": "aligned",
 "ok": true
 },
+"0x53177538": {
+"new": "0x531775f8",
+"how": "aligned",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/matte.ts"
+]
+},
 "0x5318dea0": {
 "new": "0x5318df60",
 "how": "aligned + refs 0x5318df60x1",
@@ -955,6 +963,30 @@
 "new": "0x53204b88",
 "how": "aligned + refs 0x53204b88x2",
 "ok": true
+},
+"0x5320804c": {
+"new": "0x53208124",
+"how": "aligned + refs 0x53208124x49",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/matte.ts"
+]
+},
+"0x532081ec": {
+"new": "0x532082c4",
+"how": "aligned + refs 0x532082c4x37",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/matte.ts"
+]
+},
+"0x53208a2c": {
+"new": "0x53208b04",
+"how": "aligned + refs 0x53208b04x46",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/matte.ts"
+]
 },
 "0x53209fb8": {
 "new": "0x5320a090",
@@ -2469,6 +2501,7 @@
 "ok": true,
 "files": [
 "core/src/fw/gr3x/grid.ts",
+"core/src/fw/gr3x/matte.ts",
 "core/src/fw/gr3x/units.ts"
 ]
 },
@@ -2575,6 +2608,14 @@
 "how": "aligned + refs 0x5339aa90x316",
 "ok": true
 },
+"0x5339c01c": {
+"new": "0x5339c10c",
+"how": "aligned",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/matte.ts"
+]
+},
 "0x5339c0b0": {
 "new": "0x5339c1a0",
 "how": "aligned + refs 0x5339c1a0x2",
@@ -2608,6 +2649,7 @@
 "ok": true,
 "files": [
 "core/src/fw/gr3x/grid.ts",
+"core/src/fw/gr3x/matte.ts",
 "core/src/fw/gr3x/units.ts"
 ]
 },
@@ -2626,7 +2668,16 @@
 "ok": true,
 "files": [
 "core/src/fw/gr3x/grid.ts",
+"core/src/fw/gr3x/matte.ts",
 "core/src/fw/gr3x/units.ts"
+]
+},
+"0x5339c3b0": {
+"new": "0x5339c4a0",
+"how": "aligned + refs 0x5339c4a0x1",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/matte.ts"
 ]
 },
 "0x5339c480": {
@@ -2736,6 +2787,14 @@
 "how": "aligned + refs 0x533ab638x60",
 "ok": true
 },
+"0x533ab9bc": {
+"new": "0x533abaac",
+"how": "aligned + refs 0x533abaacx29",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/matte.ts"
+]
+},
 "0x533ad3c0": {
 "new": "0x533ad4b0",
 "how": "aligned + refs 0x533ad4b0x1264",
@@ -2760,6 +2819,14 @@
 "new": "0x534345a0",
 "how": "aligned + refs 0x534345a0x1",
 "ok": true
+},
+"0x534371c4": {
+"new": "0x534372b4",
+"how": "aligned",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/matte.ts"
+]
 },
 "0x534371c8": {
 "new": "0x534372b8",
@@ -3170,6 +3237,14 @@
 "new": "0x5354810c",
 "how": "aligned",
 "ok": true
+},
+"0x53549958": {
+"new": "0x53549a48",
+"how": "aligned + refs 0x53549a48x37",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/matte.ts"
+]
 },
 "0x53549ee8": {
 "new": "0x53549fd8",
@@ -3890,6 +3965,14 @@
 "new": "0x53669514",
 "how": "aligned + refs 0x53669514x5",
 "ok": true
+},
+"0x53669440": {
+"new": "0x53669530",
+"how": "aligned",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/matte.ts"
+]
 },
 "0x53669444": {
 "new": "0x53669534",
@@ -4891,6 +4974,14 @@
 "new": "0x53c0a3e0",
 "how": "aligned",
 "ok": true
+},
+"0x53c0aab4": {
+"new": "0x53c0a3f4",
+"how": "aligned",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/matte.ts"
+]
 },
 "0x53c0ada8": {
 "new": "0x53c0a6e8",

@@ -149,6 +149,14 @@
     "core/src/fw/gr3x170/endscreen.ts"
    ]
   },
+  "0x531775f8": {
+   "new": "0x531786ac",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/matte.ts"
+   ]
+  },
   "0x5318df60": {
    "new": "0x5318eca0",
    "how": "aligned + refs 0x5318eca0x1",
@@ -1685,6 +1693,30 @@
     "tools/gr3x170/endscreen_probe.py"
    ]
   },
+  "0x53208124": {
+   "new": "0x5320a424",
+   "how": "aligned + refs 0x5320a424x49",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/matte.ts"
+   ]
+  },
+  "0x532082c4": {
+   "new": "0x5320a5c4",
+   "how": "aligned + refs 0x5320a5c4x37",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/matte.ts"
+   ]
+  },
+  "0x53208b04": {
+   "new": "0x5320ae04",
+   "how": "aligned + refs 0x5320ae04x46",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/matte.ts"
+   ]
+  },
   "0x5320a090": {
    "new": "0x5320c390",
    "how": "aligned + refs 0x5320c390x1",
@@ -1836,6 +1868,7 @@
    "ok": true,
    "files": [
     "core/src/fw/gr3x170/endscreen.ts",
+    "core/src/fw/gr3x170/matte.ts",
     "core/src/fw/gr3x170/round10.ts",
     "tools/gr3x170/endscreen_probe.py",
     "tools/gr3x170/halation_rows_probe.py",
@@ -2044,6 +2077,7 @@
    "files": [
     "core/src/fw/gr3x170/experimental.ts",
     "core/src/fw/gr3x170/guard.ts",
+    "core/src/fw/gr3x170/matte.ts",
     "core/src/fw/gr3x170/profile.ts"
    ]
   },
@@ -4343,6 +4377,7 @@
    "ok": true,
    "files": [
     "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/matte.ts",
     "core/src/fw/gr3x170/units.ts"
    ]
   },
@@ -4526,6 +4561,14 @@
     "tools/gr3x170/native/endscreen.c"
    ]
   },
+  "0x5339c10c": {
+   "new": "0x5339ea58",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/matte.ts"
+   ]
+  },
   "0x5339c1a0": {
    "new": "0x5339eaec",
    "how": "aligned + refs 0x5339eaecx2",
@@ -4559,6 +4602,7 @@
    "ok": true,
    "files": [
     "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/matte.ts",
     "core/src/fw/gr3x170/units.ts"
    ]
   },
@@ -4577,7 +4621,16 @@
    "ok": true,
    "files": [
     "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/matte.ts",
     "core/src/fw/gr3x170/units.ts"
+   ]
+  },
+  "0x5339c4a0": {
+   "new": "0x5339edec",
+   "how": "aligned + refs 0x5339edecx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/matte.ts"
    ]
   },
   "0x5339c570": {
@@ -4763,6 +4816,14 @@
     "core/src/fw/gr3x170/datestamp.ts"
    ]
   },
+  "0x533abaac": {
+   "new": "0x533ae3f8",
+   "how": "aligned + refs 0x533ae3f8x29",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/matte.ts"
+   ]
+  },
   "0x533ad4b0": {
    "new": "0x533afdfc",
    "how": "aligned + refs 0x533afdfcx1263",
@@ -4770,6 +4831,7 @@
    "files": [
     "core/src/fw/gr3x170/endscreen.ts",
     "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/matte.ts",
     "core/src/fw/gr3x170/units.ts",
     "tools/gr3x170/adj_softfocus_probe.py",
     "tools/gr3x170/endscreen_probe.py",
@@ -4807,6 +4869,14 @@
    "ok": true,
    "files": [
     "tools/gr3x170/development_bounds_probe.py"
+   ]
+  },
+  "0x534372b4": {
+   "new": "0x53439c04",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/matte.ts"
    ]
   },
   "0x534372b8": {
@@ -5431,6 +5501,7 @@
    "ok": true,
    "files": [
     "core/src/fw/gr3x170/datestamp.ts",
+    "core/src/fw/gr3x170/matte.ts",
     "tools/gr3x170/native/endscreen.c",
     "tools/gr3x170/rear_dial_probe.py",
     "tools/gr3x170/shutdown_probe.py"
@@ -5502,6 +5573,14 @@
     "core/src/fw/gr3x170/datestamp.ts"
    ]
   },
+  "0x53549a48": {
+   "new": "0x5354c4c0",
+   "how": "aligned + refs 0x5354c4c0x37",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/matte.ts"
+   ]
+  },
   "0x53549fd8": {
    "new": "0x5354ca50",
    "how": "aligned + refs 0x5354ca50x21",
@@ -5525,6 +5604,7 @@
    "how": "aligned + refs 0x5354d2e0x6",
    "ok": true,
    "files": [
+    "core/src/fw/gr3x170/matte.ts",
     "tools/gr3x170/raw_state_probe.py"
    ]
   },
@@ -6685,6 +6765,14 @@
    "ok": true,
    "files": [
     "tools/gr3x170/liveview_probe.py"
+   ]
+  },
+  "0x53669530": {
+   "new": "0x5366ca18",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/matte.ts"
    ]
   },
   "0x53669534": {
@@ -8222,6 +8310,14 @@
    "ok": true,
    "files": [
     "tools/gr3x170/list_width_probe.py"
+   ]
+  },
+  "0x53c0a3f4": {
+   "new": "0x53c1290c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/matte.ts"
    ]
   },
   "0x53c0a6e8": {
