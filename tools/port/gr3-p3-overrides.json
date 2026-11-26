@@ -251,6 +251,10 @@
   "new": "0x55803f08",
   "reason": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout"
  },
+ "0x55803c5c": {
+  "new": "0x55803f1c",
+  "reason": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout"
+ },
  "0x55880000": {
   "new": "0x55880000",
   "reason": "a research tool's own scratch or link address (emulator memory, compile origin), not a firmware address"

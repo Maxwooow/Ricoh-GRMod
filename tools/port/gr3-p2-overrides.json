@@ -115,6 +115,10 @@
   "new": "0x55803c48",
   "reason": "GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends"
  },
+ "0x5580439c": {
+  "new": "0x55803c5c",
+  "reason": "GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends"
+ },
  "0x558043c0": {
   "new": "0x55803c80",
   "reason": "GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends"
