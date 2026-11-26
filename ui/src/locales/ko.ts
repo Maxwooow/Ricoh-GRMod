@@ -317,4 +317,18 @@ export const ko: Dict = {
   libSortNew: '최신순',
   libSortName: '이름순',
   libNoMatch: '일치하는 프리셋이 없습니다',
+  // A failed save, the plain-language error hints (store/core.ts errorHint) and the summary before a folder export
+  saveFailed: '프로젝트를 저장하지 못했습니다. 종료하면 최근 변경 사항이 사라질 수 있습니다. 디스크 공간과 권한을 확인하세요',
+  hintFirmware: '펌웨어 파일이 잘못되었거나 손상되었거나 지원되지 않습니다. 정품 펌웨어를 사용하세요',
+  hintUnsupportedHere: '이 카메라의 펌웨어는 해당 기능을 지원하지 않습니다',
+  hintFwFull: '펌웨어에 이 변경 사항을 모두 넣을 공간이 없습니다. 종료 화면이나 필름 수를 줄이세요',
+  hintTooMany: '추가한 화상비율이나 이미지가 너무 많습니다. 몇 개를 제거하세요',
+  hintCardFull: '카드 또는 디스크가 가득 찼습니다. 공간을 확보한 뒤 다시 시도하세요',
+  hintRemoved: '카드 또는 디스크가 분리되었거나 준비되지 않았습니다. 다시 넣은 뒤 다시 시도하세요',
+  hintNotFound: '파일을 찾을 수 없습니다. 이동되었거나 카드가 분리되었을 수 있습니다',
+  hintDenied: '권한이 없습니다. 다른 폴더를 선택하거나 카드가 쓰기 금지 상태인지 확인하세요',
+  hintWriteProtected: '카드가 쓰기 금지 상태일 수 있습니다. 잠금 스위치를 해제 쪽으로 밀고 다시 시도하세요',
+  hintOffline: 'GR Mod 프로그램에 연결할 수 없습니다. 이 창을 닫고 다시 여세요',
+  exportConfirmTitle: '펌웨어 내보내기',
+  exportConfirmOk: '내보내기',
 };

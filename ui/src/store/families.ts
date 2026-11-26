@@ -2,9 +2,9 @@ import { GR3X_FILM_IDS, MAX_CUSTOM_RATIOS, MAX_EXTRA_SLOTS, SHUTDOWN_MAX_PICTURE
 import type { CameraModel } from '@grmod/core';
 import { engine } from '../engine';
 import { host, isMobile } from '../host';
-import { uiLangPref } from '../i18n';
+import { t, uiLangPref } from '../i18n';
 import { ensureIconFont } from '../pixels';
-import { ExtraSlot, RatioItem, SLOT_IDS, SlotKey, State, TOUR_IDS, WallItem, emptySlots, isGr3, savedGridLines, set, state } from './core';
+import { ExtraSlot, RatioItem, SLOT_IDS, SlotKey, State, TOUR_IDS, WallItem, emptySlots, isGr3, savedGridLines, set, state, toast } from './core';
 import { langOf, openFirmware } from './settings';
 import { allSlotKeys, renderIcon, runPreset, validHalation } from './slots';
 import { gr3SavedKeys, normalizeLookHidden, normalizeLookOrder } from './looks';
@@ -193,8 +193,15 @@ export async function saveProject(): Promise<void> {
   try {
     await host.storeSet('project.json', JSON.stringify(doc));
     if (familyDocs.gr3) await host.storeSet(GR3_PROJECT, JSON.stringify({ v: 1, ...familyDocs.gr3 }));
-  } catch (e) { console.warn('save failed', e); }
+    saveFailing = false;
+  } catch (e) {
+    console.warn('save failed', e);
+    // One toast per run of failures: saves are debounced, and a full disk would otherwise toast on every edit.
+    if (!saveFailing) { saveFailing = true; toast(t('saveFailed'), 'error'); }
+  }
 }
+/** True from the first failed save until the next good one. */
+let saveFailing = false;
 export async function init(): Promise<void> {
   if (!host.available) { set({ ready: true }); return; }
   if (!isMobile) void engine.heartbeat(host.info!.token);

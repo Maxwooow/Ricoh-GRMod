@@ -91,7 +91,8 @@ describe('card preflight', () => {
     await start();
     mocks.host.volumes.mockClear();
     mocks.host.volumes.mockResolvedValue([card(1)]);
-    await store.outputFirmware({ kind: 'folder' });
+    // a modified folder export asks the build summary first, as the card does (output.ts DEC-EXPORT-SUMMARY-001)
+    await confirmed(store.outputFirmware({ kind: 'folder' }));
     expect(mocks.host.write).toHaveBeenCalledTimes(1);
     // the only volume query is the list refresh after the write, never a check before it
     for (const o of mocks.host.volumes.mock.invocationCallOrder) expect(o).toBeGreaterThan(mocks.host.write.mock.invocationCallOrder[0]);

@@ -8,6 +8,7 @@ import { EngineError } from '../engine';
 import { HostError } from '../host';
 import type { ParkedEntry, Volume } from '../host';
 import { t, uiLangPref } from '../i18n';
+import type { Key } from '../i18n';
 import type { Crop } from '../pixels';
 import type { InspectView } from './inspect';
 import { SUPPORTED_LINES } from '../releases.gen';
@@ -238,10 +239,43 @@ export function askOfficial(lines: string[], warn?: string): Promise<boolean> {
 export function answerConfirm(v: boolean): void { const c = state.confirm; set({ confirm: undefined }); c?.resolve(v); }
 /** The official releases a firmware file can be, for the message an unusable file gets. */
 export function supportedList(): string { return SUPPORTED_LINES.map((l) => `${l.name} ${l.versions.join(' / ')}`).join(t('listSep')); }
+
+/**
+ * @decision DEC-ERROR-HINT-001
+ * @title Known error codes get a plain-language hint; the short code stays beside it for bug reports
+ * @status accepted
+ * @rationale fail() toasts `Error · code · message`, which tells most people nothing they can act on. The codes below
+ *   are the ones a user can do something about, thrown by the engine (core FirmwareError) and by the host
+ *   (shell/internal/server/errors.go, plus the client's own `offline` / `no-host`). A host `io` error carries only
+ *   the system's text, so a full card, a write-protected card and a removed card are told apart by that text. Any
+ *   other code keeps the `code · message` form.
+ */
+/** Engine codes meaning "this is not a firmware file GR Mod can open". */
+const FIRMWARE_CODES = ['unsupported-firmware', 'too-short', 'unexpected-layout', 'bad-checksum', 'bad-footer', 'bad-stream', 'bad-stream-length', 'bad-decoded-length', 'bad-models'];
+const ERROR_HINTS: Record<string, Key> = {
+  ...Object.fromEntries(FIRMWARE_CODES.map((c) => [c, 'hintFirmware' as Key])),
+  'gr3x-unsupported': 'hintUnsupportedHere', 'no-space': 'hintFwFull',
+  'too-many-ratios': 'hintTooMany', 'too-many-pictures': 'hintTooMany',
+  'not-found': 'hintNotFound', forbidden: 'hintDenied', 'too-large': 'errTooBig', network: 'fwNetError', checksum: 'fwChecksum',
+  offline: 'hintOffline', 'no-host': 'hintOffline',
+};
+/** The hint for an error code (and, for the host's catch-all `io`, its message), or undefined for a code without one. */
+export function errorHint(code: string, message = ''): Key | undefined {
+  if (code === 'io') {
+    if (/no space left|not enough space|disk (is )?full|enospc|quota/i.test(message)) return 'hintCardFull';
+    if (/read-only file system|write.protect|erofs|permission denied|access is denied|eacces|eperm/i.test(message)) return 'hintWriteProtected';
+    if (/not ready|no such device|enodev|input\/output error|i\/o error|removed|unplugged|no longer available/i.test(message)) return 'hintRemoved';
+    return undefined;
+  }
+  return Object.prototype.hasOwnProperty.call(ERROR_HINTS, code) ? ERROR_HINTS[code] : undefined;
+}
+/** A failed action's toast: a code with a hint (errorHint) shows the hint and the short code; any other shows code and message. */
 export function fail(e: unknown): void {
   const code = e instanceof HostError || e instanceof EngineError ? e.code : '';
   const msg = e instanceof Error ? e.message : String(e);
   console.error(e);
+  const hint = code ? errorHint(code, msg) : undefined;
+  if (hint) { toast(`${t('error')} · ${t(hint)} (${code})`.slice(0, 220), 'error'); return; }
   toast(`${t('error')}${code ? ` · ${code}` : ''}${msg && msg !== code ? ` · ${msg}` : ''}`.slice(0, 220), 'error');
 }
 

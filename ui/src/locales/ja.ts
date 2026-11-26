@@ -317,4 +317,18 @@ export const ja: Dict = {
   libSortNew: '新しい順',
   libSortName: '名前順',
   libNoMatch: '一致するプリセットはありません',
+  // A failed save, the plain-language error hints (store/core.ts errorHint) and the summary before a folder export
+  saveFailed: 'プロジェクトを保存できませんでした。終了すると最近の変更が失われる可能性があります。ディスクの空き容量とアクセス権を確認してください',
+  hintFirmware: 'ファームウェアファイルが違うか、壊れているか、対応していません。純正のファームウェアを使ってください',
+  hintUnsupportedHere: 'このカメラのファームウェアはその機能に対応していません',
+  hintFwFull: 'ファームウェアにこれらの変更をすべて収める空きがありません。終了画面やフィルムの数を減らしてください',
+  hintTooMany: '追加したアスペクト比または画像が多すぎます。いくつか削除してください',
+  hintCardFull: 'カードまたはディスクがいっぱいです。空きを作ってからもう一度お試しください',
+  hintRemoved: 'カードまたはディスクが取り外されたか、準備ができていません。もう一度挿入してからお試しください',
+  hintNotFound: 'ファイルが見つかりません。移動されたか、カードが取り外された可能性があります',
+  hintDenied: 'アクセスが拒否されました。別のフォルダを選ぶか、カードが書き込み禁止になっていないか確認してください',
+  hintWriteProtected: 'カードが書き込み禁止になっている可能性があります。ロックスイッチを解除側にしてから、もう一度お試しください',
+  hintOffline: 'GR Mod のプログラムに接続できません。このウィンドウを閉じて、もう一度開いてください',
+  exportConfirmTitle: 'ファームウェアを書き出す',
+  exportConfirmOk: '書き出す',
 };
