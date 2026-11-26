@@ -194,7 +194,7 @@ export const ko: Dict = {
   navMono: '흑백 프리셋', monoSub: 'GR IV Monochrome의 화상 컨트롤 스타일을 사용할 수 있게 합니다', monoLine: '흑백 프리셋  ·  GR IV Monochrome의 화상 컨트롤 스타일 사용',
   extraTitle: '추가 슬롯', chkChanges: '변경 {n}건', chkCount: '{n}개', chkPictures: '{n}장', chkHidden: '{n}개 숨김', chkRatios: '추가한 화상비율', extraSub: 'Cinema 뒤에 화상 컨트롤 슬롯 추가(최대 {n}개)', extraAdd: '슬롯 추가', extraCountLabel: '{n}개 추가', extraNone: '추가 안 함',
   prevSlot: '이전 슬롯', nextSlot: '다음 슬롯',
-  halation: '할레이션', haloLabel: '할레이션', halationSub: '카메라의 화상 컨트롤 파라미터 조정에서 설정합니다. 여기서는 미리보기만 합니다.', gr3xHalationRowsSub: '카메라의 화상 컨트롤 파라미터 조정에서 설정합니다(GR III: [할레이션] 꺼짐 / 1 / 2 / 3, [색] 빨강 / 흰색). 여기서는 미리보기만 합니다.', gr3xHalationSub: '강도가 펌웨어에 기록됩니다(GR III에는 쓸 수 있는 파라미터 슬라이더가 없음). 사진에만 적용되며 라이브 뷰에는 표시되지 않습니다.', haloPreview: '미리보기', haloOff: '꺼짐', haloWeak: '약', haloMedium: '중', haloStrong: '강', haloRed: '빨강', haloWhite: '흰색',
+  halation: '할레이션', haloLabel: '할레이션', gr3xHalationRowsSub: '카메라의 화상 컨트롤 파라미터 조정에서 설정합니다(GR III: [할레이션] 꺼짐 / 1 / 2 / 3, [색] 빨강 / 흰색). 여기서는 미리보기만 합니다.', gr3xHalationSub: '강도가 펌웨어에 기록됩니다(GR III에는 쓸 수 있는 파라미터 슬라이더가 없음). 사진에만 적용되며 라이브 뷰에는 표시되지 않습니다.', haloPreview: '미리보기', haloOff: '꺼짐', haloWeak: '약', haloMedium: '중', haloStrong: '강', haloRed: '빨강', haloWhite: '흰색',
   haloOn: '켜짐', halationCinemaSub: '켜면 이 프리셋 슬롯의 파라미터에 [할레이션] 설정이 추가됩니다.',
   extraSlot: '추가 슬롯 {n}', extraNameLong: '최대 12자', extraNameBad: '영문자, 숫자, 기호만 입력할 수 있습니다', extraNeedsPreset: '프리셋을 불러오세요', extraNeedsIcon: '아이콘을 선택하세요',
   extraMax: '슬롯은 최대 {n}개까지 추가할 수 있습니다', extraIncomplete: '설정이 끝나지 않은 추가 슬롯이 있습니다(프리셋, 이름 또는 아이콘)', extraLine: '추가한 화상 컨트롤 슬롯 {n}  ·  {l}', extraRemove: '이 슬롯 삭제',

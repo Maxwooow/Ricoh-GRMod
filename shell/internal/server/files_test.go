@@ -628,6 +628,49 @@ func TestPickDirectoryOneDialogAtATime(t *testing.T) {
 	wantStatus(t, e.do("POST", "/api/pick-directory", `{}`), 200, "")
 }
 
+func TestSaveFile(t *testing.T) {
+	e := newEnv(t)
+	dir := filepath.Join(e.outside, "looks")
+	target := filepath.Join(dir, "Warm.cube")
+	e.writeFile(filepath.Join(dir, "old.cube"), "old") // the dialog only offers folders that exist
+
+	// Cancelled: an empty path, and the folder stays off limits.
+	rec := e.do("POST", "/api/save-file", map[string]string{"title": "Export", "name": "Warm.cube"})
+	wantStatus(t, rec, 200, "")
+	if strings.TrimSpace(rec.Body.String()) != `{"path":""}` {
+		t.Errorf("cancel body = %s", rec.Body.String())
+	}
+	if e.host.saveTitle != "Export" || e.host.saveName != "Warm.cube" {
+		t.Errorf("dialog got %q %q", e.host.saveTitle, e.host.saveName)
+	}
+	wantStatus(t, e.do("PUT", q("/api/write", "path", target), "x"), 403, "forbidden")
+
+	// Chosen: the file can be written there, and only in that folder.
+	e.host.mu.Lock()
+	e.host.save = target
+	e.host.mu.Unlock()
+	rec = e.do("POST", "/api/save-file", map[string]string{"name": "../../Warm.cube"})
+	wantStatus(t, rec, 200, "")
+	if got := decode[pathRequest](t, rec).Path; got != target {
+		t.Errorf("path = %q, want %q", got, target)
+	}
+	if e.host.saveName != "Warm.cube" {
+		t.Errorf("the dialog was offered %q, not a plain file name", e.host.saveName)
+	}
+	wantStatus(t, e.do("PUT", q("/api/write", "path", target), "LUT"), 200, "")
+	wantStatus(t, e.do("PUT", q("/api/write", "path", filepath.Join(e.outside, "other.cube")), "x"), 403, "forbidden")
+
+	// No name, a failing dialog, one dialog at a time.
+	wantStatus(t, e.do("POST", "/api/save-file", map[string]string{"name": ""}), 400, "invalid")
+	e.host.mu.Lock()
+	e.host.save, e.host.saveErr = "", errors.New("COM exploded")
+	e.host.mu.Unlock()
+	wantStatus(t, e.do("POST", "/api/save-file", map[string]string{"name": "a.cube"}), 500, "io")
+	e.srv.picking.Lock()
+	wantStatus(t, e.do("POST", "/api/save-file", map[string]string{"name": "a.cube"}), 409, "invalid")
+	e.srv.picking.Unlock()
+}
+
 func TestReveal(t *testing.T) {
 	e := newEnv(t)
 	file := filepath.Join(e.card, "DCIM", "a.jpg")

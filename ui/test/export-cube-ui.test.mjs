@@ -8,7 +8,7 @@ const mocks = vi.hoisted(() => ({
   engine: { open: vi.fn(), reset: vi.fn(), convert: vi.fn(), heartbeat: vi.fn(), ratio: vi.fn() },
   host: {
     available: true, info: { token: 'test', kind: 'test' },
-    storeGet: vi.fn(), storeSet: vi.fn(), storeDel: vi.fn(), pickDirectory: vi.fn(), write: vi.fn(),
+    storeGet: vi.fn(), storeSet: vi.fn(), storeDel: vi.fn(), pickDirectory: vi.fn(), saveFile: vi.fn(), write: vi.fn(),
     volumes: vi.fn(), sidecar: vi.fn(), join: (...p) => p.join('/'),
   },
 }));
@@ -50,25 +50,28 @@ beforeEach(async () => {
 afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe('export a slot as a .cube', () => {
-  it('downloads <slot name>.cube with a 33^3 table for an added slot, and refuses a slot without a fitted look', async () => {
-    const downloads = [];
-    const a = { click() { downloads.push({ name: this.download, href: this.href }); }, remove() {} };
-    vi.stubGlobal('document', { hidden: true, createElement: () => a, body: { appendChild() {} } });
-    let blob;
-    vi.stubGlobal('URL', { createObjectURL: (b) => { blob = b; return 'blob:x'; }, revokeObjectURL() {} });
+  it('asks where to save <slot name>.cube (a 33^3 table) and writes it there; nothing on cancel or without a fitted look', async () => {
+    const written = [];
+    mocks.host.write.mockImplementation(async (path, data) => { written.push({ path, text: new TextDecoder().decode(data) }); return { size: data.length, sha256: 'x' }; });
     await store.exportSlotCubeFile('CY');
-    expect(downloads).toEqual([]); // nothing fitted
+    expect(mocks.host.saveFile).not.toHaveBeenCalled(); // nothing fitted
     expect(store.getState().toasts.at(-1).kind).toBe('error');
     store.setExtraCount(1);
     const k = store.getState().extras[0].key;
     store.setExtraName(k, 'Warm 400');
     await store.loadPresetFile(k, file('w.cube'));
+    mocks.host.saveFile.mockResolvedValueOnce('');
     await store.exportSlotCubeFile(k);
-    expect(downloads).toHaveLength(1);
-    expect(downloads[0].name).toBe('Warm 400.cube');
-    const text = await blob.text();
-    expect(text.split('\n').slice(0, 3)).toEqual(['TITLE "Warm 400"', 'LUT_3D_SIZE 33', 'DOMAIN_MIN 0.0 0.0 0.0']);
-    expect(text.split('\n').filter((l) => /^[\d.]/.test(l))).toHaveLength(33 ** 3);
+    expect(mocks.host.saveFile).toHaveBeenLastCalledWith(expect.any(String), 'Warm 400.cube');
+    expect(written).toEqual([]); // cancelled: nothing written
+    mocks.host.saveFile.mockResolvedValueOnce('/Users/me/LUTs/Warm.cube');
+    await store.exportSlotCubeFile(k);
+    expect(written).toHaveLength(1);
+    expect(written[0].path).toBe('/Users/me/LUTs/Warm.cube');
+    expect(written[0].text.split('\n').slice(0, 3)).toEqual(['TITLE "Warm 400"', 'LUT_3D_SIZE 33', 'DOMAIN_MIN 0.0 0.0 0.0']);
+    expect(written[0].text.split('\n').filter((l) => /^[\d.]/.test(l))).toHaveLength(33 ** 3);
+    expect(store.getState().toasts.at(-1)).toMatchObject({ kind: 'ok' });
+    expect(store.getState().toasts.at(-1).text).toContain('/Users/me/LUTs/Warm.cube');
   });
   it('names a built-in slot after what the camera menu shows and keeps the file name safe', async () => {
     await store.loadPresetFile('CY', file('c.cube'));

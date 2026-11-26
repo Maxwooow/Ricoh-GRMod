@@ -194,7 +194,7 @@ export const zhTW: Dict = {
   navMono: '黑白預設', monoSub: '解鎖 GR IV Monochrome 的影像控制風格', monoLine: '黑白預設  ·  解鎖 GR IV Monochrome 的影像控制風格',
   extraTitle: '新增槽位', chkChanges: '{n} 項更改', chkCount: '{n} 個', chkPictures: '{n} 張', chkHidden: '隱藏 {n} 個', chkRatios: '新增長寬比', extraSub: '在 Cinema 之後增加影像控制槽位，最多 {n} 個', extraAdd: '新增槽位', extraCountLabel: '新增 {n} 個', extraNone: '不新增',
   prevSlot: '上一個槽位', nextSlot: '下一個槽位',
-  halation: '光暈', haloLabel: '光暈', halationSub: '在相機的影像控制參數調整中設定。此處僅用於預覽。', gr3xHalationRowsSub: '在相機的影像控制參數調整中設定（GR III：[光暈]關閉 / 1 / 2 / 3，[顏色]紅 / 白）。此處僅用於預覽。', gr3xHalationSub: '強度寫入韌體（GR III 沒有可用的參數滑桿）。僅應用於照片，即時顯示中不顯示。', haloPreview: '預覽', haloOff: '關閉', haloWeak: '弱', haloMedium: '中', haloStrong: '強', haloRed: '紅', haloWhite: '白',
+  halation: '光暈', haloLabel: '光暈', gr3xHalationRowsSub: '在相機的影像控制參數調整中設定（GR III：[光暈]關閉 / 1 / 2 / 3，[顏色]紅 / 白）。此處僅用於預覽。', gr3xHalationSub: '強度寫入韌體（GR III 沒有可用的參數滑桿）。僅應用於照片，即時顯示中不顯示。', haloPreview: '預覽', haloOff: '關閉', haloWeak: '弱', haloMedium: '中', haloStrong: '強', haloRed: '紅', haloWhite: '白',
   haloOn: '開啟', halationCinemaSub: '開啟後，在此預設槽位的參數控制欄中新增[光暈]設定。',
   extraSlot: '新增槽位 {n}', extraNameLong: '最多 12 個字元', extraNameBad: '僅可輸入英文字母、數字和符號', extraNeedsPreset: '請匯入預設', extraNeedsIcon: '請選擇圖示',
   extraMax: '最多新增 {n} 個槽位', extraIncomplete: '有新增槽位尚未完成設定（預設、名稱或圖示）', extraLine: '新增影像控制槽位 {n}  ·  {l}', extraRemove: '刪除此槽位',

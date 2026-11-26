@@ -174,6 +174,7 @@ func New(opt Options) (*Server, error) {
 		"/api/move":           {http.MethodPost, s.handleMove},
 		"/api/mkdir":          {http.MethodPost, s.handleMkdir},
 		"/api/pick-directory": {http.MethodPost, s.handlePickDirectory},
+		"/api/save-file":      {http.MethodPost, s.handleSaveFile},
 		"/api/reveal":         {http.MethodPost, s.handleReveal},
 		"/api/eject":          {http.MethodPost, s.handleEject},
 		"/api/window/chrome":  {http.MethodPost, s.handleWindowChrome},

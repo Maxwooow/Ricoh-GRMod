@@ -194,7 +194,7 @@ export const ja: Dict = {
   navMono: 'モノクロのプリセット', monoSub: 'GR IV Monochrome のイメージコントロールを使えるようにします', monoLine: 'モノクロのプリセット  ·  GR IV Monochrome のイメージコントロールを解放',
   extraTitle: '追加スロット', chkChanges: '{n} 件の変更', chkCount: '{n} 個', chkPictures: '{n} 枚', chkHidden: '{n} 個を非表示', chkRatios: '追加したアスペクト比', extraSub: 'Cinema の後にイメージコントロールのスロットを追加（最大 {n} 個）', extraAdd: 'スロットを追加', extraCountLabel: '{n} 個追加', extraNone: '追加しない',
   prevSlot: '前のスロット', nextSlot: '次のスロット',
-  halation: 'ハレーション', haloLabel: 'ハレーション', halationSub: 'カメラのイメージコントロールのパラメーター調整で設定します。ここではプレビューのみです。', gr3xHalationRowsSub: 'カメラのイメージコントロールのパラメーター調整で設定します（GR III：「ハレーション」オフ / 1 / 2 / 3、「色」赤 / 白）。ここではプレビューのみです。', gr3xHalationSub: '強さはファームウェアに書き込まれます（GR III には使えるパラメーターのスライダーがないため）。写真にのみかかり、ライブビューには表示されません。', haloPreview: 'プレビュー', haloOff: 'オフ', haloWeak: '弱', haloMedium: '中', haloStrong: '強', haloRed: '赤', haloWhite: '白',
+  halation: 'ハレーション', haloLabel: 'ハレーション', gr3xHalationRowsSub: 'カメラのイメージコントロールのパラメーター調整で設定します（GR III：「ハレーション」オフ / 1 / 2 / 3、「色」赤 / 白）。ここではプレビューのみです。', gr3xHalationSub: '強さはファームウェアに書き込まれます（GR III には使えるパラメーターのスライダーがないため）。写真にのみかかり、ライブビューには表示されません。', haloPreview: 'プレビュー', haloOff: 'オフ', haloWeak: '弱', haloMedium: '中', haloStrong: '強', haloRed: '赤', haloWhite: '白',
   haloOn: 'オン', halationCinemaSub: 'オンにすると、このプリセットスロットのパラメーターに「ハレーション」の設定が加わります。',
   extraSlot: '追加スロット {n}', extraNameLong: '最大 12 文字', extraNameBad: '英字・数字・記号のみ入力できます', extraNeedsPreset: 'プリセットを読み込んでください', extraNeedsIcon: 'アイコンを選んでください',
   extraMax: '追加できるスロットは最大 {n} 個です', extraIncomplete: '設定が完了していない追加スロットがあります（プリセット、名前、アイコン）', extraLine: '追加したイメージコントロールのスロット {n}  ·  {l}', extraRemove: 'このスロットを削除',

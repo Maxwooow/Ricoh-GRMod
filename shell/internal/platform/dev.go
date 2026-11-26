@@ -60,6 +60,20 @@ func (devHost) PickDirectory(title string) (string, error) {
 	return filepath.Abs(dir)
 }
 
+// SaveFile answers with name in the folder EnvDevPick names ("" without it:
+// cancelled), as PickDirectory does.
+func (devHost) SaveFile(title, name string) (string, error) {
+	dir := os.Getenv(EnvDevPick)
+	if dir == "" {
+		return "", nil
+	}
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(abs, filepath.Base(name)), nil
+}
+
 func (devHost) Reveal(path string, isDir bool) error { return nil }
 
 func (devHost) Eject(vol Volume) error { return ErrUnsupported }

@@ -107,6 +107,7 @@ export const androidHost = {
   async write(_path: string, _data: Uint8Array): Promise<{ size: number; sha256: string }> { return unsupported(); },
   async move(_from: string, _to: string): Promise<void> { unsupported(); },
   async pickDirectory(_title: string): Promise<string> { return ''; },
+  async saveFile(_title: string, _name: string): Promise<string> { return ''; },
   async reveal(_path: string): Promise<void> { /* nothing to show */ },
   async eject(_id: string): Promise<void> { unsupported(); },
   async storeGet(key: string): Promise<Uint8Array | null> {

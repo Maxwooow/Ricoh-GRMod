@@ -1,6 +1,6 @@
 import { color } from '@grmod/core';
 import type { SlotId } from '@grmod/core';
-import { isMobile } from '../host';
+import { host, isMobile } from '../host';
 import { upload } from '../host-android';
 import { t } from '../i18n';
 import { SlotKey, State, fail, isExtra, slotOf, state, toast } from './core';
@@ -14,8 +14,9 @@ import { extraName } from './looks';
  * @rationale The file is made by core (color/export-cube.ts, DEC-EXPORTCUBE-001 defines what it represents:
  *   the slot model applied to a Standard sRGB picture, colour and tone only, no halation or grain). The UI
  *   side only picks the camera model by family (GR III / IIIx: GR3X_CAMERA, else GR IV's), names the file
- *   after the slot (what the camera menu shows, made file-name safe) and saves it: a download on the
- *   desktop, the phone's Download folder (or the Files app on iOS) in the phone app, as firmware is. It needs
+ *   after the slot (what the camera menu shows, made file-name safe) and saves it where the user says: the
+ *   system's save dialog on the desktop (the folder chosen there may then be written) and in the Android app,
+ *   the Files app on iOS, as firmware is. It needs
  *   a fitted result; a slot without one has no button.
  */
 /** The name a slot has in the camera's menu, for file names: an added slot's name, else the language's name of a built-in one. */
@@ -47,7 +48,11 @@ export async function exportSlotCubeFile(k: SlotKey): Promise<void> {
       if (!r.cancelled) toast(t('savedTo', { p: r.path ?? c.name }), 'ok');
       return;
     }
-    downloadText(c.name, c.text, 'text/plain');
-    toast(t('exportCubeDone', { name: c.name }), 'ok');
+    if (!host.available) { downloadText(c.name, c.text, 'text/plain'); toast(t('exportCubeDone', { name: c.name }), 'ok'); return; }
+    // the desktop: the system's save dialog, starting with the slot's name; the user picks the folder (and may rename)
+    const path = await host.saveFile(t('exportCube'), c.name);
+    if (!path) return;
+    await host.write(path, new TextEncoder().encode(c.text));
+    toast(t('savedTo', { p: path }), 'ok');
   } catch (e) { fail(e); }
 }

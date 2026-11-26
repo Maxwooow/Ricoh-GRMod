@@ -164,6 +164,21 @@ func (h *WindowsHost) PickDirectory(title string) (string, error) {
 	return path, nil
 }
 
+func (h *WindowsHost) SaveFile(title, name string) (string, error) {
+	opts := saveOptions(title, name)
+	if owner := h.owner.Load(); owner != 0 {
+		opts = append(opts, zenity.Attach(owner))
+	}
+	path, err := zenity.SelectFileSave(opts...)
+	if errors.Is(err, zenity.ErrCanceled) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
 func (h *WindowsHost) Reveal(path string, isDir bool) error {
 	explorer := filepath.Join(h.windowsDir, "explorer.exe")
 	line, err := ExplorerCommandLine(explorer, path, isDir)

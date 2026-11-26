@@ -78,6 +78,8 @@ const desktopHost = {
   async write(path: string, data: Uint8Array): Promise<{ size: number; sha256: string }> { return (await call('PUT', '/api/write?path=' + q(path), data as unknown as BodyInit)).json(); },
   async move(from: string, to: string): Promise<void> { await post('/api/move', { from, to }); },
   async pickDirectory(title: string): Promise<string> { return (await post<{ path: string }>('/api/pick-directory', { title })).path || ''; },
+  /** The system's save dialog for a file called `name`: the path chosen (its folder may then be written), or '' when cancelled. */
+  async saveFile(title: string, name: string): Promise<string> { return (await post<{ path: string }>('/api/save-file', { title, name })).path || ''; },
   async reveal(path: string): Promise<void> { try { await post('/api/reveal', { path }); } catch { /* cosmetic */ } },
   async eject(id: string): Promise<void> { await post('/api/eject', { id }); },
   async storeGet(key: string): Promise<Uint8Array | null> {

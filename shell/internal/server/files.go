@@ -513,6 +513,52 @@ func (s *Server) handlePickDirectory(w http.ResponseWriter, r *http.Request) err
 	return nil
 }
 
+// -------------------------------------------------------------- save-file
+
+// handleSaveFile shows the save dialog for a file called `name` (a plain file
+// name: any folder part is dropped). The folder the user saved in becomes an
+// allowed root for this run, as a picked folder does, so that the file can then
+// be written there with /api/write; nothing is written here. A cancelled dialog
+// answers with an empty path.
+func (s *Server) handleSaveFile(w http.ResponseWriter, r *http.Request) error {
+	var req struct {
+		Title string `json:"title"`
+		Name  string `json:"name"`
+	}
+	if err := readJSON(w, r, &req, false); err != nil {
+		return err
+	}
+	name := filepath.Base(strings.ReplaceAll(req.Name, "\\", "/"))
+	if name == "" || name == "." || name == "/" || name == ".." {
+		return errInvalid("missing file name")
+	}
+	if !s.picking.TryLock() {
+		return errf(http.StatusConflict, codeInvalid, "a file dialog is already open")
+	}
+	defer s.picking.Unlock()
+
+	chosen, err := s.opt.Host.SaveFile(req.Title, name)
+	if err != nil {
+		return errIO("the save dialog failed: %v", err)
+	}
+	out := pathRequest{}
+	if chosen != "" {
+		clean, err := s.opt.Flavor.Clean(chosen)
+		if err != nil {
+			return errInvalid("this location cannot be used (%v)", err)
+		}
+		dir := filepath.Dir(clean)
+		if dir == clean {
+			return errInvalid("this location cannot be used (no file name)")
+		}
+		s.addPicked(dir)
+		s.opt.Log.Printf("save to %s", clean)
+		out.Path = clean
+	}
+	writeJSON(w, http.StatusOK, out)
+	return nil
+}
+
 // ----------------------------------------------------------------- reveal
 
 func (s *Server) handleReveal(w http.ResponseWriter, r *http.Request) error {

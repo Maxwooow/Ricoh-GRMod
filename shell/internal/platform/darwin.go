@@ -207,6 +207,18 @@ func (h *MacHost) PickDirectory(title string) (string, error) {
 	return strings.TrimRight(p, "/"), nil
 }
 
+// SaveFile shows the save panel for a file called name.
+func (h *MacHost) SaveFile(title, name string) (string, error) {
+	p, err := zenity.SelectFileSave(saveOptions(title, name)...)
+	if errors.Is(err, zenity.ErrCanceled) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return p, nil
+}
+
 // Reveal opens a folder in the Finder, or selects a file in its folder.
 func (h *MacHost) Reveal(path string, isDir bool) error {
 	if !strings.HasPrefix(path, "/") {

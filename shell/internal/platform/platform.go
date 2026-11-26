@@ -43,6 +43,10 @@ type Host interface {
 	// PickDirectory shows a native folder dialog. It returns "" when the
 	// user cancels.
 	PickDirectory(title string) (string, error)
+	// SaveFile shows a native save dialog for a file called name (the
+	// user may change the folder and the name) and returns the path the
+	// user chose, or "" when the user cancels.
+	SaveFile(title, name string) (string, error)
 	// Reveal shows the path in the file manager.
 	Reveal(path string, isDir bool) error
 	// Eject flushes and dismounts a volume so that it can be unplugged.

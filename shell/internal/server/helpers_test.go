@@ -36,6 +36,10 @@ type fakeHost struct {
 	pick      string
 	pickErr   error
 	pickTitle string
+	save      string
+	saveErr   error
+	saveTitle string
+	saveName  string
 	revealed  []string
 	ejectErr  error
 	ejected   []string
@@ -63,6 +67,13 @@ func (h *fakeHost) PickDirectory(title string) (string, error) {
 	defer h.mu.Unlock()
 	h.pickTitle = title
 	return h.pick, h.pickErr
+}
+
+func (h *fakeHost) SaveFile(title, name string) (string, error) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.saveTitle, h.saveName = title, name
+	return h.save, h.saveErr
 }
 
 func (h *fakeHost) Reveal(path string, isDir bool) error {

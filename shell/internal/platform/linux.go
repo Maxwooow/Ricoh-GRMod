@@ -111,6 +111,41 @@ func (h *LinuxHost) PickDirectory(title string) (string, error) {
 	return cleanPicked(p), nil
 }
 
+// SaveFile asks kdialog or zenity, as PickDirectory does, for where to save
+// a file called name.
+func (h *LinuxHost) SaveFile(title, name string) (string, error) {
+	switch dialogTool() {
+	case "":
+		return "", errors.New("no save dialog: install kdialog or zenity")
+	case "kdialog":
+		home, _ := os.UserHomeDir()
+		args := []string{"--getsavefilename", filepath.Join(home, filepath.Base(name))}
+		if ext := filepath.Ext(name); ext != "" {
+			args = append(args, "*"+ext)
+		}
+		if title != "" {
+			args = append([]string{"--title", title}, args...)
+		}
+		out, err := exec.Command("kdialog", args...).Output()
+		var exit *exec.ExitError
+		if errors.As(err, &exit) && exit.ExitCode() == 1 {
+			return "", nil // cancelled
+		}
+		if err != nil {
+			return "", fmt.Errorf("kdialog: %w", err)
+		}
+		return strings.TrimSuffix(string(out), "\n"), nil
+	}
+	p, err := zenity.SelectFileSave(saveOptions(title, name)...)
+	if errors.Is(err, zenity.ErrCanceled) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	return p, nil
+}
+
 func cleanPicked(p string) string {
 	p = strings.TrimSuffix(p, "\n")
 	if p == "/" {
