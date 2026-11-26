@@ -286,4 +286,5 @@ export const es: Dict = {
   unitsLine: 'Unidad de distancia  ·  pies (Distancia enfoque inst., escala del enfoque manual)',
   undo: 'Deshacer', undoExtra: 'Ranura añadida quitada', undoWall: 'Pantalla final quitada', undoRatio: 'Formato de imagen quitado', undoGone: 'Esta eliminación ya no se puede deshacer', undoFull: 'No se puede deshacer: la lista vuelve a estar llena',
   extraDuplicate: 'Duplicar esta ranura', extraDuplicateFull: 'Se alcanzó el límite de {n} ranuras añadidas; quita una primero', extraDuplicated: 'Duplicada: {name}', batchProgress: 'Importando ajuste {i} de {n}', batchAddTitle: '¿Añadir ranuras para los ajustes restantes?', batchAddLine: 'A {n} ajustes no les queda ranura libre.', batchAddOk: 'Añadir ranuras', batchAddFiles: '{n} ajustes: {names}', batchDone: '{n} ajustes aplicados', batchSkipped: '{n} omitidos (sin ranura libre)', batchFailed: '{n} fallidos: {names}',
+  compareWith: 'Comparar con',
 };

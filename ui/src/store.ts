@@ -15,6 +15,7 @@
  *   framing   the framing guides of GR IV 1.20 / 1.21 (the custom grid's page)
  *   ratios    added aspect ratios
  *   photo     the preview photo
+ *   compare   the left side of the photo preview: another slot's look
  *   output    memory cards, building and writing firmware
  *   copies    firmware copies on the card and their backups
  *   cube      a slot's look exported as a .cube
@@ -33,6 +34,7 @@ export * from './store/features';
 export * from './store/framing';
 export * from './store/ratios';
 export * from './store/photo';
+export * from './store/compare';
 export * from './store/output';
 export * from './store/copies';
 export * from './store/cube';

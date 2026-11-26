@@ -286,4 +286,5 @@ export const de: Dict = {
   unitsLine: 'Entfernungseinheit  ·  Fuß (Fixfokus Entfernung, Skala beim manuellen Fokus)',
   undo: 'Rückgängig', undoExtra: 'Zusätzlicher Platz entfernt', undoWall: 'Endbildschirm entfernt', undoRatio: 'Seitenverhältnis entfernt', undoGone: 'Dieses Entfernen lässt sich nicht mehr rückgängig machen', undoFull: 'Rückgängig nicht möglich: die Liste ist wieder voll',
   extraDuplicate: 'Diesen Platz duplizieren', extraDuplicateFull: 'Das Limit von {n} zusätzlichen Plätzen ist erreicht, entferne zuerst einen', extraDuplicated: 'Dupliziert: {name}', batchProgress: 'Preset {i} von {n} wird importiert', batchAddTitle: 'Plätze für die übrigen Presets hinzufügen?', batchAddLine: 'Für {n} Presets ist kein freier Platz mehr da.', batchAddOk: 'Plätze hinzufügen', batchAddFiles: '{n} Presets: {names}', batchDone: '{n} Presets angewendet', batchSkipped: '{n} übersprungen (kein freier Platz)', batchFailed: '{n} fehlgeschlagen: {names}',
+  compareWith: 'Vergleichen mit',
 };

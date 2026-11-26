@@ -286,4 +286,5 @@ export const ko: Dict = {
   unitsLine: '거리 단위  ·  피트(스냅 촬영 거리, MF 거리 눈금)',
   undo: '실행 취소', undoExtra: '추가 슬롯을 삭제했습니다', undoWall: '종료 화면을 제거했습니다', undoRatio: '화상비율을 제거했습니다', undoGone: '이 삭제는 더 이상 취소할 수 없습니다', undoFull: '한도에 도달해 취소할 수 없습니다',
   extraDuplicate: '이 슬롯 복제', extraDuplicateFull: '추가 슬롯 한도({n}개)에 도달했습니다. 먼저 하나를 삭제하세요', extraDuplicated: '복제했습니다: {name}', batchProgress: '프리셋 가져오는 중 {i} / {n}', batchAddTitle: '남은 프리셋을 위해 슬롯을 추가할까요?', batchAddLine: '빈 슬롯이 없는 프리셋이 {n}개 있습니다.', batchAddOk: '슬롯 추가', batchAddFiles: '프리셋 {n}개: {names}', batchDone: '프리셋 {n}개를 적용했습니다', batchSkipped: '{n}개 건너뜀(빈 슬롯 없음)', batchFailed: '{n}개 실패: {names}',
+  compareWith: '비교 대상',
 };

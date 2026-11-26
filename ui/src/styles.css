@@ -1053,3 +1053,7 @@ html.mobile-app .tour-hole { border-radius: 14px; }
 .dialog.upd .upd-notes { white-space: pre-line; margin: 2px 0 10px; line-height: 1.5; }
 .dialog.upd .upd-hint { font-size: 12.5px; margin: 0 0 6px; }
 .dialog.upd h3 .push-file { margin-left: 10px; }
+
+/* compare two slots (pages/preview.tsx) */
+.compare-with { min-width: 0; max-width: 220px; }
+.compare-with-lead { margin-right: 6px; white-space: nowrap; }

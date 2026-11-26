@@ -187,7 +187,7 @@ export async function saveProject(): Promise<void> {
   familyDocs[familyOf(s.model)] = currentFamilyDoc();
   const doc = {
     ...(familyDocs.gr4 ?? {}),
-    v: 1, page: s.page, model: s.model, lang: s.lang, langAuto: s.langAuto, uiLang: uiLangPref(), theme: themePref(), fwName: s.fwName, showAll: s.showAll, previewMode: s.previewMode, ratioBackdrop: s.ratioBackdrop,
+    v: 1, page: s.page, model: s.model, lang: s.lang, langAuto: s.langAuto, uiLang: uiLangPref(), theme: themePref(), fwName: s.fwName, showAll: s.showAll, previewMode: s.previewMode, compareWith: s.compareWith, ratioBackdrop: s.ratioBackdrop,
     tours: s.toursSeen, toursV: 2,
   };
   try {
@@ -215,7 +215,7 @@ export async function init(): Promise<void> {
       set({ ...parseFamily(work), model,
         page: doc.page === 'wall' || doc.page === 'copies' || doc.page === 'ratio' || doc.page === 'extras' || doc.page === 'ic' ? doc.page : doc.page === 'script' ? 'wall' : doc.page === 'grid' ? 'extras' : 'ic',
         ...langOf(doc), fwName: doc.fwName, showAll: !!doc.showAll,
-        previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo',
+        previewMode: doc.previewMode === 'swatch' ? 'swatch' : 'photo', compareWith: typeof doc.compareWith === 'string' && doc.compareWith ? doc.compareWith : 'orig', ratioBackdrop: doc.ratioBackdrop === 'gray' ? 'gray' : 'photo',
         // GR Mod 0.8 changed the power-off page: its tour (which now says where the pictures are chosen) shows once more
         toursSeen: TOUR_IDS.filter((id) => Array.isArray(doc.tours) && doc.tours.includes(id) && (id !== 'wall' || doc.toursV >= 2)) });
       // The kept file of the camera that was open (a 0.8.x data folder: its one file moves to its camera's place).
