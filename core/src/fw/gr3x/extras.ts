@@ -14,6 +14,10 @@ export interface Gr3xExtras {
   customGrid?: CustomGrid;
   /** Snap Focus Distance and the manual focus scale in feet and inches (units.ts). */
   distanceFeet?: true;
+  /** Matte live view of the added ratios (matte.ts): the whole 3:2 frame, the part outside the ratio darkened. */
+  ratioShade?: true;
+  /** Its tone, chosen when the firmware is built; 'dark' (black at 50 %, the default) is left out. */
+  ratioShadeTone?: 'light';
 }
 
 /** The extras as they are built and recorded: validated, defaults left out; undefined for none. */
@@ -21,12 +25,16 @@ export function normalizeGr3xExtras(x: unknown): Gr3xExtras | undefined {
   if (x === undefined || x === null) return undefined;
   if (typeof x !== 'object') throw new FirmwareError('bad-edit', 'IIIx extras');
   const e = x as Record<string, unknown>, out: Gr3xExtras = {};
-  for (const k of Object.keys(e)) if (k !== 'customGrid' && k !== 'distanceFeet') throw new FirmwareError('bad-edit', `IIIx extras: unknown addition ${k}`);
+  for (const k of Object.keys(e)) if (k !== 'customGrid' && k !== 'distanceFeet' && k !== 'ratioShade' && k !== 'ratioShadeTone') throw new FirmwareError('bad-edit', `IIIx extras: unknown addition ${k}`);
   if (e.customGrid !== undefined) {
     if (!validCustomGrid(e.customGrid)) throw new FirmwareError('bad-edit', 'custom grid: eight lines on or off for each style');
     if (!isCameraGrid(e.customGrid)) out.customGrid = { g3: [...e.customGrid.g3], g4: [...e.customGrid.g4] };
   }
   if (e.distanceFeet !== undefined && typeof e.distanceFeet !== 'boolean') throw new FirmwareError('bad-edit', 'distanceFeet must be boolean');
   if (e.distanceFeet === true) out.distanceFeet = true;
+  if (e.ratioShade !== undefined && typeof e.ratioShade !== 'boolean') throw new FirmwareError('bad-edit', 'ratioShade must be boolean');
+  if (e.ratioShadeTone !== undefined && e.ratioShadeTone !== 'dark' && e.ratioShadeTone !== 'light') throw new FirmwareError('bad-edit', 'unknown shade tone');
+  if (e.ratioShade === true) out.ratioShade = true;
+  if (e.ratioShade === true && e.ratioShadeTone === 'light') out.ratioShadeTone = 'light';
   return Object.keys(out).length ? out : undefined;
 }

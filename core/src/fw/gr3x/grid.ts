@@ -61,7 +61,8 @@ export interface Gr3xGridProgram {
 export { CAMERA_GRID as GR3X_CAMERA_GRID };
 
 /** Install the custom lines (the camera's own lines for both styles: nothing to install, the caller leaves it out). */
-export function installGr3xCustomGrid(p: Gr3xGridProgram, grid: CustomGrid): Record<string, number> {
+/** `setPoints`: what the diagonals' points are set with (the matte's wrapper, matte.ts, when it is installed). */
+export function installGr3xCustomGrid(p: Gr3xGridProgram, grid: CustomGrid, setPoints: number = LINE_SET_POINTS): Record<string, number> {
   if (!validCustomGrid(grid)) throw new FirmwareError('internal', 'bad custom grid');
   const bad = (what: string): never => { throw new FirmwareError('unexpected-layout', `IIIx grid view: ${what}`); };
   if (p.word(GRID_RECTANGLE_CALL) !== branchWord(GRID_RECTANGLE_CALL, GRID_RECTANGLE, 14, true)) bad('the line rectangle has moved');
@@ -105,7 +106,7 @@ export function installGr3xCustomGrid(p: Gr3xGridProgram, grid: CustomGrid): Rec
       }
       // Points (x, y) on the stack: from the top left (0,0)-(w,h), from the bottom left (0,h)-(w,0).
       s += 'sub sp,sp,#16;mov r0,#0;str r0,[sp];' + (d === 0 ? 'str r0,[sp,#4];str r7,[sp,#8];str r8,[sp,#12];' : 'str r8,[sp,#4];str r7,[sp,#8];str r0,[sp,#12];');
-      s += `ldr r0,[r4,#${view}];mov r1,sp;add r2,sp,#8;mov r3,#2;bl #${LINE_SET_POINTS};add sp,sp,#16;`;
+      s += `ldr r0,[r4,#${view}];mov r1,sp;add r2,sp,#8;mov r3,#2;bl #${setPoints};add sp,sp,#16;`;
       s += `ldr r0,[r4,#${view}];ldrb r1,[r4,#${GRID_COLOUR}];bl #${LINE_SET_COLOUR};`;
       s += `ldr r0,[r4,#${view}];mov r1,#1;bl #${SET_VISIBLE};`;
     });
