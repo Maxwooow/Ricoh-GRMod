@@ -82,6 +82,16 @@ describe('duplicate an added slot', () => {
     expect(store.getState().extras.find((x) => x.key === k2).name).toBe('ABCDEFGHIJ 2');
     expect(core.validateExtraSlotName(store.getState().extras.find((x) => x.key === k2).name)).toBeNull();
   });
+  it('a slot without a name of its own gives a copy without one, named by its place', async () => {
+    store.setExtraCount(1);
+    await vi.advanceTimersByTimeAsync(5);
+    const [a] = store.getState().extras.map((x) => x.key);
+    const k = store.duplicateExtraSlot(a);
+    const dup = store.getState().extras.find((x) => x.key === k);
+    expect(dup.name).toBe('');
+    expect(store.extraName(dup)).toBe('GR Mod 2');
+    expect(store.getState().toasts.at(-1).text).toContain('GR Mod 2');
+  });
   it('is refused at MAX_EXTRA_SLOTS with a reason, and changes nothing', async () => {
     store.setExtraCount(core.MAX_EXTRA_SLOTS);
     await vi.advanceTimersByTimeAsync(5);

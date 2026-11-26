@@ -1055,8 +1055,11 @@ html.mobile-app .tour-hole { border-radius: 14px; }
 .dialog.upd h3 .push-file { margin-left: 10px; }
 
 /* compare two slots (pages/preview.tsx) */
-.compare-with { min-width: 0; max-width: 220px; }
+.compare-with { flex: none; max-width: 220px; }
 .compare-with-lead { margin-right: 6px; white-space: nowrap; }
+/* on a phone the tabs need the width: the value only (the sheet that opens is titled "Compare with", and the photo labels its left side) */
+.app.mobile .compare-with { max-width: 128px; }
+.app.mobile .compare-with-lead { display: none; }
 /* the preset library (library.tsx) */
 .lib-buttons { margin-top: 6px; }
 .lib-dialog { width: 460px; }

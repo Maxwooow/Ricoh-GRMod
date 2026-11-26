@@ -15,7 +15,8 @@ import { renderIcon, runPreset } from './slots';
  *   have to import and fit the file again. The copy takes the source's icon (pixels copied, not shared),
  *   halation, hidden state and preset (the fitted result is immutable, so it is shared by reference; the
  *   source file is stored again under the new key, as an imported file is). It is inserted right after
- *   the source in both `extras` and the menu order. The name is the source's name with a numeric suffix
+ *   the source in both `extras` and the menu order. A source without a name of its own (shown by its
+ *   place, "GR Mod 1") gives a copy without one, named by its own place. Otherwise the name is the source's name with a numeric suffix
  *   (" 2", " 3", ... the first one no added slot has; a number already at the end of the name is kept
  *   unless the name without it is another slot's), the base cut so the whole stays within
  *   EXTRA_NAME_MAX and so passes validateExtraSlotName whenever the source's name did. A source whose
@@ -45,7 +46,9 @@ export function duplicateExtraSlot(key: string): string | undefined {
   const full = duplicateExtraProblem();
   if (full) { toast(full, 'info'); return undefined; }
   const newKey = 'x-' + Math.random().toString(36).slice(2, 10);
-  const name = duplicateName(extraName(src), state.extras.map((x) => extraName(x)));
+  // A slot without a name of its own is called "GR Mod <position>": its copy has none either, so it is named by its own place
+  // ("GR Mod 2" right after "GR Mod 1") rather than "GR Mod 1 2".
+  const name = src.name.trim() ? duplicateName(extraName(src), state.extras.map((x) => extraName(x))) : '';
   const p = src.preset;
   const copy: ExtraSlot = {
     key: newKey, name,
@@ -64,6 +67,6 @@ export function duplicateExtraSlot(key: string): string | undefined {
   if (p?.busy) void runPreset(newKey, p.fileName, p.kind, p.text); // the source's conversion is not finished: the copy runs its own
   if (!copy.icon.pixels) void renderIcon(newKey);
   scheduleSave();
-  toast(t('extraDuplicated', { name }), 'ok');
+  toast(t('extraDuplicated', { name: extraName(copy) }), 'ok');
   return newKey;
 }
