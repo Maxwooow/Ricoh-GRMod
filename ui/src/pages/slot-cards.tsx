@@ -249,8 +249,6 @@ function HalationProp({ k }: { k: SlotKey }) {
             {preview > 0 && !fixed && <Segmented value={colour} onChange={(v) => setHalation(k, { colour: v as 'red' | 'white' })} options={[{ value: 'red', label: t('haloRed') }, { value: 'white', label: t('haloWhite') }]} />}
           </div>
         )}
-        {/* added slots and GR III / IIIx films: no note (the level and colour are the camera's; here only previewed) */}
-        {(cinema || fixed) && <span className="muted small halo-note">{t(cinema ? 'halationCinemaSub' : 'gr3xHalationSub')}</span>}
       </div>
     </Prop>
   );

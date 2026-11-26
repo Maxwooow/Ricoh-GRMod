@@ -260,14 +260,12 @@ export function LookOrderView() {
           <span className="page-icon soft-ico">{Ico.updown}</span>
           <div className="soft-text">
             <b>{t('lookOrderTitle')}</b>
-            <span className="muted small">{t('lookOrderSub')}</span>
           </div>
         </div>
         <div className="chips look-stats">
           <span className="chip">{t('lookOrderShown', { n: order.length - hidden.size })}</span>
           <span className={`chip ${hidden.size ? 'warn' : 'muted'}`}>{t('lookOrderCount', { n: hidden.size })}</span>
         </div>
-        <p className="muted small look-order-hint">{t('lookOrderHint')}</p>
         {gr3 && <p className="muted small look-order-hint">{t('lookOrderGr3Note')}</p>}
         <button className="btn small look-order-reset" disabled={!changed} onClick={() => { snapshot(); resetLookLayout(); }}>{Ico.refresh}<span>{t('lookOrderReset')}</span></button>
       </aside>

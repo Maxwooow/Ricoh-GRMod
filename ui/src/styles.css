@@ -641,7 +641,6 @@ button.fw-rel:disabled { cursor: default; }
 /* halation of an added slot */
 .halo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .halo .chips { align-items: center; }
-.halo-note { line-height: 1.35; }
 
 .gr3x-notice { margin: 0 24px 12px; padding: 14px 16px; border: 1px solid #a78348; border-radius: 10px; background: #a7834812; }
 .gr3x-notice p { margin: 6px 0 12px; line-height: 1.5; }
@@ -1055,7 +1054,7 @@ html.mobile-app .tour-hole { border-radius: 14px; }
 .dialog.upd h3 .push-file { margin-left: 10px; }
 
 /* compare two slots (pages/preview.tsx) */
-.compare-with { flex: none; max-width: 220px; }
+.compare-with { flex: none; }
 .compare-with-lead { margin-right: 6px; white-space: nowrap; }
 /* on a phone the tabs need the width: the value only (the sheet that opens is titled "Compare with", and the photo labels its left side) */
 .app.mobile .compare-with { max-width: 128px; }
