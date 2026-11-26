@@ -88,7 +88,8 @@
    "files": [
     "core/src/fw/gr3x170/experimental.ts",
     "core/src/fw/gr3x170/grid.ts",
-    "core/src/fw/gr3x170/image-pipeline.ts"
+    "core/src/fw/gr3x170/image-pipeline.ts",
+    "core/src/fw/gr3x170/units.ts"
    ]
   },
   "0x5313dbe4": {
@@ -4333,7 +4334,8 @@
    "how": "aligned + refs 0x53394db4x2",
    "ok": true,
    "files": [
-    "core/src/fw/gr3x170/grid.ts"
+    "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/units.ts"
    ]
   },
   "0x533925cc": {
@@ -4341,7 +4343,8 @@
    "how": "aligned + refs 0x53394f0cx6",
    "ok": true,
    "files": [
-    "core/src/fw/gr3x170/grid.ts"
+    "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/units.ts"
    ]
   },
   "0x53393280": {
@@ -4349,6 +4352,7 @@
    "how": "aligned + refs 0x53395bc0x2",
    "ok": true,
    "files": [
+    "core/src/fw/gr3x170/grid.ts",
     "core/src/fw/gr3x170/units.ts"
    ]
   },
@@ -4519,7 +4523,8 @@
    "how": "aligned + refs 0x5339eaecx2",
    "ok": true,
    "files": [
-    "core/src/fw/gr3x170/grid.ts"
+    "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/units.ts"
    ]
   },
   "0x5339c350": {
@@ -4527,7 +4532,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "core/src/fw/gr3x170/grid.ts"
+    "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/units.ts"
    ]
   },
   "0x5339c378": {
@@ -4535,7 +4541,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "core/src/fw/gr3x170/grid.ts"
+    "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/units.ts"
    ]
   },
   "0x5339c3c8": {
@@ -4543,7 +4550,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "core/src/fw/gr3x170/grid.ts"
+    "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/units.ts"
    ]
   },
   "0x5339c3d4": {
@@ -4551,7 +4559,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "core/src/fw/gr3x170/grid.ts"
+    "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/units.ts"
    ]
   },
   "0x5339c408": {
@@ -4559,7 +4568,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "core/src/fw/gr3x170/grid.ts"
+    "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/units.ts"
    ]
   },
   "0x5339c570": {
@@ -4567,7 +4577,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "core/src/fw/gr3x170/grid.ts"
+    "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/units.ts"
    ]
   },
   "0x5339c574": {
@@ -4575,7 +4586,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "core/src/fw/gr3x170/grid.ts"
+    "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/units.ts"
    ]
   },
   "0x5339c604": {
@@ -4583,7 +4595,8 @@
    "how": "aligned",
    "ok": true,
    "files": [
-    "core/src/fw/gr3x170/grid.ts"
+    "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/units.ts"
    ]
   },
   "0x5339dd60": {
@@ -4749,6 +4762,7 @@
    "files": [
     "core/src/fw/gr3x170/endscreen.ts",
     "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/units.ts",
     "tools/gr3x170/adj_softfocus_probe.py",
     "tools/gr3x170/endscreen_probe.py",
     "tools/gr3x170/native/endscreen.c"
@@ -6994,7 +7008,8 @@
    "how": "aligned + refs 0x536b8b7cx83",
    "ok": true,
    "files": [
-    "core/src/fw/gr3x170/grid.ts"
+    "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/units.ts"
    ]
   },
   "0x536b58cc": {
@@ -7002,7 +7017,8 @@
    "how": "aligned + refs 0x536b8db4x100",
    "ok": true,
    "files": [
-    "core/src/fw/gr3x170/grid.ts"
+    "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/units.ts"
    ]
   },
   "0x536b58dc": {
@@ -7010,7 +7026,8 @@
    "how": "aligned + refs 0x536b8dc4x105",
    "ok": true,
    "files": [
-    "core/src/fw/gr3x170/grid.ts"
+    "core/src/fw/gr3x170/grid.ts",
+    "core/src/fw/gr3x170/units.ts"
    ]
   },
   "0x536b5e0c": {

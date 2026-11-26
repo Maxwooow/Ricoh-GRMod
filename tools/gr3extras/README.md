@@ -6,3 +6,4 @@ them up in the generated address tables, so they are not part of the generated p
 
 - `grid_check.py`: custom grid lines, with the camera's own drawing code.
 - `units_check.py`: distances in feet, from the built text and icon directories.
+- `addmap.py`: adds the addresses of new GR III source files to the port maps (2.10 -> 2.20 -> 2.21).
