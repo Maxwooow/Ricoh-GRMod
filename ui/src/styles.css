@@ -1083,7 +1083,15 @@ html.mobile-app .tour-hole { border-radius: 14px; }
 .halo-cap.on { border-color: color-mix(in srgb, var(--blue) 45%, var(--line2)); background: color-mix(in srgb, var(--blue-bg) 45%, var(--side)); }
 .halo-cap .soft-ico { width: 28px; height: 28px; flex: none; border-radius: 9px; }
 .halo-cap.on .soft-ico { color: var(--blue); background: var(--blue-bg); }
-.halo-cap-text { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.halo-cap-text b { font-weight: 600; white-space: nowrap; }
+.halo-cap-head { display: inline-flex; align-items: center; gap: 10px; flex: none; }
+.halo-cap-head b { font-weight: 600; white-space: nowrap; }
+.halo-cap-head .switch { flex: none; }
+.halo-cap-sub { min-width: 0; }
 .halo-cap-row { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: 4px; }
+/* on a phone: a card as wide as the page, the switch at the right of its top row, the line or the choices under it */
+.app.mobile .halo-cap { display: flex; flex-direction: column; align-items: stretch; gap: 8px; width: 100%; padding: 10px 12px; border-radius: 16px; }
+.app.mobile .halo-cap-head { display: flex; }
+.app.mobile .halo-cap-head .switch { margin-left: auto; }
+.app.mobile .halo-cap-sub { line-height: 1.45; }
+.app.mobile .halo-cap-row { margin-left: 0; }
 .halo-warn { color: var(--amber); }

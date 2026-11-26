@@ -165,9 +165,13 @@ function HaloBar({ onHeight }: { onHeight: (h: number) => void }) {
   return (
     <div className="pane-below halo-bar">
       <div ref={ref} className={`halo-cap ${on ? 'on' : ''}`} data-tour="ic-halo">
-        <span className="page-icon soft-ico">{Ico.halo}</span>
-        <span className="halo-cap-text" title={t('haloAllSub')}><b>{t('haloLabel')}</b>{!on && <span className="muted small">{t('haloAllSub')}</span>}</span>
-        <Switch checked={on} onChange={(v) => setHalationAll({ halationAll: v })} label={t('haloLabel')} />
+        {/* the switch right after the title, on or off; then the line (off) or the preview's choices (on) */}
+        <span className="halo-cap-head" title={t('haloAllSub')}>
+          <span className="page-icon soft-ico">{Ico.halo}</span>
+          <b>{t('haloLabel')}</b>
+          <Switch checked={on} onChange={(v) => setHalationAll({ halationAll: v })} label={t('haloLabel')} />
+        </span>
+        {!on && <span className="muted small halo-cap-sub">{t('haloAllSub')}</span>}
         {on && (
           <span className="halo-cap-row">
             <span className="muted small">{t('haloPreview')}</span>
