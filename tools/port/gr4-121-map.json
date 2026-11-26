@@ -4972,6 +4972,30 @@
     "core/src/fw/gr4v120/aspect/lockprotect.ts"
    ]
   },
+  "0x531f24bc": {
+   "new": "0x531f2ac4",
+   "how": "aligned + refs 0x531f2ac4x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x531f25e0": {
+   "new": "0x531f2be8",
+   "how": "aligned + refs 0x531f2be8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x531f3318": {
+   "new": "0x531f3920",
+   "how": "aligned + refs 0x531f3920x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
   "0x53225650": {
    "new": "0x53225c58",
    "how": "aligned + refs 0x53225c58x1",
@@ -5516,14 +5540,6 @@
     "core/src/fw/gr4v120/aspect/shutdown.ts"
    ]
   },
-  "0x53262f28": {
-   "new": "0x53263778",
-   "how": "aligned + refs 0x53263778x19",
-   "ok": true,
-   "files": [
-    "core/src/fw/gr4v120/aspect/lockprotect.ts"
-   ]
-  },
   "0x53263ff0": {
    "new": "0x53264840",
    "how": "aligned + refs 0x53264840x2",
@@ -5577,6 +5593,14 @@
   "0x532684fc": {
    "new": "0x53268d4c",
    "how": "aligned + refs 0x53268d4cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x53269090": {
+   "new": "0x532698e0",
+   "how": "aligned + refs 0x532698e0x1",
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/lockprotect.ts"

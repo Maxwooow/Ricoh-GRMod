@@ -4066,7 +4066,7 @@ diff --git a/core/src/fw/gr4v120/aspect/lockprotect.ts b/core/src/fw/gr4v120/asp
 new file mode 100644
 --- /dev/null
 +++ b/core/src/fw/gr4v120/aspect/lockprotect.ts
-@@ -0,0 +1,143 @@
+@@ -0,0 +1,146 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * The mode dial's lock button protects the picture in single-picture playback (test builds only,
@@ -4099,14 +4099,17 @@ new file mode 100644
 + * single picture in front it makes the menu's request and returns (the trigger is not passed on);
 + * in every other case it passes trigger 4 on as before.
 + *
-+ * When the request is done MediaModel empties PlaybackModel's record of the displayed file
-+ * (0x5326923C) and posts event 0x134. After the menu's request the menu closes and the single
-+ * picture's controller is started again, which asks for the picture to be displayed
-+ * (0x53195B64: 0x53193950(this, 2, 0)). The controller's event handler (0x53196528) ignores 0x134,
-+ * so after the button's request nothing asked for the picture again (camera tests 119 and 121: no
-+ * Protect mark, the direction keys dead until the screen was drawn again; passing 0x134 to the
-+ * case of 0x135, PlaybackModel 0x53262F28, changed nothing). On 0x134 the handler now makes the
-+ * request of the start, when the single picture is the controller's screen (0x53185054).
++ * When the request has succeeded MediaModel empties PlaybackModel's record of the displayed file
++ * (0x5326923C) and posts event 0x132 (0x53269090; 0x133 with a reason, 0x134 for the answer's
++ * status 3). The camera's own way to this request, the panel opened from
++ * the single picture (controller ids 0x0400002C.., event handler 0x531F3318), answers 0x132 by
++ * asking for the picture to be displayed again (0x531F25E0: 0x531F24BC(this, 2)), which is why its
++ * Protect mark changes at once. The single picture's own controller (event handler 0x53196528)
++ * ignores 0x132: after the button's request nothing asked for the picture again (camera tests
++ * 119, 121, 122: no Protect mark, the direction keys dead until the screen was drawn again; 121
++ * and 122 answered 0x134, which did not come). On 0x132 the handler now makes the
++ * controller's own request of its start (0x53195B64: 0x53193950(this, 2, 0)), when the single
++ * picture is the controller's screen (0x53185054).
 + */
 +import { assembleWords, branchWord } from './arm';
 +import { Patch, expectWord } from './build';
@@ -4191,7 +4194,7 @@ new file mode 100644
 +  patch.setWord(LOCK_PUSHED, branchWord(LOCK_PUSHED, stub), 'lock button: Protect in single-picture playback');
 +
 +  const event = patch.append((at) => assembleWords(
-+    `movw r2, #0x134
++    `movw r2, #0x132
 +     cmp r3, r2
 +     movw r2, #0x135
 +     bne #${SINGLE_EVENT_135 + 4}
@@ -4208,7 +4211,7 @@ new file mode 100644
 +     over:
 +     pop {r4, lr}
 +     b #${SINGLE_EVENT_DONE}`, at), 4);
-+  patch.setWord(SINGLE_EVENT_135, branchWord(SINGLE_EVENT_135, event), 'single picture: display it again when a request is done (event 0x134)');
++  patch.setWord(SINGLE_EVENT_135, branchWord(SINGLE_EVENT_135, event), 'single picture: display it again when a request is done (event 0x132)');
 +}
 diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/looks.ts
 --- a/core/src/fw/gr4v120/aspect/looks.ts

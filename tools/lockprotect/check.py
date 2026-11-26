@@ -94,7 +94,7 @@ for d in (PUSHED, RELEASED):
     c, _ = run(0x27, d, 0x04000001)
     assert not any(x[0] in ('protect', 'allowed') for x in c), c
 
-# the single picture's event handler: 0x134 takes the case of 0x135; every other event as in the build without
+# the single picture's event handler: 0x132 takes the case of 0x135; every other event as in the build without
 def first_call(image, event):
     mu = Uc(UC_ARCH_ARM, UC_MODE_ARM)
     mu.mem_map(BASE, (len(image) + 0xfff) & ~0xfff); mu.mem_write(BASE, image)
@@ -109,12 +109,12 @@ def first_call(image, event):
     mu.emu_start(A['onevent'], 0, count=300)
     return out
 assert first_call(img, 0x135) == [('call', A['restart'])] == first_call(base, 0x135)
-assert first_call(base, 0x134) == [('return', 0)]
+assert first_call(base, 0x132) == [('return', 0)]
 def done(screen):
     mu = Uc(UC_ARCH_ARM, UC_MODE_ARM)
     mu.mem_map(BASE, (len(img) + 0xfff) & ~0xfff); mu.mem_write(BASE, img)
     mu.mem_map(0x10000000, 0x10000); mu.mem_map(STACK - 0x10000, 0x10000); mu.mem_map(RET, 0x1000)
-    mu.mem_write(EVT, struct.pack('<H', 0x134))
+    mu.mem_write(EVT, struct.pack('<H', 0x132))
     out = []
     def leave(v):
         mu.reg_write(UC_ARM_REG_R0, v)
@@ -137,5 +137,5 @@ assert done(0x04000001) == ['screen', ('display', THIS, 2, 0)]
 for scr in (0x04000000, 0x04000004, 0x0400002c, 0x04000011, 0x02000063, 0):
     assert done(scr) == ['screen'], hex(scr)
 for e in range(0, 0x200):
-    if e != 0x134: assert first_call(img, e) == first_call(base, e), hex(e)
+    if e != 0x132: assert first_call(img, e) == first_call(base, e), hex(e)
 print(ver, 'ok')
