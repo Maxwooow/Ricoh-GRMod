@@ -286,7 +286,7 @@ export const zhTW: Dict = {
   unitsLine: '距離單位  ·  英尺（快拍對焦距離、手動對焦刻度）',
   navWbLook: '按風格記憶白平衡', wbLookSub: '每個影像控制風格記住自己的白平衡。需要至少一個新增槽位。', tIcFWbLookB: '每個影像控制風格（原廠風格和新增槽位）各自保存拍照白平衡：白平衡模式、各模式的 A-B 和 G-M 微調，以及色溫。切換風格時，恢復該風格上次的白平衡；尚未使用過的風格沿用目前的白平衡。關機後仍保留。自訂白平衡仍為共用，影片白平衡不變。僅在有至少一個新增槽位時寫入韌體。',
   wbLookLine: '按風格記憶白平衡  ·  每個風格保留自己的拍照白平衡',
-  halationAllLine: '光暈  ·  所有風格（強度和顏色在相機的參數中設定）', haloAllNeedsExtra: '需要至少一個新增槽位',
+  halationAllLine: '光暈  ·  所有風格（強度和顏色在相機的參數中設定）', haloAllSub: '影像控制中的所有風格（包括相機內建的）都可在參數裡設定光暈', haloAllNeedsExtra: '需要至少一個新增槽位',
   undo: '復原', undoExtra: '已刪除新增槽位', undoWall: '已移除結束畫面', undoRatio: '已移除長寬比', undoGone: '這次刪除已無法復原', undoFull: '已達上限，無法復原',
   extraDuplicate: '複製這個槽位', extraDuplicateFull: '已達上限（最多 {n} 個新增槽位），請先刪除一個', extraDuplicated: '已複製：{name}', batchProgress: '正在匯入預設 {i} / {n}', batchDone: '已套用 {n} 個預設', batchNoRoom: '新增槽位最多 {max} 個，放不下這 {n} 個預設，已取消匯入', batchNoSlots: '沒有足夠的空槽位放下這 {n} 個預設，已取消匯入', batchFailed: '{n} 個失敗：{names}',
   compareWith: '對比對象',

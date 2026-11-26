@@ -44,6 +44,7 @@ export const Ico = {
   eyeOff: <svg viewBox="0 0 20 20" {...P}><path d="M8.3 5.2A7.4 7.4 0 0 1 10 5c4.7 0 7.4 5 7.4 5a12.4 12.4 0 0 1-2 2.6M12.3 14.6A6.8 6.8 0 0 1 10 15c-4.7 0-7.4-5-7.4-5a12.6 12.6 0 0 1 3.1-3.6M8.5 8.5a2.2 2.2 0 0 0 3 3M3.6 3.6l12.8 12.8" /></svg>,
   download: <svg viewBox="0 0 20 20" {...P}><path d="M10 3.2v9.6M6 9.2l4 3.8 4-3.8M4 16.2h12" /></svg>,
   info: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="7.2" /><path d="M10 9.2v4.4" /><circle cx="10" cy="6.4" r="0.6" fill="currentColor" /></svg>,
+  halo: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="2.6" fill="currentColor" stroke="none" /><circle cx="10" cy="10" r="4.9" opacity="0.6" /><circle cx="10" cy="10" r="7.3" opacity="0.3" /></svg>,
   soft: <svg viewBox="0 0 20 20" {...P}><circle cx="10" cy="10" r="3.3" /><circle cx="10" cy="10" r="7.2" strokeDasharray="1.4 2.35" /></svg>,
   date: <svg viewBox="0 0 20 20" {...P}><rect x="2.8" y="4.4" width="14.4" height="12" rx="2" /><path d="M2.8 8.2h14.4M6.6 2.8v3M13.4 2.8v3M6.4 11.4h1.6M9.2 11.4h1.6M12 11.4h1.6M6.4 13.8h1.6M9.2 13.8h1.6" /></svg>,
   adj: <svg viewBox="0 0 20 20" {...P}><rect x="1.8" y="6.6" width="3.4" height="3.4" rx="0.8" /><rect x="6.4" y="6.6" width="3.4" height="3.4" rx="0.8" /><rect x="11" y="6.6" width="3.4" height="3.4" rx="0.8" /><rect x="15.6" y="6.6" width="2.6" height="3.4" rx="0.8" /><path d="M3.5 13.4h13" /></svg>,

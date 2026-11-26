@@ -674,7 +674,7 @@ button.fw-rel:disabled { cursor: default; }
 .seg.ic-tabs button:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
 .ic-tabs-pill { position: absolute; top: 2px; left: 2px; height: 26px; border-radius: 4px; background: var(--bg); box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgba(0, 0, 0, 0.08); transition: transform 480ms cubic-bezier(0.22, 1, 0.36, 1), width 480ms cubic-bezier(0.22, 1, 0.36, 1); pointer-events: none; }
 .ic-tabs-pill.still { transition: none; }
-.ic-views { --views-gap: 52px; flex: 1; min-height: 0; display: flex; margin: 0 -26px; padding: 0 26px; overflow: hidden; overflow: clip; }
+.ic-views { --views-gap: 52px; flex: 1; min-height: 0; display: flex; margin: 0 -26px; padding: 0 26px; overflow: hidden; overflow: clip; overflow-clip-margin: 3px; }
 .ic-track { flex: 1; min-width: 0; display: flex; gap: var(--views-gap); transition: transform 480ms cubic-bezier(0.22, 1, 0.36, 1); }
 .ic-track.at-order { transform: translate3d(calc(-100% - var(--views-gap)), 0, 0); }
 .ic-track.moving { will-change: transform; }
@@ -1055,6 +1055,8 @@ html.mobile-app .tour-hole { border-radius: 14px; }
 
 /* compare two slots (pages/preview.tsx) */
 .compare-with { flex: none; }
+/* as tall as the tabs and the Photo / Swatch switch beside it: a taller box would stick out of the head, whose top edge the views clip */
+.compare-with .sel.box .sel-btn { height: 28px; }
 .compare-with-lead { margin-right: 6px; white-space: nowrap; }
 /* on a phone the tabs need the width: the value only (the sheet that opens is titled "Compare with", and the photo labels its left side) */
 .app.mobile .compare-with { max-width: 128px; }
@@ -1076,6 +1078,8 @@ html.mobile-app .tour-hole { border-radius: 14px; }
 .lib-name { font-size: 13.5px; }
 
 /* halation for every look: the switch under the photo (pages/preview.tsx) */
-.halo-bar { align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; min-height: 36px; }
-.halo-bar-label { font-weight: 600; margin-right: 2px; }
-.halo-bar-preview { margin-left: 8px; }
+.halo-bar { justify-content: center; }
+.halo-cap { flex: 1; max-width: 640px; }
+.halo-cap-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 2px; }
+.halo-cap-row > .muted { margin-right: 2px; }
+.halo-warn { color: var(--amber); }

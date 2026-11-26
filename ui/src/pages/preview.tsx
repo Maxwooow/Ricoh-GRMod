@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { color, halateRgba, halationLight } from '@grmod/core';
 import type { ReactNode } from 'react';
-import { DropZone, FileButton, Ico, Segmented, Select } from '../components';
+import { DropZone, FileButton, Ico, Segmented, Select, Switch } from '../components';
 import { isMobile } from '../host';
 import { t } from '../i18n';
 import { applySlot } from '../preview';
@@ -144,27 +144,42 @@ function Compare({ photo, after, label, before, beforeLabel }: { photo: ImageDat
 
 /** The one preview of the page: it shows whichever slot is active and fills the space the window leaves. */
 /** The preview; `below` (with its height in `belowH`) goes under the picture, which leaves room for it. */
-/** Height the halation bar takes under the photo (its row and the gap). */
-const HALO_BAR_H = 46;
 /**
- * Halation for every look (GR IV 1.20 / 1.21): one switch for all looks of the camera, under the photo. On, the strength
- * and colour the preview shows (chosen in the camera, on each look's parameter screen).
+ * Halation for every look (GR IV 1.20 / 1.21): one switch for all looks of the camera, under the photo, in the style of
+ * the Add-ons page's switches. On, what the preview shows (off by default; the strength and colour are chosen in the
+ * camera, on each look's parameter screen). `onHeight` reports its height, which the photo leaves free.
  */
-function HaloBar() {
+function HaloBar({ onHeight }: { onHeight: (h: number) => void }) {
   const on = useStore((s) => s.halationAll);
   const level = useStore((s) => s.haloPreview);
   const colour = useStore((s) => s.haloColour);
   const noExtras = useStore((s) => s.extras.length === 0);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => onHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => { ro.disconnect(); onHeight(0); };
+  }, [onHeight]);
   return (
-    <div className="pane-below halo-bar" data-tour="ic-halo">
-      <span className="halo-bar-label">{t('haloLabel')}</span>
-      <Segmented value={on ? 'on' : 'off'} onChange={(v) => setHalationAll({ halationAll: v === 'on' })} options={[{ value: 'off', label: t('haloOff') }, { value: 'on', label: t('haloOn') }]} />
-      {on && <>
-        <span className="muted small halo-bar-preview">{t('haloPreview')}</span>
-        <Segmented value={String(level)} onChange={(v) => setHalationAll({ haloPreview: Number(v) as 1 | 2 | 3 })} options={[{ value: '1', label: t('haloWeak') }, { value: '2', label: t('haloMedium') }, { value: '3', label: t('haloStrong') }]} />
-        <Segmented value={colour} onChange={(v) => setHalationAll({ haloColour: v as 'red' | 'white' })} options={[{ value: 'red', label: t('haloRed') }, { value: 'white', label: t('haloWhite') }]} />
-      </>}
-      {on && noExtras && <span className="chip warn small">{t('haloAllNeedsExtra')}</span>}
+    <div className="pane-below halo-bar">
+      <div ref={ref} className={`capsule halo-cap ${on ? 'on' : ''}`} data-tour="ic-halo">
+        <div className="capsule-top">
+          <span className="page-icon soft-ico">{Ico.halo}</span>
+          <b className="capsule-title">{t('haloLabel')}</b>
+          <Switch checked={on} onChange={(v) => setHalationAll({ halationAll: v })} label={t('haloLabel')} />
+        </div>
+        <p className="capsule-sub muted small">{t('haloAllSub')}</p>
+        {on && noExtras && <p className="capsule-sub small halo-warn">{t('haloAllNeedsExtra')}</p>}
+        {on && (
+          <div className="halo-cap-row">
+            <span className="muted small">{t('haloPreview')}</span>
+            <Segmented value={String(level)} onChange={(v) => setHalationAll({ haloPreview: Number(v) as 0 | 1 | 2 | 3 })} options={[{ value: '0', label: t('haloOff') }, { value: '1', label: t('haloWeak') }, { value: '2', label: t('haloMedium') }, { value: '3', label: t('haloStrong') }]} />
+            {level > 0 && <Segmented value={colour} onChange={(v) => setHalationAll({ haloColour: v as 'red' | 'white' })} options={[{ value: 'red', label: t('haloRed') }, { value: 'white', label: t('haloWhite') }]} />}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -180,6 +195,7 @@ export function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?:
   const params = useStore((s) => slotOf(s.activeSlot, s)?.preset?.result?.params);
   const extras = useStore((s) => s.extras);
   const haloBar = useStore((s) => halationAllOffered(s));
+  const [haloH, setHaloH] = useState(0);
   const extraLabels = useStore((s) => s.extras.map((x) => extraName(x, s)).join('\u0000'));
   const lang = useStore((s) => s.lang);
   const withLook = useStore((s) => slotsWithLook(s).join('\u0000'));
@@ -239,10 +255,10 @@ export function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?:
           ? [{ value: 'photo', label: Ico.image, title: t('previewPhoto') }, { value: 'swatch', label: Ico.swatch, title: t('previewSwatch') }]
           : [{ value: 'photo', label: t('previewPhoto') }, { value: 'swatch', label: t('previewSwatch') }]} />
       </div>
-      <div className="pane-body" style={{ '--below': below ? `${belowH + 10}px` : haloBar && mode === 'photo' ? `${HALO_BAR_H}px` : '0px' } as React.CSSProperties}>
+      <div className="pane-body" style={{ '--below': below ? `${belowH + 10}px` : haloBar && mode === 'photo' && haloH ? `${haloH + 10}px` : '0px' } as React.CSSProperties}>
         <div className="pane-fit" data-tour="ic-preview" data-tour-fit="">{mode === 'photo' ? <PhotoCompare params={params} label={compareKey ? labelOf(active) : t('preset')} left={compareKey && leftParams ? { slot: compareKey, params: leftParams, label: labelOf(compareKey) } : undefined} /> : <Swatches params={params} />}</div>
         {below && <div className="pane-below">{below}</div>}
-        {!below && haloBar && mode === 'photo' && <HaloBar />}
+        {!below && haloBar && mode === 'photo' && <HaloBar onHeight={setHaloH} />}
       </div>
     </DropZone>
   );
