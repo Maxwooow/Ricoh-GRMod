@@ -6942,6 +6942,7 @@
     "core/src/fw/gr3x170/films-r10.ts",
     "core/src/fw/gr3x170/jpeg-stage.ts",
     "core/src/fw/gr3x170/round10.ts",
+    "core/src/fw/gr3x170/shadowml.ts",
     "tools/gr3x170/films_probe.py",
     "tools/gr3x170/list_width_probe.py",
     "tools/gr3x170/metering_probe.py",
@@ -7179,6 +7180,14 @@
    "files": [
     "core/src/fw/gr3x170/factory.ts",
     "tools/gr3x170/factory_probe.py"
+   ]
+  },
+  "0x536c2a08": {
+   "new": "0x536c5fd0",
+   "how": "aligned + refs 0x536c5fd0x7",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
    ]
   },
   "0x536c3f74": {
@@ -7529,6 +7538,198 @@
    "ok": true,
    "files": [
     "tools/gr3x170/color_curve_probe.py"
+   ]
+  },
+  "0x536e9530": {
+   "new": "0x536ed798",
+   "how": "aligned + refs 0x536ed798x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e9540": {
+   "new": "0x536ed7a8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e9550": {
+   "new": "0x536ed7b8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e957c": {
+   "new": "0x536ed7e4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e9588": {
+   "new": "0x536ed7f0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e9598": {
+   "new": "0x536ed800",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e959c": {
+   "new": "0x536ed804",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e95e4": {
+   "new": "0x536ed84c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e95ec": {
+   "new": "0x536ed854",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e9634": {
+   "new": "0x536ed89c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e9698": {
+   "new": "0x536ed900",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e969c": {
+   "new": "0x536ed904",
+   "how": "aligned + refs 0x536ed904x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e9740": {
+   "new": "0x536ed9a8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e9744": {
+   "new": "0x536ed9ac",
+   "how": "aligned + refs 0x536ed9acx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e9750": {
+   "new": "0x536ed9b8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e97d0": {
+   "new": "0x536eda38",
+   "how": "aligned + refs 0x536eda38x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e97e0": {
+   "new": "0x536eda48",
+   "how": "aligned + refs 0x536eda48x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e99d8": {
+   "new": "0x536edc40",
+   "how": "aligned + refs 0x536edc40x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e99e8": {
+   "new": "0x536edc50",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e9aac": {
+   "new": "0x536edd14",
+   "how": "aligned + refs 0x536edd14x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e9af8": {
+   "new": "0x536edd60",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e9b08": {
+   "new": "0x536edd70",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e9b28": {
+   "new": "0x536edd90",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
+  "0x536e9b2c": {
+   "new": "0x536edd94",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
    ]
   },
   "0x536eb0bc": {
@@ -8107,6 +8308,14 @@
     "tools/gr3x170/image_controls_verify.py"
    ]
   },
+  "0x53dc2410": {
+   "new": "0x53dcaed0",
+   "how": "aligned + refs 0x53dcaed0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
+   ]
+  },
   "0x53dc28dc": {
    "new": "0x53dcb39c",
    "how": "aligned + refs 0x53dcb39cx1",
@@ -8592,6 +8801,15 @@
    "why": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout",
    "files": [
     "core/src/fw/gr3x170/round10.ts"
+   ]
+  },
+  "0x55803c5c": {
+   "new": "0x55803f1c",
+   "how": "override",
+   "ok": true,
+   "why": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout",
+   "files": [
+    "core/src/fw/gr3x170/shadowml.ts"
    ]
   },
   "0x55803c64": {

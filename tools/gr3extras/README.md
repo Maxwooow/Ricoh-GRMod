@@ -8,4 +8,6 @@ them up in the generated address tables, so they are not part of the generated p
 - `units_check.py`: distances in feet, from the built text and icon directories.
 - `battery_check.py`: battery percentage, the camera's GetBatteryIcon and its two callers with synthetic power reports.
 - `rxdis.py`: a small disassembler for the sub-CPU (Renesas RX) program, used to read how it fills the power report.
+- `shadow_check.py`: the learned Auto for Shadow Correction, with the camera's own shadow-correction core against the
+  reference model (GR IV's `tools/gr4v120/shadowml/ref.py`); `shadowml/` holds the module's GR III source and its `gen.py`.
 - `addmap.py`: adds the addresses of new GR III source files to the port maps (2.10 -> 2.20 -> 2.21).

@@ -17,6 +17,8 @@ export interface Gr3xExtras {
   /** The battery icon shows the charge in steps of 10 % (battery.ts); batteryDiag: "?" / "!" instead of the camera's icon (test builds). */
   batteryPercent?: true;
   batteryDiag?: true;
+  /** Shadow Correction's Auto set by GR IV's learned model (shadowml.ts). */
+  shadowLearn?: true;
 }
 
 /** The extras as they are built and recorded: validated, defaults left out; undefined for none. */
@@ -24,7 +26,7 @@ export function normalizeGr3xExtras(x: unknown): Gr3xExtras | undefined {
   if (x === undefined || x === null) return undefined;
   if (typeof x !== 'object') throw new FirmwareError('bad-edit', 'IIIx extras');
   const e = x as Record<string, unknown>, out: Gr3xExtras = {};
-  for (const k of Object.keys(e)) if (k !== 'customGrid' && k !== 'distanceFeet' && k !== 'batteryPercent' && k !== 'batteryDiag') throw new FirmwareError('bad-edit', `IIIx extras: unknown addition ${k}`);
+  for (const k of Object.keys(e)) if (k !== 'customGrid' && k !== 'distanceFeet' && k !== 'batteryPercent' && k !== 'batteryDiag' && k !== 'shadowLearn') throw new FirmwareError('bad-edit', `IIIx extras: unknown addition ${k}`);
   if (e.customGrid !== undefined) {
     if (!validCustomGrid(e.customGrid)) throw new FirmwareError('bad-edit', 'custom grid: eight lines on or off for each style');
     if (!isCameraGrid(e.customGrid)) out.customGrid = { g3: [...e.customGrid.g3], g4: [...e.customGrid.g4] };
@@ -35,5 +37,7 @@ export function normalizeGr3xExtras(x: unknown): Gr3xExtras | undefined {
   if (e.batteryDiag === true && e.batteryPercent !== true) throw new FirmwareError('bad-edit', 'batteryDiag is a variant of batteryPercent');
   if (e.batteryPercent === true) out.batteryPercent = true;
   if (e.batteryDiag === true) out.batteryDiag = true;
+  if (e.shadowLearn !== undefined && typeof e.shadowLearn !== 'boolean') throw new FirmwareError('bad-edit', 'shadowLearn must be boolean');
+  if (e.shadowLearn === true) out.shadowLearn = true;
   return Object.keys(out).length ? out : undefined;
 }
