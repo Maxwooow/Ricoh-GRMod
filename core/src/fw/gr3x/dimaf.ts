@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * Dim-light AF (GR IIIx 1.60 only): the contrast AF's peak detector and its frame rate set as tested on
+ * Dim-light AF (GR IIIx 1.60, 1.70 and 1.71): the contrast AF's peak detector and its frame rate set as tested on
  * the camera ("X875+FALLS2+OPT+NO29" in the study behind it, github.com/nils-fl/RicohGR,
  * docs/af-debug-log.html "Parameter search with Optuna" and "The setting flashed into the firmware").
  *
@@ -29,47 +29,56 @@
  *   bright (stock at 100 fps), all locked: stock 322..327 ms, this setting 315 ms (15 presses).
  * Flashed (the same nineteen words, built by the study's own tool) and used on the camera 2026-11-20..25.
  *
- * Not offered on GR III 2.10 (the same program, another lens, never tested) nor on 1.70 / 1.71 (the
- * addresses are not mapped there): the engine's `features.dimLightAf` says where.
+ * 1.70 and 1.71: the contrast-AF region (0x533f3d18 .. 0x53417990 in 1.60) is the same code in all three releases up to
+ * relocation (only a block of linker veneers moved); the sites are found once each with the code around them, and the
+ * data through the same movw / movt of the same code, every value equal (tools/port/gr3-p2-overrides.json,
+ * gr3-p3-overrides.json). Two stock words differ there, both overwritten: the movw of the 0.25 floor's address (the
+ * data moved) and the bl to sqrt (the library moved). The words written are the same in every release.
+ *
+ * Not offered on GR III (2.10 / 2.20 / 2.21: the same program, another lens, never tested): the engine's
+ * `features.dimLightAf` says where.
  */
 import type { Gr3xProgram } from './image-pipeline';
-import { GR3X_160 } from './profile';
-import { release } from './target';
+import { adr, byRelease } from './target';
 
 type Site = readonly [address: number, stock: number, patched: number, reason: string];
+
+/** The two stock words that name a moved address (the 0.25 floor's movw, the bl to sqrt); both are overwritten. */
+const FLOOR_MOVW = byRelease({ '1.60': 0xe3063bd4, '1.70': 0xe3063514, '1.71': 0xe30e3a2c });
+const SQRT_BL = byRelease({ '1.60': 0xebf51d64, '1.70': 0xebf51d58, '1.71': 0xebf516e4 });
 
 const X875 = 'dim-light AF: margin scale x^0.875 (X875)';
 const KB = 'dim-light AF: margin base x 0.32';
 
-/** The nineteen words: address (GR IIIx 1.60), stock word, word written, why. */
+/** The nineteen words: address (this release's), stock word, word written, why. */
 export const GR3X_DIM_LIGHT_AF_SITES: readonly Site[] = [
-  [0x5340c5f0, 0x8a000008, 0x8eb17ac0, X875],
-  [0x5340c5f4, 0xe3063bd4, 0x8eb17ac7, X875],
-  [0x5340c5f8, 0xe34533c1, 0x8eb17ac7, X875],
-  [0x5340c5fc, 0xedd37a00, 0x8e800a07, X875],
-  [0x5340c600, 0xeeb40ae7, 0x8a000004, X875],
-  [0x5340c604, 0xeef1fa10, 0xeef57a00, X875],
-  [0x5340c608, 0x5ef07a40, 0xeeb40ae7, X875],
-  [0x5340c60c, 0xeeb70ae7, 0xeef1fa10, X875],
-  [0x5340c610, 0xebf51d64, 0x4eb00a67, X875],
-  [0x5340c614, 0xeeb70bc0, 0xeeb10ac0, X875],
-  [0x53c16bb0, 0x440e4e14, 0x43362680, KB],
-  [0x53c16bb4, 0x440e4e14, 0x43362680, KB],
-  [0x53c16bb8, 0x440fa000, 0x4337d70a, KB],
-  [0x53c16bbc, 0x44157666, 0x433f4fdf, KB],
-  [0x53c16bc0, 0x440cd333, 0x43344189, KB],
-  [0x53c16bc4, 0x440cd333, 0x43344189, KB],
-  [0x53c16d14, 0x3ca3d70a, 0x3c656042, 'dim-light AF: mode-0 rise floor 0.02 -> 0.014'],
-  [0x53c16cc0, 0x00000003, 0x00000002, 'dim-light AF: rising run of 2 arms the detector (FALLS2)'],
-  [0x533f4b10, 0x83a03003, 0x83a03002, 'dim-light AF: 49 instead of 29 fps in dim light (NO29)'],
+  [adr(0x5340c5f0), 0x8a000008, 0x8eb17ac0, X875],
+  [adr(0x5340c5f4), FLOOR_MOVW, 0x8eb17ac7, X875],
+  [adr(0x5340c5f8), 0xe34533c1, 0x8eb17ac7, X875],
+  [adr(0x5340c5fc), 0xedd37a00, 0x8e800a07, X875],
+  [adr(0x5340c600), 0xeeb40ae7, 0x8a000004, X875],
+  [adr(0x5340c604), 0xeef1fa10, 0xeef57a00, X875],
+  [adr(0x5340c608), 0x5ef07a40, 0xeeb40ae7, X875],
+  [adr(0x5340c60c), 0xeeb70ae7, 0xeef1fa10, X875],
+  [adr(0x5340c610), SQRT_BL, 0x4eb00a67, X875],
+  [adr(0x5340c614), 0xeeb70bc0, 0xeeb10ac0, X875],
+  [adr(0x53c16bb0), 0x440e4e14, 0x43362680, KB],
+  [adr(0x53c16bb4), 0x440e4e14, 0x43362680, KB],
+  [adr(0x53c16bb8), 0x440fa000, 0x4337d70a, KB],
+  [adr(0x53c16bbc), 0x44157666, 0x433f4fdf, KB],
+  [adr(0x53c16bc0), 0x440cd333, 0x43344189, KB],
+  [adr(0x53c16bc4), 0x440cd333, 0x43344189, KB],
+  [adr(0x53c16d14), 0x3ca3d70a, 0x3c656042, 'dim-light AF: mode-0 rise floor 0.02 -> 0.014'],
+  [adr(0x53c16cc0), 0x00000003, 0x00000002, 'dim-light AF: rising run of 2 arms the detector (FALLS2)'],
+  [adr(0x533f4b10), 0x83a03003, 0x83a03002, 'dim-light AF: 49 instead of 29 fps in dim light (NO29)'],
 ];
 
-/** True for the one file the words were tested on: GR IIIx 1.60 (not GR III 2.10, not 1.70 / 1.71). */
-export function gr3xDimLightAfOffered(profile: { readonly id: string }): boolean {
-  return release === '1.60' && profile.id === GR3X_160.id;
+/** True for GR IIIx (1.60, 1.70, 1.71): the camera the words were tuned and tested on. Not GR III (another lens). */
+export function gr3xDimLightAfOffered(profile: { readonly model: string }): boolean {
+  return profile.model === 'GR3X_HDF';
 }
 
-/** The words of GR IIIx 1.60 only: the caller checks `gr3xDimLightAfOffered` (adj.ts). */
+/** The words of GR IIIx only: the caller checks `gr3xDimLightAfOffered` (adj.ts). */
 export function installGr3xDimLightAf(p: Pick<Gr3xProgram, 'patch'>): void {
   for (const [address, stock, patched, reason] of GR3X_DIM_LIGHT_AF_SITES) p.patch(address, stock, patched, reason);
 }

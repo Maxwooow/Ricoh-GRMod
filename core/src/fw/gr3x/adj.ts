@@ -131,7 +131,7 @@ export interface Gr3xAdjFeatures {
   /** Round 8: the Image Control order and hidden looks (look-layout.ts; the camera's order with
    * nothing hidden is the same as none). */
   lookLayout?: Gr3xLookLayout;
-  /** Dim-light AF: nineteen words of the contrast AF (dimaf.ts). GR IIIx 1.60 only. */
+  /** Dim-light AF: nineteen words of the contrast AF (dimaf.ts). GR IIIx only (not GR III). */
   dimLightAf?: boolean;
 }
 /** How the image-control layer builds on this one (not recorded: it follows from the films). */
@@ -172,7 +172,7 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
   const menu = geometry.menu, count = menu.length, spelled = count === 9 ? 'nine' : String(count);
   const { decoded, profile } = await openGr3xOfficial(raw);
   const dimLightAf = features.dimLightAf === true;
-  if (dimLightAf && !gr3xDimLightAfOffered(profile)) fail('IIIx dim-light AF: GR IIIx 1.60 only');
+  if (dimLightAf && !gr3xDimLightAfOffered(profile)) fail('IIIx dim-light AF: GR IIIx only');
   const p = GR3X_PROFILE, m = GR3X_ADJ;
   const rtos = decoded.subarray(p.rtosOffset, p.rtosOffset + p.rtosLength);
   const iconSection = sectionsOf(decoded).find(s => s.name === 'ICONBIN');

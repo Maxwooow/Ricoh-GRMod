@@ -64,7 +64,7 @@ Use only firmware intended for your camera model and a base version listed above
 - **Distance unit:** Snap Focus Distance and the manual focus scale in feet (and inches) instead of metres, on GR IV 1.20 / 1.21.
 - **White balance per look:** each Image Control look, the camera's own and the added ones, remembers its own still white balance and gets it back when chosen again, on GR IV 1.20 / 1.21 with added slots.
 - **Custom grid lines:** choose which lines a 3x3 and a 4x4 grid draw, on the GR IV (firmware 1.11, 1.20 and 1.21; on 1.20 / 1.21 they are extra values of the camera's Grid Style list, next to its own).
-- **Dim-light AF:** faster contrast AF in low light (a milder peak detector, and 49 instead of 29 frames per second while it searches), on the GR IIIx (firmware 1.60).
+- **Faster AF in low light:** faster contrast AF in low light (a milder peak detector, and 49 instead of 29 frames per second while it searches), on the GR IIIx (firmware 1.60, 1.70 and 1.71).
 
 Features vary by camera model and firmware version. The app only offers options supported by the selected firmware.
 

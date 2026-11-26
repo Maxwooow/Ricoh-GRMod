@@ -2625,10 +2625,76 @@
 "how": "aligned + refs 0x533ad4b0x1264",
 "ok": true
 },
+"0x533f4b10": {
+"new": "0x533f4c00",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: the AF drive-level choice (1.60 0x533f4a70), found once with 49 words around it equal up to relocation"
+},
 "0x53400000": {
 "new": "0x534000f0",
 "how": "aligned",
 "ok": true
+},
+"0x5340c5f0": {
+"new": "0x5340c6e0",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+},
+"0x5340c5f4": {
+"new": "0x5340c6e4",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+},
+"0x5340c5f8": {
+"new": "0x5340c6e8",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+},
+"0x5340c5fc": {
+"new": "0x5340c6ec",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+},
+"0x5340c600": {
+"new": "0x5340c6f0",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+},
+"0x5340c604": {
+"new": "0x5340c6f4",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+},
+"0x5340c608": {
+"new": "0x5340c6f8",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+},
+"0x5340c60c": {
+"new": "0x5340c6fc",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+},
+"0x5340c610": {
+"new": "0x5340c700",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+},
+"0x5340c614": {
+"new": "0x5340c704",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
 },
 "0x534322d8": {
 "new": "0x534323c8",
@@ -4553,6 +4619,54 @@
 "new": "0x53c0a6e8",
 "how": "aligned + refs 0x53c0a6e8x2",
 "ok": true
+},
+"0x53c16bb0": {
+"new": "0x53c164f0",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: contrast-AF data reached through the same movw/movt of the same code (table base, 0.25 floor, rise floor, rising run), every value equal; the block moved -0x6c0 (1.70)"
+},
+"0x53c16bb4": {
+"new": "0x53c164f4",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: contrast-AF data reached through the same movw/movt of the same code (table base, 0.25 floor, rise floor, rising run), every value equal; the block moved -0x6c0 (1.70)"
+},
+"0x53c16bb8": {
+"new": "0x53c164f8",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: contrast-AF data reached through the same movw/movt of the same code (table base, 0.25 floor, rise floor, rising run), every value equal; the block moved -0x6c0 (1.70)"
+},
+"0x53c16bbc": {
+"new": "0x53c164fc",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: contrast-AF data reached through the same movw/movt of the same code (table base, 0.25 floor, rise floor, rising run), every value equal; the block moved -0x6c0 (1.70)"
+},
+"0x53c16bc0": {
+"new": "0x53c16500",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: contrast-AF data reached through the same movw/movt of the same code (table base, 0.25 floor, rise floor, rising run), every value equal; the block moved -0x6c0 (1.70)"
+},
+"0x53c16bc4": {
+"new": "0x53c16504",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: contrast-AF data reached through the same movw/movt of the same code (table base, 0.25 floor, rise floor, rising run), every value equal; the block moved -0x6c0 (1.70)"
+},
+"0x53c16cc0": {
+"new": "0x53c16600",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: contrast-AF data reached through the same movw/movt of the same code (table base, 0.25 floor, rise floor, rising run), every value equal; the block moved -0x6c0 (1.70)"
+},
+"0x53c16d14": {
+"new": "0x53c16654",
+"how": "override",
+"ok": true,
+"why": "dim-light AF: contrast-AF data reached through the same movw/movt of the same code (table base, 0.25 floor, rise floor, rising run), every value equal; the block moved -0x6c0 (1.70)"
 },
 "0x53c629e8": {
 "new": "0x53c62328",

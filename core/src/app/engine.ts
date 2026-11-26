@@ -107,7 +107,7 @@ export interface FirmwareInfo {
     flashTtl?: boolean;
     /** Movie AF driven by the phase data (GR IV 1.20 and 1.21; see `gr4v120/aspect/videoaf.ts`). */
     videoAf?: boolean;
-    /** Dim-light AF: the contrast AF's detector and frame rate as tested on the camera (GR IIIx 1.60 only; see `gr3x/dimaf.ts`). */
+    /** Dim-light AF: the contrast AF's detector and frame rate as tested on the camera (GR IIIx 1.60, 1.70, 1.71; see `gr3x/dimaf.ts`). */
     dimLightAf?: boolean;
     /** A learned auto white balance for the three Auto modes (GR IV 1.20 and 1.21; see `gr4v120/aspect/awb2.ts`). */
     awbLearn?: boolean;
@@ -266,7 +266,7 @@ export interface FirmwareSummary {
   flashTtl?: boolean;
   /** True when the file has movie AF driven by the phase data. */
   videoAf?: boolean;
-  /** True when the file has the dim-light AF (GR IIIx 1.60). */
+  /** True when the file has the dim-light AF (GR IIIx). */
   dimLightAf?: boolean;
   /** True when the file has the learned auto white balance. */
   awbLearn?: boolean;
@@ -406,7 +406,7 @@ export interface BuildOptions {
    */
   videoAf?: boolean;
   /**
-   * Dim-light AF (GR IIIx 1.60 only, `features.dimLightAf`): nineteen words of the contrast AF's peak detector
+   * Dim-light AF (GR IIIx 1.60, 1.70 and 1.71, `features.dimLightAf`): nineteen words of the contrast AF's peak detector
    * and its frame rate, as tested on the camera (`gr3x/dimaf.ts`): a milder margin, a lower rise floor, a
    * shorter rising run, and 49 instead of 29 fps where the light is low. Bright light keeps the camera's own
    * rates. Off unless asked for.
@@ -1164,7 +1164,7 @@ export class Engine {
     if (options.brightAuto !== undefined && ![true, false, 'bright', 'balanced'].includes(options.brightAuto)) throw new FirmwareError('bad-edit', 'brightAuto must be boolean, bright or balanced');
     if (options.brightAuto && this.info.family !== 'gr4') throw new FirmwareError('bad-edit', 'bright Auto requires GR IV firmware');
     if (options.dimLightAf !== undefined && typeof options.dimLightAf !== 'boolean') throw new FirmwareError('bad-edit', 'dimLightAf must be boolean');
-    if (options.dimLightAf && !this.info.features.dimLightAf) throw new FirmwareError('bad-edit', 'the dim-light AF needs GR IIIx firmware 1.60');
+    if (options.dimLightAf && !this.info.features.dimLightAf) throw new FirmwareError('bad-edit', 'the dim-light AF needs GR IIIx firmware');
     if (this.info.family === 'gr3x') {
       if (Object.entries(options).some(([k, v]) => k !== 'monoUnlock' && k !== 'adjSoftFocus' && k !== 'dateStamp' && k !== 'shutdownPictures' && k !== 'filmCount' && k !== 'guard' && k !== 'lookLayout' && k !== 'gr3Round' && k !== 'dimLightAf' && v !== undefined && v !== false && !(Array.isArray(v) && !v.length)))
         throw new FirmwareError('gr3x-unsupported', 'added Image Control slots and the test settings of the date imprint are not ported to GR III / IIIx');

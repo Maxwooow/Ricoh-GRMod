@@ -38,7 +38,7 @@ function Capsule({ icon, title, sub, on, control, foot, tour, onOpen, morph }: {
 }
 
 /** A switch of an addition. */
-function FeatureCapsule({ on, onChange, ...rest }: { icon: ReactNode; title: string; sub: string; on: boolean; onChange: (v: boolean) => void; tour?: string }) {
+function FeatureCapsule({ on, onChange, ...rest }: { icon: ReactNode; title: string; sub?: string; on: boolean; onChange: (v: boolean) => void; tour?: string }) {
   return <Capsule {...rest} on={on} control={<Switch checked={on} onChange={onChange} label={rest.title} />} />;
 }
 
@@ -134,7 +134,7 @@ function ExtrasList() {
       )}
       {safOk && <FeatureCapsule icon={Ico.subject} title={t('navSubjectAf')} sub={t('subjectAfSub')} on={saf} onChange={setSubjectAf} tour="ex-f-saf" />}
       {vafOk && <FeatureCapsule icon={Ico.movie} title={t('navVideoAf')} sub={t('videoAfSub')} on={vaf} onChange={setVideoAf} tour="ex-f-vaf" />}
-      {dimAfOk && <FeatureCapsule icon={Ico.af} title={t('navDimAf')} sub={t('dimAfSub')} on={dimAf} onChange={setDimLightAf} tour="ex-f-dimaf" />}
+      {dimAfOk && <FeatureCapsule icon={Ico.af} title={t('navDimAf')} on={dimAf} onChange={setDimLightAf} tour="ex-f-dimaf" />}
       {mexpOk && <FeatureCapsule icon={Ico.movieExp} title={t('navMovieExp')} sub={t('movieExpSub')} on={mexp} onChange={setMovieExposure} tour="ex-f-mexp" />}
       {m4kOk && <FeatureCapsule icon={Ico.movie4k} title={t('navMovie4k')} sub={t('movie4kSub')} on={m4k} onChange={setMovie4k} tour="ex-f-4k" />}
       {msrOk && <FeatureCapsule icon={Ico.movieSr} title={t('navMovieSr')} sub={t('movieSrSub')} on={msr} onChange={setMovieSr} tour="ex-f-msr" />}

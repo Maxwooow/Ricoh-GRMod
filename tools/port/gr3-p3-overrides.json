@@ -91,6 +91,50 @@
   "new": "0x53399b28",
   "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [-8, -7, -5, -4] (neighbouring code Ricoh changed; checked side by side)"
  },
+ "0x533f4c00": {
+  "new": "0x533f7548",
+  "reason": "dim-light AF: the AF drive-level choice (1.60 0x533f4a70), found once with 49 words around it equal up to relocation"
+ },
+ "0x5340c6e0": {
+  "new": "0x5340f030",
+  "reason": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+ },
+ "0x5340c6e4": {
+  "new": "0x5340f034",
+  "reason": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+ },
+ "0x5340c6e8": {
+  "new": "0x5340f038",
+  "reason": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+ },
+ "0x5340c6ec": {
+  "new": "0x5340f03c",
+  "reason": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+ },
+ "0x5340c6f0": {
+  "new": "0x5340f040",
+  "reason": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+ },
+ "0x5340c6f4": {
+  "new": "0x5340f044",
+  "reason": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+ },
+ "0x5340c6f8": {
+  "new": "0x5340f048",
+  "reason": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+ },
+ "0x5340c6fc": {
+  "new": "0x5340f04c",
+  "reason": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+ },
+ "0x5340c700": {
+  "new": "0x5340f050",
+  "reason": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+ },
+ "0x5340c704": {
+  "new": "0x5340f054",
+  "reason": "dim-light AF: the contrast AF margin scale (1.60 0x5340c590), found once with 52 words around it equal (movw/movt and bl masked); the contrast-AF region 0x533f3d18..0x53417990 is the same code up to relocation (only linker veneers moved)"
+ },
  "0x5362a440": {
   "new": "0x5362d22c",
   "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation except at [-3] (neighbouring code Ricoh changed; checked side by side)"
@@ -122,6 +166,38 @@
  "0x53c0a6e8": {
   "new": "0x53c12c00",
   "reason": "aligned in 2.21 (aligned + refs 0x53c12c00x2); +-8 words equal up to relocation"
+ },
+ "0x53c164f0": {
+  "new": "0x53c1ea08",
+  "reason": "dim-light AF: contrast-AF data reached through the same movw/movt of the same code (table base, 0.25 floor, rise floor, rising run), every value equal; the block moved +0x8518 from 1.70"
+ },
+ "0x53c164f4": {
+  "new": "0x53c1ea0c",
+  "reason": "dim-light AF: contrast-AF data reached through the same movw/movt of the same code (table base, 0.25 floor, rise floor, rising run), every value equal; the block moved +0x8518 from 1.70"
+ },
+ "0x53c164f8": {
+  "new": "0x53c1ea10",
+  "reason": "dim-light AF: contrast-AF data reached through the same movw/movt of the same code (table base, 0.25 floor, rise floor, rising run), every value equal; the block moved +0x8518 from 1.70"
+ },
+ "0x53c164fc": {
+  "new": "0x53c1ea14",
+  "reason": "dim-light AF: contrast-AF data reached through the same movw/movt of the same code (table base, 0.25 floor, rise floor, rising run), every value equal; the block moved +0x8518 from 1.70"
+ },
+ "0x53c16500": {
+  "new": "0x53c1ea18",
+  "reason": "dim-light AF: contrast-AF data reached through the same movw/movt of the same code (table base, 0.25 floor, rise floor, rising run), every value equal; the block moved +0x8518 from 1.70"
+ },
+ "0x53c16504": {
+  "new": "0x53c1ea1c",
+  "reason": "dim-light AF: contrast-AF data reached through the same movw/movt of the same code (table base, 0.25 floor, rise floor, rising run), every value equal; the block moved +0x8518 from 1.70"
+ },
+ "0x53c16600": {
+  "new": "0x53c1eb18",
+  "reason": "dim-light AF: contrast-AF data reached through the same movw/movt of the same code (table base, 0.25 floor, rise floor, rising run), every value equal; the block moved +0x8518 from 1.70"
+ },
+ "0x53c16654": {
+  "new": "0x53c1eb6c",
+  "reason": "dim-light AF: contrast-AF data reached through the same movw/movt of the same code (table base, 0.25 floor, rise floor, rising run), every value equal; the block moved +0x8518 from 1.70"
  },
  "0x53d60fb8": {
   "new": "0x53d6989c",
