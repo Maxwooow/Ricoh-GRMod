@@ -602,7 +602,8 @@
    "ok": true,
    "files": [
     "core/src/fw/gr3x170/halation-rows.ts",
-    "core/src/fw/gr3x170/halation-screen.ts"
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "core/src/fw/gr3x170/halation-switch.ts"
    ]
   },
   "0x531acc34": {
@@ -611,7 +612,8 @@
    "ok": true,
    "files": [
     "core/src/fw/gr3x170/halation-rows.ts",
-    "core/src/fw/gr3x170/halation-screen.ts"
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "core/src/fw/gr3x170/halation-switch.ts"
    ]
   },
   "0x531acc94": {
@@ -620,7 +622,8 @@
    "ok": true,
    "files": [
     "core/src/fw/gr3x170/halation-rows.ts",
-    "core/src/fw/gr3x170/halation-screen.ts"
+    "core/src/fw/gr3x170/halation-screen.ts",
+    "core/src/fw/gr3x170/halation-switch.ts"
    ]
   },
   "0x531acdec": {

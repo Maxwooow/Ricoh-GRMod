@@ -33,6 +33,8 @@ import { halationLightR6, halationScaleR6, PLAIN_LIGHT_R6 } from './halation-r6'
 import { sectionsOf } from '../container';
 import { gr3xOffset } from './profile';
 import { GR3X_TONING_SCALE } from './halation-screen';
+import { gr3xMonoWhiteAsm, installGr3xHalationOff } from './halation-switch';
+import { normalizeGr3xExtras } from './extras';
 import { GR3X_STASH_FILM, gr3xRawDevelopmentWords } from './datestamp';
 
 /** The live view's change detection reads the frame's look here (round 9: unmapped). */
@@ -194,6 +196,11 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
   // Round 10 (films-r10.ts): the films as looks of their own, GR IV's way.
   const round10 = features.round10 === true;
   if (round10 && !round9) throw new FirmwareError('bad-edit', 'IIIx round 10 builds on round 9');
+  // Extra halationSwitch (halation-switch.ts): true the 0.9 module (and black-and-white films white),
+  // false no halation at all, absent round 10's films as they are.
+  const halationSwitch = normalizeGr3xExtras(features.extras)?.halationSwitch;
+  if (halationSwitch !== undefined && !(round10 && round6)) throw new FirmwareError('bad-edit', 'IIIx halation switch: round 10 with films');
+  const halationOn = halationSwitch !== false;
   if (round6 && (!extended || options.ownParameters !== true || options.jpegDiagnostics || !Number.isInteger(options.filmCount) ||
       options.filmCount! < 1 || options.filmCount! > GR3X_MAX_FILMS || options.films?.some(f => f.halation !== undefined)))
     throw new FirmwareError('bad-edit', 'IIIx film count: 1..20 films with their own parameters (Halation is set in the camera)');
@@ -223,7 +230,7 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
   // Round 8: the films' names for the date imprint, as the camera's English menu shows them.
   const filmNames = round8Date ? films.map(f => f.names?.en || f.name) : undefined;
   const menu = await buildGr3xLookMenuResearch(raw, specs as Gr3xResearchLook[], displayIcons, ratioMenu, features,
-    round6 ? halationResources(decoded, round7, round8) : undefined, monoFilms, filmNames);
+    round6 && halationOn ? halationResources(decoded, round7, round8) : undefined, monoFilms, filmNames);
   const p = GR3X_PROFILE;
   const rtos = decoded.subarray(p.rtosOffset, p.rtosOffset + p.rtosLength);
   const originalRead = (va: number, size: number) => {
@@ -338,7 +345,7 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
       // r2 (the look, a film as Standard).
       return code(`push {r0-r5,ip,lr};mrs r4,cpsr;ldrb r2,[r3,#0x77c];mov r0,#0;sub ip,r2,#${GR3X_FIRST_FILM};cmp ip,#${capacity - 1};bhi nolevel;
         ldrb r1,[r3,#0x786];cmp r1,#7;movhs r1,#0;cmp r1,#4;subhs r1,r1,#3;orrhs r0,r0,#0x20000;bhs level;
-        cmp r1,#3;moveq r1,#2;beq level;cmp r1,#2;moveq r1,#3;level:orr r0,r0,r1,lsl #8;
+        cmp r1,#3;moveq r1,#2;beq level;cmp r1,#2;moveq r1,#3;level:${halationSwitch === true ? gr3xMonoWhiteAsm(monoFilms!) : ''}orr r0,r0,r1,lsl #8;
         nolevel:cmp r2,#${GR3X_FIRST_FILM};subhs ip,r2,#${GR3X_FIRST_FILM - GR3X_STASH_FILM};movlo ip,r2;orr ip,ip,r0;orr ip,ip,#0x10000;
         ${addr(1, GR3X_HALATION_STASH)}str ip,[r1];` +
         (round8Date ? `ldr r1,[sp,#4];${gr3xRawDevelopmentWordsR10('r1', 'ip', 'r0', 'r5')}` : '') +
@@ -495,12 +502,13 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
   })() : undefined;
   // Round 7: the Halation and Colour rows of a film on the parameter screen (halation-rows.ts).
   const sym = r10?.moduleSymbols;
-  const halationRows = round7 ? installGr3xHalationRows({ code, append, patch, u32: (a: number) => u32(a), read: originalRead },
+  const halationRows = round7 && halationOn ? installGr3xHalationRows({ code, append, patch, u32: (a: number) => u32(a), read: originalRead },
     { films: capacity, halationText: menu.extraTextIds[0], colourText: menu.extraTextIds[1], halationIcon: menu.extraIconIds[0],
       colourScale: menu.extraIconIds[1], redIcon: menu.extraIconIds[2], whiteIcon: menu.extraIconIds[3],
       ...(sym ? { hal: sym.sp_hal, halPut: sym.sp_hal_put, halText: sym.sp_hal_text, col: sym.sp_col, colPut: sym.sp_col_put }
         : { hal: own2Entry('sp_hal'), halPut: own2Entry('sp_hal_put'), halText: own2Entry('sp_hal_text'), col: own2Entry('sp_col'), colPut: own2Entry('sp_col_put'),
           backup: own2Entry('sp_hal_backup'), restore: own2Entry('sp_hal_restore') }) }) : undefined;
+  const halationOff = halationSwitch === false ? installGr3xHalationOff({ code, append, patch, u32: (a: number) => u32(a) }, capacity) : undefined;
   // Round 6: the Halation line of a film on the parameter screen (halation-screen.ts).
   const halationScreen = round6 && !round7 ? installGr3xHalationScreen({ code, append, patch, u32: (a: number) => u32(a), read: originalRead },
     { films: capacity, textId: menu.extraTextIds[0], iconId: menu.extraIconIds[0], scaleIconId: menu.extraIconIds[1],
@@ -538,7 +546,8 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
     halation: halationSlots.length && !round7 ? { levels: round6 ? slots.map(() => 1) : slots.slice(0, 9).map(s => s.halation),
       light: (round6 ? slots : slots.slice(0, 9)).map(s => s.quantizedCurves ? halationLightR6(s.quantizedCurves, s.postQ9) : PLAIN_LIGHT_R6) } : undefined,
     // Round 7: 0.8.2's halation (soft start, Weak / Medium / Strong, red or white) for every film.
-    ...(round7 ? { halation7: { light: slots.slice(0, capacity).map(s => s.quantizedCurves ? halationLight(s.quantizedCurves, s.postQ9) : PLAIN_LIGHT) } } : {}),
+    ...(round7 && halationOn ? { halation7: { light: slots.slice(0, capacity).map(s => s.quantizedCurves ? halationLight(s.quantizedCurves, s.postQ9) : PLAIN_LIGHT),
+      ...(halationSwitch === true ? { scatter: true } : {}) } } : {}),
     diagnostics: options.jpegDiagnostics === true,
   });
   // Round 10: the film's record comes from the descriptor's own table (films-r10.ts).
@@ -568,8 +577,8 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
     addedLooks: slots, renderingImplemented: true as const,
     lookEntries: { aggregate, rawEnum, restriction, enforce, descriptor, gamma, defaults, adapters, setters, activeChecks, activeChecksSet0, ...(liveGamma ? { liveGamma } : {}),
       ...(own ? { ownParameters: own } : {}), ...(r10 ? { films: r10 } : {}), ...(postMatrix ? { postMatrix } : {}), ...(jpeg ? { jpeg } : {}),
-      ...(halationScreen ? { halationScreen } : {}), ...(halationRows ? { halationRows } : {}) },
-    ...(round6 ? { filmCount: capacity, halationInCamera: true } : {}),
+      ...(halationScreen ? { halationScreen } : {}), ...(halationRows ? { halationRows } : {}), ...(halationOff ? { halationOff } : {}) },
+    ...(round6 ? { filmCount: capacity, halationInCamera: halationOn } : {}),
     ...(round7 ? { round7: true, monoFilms } : {}),
     ...(round9 ? { round9: true } : {}),
     ...(round10 ? { round10: true } : {}),
