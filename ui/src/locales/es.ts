@@ -317,4 +317,18 @@ export const es: Dict = {
   libSortNew: 'Más recientes primero',
   libSortName: 'Por nombre',
   libNoMatch: 'Ningún ajuste coincide',
+  // A failed save, the plain-language error hints (store/core.ts errorHint) and the summary before a folder export
+  saveFailed: 'No se pudo guardar el proyecto, así que los últimos cambios pueden perderse al salir. Comprueba el espacio en disco y los permisos',
+  hintFirmware: 'El archivo de firmware no es el correcto, está dañado o no es compatible. Usa el firmware oficial original',
+  hintUnsupportedHere: 'El firmware de esta cámara no admite esa función',
+  hintFwFull: 'No caben todos estos cambios en el firmware. Usa menos pantallas finales o películas',
+  hintTooMany: 'Demasiados formatos o imágenes añadidos. Quita algunos',
+  hintCardFull: 'La tarjeta o el disco está lleno. Libera espacio y vuelve a intentarlo',
+  hintRemoved: 'La tarjeta o el disco se ha retirado o no está listo. Vuelve a insertarlo e inténtalo de nuevo',
+  hintNotFound: 'No se encuentra el archivo. Puede que se haya movido o que se haya retirado la tarjeta',
+  hintDenied: 'Permiso denegado. Elige otra carpeta o comprueba que la tarjeta no esté protegida contra escritura',
+  hintWriteProtected: 'Puede que la tarjeta esté protegida contra escritura. Desliza el interruptor de bloqueo a la posición de desbloqueo y vuelve a intentarlo',
+  hintOffline: 'No se puede conectar con el programa GR Mod. Cierra esta ventana y vuelve a abrirla',
+  exportConfirmTitle: 'Exportar firmware',
+  exportConfirmOk: 'Exportar',
 };

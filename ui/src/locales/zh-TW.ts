@@ -317,4 +317,18 @@ export const zhTW: Dict = {
   libSortNew: '最新在前',
   libSortName: '依名稱',
   libNoMatch: '沒有相符的預設',
+  // A failed save, the plain-language error hints (store/core.ts errorHint) and the summary before a folder export
+  saveFailed: '專案沒有儲存成功，關閉程式後變更可能遺失。請檢查磁碟空間和權限',
+  hintFirmware: '韌體檔案不正確、已損壞或不受支援，請使用原廠韌體',
+  hintUnsupportedHere: '這台相機的韌體不支援該功能',
+  hintFwFull: '韌體中放不下這些變更，請減少結束畫面圖片或膠片數量',
+  hintTooMany: '新增的長寬比或圖片超過上限，請減少一些',
+  hintCardFull: '記憶卡或磁碟已滿，請騰出空間後重試',
+  hintRemoved: '記憶卡或磁碟已中斷連線或尚未就緒，請重新插入後重試',
+  hintNotFound: '找不到檔案，它可能已被移動，或記憶卡已拔出',
+  hintDenied: '沒有權限存取該位置，請換一個資料夾，或檢查記憶卡是否處於防寫狀態',
+  hintWriteProtected: '記憶卡可能處於防寫狀態，請將卡側的鎖定開關撥到解鎖位置後重試',
+  hintOffline: '無法連線到 GR Mod 程式，請關閉視窗後重新開啟',
+  exportConfirmTitle: '匯出韌體',
+  exportConfirmOk: '匯出',
 };

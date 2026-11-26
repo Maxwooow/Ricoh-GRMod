@@ -213,7 +213,10 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   // everything that leaves for a camera (also a file saved on the phone for it) is confirmed first
   const toCamera = dest.kind === 'card' || dest.kind === 'camera' || dest.kind === 'phone';
   if (stock && !(await askOfficial([t('copyOfficial')], fresh && toCamera ? fresh : undefined))) return;
-  if (toCamera && !stock) {
+  // @decision DEC-EXPORT-SUMMARY-001: the summary of what the build contains is asked before every modified build,
+  // to a folder as well as to the card, the camera and the phone. Cancel returns before the destination is chosen
+  // and before engine.build runs. The factory copy (stock) keeps its own reset confirm above.
+  if (!stock) {
     // The check before writing: only what changes, by name; with a count where one item holds several.
     const named = (name: string, n: number, unit: Key = 'chkCount'): string => (n > 1 ? `${name}  ·  ${t(unit, { n })}` : name);
     const lines = changes.map((c) => named(state.info?.family === 'gr3x' ? (state.slots[c.id].names[state.lang] || state.info.slots.find(s => s.id === c.id)?.defaultName || c.id) : t(('slot' + c.id) as Key), c.labels.length, 'chkChanges'));
@@ -249,8 +252,10 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     if (extras.length) lines.push(named(t('extraTitle'), extras.length));
     if (lookLayout) lines.push(lookLayout.hidden.length ? `${t('icViewOrder')}  ·  ${t('chkHidden', { n: lookLayout.hidden.length })}` : t('icViewOrder'));
     if (pictures.length) lines.push(named(t('navWall'), pictures.length, 'chkPictures'));
-    const [title, ok] = dest.kind === 'camera' ? [t('pushTitle'), t('pushStart')] : dest.kind === 'phone' ? [t('saveTitle'), t('saveStart')] : [t('confirmTitle'), t('confirmOk')];
-    if (!(await ask(title, lines, ok, fresh ?? undefined))) return;
+    const [title, ok] = dest.kind === 'camera' ? [t('pushTitle'), t('pushStart')] : dest.kind === 'phone' ? [t('saveTitle'), t('saveStart')]
+      : dest.kind === 'card' ? [t('confirmTitle'), t('confirmOk')] : [t('exportConfirmTitle'), t('exportConfirmOk')];
+    // The cannot-go-back warning stays with the writes that reach a camera, as for the factory copy.
+    if (!(await ask(title, lines, ok, fresh && toCamera ? fresh : undefined))) return;
   }
   const target = await destination(dest);
   if (!target || state.info !== sourceInfo || state.raw !== sourceRaw || state.model !== sourceModel || state.fwBusy) return;

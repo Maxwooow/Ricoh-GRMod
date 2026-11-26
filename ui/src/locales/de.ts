@@ -317,4 +317,18 @@ export const de: Dict = {
   libSortNew: 'Neueste zuerst',
   libSortName: 'Nach Name',
   libNoMatch: 'Kein Preset passt',
+  // A failed save, the plain-language error hints (store/core.ts errorHint) and the summary before a folder export
+  saveFailed: 'Das Projekt konnte nicht gespeichert werden, die letzten Änderungen gehen beim Beenden eventuell verloren. Speicherplatz und Zugriffsrechte prüfen',
+  hintFirmware: 'Die Firmwaredatei ist falsch, beschädigt oder nicht unterstützt. Bitte die Original-Firmware verwenden',
+  hintUnsupportedHere: 'Die Firmware dieser Kamera unterstützt diese Funktion nicht',
+  hintFwFull: 'In der Firmware ist kein Platz für all diese Änderungen. Weniger Bilder für den Endbildschirm oder weniger Filme verwenden',
+  hintTooMany: 'Zu viele zusätzliche Seitenverhältnisse oder Bilder. Einige entfernen',
+  hintCardFull: 'Die Karte oder das Laufwerk ist voll. Platz schaffen und erneut versuchen',
+  hintRemoved: 'Die Karte oder das Laufwerk wurde entfernt oder ist nicht bereit. Wieder einsetzen und erneut versuchen',
+  hintNotFound: 'Datei nicht gefunden. Sie wurde vielleicht verschoben oder die Karte wurde entfernt',
+  hintDenied: 'Zugriff verweigert. Einen anderen Ordner wählen oder prüfen, ob die Karte schreibgeschützt ist',
+  hintWriteProtected: 'Die Karte ist vielleicht schreibgeschützt. Den Sperrschieber auf „entsperrt“ stellen und erneut versuchen',
+  hintOffline: 'Das GR-Mod-Programm ist nicht erreichbar. Dieses Fenster schließen und neu öffnen',
+  exportConfirmTitle: 'Firmware exportieren',
+  exportConfirmOk: 'Exportieren',
 };

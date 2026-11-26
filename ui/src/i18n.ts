@@ -306,6 +306,20 @@ const zh = {
   libSortNew: '最新在前',
   libSortName: '按名称',
   libNoMatch: '没有匹配的预设',
+  // A failed save, the plain-language error hints (store/core.ts errorHint) and the summary before a folder export
+  saveFailed: '项目没有保存成功，关闭程序后改动可能丢失。请检查磁盘空间和权限',
+  hintFirmware: '固件文件不对、已损坏或不受支持，请使用官方原始固件',
+  hintUnsupportedHere: '这台相机的固件不支持该功能',
+  hintFwFull: '固件里放不下这些改动，请减少结束画面图片或胶片数量',
+  hintTooMany: '新增的长宽比或图片超过上限，请减少一些',
+  hintCardFull: '存储卡或磁盘已满，请腾出空间后重试',
+  hintRemoved: '存储卡或磁盘已断开或未就绪，请重新插入后重试',
+  hintNotFound: '找不到文件，它可能已被移动，或存储卡已拔出',
+  hintDenied: '没有权限访问该位置，请换一个文件夹，或检查存储卡是否写保护',
+  hintWriteProtected: '存储卡可能处于写保护状态，请拨开卡侧的锁定开关后重试',
+  hintOffline: '连不上 GR Mod 程序，请关闭窗口后重新打开',
+  exportConfirmTitle: '导出固件',
+  exportConfirmOk: '导出',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -606,6 +620,20 @@ const en: typeof zh = {
   libSortNew: 'Newest first',
   libSortName: 'By name',
   libNoMatch: 'No preset matches',
+  // A failed save, the plain-language error hints (store/core.ts errorHint) and the summary before a folder export
+  saveFailed: 'The project could not be saved, so recent changes may be lost on exit. Check disk space and permissions',
+  hintFirmware: 'The firmware file is wrong, damaged or unsupported. Use the original official firmware',
+  hintUnsupportedHere: 'This camera\'s firmware does not support that feature',
+  hintFwFull: 'The firmware has no room for all these changes. Use fewer power-off pictures or films',
+  hintTooMany: 'Too many added ratios or pictures. Remove some',
+  hintCardFull: 'The card or disk is full. Free some space and try again',
+  hintRemoved: 'The card or disk was removed or is not ready. Reinsert it and try again',
+  hintNotFound: 'File not found. It may have been moved, or the card was removed',
+  hintDenied: 'Permission denied. Pick another folder, or check that the card is not write-protected',
+  hintWriteProtected: 'The card may be write-protected. Slide its lock switch to unlocked and try again',
+  hintOffline: 'Cannot reach the GR Mod program. Close this window and open it again',
+  exportConfirmTitle: 'Export firmware',
+  exportConfirmOk: 'Export',
 };
 export type Key = keyof typeof zh;
 /** One language's texts: every entry of the Chinese ones. */
