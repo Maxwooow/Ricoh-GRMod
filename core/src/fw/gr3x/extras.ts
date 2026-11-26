@@ -14,6 +14,8 @@ export interface Gr3xExtras {
   customGrid?: CustomGrid;
   /** Snap Focus Distance and the manual focus scale in feet and inches (units.ts). */
   distanceFeet?: true;
+  /** Soft focus (ADJ, needs `adjSoftFocus`) also a line of the still menu (menu-lines.ts). */
+  softFocusMenu?: true;
 }
 
 /** The extras as they are built and recorded: validated, defaults left out; undefined for none. */
@@ -21,12 +23,14 @@ export function normalizeGr3xExtras(x: unknown): Gr3xExtras | undefined {
   if (x === undefined || x === null) return undefined;
   if (typeof x !== 'object') throw new FirmwareError('bad-edit', 'IIIx extras');
   const e = x as Record<string, unknown>, out: Gr3xExtras = {};
-  for (const k of Object.keys(e)) if (k !== 'customGrid' && k !== 'distanceFeet') throw new FirmwareError('bad-edit', `IIIx extras: unknown addition ${k}`);
+  for (const k of Object.keys(e)) if (k !== 'customGrid' && k !== 'distanceFeet' && k !== 'softFocusMenu') throw new FirmwareError('bad-edit', `IIIx extras: unknown addition ${k}`);
   if (e.customGrid !== undefined) {
     if (!validCustomGrid(e.customGrid)) throw new FirmwareError('bad-edit', 'custom grid: eight lines on or off for each style');
     if (!isCameraGrid(e.customGrid)) out.customGrid = { g3: [...e.customGrid.g3], g4: [...e.customGrid.g4] };
   }
   if (e.distanceFeet !== undefined && typeof e.distanceFeet !== 'boolean') throw new FirmwareError('bad-edit', 'distanceFeet must be boolean');
   if (e.distanceFeet === true) out.distanceFeet = true;
+  if (e.softFocusMenu !== undefined && typeof e.softFocusMenu !== 'boolean') throw new FirmwareError('bad-edit', 'softFocusMenu must be boolean');
+  if (e.softFocusMenu === true) out.softFocusMenu = true;
   return Object.keys(out).length ? out : undefined;
 }

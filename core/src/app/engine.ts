@@ -123,6 +123,8 @@ export interface FirmwareInfo {
     movieSr?: boolean;
     /** Distances can be shown in feet: Snap Focus Distance and the manual focus scale (GR IV 1.20 / 1.21; see `gr4v120/aspect/units.ts`). */
     distanceFeet?: boolean;
+    /** Soft focus can also be a line of the still menu (GR III / IIIx; on GR IV 1.20 / 1.21 it comes with `adjSoftFocus`; see `gr3x/menu-lines.ts`). */
+    softFocusMenu?: boolean;
     /** White balance per look: every look remembers its own still white balance (GR IV 1.20 and 1.21, with added slots; see `gr4v120/aspect/slots.ts`). */
     wbPerLook?: boolean;
     /** Halation for every look: every look, factory or added, has the Halation row and the effect (GR IV 1.20 and 1.21, with added slots; see `gr4v120/aspect/halation-all.ts`). */
@@ -280,6 +282,8 @@ export interface FirmwareSummary {
   movieSr?: boolean;
   /** True when the file shows distances in feet. */
   distanceFeet?: boolean;
+  /** True when soft focus is also a line of the still menu (GR III / IIIx). */
+  softFocusMenu?: boolean;
   /** True when every look of the file remembers its own still white balance. */
   wbPerLook?: boolean;
   /** True when every look of the file has halation. */
@@ -449,6 +453,12 @@ export interface BuildOptions {
    */
   distanceFeet?: boolean;
   /**
+   * Soft focus in the still menu (GR III / IIIx, needs `adjSoftFocus`): a line "Soft Focus" after Image Control with
+   * Off / Low / Medium / High, the same setting as the ADJ lever's (`gr3x/menu-lines.ts`). On GR IV 1.20 / 1.21 the line
+   * comes with `adjSoftFocus`.
+   */
+  softFocusMenu?: boolean;
+  /**
    * White balance per look (GR IV 1.20 and 1.21, `features.wbPerLook`; needs at least one added slot): every look,
    * factory or added, remembers its own still white balance (the WB mode, the G-M and B-A shift of each mode, the
    * colour temperature) and gets it back when it is chosen again, also after power-off. A look not used before starts
@@ -608,7 +618,7 @@ export class Engine {
       ranges: r.report.ranges, checks: r.report.checks, features: { ...(looks?.monoReplicas ? { monoUnlock: true } : {}), ...(adjSoftFocus ? { adjSoftFocus: true } : {}), ...(dateImprint ? { dateStamp: true } : {}),
         ...(pictures.length ? { shutdown: { pictures: pictures.map((p, k) => ({ id: p.id ?? k + 1, name: p.name, jpeg: p.jpeg })), factory: [] } } : {}),
         ...(lookLayout ? { lookLayout: { order: [...lookLayout.order], hidden: [...lookLayout.hidden] } } : {}),
-        ...(extras?.customGrid ? { customGrid: extras.customGrid } : {}), ...(extras?.distanceFeet ? { distanceFeet: true } : {}) },
+        ...(extras?.customGrid ? { customGrid: extras.customGrid } : {}), ...(extras?.distanceFeet ? { distanceFeet: true } : {}), ...(extras?.softFocusMenu ? { softFocusMenu: true } : {}) },
       ratios: gr3xCustoms(r.manifest.menu).map(x => {
         const plan = planGr3xRatio(x.ratio);
         return { id: x.id, name: x.name, ratio: x.ratio, actual: plan.actual, sizes: plan.sizes };
@@ -662,7 +672,7 @@ export class Engine {
         // GR Mod 0.8 dropped that route, and it was never tested on these cameras: not offered.
         // Power-off pictures, the date imprint, 20 films, the menu order: GR III 2.10 and GR IIIx 1.60 (one program).
         capabilities: { build: true, presets: true, wallpaper: false, factoryEntry: false, menuPictures: profile.fullFeatures, lookLayout: profile.fullFeatures },
-        features: { softFocus: 'adj', dateStamp: profile.fullFeatures, monoUnlock: false, maxFilms: profile.fullFeatures ? GR3X_MAX_FILMS : 9, ...(profile.fullFeatures ? { customGrid: true, distanceFeet: true } : {}) },
+        features: { softFocus: 'adj', dateStamp: profile.fullFeatures, monoUnlock: false, maxFilms: profile.fullFeatures ? GR3X_MAX_FILMS : 9, ...(profile.fullFeatures ? { customGrid: true, distanceFeet: true, softFocusMenu: true } : {}) },
         version: profile.version, sha256: profile.sha256,
         slots: GR3X_FILM_IDS.slice(0, profile.fullFeatures ? GR3X_MAX_FILMS : 9).map((id, i) => ({
           id, defaultName: GR3X_FILM_NAMES[i], icon: lookResources.film.slice(),
@@ -814,7 +824,7 @@ export class Engine {
         ...(matched && pictures.length ? { shutdownPictures: pictures.map((p, k) => ({ id: p.id ?? k + 1, name: p.name, jpeg: p.jpeg })) } : {}),
         ...(matched && lookLayout ? { lookLayout: { order: [...lookLayout.order], hidden: [...lookLayout.hidden] } } : {}),
         ...(matched && extras?.customGrid ? { customGrid: { g3: [...extras.customGrid.g3], g4: [...extras.customGrid.g4] } } : {}),
-        ...(matched && extras?.distanceFeet ? { distanceFeet: true } : {}) };
+        ...(matched && extras?.distanceFeet ? { distanceFeet: true } : {}), ...(matched && extras?.softFocusMenu ? { softFocusMenu: true } : {}) };
     }
     const describe = (d: Uint8Array): FirmwareSummary['slots'] =>
       this.g4.SLOTS.map((s) => {
@@ -1156,7 +1166,7 @@ export class Engine {
     if (options.brightAuto !== undefined && ![true, false, 'bright', 'balanced'].includes(options.brightAuto)) throw new FirmwareError('bad-edit', 'brightAuto must be boolean, bright or balanced');
     if (options.brightAuto && this.info.family !== 'gr4') throw new FirmwareError('bad-edit', 'bright Auto requires GR IV firmware');
     if (this.info.family === 'gr3x') {
-      if (Object.entries(options).some(([k, v]) => k !== 'monoUnlock' && k !== 'adjSoftFocus' && k !== 'dateStamp' && k !== 'shutdownPictures' && k !== 'filmCount' && k !== 'guard' && k !== 'lookLayout' && k !== 'gr3Round' && k !== 'customGrid' && k !== 'distanceFeet' && v !== undefined && v !== false && !(Array.isArray(v) && !v.length)))
+      if (Object.entries(options).some(([k, v]) => k !== 'monoUnlock' && k !== 'adjSoftFocus' && k !== 'dateStamp' && k !== 'shutdownPictures' && k !== 'filmCount' && k !== 'guard' && k !== 'lookLayout' && k !== 'gr3Round' && k !== 'customGrid' && k !== 'distanceFeet' && k !== 'softFocusMenu' && v !== undefined && v !== false && !(Array.isArray(v) && !v.length)))
         throw new FirmwareError('gr3x-unsupported', 'added Image Control slots and the test settings of the date imprint are not ported to GR III / IIIx');
       if (options.shutdownPictures?.length && !this.info.capabilities.menuPictures)
         throw new FirmwareError('gr3x-unsupported', 'this GR III / IIIx file has no End Screen pictures');
@@ -1211,7 +1221,8 @@ export class Engine {
       if (options.lookLayout) validateGr3xLookLayout(options.lookLayout, filmCount ?? 0);
       // After round 10: additions brought over from GR IV one by one (fw/gr3x/extras.ts).
       if (options.customGrid !== undefined && !Gr4Program111.aspect.validCustomGrid(options.customGrid)) throw new FirmwareError('bad-edit', 'custom grid: eight lines on or off for each style');
-      const extras = normalizeGr3xExtras({ ...(options.customGrid ? { customGrid: options.customGrid } : {}), ...(options.distanceFeet ? { distanceFeet: true } : {}) });
+      const extras = normalizeGr3xExtras({ ...(options.customGrid ? { customGrid: options.customGrid } : {}), ...(options.distanceFeet ? { distanceFeet: true } : {}), ...(options.softFocusMenu ? { softFocusMenu: true } : {}) });
+      if (extras?.softFocusMenu && !options.adjSoftFocus) throw new FirmwareError('bad-edit', 'the soft focus menu line needs soft focus on the ADJ lever');
       if (extras && !round10) throw new FirmwareError('bad-edit', 'the additions after round 10 need a round 10 build');
       const r = await this.fixedGr3x(softFocus, looks, menu, !!options.adjSoftFocus, !!options.dateStamp,
         (options.shutdownPictures ?? []).map(p => ({ id: p.id, name: p.name, jpeg: p.jpeg })), 'submenu', 'submenu',

@@ -28,6 +28,7 @@ import { GR3X_FILL_OFFICIAL, GR3X_FILL_R10, GR3X_ZERO_FILL_LITERAL, installGr3xS
 import { normalizeGr3xExtras } from './extras';
 import type { Gr3xExtras } from './extras';
 import { installGr3xCustomGrid } from './grid';
+import { GR3X_TEXT_ROWS, gr3xExtraMenuLines, gr3xMenuLineAssets, resolveGr3xMenuLines } from './menu-lines';
 import { GR3X_SNAP_FEET, GR3X_SNAP_METRES, GR3X_SNAP_TEXT_IDS, GR3X_UNIT_ICON_H, GR3X_UNIT_ICON_W, GR3X_UNIT_LABELS, gr3xUnitLabelPixels, installGr3xScaleFeet } from './units';
 import { installGr3xGuardR10 } from './guard';
 import { gr3xRawDevelopmentWordsR10 } from './datestamp';
@@ -240,8 +241,12 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
   const iconIds = new Map([[0, 257], [3, 256]]);
   // Pictures: round 5 line name, Original, names; round 6 Type, Picture, Original, names.
   const pictureTexts = pictureCount ? (pictureSub ? 3 : 2) + pictureCount : 0;
-  const columns = m.textCount + additions.length + (softFocus ? 1 : 0) + dateTexts + pictureTexts;
   const softText = m.textCount + additions.length, softIcon = m.iconCount + additions.length;
+  // Extras' still-menu lines (menu-lines.ts): their texts after all others, their icons after all others.
+  if (extras?.softFocusMenu && !softFocus) fail('IIIx soft focus menu line: needs soft focus on the ADJ lever');
+  const menuLines = gr3xExtraMenuLines(extras, softFocus ? { softFocusText: softText } : {}), lineAssets = gr3xMenuLineAssets(menuLines);
+  const lineText = m.textCount + additions.length + (softFocus ? 1 : 0) + dateTexts + pictureTexts;
+  const columns = lineText + lineAssets.texts.length;
   // Date imprint: name, the two style names; two style icons (after the soft-focus ones).
   const dateText = softText + (softFocus ? 1 : 0), dateIcon = softIcon + (softFocus ? 1 : 0);
   const dateIds = { name: dateText, short: dateText + 1, long: dateText + 2, iconShort: dateIcon, iconLong: dateIcon + 1,
@@ -293,6 +298,12 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
       names.forEach((record, k) => new DataView(row.buffer).setUint32((pictureText + head + k) * 4, record, true));
     });
   }
+  // Extras: the menu lines' texts, in every language.
+  lineAssets.texts.forEach((names, k) => GR3X_TEXT_ROWS.forEach((lang, row) => {
+    const text = append(utf16z(names[lang]));
+    const record = append(Uint8Array.from([names[lang].length + 1, 1, 0, 0, ...words([text])]));
+    new DataView(rows[row].buffer).setUint32((lineText + k) * 4, record, true);
+  }));
   // Extras: Snap Focus Distance in feet, in every language (units.ts).
   if (extras?.distanceFeet) {
     const textOf = (record: number) => {
@@ -314,7 +325,8 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
 
   // Extras' icons come last: the manual focus scale's labels in feet and inches (units.ts).
   const unitIcon = m.iconCount + additions.length + (softFocus ? 1 : 0) + dateIconCount + pictureCount + (pictureSub ? GR3X_FACTORY_PICTURES.length : 0);
-  const iconCount = unitIcon + (extras?.distanceFeet ? GR3X_UNIT_LABELS.length : 0);
+  const lineIcon = unitIcon + (extras?.distanceFeet ? GR3X_UNIT_LABELS.length : 0);
+  const iconCount = lineIcon + lineAssets.icons.length;
   const iconCatalog = new Uint8Array(iconCount * 4);
   iconCatalog.set(read(m.iconRoot, m.iconCount * 4));
   const pixels = additions.map(r => drawRatioIcon(r.ratio));
@@ -367,6 +379,13 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
     });
     installGr3xScaleFeet({ patch, word }, unitIcon);
   }
+  lineAssets.icons.forEach((icon, k) => {
+    if (iconOffset % 4) fail('IIIx ICONBIN alignment');
+    const descriptor = append(Uint8Array.from([40, 0, 40, 0, ...words([iconOffset / 4])]));
+    new DataView(iconCatalog.buffer).setUint32((lineIcon + k) * 4, descriptor, true);
+    pixels.push(icon); iconOffset += icon.length;
+  });
+  const lines = resolveGr3xMenuLines(menuLines, lineText, lineIcon);
   const iconRoot = append(iconCatalog);
   for (const [low, r] of m.iconRootSites) pair(low, low + 4, r, m.iconRoot, iconRoot, 'extended IIIx icon directory');
   for (const [at, r] of m.iconBounds) patch(at, movWord(r, m.iconCount - 1), movWord(r, iconCount - 1), 'extended IIIx icon bound');
@@ -408,12 +427,12 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
     if (films.length > 20) fail('IIIx film names');
     return { ...GR3X_FACTORY_LOOK_NAMES, ...Object.fromEntries(films.map((n, k) => [GR3X_STASH_FILM + k, n])) } as Record<number, string>;
   })() : undefined;
-  const dateEntries = dateImprint || pictureCount ? {
+  const dateEntries = dateImprint || pictureCount || lines.length ? {
     ...(endScreen ?? {}),
     ...installGr3xMenuAdditions({ code, append, patch, word, read }, { ...(dateImprint ? { date: dateIds, dateForm } : {}),
       ...(pictureCount && !pictureSub ? { picture: pictureIds } : {}),
       ...(endScreen ? { endScreen: { typeText: endIds.typeText, pictureText: endIds.pictureText, lineType: endScreen.endScreenLineType, linePicture: endScreen.endScreenLinePicture } } : {}),
-      ...(round7 ? { onOffText: true } : {}), ...(date8 ? { round8: true } : {}), ...(round10 ? { zeroFillDone: true } : {}) }),
+      ...(round7 ? { onOffText: true } : {}), ...(date8 ? { round8: true } : {}), ...(round10 ? { zeroFillDone: true } : {}), ...(lines.length ? { lines } : {}) }),
     ...(dateImprint ? installGr3xDateImprintStage({ code, append, patch, word, read },
       round7 ? { stash: GR3X_HALATION_STASH, monoFilms: layer.monoFilms ?? [], ...(lookNames ? { names: lookNames } : {}), ...(round10 ? { r10: true } : {}) } : undefined) : {}),
     ...(pictureCount ? installGr3xPictureStage({ code, append, patch, word, read }, pictureCount, { pick: !pictureSub }) : {}) } : {};
@@ -439,7 +458,7 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
     const layout = features.lookLayout && !isGr3xFactoryLayout(features.lookLayout, 0) ? features.lookLayout : undefined;
     if (features.lookLayout) validateGr3xLookLayout(features.lookLayout, 0);
     const layoutEntries = layout ? installGr3xLookLayout({ code, append, patch, u32: word, read }, layout, 0) : {};
-    const guardOptions = { films: 0, maxRatio: gr3xMaxId(menu), ...(layout ? { hidden: layout.hidden } : {}), ...(round10 && softFocus ? { softFocusR10: true } : {}) };
+    const guardOptions = { films: 0, maxRatio: gr3xMaxId(menu), ...(layout ? { hidden: layout.hidden } : {}), ...(round10 && softFocus ? { softFocusR10: true } : {}), ...(extras?.softFocusMenu ? { softFocusMenu: true } : {}) };
     return { ...out, ...layoutEntries, ...(round10 ? installGr3xGuardR10({ code, patch, u32: word, sites }, guardOptions) : installGr3xGuard({ code, patch, u32: word }, guardOptions)) };
   })() : {};
   const payload = new Uint8Array((length + 3) & ~3);

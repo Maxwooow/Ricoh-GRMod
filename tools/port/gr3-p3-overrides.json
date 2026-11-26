@@ -15,6 +15,10 @@
   "new": "0x53002034",
   "reason": "version block: product word, same place and value"
  },
+ "0x5316fdac": {
+  "new": "0x53170e40",
+  "reason": "TopMenuController allocation `movw r0,#0x13bc` (menu-lines.ts): the factory case moved in 2.21; the 10 words before it are equal up to relocation, and it is the only movw #0x13bc in 0x53160000..0x53180000"
+ },
  "0x53170048": {
   "new": "0x531710c4",
   "reason": "aligned in 2.21 (aligned); +-8 words equal up to relocation"
