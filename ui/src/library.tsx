@@ -11,15 +11,16 @@ import {
 import type { LibrarySort, SlotKey, State } from './store';
 
 /** "Save to library" (when the slot has a fitted preset) and "Apply from library" under a slot's preset. Both need the host: the library is its files. */
+/** The library's two buttons for a slot's preset row (inside its row of small buttons). */
 export function LibraryButtons({ k }: { k: SlotKey }) {
   const ready = useStore((s) => !!slotOf(k, s)?.preset?.result);
   useEffect(() => { void loadLibrary(); }, []);
   if (!host.available) return null;
   return (
-    <div className="chips lib-buttons">
+    <>
       {ready && <button className="btn small" onClick={() => openLibrary(k, 'save')}>{t('libSave')}</button>}
       <button className="btn small" onClick={() => openLibrary(k, 'apply')}>{t('libApply')}</button>
-    </div>
+    </>
   );
 }
 

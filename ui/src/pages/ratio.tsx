@@ -62,7 +62,7 @@ function RatioPane({ r }: { r?: RatioItem }) {
   const pct = (v: number, of: number): string => `${((v / of) * 100).toFixed(3)}%`;
   const labels = ['L', 'M', 'S', 'XS'];
   return (
-    <DropZone className="pane ratio-pane" accept={isImage} onFiles={(f) => { void loadPreviewFile(f[0]); }}>
+    <DropZone className="pane ratio-pane" accept={isImage} highlight={(types) => types.some((x) => x.startsWith('image/'))} onFiles={(f) => { void loadPreviewFile(f[0]); }}>
       <div className="pane-head">
         {p?.icon && r && <><RatioIcon pixels={p.icon} width={42} /><b className="ratio-title ellipsis">{ratioName(r)}</b></>}
         <span className="grow" />

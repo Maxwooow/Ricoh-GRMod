@@ -285,7 +285,7 @@ export const es: Dict = {
   tIcFUnitsB: 'Con Pies, Distancia enfoque inst. (de 1ft a 16ft, en el menú, en la pantalla de disparo y en el modo ADJ) y la escala de distancia del enfoque manual se muestran en pies, y la escala de corta distancia en pulgadas (in). Con Metros, como en el firmware oficial.',
   unitsLine: 'Unidad de distancia  ·  pies (Distancia enfoque inst., escala del enfoque manual)',
   undo: 'Deshacer', undoExtra: 'Ranura añadida quitada', undoWall: 'Pantalla final quitada', undoRatio: 'Formato de imagen quitado', undoGone: 'Esta eliminación ya no se puede deshacer', undoFull: 'No se puede deshacer: la lista vuelve a estar llena',
-  extraDuplicate: 'Duplicar esta ranura', extraDuplicateFull: 'Se alcanzó el límite de {n} ranuras añadidas; quita una primero', extraDuplicated: 'Duplicada: {name}', batchProgress: 'Importando ajuste {i} de {n}', batchAddTitle: '¿Añadir ranuras para los ajustes restantes?', batchAddLine: 'A {n} ajustes no les queda ranura libre.', batchAddOk: 'Añadir ranuras', batchAddFiles: '{n} ajustes: {names}', batchDone: '{n} ajustes aplicados', batchSkipped: '{n} omitidos (sin ranura libre)', batchFailed: '{n} fallidos: {names}',
+  extraDuplicate: 'Duplicar esta ranura', extraDuplicateFull: 'Se alcanzó el límite de {n} ranuras añadidas; quita una primero', extraDuplicated: 'Duplicada: {name}', batchProgress: 'Importando ajuste {i} de {n}', batchDone: '{n} ajustes aplicados', batchNoRoom: 'Como máximo {max} ranuras añadidas: los {n} ajustes no caben, así que no se importó ninguno', batchNoSlots: 'No hay ranuras libres suficientes para los {n} ajustes, así que no se importó ninguno', batchFailed: '{n} fallidos: {names}',
   compareWith: 'Comparar con',
   // Preset library
   libSave: 'Guardar en la biblioteca',

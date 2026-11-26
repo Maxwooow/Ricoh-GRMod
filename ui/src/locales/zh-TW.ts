@@ -285,7 +285,7 @@ export const zhTW: Dict = {
   tIcFUnitsB: '選[英尺]時，[快拍對焦距離]的數值（1ft–16ft，選單、拍攝畫面和 ADJ 模式中皆是）和手動對焦時的距離刻度改用英尺，近距離的刻度用英寸（in）。選[公尺]時與原廠相同。',
   unitsLine: '距離單位  ·  英尺（快拍對焦距離、手動對焦刻度）',
   undo: '復原', undoExtra: '已刪除新增槽位', undoWall: '已移除結束畫面', undoRatio: '已移除長寬比', undoGone: '這次刪除已無法復原', undoFull: '已達上限，無法復原',
-  extraDuplicate: '複製這個槽位', extraDuplicateFull: '已達上限（最多 {n} 個新增槽位），請先刪除一個', extraDuplicated: '已複製：{name}', batchProgress: '正在匯入預設 {i} / {n}', batchAddTitle: '再新增槽位來放剩下的預設？', batchAddLine: '還有 {n} 個預設沒有空槽位。', batchAddOk: '新增槽位', batchAddFiles: '{n} 個預設：{names}', batchDone: '已套用 {n} 個預設', batchSkipped: '{n} 個略過（沒有空槽位）', batchFailed: '{n} 個失敗：{names}',
+  extraDuplicate: '複製這個槽位', extraDuplicateFull: '已達上限（最多 {n} 個新增槽位），請先刪除一個', extraDuplicated: '已複製：{name}', batchProgress: '正在匯入預設 {i} / {n}', batchDone: '已套用 {n} 個預設', batchNoRoom: '新增槽位最多 {max} 個，放不下這 {n} 個預設，已取消匯入', batchNoSlots: '沒有足夠的空槽位放下這 {n} 個預設，已取消匯入', batchFailed: '{n} 個失敗：{names}',
   compareWith: '對比對象',
   // Preset library
   libSave: '存入預設庫',

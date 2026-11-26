@@ -124,39 +124,62 @@ describe('batch preset import', () => {
     expect(store.getState().slots.CY.preset.fileName).toBe('new.cube');
     expect(store.getState().confirm).toBeUndefined();
   });
-  it('3 files into a project with 2 empty slots fill them in order, then ask before adding a slot', async () => {
-    const files3 = [file('a.cube'), file('b.cube'), file('c.cube')];
-    const done = store.loadPresetFiles(files3, 'CG'); // dropped on Green: it goes first, then the free slot (Yellow)
-    await vi.advanceTimersByTimeAsync(5);
-    expect(store.getState().confirm.title).toBe('Add slots for the remaining presets?');
-    expect(store.getState().confirm.lines.join(' ')).toContain('c.cube');
-    expect(store.getState().slots.CG.preset.fileName).toBe('a.cube'); // the two free slots are filled before it asks
-    expect(store.getState().slots.CY.preset.fileName).toBe('b.cube');
-    expect(store.getState().extras).toHaveLength(0);
-    store.answerConfirm(true);
+  it('2 files dropped on Green: the first on Green, the second on a new added slot, never on Yellow', async () => {
+    const done = store.loadPresetFiles([file('a.cube'), file('b.cube')], 'CG');
     await vi.advanceTimersByTimeAsync(5); await done;
     const s = store.getState();
     expect(s.slots.CG.preset.fileName).toBe('a.cube');
-    expect(s.slots.CY.preset.fileName).toBe('b.cube');
+    expect(s.slots.CY.preset).toBeUndefined(); // a Cinema slot only takes a file dropped on it
     expect(s.extras).toHaveLength(1);
-    expect(s.extras[0].preset.fileName).toBe('c.cube');
+    expect(s.extras[0].preset.fileName).toBe('b.cube');
+    expect(s.confirm).toBeUndefined(); // added slots are made without asking
     expect(s.busy).toBeUndefined();
-    expect(lastToast()).toMatchObject({ kind: 'ok', text: '3 presets applied' });
+    expect(s.activeSlot).toBe('CG');
+    expect(lastToast()).toMatchObject({ kind: 'ok', text: '2 presets applied' });
   });
-  it('declining the extra slot skips the rest; a failing file is reported by name; a slot with a preset is never overwritten', async () => {
-    await store.loadPresetFile('CY', file('keep.cube', 'LUT_3D_SIZE 2 keep'));
+  it('fills empty added slots in order first, keeps the good ones, and replaces the slot it was dropped on', async () => {
+    store.setExtraCount(3); await vi.advanceTimersByTimeAsync(5);
+    const [x1, x2, x3] = store.getState().extras.map((x) => x.key);
+    await store.loadPresetFile(x2, file('keep.cube', 'LUT_3D_SIZE 2 keep'));
+    await store.loadPresetFile('CY', file('old.cube', 'LUT_3D_SIZE 2 old'));
+    const done = store.loadPresetFiles([file('a.cube'), file('b.cube'), file('c.cube'), file('d.cube')], 'CY');
+    await vi.advanceTimersByTimeAsync(5); await done;
+    const s = store.getState(), by = (k) => s.extras.find((x) => x.key === k).preset.fileName;
+    expect(s.slots.CY.preset.fileName).toBe('a.cube'); // dropped there: replaced, as one file would
+    expect(by(x1)).toBe('b.cube');
+    expect(by(x2)).toBe('keep.cube');
+    expect(by(x3)).toBe('c.cube');
+    expect(s.extras).toHaveLength(4);
+    expect(s.extras[3].preset.fileName).toBe('d.cube');
+    expect(s.slots.CG.preset).toBeUndefined();
+  });
+  it('imports nothing when the added slots would go over the limit, and says so', async () => {
+    store.setExtraCount(core.MAX_EXTRA_SLOTS - 1); await vi.advanceTimersByTimeAsync(5);
+    const before = store.getState().extras.length;
+    mocks.engine.convert.mockClear();
+    await store.loadPresetFiles([file('a.cube'), file('b.cube'), file('c.cube'), file('d.cube')], 'CY');
+    // 3 to place, 19 empty added slots: they fit
+    expect(store.getState().extras).toHaveLength(before);
+    expect(mocks.engine.convert).toHaveBeenCalledTimes(4);
+    store.setExtraCount(core.MAX_EXTRA_SLOTS); await vi.advanceTimersByTimeAsync(5);
+    for (const x of store.getState().extras) await store.loadPresetFile(x.key, file('full.cube'));
+    mocks.engine.convert.mockClear();
+    await store.loadPresetFiles([file('e.cube'), file('f.cube')], 'CG');
+    expect(mocks.engine.convert).not.toHaveBeenCalled();
+    expect(store.getState().slots.CG.preset).toBeUndefined(); // not even the first one
+    expect(store.getState().extras).toHaveLength(core.MAX_EXTRA_SLOTS);
+    expect(lastToast()).toMatchObject({ kind: 'error' });
+    expect(lastToast().text).toContain(String(core.MAX_EXTRA_SLOTS));
+  });
+  it('a failing file is reported by name', async () => {
     mocks.engine.convert.mockImplementation(async (_k, text) => { if (text.includes('BAD')) throw new Error('nope'); return fitted('ok ' + text.length); });
-    const done = store.loadPresetFiles([file('bad.cube', 'BAD'), file('good.cube'), file('late.cube')], 'CY');
-    await vi.advanceTimersByTimeAsync(5);
-    store.answerConfirm(false);
+    const done = store.loadPresetFiles([file('bad.cube', 'BAD'), file('good.cube')], 'CY');
     await vi.advanceTimersByTimeAsync(5); await done;
     const s = store.getState();
-    expect(s.slots.CY.preset.fileName).toBe('keep.cube'); // untouched although it was the drop target
-    expect(s.slots.CG.preset.fileName).toBe('bad.cube');
-    expect(s.slots.CG.preset.error).toBeTruthy();
-    expect(s.extras).toHaveLength(0);
+    expect(s.slots.CY.preset.error).toBeTruthy();
+    expect(s.extras[0].preset.fileName).toBe('good.cube');
     expect(lastToast().kind).toBe('error');
-    expect(lastToast().text).toBe('0 presets applied · 2 skipped (no free slot) · 1 failed: bad.cube');
+    expect(lastToast().text).toBe('1 presets applied · 1 failed: bad.cube');
   });
   it('every key it stores is one the desktop host accepts', async () => {
     mocks.engine.convert.mockImplementation(async (_k, text) => fitted(text));
@@ -175,8 +198,15 @@ describe('batch preset import', () => {
     const done = store.loadPresetFiles([file('1.cube', 'one'), file('2.cube', 'two'), file('3.cube', 'three')]);
     await vi.advanceTimersByTimeAsync(5); await done;
     expect(order).toEqual(['one', 'two', 'three']);
-    expect(seen).toEqual(['Importing preset 1 of 3', 'Importing preset 2 of 3', 'Importing preset 3 of 3']);
-    expect(store.getState().confirm).toBeUndefined(); // enough slots, nothing to ask
+    expect(seen).toEqual(['Importing preset 1 of 3', 'Importing preset 2 of 3', 'Importing preset 3 of 3']); // n is the files dropped
+    expect(store.getState().confirm).toBeUndefined();
     expect(store.batchTargets()).toEqual([]);
+  });
+  it('2 files count as 2 in the progress, however many slots are free', async () => {
+    const seen = [];
+    mocks.engine.convert.mockImplementation(async (_k, text) => { seen.push(store.getState().busy); return fitted(text); });
+    store.setExtraCount(3); await vi.advanceTimersByTimeAsync(5);
+    await store.loadPresetFiles([file('1.cube', 'one'), file('2.cube', 'two')], 'CY');
+    expect(seen).toEqual(['Importing preset 1 of 2', 'Importing preset 2 of 2']);
   });
 });

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
+import type { DragEvent as ReactDragEvent, ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { isIOS, isMobile, useBack } from './host-android';
 import { ICON_H, ICON_W, RATIO_ICON_H, RATIO_ICON_W } from '@grmod/core';
@@ -145,14 +145,34 @@ export function FileButton({ accept, multiple, onFiles, children, className, tit
 }
 
 /** Wraps children in a drop target; `over` styling while dragging files across it. */
-export function DropZone({ onFiles, className, children, accept, tour }: { onFiles: (f: File[]) => void; className?: string; children: ReactNode; accept?: (f: File) => boolean; tour?: string }) {
+/**
+ * An area that takes dropped files. `highlight` says, from the MIME types of what is being dragged, whether the area
+ * lights up (`false`: never, for the page-wide firmware drop, which would otherwise colour the whole window for any file).
+ * A drop anywhere, or a drag that ends or leaves the window, always clears the highlight: an inner zone that takes the
+ * drop stops it there, so this zone never sees its own drop or leave.
+ */
+export function DropZone({ onFiles, className, children, accept, tour, highlight }: { onFiles: (f: File[]) => void; className?: string; children: ReactNode; accept?: (f: File) => boolean; tour?: string; highlight?: false | ((types: readonly string[]) => boolean) }) {
   const [over, setOver] = useState(false);
   const depth = useRef(0);
+  useEffect(() => {
+    if (!over) return;
+    const clear = (): void => { depth.current = 0; setOver(false); };
+    // the pointer left the window (a drag inside it leaves one element for the next all the time)
+    const leave = (e: DragEvent): void => { if (e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) clear(); };
+    window.addEventListener('drop', clear, true);
+    window.addEventListener('dragend', clear, true);
+    window.addEventListener('dragleave', leave, true);
+    return () => { window.removeEventListener('drop', clear, true); window.removeEventListener('dragend', clear, true); window.removeEventListener('dragleave', leave, true); };
+  }, [over]);
+  const lights = (e: ReactDragEvent): boolean => {
+    if (!e.dataTransfer.types.includes('Files') || highlight === false) return false;
+    return !highlight || highlight(Array.from(e.dataTransfer.items ?? []).map((i) => i.type));
+  };
   return (
     <div
       className={`${className || ''} ${over ? 'drop-over' : ''}`} data-tour={tour}
-      onDragEnter={(e) => { if (e.dataTransfer.types.includes('Files')) { depth.current++; setOver(true); } }}
-      onDragLeave={() => { depth.current = Math.max(0, depth.current - 1); if (depth.current === 0) setOver(false); }}
+      onDragEnter={(e) => { if (lights(e)) { depth.current++; setOver(true); } }}
+      onDragLeave={() => { if (depth.current === 0) return; depth.current = Math.max(0, depth.current - 1); if (depth.current === 0) setOver(false); }}
       onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; } }}
       onDrop={(e) => {
         depth.current = 0; setOver(false);

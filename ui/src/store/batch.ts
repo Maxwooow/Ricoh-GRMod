@@ -1,68 +1,65 @@
 import { MAX_EXTRA_SLOTS } from '@grmod/core';
 import { t } from '../i18n';
-import { SlotKey, State, ask, set, slotOf, state, toast } from './core';
+import { SlotKey, State, set, slotOf, state, toast } from './core';
 import { setActiveSlot } from './photo';
 import { addExtraSlot, allSlotKeys, loadPresetFile } from './slots';
 
 // ------------------------------------------------------------------ batch preset import
 /**
- * @decision DEC-QOL-BATCH-001
- * @title Several preset files at once fill empty slots in order, never overwrite, and ask before adding slots
- * @status accepted
- * @rationale Importing a pack of looks meant one drop per slot. With several .xmp / .cube files the
- *   targets are, in order: the slot the files were dropped on or picked for (the active slot when none
- *   is given) if it has no usable preset, then every other slot without one in menu order (built-in
- *   slots, then added slots). A slot "has a preset" when it holds one that did not fail: a failed
- *   conversion is replaced, a good look never is. Files beyond the free slots are skipped, unless
- *   the camera is a GR IV (the only family with added slots) and there is room under
- *   MAX_EXTRA_SLOTS: then, once the free slots are filled, one ask() offers to add that many slots for them (declining skips them).
- *   Fitting runs one file after another through the ordinary loadPresetFile / runPreset path, so
- *   options, storage and stale-run guards are identical to a single import; the busy overlay shows
- *   "i of n". A final toast counts applied, skipped and failed files and names the failed ones. One
- *   file behaves exactly as before (loadPresetFile on the given slot, replacing what is there).
+ * @decision DEC-QOL-BATCH-002
+ * @title Several preset files: the first on the slot they were dropped on, the rest on added slots (made as needed), or none at all
+ * @status accepted (replaces DEC-QOL-BATCH-001, which also filled the empty Cinema slots and asked before adding slots)
+ * @rationale A pack of looks dropped on a slot. The first file goes to that slot (the active slot when the files were
+ *   picked without one), replacing what it holds, exactly as one dropped file does: the user chose that slot. The others
+ *   never go to a factory (Cinema) slot by themselves. On a GR IV they fill the added slots without a usable preset
+ *   (none, or a failed conversion: a good look is never replaced), in their order, and new added slots are made for
+ *   the files left over, without asking. When that would need more than MAX_EXTRA_SLOTS added slots, or the camera has
+ *   no added slots (GR IV Monochrome), nothing at all is imported and a message says why. GR III / IIIx, where every
+ *   slot is a film of its own: the other films without a usable preset, in order; too few, and nothing is imported.
+ *   Fitting runs one file after another through the ordinary loadPresetFile path (options, storage and stale-run
+ *   guards as for one file); the busy overlay shows "i of n" over the files dropped. A final toast counts applied and
+ *   failed files and names the failed ones. One file behaves exactly as before.
  */
 const hasUsablePreset = (k: SlotKey, s: State = state): boolean => { const p = slotOf(k, s)?.preset; return !!p && !p.error; };
-/** The slots a batch of files goes to, in order (see DEC-QOL-BATCH-001): `from` first when it is free, then the other free slots. */
+/** Whether added slots can hold presets on the open camera (GR IV, not the Monochrome, which builds none). */
+const takesExtras = (s: State = state): boolean => !!s.info && s.info.family !== 'gr3x' && s.model !== 'MONO';
+/**
+ * Where the files after the first go, in order (see DEC-QOL-BATCH-002): the added slots without a usable preset, or on
+ * GR III / IIIx the other films without one; `from` (the first file's slot) is never one of them.
+ */
 export function batchTargets(from: SlotKey = state.activeSlot, s: State = state): SlotKey[] {
-  const keys = allSlotKeys(s), free = keys.filter((k) => !hasUsablePreset(k, s));
-  return keys.includes(from) && free.includes(from) ? [from, ...free.filter((k) => k !== from)] : free;
+  const pool = takesExtras(s) ? s.extras.map((x) => x.key) : s.info?.family === 'gr3x' ? allSlotKeys(s) : [];
+  return pool.filter((k) => k !== from && !hasUsablePreset(k, s));
 }
-/** How many more slots could be added for a batch (GR IV only; not on the Monochrome, which builds none). */
-const batchRoom = (s: State = state): number => (s.info && s.info.family !== 'gr3x' && s.model !== 'MONO' ? Math.max(0, MAX_EXTRA_SLOTS - s.extras.length) : 0);
 export async function loadPresetFiles(files: File[], from?: SlotKey): Promise<void> {
   if (files.length === 0) return;
-  if (files.length === 1) { await loadPresetFile(from ?? state.activeSlot, files[0]); return; }
+  const first = from ?? state.activeSlot;
+  if (files.length === 1) { await loadPresetFile(first, files[0]); return; }
   if (state.busy) return;
-  const slots = batchTargets(from);
-  const rest = files.slice(slots.length);
-  const failed: string[] = []; let applied = 0, skipped = rest.length, firstSlot: SlotKey | undefined;
-  const caps = !!state.info?.capabilities.presets;
-  /** Fit `list` into `into` one after another; `done` of `total` files are behind when it starts (for the progress text). */
-  const run = async (into: SlotKey[], list: File[], done: number, total: number): Promise<void> => {
-    firstSlot ??= into[0];
-    set({ busy: t('batchProgress', { i: done + 1, n: total }) });
-    try {
-      for (let i = 0; i < list.length; i++) {
-        set({ busy: t('batchProgress', { i: done + i + 1, n: total }) });
-        try { await loadPresetFile(into[i], list[i]); } catch { /* counted below */ }
-        const p = slotOf(into[i])?.preset;
-        if (p && p.fileName === list[i].name && !p.error && (p.result || !caps)) applied++; else failed.push(list[i].name);
-      }
-    } finally { set({ busy: undefined }); }
-  };
-  const room = Math.min(rest.length, batchRoom());
-  if (slots.length) await run(slots, files.slice(0, slots.length), 0, slots.length + room);
-  // the free slots are used up: offer added slots for the files that are left (GR IV, room under the limit)
-  if (room > 0 && await ask(t('batchAddTitle'), [t('batchAddLine', { n: rest.length }), t('batchAddFiles', { n: room, names: rest.slice(0, room).map((f) => f.name).join(', ') })], t('batchAddOk'))) {
-    const before = new Set(state.extras.map((x) => x.key));
-    for (let i = 0; i < room; i++) addExtraSlot();
-    const added = state.extras.map((x) => x.key).filter((k) => !before.has(k));
-    await run(added, rest.slice(0, added.length), slots.length, slots.length + added.length);
-    skipped = rest.length - added.length;
+  const rest = files.slice(1);
+  const free = batchTargets(first);
+  const toAdd = Math.max(0, rest.length - free.length);
+  // Room check before anything changes: the whole drop goes in, or none of it.
+  if (toAdd > 0) {
+    if (!takesExtras()) { toast(t('batchNoSlots', { n: files.length }), 'error'); return; }
+    if (state.extras.length + toAdd > MAX_EXTRA_SLOTS) { toast(t('batchNoRoom', { n: files.length, max: MAX_EXTRA_SLOTS }), 'error'); return; }
   }
-  if (firstSlot) setActiveSlot(firstSlot);
+  const before = new Set(state.extras.map((x) => x.key));
+  for (let i = 0; i < toAdd; i++) addExtraSlot();
+  const added = state.extras.map((x) => x.key).filter((k) => !before.has(k));
+  const targets: SlotKey[] = [first, ...free, ...added].slice(0, files.length);
+  const failed: string[] = []; let applied = 0;
+  const caps = !!state.info?.capabilities.presets;
+  try {
+    for (let i = 0; i < files.length; i++) {
+      set({ busy: t('batchProgress', { i: i + 1, n: files.length }) });
+      try { await loadPresetFile(targets[i], files[i]); } catch { /* counted below */ }
+      const p = slotOf(targets[i])?.preset;
+      if (p && p.fileName === files[i].name && !p.error && (p.result || !caps)) applied++; else failed.push(files[i].name);
+    }
+  } finally { set({ busy: undefined }); }
+  setActiveSlot(first);
   const parts = [t('batchDone', { n: applied })];
-  if (skipped) parts.push(t('batchSkipped', { n: skipped }));
   if (failed.length) parts.push(t('batchFailed', { n: failed.length, names: failed.slice(0, 3).join(', ') + (failed.length > 3 ? ` +${failed.length - 3}` : '') }));
   toast(parts.join(' · '), failed.length ? 'error' : 'ok');
 }

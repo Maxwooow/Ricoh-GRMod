@@ -1061,7 +1061,7 @@ html.mobile-app .tour-hole { border-radius: 14px; }
 .app.mobile .compare-with { max-width: 128px; }
 .app.mobile .compare-with-lead { display: none; }
 /* the preset library (library.tsx) */
-.lib-buttons { margin-top: 6px; }
+.preset-actions:empty { display: none; }
 .lib-dialog { width: 460px; }
 .lib-save { display: grid; gap: 6px; }
 .lib-save .dialog-actions { margin-top: 10px; }

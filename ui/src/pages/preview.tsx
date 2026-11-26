@@ -199,7 +199,7 @@ export function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?:
   const step = (d: number): void => { const n = tabs[at + d]; if (n) setActiveSlot(n.value); };
   const wheel = (e: React.WheelEvent<HTMLDivElement>): void => { if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) e.currentTarget.scrollLeft += e.deltaY; };
   return (
-    <DropZone className="pane" accept={isImage} onFiles={(f) => { void loadPreviewFile(f[0]); }}>
+    <DropZone className="pane" accept={isImage} highlight={(types) => types.some((x) => x.startsWith('image/'))} onFiles={(f) => { void loadPreviewFile(f[0]); }}>
       <div className="pane-head">
         {tabs.length > 0 && <>
         {overflow && <button className="btn ghost icon-only seg-arrow" title={t('prevSlot')} aria-label={t('prevSlot')} disabled={at === 0} onClick={() => step(-1)}>{Ico.left}</button>}

@@ -128,7 +128,7 @@ export function ImageControlPage() {
   // The menu order is a view of its own where the firmware has it (GR IV; GR III / IIIx).
   const orderView = useStore((s) => lookOrderAvailable(s));
   return (
-    <DropZone className="page" accept={isFirmware} onFiles={(f) => { void loadFirmwareFile(f[0]); }}>
+    <DropZone className="page" accept={isFirmware} highlight={false} onFiles={(f) => { void loadFirmwareFile(f[0]); }}>
       <header className="page-head">
         <span className="page-icon">{Ico.aperture}</span>
         <h1>{t('navIC')}</h1>
