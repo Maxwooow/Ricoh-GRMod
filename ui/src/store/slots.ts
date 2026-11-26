@@ -7,8 +7,9 @@ import type { Key } from '../i18n';
 import { ensureIconFont, imageIcon, loadBitmap, textIcon } from '../pixels';
 import { HalationState, IconState, SlotKey, State, availableSlots, fail, isExtra, isGr3, patchSlot, set, setSlot, slotOf, state, toast } from './core';
 import { presetKey, scheduleSave } from './families';
-import { normalizeLookOrder } from './looks';
+import { lookOrderNow, normalizeLookOrder } from './looks';
 import { setActiveSlot } from './photo';
+import { recordDeleted } from './undo';
 
 // ------------------------------------------------------------------ presets
 const PRESET_ERRORS: Record<string, Key> = {
@@ -99,16 +100,30 @@ export function addExtraSlot(): void {
   void renderIcon(key);
   scheduleSave();
 }
-export function removeExtraSlot(key: string): void {
+/** Take an added slot away; with `undoable` (the default) the toast's Undo brings it back. Setting the count lower removes without it. */
+export function removeExtraSlot(key: string, undoable = true): void {
+  const was = state, index = was.extras.findIndex((x) => x.key === key), item = was.extras[index];
+  const orderAt = lookOrderNow(was).indexOf(key), hidden = was.lookHidden.includes(key), active = was.activeSlot === key;
   set((s) => ({ extras: s.extras.filter((x) => x.key !== key), activeSlot: s.activeSlot === key ? 'CY' : s.activeSlot, lookOrder: normalizeLookOrder(s.lookOrder, s.extras.filter((x) => x.key !== key)), lookHidden: s.lookHidden.filter((k) => k !== key) }));
-  if (host.available) void host.storeDel(presetKey(key)).catch(() => undefined);
+  const file = presetKey(key); // fixed now: the delete may run after a switch to the other family, whose files are named differently
+  const del = (): void => { if (host.available) void host.storeDel(file).catch(() => undefined); };
   scheduleSave();
+  if (!undoable || !item) { del(); return; }
+  recordDeleted(t('undoExtra'), () => {
+    if (state.extras.length >= MAX_EXTRA_SLOTS) return false;
+    set((s) => {
+      const extras = s.extras.slice(); extras.splice(Math.min(index, extras.length), 0, item);
+      const order = normalizeLookOrder(s.lookOrder, extras).filter((k) => k !== key); order.splice(orderAt < 0 ? order.length : Math.min(orderAt, order.length), 0, key);
+      return { extras, lookOrder: order, lookHidden: hidden ? [...s.lookHidden, key] : s.lookHidden, ...(active ? { activeSlot: key } : {}) };
+    });
+    return true;
+  }, del);
 }
 /** Set how many slots are added: the last ones are taken away, new empty ones appended. */
 export function setExtraCount(n: number): void {
   const want = Math.max(0, Math.min(MAX_EXTRA_SLOTS, Math.round(n)));
   while (state.extras.length < want) addExtraSlot();
-  while (state.extras.length > want) removeExtraSlot(state.extras[state.extras.length - 1].key);
+  while (state.extras.length > want) removeExtraSlot(state.extras[state.extras.length - 1].key, false);
 }
 export function setExtraName(key: string, name: string): void {
   set((s) => ({ extras: s.extras.map((x) => (x.key === key ? { ...x, name } : x)) }));

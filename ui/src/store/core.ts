@@ -185,10 +185,12 @@ export function setWall(id: string, patch: Partial<WallItem>): void {
 
 // ------------------------------------------------------------------ toasts / confirm
 let toastSeq = 0;
-export function toast(text: string, kind: Toast['kind'] = 'info', action?: Toast['action']): void {
+/** Shows a toast; the id is returned so that its owner can dismiss it early. */
+export function toast(text: string, kind: Toast['kind'] = 'info', action?: Toast['action']): number {
   const id = ++toastSeq;
   set((s) => ({ toasts: [...s.toasts.slice(-2), { id, text, kind, action }] }));
   setTimeout(() => dismissToast(id), kind === 'error' ? 9000 : action ? 12000 : 4500);
+  return id;
 }
 export function dismissToast(id: number): void { set((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) })); }
 export function ask(title: string, lines: string[], ok: string, warn?: string, reset = false): Promise<boolean> {
