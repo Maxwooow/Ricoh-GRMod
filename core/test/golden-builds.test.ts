@@ -105,6 +105,10 @@ function gr3Recipes(eng: Engine): [string, () => Args][] {
     ['date imprint only', () => [[], ratios.slice(1), [], { dateStamp: true }]],
     ['order only', () => [[], ratios, [], { lookLayout: { order: [12, 11, 13, 14, 15, 16, 22, 17, 18, 19, 20, 21], hidden: [21] } }]],
     ['GR IV options are refused or ignored', () => [[], ratios, [], { directFlash: true, hdrGainMap: true, adjSlots: 8, monoUnlock: true, exposurePreview: true, brightAuto: true }]],
+    ['extras: custom grid', () => [[], ratios, [], { customGrid: { g3: [true, true, true, true, true, true, true, false], g4: [false, true, false, false, true, false, true, true] } }]],
+    ['extras: distances in feet', () => [[], ratios, [], { distanceFeet: true }]],
+    ['extras: custom grid, feet, 20 films, date, pictures, order', () => [films(20), ratios, [], { filmCount: 20, adjSoftFocus: true, dateStamp: true, shutdownPictures: pictures(), lookLayout: { order, hidden: [18, 83] },
+      customGrid: { g3: [true, false, true, true, false, true, true, true], g4: [true, true, true, true, true, true, false, false] }, distanceFeet: true }]],
     ['seven ratios', () => [[], [['65:24', 'XPan'], ['2.39:1', 'Scope'], ['4:3', '4:3'], ['16:9', '16:9'], ['5:4', '5:4'], ['2:1', '2:1'], ['7:6', '7:6']].map(([ratio, name]) => ({ ratio, name }))]],
   ];
 }

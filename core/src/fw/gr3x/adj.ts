@@ -28,6 +28,7 @@ import { GR3X_FILL_OFFICIAL, GR3X_FILL_R10, GR3X_ZERO_FILL_LITERAL, installGr3xS
 import { normalizeGr3xExtras } from './extras';
 import type { Gr3xExtras } from './extras';
 import { installGr3xCustomGrid } from './grid';
+import { GR3X_SNAP_FEET, GR3X_SNAP_METRES, GR3X_SNAP_TEXT_IDS, GR3X_UNIT_ICON_H, GR3X_UNIT_ICON_W, GR3X_UNIT_LABELS, gr3xUnitLabelPixels, installGr3xScaleFeet } from './units';
 import { installGr3xGuardR10 } from './guard';
 import { gr3xRawDevelopmentWordsR10 } from './datestamp';
 import type { Gr3xMenuRatio } from './geometry';
@@ -292,12 +293,28 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
       names.forEach((record, k) => new DataView(row.buffer).setUint32((pictureText + head + k) * 4, record, true));
     });
   }
+  // Extras: Snap Focus Distance in feet, in every language (units.ts).
+  if (extras?.distanceFeet) {
+    const textOf = (record: number) => {
+      const n = read(record, 1)[0], t = read(word(record + 4), Math.max(0, n - 1) * 2);
+      let out = ''; for (let i = 0; i + 1 < n; i++) out += String.fromCharCode(t[2 * i] | (t[2 * i + 1] << 8));
+      return out;
+    };
+    const feet = GR3X_SNAP_FEET.map(name => { const text = append(utf16z(name)); return append(Uint8Array.from([name.length + 1, 1, 0, 0, ...words([text])])); });
+    rows.forEach(row => GR3X_SNAP_TEXT_IDS.forEach((id, k) => {
+      const view = new DataView(row.buffer);
+      if (textOf(view.getUint32(id * 4, true)) !== GR3X_SNAP_METRES[k]) fail('IIIx Snap Focus Distance texts are not the ones expected');
+      view.setUint32(id * 4, feet[k], true);
+    }));
+  }
   const textRoots = append(words(rows.map(row => append(row))));
   for (const [low, high] of m.textRootSites) pair(low, high, 3, m.textRoots, textRoots, 'extended IIIx language directory');
   if (GR3X_TEXT_BOUND_IS_COMPARE) m.textBounds.forEach((at, k) => patch(at, GR3X_TEXT_BOUND_WORDS[k], gr3xTextBoundWord(GR3X_TEXT_BOUND_WORDS[k], bound), 'extended IIIx text bound'));
   else for (const at of m.textBounds) patch(at, movWord(3, m.textCount - 1), movWord(3, columns - 1), 'extended IIIx text bound');
 
-  const iconCount = m.iconCount + additions.length + (softFocus ? 1 : 0) + dateIconCount + pictureCount + (pictureSub ? GR3X_FACTORY_PICTURES.length : 0);
+  // Extras' icons come last: the manual focus scale's labels in feet and inches (units.ts).
+  const unitIcon = m.iconCount + additions.length + (softFocus ? 1 : 0) + dateIconCount + pictureCount + (pictureSub ? GR3X_FACTORY_PICTURES.length : 0);
+  const iconCount = unitIcon + (extras?.distanceFeet ? GR3X_UNIT_LABELS.length : 0);
   const iconCatalog = new Uint8Array(iconCount * 4);
   iconCatalog.set(read(m.iconRoot, m.iconCount * 4));
   const pixels = additions.map(r => drawRatioIcon(r.ratio));
@@ -340,6 +357,16 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
     new DataView(iconCatalog.buffer).setUint32((pictureIcon + k) * 4, descriptor, true);
     pixels.push(icon); iconOffset += icon.length;
   });
+  if (extras?.distanceFeet) {
+    GR3X_UNIT_LABELS.forEach((name, k) => {
+      const icon = gr3xUnitLabelPixels(name);
+      if (iconOffset % 4) fail('IIIx ICONBIN alignment');
+      const descriptor = append(Uint8Array.from([GR3X_UNIT_ICON_W, 0, GR3X_UNIT_ICON_H, 0, ...words([iconOffset / 4])]));
+      new DataView(iconCatalog.buffer).setUint32((unitIcon + k) * 4, descriptor, true);
+      pixels.push(icon); iconOffset += icon.length;
+    });
+    installGr3xScaleFeet({ patch, word }, unitIcon);
+  }
   const iconRoot = append(iconCatalog);
   for (const [low, r] of m.iconRootSites) pair(low, low + 4, r, m.iconRoot, iconRoot, 'extended IIIx icon directory');
   for (const [at, r] of m.iconBounds) patch(at, movWord(r, m.iconCount - 1), movWord(r, iconCount - 1), 'extended IIIx icon bound');

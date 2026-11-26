@@ -5,8 +5,8 @@
  *   npx vite-node tools/testfw/build-gr3.ts OFFICIAL.bin OUT.bin '{"customGrid":{...}}' ['[{"ratio":"16:9","name":"16:9"}]']
  *
  * The third argument is `BuildOptions` as JSON; the fourth the added ratios (a GR III build has at
- * least one; default 16:9 and 4:3). No films. Writes OUT.bin and OUT.bin.rtos (the decoded RTOS
- * section) and prints the SHA-256 and the summary.
+ * least one; default 16:9 and 4:3). No films. Writes OUT.bin, OUT.bin.rtos and OUT.bin.iconbin (the decoded RTOS
+ * and ICONBIN sections) and prints the SHA-256 and the summary.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { Engine, fw } from '../../core/src';
@@ -19,6 +19,8 @@ writeFileSync(out, b.file);
 const d = new fw.Firmware(b.file).decoded;
 const r = fw.sectionsOf(d).find((x) => x.name === 'RTOS')!;
 writeFileSync(out + '.rtos', d.subarray(r.offset, r.offset + r.size));
+const ic = fw.sectionsOf(d).find((x) => x.name === 'ICONBIN')!;
+writeFileSync(out + '.iconbin', d.subarray(ic.offset, ic.offset + ic.size));
 const s = await eng.inspect(b.file);
 console.log(JSON.stringify({ model: eng.info.model, version: eng.info.version, sha256: b.sha256, bytes: b.file.length, checks: Object.values(b.checks).every(Boolean), features: b.features,
   inspect: { kind: s.kind, verified: s.verified, ratios: s.ratios.map((x) => x.name) } }));
