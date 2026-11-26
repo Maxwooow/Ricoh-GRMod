@@ -436,7 +436,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  import type { HalationLook } from './halation';
  import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
  import type { LookLayout } from './looks';
-@@ -47,27 +53,39 @@
+@@ -47,27 +53,40 @@
  import { installAdjSlots } from './adjslots';
  import { extendBatteryZeroFill, installBatteryPercent } from './battery';
  import { installCustomGrid, isCameraGrid, validCustomGrid } from './grid';
@@ -449,6 +449,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 -import { LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
 +import { installExposurePreviewOff } from './lvpreview';
 +import { installMovieExposure } from './movieexp';
++import { installLockProtect } from './lockprotect';
 +import { MOVIE_4K_BIT, MOVIE_SENSOR_SR_BIT, installMovie4k } from './movie4k';
 +import { installMovieSr, installMovieSrAssets } from './moviesr';
 +import { installDistanceFeet } from './units';
@@ -484,7 +485,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  export const LANGUAGES = 21;
  const ROW_STRIDE = TEXT_CAPACITY * 4;
  const NATIVE_ICON_CATALOG = adr(0x55014280);
-@@ -90,10 +108,10 @@
+@@ -90,10 +109,10 @@
    return id;
  }
  
@@ -498,7 +499,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  }
  
  export interface RatioSpec {
-@@ -155,16 +173,18 @@
+@@ -155,16 +174,18 @@
    /** ADJ lever slots, 6 to 8 (see `adjslots.ts`); absent or 5: the camera's five. */
    adjSlots?: number;
    /**
@@ -520,7 +521,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    /**
     * Live view of an added ratio shows the whole 3:2 frame, the part outside the ratio darkened
     * (see `shade.ts`); the photo is cropped as before. Needs at least one added ratio.
-@@ -174,23 +194,25 @@
+@@ -174,38 +195,53 @@
    ratioShadeTone?: ShadeTone;
    /** A learned Auto for Shadow Correction (see `shadowml.ts`); GR IV 1.11, 1.20 and 1.21. Off unless asked for. */
    shadowLearn?: boolean;
@@ -554,7 +555,12 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    distanceFeet?: boolean;
  }
  
-@@ -201,11 +223,22 @@
+ /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
+ export interface TestOptions {
++  /** The mode dial's lock button protects the picture in single-picture playback (see `lockprotect.ts`). */
++  lockProtect?: boolean;
+   dateStampFixed?: number;
+   /** Also print the encoder configuration on the 720x480 picture. */
    dateStampDiag?: boolean;
    /** Direct Flash diagnostics: the planner records what it saw, the date imprint prints it on the 720x480 picture. */
    directFlashDiag?: boolean;
@@ -578,7 +584,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  export interface AspectResult {
    revision: BuildRevision;
-@@ -368,7 +401,7 @@
+@@ -368,7 +404,7 @@
    for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
    const rowsStart = TEXT_CATALOG + 0x100;
    const end = rowsStart + LANGUAGES * ROW_STRIDE;
@@ -587,7 +593,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    patch.extendTo(end - BASE);
    patch.write(ICON_CATALOG, icons);
    const relocated: number[] = [];
-@@ -380,8 +413,15 @@
+@@ -380,8 +416,15 @@
    // language directory themselves.
    patch.setWord(adr(0x534013f8), movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
    patch.setWord(adr(0x534013fc), movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
@@ -605,7 +611,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    }
    for (const [low, high] of [[adr(0x535967cc), adr(0x535967d0)], [adr(0x53595db4), adr(0x53595dbc)]] as const) {
      patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
-@@ -412,7 +452,10 @@
+@@ -412,7 +455,10 @@
  // --------------------------------------------------------------------------------------------
  // crop_icons.py
  
@@ -617,7 +623,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
    const parts: Uint8Array[] = [iconbin];
-@@ -504,7 +547,7 @@
+@@ -504,7 +550,7 @@
    // Complete language rows again, now wide enough for the new names; every original entry is kept.
    let priorColumns = TEXT_CAPACITY;
    for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
@@ -626,7 +632,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    for (const id of allIds) upper = Math.max(upper, textId(id));
    const columns = Math.max(priorColumns, upper + 1);
    const catalogs: Uint8Array[] = [];
-@@ -633,7 +676,7 @@
+@@ -633,7 +679,7 @@
    p.hook(adr(0x538b40ec), out);
    out = `push {r0-r3,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r0,r3;bne #${adrHEX(0x538B41CC)};b #${p.target(adr(0x538b41b4))};`;
    p.hook(adr(0x538b41b4), out);
@@ -635,7 +641,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x53664430), out);
    // Both callers select the cropped window only for their original 2..5 range; a computed window
    // is invisible if selector 0 copies the untouched full canvas instead.
-@@ -696,7 +739,7 @@
+@@ -696,7 +742,7 @@
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
    out += adrText('cmp r2,#5;beq #0x5367298C;b #0x536728E8;');
@@ -644,7 +650,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x536728e4), out);
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
-@@ -717,8 +760,8 @@
+@@ -717,8 +763,8 @@
      out = '';
      for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
      out += `bic ip,ip,#4;b #${resume};custom:`;
@@ -655,7 +661,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      out += adrText('ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;');
      p.hook(entry, out);
    }
-@@ -804,7 +847,7 @@
+@@ -804,7 +850,7 @@
    const get = p.emit(lookup + 'mov r0,#0;bx lr;');
    // The native code at 0x53726698 divides s15 by the crop magnification; the other branch writes
    // it directly. Both contracts are kept.
@@ -664,7 +670,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x537266e8), code);
    // r8 / sb are the source dimensions: exact known sizes first, then fit the ratio for anything else.
    code = `push {r0,r4-r7,r10,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;beq old;mov r4,r0;mov r5,r8;mov r6,sb;`;
-@@ -938,7 +981,7 @@
+@@ -938,7 +984,7 @@
  function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
    const priorSave = branchTarget(adr(0x533f3674), patch.word(adr(0x533f3674)));
    const priorLoad = branchTarget(adr(0x533f3254), patch.word(adr(0x533f3254)));
@@ -673,7 +679,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    expectWord(patch, adr(0x5381d6bc), 0xe1a0c00d);
    // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
    const rects: Uint8Array[] = [];
-@@ -1076,13 +1119,30 @@
+@@ -1076,13 +1122,30 @@
   * features this is `installRatios`, byte for byte. With features the revision is 3.
   */
  export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
@@ -705,7 +711,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    if (extra) revision = 3;
    if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
    if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
-@@ -1093,8 +1153,15 @@
+@@ -1093,8 +1156,15 @@
    });
    if (features.brightAuto !== undefined && ![true, false, 'bright', 'balanced'].includes(features.brightAuto)) fail('bad-edit', 'brightAuto must be boolean, bright or balanced');
    if (features.shadowLearn !== undefined && typeof features.shadowLearn !== 'boolean') fail('bad-edit', 'shadowLearn must be boolean');
@@ -723,7 +729,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    const patch = new Patch(rtos);
    const ramCopy = new DataView(patch.read(BASE + 0x450, 12).buffer);
    if (ramCopy.getUint32(0, true) !== RAM.source || ramCopy.getUint32(4, true) !== RAM.destination || ramCopy.getUint32(8, true) !== RAM.length) {
-@@ -1108,27 +1175,62 @@
+@@ -1108,27 +1178,62 @@
      const menu = installMenu(patch, ratios, installed.ids);
      const { p, get, scale } = buildGeometry(patch, ratios);
      installDevelop(p, scale, ratios);
@@ -791,7 +797,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    // Halation: added slots that have it, Cinema slots with a preset that are asked to.
    const halation: HalationLook[] = [];
    slots.forEach((x, k) => {
-@@ -1156,19 +1258,58 @@
+@@ -1156,19 +1261,59 @@
    if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
    // The HDR line's list: after the additions that copy the list table first.
    if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
@@ -847,6 +853,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +  // Exposure modes for movies: after everything, so that a build with it differs from the one without only by its
 +  // own words (and the record of the additions).
 +  if (features.movieExposure) installMovieExposure(patch);
++  if (test.lockProtect) installLockProtect(patch);
 +  // Distances in feet: texts, icons and the scale's words only; last, so that a build with it differs from the one
 +  // without only by its own words, texts and icons (and the record of the additions).
 +  if (features.distanceFeet) icons = installDistanceFeet(patch, icons);
@@ -4054,6 +4061,106 @@ new file mode 100644
 +  patch.setWord(MOVIE_SWITCH_BOUND, branchWord(MOVIE_SWITCH_BOUND, movie), 'constant light: the Movie button');
 +  // Event 4 of the held function: nothing, as for the functions the held list offers.
 +  patch.setWord(MOVIE_HELD_BOUND + 12 + FN_LAMP * 4, MOVIE_SWITCH_END, 'constant light: the held Movie button, event 4');
++}
+diff --git a/core/src/fw/gr4v120/aspect/lockprotect.ts b/core/src/fw/gr4v120/aspect/lockprotect.ts
+new file mode 100644
+--- /dev/null
++++ b/core/src/fw/gr4v120/aspect/lockprotect.ts
+@@ -0,0 +1,95 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/**
++ * The mode dial's lock button protects the picture in single-picture playback (test builds only,
++ * `TestOptions.lockProtect`; GR IV 1.20 and 1.21). A press sets Protect for the displayed file, a
++ * press on a protected file releases it: what "Protect > Single file" of the playback menu does.
++ *
++ * What the camera does (1.20 addresses). The button is switch 0x26 ("Lock"). The switch model
++ * hands every switch to 0x53257A14, which turns it into a trigger of the mode state machine
++ * (0x5325784C): for the lock button, pushed (event data: byte 2, then a zero word), trigger 4. No
++ * state of that machine does anything with trigger 4 itself; it only runs the callbacks registered
++ * for it (the return from the shifted program in P). Nothing in playback uses the button.
++ *
++ * The screen in front is a controller with an id; the current id is the first word of the
++ * controller queue (0x53240818). Playback is 0x04000000, which the controller table (0x531871BC)
++ * resolves with PlaybackModel's GetControllerId (0x53261F1C): 0x04000001 the single picture
++ * (PlaybackSingleController), 0x04000004 the thumbnails, others for the folder and calendar views.
++ * Menus and dialogs opened from playback have ids of their own (0x02......).
++ *
++ * The playback menu's Protect for one file (0x531F10C4) is
++ *     model = MediaModel; if (allowed(model, 4) && RequestProtectSingle(model)) <wait in the menu>
++ * RequestProtectSingle (0x5326676C) takes the displayed file from PlaybackModel, refuses while
++ * another request is running (model +8 not 0) and sends the request; MediaModel itself goes back
++ * to idle when the answer arrives (0x5326947C), whoever asked.
++ *
++ * The change: the tail call `b 0x5325784C` of the lock button's branch goes to a stub. With the
++ * single picture in front it makes that same request and returns (the trigger is not passed on);
++ * in every other case it passes trigger 4 on as before.
++ */
++import { assembleWords, branchWord } from './arm';
++import { Patch, expectWord } from './build';
++import { adr } from '../target';
++
++/** `b MODE_TRIGGER` after `mov r1, #4`: the lock button, pushed. Stack and registers as at the function's return. */
++const LOCK_PUSHED = adr(0x53257e38);
++/** The mode state machine's trigger: (this, trigger). */
++const MODE_TRIGGER = adr(0x5325784c);
++/** The application object, and from it the controller queue, PlaybackModel and MediaModel. */
++const APP = adr(0x532406a4);
++const CONTROLLER_QUEUE = adr(0x53240818);
++const PLAYBACK_MODEL = adr(0x53240998);
++const MEDIA_MODEL = adr(0x532409f8);
++/** PlaybackModel::GetControllerId. */
++const PLAYBACK_CONTROLLER_ID = adr(0x53261f1c);
++/** MediaModel: may this request be made now (r1 = 4, as the menu asks). */
++const REQUEST_ALLOWED = adr(0x532684fc);
++/** MediaModel::RequestProtectSingle. */
++const REQUEST_PROTECT_SINGLE = adr(0x5326676c);
++
++const PLAYBACK = 0x04000000;
++
++export function installLockProtect(patch: Patch): void {
++  expectWord(patch, LOCK_PUSHED - 12, 0xe3a01004); // mov r1, #4
++  expectWord(patch, LOCK_PUSHED - 8, 0xe24bd014); // sub sp, fp, #0x14
++  expectWord(patch, LOCK_PUSHED - 4, 0xe89d6830); // ldm sp, {r4, r5, fp, sp, lr}
++  expectWord(patch, LOCK_PUSHED, branchWord(LOCK_PUSHED, MODE_TRIGGER));
++  expectWord(patch, CONTROLLER_QUEUE, 0xe1a0c00d); // mov ip, sp
++  expectWord(patch, PLAYBACK_CONTROLLER_ID, 0xe1a0c00d);
++  expectWord(patch, REQUEST_PROTECT_SINGLE, 0xe1a0c00d);
++  expectWord(patch, REQUEST_PROTECT_SINGLE + 0x18, 0xe5d05008); // ldrb r5, [r0, #8]: busy
++  expectWord(patch, REQUEST_ALLOWED + 0x10, 0xe16f0f10); // clz r0, r0
++
++  const stub = patch.append((at) => assembleWords(
++    `push {r0, r4, r5, lr}
++     bl #${APP}
++     bl #${CONTROLLER_QUEUE}
++     ldr r4, [r0]
++     cmp r4, #${PLAYBACK}
++     bne known
++     bl #${APP}
++     bl #${PLAYBACK_MODEL}
++     bl #${PLAYBACK_CONTROLLER_ID}
++     mov r4, r0
++     known:
++     sub r4, r4, #${PLAYBACK}
++     cmp r4, #1
++     bne pass
++     bl #${APP}
++     bl #${MEDIA_MODEL}
++     mov r4, r0
++     mov r1, #4
++     bl #${REQUEST_ALLOWED}
++     cmp r0, #0
++     beq done
++     mov r0, r4
++     bl #${REQUEST_PROTECT_SINGLE}
++     done:
++     mov r0, #0
++     add sp, sp, #4
++     pop {r4, r5, pc}
++     pass:
++     pop {r0, r4, r5, lr}
++     mov r1, #4
++     b #${MODE_TRIGGER}`, at), 4);
++  patch.setWord(LOCK_PUSHED, branchWord(LOCK_PUSHED, stub), 'lock button: Protect in single-picture playback');
 +}
 diff --git a/core/src/fw/gr4v120/aspect/looks.ts b/core/src/fw/gr4v120/aspect/looks.ts
 --- a/core/src/fw/gr4v120/aspect/looks.ts
