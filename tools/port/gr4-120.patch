@@ -4066,7 +4066,7 @@ diff --git a/core/src/fw/gr4v120/aspect/lockprotect.ts b/core/src/fw/gr4v120/asp
 new file mode 100644
 --- /dev/null
 +++ b/core/src/fw/gr4v120/aspect/lockprotect.ts
-@@ -0,0 +1,119 @@
+@@ -0,0 +1,121 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * The mode dial's lock button protects the picture in single-picture playback (test builds only,
@@ -4091,14 +4091,13 @@ new file mode 100644
 + * another request is running (model +8 not 0) and sends the request; MediaModel itself goes back
 + * to idle when the answer arrives (0x5326947C), whoever asked.
 + *
-+ * The button's events (switch model, 0x53272F20; the button is a type 1 switch): pushed is the
-+ * byte 2 with a zero word, released the byte 1 with the count of the hold. Only "pushed" does
-+ * anything in the camera; any other event of the button leaves the translator at 0x53257BFC.
++ * The button's events (switch model, 0x53272F20; a type 1 switch) carry the byte 2 with a zero word
++ * or the byte 1 with a count. Only the first reaches the translator's lock branch as something to
++ * do (trigger 4); a build that waited for the second (camera test 120) never made the request.
 + *
-+ * The request is made when the button is RELEASED with the single picture in front, so holding it
-+ * to turn the mode dial (which leaves playback) protects nothing; "pushed" stays the camera's own.
-+ * The branch for "not pushed" (0x53257E1C) goes to a stub that makes the menu's request and then
-+ * leaves as before.
++ * The change: the tail call `b 0x5325784C` of the lock button's branch goes to a stub. With the
++ * single picture in front it makes the menu's request and returns (the trigger is not passed on);
++ * in every other case it passes trigger 4 on as before.
 + *
 + * When the request is done MediaModel empties PlaybackModel's record of the displayed file
 + * (0x5326923C) and posts event 0x134. The menu then closes and playback starts over; the single
@@ -4110,10 +4109,10 @@ new file mode 100644
 +import { Patch, expectWord } from './build';
 +import { adr } from '../target';
 +
-+/** `bne SWITCH_DONE` after `cmp r2, #2`: an event of the lock button that is not "pushed". r2: the event's byte. */
-+const LOCK_NOT_PUSHED = adr(0x53257e1c);
-+/** The translator's exit for a switch it does nothing with (`mov r0, #0`, return). */
-+const SWITCH_DONE = adr(0x53257bfc);
++/** `b MODE_TRIGGER` after `mov r1, #4`: the lock button's event. Stack and registers as at the function's return. */
++const LOCK_PUSHED = adr(0x53257e38);
++/** The mode state machine's trigger: (this, trigger). */
++const MODE_TRIGGER = adr(0x5325784c);
 +/** PlaybackSingleController's event handler: `movw r2, #0x135` of its compare, and the case of that event. */
 +const SINGLE_EVENT_135 = adr(0x5319661c);
 +const SINGLE_RESTART = adr(0x53196768);
@@ -4134,10 +4133,10 @@ new file mode 100644
 +const condition = (word: number, cond: number): number => ((word & 0x0fffffff) | (cond << 28)) >>> 0;
 +
 +export function installLockProtect(patch: Patch): void {
-+  expectWord(patch, LOCK_NOT_PUSHED - 4, 0xe3520002); // cmp r2, #2
-+  expectWord(patch, LOCK_NOT_PUSHED, condition(branchWord(LOCK_NOT_PUSHED, SWITCH_DONE), 1)); // bne
-+  expectWord(patch, SWITCH_DONE, 0xe3a00000); // mov r0, #0
-+  expectWord(patch, SWITCH_DONE + 4, 0xe89da830); // ldm sp, {r4, r5, fp, sp, pc}
++  expectWord(patch, LOCK_PUSHED - 12, 0xe3a01004); // mov r1, #4
++  expectWord(patch, LOCK_PUSHED - 8, 0xe24bd014); // sub sp, fp, #0x14
++  expectWord(patch, LOCK_PUSHED - 4, 0xe89d6830); // ldm sp, {r4, r5, fp, sp, lr}
++  expectWord(patch, LOCK_PUSHED, branchWord(LOCK_PUSHED, MODE_TRIGGER));
 +  expectWord(patch, CONTROLLER_QUEUE, 0xe1a0c00d); // mov ip, sp
 +  expectWord(patch, PLAYBACK_CONTROLLER_ID, 0xe1a0c00d);
 +  expectWord(patch, REQUEST_PROTECT_SINGLE, 0xe1a0c00d);
@@ -4147,10 +4146,8 @@ new file mode 100644
 +  expectWord(patch, SINGLE_EVENT_135 + 4, 0xe1530002); // cmp r3, r2
 +  expectWord(patch, SINGLE_EVENT_135 + 8, condition(branchWord(SINGLE_EVENT_135 + 8, SINGLE_RESTART), 0)); // beq
 +
-+  // r4 and r5 are the translator's own saved registers; its exit restores them from the frame.
-+  const released = patch.append((at) => assembleWords(
-+    `cmp r2, #1
-+     bne done
++  const stub = patch.append((at) => assembleWords(
++    `push {r0, r4, r5, lr}
 +     bl #${APP}
 +     bl #${CONTROLLER_QUEUE}
 +     ldr r4, [r0]
@@ -4163,7 +4160,7 @@ new file mode 100644
 +     known:
 +     sub r4, r4, #${PLAYBACK}
 +     cmp r4, #1
-+     bne done
++     bne pass
 +     bl #${APP}
 +     bl #${MEDIA_MODEL}
 +     mov r4, r0
@@ -4174,9 +4171,14 @@ new file mode 100644
 +     mov r0, r4
 +     bl #${REQUEST_PROTECT_SINGLE}
 +     done:
-+     b #${SWITCH_DONE}`, at), 4);
-+  patch.setWord(LOCK_NOT_PUSHED, condition(branchWord(LOCK_NOT_PUSHED, released), 1),
-+    'lock button released: Protect in single-picture playback');
++     mov r0, #0
++     add sp, sp, #4
++     pop {r4, r5, pc}
++     pass:
++     pop {r0, r4, r5, lr}
++     mov r1, #4
++     b #${MODE_TRIGGER}`, at), 4);
++  patch.setWord(LOCK_PUSHED, branchWord(LOCK_PUSHED, stub), 'lock button: Protect in single-picture playback');
 +
 +  const event = patch.append((at) => assembleWords(
 +    `movw r2, #0x134

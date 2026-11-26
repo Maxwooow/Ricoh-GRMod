@@ -14,10 +14,10 @@ from unicorn import Uc, UC_ARCH_ARM, UC_MODE_ARM, UC_HOOK_CODE
 from unicorn.arm_const import *
 
 ADDR = {
-    '1.20': dict(translator=0x53257a14, hook=0x53257e1c, trigger=0x5325784c, app=0x532406a4, queue=0x53240818,
+    '1.20': dict(translator=0x53257a14, hook=0x53257e38, trigger=0x5325784c, app=0x532406a4, queue=0x53240818,
                  playback=0x53240998, media=0x532409f8, getid=0x53261f1c, allowed=0x532684fc, protect=0x5326676c,
                  onevent=0x53196528, hook2=0x5319661c, restart=0x531939d4),
-    '1.21': dict(translator=0x53258260, hook=0x53258668, trigger=0x53258098, app=0x53240cac, queue=0x53240e20,
+    '1.21': dict(translator=0x53258260, hook=0x53258684, trigger=0x53258098, app=0x53240cac, queue=0x53240e20,
                  playback=0x53240fa0, media=0x53241000, getid=0x5326276c, allowed=0x53268d4c, protect=0x53266fbc,
                  onevent=0x53196528, hook2=0x5319661c, restart=0x531939d4),
 }
@@ -32,7 +32,7 @@ hook_off = A['hook'] - BASE
 inside = [i for i in diff if i < len(off)]
 imm = struct.unpack_from('<I', img, hook_off)[0] & 0xffffff
 stub = A['hook'] + 8 + 4 * (imm - (1 << 24) if imm & 0x800000 else imm)
-assert struct.unpack_from('<I', img, hook_off)[0] >> 24 == 0x1a, 'hook is not bne'
+assert struct.unpack_from('<I', img, hook_off)[0] >> 24 == 0xea, 'hook is not a branch'
 print('words changed inside the official image:', [hex(BASE + i) for i in inside], 'stub at', hex(stub))
 assert hook_off in inside
 # everything else that differs is the stub (appended) and the build's own records after it
@@ -77,24 +77,19 @@ def run(switch, data, queue_id, pb_id=0x04000001, allowed=1, protect_ret=1):
 PUSHED, RELEASED = struct.pack('<II', 2, 0), struct.pack('<II', 1, 7)
 SP0 = STACK - 0x100
 trig = lambda n: [('trigger', THIS, n, SP0, RET)]
-# released with the single picture in front: the request, nothing else
-assert run(0x26, RELEASED, 0x04000001) == ([('allowed',), ('protect',)], 0)
-assert run(0x26, struct.pack('<II', 1, 1), 0x04000001) == ([('allowed',), ('protect',)], 0)
-assert run(0x26, RELEASED, 0x04000000, 0x04000001) == ([('getid',), ('allowed',), ('protect',)], 0)
-assert run(0x26, RELEASED, 0x04000001, protect_ret=0) == ([('allowed',), ('protect',)], 0)
-assert run(0x26, RELEASED, 0x04000001, allowed=0) == ([('allowed',)], 0)
-# released anywhere else: nothing, as in the official firmware
+# single picture in front: the request, nothing else
+assert run(0x26, PUSHED, 0x04000001) == ([('allowed',), ('protect',)], 0)
+assert run(0x26, PUSHED, 0x04000000, 0x04000001) == ([('getid',), ('allowed',), ('protect',)], 0)
+assert run(0x26, PUSHED, 0x04000001, protect_ret=0) == ([('allowed',), ('protect',)], 0)
+assert run(0x26, PUSHED, 0x04000001, allowed=0) == ([('allowed',)], 0)
+# everything else in front: trigger 4 as in the official firmware
 for pb in (0x04000004, 0x04000002, 0x04000003, 0x04000005, 0):
-    assert run(0x26, RELEASED, 0x04000000, pb) == ([('getid',)], 0), hex(pb)
+    assert run(0x26, PUSHED, 0x04000000, pb) == ([('getid',)] + trig(4), 0x77), hex(pb)
 for q in (0, 0x01000000, 0x01000002, 0x02000000, 0x02000084, 0x020000d7, 0x0200012e, 0x04000004, 0x04000002, 0x0400000d, 0x05000001):
-    assert run(0x26, RELEASED, q) == ([], 0), hex(q)
-# pushed: trigger 4 as in the official firmware, whatever is in front; no request
-for q in (0x04000001, 0x04000000, 0x01000002, 0x02000084):
     assert run(0x26, PUSHED, q) == (trig(4), 0x77), hex(q)
-# other event data of the button: nothing
-for d in (struct.pack('<II', 0, 0), struct.pack('<II', 2, 1), struct.pack('<II', 3, 0)):
+# other event data of the button: nothing, as in the official firmware
+for d in (RELEASED, struct.pack('<II', 0, 0), struct.pack('<II', 2, 1), struct.pack('<II', 3, 0)):
     assert run(0x26, d, 0x04000001) == ([], 0)
-# the mode dial itself: no request
 for d in (PUSHED, RELEASED):
     c, _ = run(0x27, d, 0x04000001)
     assert not any(x[0] in ('protect', 'allowed') for x in c), c
