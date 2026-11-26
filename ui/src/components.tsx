@@ -100,7 +100,8 @@ export function Segmented<T extends string>({ value, options, onChange, tour, cl
     b.classList.add('piled');
   };
   useLayoutEffect(place);
-  // without a movement when it is first placed and when the row changes its size (a language, a window)
+  // without a movement when it is first placed and when the row changes its size (a language, a window); a text
+  // option keeps its width when it is chosen (.seg-t reserves the bolder text's width), so choosing never resizes the row
   useLayoutEffect(() => {
     const b = box.current; const p = pill.current;
     if (!b || !p) return undefined;
@@ -115,7 +116,7 @@ export function Segmented<T extends string>({ value, options, onChange, tour, cl
     <div className={className ? `seg ${className}` : 'seg'} role="tablist" data-tour={tour} ref={box}>
       <span className="seg-pill still" ref={pill} aria-hidden />
       {options.map((o) => (
-        <button key={o.value} role="tab" aria-selected={o.value === value} title={o.title} aria-label={o.title} className={o.value === value ? 'on' : ''} onClick={() => onChange(o.value)}>{o.label}</button>
+        <button key={o.value} role="tab" aria-selected={o.value === value} title={o.title} aria-label={o.title} className={o.value === value ? 'on' : ''} onClick={() => onChange(o.value)}>{typeof o.label === 'string' ? <span className="seg-t" data-t={o.label}>{o.label}</span> : o.label}</button>
       ))}
     </div>
   );

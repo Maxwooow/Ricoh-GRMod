@@ -131,6 +131,9 @@ html:lang(ja) .prop-label { width: 72px; }
 .seg { display: inline-flex; background: var(--chip); border-radius: 6px; padding: 2px; }
 .seg button { border: 0; background: none; height: 24px; padding: 0 10px; border-radius: 4px; font-size: 12.5px; color: var(--muted); }
 .seg button.on { background: var(--bg); color: var(--text); box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgba(0, 0, 0, 0.08); font-weight: 500; }
+/* a text option is as wide as its chosen (bolder) text either way: choosing does not move the row (Latin letters widen) */
+.seg-t { display: inline-flex; flex-direction: column; align-items: center; }
+.seg-t::after { content: attr(data-t); font-weight: 500; height: 0; overflow: hidden; visibility: hidden; pointer-events: none; user-select: none; }
 /* the pill that marks the chosen value and slides to it (components.tsx Segmented); with it in place the button itself is bare */
 .seg { position: relative; }
 .seg > button { position: relative; z-index: 1; transition: color 0.2s ease; }
