@@ -5,7 +5,7 @@ import { FirmwareHero } from '../firmware';
 import { t } from '../i18n';
 import {
   useStore, loadFirmwareFile, gridOffered, setSoft, setDateStamp, setMonoUnlock, setFlashPlus, flashPlusOn, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain,
-  setShadowLearn, setBattery, setSubjectAf, setLockProtect, setVideoAf, setMovieExposure, setAwbLearn, setWbPerLook, setConstantLight, setSensorShift, setMovie4k, setMovieSr, setDistanceFeet, setBrightAuto, setCustomGrid,
+  setShadowLearn, setBattery, setSubjectAf, setLockProtect, setVideoAf, setDimLightAf, setMovieExposure, setAwbLearn, setWbPerLook, setConstantLight, setSensorShift, setMovie4k, setMovieSr, setDistanceFeet, setBrightAuto, setCustomGrid,
 } from '../store';
 import { isFirmware } from './files';
 import { GridDetail, GridThumb, closeGrid, openGrid, useGridArrival } from './grid';
@@ -94,6 +94,8 @@ function ExtrasList() {
   const lockOk = useStore((s) => !!s.info?.features.lockProtect);
   const vaf = useStore((s) => s.videoAf);
   const vafOk = useStore((s) => !!s.info?.features.videoAf);
+  const dimAf = useStore((s) => s.dimLightAf);
+  const dimAfOk = useStore((s) => !!s.info?.features.dimLightAf);
   const mexp = useStore((s) => s.movieExposure);
   const mexpOk = useStore((s) => !!s.info?.features.movieExposure);
   const awb = useStore((s) => s.awbLearn);
@@ -132,6 +134,7 @@ function ExtrasList() {
       )}
       {safOk && <FeatureCapsule icon={Ico.subject} title={t('navSubjectAf')} sub={t('subjectAfSub')} on={saf} onChange={setSubjectAf} tour="ex-f-saf" />}
       {vafOk && <FeatureCapsule icon={Ico.movie} title={t('navVideoAf')} sub={t('videoAfSub')} on={vaf} onChange={setVideoAf} tour="ex-f-vaf" />}
+      {dimAfOk && <FeatureCapsule icon={Ico.af} title={t('navDimAf')} sub={t('dimAfSub')} on={dimAf} onChange={setDimLightAf} tour="ex-f-dimaf" />}
       {mexpOk && <FeatureCapsule icon={Ico.movieExp} title={t('navMovieExp')} sub={t('movieExpSub')} on={mexp} onChange={setMovieExposure} tour="ex-f-mexp" />}
       {m4kOk && <FeatureCapsule icon={Ico.movie4k} title={t('navMovie4k')} sub={t('movie4kSub')} on={m4k} onChange={setMovie4k} tour="ex-f-4k" />}
       {msrOk && <FeatureCapsule icon={Ico.movieSr} title={t('navMovieSr')} sub={t('movieSrSub')} on={msr} onChange={setMovieSr} tour="ex-f-msr" />}

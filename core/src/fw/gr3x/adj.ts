@@ -35,6 +35,7 @@ import { installGr3xLiveView } from './liveview';
 import { installGr3xRawDevelopment } from './raw-development';
 import { installGr3xShading } from './shading';
 import { installGr3xFullFrameRaw } from './raw-full-frame';
+import { gr3xDimLightAfOffered, installGr3xDimLightAf } from './dimaf';
 import { adr, byRelease } from './target';
 
 export const GR3X_ADJ = {
@@ -130,6 +131,8 @@ export interface Gr3xAdjFeatures {
   /** Round 8: the Image Control order and hidden looks (look-layout.ts; the camera's order with
    * nothing hidden is the same as none). */
   lookLayout?: Gr3xLookLayout;
+  /** Dim-light AF: nineteen words of the contrast AF (dimaf.ts). GR IIIx 1.60 only. */
+  dimLightAf?: boolean;
 }
 /** How the image-control layer builds on this one (not recorded: it follows from the films). */
 export interface Gr3xAdjLayer {
@@ -168,6 +171,8 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
   const geometry = await buildGr3xExperiment(raw, ratioMenu);
   const menu = geometry.menu, count = menu.length, spelled = count === 9 ? 'nine' : String(count);
   const { decoded, profile } = await openGr3xOfficial(raw);
+  const dimLightAf = features.dimLightAf === true;
+  if (dimLightAf && !gr3xDimLightAfOffered(profile)) fail('IIIx dim-light AF: GR IIIx 1.60 only');
   const p = GR3X_PROFILE, m = GR3X_ADJ;
   const rtos = decoded.subarray(p.rtosOffset, p.rtosOffset + p.rtosLength);
   const iconSection = sectionsOf(decoded).find(s => s.name === 'ICONBIN');
@@ -356,6 +361,7 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
   const shadingEntries = installGr3xShading(program);
   const softEntries = softFocus ? installGr3xAdjSoftFocus({ code, append, patch, word }, softText, softIcon, round10) : {};
   const fullRawEntries = installGr3xFullFrameRaw(program);
+  if (dimLightAf) installGr3xDimLightAf(program);
   const endScreen = pictureSub ? installGr3xEndScreen({ code, append, patch, word }, { ...endIds,
     choices: pictures.map(x => x.id!), resources: pictures.map((_, k) => GR3X_JPEG_TABLE_COUNT + k), ...(date8 ? { modeByte: true } : {}),
     ...(round10 ? { r10: { sites, u32: word } } : {}) }) : undefined;
@@ -420,7 +426,7 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
     adjSoftFocus: softFocus,
     dateImprint: dateImprint ? { ...dateIds, form: dateForm, ...(round7 ? { iconOff: 296, iconOn: 297 } : {}), ...(lookNames ? { names: lookNames } : {}) } : undefined,
     round7,
-    ...(round8 ? { round8 } : {}), ...(round9 ? { round9 } : {}), ...(round10 ? { round10 } : {}),
+    ...(round8 ? { round8 } : {}), ...(round9 ? { round9 } : {}), ...(round10 ? { round10 } : {}), ...(dimLightAf ? { dimLightAf } : {}),
     ...(round8 && !layer.looksFollow && features.lookLayout && !isGr3xFactoryLayout(features.lookLayout, 0) ? { lookLayout: { order: [...features.lookLayout.order], hidden: [...features.lookLayout.hidden] } } : {}),
     pictures: pictureCount ? (pictureSub ? { form: 'submenu' as const, count: pictureCount, ...endIds, names: pictures.map((_, k) => endIds.factoryText + 1 + k),
       factoryIcons: [...endIds.factoryIcons], icons: [...endIds.icons], choices: pictures.map(x => x.id!) }

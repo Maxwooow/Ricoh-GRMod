@@ -14,3 +14,4 @@ export { GR3X_MAX_PICTURES, gr3xPicturePath } from './shutdown';
 export { readGr3xBuildRecipe } from './ratio-recipe';
 export { readGr3xLookRecipe } from './look-recipe';
 export { GR3X_FACTORY_PICTURES } from './endscreen';
+export { gr3xDimLightAfOffered } from './dimaf';
