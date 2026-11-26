@@ -445,7 +445,11 @@ export function installLampAdj(patch: Patch, code: LampCode, fn: number): number
 }
 
 /** The Fn function 0x29: the four buttons that share the first function list, and the Movie button (pressed, held). */
+/** DIAGNOSTIC BRANCH ONLY (lamp-diag): 'none' = no Fn function at all, 'inert' = the Fn function is offered but a press does nothing. */
+const DIAG = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.GRMOD_LAMP_FN;
+
 export function installLampFn(patch: Patch, code: LampCode): void {
+  if (DIAG === 'none') return;
   expectWord(patch, FN_NAME_OF, 0xe3510000); // cmp r1, #0
   expectWord(patch, FN_NAME_OF + 4, 0x1a000001); // bne 0x5338FBBC
   expectWord(patch, FN_ICON_OF, 0xe3510000); // cmp r1, #0
@@ -503,7 +507,7 @@ export function installLampFn(patch: Patch, code: LampCode): void {
   const press = patch.append((a) => assembleWords(
     `cmp r2, #${FN_LAMP}; bne native
      cmp r6, #0; bne #${FN_SWITCH_END}
-     bl #${code.toggle}
+     ${DIAG === 'inert' ? 'mov r0, r0' : `bl #${code.toggle}`}
      b #${FN_SWITCH_END}
      native: cmp r2, #0x2d
      b #${FN_SWITCH_BOUND + 4}`, a), 16);
@@ -512,7 +516,7 @@ export function installLampFn(patch: Patch, code: LampCode): void {
   // The Movie button, pressed (event 2) or held (event 3): the lamp switched over, then the end.
   const movie = patch.append((a) => assembleWords(
     `cmp sl, #${FN_LAMP}; bne native
-     bl #${code.toggle}
+     ${DIAG === 'inert' ? 'mov r0, r0' : `bl #${code.toggle}`}
      b #${MOVIE_SWITCH_END}
      native: cmp sl, #0x2d
      b #${MOVIE_SWITCH_BOUND + 4}`, a), 16);
