@@ -244,6 +244,8 @@
     "core/src/fw/gr4v120/aspect/grain-code.ts",
     "core/src/fw/gr4v120/aspect/flttl-code.ts",
     "core/src/fw/gr4v120/aspect/videoaf-code.ts",
-    "core/src/fw/gr4v120/aspect/awb2-code.ts"
+    "core/src/fw/gr4v120/aspect/awb2-code.ts",
+    "core/src/fw/gr4v120/aspect/subjectaf-code.ts",
+    "core/src/fw/gr4v120/aspect/subjectaf-model-code.ts"
   ]
 }

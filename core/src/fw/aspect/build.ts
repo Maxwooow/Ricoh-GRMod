@@ -192,6 +192,8 @@ export interface ExtensionFeatures {
   movieSr?: boolean;
   /** GR IV 1.20 and 1.21 only (`fw/gr4v120/aspect/units.ts`; the engine refuses it on 1.11): distances in feet. */
   distanceFeet?: boolean;
+  /** GR IV 1.20 and 1.21 only (`fw/gr4v120/aspect/subjectaf.ts`; the engine refuses it on 1.11): subject recognition for photo AF. */
+  subjectAf?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
