@@ -38,7 +38,7 @@ export const de: Dict = {
   wallMenuIncomplete: 'Ein Endbildschirm ist noch nicht fertig (Name oder Bild)', wallMenuLine: 'Endbildschirme (im Kameramenü gewählt) {n}  ·  {l}',
   lowQuality: 'Geringe Qualität', grain: 'Körnung hinzugefügt', softened: 'Weichgezeichnet', tooDetailed: 'Dieses Modell speichert nur ein sehr kleines Endbild', encodeFailed: 'Kann nicht kodiert werden',
   overlay: 'Kameraanzeigen einblenden', done: 'Fertig', cancel: 'Abbrechen', apply: 'Anwenden',
-  card: 'Speicherkarte', noCard: 'Keine Speicherkarte gefunden', showAll: 'Alle Laufwerke anzeigen', showCardsOnly: 'Nur Speicherkarten anzeigen', refresh: 'Aktualisieren',
+  card: 'Speicherkarte', noCard: 'Keine Speicherkarte gefunden', preflightGone: 'Karte {c} ist nicht mehr da. Erneut einsetzen und noch einmal versuchen', preflightSpace: 'Nicht genug Platz auf Karte {c}: etwa {need} nötig, {free} frei. Platz schaffen und noch einmal versuchen', showAll: 'Alle Laufwerke anzeigen', showCardsOnly: 'Nur Speicherkarten anzeigen', refresh: 'Aktualisieren',
   updCheck: 'Nach Updates suchen', updTitle: 'Eine neue Version ist verfügbar', updLatestTitle: 'GR Mod ist auf dem neuesten Stand', updLatestBody: 'Aktuelle Version v{v}',
   updChecking: 'Suche nach Updates…', updNetError: 'Der Update-Server ist nicht erreichbar', updNew: 'Neue Version', updPill: 'Update',
   updInstall: 'Aktualisieren und neu starten', updDownloading: 'Wird heruntergeladen', updVerifying: 'Wird geprüft', updRestarting: 'Neustart…', updLater: 'Später',

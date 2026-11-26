@@ -14,7 +14,7 @@ import { menuPictures, menuReady } from './wall';
 import { GR3X_SOFT_FOCUS, adjSlotsOf, batteryOn, brightAutoOf, customGridOf, directFlashOn, exposurePreviewOn, filmGrainOn, flashTtlOn, hdrOn, videoAfOn, awbLearnOn, constantLightOn, movieExposureOn, sensorShiftOn, movie4kOn, movieSrOn, distanceFeetOn, monoUnlockOn, shadowLearnOn, softOn } from './features';
 import { hasRatioErrors, ratioShadeOn, ratioSpecs, toneLabel } from './ratios';
 import { canEject } from './photo';
-import { recordBuild, refreshCopies } from './copies';
+import { fmtSize, recordBuild, refreshCopies } from './copies';
 import { framingOf } from './framing';
 
 // ------------------------------------------------------------------ volumes
@@ -119,8 +119,35 @@ export function doneToast(root: string, volume: Volume | undefined, moved: numbe
   } else toast(text, 'ok', { label: t('reveal'), run: () => { void host.reveal(host.join(root, file)); } });
 }
 
-/** Turn a card into a firmware card holding `file` (what is in the way, such as a start-up script of GR Mod 0.7's power-off images, is moved aside). */
-export async function firmwareToCard(volume: Volume, file: Uint8Array): Promise<number> {
+/**
+ * @decision DEC-CARD-PREFLIGHT-001
+ * @title Check space and presence of a card with a fresh volume list before any write to it
+ * @status accepted
+ * @rationale A full card used to fail mid-write, after the old firmware was moved aside. The check runs in
+ *   firmwareToCard (every card write: a build, a stock copy, writeCopy) with the exact size, and once earlier
+ *   with the source size so a hopeless card is refused before the build and, in writeCopy, before the copy is
+ *   read. The cached `state.volumes` can be minutes old, so the host is asked again. A card needs the file
+ *   plus CARD_MARGIN (the file system's own bookkeeping); moves into `GRMOD\parked-*` are renames on the same
+ *   volume and need nothing. Folder exports and the phone never reach it. A volume that reports no size at
+ *   all is not checked. Volume carries no read-only flag, so a write-protected card cannot be seen beforehand.
+ */
+export const CARD_MARGIN = 1 << 20;
+/** True when `v` is still mounted and has room for `need` bytes; otherwise toasts why (needed vs free) and returns false. */
+export async function preflightCard(v: Volume, need: number): Promise<boolean> {
+  let volumes: Volume[];
+  try { volumes = await host.volumes(state.showAll); }
+  catch (e) { fail(e); return false; }
+  const fresh = volumes.find((x) => x.id === v.id);
+  if (JSON.stringify(volumes) !== JSON.stringify(state.volumes)) set({ volumes });
+  if (!fresh) { toast(t('preflightGone', { c: v.id }), 'error'); void refreshVolumes(); return false; }
+  if (fresh.total === 0 && fresh.free === 0) return true;
+  if (fresh.free < need + CARD_MARGIN) { toast(t('preflightSpace', { c: fresh.id, need: fmtSize(need + CARD_MARGIN), free: fmtSize(fresh.free) }), 'error'); return false; }
+  return true;
+}
+
+/** Turn a card into a firmware card holding `file` (what is in the way, such as a start-up script of GR Mod 0.7's power-off images, is moved aside). Null when the card was refused (the reason is toasted); nothing is moved or written then. */
+export async function firmwareToCard(volume: Volume, file: Uint8Array): Promise<number | null> {
+  if (!(await preflightCard(volume, file.length))) return null;
   return runPlan(volume.root, card.planFirmwareCard(await listing(volume.root), file, await freshStamp(volume.root), firmwareFilename()));
 }
 
@@ -215,6 +242,8 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   }
   const target = await destination(dest);
   if (!target || state.info !== sourceInfo || state.raw !== sourceRaw || state.model !== sourceModel || state.fwBusy) return;
+  // A card that cannot hold the file is refused before the (seconds-long) build, not mid-write; a folder is not checked.
+  if (target.volume && !(await preflightCard(target.volume, sourceRaw.length))) return;
   try {
     let file: Uint8Array;
     if (stock) file = sourceRaw;
@@ -239,7 +268,7 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
     }
     set({ busy: t('writing') });
     let moved = 0;
-    if (target.volume) moved = await firmwareToCard(target.volume, file);
+    if (target.volume) { const m = await firmwareToCard(target.volume, file); if (m === null) { set({ busy: undefined }); void refreshVolumes(); return; } moved = m; }
     else await runPlan(target.root, [{ op: 'write', path: [firmwareFilename()], data: file }]);
     set({ busy: undefined });
     doneToast(target.root, target.volume, moved, firmwareFilename());

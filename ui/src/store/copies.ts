@@ -8,7 +8,7 @@ import { t } from '../i18n';
 import { CopySource, State, ask, askOfficial, fail, newFirmwareWarning, set, state, toast } from './core';
 import { gridText, softText } from './features';
 import { toneLabel } from './ratios';
-import { SlotChange, doneToast, firmwareFilename, firmwareToCard, refreshVolumes } from './output';
+import { SlotChange, doneToast, firmwareFilename, firmwareToCard, preflightCard, refreshVolumes } from './output';
 
 // ------------------------------------------------------------------ copies moved aside on the card, and their backups
 const BUILDS_KEY = 'builds.json';
@@ -198,6 +198,7 @@ export async function writeCopy(): Promise<void> {
   const fresh = newFirmwareWarning(sourceInfo) ?? undefined;
   if (!(await (official ? askOfficial(describeCopy(pick.summary), fresh) : ask(t('confirmTitle'), describeCopy(pick.summary), t('confirmOk'), fresh)))) return;
   if (state.info !== sourceInfo || state.model !== sourceModel || state.fwBusy) return;
+  if (!(await preflightCard(v, pick.entry.size))) return; // the card must hold the copy before it is read
   try {
     set({ busy: t('opening') });
     const file = source === 'card' ? await host.parkedRead(v.id, pick.entry.path) : await host.backupRead(pick.entry.path);
@@ -207,7 +208,7 @@ export async function writeCopy(): Promise<void> {
     set({ busy: t('writing') });
     const moved = await firmwareToCard(v, file);
     set({ busy: undefined });
-    doneToast(v.root, v, moved, firmwareFilename());
+    if (moved !== null) doneToast(v.root, v, moved, firmwareFilename());
   } catch (e) { set({ busy: undefined }); fail(e); }
   await refreshCopies();
   void refreshVolumes();
