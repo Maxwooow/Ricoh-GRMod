@@ -71,7 +71,17 @@ export function lookOrderAvailable(s: State = state): boolean {
 /** Every key the order can contain, in the camera's order: GR IV's 20 looks and the added slots; GR III's twelve and its films. */
 export function lookKeys(s: State = state): string[] {
   if (gr3Order(s)) return [...GR3_LOOK_IDS.map(gr3LookKey), ...Array.from({ length: gr3Films(s) }, (_, k) => gr3LookKey(64 + k))];
-  return [...listedFactoryLooks(s).map(factoryLookKey), ...lookExtras(s).map((x) => x.key)];
+  return [...shownFactoryLooks(s).map(factoryLookKey), ...lookExtras(s).map((x) => x.key)];
+}
+/**
+ * The black-and-white looks of the Monochrome (25..30) are in every GR IV's order table, but a colour camera shows them
+ * only with the B&W unlock (Additions): without it they are not listed (as 31), and builds keep them where the
+ * firmware has them.
+ */
+function shownFactoryLooks(s: State = state): number[] {
+  const mono = s.model === 'MONO' || (!!s.monoUnlock && !!s.info?.features.monoUnlock);
+  const only = s.info?.looks?.monoOnly ?? [25, 26, 27, 28, 29, 30];
+  return listedFactoryLooks(s).filter((n) => mono || !only.includes(n));
 }
 /**
  * Looks in the firmware's order table that no camera shows: 1.20's 31 (Pictorialist) is not
@@ -81,13 +91,13 @@ export function lookKeys(s: State = state): string[] {
  */
 const UNRELEASED_LOOKS: readonly number[] = [31];
 function listedFactoryLooks(s: State = state): number[] { return factoryLooks(s).filter((n) => !UNRELEASED_LOOKS.includes(n)); }
-/** The style order to build from the listed keys: the unlisted looks go back where the firmware has them. */
+/** The style order to build from the listed keys: the unlisted looks (31; 25..30 without the B&W unlock) go back where the firmware has them. */
 function withUnlisted(styles: number[], s: State): number[] {
   const out = [...styles];
   const official = factoryLooks(s);
-  for (const n of UNRELEASED_LOOKS) {
+  for (const n of official) {
     const i = official.indexOf(n);
-    if (i < 0 || out.includes(n)) continue;
+    if (out.includes(n)) continue;
     const next = official.slice(i + 1).find((m) => out.includes(m));
     out.splice(next === undefined ? out.length : out.indexOf(next), 0, n);
   }
@@ -167,6 +177,16 @@ export function lookLayoutSpec(s: State = state): LookLayout | undefined {
 export function hasLookLayout(s: State = state): boolean { return !!lookLayoutSpec(s); }
 /** Put the family's order / hidden keys. */
 function orderPatch(s: State, patch: { order?: string[]; hidden?: string[] }): Partial<State> {
+  if (!gr3Order(s)) {
+    // The looks not listed now (the B&W looks without the unlock) keep their places and their hidden state.
+    const all = [...listedFactoryLooks(s).map(factoryLookKey), ...lookExtras(s).map((x) => x.key)];
+    const shown = new Set(lookKeys(s));
+    if (patch.order) {
+      const full = normalizeOrder(s.lookOrder, all), next = [...patch.order];
+      patch = { ...patch, order: full.map((k) => (shown.has(k) ? next.shift() ?? k : k)) };
+    }
+    if (patch.hidden) patch = { ...patch, hidden: [...patch.hidden, ...normalizeHidden(s.lookHidden, all).filter((k) => !shown.has(k))] };
+  }
   if (gr3Order(s)) return { ...(patch.order ? { lookOrder3: patch.order } : {}), ...(patch.hidden ? { lookHidden3: patch.hidden } : {}) };
   return { ...(patch.order ? { lookOrder: patch.order } : {}), ...(patch.hidden ? { lookHidden: patch.hidden } : {}) };
 }

@@ -7,7 +7,7 @@ import type { Key } from '../i18n';
 import { ensureIconFont, imageIcon, loadBitmap, textIcon } from '../pixels';
 import { HalationState, IconState, SlotKey, State, availableSlots, halationAllOffered, fail, isExtra, isGr3, patchSlot, set, setSlot, slotOf, state, toast } from './core';
 import { presetKey, scheduleSave } from './families';
-import { lookOrderNow, normalizeLookOrder } from './looks';
+import { normalizeLookOrder } from './looks';
 import { setActiveSlot } from './photo';
 import { recordDeleted } from './undo';
 
@@ -116,7 +116,7 @@ export function addExtraSlot(): void {
 /** Take an added slot away; with `undoable` (the default) the toast's Undo brings it back. Setting the count lower removes without it. */
 export function removeExtraSlot(key: string, undoable = true): void {
   const was = state, index = was.extras.findIndex((x) => x.key === key), item = was.extras[index];
-  const orderAt = lookOrderNow(was).indexOf(key), hidden = was.lookHidden.includes(key), active = was.activeSlot === key;
+  const orderAt = normalizeLookOrder(was.lookOrder, was.extras).indexOf(key), hidden = was.lookHidden.includes(key), active = was.activeSlot === key;
   set((s) => ({ extras: s.extras.filter((x) => x.key !== key), activeSlot: s.activeSlot === key ? 'CY' : s.activeSlot, lookOrder: normalizeLookOrder(s.lookOrder, s.extras.filter((x) => x.key !== key)), lookHidden: s.lookHidden.filter((k) => k !== key) }));
   const file = presetKey(key); // fixed now: the delete may run after a switch to the other family, whose files are named differently
   const del = (): void => { if (host.available) void host.storeDel(file).catch(() => undefined); };

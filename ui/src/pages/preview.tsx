@@ -145,8 +145,8 @@ function Compare({ photo, after, label, before, beforeLabel }: { photo: ImageDat
 /** The one preview of the page: it shows whichever slot is active and fills the space the window leaves. */
 /** The preview; `below` (with its height in `belowH`) goes under the picture, which leaves room for it. */
 /**
- * Halation for every look (GR IV 1.20 / 1.21): one switch for all looks of the camera, under the photo, in the style of
- * the Add-ons page's switches. On, what the preview shows (off by default; the strength and colour are chosen in the
+ * Halation for every look (GR IV 1.20 / 1.21): one switch for all looks of the camera, under the photo: a compact row in
+ * the style of the Add-ons page's switches, at the left. On, what the preview shows (off by default; the strength and colour are chosen in the
  * camera, on each look's parameter screen). `onHeight` reports its height, which the photo leaves free.
  */
 function HaloBar({ onHeight }: { onHeight: (h: number) => void }) {
@@ -164,21 +164,18 @@ function HaloBar({ onHeight }: { onHeight: (h: number) => void }) {
   }, [onHeight]);
   return (
     <div className="pane-below halo-bar">
-      <div ref={ref} className={`capsule halo-cap ${on ? 'on' : ''}`} data-tour="ic-halo">
-        <div className="capsule-top">
-          <span className="page-icon soft-ico">{Ico.halo}</span>
-          <b className="capsule-title">{t('haloLabel')}</b>
-          <Switch checked={on} onChange={(v) => setHalationAll({ halationAll: v })} label={t('haloLabel')} />
-        </div>
-        <p className="capsule-sub muted small">{t('haloAllSub')}</p>
-        {on && noExtras && <p className="capsule-sub small halo-warn">{t('haloAllNeedsExtra')}</p>}
+      <div ref={ref} className={`halo-cap ${on ? 'on' : ''}`} data-tour="ic-halo">
+        <span className="page-icon soft-ico">{Ico.halo}</span>
+        <span className="halo-cap-text" title={t('haloAllSub')}><b>{t('haloLabel')}</b>{!on && <span className="muted small">{t('haloAllSub')}</span>}</span>
+        <Switch checked={on} onChange={(v) => setHalationAll({ halationAll: v })} label={t('haloLabel')} />
         {on && (
-          <div className="halo-cap-row">
+          <span className="halo-cap-row">
             <span className="muted small">{t('haloPreview')}</span>
             <Segmented value={String(level)} onChange={(v) => setHalationAll({ haloPreview: Number(v) as 0 | 1 | 2 | 3 })} options={[{ value: '0', label: t('haloOff') }, { value: '1', label: t('haloWeak') }, { value: '2', label: t('haloMedium') }, { value: '3', label: t('haloStrong') }]} />
             {level > 0 && <Segmented value={colour} onChange={(v) => setHalationAll({ haloColour: v as 'red' | 'white' })} options={[{ value: 'red', label: t('haloRed') }, { value: 'white', label: t('haloWhite') }]} />}
-          </div>
+          </span>
         )}
+        {on && noExtras && <span className="small halo-warn">{t('haloAllNeedsExtra')}</span>}
       </div>
     </div>
   );

@@ -1078,8 +1078,12 @@ html.mobile-app .tour-hole { border-radius: 14px; }
 .lib-name { font-size: 13.5px; }
 
 /* halation for every look: the switch under the photo (pages/preview.tsx) */
-.halo-bar { justify-content: center; }
-.halo-cap { flex: 1; max-width: 640px; }
-.halo-cap-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding-top: 2px; }
-.halo-cap-row > .muted { margin-right: 2px; }
+.halo-bar { justify-content: flex-start; }
+.halo-cap { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; max-width: 100%; padding: 5px 10px 5px 5px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); transition: border-color 0.15s, background 0.15s; }
+.halo-cap.on { border-color: color-mix(in srgb, var(--blue) 45%, var(--line2)); background: color-mix(in srgb, var(--blue-bg) 45%, var(--side)); }
+.halo-cap .soft-ico { width: 28px; height: 28px; flex: none; border-radius: 9px; }
+.halo-cap.on .soft-ico { color: var(--blue); background: var(--blue-bg); }
+.halo-cap-text { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.halo-cap-text b { font-weight: 600; white-space: nowrap; }
+.halo-cap-row { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-left: 4px; }
 .halo-warn { color: var(--amber); }
