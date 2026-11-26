@@ -9,6 +9,8 @@
  *   looks     the Image Control menu's order and hidden looks
  *   wall      power-off pictures
  *   undo      taking back a deleted added slot, ratio or power-off picture
+ *   duplicate copying an added slot
+ *   batch     several preset files at once
  *   features  soft focus, date imprint, monochrome looks and the other switches
  *   framing   the framing guides of GR IV 1.20 / 1.21 (the custom grid's page)
  *   ratios    added aspect ratios
@@ -25,6 +27,8 @@ export * from './store/slots';
 export * from './store/looks';
 export * from './store/wall';
 export * from './store/undo';
+export * from './store/duplicate';
+export * from './store/batch';
 export * from './store/features';
 export * from './store/framing';
 export * from './store/ratios';

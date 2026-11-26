@@ -274,6 +274,7 @@ const zh = {
   aUpdChecksum: '下载的文件校验不符，已删除。请稍后重试。', aUpdInstallFailed: '无法安装更新：{e}',
  mCrashed: '界面发生错误。请将以下内容截图并发送给开发者。', mReload: '重新加载',
   undo: '撤销', undoExtra: '已删除新增槽位', undoWall: '已移除结束画面', undoRatio: '已移除长宽比', undoGone: '这次删除已无法撤销', undoFull: '已达上限，无法撤销',
+  extraDuplicate: '复制这个槽位', extraDuplicateFull: '已达上限（最多 {n} 个新增槽位），先删除一个', extraDuplicated: '已复制：{name}', batchProgress: '正在导入预设 {i} / {n}', batchAddTitle: '再新增槽位来放剩下的预设？', batchAddLine: '还有 {n} 个预设没有空槽位。', batchAddOk: '新增槽位', batchAddFiles: '{n} 个预设：{names}', batchDone: '已应用 {n} 个预设', batchSkipped: '{n} 个跳过（没有空槽位）', batchFailed: '{n} 个失败：{names}',
 };
 const en: typeof zh = {
   app: 'GR Mod',
@@ -542,6 +543,7 @@ const en: typeof zh = {
   aUpdChecksum: 'The downloaded file did not match and was deleted. Please try again later.', aUpdInstallFailed: 'Could not install the update: {e}',
  mCrashed: 'Something went wrong in the interface. Please send a screenshot of this to the developer.', mReload: 'Reload',
   undo: 'Undo', undoExtra: 'Added slot removed', undoWall: 'Power-off image removed', undoRatio: 'Aspect ratio removed', undoGone: 'That delete can no longer be undone', undoFull: 'Cannot undo: the list is full again',
+  extraDuplicate: 'Duplicate this slot', extraDuplicateFull: 'The limit of {n} added slots is reached, remove one first', extraDuplicated: 'Duplicated: {name}', batchProgress: 'Importing preset {i} of {n}', batchAddTitle: 'Add slots for the remaining presets?', batchAddLine: '{n} presets have no empty slot left.', batchAddOk: 'Add slots', batchAddFiles: '{n} presets: {names}', batchDone: '{n} presets applied', batchSkipped: '{n} skipped (no free slot)', batchFailed: '{n} failed: {names}',
 };
 export type Key = keyof typeof zh;
 /** One language's texts: every entry of the Chinese ones. */

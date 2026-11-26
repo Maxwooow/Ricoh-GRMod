@@ -285,4 +285,5 @@ export const ja: Dict = {
   tIcFUnitsB: '「フィート」にすると、「スナップ撮影距離」の値（1ft〜16ft。メニュー、撮影画面、ADJ モードのすべて）と MF 時の距離目盛がフィートになり、近距離の目盛はインチ（in）になります。「メートル」は公式ファームウェアと同じです。',
   unitsLine: '距離の単位  ·  フィート（スナップ撮影距離、MF の距離目盛）',
   undo: '元に戻す', undoExtra: '追加スロットを削除しました', undoWall: '終了画面を削除しました', undoRatio: 'アスペクト比を削除しました', undoGone: 'この削除はもう元に戻せません', undoFull: '上限に達しているため元に戻せません',
+  extraDuplicate: 'このスロットを複製', extraDuplicateFull: '追加スロットの上限（{n} 個）に達しています。先に 1 つ削除してください', extraDuplicated: '複製しました：{name}', batchProgress: 'プリセットを読み込み中 {i} / {n}', batchAddTitle: '残りのプリセット用にスロットを追加しますか？', batchAddLine: '空きスロットのないプリセットが {n} 個あります。', batchAddOk: 'スロットを追加', batchAddFiles: '{n} 個のプリセット：{names}', batchDone: '{n} 個のプリセットを適用しました', batchSkipped: '{n} 個をスキップ（空きスロットなし）', batchFailed: '{n} 個が失敗：{names}',
 };
