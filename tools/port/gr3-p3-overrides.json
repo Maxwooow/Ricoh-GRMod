@@ -290,5 +290,9 @@
  "0x55803c64": {
   "new": "0x55803f24",
   "reason": "battery percentage: GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40; the gap keeps its layout"
+ },
+ "0x55803c50": {
+  "new": "0x55803f10",
+  "reason": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout"
  }
 }

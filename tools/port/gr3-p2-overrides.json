@@ -302,5 +302,9 @@
  "0x558043a4": {
   "new": "0x55803c64",
   "reason": "battery percentage: GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends"
+ },
+ "0x55804390": {
+  "new": "0x55803c50",
+  "reason": "GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends"
  }
 }
