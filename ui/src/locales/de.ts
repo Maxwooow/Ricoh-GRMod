@@ -198,7 +198,7 @@ export const de: Dict = {
   pushStart: 'Senden', pushStop: 'Stoppen', pushClose: 'Schließen', pushShareLog: 'Protokoll senden', pushRetry: 'Erneut versuchen', pushDetails: 'Protokoll', pushPreparing: 'Datei wird vorbereitet…',
   pushOnlyGr4: 'Nur die GR-IV-Familie nimmt Firmware über WLAN an. Für eine GR III / IIIx auf dem Gerät speichern und auf eine Karte kopieren.',
   pushVpn: 'Ein VPN ist aktiv: Vor dem Senden ausschalten oder GR Mod daran vorbeileiten.', pushPerm: 'Zum Finden der Kamera werden die Berechtigungen für Bluetooth® und Geräte in der Nähe benötigt.',
-  pushBtOff: 'Bluetooth® ist aus', mSettings: 'Einstellungen', saveTitle: 'Auf Gerät speichern', rename: 'Umbenennen', saveStart: 'Speichern', mWhatsNew: 'Neuigkeiten', followSystem: 'Wie System', uiLanguage: 'App-Sprache',
+  pushBtOff: 'Bluetooth® ist aus', mSettings: 'Einstellungen', saveTitle: 'Auf Gerät speichern', rename: 'Umbenennen', saveStart: 'Speichern', mWhatsNew: 'Neuigkeiten', followSystem: 'Wie System', appearance: 'Darstellung', themeLight: 'Hell', themeDark: 'Dunkel', uiLanguage: 'App-Sprache',
   // the phone app: where it differs from the desktop wording, the key + 'M' (t() picks it on the phone)
   wallEmptyM: 'Bilder hinzufügen', dropFirmwareSubM: 'Tippen, um eine Datei auf dem Gerät zu wählen', dropPresetM: '.xmp / .cube wählen', dropFirmwareM: 'Original-Firmware .bin importieren',
   tOvFirmwareBM: 'Hier tippen, um die Einstellungen zu öffnen: das richtige Modell wählen und die Firmware aus der offiziellen Quelle herunterladen oder eine Firmwaredatei importieren, die schon auf diesem Gerät ist. Sowohl die neue (1.21, 1.20) als auch die ältere Firmware (1.11) funktioniert; eine Kamera mit der neuen kann nicht zur älteren zurück.',

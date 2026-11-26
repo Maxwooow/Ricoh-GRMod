@@ -13,6 +13,7 @@ import { loadPreviewPhoto } from './photo';
 import { refreshVolumes } from './output';
 import { loadBuilds } from './copies';
 import { savedFraming } from './framing';
+import { isThemePref, setThemePref, themePref } from '../theme';
 
 // ------------------------------------------------------------------ camera families
 /**
@@ -186,7 +187,7 @@ export async function saveProject(): Promise<void> {
   familyDocs[familyOf(s.model)] = currentFamilyDoc();
   const doc = {
     ...(familyDocs.gr4 ?? {}),
-    v: 1, page: s.page, model: s.model, lang: s.lang, langAuto: s.langAuto, uiLang: uiLangPref(), fwName: s.fwName, showAll: s.showAll, previewMode: s.previewMode, ratioBackdrop: s.ratioBackdrop,
+    v: 1, page: s.page, model: s.model, lang: s.lang, langAuto: s.langAuto, uiLang: uiLangPref(), theme: themePref(), fwName: s.fwName, showAll: s.showAll, previewMode: s.previewMode, ratioBackdrop: s.ratioBackdrop,
     tours: s.toursSeen, toursV: 2,
   };
   try {
@@ -221,6 +222,8 @@ export async function init(): Promise<void> {
       const fwRaw = await keptFirmware(fwGroupOf(model), doc.fwName);
       if (fwRaw) await openFirmware(fwRaw, LEGACY_FW_GROUP_NAME[fwGroupOf(model)], false);
       await loadFamilyFiles(work, fam, familyGen);
+      // The appearance the work was saved with (the page's storage may be gone with its port); start-up only, an import keeps the current one.
+      if (isThemePref(doc.theme) && doc.theme !== themePref()) setThemePref(doc.theme);
     } else {
       const fwRaw = await keptFirmware(fwGroupOf(state.model));
       if (fwRaw) await openFirmware(fwRaw, LEGACY_FW_GROUP_NAME[fwGroupOf(state.model)], false);

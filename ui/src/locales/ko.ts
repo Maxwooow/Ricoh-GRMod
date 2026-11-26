@@ -198,7 +198,7 @@ export const ko: Dict = {
   pushStart: '보내기 시작', pushStop: '중지', pushClose: '닫기', pushShareLog: '로그 보내기', pushRetry: '다시 시도', pushDetails: '로그', pushPreparing: '파일을 준비하는 중…',
   pushOnlyGr4: '무선 전송은 GR IV 시리즈만 지원합니다. GR III / IIIx는 기기에 저장한 다음 카드 리더로 카드에 쓰세요.',
   pushVpn: '기기에서 VPN을 사용하고 있습니다. 보내기 전에 VPN을 끄거나 VPN 설정에서 GR Mod가 VPN을 우회하도록 허용하세요.', pushPerm: '카메라를 찾으려면 Bluetooth® 및 근처 기기 권한이 필요합니다.',
-  pushBtOff: '기기의 Bluetooth®가 꺼져 있습니다', mSettings: '설정', saveTitle: '기기에 저장', rename: '이름 바꾸기', saveStart: '저장', mWhatsNew: '업데이트 내용', followSystem: '시스템 설정 따르기', uiLanguage: '표시 언어',
+  pushBtOff: '기기의 Bluetooth®가 꺼져 있습니다', mSettings: '설정', saveTitle: '기기에 저장', rename: '이름 바꾸기', saveStart: '저장', mWhatsNew: '업데이트 내용', followSystem: '시스템 설정 따르기', appearance: '화면 스타일', themeLight: '라이트', themeDark: '다크', uiLanguage: '표시 언어',
   // the phone app: where it differs from the desktop wording, the key + 'M' (t() picks it on the phone)
   wallEmptyM: '이미지 추가', dropFirmwareSubM: '탭하여 기기의 파일 선택', dropPresetM: '.xmp / .cube 파일 선택', dropFirmwareM: '정품 펌웨어 .bin 불러오기',
   tOvFirmwareBM: '여기를 탭해 설정을 엽니다. 올바른 기종을 선택하면 리코 공식 웹사이트에서 펌웨어를 다운로드할 수 있으며, 기기에 이미 다운로드한 펌웨어를 불러올 수도 있습니다. 새 버전(1.21, 1.20)과 이전 버전(1.11) 모두 사용할 수 있습니다. 새 버전을 설치한 카메라는 이전 버전으로 되돌릴 수 없습니다.',
