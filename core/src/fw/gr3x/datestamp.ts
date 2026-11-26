@@ -72,6 +72,8 @@ import { GR3X_DATESTAMP_R10_CODE } from './picture-modules-r10';
 import { GR3X_R10 } from './round10';
 import type { Gr3xPictureIds } from './shutdown';
 import { adr, byRelease } from './target';
+import { installGr3xLineHandlers, installGr3xStillMenu } from './menu-lines';
+import type { Gr3xResolvedLine } from './menu-lines';
 
 export const GR3X_DATE_SETTINGS_POINTER = adr(0x55063f34);
 export const GR3X_DATE_OFFSET = 0x9a2;
@@ -349,7 +351,9 @@ export function installGr3xMenuAdditions(p: Gr3xDateProgram, o: { date?: Gr3xDat
    * the Style values' labels as wide as the row allows. Needs `onOffText` and the submenu. */
   round8?: boolean;
   /** Round 10: the start-up fill is already extended (round10.ts). */
-  zeroFillDone?: boolean }) {
+  zeroFillDone?: boolean;
+  /** After round 10: lines the extras add to the still menu (menu-lines.ts), each opening a list. */
+  lines?: readonly Gr3xResolvedLine[] }) {
   const iconOff = o.onOffText ? TEXT_ICON_OFF : ICON_OFF, iconOn = o.onOffText ? TEXT_ICON_ON : ICON_ON;
   const ids = o.date;
   if (o.picture && o.endScreen) fail('IIIx pictures: list or submenu');
@@ -358,7 +362,8 @@ export function installGr3xMenuAdditions(p: Gr3xDateProgram, o: { date?: Gr3xDat
   const r8 = o.round8 === true;
   if (r8 && (!sub || !o.onOffText || [ids!.orient, ids!.shortName, ids!.longName, ids!.iconShortName, ids!.iconLongName].some(v => v === undefined)))
     fail('IIIx round 8 date imprint: the submenu, OFF / ON texts and the texts and icons of the third line and the two styles');
-  if (!ids && !o.picture && !o.endScreen) fail('no IIIx menu additions');
+  const added = o.lines ?? [];
+  if (!ids && !o.picture && !o.endScreen && !added.length) fail('no IIIx menu additions');
   // --- Checks of the official code and data this relies on.
   const guards: readonly (readonly [number, number])[] = [
     ...(ids ? [[BUILDER, 0xe1a0c00d], [BUILDER + 4, movWord(3, lo(MENU_TABLE))], [BUILDER + 0x10, movWord(3, hi(MENU_TABLE), true)]] as const : []),
@@ -536,7 +541,14 @@ export function installGr3xMenuAdditions(p: Gr3xDateProgram, o: { date?: Gr3xDat
     lists.push({ id: GR3X_PICTURE_MENU_ID, title: o.picture.title, count: pe.pictureCount, draw: pe.pictureDraw, set: pe.pictureSet, isCurrent: pe.pictureIsCurrent });
     Object.assign(entries, pe);
   }
-  const what = o.picture ? 'added menu lists' : 'date imprint';
+  // Extras' lines (menu-lines.ts): their lists after the others.
+  const stillLines = added.map((l, k) => {
+    const h = installGr3xLineHandlers(p, l);
+    lists.push({ id: l.id, title: l.title, count: h.count, draw: h.listDraw, set: h.set, isCurrent: h.isCurrent });
+    Object.assign(entries, { [`line${k}Draw`]: h.draw, [`line${k}Count`]: h.count, [`line${k}ListDraw`]: h.listDraw, [`line${k}Set`]: h.set, [`line${k}IsCurrent`]: h.isCurrent });
+    return { draw: h.draw, id: l.id, after: l.after };
+  });
+  const what = o.picture ? 'added menu lists' : ids ? 'date imprint' : 'added menu lines';
   const records = lists.map(l => {
     const record = horizon.slice(), rv = new DataView(record.buffer);
     rv.setUint32(4, l.title, true); rv.setUint32(8, l.count, true); rv.setUint32(0x10, l.draw, true); rv.setUint32(0x18, l.set, true); rv.setUint32(0x20, l.isCurrent, true);
@@ -566,7 +578,7 @@ export function installGr3xMenuAdditions(p: Gr3xDateProgram, o: { date?: Gr3xDat
     Object.assign(entries, { submenuTable: subTable, submenuSetCurrent: subCurrent });
   }
 
-  if (ids) {
+  if (ids && !added.length) {
     // --- Two still-menu descriptors, one per model.
     const descriptor = (drop: number, firsts: readonly number[]) => {
       const d = still.slice(), v = new DataView(d.buffer);
@@ -593,15 +605,20 @@ export function installGr3xMenuAdditions(p: Gr3xDateProgram, o: { date?: Gr3xDat
     p.patch(BUILDER, 0xe1a0c00d, branchWord(BUILDER, builder), 'date imprint: still menu for this model');
     Object.assign(entries, { dateMenuWithoutNd: withoutNd, dateMenuWithoutHdf: withoutHdf, dateBuilder: builder });
   }
-  if (o.picture) Object.assign(entries, installGr3xPictureSetupLine(p, entries.pictureLine));
+  const setupOut: { setup?: { address: number; bytes: Uint8Array } } = {};
+  if (o.picture) Object.assign(entries, installGr3xPictureSetupLine(p, entries.pictureLine, setupOut));
   if (o.endScreen) {
     // Setup's End Screen line opens the submenu, drawn as Setup's other submenu lines.
     const setupLine = p.code(`push {r4,lr};mov r4,r1;mov r0,r4;mov r1,#0;bl #${LINE_VALUE_ICON};mov r0,r4;movw r1,#${END_SCREEN_TITLE};mov r2,r1;
       pop {r4,lr};b #${TOP_SET_TITLE};`);
-    Object.assign(entries, { endScreenSetupLine: setupLine }, installGr3xEndScreenSetup(p, setupLine));
+    Object.assign(entries, { endScreenSetupLine: setupLine }, installGr3xEndScreenSetup(p, setupLine, setupOut));
     // The picture list's mode is in the gap before the heap: the start-up fill clears it.
     if (!o.zeroFillDone) p.patch(GR3X_ZERO_FILL_END, GR3X_GAP, GR3X_HEAP_BASE, 'start-up zero fill reaches the heap base (clears the added RAM words)');
   }
+
+  // --- Extras' lines: the still menu (one descriptor per model, wide beyond 38 lines; menu-lines.ts).
+  if (added.length) Object.assign(entries, installGr3xStillMenu(p, stillLines, ids ? { draw: line, id: GR3X_DATE_MENU_ID } : null, setupOut.setup ?? null,
+    ids ? 'date imprint and added lines' : 'added menu lines'));
 
   // --- Controller ids: Horizon Correction's list controller and key map.
   const mapped = [...lists.map(l => [l.id, HORIZON_ID] as const), ...submenus.map(m => [m.id, D_RANGE_ID] as const),

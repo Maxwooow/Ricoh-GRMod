@@ -15,3 +15,8 @@ them up in the generated address tables, so they are not part of the generated p
 - `halation_check.py` (with `halation_ref.mts`): the films' halation switch: the JPEG step's module against GR Mod's
   reference, the development step's stash, the parameter screen's rows, with the switch on, off and absent.
 - `addmap.py`: adds the addresses of new GR III source files to the port maps (2.10 -> 2.20 -> 2.21).
+- `menu_check.py`: added still-menu lines and the wide menus (menu-lines.ts) with soft focus as their first line, with
+  the camera's own menu builder, OK, line drawing and list code; `build_pictures.mts` makes the builds with End
+  Screen pictures and films it is also run on.
+- `settings_survey.py`: the free bytes of the user-settings record (menu-lines.ts, GR3X_FREE_SETTING_BYTES), from the
+  camera's own merge and Save-to-U code run in the emulator, in all three releases.

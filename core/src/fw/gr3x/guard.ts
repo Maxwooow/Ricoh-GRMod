@@ -61,6 +61,9 @@ export interface Gr3xGuardOptions {
    * rounds 6..9 had it; with 0x13 on no slot either, soft focus is turned off (byte 0): the level
    * decides alone (GR IV), and soft focus that no ADJ slot shows could not be seen or changed. */
   softFocusR10?: boolean;
+  /** With soft focus also a line of the still menu (extras' softFocusMenu, menu-lines.ts): soft focus on no
+   * ADJ slot can be seen and changed there, so it is no longer turned off (GR IV: the byte alone decides). */
+  softFocusMenu?: boolean;
 }
 const SOFT_FOCUS_BYTE = 0x9a1;
 const ADJ_SLOT_BYTES = [0x918, 0x91a, 0x91c, 0x91e, 0x920];
@@ -95,7 +98,7 @@ export function installGr3xGuardCode(p: Gr3xGuardProgram, o: Gr3xGuardOptions) {
     for (const f of ADJ_SLOT_BYTES) lines.push(`ldrb r2,[r0,#${f}]`, 'cmp r2,#0x13', `strbeq r3,[r0,#${f}]`, 'moveq r1,#1');
     // Still on no slot: soft focus off (rounds 6..9 applied it only from a slot; on no slot it could
     // not be seen or changed).
-    lines.push('cmp r1,#0', `strbeq r1,[r0,#${SOFT_FOCUS_BYTE}]`);
+    if (!o.softFocusMenu) lines.push('cmp r1,#0', `strbeq r1,[r0,#${SOFT_FOCUS_BYTE}]`);
   }
   lines.push('bx lr');
   const fix = p.code(lines.join(';'));

@@ -246,7 +246,7 @@ export function installGr3xPictureList(p: Gr3xPictureProgram, ids: Gr3xPictureId
 }
 
 /** The Setup menu with the new line after End Screen. */
-export function installGr3xPictureSetupLine(p: Gr3xPictureProgram, line: number) {
+export function installGr3xPictureSetupLine(p: Gr3xPictureProgram, line: number, out?: { setup?: { address: number; bytes: Uint8Array } }) {
   if (p.word(SETUP_ENTRY_IMAGE) !== SETUP_MENU) fail('unexpected-layout', 'IIIx Setup menu entry');
   if (new DataView(p.read(SETUP_ENTRY_RAM, 4).buffer).getUint32(0, true) !== SETUP_MENU) fail('unexpected-layout', 'IIIx Setup menu entry (RAM)');
   const setup = p.read(SETUP_MENU, DESCRIPTOR), sv = new DataView(setup.buffer);
@@ -269,11 +269,12 @@ export function installGr3xPictureSetupLine(p: Gr3xPictureProgram, line: number)
   d[D_COUNT] = SETUP_ITEMS + 1;
   const copy = p.append(d);
   p.patch(SETUP_ENTRY_IMAGE, SETUP_MENU, copy, 'power-off pictures: Setup menu with the picture line');
+  if (out) out.setup = { address: copy, bytes: d };
   return { pictureSetupMenu: copy };
 }
 
 /** Round 6: the Setup menu with End Screen (item 10) opening the End Screen submenu (endscreen.ts). */
-export function installGr3xEndScreenSetup(p: Gr3xPictureProgram, line: number) {
+export function installGr3xEndScreenSetup(p: Gr3xPictureProgram, line: number, out?: { setup?: { address: number; bytes: Uint8Array } }) {
   if (p.word(SETUP_ENTRY_IMAGE) !== SETUP_MENU) fail('unexpected-layout', 'IIIx Setup menu entry');
   if (new DataView(p.read(SETUP_ENTRY_RAM, 4).buffer).getUint32(0, true) !== SETUP_MENU) fail('unexpected-layout', 'IIIx Setup menu entry (RAM)');
   const setup = p.read(SETUP_MENU, DESCRIPTOR), sv = new DataView(setup.buffer);
@@ -287,6 +288,7 @@ export function installGr3xEndScreenSetup(p: Gr3xPictureProgram, line: number) {
   dv.setUint32(D_ID + END_SCREEN_ITEM * 4, GR3X_PICTURE_MENU_ID, true);
   const copy = p.append(d);
   p.patch(SETUP_ENTRY_IMAGE, SETUP_MENU, copy, 'power-off pictures: Setup > End Screen opens the End Screen submenu');
+  if (out) out.setup = { address: copy, bytes: d };
   return { endScreenSetupMenu: copy };
 }
 

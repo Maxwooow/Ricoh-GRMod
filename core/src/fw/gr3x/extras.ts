@@ -28,6 +28,8 @@ export interface Gr3xExtras {
   /** Halation as one switch for the films (halation-switch.ts): true every film with GR Mod 0.9's
    * halation (white's diffusion filter), false none; absent: round 10's films as they are. */
   halationSwitch?: boolean;
+  /** Soft focus (ADJ, needs `adjSoftFocus`) also a line of the still menu (menu-lines.ts). */
+  softFocusMenu?: true;
 }
 
 /** The extras as they are built and recorded: validated, defaults left out; undefined for none. */
@@ -35,7 +37,7 @@ export function normalizeGr3xExtras(x: unknown): Gr3xExtras | undefined {
   if (x === undefined || x === null) return undefined;
   if (typeof x !== 'object') throw new FirmwareError('bad-edit', 'IIIx extras');
   const e = x as Record<string, unknown>, out: Gr3xExtras = {};
-  for (const k of Object.keys(e)) if (k !== 'customGrid' && k !== 'distanceFeet' && k !== 'batteryPercent' && k !== 'batteryDiag' && k !== 'shadowLearn' && k !== 'ratioShade' && k !== 'ratioShadeTone' && k !== 'hdrGainMap' && k !== 'halationSwitch') throw new FirmwareError('bad-edit', `IIIx extras: unknown addition ${k}`);
+  for (const k of Object.keys(e)) if (k !== 'customGrid' && k !== 'distanceFeet' && k !== 'batteryPercent' && k !== 'batteryDiag' && k !== 'shadowLearn' && k !== 'ratioShade' && k !== 'ratioShadeTone' && k !== 'hdrGainMap' && k !== 'halationSwitch' && k !== 'softFocusMenu') throw new FirmwareError('bad-edit', `IIIx extras: unknown addition ${k}`);
   if (e.customGrid !== undefined) {
     if (!validCustomGrid(e.customGrid)) throw new FirmwareError('bad-edit', 'custom grid: eight lines on or off for each style');
     if (!isCameraGrid(e.customGrid)) out.customGrid = { g3: [...e.customGrid.g3], g4: [...e.customGrid.g4] };
@@ -56,5 +58,7 @@ export function normalizeGr3xExtras(x: unknown): Gr3xExtras | undefined {
   if (e.hdrGainMap === true) out.hdrGainMap = true;
   if (e.halationSwitch !== undefined && typeof e.halationSwitch !== 'boolean') throw new FirmwareError('bad-edit', 'halationSwitch must be boolean');
   if (typeof e.halationSwitch === 'boolean') out.halationSwitch = e.halationSwitch;
+  if (e.softFocusMenu !== undefined && typeof e.softFocusMenu !== 'boolean') throw new FirmwareError('bad-edit', 'softFocusMenu must be boolean');
+  if (e.softFocusMenu === true) out.softFocusMenu = true;
   return Object.keys(out).length ? out : undefined;
 }

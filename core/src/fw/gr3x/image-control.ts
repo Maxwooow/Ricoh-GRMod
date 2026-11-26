@@ -455,7 +455,7 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
     const tables = installGr3xR10Tables(r10Program, slots.filter(s => s.record).map(s => ({ id: s.id, record: s.record, iconId: s.iconId, print: s.print })));
     const params = installGr3xR10Parameters(r10Program, { films: capacity, prints: slots.slice(0, capacity).map(s => s.print >>> 0), hiddenMask, setterSites: GR3X_PARAMETER_SETTER_LOOKS });
     const guard = installGr3xGuardR10({ code, patch, u32, sites }, { films: capacity, maxRatio: gr3xMaxId(menu.menu), ...(layout ? { hidden: layout.hidden } : {}),
-      ...(features.adjSoftFocus ? { softFocusR10: true } : {}) }, params.moduleSymbols.sp_before_recall);
+      ...(features.adjSoftFocus ? { softFocusR10: true } : {}), ...(features.extras?.softFocusMenu ? { softFocusMenu: true } : {}) }, params.moduleSymbols.sp_before_recall);
     const order = (layout ? layout.order.filter(id => !layout.hidden.includes(id)) : gr3xFactoryLookOrder(capacity));
     const raw = installGr3xR10Raw(r10Program, { films: capacity, order, module: params.moduleSymbols });
     const info = installGr3xR10PictureInfo(r10Program, capacity, slots[0].iconId);
