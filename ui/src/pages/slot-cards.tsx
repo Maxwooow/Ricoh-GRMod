@@ -8,6 +8,7 @@ import type { Key } from '../i18n';
 import { loadIconImage, loadPresetFile, nameProblem, exportSlotCubeFile, removePreset, setActiveSlot, setIcon, setName, useStore, extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, filmCountChoosable, removeFilm, setFilmCount, duplicateExtraProblem, duplicateExtraSlot, loadPresetFiles } from '../store';
 import type { ExtraSlot, SlotKey } from '../store';
 import { isPreset } from './files';
+import { LibraryButtons } from '../library';
 
 export function SlotCard({ id }: { id: SlotId }) {
   const slot = useStore((s) => s.slots[id]);
@@ -56,6 +57,7 @@ export function SlotCard({ id }: { id: SlotId }) {
                 )}
               </div>
             )}
+            <LibraryButtons k={id} />
           </Prop>
           <Prop label={t('icon')} tour={first ? 'ic-icon' : undefined}>
             <div className="chips">
@@ -187,6 +189,7 @@ export function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
                 )}
               </div>
             )}
+            <LibraryButtons k={k} />
           </Prop>
           <Prop label={t('icon')}>
             <div className="chips">

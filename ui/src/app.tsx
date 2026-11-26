@@ -4,6 +4,7 @@ import type { ErrorInfo } from 'react';
 import { GlassDefs, GlassFilter, useGlass, useSize } from './glass';
 import { Busy, ConfirmDialog, Hint, Ico, MobileSheet, Select, Toasts, useDismiss } from './components';
 import { host, isMobile } from './host';
+import { LibraryDialog } from './library';
 import { PushDialog } from './camera';
 import { AndroidUpdate, checkUpdates, isAndroid } from './update-dialog';
 import { haptic, setBackFallback } from './host-android';
@@ -177,6 +178,7 @@ export function App() {
       <FirmwareOnline />
       <InspectDialog />
       <UpdateWatcher />
+      <LibraryDialog />
       <ConfirmDialog />
       <Tour />
       <Busy />
@@ -527,6 +529,7 @@ function MobileApp() {
       <FirmwareOnline />
       <PushDialog />
       <AndroidUpdate />
+      <LibraryDialog />
       <ConfirmDialog />
       <Tour />
       <Busy />

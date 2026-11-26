@@ -23,7 +23,7 @@ import { isThemePref, setThemePref, themePref } from '../theme';
  * there too); GR III / IIIx's is `project-gr3.json`, its presets `gr3-preset-…` (its films reuse
  * the ids CY and CG). Switching to the other camera keeps this one's work and brings back that one's.
  */
-type Family = 'gr4' | 'gr3';
+export type Family = 'gr4' | 'gr3';
 export const familyOf = (m: CameraModel): Family => (isGr3(m) ? 'gr3' : 'gr4');
 const GR3_PROJECT = 'project-gr3.json';
 /** The official file each camera takes (GR IV, GR III, GR IIIx: one file for all of each one's models),
