@@ -31,7 +31,8 @@ import { fitOptions, nextPresetRun, presetRuns, runPreset } from './slots';
  *   fitting, only when `fit` equals the key the target would fit with now (family, kind and the
  *   options of fitOptions, so an added slot's hue sectors count). Otherwise the source is refitted
  *   with the current options through the normal runPreset path. A result that cannot be read back
- *   also falls back to a refit. Saving under a name already in the library for that family replaces
+ *   also falls back to a refit. The key starts with the app version, so a newer app (maybe with a
+ *   better fit) refits once and keeps its own result in place of the old one. Saving under a name already in the library for that family replaces
  *   that entry.
  */
 export interface LibraryEntry { id: string; name: string; kind: 'xmp' | 'cube'; family: Family; fileName: string; date: number; fit?: string }
@@ -43,10 +44,14 @@ export const LIBRARY_SEARCH_MIN = 5;
 const LIBRARY_INDEX = 'library.json';
 const libSrcKey = (id: string): string => 'library-' + id;
 const libFitKey = (id: string): string => 'library-' + id + '-fit';
-/** The options a fit was made with, as a comparable string (undefined when nothing can be fitted: no preset support). */
+/**
+ * The options a fit was made with, as a comparable string (undefined when nothing can be fitted: no preset support).
+ * It starts with the app's version: a stored fit is only reused by the version that made it, so a later version
+ * with a better fit refits the stored source once instead of reusing an older result.
+ */
 function fitKeyOf(id: SlotKey, kind: 'xmp' | 'cube'): string | undefined {
   if (!state.info?.capabilities.presets) return undefined;
-  return [familyOf(state.model), kind, JSON.stringify(fitOptions(id))].join('|');
+  return [host.info?.version ?? '', familyOf(state.model), kind, JSON.stringify(fitOptions(id))].join('|');
 }
 const TYPED: Record<string, new (a: number[]) => ArrayLike<number>> = { Int16Array, Uint16Array, Float64Array, Float32Array, Uint8Array } as never;
 /** A fit result as JSON; typed arrays are tagged `{ __ta, data }` so that reading it back gives the same arrays. */
@@ -132,7 +137,18 @@ export async function applyFromLibrary(id: SlotKey, entryId: string): Promise<bo
   if (result) {
     presetRuns.set(id, nextPresetRun()); // a conversion still running for this slot is now stale
     patchSlot(id, { preset: { fileName: e.fileName, kind: e.kind, text, busy: false, result } });
-  } else await runPreset(id, e.fileName, e.kind, text);
+  } else {
+    await runPreset(id, e.fileName, e.kind, text);
+    // keep the new fit for the next time, when the slot's options are the ones the entry was saved for or it had none (an older app's)
+    const fresh = slotOf(id)?.preset;
+    if (key && fresh?.result && fresh.text === text && (!e.fit || e.fit.split('|').slice(1).join('|') === key.split('|').slice(1).join('|'))) {
+      try {
+        await host.storeSet(libFitKey(e.id), packFit(fresh.result));
+        const entries = state.library.map((x) => (x.id === e.id ? { ...x, fit: key } : x));
+        if (await writeLibraryIndex(entries)) set({ library: entries });
+      } catch { /* the stored source is enough: the next apply refits again */ }
+    }
+  }
   scheduleSave();
   closeLibrary();
   toast(t('libApplied', { name: e.name }), 'ok');

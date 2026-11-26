@@ -6,6 +6,7 @@ import { isMobile } from '../host';
 import { t } from '../i18n';
 import { applySlot } from '../preview';
 import { loadPreviewFile, previewPhoto, setActiveSlot, setPreviewMode, useStore, extraName, halationOf, slotOf, filmCountChoosable, compareSlot, setCompareWith, slotsWithLook } from '../store';
+import type { SlotKey } from '../store';
 import { isImage } from './files';
 
 // 24 reference patches (sRGB), shown before / after a preset
@@ -31,35 +32,45 @@ function Swatches({ params }: { params?: color.SlotParams }) {
   );
 }
 
-/** The sample photograph with the original (or, with `left`, another slot's look) on the left of a draggable divider and the active slot's preset, labelled `label`, on the right. */
-function PhotoCompare({ params, label, left }: { params?: color.SlotParams; label: string; left?: { params: color.SlotParams; label: string } }) {
+/** A slot's halation as the preview draws it: the level chosen for the preview (0 = none), its colour and where its light starts. Undefined key: none. */
+function useHalation(key: SlotKey | undefined): { level: number; colour: 'red' | 'white'; light: ReturnType<typeof halationLight> | undefined } {
+  // (primitive selections: the store hook needs a stable value)
+  const level = useStore((s) => { if (!key) return 0; const h = halationOf(key, s); return h.on ? h.preview : 0; });
+  const colour = useStore((s): 'red' | 'white' => (!key ? 'red' : s.info?.family === 'gr3x' && !filmCountChoosable(s) ? 'red' : halationOf(key, s).colour ?? 'red'));
+  // where the slot's light starts: its own look decides how bright the highlights end up
+  const result = useStore((s) => (key ? slotOf(key, s)?.preset?.result : undefined));
+  const light = useMemo(() => (result ? halationLight(result.curves, result.postQ9) : undefined), [result]);
+  return { level, colour, light };
+}
+/** `base` with a slot's halation at its preview level, as the camera computes it (a copy; `base` itself when the slot has none). */
+function withHalation(base: ImageData, h: { level: number; colour: 'red' | 'white'; light: ReturnType<typeof halationLight> | undefined }, gr3x: boolean): ImageData {
+  if (!h.level) return base;
+  const out = new ImageData(new Uint8ClampedArray(base.data), base.width, base.height);
+  // GR IV's white from 0.9 scatters at Weak / Medium; GR III / IIIx keep the 0.8.2 white glow
+  halateRgba(out.data, out.width, out.height, h.level as 1 | 2 | 3, h.light, h.colour, gr3x ? 'classic' : 'scatter');
+  return out;
+}
+
+/** The sample photograph with the original (or, with `left`, another slot's look and halation) on the left of a draggable divider and the active slot's preset, labelled `label`, on the right. */
+function PhotoCompare({ params, label, left }: { params?: color.SlotParams; label: string; left?: { slot: SlotKey; params: color.SlotParams; label: string } }) {
   const photo = usePhoto();
   const gr3x = useStore(s => s.info?.family === 'gr3x');
-  // (primitive selections: the store hook needs a stable value)
-  const haloLevel = useStore((s) => { const h = halationOf(s.activeSlot, s); return h.on ? h.preview : 0; });
-  const haloColour = useStore((s) => (s.info?.family === 'gr3x' && !filmCountChoosable(s) ? 'red' : halationOf(s.activeSlot, s).colour ?? 'red'));
-  const halo = haloLevel ? { preview: haloLevel } : undefined;
-  // where the slot's light starts: its own look decides how bright the highlights end up
-  const result = useStore((s) => slotOf(s.activeSlot, s)?.preset?.result);
-  const light = useMemo(() => (result ? halationLight(result.curves, result.postQ9) : undefined), [result]);
+  const active = useStore((s) => s.activeSlot);
+  const halo = useHalation(active);
   const base = useMemo(() => (photo && params ? applySlot(params, photo, gr3x) : null), [photo, params, gr3x]);
   // The added slot's halation at the level chosen for the preview, as the camera computes it.
-  const after = useMemo(() => {
-    if (!base || !halo) return base;
-    const out = new ImageData(new Uint8ClampedArray(base.data), base.width, base.height);
-    // GR IV's white from 0.9 scatters at Weak / Medium; GR III / IIIx keep the 0.8.2 white glow
-    halateRgba(out.data, out.width, out.height, halo.preview as 1 | 2 | 3, light, haloColour, gr3x ? 'classic' : 'scatter');
-    return out;
-  }, [base, haloLevel, light, haloColour, gr3x]);
-  // The left side is another slot's look. Rendered a tick after the choice so the picker closes at once; until then the photo shows.
+  const after = useMemo(() => (base ? withHalation(base, halo, gr3x) : null), [base, halo.level, halo.light, halo.colour, gr3x]); // eslint-disable-line react-hooks/exhaustive-deps
+  // The left side is another slot's look, with that slot's own halation, so two looks are compared the same way.
+  // Rendered a tick after the choice so the picker closes at once; until then the photo shows.
+  const leftHalo = useHalation(left?.slot);
   const [leftImg, setLeftImg] = useState<ImageData | null>(null);
   const leftParams = left?.params;
   useEffect(() => {
     setLeftImg(null);
     if (!photo || !leftParams) return;
-    const h = setTimeout(() => setLeftImg(applySlot(leftParams, photo, gr3x)), 0);
+    const h = setTimeout(() => setLeftImg(withHalation(applySlot(leftParams, photo, gr3x), leftHalo, gr3x)), 0);
     return () => clearTimeout(h);
-  }, [photo, leftParams, gr3x]);
+  }, [photo, leftParams, gr3x, leftHalo.level, leftHalo.light, leftHalo.colour]); // eslint-disable-line react-hooks/exhaustive-deps
   const ready = left && leftImg ? leftImg : null;
   return <Compare photo={photo} after={after} label={label} before={ready} beforeLabel={ready && left ? left.label : undefined} />;
 }
@@ -203,7 +214,7 @@ export function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?:
           : [{ value: 'photo', label: t('previewPhoto') }, { value: 'swatch', label: t('previewSwatch') }]} />
       </div>
       <div className="pane-body" style={{ '--below': below ? `${belowH + 10}px` : '0px' } as React.CSSProperties}>
-        <div className="pane-fit" data-tour="ic-preview" data-tour-fit="">{mode === 'photo' ? <PhotoCompare params={params} label={compareKey ? labelOf(active) : t('preset')} left={compareKey && leftParams ? { params: leftParams, label: labelOf(compareKey) } : undefined} /> : <Swatches params={params} />}</div>
+        <div className="pane-fit" data-tour="ic-preview" data-tour-fit="">{mode === 'photo' ? <PhotoCompare params={params} label={compareKey ? labelOf(active) : t('preset')} left={compareKey && leftParams ? { slot: compareKey, params: leftParams, label: labelOf(compareKey) } : undefined} /> : <Swatches params={params} />}</div>
         {below && <div className="pane-below">{below}</div>}
       </div>
     </DropZone>

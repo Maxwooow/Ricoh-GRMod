@@ -101,6 +101,28 @@ describe('preset library', () => {
     expect(mocks.engine.convert).toHaveBeenCalledWith('cube', 'LUT_3D_SIZE 2 warm', { hue: true });
     expect(store.getState().extras[0].preset).toMatchObject({ fileName: 'warm.cube', busy: false });
   });
+  it('refits once after an app update (a newer version may fit better) and keeps the new fit', async () => {
+    mocks.host.info = { token: 'test', kind: 'test', version: '0.9.3' };
+    await store.saveToLibrary('CY', 'Warm');
+    const id = index().entries[0].id;
+    expect(index().entries[0].fit.startsWith('0.9.3|')).toBe(true);
+    mocks.host.info = { token: 'test', kind: 'test', version: '0.9.4' };
+    mocks.engine.convert.mockClear();
+    await store.applyFromLibrary('CG', id);
+    expect(mocks.engine.convert).toHaveBeenCalledTimes(1);
+    expect(index().entries[0].fit.startsWith('0.9.4|')).toBe(true);
+    mocks.engine.convert.mockClear();
+    await store.applyFromLibrary('CY', id);
+    expect(mocks.engine.convert).not.toHaveBeenCalled();
+    mocks.host.info = { token: 'test', kind: 'test' };
+  });
+  it('does not replace the stored fit with one made for other options', async () => {
+    await store.saveToLibrary('CY', 'Warm');
+    const before = index().entries[0].fit;
+    store.setExtraCount(1);
+    await store.applyFromLibrary(store.getState().extras[0].key, index().entries[0].id);
+    expect(index().entries[0].fit).toBe(before);
+  });
   it('refits when the stored fit cannot be read back', async () => {
     await store.saveToLibrary('CY', 'Warm');
     const id = index().entries[0].id;
