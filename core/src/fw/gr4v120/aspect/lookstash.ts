@@ -65,7 +65,15 @@ export const MONO_LOOKS = [13, 14, 15, 16, 25, 26, 27, 28, 29, 30, 31, 32];
  * 1 Weak, 2 Medium, 3 Strong) and STASH_WHITE for the white glow. 0, 1, 2 (Off, Weak and Strong red,
  * as up to test 042) stay Off, Weak, Strong.
  */
-export const STASH_ASM = `ldr r2,[r1,#0x2d0];push {r0,r1};
+/**
+ * The stash code (see STASH_ASM). Halation for every look (`halation-all.ts`) adds two steps. `halNow`:
+ * the address of a word holding the slot-parameters module's `sp_hal_now`: when shooting (not in RAW
+ * development, where the record has every look's setting), a factory look's setting comes from the
+ * module (it answers 0x100 for a look whose record has it). `mono`: a 64-byte table of the
+ * black-and-white looks, which take the white glow.
+ */
+export function stashAsm(o: { halNow?: number; mono?: number } = {}): string {
+  let s = `ldr r2,[r1,#0x2d0];push {r0,r1};
   ldrb r0,[r1,#0x2ac];cmp r0,#0;bne stashlook;
   add r0,r2,#0x71000;ldrb r1,[r0,#0xe83];cmp r1,#0;ldrbne r2,[r0,#0xe84];ldrbeq r2,[r2,#0xd8];cmp r2,#3;movhi r2,#0;
   orr r2,r2,#0x${ORIENT_VALID.toString(16)};movw r1,#${ORIENT_WORD & 65535};movt r1,#${ORIENT_WORD >>> 16};str r2,[r1];
@@ -78,6 +86,23 @@ export const STASH_ASM = `ldr r2,[r1,#0x2d0];push {r0,r1};
   ldr r1,[sp,#4];ldrb r1,[r1,#0x2ac];cmp r1,#0;bne stashdone;
   movw r1,#${FRAME_LOOK & 65535};movt r1,#${FRAME_LOOK >>> 16};str r0,[r1];
   stashdone:pop {r0,r1};`;
+  if (o.halNow !== undefined) {
+    s = s.replace(`  stashlook:ldrb r0,[r3,#0x79c];ldrb r1,[r3,#0x7a6];
+`, `  stashlook:ldrb r0,[r3,#0x79c];ldrb r1,[r3,#0x7a6];
+  ldr ip,[sp,#4];ldrb ip,[ip,#0x2ac];cmp ip,#0;beq halrec;
+  push {r0,r1,r3,lr};movw ip,#${o.halNow & 65535};movt ip,#${o.halNow >>> 16};ldr ip,[ip];mov lr,pc;bx ip;mov r2,r0;pop {r0,r1,r3,lr};
+  cmp r2,#0x100;movlo r1,r2;
+  halrec:
+`);
+  }
+  if (o.mono !== undefined) {
+    s = s.replace(`  stashlevel:orr r0,r0,r1,lsl #8;`, `  stashlevel:cmp r1,#0;beq monodone;and r2,r0,#0xff;cmp r2,#64;bhs monodone;
+  movw ip,#${o.mono & 65535};movt ip,#${o.mono >>> 16};ldrb ip,[ip,r2];cmp ip,#0;orrne r0,r0,#0x${(0x20000).toString(16)};
+  monodone:orr r0,r0,r1,lsl #8;`);
+  }
+  return s;
+}
+export const STASH_ASM = stashAsm();
 /** The white glow's bit in the stash word. */
 export const STASH_WHITE = 0x20000;
 

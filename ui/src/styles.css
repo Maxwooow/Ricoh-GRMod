@@ -1074,3 +1074,8 @@ html.mobile-app .tour-hole { border-radius: 14px; }
 .lib-rename .input { flex: 1; min-width: 120px; }
 .lib-rename .bad { color: var(--red); }
 .lib-name { font-size: 13.5px; }
+
+/* halation for every look: the switch under the photo (pages/preview.tsx) */
+.halo-bar { align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; min-height: 36px; }
+.halo-bar-label { font-weight: 600; margin-right: 2px; }
+.halo-bar-preview { margin-left: 8px; }

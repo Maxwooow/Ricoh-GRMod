@@ -125,6 +125,12 @@ export interface HalationUiOptions {
   colourScale: number;
   redIcon: number;
   whiteIcon: number;
+  /**
+   * Halation for every look (`halation-all.ts`): the slot-parameters module's `sp_hal_ui`, which the
+   * screens ask for the current setting instead of the current look's Toning (the factory looks other
+   * than Cinema have no Toning field of their own; the module keeps theirs).
+   */
+  current?: number;
 }
 
 function hook(p: Patch, at: number, expected: number, body: string, reason: string): void {
@@ -145,6 +151,7 @@ const flagTest = `${addr('ip', HAL_FLAG)};ldr ip,[ip];cmp ip,#0`;
  */
 export function installHalationUi(p: Patch, o: HalationUiOptions): void {
   const { dec, enc } = halationTables();
+  const cur = o.current ?? SHOOT_CUR;
   const decAt = p.append(dec, 4);
   const encAt = p.append(enc, 4);
   // field(r0 value, r1 0 on / 1 strength / 2 white) -> r0; uses r2.
@@ -172,18 +179,18 @@ export function installHalationUi(p: Patch, o: HalationUiOptions): void {
   hook(p, adr(0x531c904c), 0xe1a0c00d, `ldrb r1,[r0,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;bne #${adrHex(0x531ca030)};mov ip,sp;b #${adrHex(0x531c9050)}`, 'halation: Off / On slider');
   // Current slider position (r5 the controller): Off / On.
   hook(p, adr(0x531cc274), byRelease({ '1.20': 0xeb080003, '1.21': 0xeb08009b }),
-    `bl #${SHOOT_CUR};push {r0,r1};ldrb r1,[r5,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;pop {r0,r1};beq tone
+    `bl #${cur};push {r0,r1};ldrb r1,[r5,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;pop {r0,r1};beq tone
      mov r1,#0;bl #${field};mov r4,r0;b #${adrHex(0x531cc19c)}
      tone:bl #${adrHex(0x531c7c54)};mov r4,r0;b #${adrHex(0x531cc19c)}`, 'halation: slider position Off / On');
   // The row's value text (r7 the controller, r0 object, r1 buffer): Off / On as Grain Effect's.
   hook(p, adr(0x531cae34), byRelease({ '1.20': 0xeb077df6, '1.21': 0xeb077ea0 }),
     `push {r0,r1};ldrb r1,[r7,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;pop {r0,r1};beq tone
-     push {r0,r1};bl #${SHOOT_CUR};mov r1,#0;bl #${field};mov r2,r0;pop {r0,r1};bl #${ON_OFF_TEXT};b #${adrHex(0x531cae38)}
+     push {r0,r1};bl #${cur};mov r1,#0;bl #${field};mov r2,r0;pop {r0,r1};bl #${ON_OFF_TEXT};b #${adrHex(0x531cae38)}
      tone:bl #${adrHex(0x533aa614)};b #${adrHex(0x531cae38)}`, 'halation: row text Off / On');
   // Setter (r4 controller, r6 slider position, r0 settings): switch on / off, keep the rest.
   hook(p, adr(0x531ccc24), byRelease({ '1.20': 0xe3053524, '1.21': 0xe3063bc4 }),
     `push {r0,r1};ldrb r1,[r4,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;pop {r0,r1};beq tone
-     push {r0,r1};bl #${SHOOT_CUR};mov r1,#0;mov r2,r6;bl #${put};mov r1,r0;pop {r0,r2};bl #${SHOOT_SET};b #${adrHex(0x531ccc34)}
+     push {r0,r1};bl #${cur};mov r1,#0;mov r2,r6;bl #${put};mov r1,r0;pop {r0,r2};bl #${SHOOT_SET};b #${adrHex(0x531ccc34)}
      tone:${addr('r3', adr(0x53de5524))};ldrb r1,[r3,r6];bl #${SHOOT_SET};b #${adrHex(0x531ccc34)}`, 'halation: switch on / off');
   // Fn guide (entry; r4, r6 the guide's views as natively): shown while on, not for movies.
   hook(p, adr(0x531cbfac), 0xe1a0c00d,
@@ -192,7 +199,7 @@ export function installHalationUi(p: Patch, o: HalationUiOptions): void {
      bl #${adrHex(0x531cbdcc)};cmp r0,#8;bne native
      ldrb r1,[r5,#0x19c];${lookup('r1', 'r1', 'r2', o.styles)};cmp r1,#0;beq native8
      ldrb r1,[r5,#0x1ac];cmp r1,#1;moveq r5,#0;beq #${adrHex(0x531cbfd8)}
-     bl #${SHOOT_CUR};mov r1,#0;bl #${field};mov r5,r0;b #${adrHex(0x531cbfd8)}
+     bl #${cur};mov r1,#0;bl #${field};mov r5,r0;b #${adrHex(0x531cbfd8)}
      native8:mov r0,#8
      native:b #${adrHex(0x531cbfc4)}`, 'halation: Fn guide');
   // Fn (r4 controller, r0 the row's kind): Halation opens Grain Effect's submenu with the flag set.
@@ -220,11 +227,11 @@ export function installHalationUi(p: Patch, o: HalationUiOptions): void {
     default0: [adr(0x531cd8f0), byRelease({ '1.20': 0xeb083b9e, '1.21': 0xeb083c36 })], scale0: adr(0x531cd90c), default1: [adr(0x531cda3c), byRelease({ '1.20': 0xeb083d32, '1.21': 0xeb083dca })], scale1: adr(0x531cda58), positions1: adr(0x531cda7c),
     current0: [adr(0x531cdc7c), byRelease({ '1.20': 0xeb08041d, '1.21': 0xeb0804b5 }), adr(0x531cdc80)], current1: [adr(0x531cdc60), byRelease({ '1.20': 0xeb08056e, '1.21': 0xeb080606 }), adr(0x531cdc64)],
     setter0: [adr(0x531cdfd4), byRelease({ '1.20': 0xeb07e4b0, '1.21': 0xeb07e548 }), adr(0x531cdfd8)], setter1: [adr(0x531cdfb4), byRelease({ '1.20': 0xeb07e4cc, '1.21': 0xeb07e564 }), adr(0x531cdfb8)],
-    cur: `bl #${SHOOT_CUR}`, set: SHOOT_SET, setterRegs: 'r0',
+    cur: `bl #${cur}`, set: SHOOT_SET, setterRegs: 'r0',
   });
   // Backup on entry (after Grain Effect's own) and the restore on cancel.
   hook(p, adr(0x531cdefc), byRelease({ '1.20': 0xeb080933, '1.21': 0xeb0809cb }),
-    `bl #${adrHex(0x533d03d0)};${flagTest};beq done;bl #${SHOOT_CUR};${addr('r1', HAL_SAVE)};str r0,[r1];done:b #${adrHex(0x531cdf00)}`, 'halation: keep the setting for cancel');
+    `bl #${adrHex(0x533d03d0)};${flagTest};beq done;bl #${cur};${addr('r1', HAL_SAVE)};str r0,[r1];done:b #${adrHex(0x531cdf00)}`, 'halation: keep the setting for cancel');
   hook(p, adr(0x531cd2c8), byRelease({ '1.20': 0xeb080c9a, '1.21': 0xeb080d32 }),
     `bl #${adrHex(0x533d0538)};${flagTest};beq done;bl #${adrHex(0x532406a4)};bl #${adrHex(0x53241548)};${addr('r1', HAL_SAVE)};ldr r1,[r1];bl #${SHOOT_SET};done:b #${adrHex(0x531cd2cc)}`, 'halation: cancel puts the setting back');
 
@@ -356,8 +363,10 @@ function branchTargetOf(site: readonly number[]): number {
  * image engine, live view and shots), the Toning slider position and text, and the maker note's
  * Toning code (3..11 written as 4..12 and read back, so in-camera RAW development keeps them).
  */
-export function installHalationClamps(p: Patch): void {
-  hook(p, adr(0x539397a8), 0xe5d367a6, adrText('ldrb r6,[r3,#0x7a6];cmp r6,#2;movhi r6,#0;b #0x539397ac'), 'halation: development sees Toning 0..2');
+export function installHalationClamps(p: Patch, all = false): void {
+  // Halation for every look: Cinema's Toning row is Halation even without a preset, so its development sees no Toning.
+  if (all) hook(p, adr(0x539397a8), 0xe5d367a6, adrText('mov r6,#0;b #0x539397ac'), 'halation for every look: development sees no Toning');
+  else hook(p, adr(0x539397a8), 0xe5d367a6, adrText('ldrb r6,[r3,#0x7a6];cmp r6,#2;movhi r6,#0;b #0x539397ac'), 'halation: development sees Toning 0..2');
   hook(p, adr(0x531c7c54), 0xe1a0c00d, adrText('cmp r0,#2;movhi r0,#0;mov ip,sp;b #0x531c7c58'), 'halation: Toning slider position 0..2');
   hook(p, adr(0x531a65e0), 0xe1a0c00d, adrText('cmp r0,#2;movhi r0,#0;mov ip,sp;b #0x531a65e4'), 'halation: Toning slider position 0..2 (RAW development)');
   hook(p, adr(0x533aa568), 0xe3520001, adrText('cmp r2,#2;movhi r2,#0;cmp r2,#1;b #0x533aa56c'), 'halation: Toning text 0..2');

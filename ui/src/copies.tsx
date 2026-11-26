@@ -71,6 +71,8 @@ function FirmwareLine({ info, builds, lang, name }: { info: CopyInfo | undefined
           {s.movie4k && <span className="chip tiny" title={t('movie4kLine')}><b>{t('navMovie4k')}</b></span>}
           {s.movieSr && <span className="chip tiny" title={t('movieSrLine')}><b>{t('navMovieSr')}</b></span>}
           {s.distanceFeet && <span className="chip tiny" title={t('unitsLine')}><b>{t('navUnits')}</b><span className="ellipsis">{t('unitsFeet')}</span></span>}
+          {s.wbPerLook && <span className="chip tiny" title={t('wbLookLine')}><b>{t('navWbLook')}</b></span>}
+          {s.halationAll && <span className="chip tiny" title={t('halationAllLine')}><b>{t('haloLabel')}</b></span>}
         </div>
       </div>
     </>

@@ -35,6 +35,47 @@
 #define TBYTES (OWNERS * COMBOS * NP)
 /* magic, version, TBYTES, the fingerprint of each owner's preset, the table, checksum */
 #define REC_WORDS (3u + OWNERS + TBYTES / 4u + 1u)
+#ifdef SP_EXT
+/* The extended module (built with -DSP_EXT; options wbPerLook and halationAll, chosen at run time by
+ * the word after the hidden slots, `options()`). Its own record, HTData 13 (`EXT_REC_ID`), so that the
+ * table above stays record 12, version 4, as every build with added slots reads it: a build without
+ * these options keeps the added slots' values.
+ *
+ * White balance per look (OPT_WB, PR #57): the still white balance is remembered per look. The 33 bytes
+ * from StillWhiteBalance (0x11d) to StillWhiteBalanceColorTemp (0x13c, a half-word) of the settings
+ * object: the WB mode, the G-M and B-A shift of each of the 14 modes, the colour temperature. The three
+ * custom WB captures (0x13e..0x151) stay shared. One entry per style: the 38 factory styles and the 20
+ * added ones. (PR #57's own builds kept them in record 12, version 5: still read, once.)
+ *
+ * Halation for every look (OPT_HAL): parameter 8 (Cinema's Toning, the Halation row) of a factory look
+ * other than Cinema Yellow and Green, which have fields of their own in the settings, is kept here per
+ * photo set (0..3): the getter and setter of parameter 8 come here for those looks. */
+#define WB_FIRST 0x11du
+#define WB_BYTES 33u
+#define WB_LOOKS 58u
+#define WB_N 30u
+#define ACTIVE_SET 0x152u         /* StillActiveImageControlSet: the photo set in use (0..3) */
+#define WB_TBYTES (WB_LOOKS + WB_LOOKS * WB_BYTES)
+#define CG 19u
+#define HAL_J 7u                  /* parameter 8's position in FIELD / the stubs */
+#define HAL_LOOKS 38u             /* the factory styles */
+#define HAL_SETS 4u
+#define HAL_TBYTES (HAL_LOOKS * HAL_SETS)
+#define OPT_WB 1u
+#define OPT_HAL 2u
+#define EXT_REC_ID 13u
+#define EXT_MAGIC 0x31585247u     /* 'GRX1' */
+#define EXT_BYTES (WB_TBYTES + HAL_TBYTES)
+_Static_assert(EXT_BYTES % 4u == 0u, "the extended record is whole words");
+/* magic, the byte count, the white balances (have, values), the halation table, checksum */
+#define EXT_WORDS (2u + EXT_BYTES / 4u + 1u)
+/* PR #57's record 12, version 5: version 4 with the WB block after the table. */
+#define REC_VERSION_V5 5u
+#define REC_WORDS_V5 (3u + OWNERS + TBYTES / 4u + WB_TBYTES / 4u + 1u)
+#define REC_BUF REC_WORDS_V5
+#else
+#define REC_BUF REC_WORDS
+#endif
 /* The record of 0.7.1..0.8.1: seven owners, no fingerprints. */
 #define OWNERS_V2 7u
 #define TBYTES_V2 (OWNERS_V2 * COMBOS * NP)
@@ -118,7 +159,14 @@ typedef struct {
     uint32_t magic, loaded, dirty, last_write;
     uint8_t t[OWNERS][COMBOS][NP];
     uint32_t fp[OWNERS];
-    uint32_t rec[REC_WORDS];
+#ifdef SP_EXT
+    uint32_t xdirty;
+    uint8_t wb_have[WB_LOOKS];
+    uint8_t wb[WB_LOOKS][WB_BYTES];
+    uint8_t hal[HAL_LOOKS][HAL_SETS];
+    uint32_t ext[EXT_WORDS];
+#endif
+    uint32_t rec[REC_BUF];
     Raw raw;
 } State;
 
@@ -158,6 +206,18 @@ __attribute__((noinline)) static uint32_t print_of(uint32_t o) {
 __attribute__((noinline)) static uint32_t hidden_slots(void) {
     return slot_prints[SLOT_COUNT];
 }
+
+#ifdef SP_EXT
+/* The options of this build (OPT_WB, OPT_HAL): the word after the hidden slots. Not inlined, as print_of. */
+__attribute__((noinline)) static uint32_t options(void) {
+    return slot_prints[SLOT_COUNT + 1];
+}
+
+/* A factory look whose parameter 8 (Halation) is kept here: every factory style but the Cinema looks. */
+static int hal_owned(uint32_t style) {
+    return (options() & OPT_HAL) && style < HAL_LOOKS && style != CY && style != CG;
+}
+#endif
 
 /* Owner index of a set's look that the settings guard turns into Standard after this load, else 0:
  * an added style this build does not have (SLOT_COUNT + 1 .. OWNERS - 1, in any set), or (0.8.4)
@@ -220,6 +280,12 @@ __attribute__((naked)) static uint32_t native_wrapper(void *obj, uint32_t style,
  * own the fields, otherwise from the firmware's getter (with Cinema Yellow for an added look). */
 static uint32_t route_get(uint32_t j, uint32_t mode, uint32_t set, uint32_t style) {
     int si = owner_of(style);
+#ifdef SP_EXT
+    if (si < 0 && j == HAL_J && mode == 0 && set < HAL_SETS && hal_owned(style)) {
+        State *s = state();
+        return s && s->loaded ? s->hal[style][set] : 0;
+    }
+#endif
     if (si < 0) return native_get(mode, set, style, native_getters[j]);
     int c = combo(mode, set);
     if (c < 0 || j >= NP || FIELD[j][c] == 0) return native_get(mode, set, CY, native_getters[j]);
@@ -234,6 +300,13 @@ uint32_t sp_get(uint32_t j, uint32_t mode, uint32_t set, uint32_t style) {
 
 uint32_t sp_route_set(uint32_t j, uint32_t mode, uint32_t set, uint32_t style, uint32_t value) {
     int si = owner_of(style);
+#ifdef SP_EXT
+    if (si < 0 && j == HAL_J && mode == 0 && set < HAL_SETS && hal_owned(style)) {
+        State *s = state();
+        if (s && s->loaded && s->hal[style][set] != (uint8_t)value) { s->hal[style][set] = (uint8_t)value; s->xdirty = 1; }
+        return HANDLED;
+    }
+#endif
     if (si < 0) return style;
     int c = combo(mode, set);
     if (c < 0 || j >= NP || FIELD[j][c] == 0) return CY;
@@ -253,15 +326,102 @@ static void move_owner(State *s, int c, int from, int to) {
     s->dirty = 1;
 }
 
+#ifdef SP_EXT
+/* ---- white balance per look (OPT_WB) ------------------------------------------------------------ */
+/* Offset of each WB field and its notifying setter (the "set and tell the listeners" entry, as the
+ * firmware's own menus use). Fields 25 (Tungsten B-A, 0x136) and 29 (colour temperature, 0x13c)
+ * are half-words. */
+static const uint16_t WB_OFF[WB_N] = {
+    0x11d, 0x11e, 0x11f, 0x120, 0x121, 0x122, 0x123, 0x124, 0x125, 0x126, 0x127, 0x128, 0x129, 0x12a, 0x12b,
+    0x12c, 0x12d, 0x12e, 0x12f, 0x130, 0x131, 0x132, 0x133, 0x134, 0x135, 0x136, 0x138, 0x139, 0x13a, 0x13c};
+#define WB_WIDE ((1u << 25) | (1u << 29))
+static const uint32_t wb_setters[WB_N] = {
+    0x532b8848, 0x532b89d4, 0x532b8b60, 0x532b8cec, 0x532b8e78, 0x532b9004, 0x532b9190, 0x532b931c,
+    0x532b94a8, 0x532b9634, 0x532b97c0, 0x532b994c, 0x532b9ad8, 0x532b9c64, 0x532b9df0,
+    0x532b9f7c, 0x532ba108, 0x532ba294, 0x532ba420, 0x532ba5ac, 0x532ba738, 0x532ba8c4, 0x532baa50,
+    0x532babdc, 0x532bad68, 0x532baf00, 0x532bb08c, 0x532bb218, 0x532bb3a4, 0x532bb538};
+typedef uint32_t (*wb_setter_fn)(void *obj, uint32_t value);
+
+static uint32_t wb_field(const volatile uint8_t *b, uint32_t k) {
+    uint32_t o = WB_OFF[k] - WB_FIRST;
+    return (WB_WIDE >> k) & 1u ? (uint32_t)b[o] | ((uint32_t)b[o + 1] << 8) : b[o];
+}
+
+/* The look of the photo set in use; WB_LOOKS when there is none. */
+static uint32_t active_look(void) {
+    uint32_t a = settings_object[ACTIVE_SET];
+    return a < 4 ? style_of((int)a) : WB_LOOKS;
+}
+
+/* The WB in the settings now belongs to `look`. */
+static void wb_take(State *s, uint32_t look) {
+    if (look >= WB_LOOKS) return;
+    for (uint32_t i = 0; i < WB_BYTES; i++) {
+        uint8_t v = settings_object[WB_FIRST + i];
+        if (s->wb[look][i] != v || !s->wb_have[look]) { s->wb[look][i] = v; s->xdirty = 1; }
+    }
+    if (!s->wb_have[look]) { s->wb_have[look] = 1; s->xdirty = 1; }
+}
+
+/* `look`'s WB, if it has one, through the firmware's setters; the mode last. A look never used
+ * before keeps the WB in the settings. */
+static void wb_give(State *s, uint32_t look) {
+    if (look >= WB_LOOKS || !s->wb_have[look]) return;
+    for (uint32_t n = 0; n < WB_N; n++) {
+        uint32_t k = (n + 1) % WB_N;
+        uint32_t v = wb_field(s->wb[look], k);
+        if (wb_field(&settings_object[WB_FIRST], k) != v) ((wb_setter_fn)wb_setters[k])(settings_object, v);
+    }
+}
+
+static void wb_switch(State *s, void *obj, uint32_t from, uint32_t to) {
+    if (!(options() & OPT_WB) || obj != (void *)settings_object || from == to) return;
+    wb_take(s, from);
+    wb_give(s, to);
+}
+
+/* Hook of the firmware's StillActiveImageControlSet setter (the photo set in use changes). */
+uint32_t sp_active_set(void *obj, uint32_t value, uint32_t entry) {
+    uint32_t before = active_look();
+    uint32_t r = native_wrapper(obj, value, entry);
+    State *s = state();
+    if (s && s->loaded) wb_switch(s, obj, before, active_look());
+    return r;
+}
+
+/* Halation for every look: the setting of `style` in the photo set in use, for the development step's
+ * hook (lookstash.ts), or 0x100 when the picture's record has it (Cinema, added looks, no option). */
+uint32_t sp_hal_now(uint32_t style) {
+    if (!hal_owned(style)) return 0x100u;
+    uint32_t a = settings_object[ACTIVE_SET];
+    State *s = state();
+    return a < HAL_SETS && s && s->loaded ? s->hal[style][a] : 0;
+}
+
+/* The parameter screens' current Halation (halation-ui.ts, in place of the current look's Toning): the
+ * look of the photo set in use, through the getter of parameter 8 (this module's for a factory look). */
+uint32_t sp_hal_ui(void) {
+    uint32_t a = settings_object[ACTIVE_SET];
+    if (a >= HAL_SETS) return 0;
+    return route_get(HAL_J, 0, a, style_of((int)a));
+}
+#endif
+
 /* Hook of the firmware's "style of set c" setter (photo 0x532BC6D4..., movie 0x533062BC...; firmware 1.20). */
 uint32_t sp_style_set(void *obj, uint32_t style, uint32_t c, uint32_t entry) {
     uint32_t before = style_of((int)c);
+#ifdef SP_EXT
+    uint32_t active = settings_object[ACTIVE_SET];
+#endif
     uint32_t r = native_wrapper(obj, style, entry);
     State *s = state();
     if (s && s->loaded) {
         int from = owner_of(before), to = owner(c);
         if (from < 0) from = 0;
         if (from != to) move_owner(s, (int)c, from, to);
+#ifdef SP_EXT
+        if (c == active) wb_switch(s, obj, before, style_of((int)c));
+#endif
     }
     return r;
 }
@@ -363,6 +523,20 @@ static int read_record(State *s) {
         copy_bytes(&s->t[0][0][0], (const uint8_t *)&r[3], TBYTES_V2);
         return 4;
     }
+#ifdef SP_EXT
+    if (size == REC_WORDS_V5 * 4) {
+        /* PR #57's version 5: the table and the white balances; written back as version 4 and record 13. */
+        if (!store_read(st, REC_ID, REC_WORDS_V5 * 4, s->rec)) return 0;
+        if (s->rec[0] != REC_MAGIC || s->rec[1] != REC_VERSION_V5 || s->rec[2] != TBYTES) return 0;
+        if (s->rec[REC_WORDS_V5 - 1] != checksum(s->rec, REC_WORDS_V5 - 1)) return 0;
+        for (uint32_t o = 0; o < OWNERS; o++) s->fp[o] = s->rec[3 + o];
+        copy_bytes(&s->t[0][0][0], (const uint8_t *)&s->rec[3 + OWNERS], TBYTES);
+        copy_bytes(s->wb_have, (const uint8_t *)&s->rec[3 + OWNERS + TBYTES / 4u], WB_LOOKS);
+        copy_bytes(&s->wb[0][0], (const uint8_t *)&s->rec[3 + OWNERS + TBYTES / 4u] + WB_LOOKS, WB_LOOKS * WB_BYTES);
+        s->dirty = 1; s->xdirty = 1;
+        return 1;
+    }
+#endif
     if (size != REC_WORDS * 4) return 0;
     if (!store_read(st, REC_ID, REC_WORDS * 4, s->rec)) return 0;
     if (s->rec[0] == OLD_MAGIC) return 2;
@@ -372,6 +546,32 @@ static int read_record(State *s) {
     copy_bytes(&s->t[0][0][0], (const uint8_t *)&s->rec[3 + OWNERS], TBYTES);
     return 1;
 }
+
+#ifdef SP_EXT
+/* Record 13: the white balances and the halation table (a missing or damaged one: none yet). */
+static void read_ext(State *s) {
+    void *st = ht_store();
+    uint32_t *x = s->ext;
+    if (!st || store_size(st, EXT_REC_ID) != EXT_WORDS * 4) return;
+    if (!store_read(st, EXT_REC_ID, EXT_WORDS * 4, x)) return;
+    if (x[0] != EXT_MAGIC || x[1] != EXT_BYTES || x[EXT_WORDS - 1] != checksum(x, EXT_WORDS - 1)) return;
+    copy_bytes(s->wb_have, (const uint8_t *)&x[2], WB_LOOKS);
+    copy_bytes(&s->wb[0][0], (const uint8_t *)&x[2] + WB_LOOKS, WB_LOOKS * WB_BYTES);
+    copy_bytes(&s->hal[0][0], (const uint8_t *)&x[2] + WB_TBYTES, HAL_TBYTES);
+}
+
+static void write_ext(State *s) {
+    void *st = ht_store();
+    uint32_t *x = s->ext;
+    if (!st) return;
+    x[0] = EXT_MAGIC; x[1] = EXT_BYTES;
+    copy_bytes((uint8_t *)&x[2], s->wb_have, WB_LOOKS);
+    copy_bytes((uint8_t *)&x[2] + WB_LOOKS, &s->wb[0][0], WB_LOOKS * WB_BYTES);
+    copy_bytes((uint8_t *)&x[2] + WB_TBYTES, &s->hal[0][0], HAL_TBYTES);
+    x[EXT_WORDS - 1] = checksum(x, EXT_WORDS - 1);
+    if (store_write(st, EXT_REC_ID, EXT_WORDS * 4, x)) s->xdirty = 0;
+}
+#endif
 
 static void write_record(State *s) {
     void *st = ht_store();
@@ -417,6 +617,9 @@ uint32_t sp_load(uint8_t *mode, uint8_t *current, void *a2, void *a3) {
     if (!s) return r;
     for (uint32_t i = 0; i < sizeof(State) / 4; i++) ((volatile uint32_t *)s)[i] = 0;
     int found = read_record(s);
+#ifdef SP_EXT
+    if (!s->xdirty) read_ext(s);
+#endif
     for (uint32_t c = 0; c < COMBOS; c++) {
         uint32_t zeros = 0, n = 0;
         for (uint32_t j = 0; j < NP; j++) if (FIELD[j][c]) { n++; if (!current[FIELD[j][c] - 4]) zeros++; }
@@ -490,6 +693,12 @@ uint32_t sp_load(uint8_t *mode, uint8_t *current, void *a2, void *a3) {
 uint32_t sp_save(uint8_t *mode) {
     uint32_t r = prior_native_save(mode);
     State *s = state();
+#ifdef SP_EXT
+    if (s && s->loaded && (options() & OPT_WB)) wb_take(s, active_look());
+#endif
     if (s && s->loaded && s->dirty) write_record(s);
+#ifdef SP_EXT
+    if (s && s->loaded && s->xdirty) write_ext(s);
+#endif
     return r;
 }

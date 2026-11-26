@@ -5,7 +5,7 @@ import { FirmwareHero } from '../firmware';
 import { t } from '../i18n';
 import {
   useStore, loadFirmwareFile, gridOffered, setSoft, setDateStamp, setMonoUnlock, setFlashPlus, flashPlusOn, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain,
-  setShadowLearn, setBattery, setVideoAf, setMovieExposure, setAwbLearn, setConstantLight, setSensorShift, setMovie4k, setMovieSr, setDistanceFeet, setBrightAuto, setCustomGrid,
+  setShadowLearn, setBattery, setVideoAf, setMovieExposure, setAwbLearn, setWbPerLook, setConstantLight, setSensorShift, setMovie4k, setMovieSr, setDistanceFeet, setBrightAuto, setCustomGrid,
 } from '../store';
 import { isFirmware } from './files';
 import { GridDetail, GridThumb, closeGrid, openGrid, useGridArrival } from './grid';
@@ -104,6 +104,8 @@ function ExtrasList() {
   const msrOk = useStore((s) => !!s.info?.features.movieSr);
   const feet = useStore((s) => s.distanceFeet);
   const unitsOk = useStore((s) => !!s.info?.features.distanceFeet);
+  const wbLook = useStore((s) => s.wbPerLook);
+  const wbLookOk = useStore((s) => !!s.info?.features.wbPerLook);
   const gridOk = useStore((s) => gridOffered(s));
   // the level names without their "Auto brightness · " prefix, first letter up
   const level = (key: 'brightAutoOff' | 'brightAutoBalanced' | 'brightAutoBright'): string => ((x) => x.charAt(0).toUpperCase() + x.slice(1))(t(key).split(' · ').pop()!);
@@ -136,6 +138,7 @@ function ExtrasList() {
           value={feet ? 'ft' : 'm'} onChange={(v) => setDistanceFeet(v === 'ft')}
           options={[{ value: 'm', label: t('unitsMetre') }, { value: 'ft', label: t('unitsFeet') }]} />
       )}
+      {wbLookOk && <FeatureCapsule icon={Ico.wb} title={t('navWbLook')} sub={t('wbLookSub')} on={wbLook} onChange={setWbPerLook} tour="ex-f-wblook" />}
       {gridOk && <GridCapsule />}
       {adjMax > 5 && (
         <ChoiceCapsule icon={Ico.adj} title={t('navAdjSlots')} sub={t('adjSlotsSub')} on={adj > 5} tour="ex-f-adj"

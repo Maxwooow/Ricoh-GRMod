@@ -5,7 +5,7 @@ import { DropZone, FileButton, Ico, IconCanvas, Prop, Segmented, Select } from '
 import { isMobile } from '../host';
 import { t } from '../i18n';
 import type { Key } from '../i18n';
-import { loadIconImage, loadPresetFile, nameProblem, exportSlotCubeFile, removePreset, setActiveSlot, setIcon, setName, useStore, extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, filmCountChoosable, removeFilm, setFilmCount, duplicateExtraProblem, duplicateExtraSlot, loadPresetFiles } from '../store';
+import { loadIconImage, loadPresetFile, nameProblem, exportSlotCubeFile, removePreset, setActiveSlot, setIcon, setName, useStore, extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, filmCountChoosable, removeFilm, setFilmCount, duplicateExtraProblem, duplicateExtraSlot, loadPresetFiles, halationAllOffered } from '../store';
 import type { ExtraSlot, SlotKey } from '../store';
 import { isPreset } from './files';
 
@@ -27,6 +27,7 @@ export function SlotCard({ id }: { id: SlotId }) {
   const problem = nameProblem(info, id, lang, name);
   const p = slot.preset;
   const first = id === 'CY'; // the one the tour points at
+  const haloAll = useStore((st) => halationAllOffered(st));
   return (
     <DropZone className={`card ${active ? 'on' : ''}`} tour={first ? 'ic-slot' : undefined} accept={isPreset} highlight={notOnlyImages} onFiles={(f) => { void loadPresetFiles(f, id); }}>
       <div className="card-in" {...pick(() => setActiveSlot(id))}>
@@ -73,7 +74,7 @@ export function SlotCard({ id }: { id: SlotId }) {
               {slot.icon.mode === 'image' && <FileButton className="btn small" accept="image/*" onFiles={(f) => { void loadIconImage(id, f[0]); }}>{t('chooseImage')}</FileButton>}
             </div>
           </Prop>
-          {(gr3x || p?.result) && <HalationProp k={id} />}
+          {(gr3x || p?.result) && !haloAll && <HalationProp k={id} />}
         </div>
       </div>
     </DropZone>
@@ -162,6 +163,7 @@ export function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
   const tile = useStore((s) => s.info!.tiles[x.icon.style]);
   const p = x.preset;
   const k = x.key;
+  const haloAll = useStore((st) => halationAllOffered(st));
   return (
     <DropZone className={`card ${active ? 'on' : ''}`} accept={isPreset} highlight={notOnlyImages} onFiles={(f) => { void loadPresetFiles(f, k); }}>
       <div className="card-in" {...pick(() => setActiveSlot(k))}>
@@ -208,7 +210,7 @@ export function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
               {x.icon.mode === 'image' && <FileButton className="btn small" accept="image/*" onFiles={(f) => { void loadIconImage(k, f[0]); }}>{t('chooseImage')}</FileButton>}
             </div>
           </Prop>
-          <HalationProp k={x.key} />
+          {!haloAll && <HalationProp k={x.key} />}
           {problem && !p?.busy && !p?.error && !nameBad && <div className="chips extra-problem"><span className="chip warn"><span className="ellipsis">{problem}</span></span></div>}
         </div>
       </div>

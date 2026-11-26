@@ -5,7 +5,7 @@ import { DropZone, FileButton, Ico, Segmented, Select } from '../components';
 import { isMobile } from '../host';
 import { t } from '../i18n';
 import { applySlot } from '../preview';
-import { loadPreviewFile, previewPhoto, setActiveSlot, setPreviewMode, useStore, extraName, halationOf, slotOf, filmCountChoosable, compareSlot, setCompareWith, slotsWithLook } from '../store';
+import { loadPreviewFile, previewPhoto, setActiveSlot, setPreviewMode, useStore, extraName, halationOf, slotOf, filmCountChoosable, compareSlot, setCompareWith, slotsWithLook, halationAllOffered, setHalationAll } from '../store';
 import type { SlotKey } from '../store';
 import { isImage } from './files';
 
@@ -144,6 +144,31 @@ function Compare({ photo, after, label, before, beforeLabel }: { photo: ImageDat
 
 /** The one preview of the page: it shows whichever slot is active and fills the space the window leaves. */
 /** The preview; `below` (with its height in `belowH`) goes under the picture, which leaves room for it. */
+/** Height the halation bar takes under the photo (its row and the gap). */
+const HALO_BAR_H = 46;
+/**
+ * Halation for every look (GR IV 1.20 / 1.21): one switch for all looks of the camera, under the photo. On, the strength
+ * and colour the preview shows (chosen in the camera, on each look's parameter screen).
+ */
+function HaloBar() {
+  const on = useStore((s) => s.halationAll);
+  const level = useStore((s) => s.haloPreview);
+  const colour = useStore((s) => s.haloColour);
+  const noExtras = useStore((s) => s.extras.length === 0);
+  return (
+    <div className="pane-below halo-bar" data-tour="ic-halo">
+      <span className="halo-bar-label">{t('haloLabel')}</span>
+      <Segmented value={on ? 'on' : 'off'} onChange={(v) => setHalationAll({ halationAll: v === 'on' })} options={[{ value: 'off', label: t('haloOff') }, { value: 'on', label: t('haloOn') }]} />
+      {on && <>
+        <span className="muted small halo-bar-preview">{t('haloPreview')}</span>
+        <Segmented value={String(level)} onChange={(v) => setHalationAll({ haloPreview: Number(v) as 1 | 2 | 3 })} options={[{ value: '1', label: t('haloWeak') }, { value: '2', label: t('haloMedium') }, { value: '3', label: t('haloStrong') }]} />
+        <Segmented value={colour} onChange={(v) => setHalationAll({ haloColour: v as 'red' | 'white' })} options={[{ value: 'red', label: t('haloRed') }, { value: 'white', label: t('haloWhite') }]} />
+      </>}
+      {on && noExtras && <span className="chip warn small">{t('haloAllNeedsExtra')}</span>}
+    </div>
+  );
+}
+
 export function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?: number }) {
   const gr3x = useStore(s => s.info?.family === 'gr3x');
   const allSlots = useStore(s => s.info?.slots);
@@ -154,6 +179,7 @@ export function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?:
   const active = useStore((s) => s.activeSlot);
   const params = useStore((s) => slotOf(s.activeSlot, s)?.preset?.result?.params);
   const extras = useStore((s) => s.extras);
+  const haloBar = useStore((s) => halationAllOffered(s));
   const extraLabels = useStore((s) => s.extras.map((x) => extraName(x, s)).join('\u0000'));
   const lang = useStore((s) => s.lang);
   const withLook = useStore((s) => slotsWithLook(s).join('\u0000'));
@@ -213,9 +239,10 @@ export function PreviewPane({ below, belowH = 0 }: { below?: ReactNode; belowH?:
           ? [{ value: 'photo', label: Ico.image, title: t('previewPhoto') }, { value: 'swatch', label: Ico.swatch, title: t('previewSwatch') }]
           : [{ value: 'photo', label: t('previewPhoto') }, { value: 'swatch', label: t('previewSwatch') }]} />
       </div>
-      <div className="pane-body" style={{ '--below': below ? `${belowH + 10}px` : '0px' } as React.CSSProperties}>
+      <div className="pane-body" style={{ '--below': below ? `${belowH + 10}px` : haloBar && mode === 'photo' ? `${HALO_BAR_H}px` : '0px' } as React.CSSProperties}>
         <div className="pane-fit" data-tour="ic-preview" data-tour-fit="">{mode === 'photo' ? <PhotoCompare params={params} label={compareKey ? labelOf(active) : t('preset')} left={compareKey && leftParams ? { slot: compareKey, params: leftParams, label: labelOf(compareKey) } : undefined} /> : <Swatches params={params} />}</div>
         {below && <div className="pane-below">{below}</div>}
+        {!below && haloBar && mode === 'photo' && <HaloBar />}
       </div>
     </DropZone>
   );

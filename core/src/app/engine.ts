@@ -121,6 +121,10 @@ export interface FirmwareInfo {
     movieSr?: boolean;
     /** Distances can be shown in feet: Snap Focus Distance and the manual focus scale (GR IV 1.20 / 1.21; see `gr4v120/aspect/units.ts`). */
     distanceFeet?: boolean;
+    /** White balance per look: every look remembers its own still white balance (GR IV 1.20 and 1.21, with added slots; see `gr4v120/aspect/slots.ts`). */
+    wbPerLook?: boolean;
+    /** Halation for every look: every look, factory or added, has the Halation row and the effect (GR IV 1.20 and 1.21, with added slots; see `gr4v120/aspect/halation-all.ts`). */
+    halationAll?: boolean;
     /** GR III / IIIx: the most films a build can have (9; 20 on GR III 2.10, where
      * the number is chosen with BuildOptions.filmCount and Halation is set in the camera). */
     maxFilms?: number };
@@ -270,6 +274,10 @@ export interface FirmwareSummary {
   movieSr?: boolean;
   /** True when the file shows distances in feet. */
   distanceFeet?: boolean;
+  /** True when every look of the file remembers its own still white balance. */
+  wbPerLook?: boolean;
+  /** True when every look of the file has halation. */
+  halationAll?: boolean;
   /** ADJ lever slots (6..8) when the file has more than the camera's five. */
   adjSlots?: number;
   /** True when the file's battery icon shows the charge in steps of 10 %. */
@@ -430,6 +438,21 @@ export interface BuildOptions {
    * focus scale (feet and inches) instead of metres and centimetres (`gr4v120/aspect/units.ts`). Metres unless asked for.
    */
   distanceFeet?: boolean;
+  /**
+   * White balance per look (GR IV 1.20 and 1.21, `features.wbPerLook`; needs at least one added slot): every look,
+   * factory or added, remembers its own still white balance (the WB mode, the G-M and B-A shift of each mode, the
+   * colour temperature) and gets it back when it is chosen again, also after power-off. A look not used before starts
+   * from the current white balance. The custom WB captures stay shared; movie white balance is not changed. Off unless
+   * asked for.
+   */
+  wbPerLook?: boolean;
+  /**
+   * Halation for every look (GR IV 1.20 and 1.21, `features.halationAll`; needs at least one added slot): every look,
+   * the camera's own and the added ones, has the Halation row on its parameter screens (Off / On, Fn for strength and
+   * colour; black-and-white looks always take the white glow) and the halation of the JPEG pictures. The added slots'
+   * own `halation` and `cinemaHalation` are not used then. Off unless asked for.
+   */
+  halationAll?: boolean;
   /** GR III 2.10: the number of films, 1..20 (`features.maxFilms`), each with a Halation
    * line in the camera. Absent: the nine-film T6 build. */
   filmCount?: number;
@@ -665,7 +688,7 @@ export class Engine {
       family: 'gr4', filename: 'fwdc248b.bin', models: ['STANDARD', 'HDF', 'MONO'],
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
       capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, menuPictures: true, lookLayout: true },
-      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, batteryPercent: true, customGrid: true, ratioShade: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== Gr4Program111 ? { filmGrain: true } : {}), shadowLearn: true, ...(g4 !== Gr4Program111 ? { flashTtl: true, framing: true, shadeMenu: true, gridMenu: true } : {}), ...(g4 !== Gr4Program111 ? { videoAf: true } : {}), ...(g4 !== Gr4Program111 ? { awbLearn: true } : {}), ...(g4 !== Gr4Program111 ? { movieExposure: true } : {}), ...(g4 !== Gr4Program111 ? { constantLight: true, sensorShift: true, movie4k: true, movieSr: true, distanceFeet: true } : {}) },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, batteryPercent: true, customGrid: true, ratioShade: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== Gr4Program111 ? { filmGrain: true } : {}), shadowLearn: true, ...(g4 !== Gr4Program111 ? { flashTtl: true, framing: true, shadeMenu: true, gridMenu: true } : {}), ...(g4 !== Gr4Program111 ? { videoAf: true } : {}), ...(g4 !== Gr4Program111 ? { awbLearn: true } : {}), ...(g4 !== Gr4Program111 ? { movieExposure: true } : {}), ...(g4 !== Gr4Program111 ? { constantLight: true, sensorShift: true, movie4k: true, movieSr: true, distanceFeet: true, wbPerLook: true, halationAll: true } : {}) },
       version: g4.FIRMWARE_VERSION,
       looks: { factory: [...g4.aspect.FACTORY_LOOK_IDS], extraFirst: g4.aspect.EXTRA_FIRST_STYLE, monoOnly: g4.aspect.FACTORY_LOOK_IDS.filter((n) => n >= 25) },
       sha256: await sha256Hex(input),
@@ -894,6 +917,8 @@ export class Engine {
       ...(features.movieExposure ? { movieExposure: true } : {}), ...(features.sensorShift ? { sensorShift: true } : {}), ...(features.movie4k ? { movie4k: true } : {}), ...(features.movieSr ? { movieSr: true } : {}),
       ...(features.constantLight ? { constantLight: true } : {}),
       ...(features.distanceFeet ? { distanceFeet: true } : {}),
+      ...(features.wbPerLook ? { wbPerLook: true } : {}),
+      ...(features.halationAll ? { halationAll: true } : {}),
     });
     if (!specs) return modified(false, [], aligned);
     let ratios: BuiltRatio[] = [];
@@ -1258,6 +1283,14 @@ export class Engine {
     const movie4k = added('movie4k', '4K movie recording');
     const movieSr = added('movieSr', 'the sensor-shift shake reduction for movies');
     const distanceFeet = added('distanceFeet', 'distances in feet');
+    if (options && options.wbPerLook !== undefined && typeof options.wbPerLook !== 'boolean') throw new FirmwareError('bad-edit', 'wbPerLook must be boolean');
+    const wbPerLook = !!(options && options.wbPerLook);
+    if (wbPerLook && !this.info.features.wbPerLook) throw new FirmwareError('bad-edit', 'white balance per look needs GR IV firmware 1.20 or 1.21');
+    if (wbPerLook && extraSlots.length === 0) throw new FirmwareError('bad-edit', 'white balance per look needs at least one added Image Control slot');
+    if (options && options.halationAll !== undefined && typeof options.halationAll !== 'boolean') throw new FirmwareError('bad-edit', 'halationAll must be boolean');
+    const halationAll = !!(options && options.halationAll);
+    if (halationAll && !this.info.features.halationAll) throw new FirmwareError('bad-edit', 'halation for every look needs GR IV firmware 1.20 or 1.21');
+    if (halationAll && extraSlots.length === 0) throw new FirmwareError('bad-edit', 'halation for every look needs at least one added Image Control slot');
     if (hdrGainMap && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the HDR gain map cannot be combined with the clarity-table soft focus of 0.4.x');
     if (directFlash && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Direct Flash cannot be combined with the clarity-table soft focus of 0.4.x');
     if (pictures.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'power-off pictures cannot be combined with the clarity-table soft focus of 0.4.x');
@@ -1266,7 +1299,7 @@ export class Engine {
     if (extraSlots.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'added slots cannot be combined with the clarity-table soft focus of 0.4.x');
     if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash && adjSlots === 5 && !hdrGainMap && !exposurePreview && !filmGrain && !shadowLearn && !flashTtl && !videoAf && !awbLearn && !constantLight && !options.brightAuto && !batteryPercent && !customGrid && !framing && !movieExposure && !sensorShift && !movie4k && !movieSr && !distanceFeet) throw new FirmwareError('bad-edit', 'nothing to change');
     if (Object.keys(cinemaHalation).length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'halation cannot be combined with the clarity-table soft focus of 0.4.x');
-    const features = { ...(options.brightAuto ? { brightAuto: options.brightAuto } : {}), adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(hdrGainMap ? { hdrGainMap } : {}), ...(exposurePreview ? { exposurePreview } : {}), ...(softFocusMenu ? { softFocusMenu } : {}), ...(batteryPercent ? { batteryPercent } : {}), ...(customGrid ? { customGrid } : {}), ...(framing ? { framing } : {}), ...(ratioShade ? { ratioShade } : {}), ...(ratioShadeTone ? { ratioShadeTone } : {}), ...(shadowLearn ? { shadowLearn } : {}), ...(filmGrain ? { filmGrain } : {}), ...(flashTtl ? { flashTtl } : {}), ...(videoAf ? { videoAf } : {}), ...(awbLearn ? { awbLearn } : {}), ...(movieExposure ? { movieExposure } : {}), ...(constantLight ? { constantLight } : {}), ...(sensorShift ? { sensorShift } : {}), ...(movie4k ? { movie4k } : {}), ...(movieSr ? { movieSr } : {}), ...(distanceFeet ? { distanceFeet } : {}) };
+    const features = { ...(options.brightAuto ? { brightAuto: options.brightAuto } : {}), adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(hdrGainMap ? { hdrGainMap } : {}), ...(exposurePreview ? { exposurePreview } : {}), ...(softFocusMenu ? { softFocusMenu } : {}), ...(batteryPercent ? { batteryPercent } : {}), ...(customGrid ? { customGrid } : {}), ...(framing ? { framing } : {}), ...(ratioShade ? { ratioShade } : {}), ...(ratioShadeTone ? { ratioShadeTone } : {}), ...(shadowLearn ? { shadowLearn } : {}), ...(filmGrain ? { filmGrain } : {}), ...(flashTtl ? { flashTtl } : {}), ...(videoAf ? { videoAf } : {}), ...(awbLearn ? { awbLearn } : {}), ...(movieExposure ? { movieExposure } : {}), ...(constantLight ? { constantLight } : {}), ...(sensorShift ? { sensorShift } : {}), ...(movie4k ? { movie4k } : {}), ...(movieSr ? { movieSr } : {}), ...(distanceFeet ? { distanceFeet } : {}) , ...(wbPerLook ? { wbPerLook } : {}), ...(halationAll ? { halationAll } : {}) };
     const test = {
       ...(options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {}),
       ...(options && options.halationDiag ? { halationDiag: true } : {}),

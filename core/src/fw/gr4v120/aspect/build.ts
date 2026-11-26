@@ -42,7 +42,7 @@ import { installFilmGrain } from './grain';
 import { installFlashTtl } from './flttl';
 import { installVideoAf } from './videoaf';
 import { installAwbLearn } from './awb2';
-import { CINEMA_STYLES, installExtraSlots, installHalation } from './slots';
+import { CINEMA_STYLES, FACTORY_STYLES, installExtraSlots, installHalation } from './slots';
 import { HALATION_TEST, halationLight } from './halation';
 import type { HalationLook } from './halation';
 import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
@@ -214,6 +214,18 @@ export interface ExtensionFeatures {
   movieSr?: boolean;
   /** Snap Focus Distance and the manual focus scale in feet and inches (`units.ts`); 1.20 and 1.21. Metres unless asked for. */
   distanceFeet?: boolean;
+  /**
+   * White balance per look (`slots.ts`, `tools/gr4v120/slotparams/slot_params.c` with SP_WB): every look,
+   * factory or added, remembers its own still white balance. Needs at least one added slot; 1.20 and 1.21.
+   * Off unless asked for.
+   */
+  wbPerLook?: boolean;
+  /**
+   * Halation for every look (`halation-all.ts`, the slot-parameters module with SP_EXT): every look, factory or
+   * added, has the Halation row on its parameter screens and the halation of the JPEG step; the added slots' own
+   * halation choice and the Cinema slots' are not used then. Needs at least one added slot; 1.20 and 1.21.
+   */
+  halationAll?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -1162,6 +1174,9 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   if (features.movieExposure !== undefined && typeof features.movieExposure !== 'boolean') fail('bad-edit', 'movieExposure must be boolean');
   if (features.constantLight !== undefined && typeof features.constantLight !== 'boolean') fail('bad-edit', 'constantLight must be boolean');
   for (const name of ['sensorShift', 'movie4k', 'movieSr', 'distanceFeet'] as const) if (features[name] !== undefined && typeof features[name] !== 'boolean') fail('bad-edit', `${name} must be boolean`);
+  if (features.wbPerLook !== undefined && typeof features.wbPerLook !== 'boolean') fail('bad-edit', 'wbPerLook must be boolean');
+  if (features.wbPerLook && slots.length === 0) fail('bad-edit', 'white balance per look needs at least one added Image Control slot');
+  if (features.halationAll !== undefined && typeof features.halationAll !== 'boolean') fail('bad-edit', 'halationAll must be boolean');
   const patch = new Patch(rtos);
   const ramCopy = new DataView(patch.read(BASE + 0x450, 12).buffer);
   if (ramCopy.getUint32(0, true) !== RAM.source || ramCopy.getUint32(4, true) !== RAM.destination || ramCopy.getUint32(8, true) !== RAM.length) {
@@ -1231,12 +1246,19 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
     if (look && slots.length === 0) installLookStash(patch);
   }
   if (stillLines.length && (!features.dateStamp || test.dateStampFixed)) installStillLines(patch, stillLines, lineOpts ? 'exposure preview and soft focus' : hdrDraw ? 'HDR gain map' : features.ratioShade ? 'live-view shade' : 'constant light');
-  // Halation: added slots that have it, Cinema slots with a preset that are asked to.
+  // Halation: added slots that have it, Cinema slots with a preset that are asked to; with halationAll
+  // (halation-all.ts) every look, the factory ones and the added ones.
   const halation: HalationLook[] = [];
+  const halAll = !!features.halationAll;
+  if (halAll && slots.length === 0) fail('bad-edit', 'halation for every look needs at least one added Image Control slot');
   slots.forEach((x, k) => {
-    if (x.halation === true) halation.push({ style: FIRST_ADDED_LOOK + k, light: halationLight(x.curves, x.postQ9) });
+    if (x.halation === true || halAll) halation.push({ style: FIRST_ADDED_LOOK + k, light: halationLight(x.curves, x.postQ9) });
   });
-  for (const id of cinema) {
+  if (halAll) for (const style of FACTORY_STYLES) {
+    const colour = styleColour(patch, style);
+    halation.push({ style, light: colour.ownCurves ? halationLight(colour.curves, colour.postQ9) : halationLight() });
+  }
+  else for (const id of cinema) {
     const style = CINEMA_STYLES[id];
     // The engine asks for it only with a preset (curves of its own: Toning does nothing then). The
     // check of a built file installs this on the official image too, to find the hook places.
@@ -1244,13 +1266,17 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
     halation.push({ style, light: colour.ownCurves ? halationLight(colour.curves, colour.postQ9) : halationLight() });
   }
   // Last: the added slots compose with the monochrome looks' visibility check.
-  if (slots.length > 0) icons = installExtraSlots(patch, icons, slots, { stashLook: (!!features.dateStamp && !!features.guard) || halation.length > 0, layout: features.lookLayout });
+  const slotModule: { symbols?: Record<string, number> } = {};
+  if (slots.length > 0) icons = installExtraSlots(patch, icons, slots, {
+    stashLook: (!!features.dateStamp && !!features.guard) || halation.length > 0, layout: features.lookLayout, ext: { wb: !!features.wbPerLook, hal: halAll }, module: slotModule,
+    ...(halAll ? { halMono: monoTable(patch, slots.map((x) => monoLook(x.matrixQ13, x.curves, x.postQ9)), FIRST_ADDED_LOOK) } : {}),
+  });
   else if (features.lookLayout) {
     validateLookLayout(features.lookLayout, 0);
     installLookOrder(patch, features.lookLayout.order);
     installFactoryHidden(patch, features.lookLayout.hidden);
   }
-  if (halation.length > 0) icons = installHalation(patch, icons, halation);
+  if (halation.length > 0) icons = installHalation(patch, icons, halation, halAll ? { ui: slotModule.symbols!.sp_hal_ui } : undefined);
   // After halation and the date imprint: wraps the JPEG step they hook at its entry.
   if (features.hdrGainMap) installHdrGainMap(patch, !!test.hdrDiag);
   if (shutdown) icons = installShutdownMenu(patch, icons, shutdown.pictures, shutdown.factory);
@@ -1311,5 +1337,5 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   if (features.distanceFeet) icons = installDistanceFeet(patch, icons);
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.framing ? { framing: features.framing } : {}), ...(features.ratioShade ? { ratioShade: true } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}), ...(features.videoAf ? { videoAf: true } : {}), ...(features.awbLearn ? { awbLearn: true } : {}), ...(features.movieExposure ? { movieExposure: true } : {}), ...(features.sensorShift ? { sensorShift: true } : {}), ...(features.movie4k ? { movie4k: true } : {}), ...(features.movieSr ? { movieSr: true } : {}), ...(features.constantLight ? { constantLight: true } : {}), ...(features.distanceFeet ? { distanceFeet: true } : {}) } };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.framing ? { framing: features.framing } : {}), ...(features.ratioShade ? { ratioShade: true } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}), ...(features.videoAf ? { videoAf: true } : {}), ...(features.awbLearn ? { awbLearn: true } : {}), ...(features.movieExposure ? { movieExposure: true } : {}), ...(features.sensorShift ? { sensorShift: true } : {}), ...(features.movie4k ? { movie4k: true } : {}), ...(features.movieSr ? { movieSr: true } : {}), ...(features.constantLight ? { constantLight: true } : {}), ...(features.distanceFeet ? { distanceFeet: true } : {}) , ...(features.wbPerLook ? { wbPerLook: true } : {}), ...(features.halationAll ? { halationAll: true } : {}) } };
 }

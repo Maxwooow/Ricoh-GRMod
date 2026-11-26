@@ -192,6 +192,10 @@ export interface ExtensionFeatures {
   movieSr?: boolean;
   /** GR IV 1.20 and 1.21 only (`fw/gr4v120/aspect/units.ts`; the engine refuses it on 1.11): distances in feet. */
   distanceFeet?: boolean;
+  /** GR IV 1.20 and 1.21 (`fw/gr4v120/aspect/slots.ts`; not built on 1.11): every look remembers its own still white balance. */
+  wbPerLook?: boolean;
+  /** GR IV 1.20 and 1.21 (`fw/gr4v120/aspect/halation-all.ts`; not built on 1.11): every look has halation. */
+  halationAll?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */

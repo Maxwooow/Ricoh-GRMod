@@ -378,5 +378,53 @@
  "0x55839044": {
   "new": "0x55839044",
   "reason": "the sbrk arena before the heap (0x55839040..0x55839080), same place in 1.21 (as 0x55839040, battery.ts): the movie shake reduction's margin byte"
+ },
+ "0x53100000": {
+  "new": "0x53100000",
+  "reason": "emulator stop address (test_wb_per_look.py): code that is never run"
+ },
+ "0x55400000": {
+  "new": "0x55400000",
+  "reason": "emulator scratch RAM (test_wb_per_look.py): mapped by the test, above the firmware's RAM"
+ },
+ "0x55600000": {
+  "new": "0x55600000",
+  "reason": "emulator scratch RAM (test_wb_per_look.py): its heap"
+ },
+ "0x55700000": {
+  "new": "0x55700000",
+  "reason": "emulator scratch RAM (test_wb_per_look.py): the settings store object"
+ },
+ "0x55710000": {
+  "new": "0x55710000",
+  "reason": "emulator scratch RAM (test_wb_per_look.py): settings save argument"
+ },
+ "0x55720000": {
+  "new": "0x55720000",
+  "reason": "emulator scratch RAM (test_wb_per_look.py): settings load argument"
+ },
+ "0x55730000": {
+  "new": "0x55730000",
+  "reason": "emulator scratch RAM (test_wb_per_look.py): the settings mode object"
+ },
+ "0x558f0000": {
+  "new": "0x558f0000",
+  "reason": "emulator scratch RAM (test_wb_per_look.py): the module state"
+ },
+ "0x53dc4b3c": {
+  "new": "0x53dc61a4",
+  "reason": "the parameter screens' row table (halation-all.ts): IsValidListLine 0x531cbc24 / UpdateViewListParameter 0x531cc17c load it as 0x53dc4b3c does in 1.20 (0x531cb5e4); the whole data area moved by 0x1668"
+ },
+ "0x53dc487c": {
+  "new": "0x53dc5ee4",
+  "reason": "RAW development's row table (halation-all.ts): loaded at 0x531aab24 as 0x53dc487c at 0x531aa740 in 1.20 (UpdateViewListParameter); moved by 0x1668 as the shooting one"
+ },
+ "0x55740000": {
+  "new": "0x55740000",
+  "reason": "emulator scratch RAM (test_halation_all.py): the development step's argument"
+ },
+ "0x55750000": {
+  "new": "0x55750000",
+  "reason": "emulator scratch RAM (test_halation_all.py): the picture's record"
  }
 }
