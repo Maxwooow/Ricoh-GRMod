@@ -6,4 +6,6 @@ them up in the generated address tables, so they are not part of the generated p
 
 - `grid_check.py`: custom grid lines, with the camera's own drawing code.
 - `units_check.py`: distances in feet, from the built text and icon directories.
+- `halation_check.py` (with `halation_ref.mts`): the films' halation switch: the JPEG step's module against GR Mod's
+  reference, the development step's stash, the parameter screen's rows, with the switch on, off and absent.
 - `addmap.py`: adds the addresses of new GR III source files to the port maps (2.10 -> 2.20 -> 2.21).
