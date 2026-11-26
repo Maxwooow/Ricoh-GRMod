@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * Dim-light AF (GR IIIx 1.60, 1.70 and 1.71): the contrast AF's peak detector and its frame rate set as tested on
+ * Dim-light AF (GR IIIx 1.60 / 1.70 / 1.71, GR III 2.10 / 2.20 / 2.21): the contrast AF's peak detector and its frame rate set as tested on
  * the camera ("X875+FALLS2+OPT+NO29" in the study behind it, github.com/nils-fl/RicohGR,
  * docs/af-debug-log.html "Parameter search with Optuna" and "The setting flashed into the firmware").
  *
@@ -35,8 +35,9 @@
  * gr3-p3-overrides.json). Two stock words differ there, both overwritten: the movw of the 0.25 floor's address (the
  * data moved) and the bl to sqrt (the library moved). The words written are the same in every release.
  *
- * Not offered on GR III (2.10 / 2.20 / 2.21: the same program, another lens, never tested): the engine's
- * `features.dimLightAf` says where.
+ * GR III (2.10 / 2.20 / 2.21): its RTOS is GR IIIx's (1.60 / 1.70 / 1.71) but for 18 or 19 identity words (camera name,
+ * version, build), none in the contrast-AF code or data, so the same nineteen words change the same code. The tuning was
+ * found on the GR IIIx's 40 mm lens; on the GR III's 28 mm it has not been tried on a camera.
  */
 import type { Gr3xProgram } from './image-pipeline';
 import { adr, byRelease } from './target';
@@ -73,12 +74,13 @@ export const GR3X_DIM_LIGHT_AF_SITES: readonly Site[] = [
   [adr(0x533f4b10), 0x83a03003, 0x83a03002, 'dim-light AF: 49 instead of 29 fps in dim light (NO29)'],
 ];
 
-/** True for GR IIIx (1.60, 1.70, 1.71): the camera the words were tuned and tested on. Not GR III (another lens). */
+/** True for GR IIIx (1.60, 1.70, 1.71), where the words were tuned and tested, and GR III (2.10, 2.20, 2.21), whose AF
+ * program is the same. */
 export function gr3xDimLightAfOffered(profile: { readonly model: string }): boolean {
-  return profile.model === 'GR3X_HDF';
+  return profile.model === 'GR3X_HDF' || profile.model === 'GR3_HDF';
 }
 
-/** The words of GR IIIx only: the caller checks `gr3xDimLightAfOffered` (adj.ts). */
+/** The words of GR III / IIIx: the caller checks `gr3xDimLightAfOffered` (adj.ts). */
 export function installGr3xDimLightAf(p: Pick<Gr3xProgram, 'patch'>): void {
   for (const [address, stock, patched, reason] of GR3X_DIM_LIGHT_AF_SITES) p.patch(address, stock, patched, reason);
 }

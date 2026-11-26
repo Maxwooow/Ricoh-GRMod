@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * Dim-light AF (`gr3x/dimaf.ts`, GR IIIx 1.60, 1.70 and 1.71). Needs GRMOD_GR3X_FIRMWARE (1.60),
- * GRMOD_GR3X_170_FIRMWARE and GRMOD_GR3X_171_FIRMWARE; the "not offered" cases GRMOD_GR3_FIRMWARE, GRMOD_GR3_220_FIRMWARE
- * and GRMOD_GR3_221_FIRMWARE (GR III: the same program, another lens).
+ * Dim-light AF (`gr3x/dimaf.ts`, GR IIIx 1.60 / 1.70 / 1.71 and GR III 2.10 / 2.20 / 2.21, whose RTOS is GR IIIx's but
+ * for identity words). Needs GRMOD_GR3X_FIRMWARE (1.60), GRMOD_GR3X_170_FIRMWARE, GRMOD_GR3X_171_FIRMWARE,
+ * GRMOD_GR3_FIRMWARE, GRMOD_GR3_220_FIRMWARE, GRMOD_GR3_221_FIRMWARE; the "not offered" case GR IV (GRMOD_GR4_121_FIRMWARE).
  *
  * Where each site is in 1.70 / 1.71 is written here on its own (not taken from the program's address tables), as found
  * in the official images: the margin-scale code moved by +0xf0 / +0x2a40, the drive-level choice by +0xf0 / +0x2a38, the
@@ -13,7 +13,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { Engine } from '../src/app/engine';
 import { Firmware, sectionsOf } from '../src/fw/container';
 import { GR3X_DIM_LIGHT_AF_SITES, installGr3xDimLightAf } from '../src/fw/gr3x/dimaf';
-import { GR3X_160, GR3X_170, GR3X_171 } from '../src/fw/gr3-profiles';
+import { GR3X_160, GR3X_170, GR3X_171, GR3_210, GR3_220, GR3_221 } from '../src/fw/gr3-profiles';
 
 // GR III / IIIx builds take 1 to 7 added ratios.
 const RATIOS = [{ ratio: '16:9', name: '16:9' }];
@@ -45,12 +45,16 @@ const RELEASES = [
   { release: '1.60', input: process.env.GRMOD_GR3X_FIRMWARE, profile: GR3X_160, code: 0, drive: 0, data: 0, words: {} as Record<number, number> },
   { release: '1.70', input: process.env.GRMOD_GR3X_170_FIRMWARE, profile: GR3X_170, code: 0xf0, drive: 0xf0, data: -0x6c0, words: { 0x5340c5f4: 0xe3063514, 0x5340c610: 0xebf51d58 } },
   { release: '1.71', input: process.env.GRMOD_GR3X_171_FIRMWARE, profile: GR3X_171, code: 0x2a40, drive: 0x2a38, data: 0x7e58, words: { 0x5340c5f4: 0xe30e3a2c, 0x5340c610: 0xebf516e4 } },
+  // GR III: the same addresses and words as the GR IIIx release of the same program.
+  { release: '2.10', input: process.env.GRMOD_GR3_FIRMWARE, profile: GR3_210, code: 0, drive: 0, data: 0, words: {} as Record<number, number> },
+  { release: '2.20', input: process.env.GRMOD_GR3_220_FIRMWARE, profile: GR3_220, code: 0xf0, drive: 0xf0, data: -0x6c0, words: { 0x5340c5f4: 0xe3063514, 0x5340c610: 0xebf51d58 } },
+  { release: '2.21', input: process.env.GRMOD_GR3_221_FIRMWARE, profile: GR3_221, code: 0x2a40, drive: 0x2a38, data: 0x7e58, words: { 0x5340c5f4: 0xe30e3a2c, 0x5340c610: 0xebf516e4 } },
 ] as const;
 // The 1.60 sites (this module's own target is 1.60's).
 const SITES160 = GR3X_DIM_LIGHT_AF_SITES.map(([a, stock, patched]) => ({ a, stock, patched }));
 const where = (r: typeof RELEASES[number], a: number) => a + (a === 0x533f4b10 ? r.drive : a < 0x53c00000 ? r.code : r.data);
 
-for (const r of RELEASES) describe.skipIf(!r.input || !existsSync(r.input))(`dim-light AF on GR IIIx ${r.release}`, () => {
+for (const r of RELEASES) describe.skipIf(!r.input || !existsSync(r.input))(`dim-light AF on ${r.profile.camera} ${r.release}`, () => {
   const input = r.input, BASE = r.profile.rtosBase;
   const sites = SITES160.map(({ a, stock, patched }) => ({ address: where(r, a), stock: (r.words as Record<number, number>)[a] ?? stock, patched }));
   let raw: Uint8Array; let engine: Engine;
@@ -107,13 +111,11 @@ for (const r of RELEASES) describe.skipIf(!r.input || !existsSync(r.input))(`dim
 });
 
 for (const [camera, path] of [
-  ['GR III 2.10', process.env.GRMOD_GR3_FIRMWARE],
-  ['GR III 2.20', process.env.GRMOD_GR3_220_FIRMWARE],
-  ['GR III 2.21', process.env.GRMOD_GR3_221_FIRMWARE],
+  ['GR IV 1.21', process.env.GRMOD_GR4_121_FIRMWARE],
 ] as const) describe.skipIf(!path || !existsSync(path))(`dim-light AF not offered on ${camera}`, () => {
   it('is not in the features, and a build that asks for it is refused', async () => {
     const engine = await Engine.open(new Uint8Array(readFileSync(path!)));
     expect(engine.info.features.dimLightAf).toBeUndefined();
-    await expect(engine.buildFirmware([], RATIOS, [], { dimLightAf: true })).rejects.toThrow('the dim-light AF needs GR IIIx firmware');
+    await expect(engine.buildFirmware([], [], [], { dimLightAf: true })).rejects.toThrow('the dim-light AF needs GR III / IIIx firmware');
   }, 600_000);
 });

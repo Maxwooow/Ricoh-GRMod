@@ -25,7 +25,7 @@ export function encodeGr3xRatioRecipe(menu: readonly Gr3xMenuRatio[], features: 
     ...(features.round7 ? { round: features.round8 ? (features.round9 ? (features.round10 ? 10 : 9) : 8) : 7 } : {}),
     // Round 8 (as GR Mod 0.8.4): the Image Control order and hidden looks (image-control.ts).
     ...(features.round8 && features.lookLayout ? { lookLayout: { order: [...features.lookLayout.order], hidden: [...features.lookLayout.hidden] } } : {}),
-    // Dim-light AF (dimaf.ts, GR IIIx).
+    // Dim-light AF (dimaf.ts, GR III / IIIx).
     ...(features.dimLightAf ? { dimLightAf: true } : {}),
   }));
   if (data.length > LIMIT) throw new FirmwareError('bad-edit', 'IIIx ratio recipe is too large');
