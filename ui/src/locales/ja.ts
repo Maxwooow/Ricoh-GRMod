@@ -27,7 +27,7 @@ export const ja: Dict = {
   fwUnsupported: '未対応', fwDownloading: 'ダウンロードしています…', fwDownloaded: 'ファームウェア {v} をダウンロードしました', fwLicense: 'ダウンロードすると、リコーのソフトウェア使用許諾契約に同意したことになります。', download: 'ダウンロード',
   newFwWriteLine: '新しいバージョンのファームウェアをインストールすると、元のバージョンには戻せません。', fwNewVersion: '新版', fwOldVersion: '旧版',
   fwNewer: 'リコーの最新バージョンは {v} ですが、GR Mod はまだ対応していません。カメラを {v} にアップデートすると GR Mod のファームウェアをインストールできなくなるため、当面はアップデートしないでください。', fwChecksum: 'ダウンロードしたファイルが純正ファームウェアと一致しません。もう一度ダウンロードしてください。',
-  preset: 'プリセット', dropPreset: '.xmp / .cube をドロップ', converting: '変換しています…', remove: '削除', replace: '置き換え',
+  preset: 'プリセット', dropPreset: '.xmp / .cube をドロップ', exportCube: 'ルックを .cube で書き出す', exportCubeTip: 'このスロットの色を標準的な 33 点の .cube LUT に書き出します。Lightroom、Resolve、Photoshop でプレビューできます（ハレーションと粒状感は含みません）', exportCubeDone: '{name} を書き出しました', exportCubeNone: '先にプリセットを読み込んで変換すると、.cube を書き出せます', converting: '変換しています…', remove: '削除', replace: '置き換え',
   name: '名前', icon: 'アイコン', iconKeep: '元のアイコン', iconText: '文字', iconImage: '画像', styleFilm: 'フィルム', stylePlain: '単色', chooseImage: '画像を選択',
   preview: 'プレビュー', deltaE: '色差', original: 'オリジナル', previewPhoto: '写真', previewSwatch: 'カラーチャート', compare: '比較', choosePhoto: 'プレビュー写真を選択', changePhoto: 'プレビュー写真を変更',
   errNotXmp: 'このファイルを認識できません', errNoTable: 'ファイルに変換できる色データがありません', errLookMissing: 'このプリセットは Lightroom のプロファイルに依存しています。プロファイルそのものを読み込んでください。', errUnsupportedTable: '対応していない色テーブル形式です',

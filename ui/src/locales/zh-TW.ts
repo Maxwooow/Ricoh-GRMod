@@ -27,7 +27,7 @@ export const zhTW: Dict = {
   fwUnsupported: '暫不支援', fwDownloading: '正在下載…', fwDownloaded: '已下載韌體 {v}', fwLicense: '下載即表示同意理光的軟體許可協議。', download: '下載',
   newFwWriteLine: '安裝較高版本的韌體後，無法恢復至舊版。', fwNewVersion: '新版', fwOldVersion: '舊版',
   fwNewer: '理光官方網站最新版本為 {v}，GR Mod 暫不支援。相機升級至 {v} 後將無法安裝 GR Mod 韌體，請暫時不要升級。', fwChecksum: '下載的檔案與官方韌體不一致，請重新下載。',
-  preset: '預設', dropPreset: '拖入 .xmp / .cube', converting: '轉換中…', remove: '移除', replace: '更換',
+  preset: '預設', dropPreset: '拖入 .xmp / .cube', exportCube: '匯出為 .cube', exportCubeTip: '把這個槽位的色彩渲染成標準 33 點 .cube 查找表，可在 Lightroom、Resolve、Photoshop 裡預覽（不含光暈和顆粒）', exportCubeDone: '已匯出 {name}', exportCubeNone: '先載入並轉換好預設，才能匯出 .cube', converting: '轉換中…', remove: '移除', replace: '更換',
   name: '名稱', icon: '圖示', iconKeep: '原圖示', iconText: '文字', iconImage: '圖片', styleFilm: '膠片', stylePlain: '純色', chooseImage: '選擇圖片',
   preview: '預覽', deltaE: '色差', original: '原始', previewPhoto: '照片', previewSwatch: '色卡', compare: '前後對比', choosePhoto: '選擇預覽照片', changePhoto: '更換預覽照片',
   errNotXmp: '無法識別此檔案', errNoTable: '檔案中沒有可轉換的色彩資料', errLookMissing: '此預設依賴 Lightroom 中的配置檔案，請匯入配置檔案本身。', errUnsupportedTable: '不支援的色彩表格式',

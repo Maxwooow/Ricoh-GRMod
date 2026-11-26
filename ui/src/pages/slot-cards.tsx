@@ -5,7 +5,7 @@ import { DropZone, FileButton, Ico, IconCanvas, Prop, Segmented, Select } from '
 import { isMobile } from '../host';
 import { t } from '../i18n';
 import type { Key } from '../i18n';
-import { loadIconImage, loadPresetFile, nameProblem, removePreset, setActiveSlot, setIcon, setName, useStore, extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, filmCountChoosable, removeFilm, setFilmCount } from '../store';
+import { loadIconImage, loadPresetFile, nameProblem, exportSlotCubeFile, removePreset, setActiveSlot, setIcon, setName, useStore, extraName, extraNameProblem, extraProblem, halationOf, removeExtraSlot, setExtraCount, setExtraName, setHalation, filmCountChoosable, removeFilm, setFilmCount } from '../store';
 import type { ExtraSlot, SlotKey } from '../store';
 import { isPreset } from './files';
 
@@ -47,6 +47,7 @@ export function SlotCard({ id }: { id: SlotId }) {
                   <button className="file-x" title={t('remove')} aria-label={t('remove')} onClick={() => removePreset(id)}>{Ico.x}</button>
                 </div>
                 {gr3x && p.result && <p className="small muted">{t('gr3xFit', { mean: p.result.meanDE.toFixed(1), p95: p.result.p95DE.toFixed(1) })}{p.result.p95DE > 6 && <><br />{t('gr3xFitPoor')}</>}</p>}
+                {p.result && <div className="chips"><button className="btn small" title={t('exportCubeTip')} onClick={() => { void exportSlotCubeFile(id); }}>{t('exportCube')}</button></div>}
                 {(p.busy || p.error) && (
                   <div className="chips">
                     {p.busy && <span className="chip muted"><span className="spinner small" />{t('converting')}</span>}
@@ -175,6 +176,7 @@ export function ExtraSlotCard({ x, index }: { x: ExtraSlot; index: number }) {
                   <FileButton className="file-main" accept=".xmp,.cube" title={t('replace')} onFiles={(f) => { void loadPresetFile(k, f[0]); }}>{Ico.file}<span className="ellipsis">{p.result?.title || p.fileName}</span></FileButton>
                   <button className="file-x" title={t('remove')} aria-label={t('remove')} onClick={() => removePreset(k)}>{Ico.x}</button>
                 </div>
+                {p.result && <div className="chips"><button className="btn small" title={t('exportCubeTip')} onClick={() => { void exportSlotCubeFile(k); }}>{t('exportCube')}</button></div>}
                 {(p.busy || p.error) && (
                   <div className="chips">
                     {p.busy && <span className="chip muted"><span className="spinner small" />{t('converting')}</span>}
