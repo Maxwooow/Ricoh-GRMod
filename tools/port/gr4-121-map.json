@@ -158,6 +158,7 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/grain.ts",
+    "core/src/fw/gr4v120/aspect/lockprotect.ts",
     "tools/gr4v120/adjslots/adjslots.c",
     "tools/gr4v120/adjslots/check.py",
     "tools/gr4v120/grain/fw_check.py"
@@ -177,6 +178,7 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/datestamp-menu.ts",
+    "core/src/fw/gr4v120/aspect/lockprotect.ts",
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/shutdown/menu_check.py"
    ]
@@ -5102,6 +5104,7 @@
     "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/guard.ts",
     "core/src/fw/gr4v120/aspect/halation-ui.ts",
+    "core/src/fw/gr4v120/aspect/lockprotect.ts",
     "core/src/fw/gr4v120/aspect/movie4k.ts",
     "core/src/fw/gr4v120/aspect/moviesr.ts",
     "core/src/fw/gr4v120/aspect/shift.ts",
@@ -5127,6 +5130,7 @@
    "how": "aligned + refs 0x53240e20x1819",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts",
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
     "tools/gr4v120/afplain/evaluation/stock_fixture.py",
     "tools/gr4v120/exposure/check.py",
@@ -5138,6 +5142,7 @@
    "how": "aligned + refs 0x53240fa0x175",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/shutdown/shutdown.c"
    ]
@@ -17038,6 +17043,166 @@
    "why": "RAM, unreferenced: 512 bytes after the heap start 0x55839080 (same in 1.21: the start-up zero fill literal 0x53000460 and the heap's movw at 0x53ad4c4c name the same addresses); the heap start subject recognition moves to",
    "files": [
     "core/src/fw/gr4v120/aspect/subjectaf.ts"
+   ]
+  },
+  "0x53193950": {
+   "new": "0x53193950",
+   "how": "aligned + refs 0x53193950x7",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x53195b64": {
+   "new": "0x53195b64",
+   "how": "aligned + refs 0x53195b64x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x53196528": {
+   "new": "0x53196528",
+   "how": "aligned + refs 0x53196528x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x5319661c": {
+   "new": "0x5319661c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x531966c0": {
+   "new": "0x531966c0",
+   "how": "aligned + refs 0x531966c0x10",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x531f10c4": {
+   "new": "0x531f16cc",
+   "how": "aligned + refs 0x531f16ccx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x531f24bc": {
+   "new": "0x531f2ac4",
+   "how": "aligned + refs 0x531f2ac4x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x531f25e0": {
+   "new": "0x531f2be8",
+   "how": "aligned + refs 0x531f2be8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x531f3318": {
+   "new": "0x531f3920",
+   "how": "aligned + refs 0x531f3920x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x532409f8": {
+   "new": "0x53241000",
+   "how": "aligned + refs 0x53241000x133",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x5325784c": {
+   "new": "0x53258098",
+   "how": "aligned + refs 0x53258098x65",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x53257a14": {
+   "new": "0x53258260",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x53257e38": {
+   "new": "0x53258684",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x53261f1c": {
+   "new": "0x5326276c",
+   "how": "aligned + refs 0x5326276cx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x5326676c": {
+   "new": "0x53266fbc",
+   "how": "aligned + refs 0x53266fbcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x532684fc": {
+   "new": "0x53268d4c",
+   "how": "aligned + refs 0x53268d4cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x53269090": {
+   "new": "0x532698e0",
+   "how": "aligned + refs 0x532698e0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x5326923c": {
+   "new": "0x53269a8c",
+   "how": "aligned + refs 0x53269a8cx3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x5326947c": {
+   "new": "0x53269ccc",
+   "how": "aligned + refs 0x53269cccx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x53272f20": {
+   "new": "0x53273770",
+   "how": "aligned + refs 0x53273770x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
    ]
   }
  }

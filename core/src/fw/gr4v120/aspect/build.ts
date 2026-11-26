@@ -62,6 +62,7 @@ import { GRID_SELECT, SHADE_SETTING, installGridStyleMenu, installShadeList, ins
 import type { ShadeTone } from './shade';
 import { installExposurePreviewOff } from './lvpreview';
 import { installMovieExposure } from './movieexp';
+import { installLockProtect } from './lockprotect';
 import { MOVIE_4K_BIT, MOVIE_SENSOR_SR_BIT, installMovie4k } from './movie4k';
 import { installMovieSr, installMovieSrAssets } from './moviesr';
 import { installDistanceFeet } from './units';
@@ -233,6 +234,8 @@ export interface ExtensionFeatures {
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
 export interface TestOptions {
+  /** The mode dial's lock button protects the picture in single-picture playback (see `lockprotect.ts`). */
+  lockProtect?: boolean;
   dateStampFixed?: number;
   /** Also print the encoder configuration on the 720x480 picture. */
   dateStampDiag?: boolean;
@@ -1335,6 +1338,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   // Exposure modes for movies: after everything, so that a build with it differs from the one without only by its
   // own words (and the record of the additions).
   if (features.movieExposure) installMovieExposure(patch);
+  if (test.lockProtect) installLockProtect(patch);
   // Distances in feet: texts, icons and the scale's words only; last, so that a build with it differs from the one
   // without only by its own words, texts and icons (and the record of the additions).
   if (features.distanceFeet) icons = installDistanceFeet(patch, icons);
