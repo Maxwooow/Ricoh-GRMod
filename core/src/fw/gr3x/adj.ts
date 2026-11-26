@@ -162,6 +162,7 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
   if (features.lookLayout && !round8) fail('IIIx look layout: round 8');
   const extras = normalizeGr3xExtras(features.extras);
   if (extras && !round10) fail('IIIx extras build on round 10');
+  if (extras?.halationSwitch !== undefined && !layer.looksFollow) throw new FirmwareError('bad-edit', 'IIIx halation switch needs at least one film');
   if (round7 && dateImprint && features.dateMenu !== 'submenu') fail('IIIx round 7: the date imprint submenu');
   const dateForm: Gr3xDateForm = features.dateMenu === 'submenu' ? 'submenu' : 'list';
   // Texts of the date imprint: name, short, long (both forms), then On/Off and Style (submenu),

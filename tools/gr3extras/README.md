@@ -12,4 +12,6 @@ them up in the generated address tables, so they are not part of the generated p
   reference model (GR IV's `tools/gr4v120/shadowml/ref.py`); `shadowml/` holds the module's GR III source and its `gen.py`.
 - `matte_check.py`: matte live view: what the live view's consumers receive, the grid view's bands, lines and diagonals.
 - `hdr_check.py`: the HDR gain map, with the camera's JPEG encode step and JPEG writer (synthetic picture).
+- `halation_check.py` (with `halation_ref.mts`): the films' halation switch: the JPEG step's module against GR Mod's
+  reference, the development step's stash, the parameter screen's rows, with the switch on, off and absent.
 - `addmap.py`: adds the addresses of new GR III source files to the port maps (2.10 -> 2.20 -> 2.21).

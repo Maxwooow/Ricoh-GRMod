@@ -127,6 +127,8 @@ export interface FirmwareInfo {
     wbPerLook?: boolean;
     /** Halation for every look: every look, factory or added, has the Halation row and the effect (GR IV 1.20 and 1.21, with added slots; see `gr4v120/aspect/halation-all.ts`). */
     halationAll?: boolean;
+    /** Halation as one switch for the films: on, every film with GR Mod 0.9's halation; off, none (GR III / IIIx round 10; see `gr3x/halation-switch.ts`). */
+    halationSwitch?: boolean;
     /** Subject recognition for photo AF can be added (GR IV 1.20 / 1.21; see `gr4v120/aspect/subjectaf.ts`). */
     subjectAf?: boolean;
     /** The mode dial's lock button can protect the picture in single-picture playback (GR IV 1.20 / 1.21; see `gr4v120/aspect/lockprotect.ts`). */
@@ -284,6 +286,8 @@ export interface FirmwareSummary {
   wbPerLook?: boolean;
   /** True when every look of the file has halation. */
   halationAll?: boolean;
+  /** GR III / IIIx: the films' halation switch the file was built with (true 0.9 halation, false none). */
+  halationSwitch?: boolean;
   /** True when the file has subject recognition for photo AF. */
   subjectAf?: boolean;
   /** True when the file's lock button protects the picture in single-picture playback. */
@@ -464,6 +468,13 @@ export interface BuildOptions {
    */
   halationAll?: boolean;
   /**
+   * Halation as one switch for the films (GR III / IIIx round 10 builds with films, `features.halationSwitch`;
+   * `gr3x/halation-switch.ts`): true, every film has the Halation and Colour rows and GR Mod 0.9's halation (white's
+   * Weak / Medium a diffusion filter, Strong a lower glow; black-and-white films always white); false, the firmware
+   * has no halation at all. The camera's own looks never have it. Absent: the films as before (0.8.2 halation).
+   */
+  halationSwitch?: boolean;
+  /**
    * Subject recognition for photo AF (GR IV 1.20 and 1.21, `features.subjectAf`): at half-press a small network on the
    * camera finds the subject in the live view and the AF area is put there; the camera's own face / eye detection, manual
    * points and movies come first, and focusing is the camera's own AF (`gr4v120/aspect/subjectaf.ts`). Off unless asked for.
@@ -609,7 +620,8 @@ export class Engine {
         ...(pictures.length ? { shutdown: { pictures: pictures.map((p, k) => ({ id: p.id ?? k + 1, name: p.name, jpeg: p.jpeg })), factory: [] } } : {}),
         ...(lookLayout ? { lookLayout: { order: [...lookLayout.order], hidden: [...lookLayout.hidden] } } : {}),
         ...(extras?.customGrid ? { customGrid: extras.customGrid } : {}), ...(extras?.distanceFeet ? { distanceFeet: true } : {}), ...(extras?.batteryPercent ? { batteryPercent: true } : {}), ...(extras?.shadowLearn ? { shadowLearn: true } : {}),
-        ...(extras?.ratioShade ? { ratioShade: true } : {}), ...(extras?.ratioShadeTone ? { ratioShadeTone: extras.ratioShadeTone } : {}), ...(extras?.hdrGainMap ? { hdrGainMap: true } : {}) },
+        ...(extras?.ratioShade ? { ratioShade: true } : {}), ...(extras?.ratioShadeTone ? { ratioShadeTone: extras.ratioShadeTone } : {}), ...(extras?.hdrGainMap ? { hdrGainMap: true } : {}),
+        ...(extras?.halationSwitch !== undefined ? { halationSwitch: extras.halationSwitch } : {}) },
       ratios: gr3xCustoms(r.manifest.menu).map(x => {
         const plan = planGr3xRatio(x.ratio);
         return { id: x.id, name: x.name, ratio: x.ratio, actual: plan.actual, sizes: plan.sizes };
@@ -663,7 +675,7 @@ export class Engine {
         // GR Mod 0.8 dropped that route, and it was never tested on these cameras: not offered.
         // Power-off pictures, the date imprint, 20 films, the menu order: GR III 2.10 and GR IIIx 1.60 (one program).
         capabilities: { build: true, presets: true, wallpaper: false, factoryEntry: false, menuPictures: profile.fullFeatures, lookLayout: profile.fullFeatures },
-        features: { softFocus: 'adj', dateStamp: profile.fullFeatures, monoUnlock: false, maxFilms: profile.fullFeatures ? GR3X_MAX_FILMS : 9, ...(profile.fullFeatures ? { customGrid: true, distanceFeet: true, batteryPercent: true, shadowLearn: true, ratioShade: true, hdrGainMap: true } : {}) },
+        features: { softFocus: 'adj', dateStamp: profile.fullFeatures, monoUnlock: false, maxFilms: profile.fullFeatures ? GR3X_MAX_FILMS : 9, ...(profile.fullFeatures ? { customGrid: true, distanceFeet: true, batteryPercent: true, shadowLearn: true, ratioShade: true, hdrGainMap: true, halationSwitch: true } : {}) },
         version: profile.version, sha256: profile.sha256,
         slots: GR3X_FILM_IDS.slice(0, profile.fullFeatures ? GR3X_MAX_FILMS : 9).map((id, i) => ({
           id, defaultName: GR3X_FILM_NAMES[i], icon: lookResources.film.slice(),
@@ -817,7 +829,8 @@ export class Engine {
         ...(matched && extras?.customGrid ? { customGrid: { g3: [...extras.customGrid.g3], g4: [...extras.customGrid.g4] } } : {}),
         ...(matched && extras?.distanceFeet ? { distanceFeet: true } : {}),
         ...(matched && extras?.batteryPercent ? { batteryPercent: true } : {}), ...(matched && extras?.shadowLearn ? { shadowLearn: true } : {}),
-        ...(matched && extras?.ratioShade ? { ratioShade: true } : {}), ...(matched && extras?.ratioShadeTone ? { ratioShadeTone: extras.ratioShadeTone } : {}), ...(matched && extras?.hdrGainMap ? { hdrGainMap: true } : {}) };
+        ...(matched && extras?.ratioShade ? { ratioShade: true } : {}), ...(matched && extras?.ratioShadeTone ? { ratioShadeTone: extras.ratioShadeTone } : {}), ...(matched && extras?.hdrGainMap ? { hdrGainMap: true } : {}),
+        ...(matched && extras?.halationSwitch !== undefined ? { halationSwitch: extras.halationSwitch } : {}) };
     }
     const describe = (d: Uint8Array): FirmwareSummary['slots'] =>
       this.g4.SLOTS.map((s) => {
@@ -1159,7 +1172,7 @@ export class Engine {
     if (options.brightAuto !== undefined && ![true, false, 'bright', 'balanced'].includes(options.brightAuto)) throw new FirmwareError('bad-edit', 'brightAuto must be boolean, bright or balanced');
     if (options.brightAuto && this.info.family !== 'gr4') throw new FirmwareError('bad-edit', 'bright Auto requires GR IV firmware');
     if (this.info.family === 'gr3x') {
-      if (Object.entries(options).some(([k, v]) => k !== 'monoUnlock' && k !== 'adjSoftFocus' && k !== 'dateStamp' && k !== 'shutdownPictures' && k !== 'filmCount' && k !== 'guard' && k !== 'lookLayout' && k !== 'gr3Round' && k !== 'customGrid' && k !== 'distanceFeet' && k !== 'batteryPercent' && k !== 'batteryDiag' && k !== 'shadowLearn' && k !== 'ratioShade' && k !== 'ratioShadeTone' && k !== 'hdrGainMap' && v !== undefined && v !== false && !(Array.isArray(v) && !v.length)))
+      if (Object.entries(options).some(([k, v]) => k !== 'monoUnlock' && k !== 'adjSoftFocus' && k !== 'dateStamp' && k !== 'shutdownPictures' && k !== 'filmCount' && k !== 'guard' && k !== 'lookLayout' && k !== 'gr3Round' && k !== 'customGrid' && k !== 'distanceFeet' && k !== 'batteryPercent' && k !== 'batteryDiag' && k !== 'shadowLearn' && k !== 'ratioShade' && k !== 'ratioShadeTone' && k !== 'hdrGainMap' && k !== 'halationSwitch' && v !== undefined && v !== false && !(Array.isArray(v) && !v.length)))
         throw new FirmwareError('gr3x-unsupported', 'added Image Control slots and the test settings of the date imprint are not ported to GR III / IIIx');
       if (options.shutdownPictures?.length && !this.info.capabilities.menuPictures)
         throw new FirmwareError('gr3x-unsupported', 'this GR III / IIIx file has no End Screen pictures');
@@ -1214,8 +1227,10 @@ export class Engine {
       if (options.lookLayout) validateGr3xLookLayout(options.lookLayout, filmCount ?? 0);
       // After round 10: additions brought over from GR IV one by one (fw/gr3x/extras.ts).
       if (options.customGrid !== undefined && !Gr4Program111.aspect.validCustomGrid(options.customGrid)) throw new FirmwareError('bad-edit', 'custom grid: eight lines on or off for each style');
+      if (options.halationSwitch !== undefined && filmCount === undefined) throw new FirmwareError('bad-edit', 'the halation switch needs at least one film');
       const extras = normalizeGr3xExtras({ ...(options.customGrid ? { customGrid: options.customGrid } : {}), ...(options.distanceFeet ? { distanceFeet: true } : {}), ...(options.batteryPercent ? { batteryPercent: true, ...(options.batteryDiag ? { batteryDiag: true } : {}) } : {}), ...(options.shadowLearn ? { shadowLearn: true } : {}),
-        ...(options.ratioShade ? { ratioShade: true, ...(options.ratioShadeTone ? { ratioShadeTone: options.ratioShadeTone } : {}) } : {}), ...(options.hdrGainMap ? { hdrGainMap: true } : {}) });
+        ...(options.ratioShade ? { ratioShade: true, ...(options.ratioShadeTone ? { ratioShadeTone: options.ratioShadeTone } : {}) } : {}), ...(options.hdrGainMap ? { hdrGainMap: true } : {}),
+        ...(options.halationSwitch !== undefined ? { halationSwitch: options.halationSwitch } : {}) });
       if (extras && !round10) throw new FirmwareError('bad-edit', 'the additions after round 10 need a round 10 build');
       const r = await this.fixedGr3x(softFocus, looks, menu, !!options.adjSoftFocus, !!options.dateStamp,
         (options.shutdownPictures ?? []).map(p => ({ id: p.id, name: p.name, jpeg: p.jpeg })), 'submenu', 'submenu',
@@ -1324,6 +1339,7 @@ export class Engine {
     const wbPerLook = !!(options && options.wbPerLook);
     if (wbPerLook && !this.info.features.wbPerLook) throw new FirmwareError('bad-edit', 'white balance per look needs GR IV firmware 1.20 or 1.21');
     if (wbPerLook && extraSlots.length === 0) throw new FirmwareError('bad-edit', 'white balance per look needs at least one added Image Control slot');
+    if (options && options.halationSwitch !== undefined) throw new FirmwareError('bad-edit', 'halationSwitch is GR III / IIIx\'s (GR IV: halationAll)');
     if (options && options.halationAll !== undefined && typeof options.halationAll !== 'boolean') throw new FirmwareError('bad-edit', 'halationAll must be boolean');
     const halationAll = !!(options && options.halationAll);
     if (halationAll && !this.info.features.halationAll) throw new FirmwareError('bad-edit', 'halation for every look needs GR IV firmware 1.20 or 1.21');

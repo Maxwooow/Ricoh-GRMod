@@ -37,6 +37,7 @@ import { halationLutR6, halationModuleR6, paramBytesR6 } from './halation-r6';
 import type { HalationLightR6 } from './halation-r6';
 import { GR3X_DATESTAMP_DIAG_R6_CODE, GR3X_HALATION_STATUS_R6_CODE } from './picture-modules-r6';
 import { adr, byRelease } from './target';
+import { appendGr3xHalationScatter, gr3xHalationModule09 } from './halation-switch';
 
 export const GR3X_JPEG_EXECUTE = adr(0x535047d4);
 export const GR3X_DEVELOP_LOOK_READ = adr(0x536db7f8);
@@ -81,8 +82,10 @@ export interface Gr3xJpegOptions {
    * (0.8.0's halation, halation-r6.ts). */
   halation?: { levels: readonly number[]; light: readonly HalationLightR6[] };
   /** Round 7: 0.8.2's halation ('HAL4') for every film, its light; strength and colour come from
-   * the camera through the stash word (look 64 + k as 32 + k, strength at bits 8..15, white bit 17). */
-  halation7?: { light: readonly HalationLight[] };
+   * the camera through the stash word (look 64 + k as 32 + k, strength at bits 8..15, white bit 17).
+   * `scatter` (extra halationSwitch on, halation-switch.ts): GR Mod 0.9's module and its `struct
+   * scatter` at context word 9 (white's Weak / Medium the diffusion filter, Strong the lower glow). */
+  halation7?: { light: readonly HalationLight[]; scatter?: boolean };
   diagnostics?: boolean;
   /** The date imprint's stub, already at Execute's entry: the chain ends there instead (halation
    * first, then the date, as on GR IV). */
@@ -147,13 +150,14 @@ export function installGr3xJpegStage(p: Gr3xJpegProgram, o: Gr3xJpegOptions) {
     const entries = p.append(new Uint8Array(light.flatMap(l => [...u16le([...halationGains(), 0]), ...u16le(Array.from(l.table))])));
     const map = new Uint8Array(64);
     light.forEach((_, k) => { map[GR3X_HALATION_FILM_STYLE + k] = k + 1; });
+    const scatter = o.halation7.scatter ? appendGr3xHalationScatter(p.append, light) : 0;
     const ctx = p.append(new Uint8Array([
-      ...u32le([CACHE, CACHE_FLUSH_FOR_READ, CACHE_CLEAN, HEAP_ALLOC, HEAP_FREE, GR3X_HALATION_STASH, lut, entries, light.length, 0]),
+      ...u32le([CACHE, CACHE_FLUSH_FOR_READ, CACHE_CLEAN, HEAP_ALLOC, HEAP_FREE, GR3X_HALATION_STASH, lut, entries, light.length, scatter]),
       ...paramBytes(), ...u32le([HALATION_MAGIC_R7]), ...map,
     ]));
-    const module = p.append(halationModule());
+    const module = p.append(scatter ? gr3xHalationModule09() : halationModule());
     const stub = p.code(`push {r0-r3,ip,lr};ldr r1,[r1,#8];${addr('r0', ctx)}bl #${module};pop {r0-r3,ip,lr};${tail}`);
-    entries7 = { halation: stub, halationModule: module, halationContext: ctx, halationLut: lut, halationLooks: entries };
+    entries7 = { halation: stub, halationModule: module, halationContext: ctx, halationLut: lut, halationLooks: entries, ...(scatter ? { halationScatter: scatter } : {}) };
     tail = `b #${stub};`; first = stub;
   }
   Object.assign(entries, entries7);
