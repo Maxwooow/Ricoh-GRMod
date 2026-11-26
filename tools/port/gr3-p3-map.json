@@ -55,6 +55,14 @@
     "core/src/fw/gr3x170/round10.ts"
    ]
   },
+  "0x53000930": {
+   "new": "0x53000930",
+   "how": "aligned + refs 0x53000930x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/hdrgain.ts"
+   ]
+  },
   "0x53002030": {
    "new": "0x53002030",
    "how": "override",
@@ -6416,6 +6424,22 @@
     "core/src/fw/gr3x170/look-addresses.ts"
    ]
   },
+  "0x53603604": {
+   "new": "0x5360607c",
+   "how": "aligned + refs 0x5360607cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/hdrgain.ts"
+   ]
+  },
+  "0x5360360c": {
+   "new": "0x53606084",
+   "how": "aligned + refs 0x53606084x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/hdrgain.ts"
+   ]
+  },
   "0x53604b34": {
    "new": "0x536075ac",
    "how": "aligned + refs 0x536075acx1",
@@ -6932,6 +6956,7 @@
    "ok": true,
    "files": [
     "core/src/fw/gr3x170/films-r10.ts",
+    "core/src/fw/gr3x170/hdrgain.ts",
     "core/src/fw/gr3x170/jpeg-stage.ts",
     "core/src/fw/gr3x170/round10.ts",
     "tools/gr3x170/films_probe.py",
@@ -6949,6 +6974,7 @@
    "how": "aligned + refs 0x536b28bcx3484",
    "ok": true,
    "files": [
+    "core/src/fw/gr3x170/hdrgain.ts",
     "core/src/fw/gr3x170/jpeg-stage.ts",
     "tools/gr3x170/list_width_probe.py",
     "tools/gr3x170/metering_probe.py",
@@ -8030,6 +8056,7 @@
    "how": "aligned + refs 0x53c6a838x3",
    "ok": true,
    "files": [
+    "core/src/fw/gr3x170/hdrgain.ts",
     "core/src/fw/gr3x170/jpeg-stage.ts"
    ]
   },
@@ -8047,6 +8074,14 @@
    "ok": true,
    "files": [
     "core/src/fw/gr3x170/datestamp.ts"
+   ]
+  },
+  "0x53d30c38": {
+   "new": "0x53d39188",
+   "how": "aligned + refs 0x53d39188x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr3x170/hdrgain.ts"
    ]
   },
   "0x53d60fb8": {
@@ -8567,6 +8602,15 @@
    "why": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout",
    "files": [
     "core/src/fw/gr3x170/round10.ts"
+   ]
+  },
+  "0x55803c50": {
+   "new": "0x55803f10",
+   "how": "override",
+   "ok": true,
+   "why": "GR Mod's words after the start-up zero fill: 2.21's fill ends 0x2c0 higher (0x55803ef4), newlib's end 0x55803f00, the heap header 0x55803f40 (set-up 0x53856750); the gap keeps its layout",
+   "files": [
+    "core/src/fw/gr3x170/hdrgain.ts"
    ]
   },
   "0x55803c80": {
