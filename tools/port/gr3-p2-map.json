@@ -2455,6 +2455,22 @@
 "how": "aligned + refs 0x532dbfd8x8",
 "ok": true
 },
+"0x53392384": {
+"new": "0x53392474",
+"how": "aligned + refs 0x53392474x2",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/grid.ts"
+]
+},
+"0x533924dc": {
+"new": "0x533925cc",
+"how": "aligned + refs 0x533925ccx6",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/grid.ts"
+]
+},
 "0x53394610": {
 "new": "0x53394700",
 "how": "aligned + refs 0x53394700x38",
@@ -2539,6 +2555,78 @@
 "new": "0x5339aa90",
 "how": "aligned + refs 0x5339aa90x316",
 "ok": true
+},
+"0x5339c0b0": {
+"new": "0x5339c1a0",
+"how": "aligned + refs 0x5339c1a0x2",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/grid.ts"
+]
+},
+"0x5339c260": {
+"new": "0x5339c350",
+"how": "aligned",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/grid.ts"
+]
+},
+"0x5339c288": {
+"new": "0x5339c378",
+"how": "aligned",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/grid.ts"
+]
+},
+"0x5339c2d8": {
+"new": "0x5339c3c8",
+"how": "aligned",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/grid.ts"
+]
+},
+"0x5339c2e4": {
+"new": "0x5339c3d4",
+"how": "aligned",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/grid.ts"
+]
+},
+"0x5339c318": {
+"new": "0x5339c408",
+"how": "aligned",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/grid.ts"
+]
+},
+"0x5339c480": {
+"new": "0x5339c570",
+"how": "aligned",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/grid.ts"
+]
+},
+"0x5339c484": {
+"new": "0x5339c574",
+"how": "aligned",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/grid.ts"
+]
+},
+"0x5339c514": {
+"new": "0x5339c604",
+"how": "aligned",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/grid.ts"
+]
 },
 "0x5339dc70": {
 "new": "0x5339dd60",
@@ -3964,6 +4052,30 @@
 "new": "0x536b54d8",
 "how": "aligned + refs 0x536b54d8x709",
 "ok": true
+},
+"0x536b55a4": {
+"new": "0x536b5694",
+"how": "aligned + refs 0x536b5694x83",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/grid.ts"
+]
+},
+"0x536b57dc": {
+"new": "0x536b58cc",
+"how": "aligned + refs 0x536b58ccx100",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/grid.ts"
+]
+},
+"0x536b57ec": {
+"new": "0x536b58dc",
+"how": "aligned + refs 0x536b58dcx105",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/grid.ts"
+]
 },
 "0x536b5d1c": {
 "new": "0x536b5e0c",

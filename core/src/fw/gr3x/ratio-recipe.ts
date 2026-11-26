@@ -5,12 +5,15 @@
 import { FirmwareError } from '../types';
 import { gr3xCustoms } from './geometry';
 import type { Gr3xMenuRatio } from './geometry';
+import { normalizeGr3xExtras } from './extras';
+import type { Gr3xExtras } from './extras';
 
 export const GR3X_RATIO_RECIPE_MAGIC = new TextEncoder().encode('GR3X-RATIO-RECIPE\0');
 const LIMIT = 4096;
 
 export function encodeGr3xRatioRecipe(menu: readonly Gr3xMenuRatio[], features: { adjSoftFocus?: boolean; dateImprint?: boolean; dateMenu?: string; pictures?: readonly { name: string; id?: number }[]; pictureMenu?: string; round7?: boolean; round8?: boolean; round9?: boolean; round10?: boolean;
-  lookLayout?: { order: readonly number[]; hidden: readonly number[] } } = {}): Uint8Array {
+  lookLayout?: { order: readonly number[]; hidden: readonly number[] }; extras?: Gr3xExtras } = {}): Uint8Array {
+  const extras = features.round10 ? normalizeGr3xExtras(features.extras) : undefined;
   const data = new TextEncoder().encode(JSON.stringify({
     schema: 1, ratios: gr3xCustoms(menu).map(r => ({ ratio: r.ratio, name: r.name })),
     ...(features.adjSoftFocus ? { adjSoftFocus: true } : {}),
@@ -25,6 +28,8 @@ export function encodeGr3xRatioRecipe(menu: readonly Gr3xMenuRatio[], features: 
     ...(features.round7 ? { round: features.round8 ? (features.round9 ? (features.round10 ? 10 : 9) : 8) : 7 } : {}),
     // Round 8 (as GR Mod 0.8.4): the Image Control order and hidden looks (image-control.ts).
     ...(features.round8 && features.lookLayout ? { lookLayout: { order: [...features.lookLayout.order], hidden: [...features.lookLayout.hidden] } } : {}),
+    // After round 10: the additions brought over from GR IV one by one (extras.ts).
+    ...(extras ? { extras } : {}),
   }));
   if (data.length > LIMIT) throw new FirmwareError('bad-edit', 'IIIx ratio recipe is too large');
   const out = new Uint8Array(GR3X_RATIO_RECIPE_MAGIC.length + 4 + data.length);
@@ -41,7 +46,7 @@ export function readGr3xRatioRecipe(appendedRtos: Uint8Array): { ratio: string; 
 
 /** The ratio list and the ADJ features recorded in an appended RTOS area, or null for none. */
 export function readGr3xBuildRecipe(appendedRtos: Uint8Array): { ratios: { ratio: string; name: string }[]; adjSoftFocus: boolean; dateImprint: boolean; dateMenu: 'list' | 'submenu'; pictures: string[]; pictureMenu: 'list' | 'submenu'; pictureIds: number[]; round7: boolean; round8: boolean; round9: boolean; round10: boolean;
-  lookLayout?: { order: number[]; hidden: number[] } } | null {
+  lookLayout?: { order: number[]; hidden: number[] }; extras?: Gr3xExtras } | null {
   const magic = GR3X_RATIO_RECIPE_MAGIC;
   for (let at = 0; at + magic.length + 4 <= appendedRtos.length; at++) {
     if (!magic.every((v, i) => appendedRtos[at + i] === v)) continue;
@@ -57,9 +62,11 @@ export function readGr3xBuildRecipe(appendedRtos: Uint8Array): { ratios: { ratio
           r.pictureIds.some((x: unknown) => !Number.isInteger(x) || (x as number) < 1 || (x as number) > 0xffffffff))) || r.ratios.some((x: unknown) => typeof x !== 'object' || x === null ||
         typeof (x as Record<string, unknown>).ratio !== 'string' || typeof (x as Record<string, unknown>).name !== 'string'))
       throw new FirmwareError('bad-edit', 'invalid IIIx ratio recipe');
+    if (r.extras !== undefined && (r.round !== 10 || JSON.stringify(normalizeGr3xExtras(r.extras)) !== JSON.stringify(r.extras))) throw new FirmwareError('bad-edit', 'invalid IIIx ratio recipe');
     return { ratios: r.ratios.map((x: { ratio: string; name: string }) => ({ ratio: x.ratio, name: x.name })), adjSoftFocus: r.adjSoftFocus === true, dateImprint: r.dateImprint === true, dateMenu: r.dateMenu === 'submenu' ? 'submenu' : 'list', pictures: r.pictures ?? [],
       pictureMenu: r.pictureMenu === 'submenu' ? 'submenu' : 'list', pictureIds: r.pictureIds ?? [], round7: r.round >= 7, round8: r.round >= 8, round9: r.round >= 9, round10: r.round === 10,
-      ...(r.lookLayout ? { lookLayout: { order: r.lookLayout.order.slice(), hidden: r.lookLayout.hidden.slice() } } : {}) };
+      ...(r.lookLayout ? { lookLayout: { order: r.lookLayout.order.slice(), hidden: r.lookLayout.hidden.slice() } } : {}),
+      ...(r.extras ? { extras: normalizeGr3xExtras(r.extras)! } : {}) };
   }
   return null;
 }
