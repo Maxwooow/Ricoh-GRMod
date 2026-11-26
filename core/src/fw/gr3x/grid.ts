@@ -6,7 +6,7 @@
  *
  * GridView is the same class in both cameras: GR III's Draw (0x5339C3B0) and layout (0x5339C1E0)
  * are GR IV 1.20's 0x5359BB14 and 0x5359B944 instruction for instruction, apart from the call
- * targets and the stack guard's address (tools/gr3x/grid_check.py compares them and the hooks).
+ * targets and the stack guard's address (tools/gr3extras/grid_check.py compares them and the hooks).
  * So the hooks are GR IV's, with GR III's addresses:
  *
  *  - Draw takes the style from +0xF4 of the view (0: 3x3; else 4x4), builds one line rectangle at

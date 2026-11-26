@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 """Check of GR III / IIIx distances in feet (core/src/fw/gr3x/units.ts) in a built firmware.
 
-    python3 tools/gr3x/units_check.py RELEASE OFFICIAL.rtos BUILT.rtos BUILT.iconbin [SHEET.png]
+    python3 tools/gr3extras/units_check.py RELEASE OFFICIAL.rtos BUILT.rtos BUILT.iconbin [SHEET.png]
 
 RELEASE is 2.10, 2.20 or 2.21. Development tool, not part of the program. From the built image alone
 (the text and icon directories the code now loads) it checks that

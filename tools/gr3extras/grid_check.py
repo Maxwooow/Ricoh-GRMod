@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0-only
 """Emulator check of GR III / IIIx custom grid lines (core/src/fw/gr3x/grid.ts).
 
-    python3 tools/gr3x/grid_check.py RELEASE OFFICIAL.rtos BUILT.rtos G3 G4 [WITHOUT.rtos]
+    python3 tools/gr3extras/grid_check.py RELEASE OFFICIAL.rtos BUILT.rtos G3 G4 [WITHOUT.rtos]
 
 RELEASE is 2.10, 2.20 or 2.21 (GR III's number; GR IIIx 1.60 / 1.70 / 1.71 are the same programs);
 G3 and G4 the build's lines as eight 0/1 digits each (top, centre, bottom, left, centre, right,
