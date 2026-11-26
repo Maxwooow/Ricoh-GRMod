@@ -28,7 +28,8 @@
  * its lighter colour ('light'); bit 2, the battery percentage (`battery.ts`); bit 3, custom grid
  * lines (`grid.ts`), followed by two bytes, the 3x3 and the 4x4 style's lines (line i in bit i);
  * bit 4, pre-flash (TTL) metering for a GF-2 class flash (`flttl.ts`); bit 5, movie AF driven by the
- * phase data (`videoaf.ts`); bit 6, the learned auto white balance (`awb2.ts`).
+ * phase data (`videoaf.ts`); bit 6, the learned auto white balance (`awb2.ts`). Fourth byte (after the third and the
+ * grid's two bytes, when not zero): bit 6, subject recognition for photo AF (`subjectaf.ts`).
  * A build without them reads as before; earlier programs do not take a record with
  * this byte set.
  *
@@ -125,7 +126,8 @@ const FEATURE4_MOVIE_SR = 8;
 const FEATURE4_FRAMING = 16;
 /** Fourth feature byte: bit 5, distances in feet (`units.ts`). */
 const FEATURE4_DISTANCE_FEET = 32;
-/* Fourth feature byte: bit 6 is subject recognition for photo AF (PR #59, `subjectaf.ts`), kept for it. */
+/** Fourth feature byte: bit 6, subject recognition for photo AF (`subjectaf.ts`). */
+const FEATURE4_SUBJECT_AF = 64;
 /** Fourth feature byte: bit 7, a fifth feature byte follows (after the framing guides' bytes). */
 const FEATURE4_MORE = 128;
 /** Fifth feature byte: bit 0, white balance per look (`slots.ts`, the slot-parameters module with SP_WB; needs added slots). */
@@ -164,7 +166,7 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
   if (tone !== 'dark' && !features.ratioShade) fail('internal', 'a shade tone needs the live-view shade');
   if (features.ratioShade && specs.length === 0) fail('internal', 'the live-view shade needs an added ratio');
   const f3 = (features.ratioShade ? FEATURE3_RATIO_SHADE : 0) | (tone === 'light' ? FEATURE3_SHADE_LIGHT : 0) | (features.batteryPercent ? FEATURE3_BATTERY : 0) | (features.customGrid ? FEATURE3_CUSTOM_GRID : 0) | (features.flashTtl ? FEATURE3_FLASH_TTL : 0) | (features.videoAf ? FEATURE3_VIDEO_AF : 0) | (features.awbLearn ? FEATURE3_AWB_LEARN : 0) | (features.movieExposure ? FEATURE3_MOVIE_EXPOSURE : 0);
-  const f4own = (features.constantLight ? FEATURE4_CONSTANT_LIGHT : 0) | (features.sensorShift ? FEATURE4_SENSOR_SHIFT : 0) | (features.movie4k ? FEATURE4_MOVIE_4K : 0) | (features.movieSr ? FEATURE4_MOVIE_SR : 0) | (features.framing ? FEATURE4_FRAMING : 0) | (features.distanceFeet ? FEATURE4_DISTANCE_FEET : 0);
+  const f4own = (features.constantLight ? FEATURE4_CONSTANT_LIGHT : 0) | (features.sensorShift ? FEATURE4_SENSOR_SHIFT : 0) | (features.movie4k ? FEATURE4_MOVIE_4K : 0) | (features.movieSr ? FEATURE4_MOVIE_SR : 0) | (features.framing ? FEATURE4_FRAMING : 0) | (features.distanceFeet ? FEATURE4_DISTANCE_FEET : 0) | (features.subjectAf ? FEATURE4_SUBJECT_AF : 0);
   if (features.wbPerLook && slots === 0) fail('internal', 'white balance per look needs added slots');
   if (features.halationAll && slots === 0) fail('internal', 'halation for every look needs added slots');
   const f5 = (features.wbPerLook ? FEATURE5_WB_PER_LOOK : 0) | (features.halationAll ? FEATURE5_HALATION_ALL : 0);
@@ -315,12 +317,13 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
         const f4 = p < rec.length ? rec[p] : 0;
         if (f4 !== 0) {
           p++;
-          if ((f4 & ~(FEATURE4_CONSTANT_LIGHT | FEATURE4_SENSOR_SHIFT | FEATURE4_MOVIE_4K | FEATURE4_MOVIE_SR | FEATURE4_FRAMING | FEATURE4_DISTANCE_FEET | FEATURE4_MORE)) !== 0) return null;
+          if ((f4 & ~(FEATURE4_CONSTANT_LIGHT | FEATURE4_SENSOR_SHIFT | FEATURE4_MOVIE_4K | FEATURE4_MOVIE_SR | FEATURE4_FRAMING | FEATURE4_DISTANCE_FEET | FEATURE4_SUBJECT_AF | FEATURE4_MORE)) !== 0) return null;
           if (f4 & FEATURE4_CONSTANT_LIGHT) features.constantLight = true;
           if (f4 & FEATURE4_SENSOR_SHIFT) features.sensorShift = true;
           if (f4 & FEATURE4_MOVIE_4K) features.movie4k = true;
           if (f4 & FEATURE4_MOVIE_SR) features.movieSr = true;
           if (f4 & FEATURE4_DISTANCE_FEET) features.distanceFeet = true;
+          if (f4 & FEATURE4_SUBJECT_AF) features.subjectAf = true;
           if (f4 & FEATURE4_FRAMING) {
             if (p + 2 > rec.length || features.customGrid) return null;
             const n = rec[p] | (rec[p + 1] << 8);
@@ -344,7 +347,7 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
         } else if (f3 === 0) return null;
       }
     }
-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.framing && !features.shadowLearn && !features.filmGrain && !features.flashTtl && !features.videoAf && !features.awbLearn && !features.movieExposure && !features.sensorShift && !features.movie4k && !features.movieSr && !features.constantLight && !features.distanceFeet && !features.wbPerLook && !features.halationAll) return null;
+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.framing && !features.shadowLearn && !features.filmGrain && !features.flashTtl && !features.videoAf && !features.awbLearn && !features.movieExposure && !features.sensorShift && !features.movie4k && !features.movieSr && !features.constantLight && !features.distanceFeet && !features.wbPerLook && !features.halationAll && !features.subjectAf) return null;
   }
   for (; p < rec.length; p++) if (rec[p] !== 0) return null;
   return { specs: out, features, extraSlots, shutdownPictures };

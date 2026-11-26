@@ -426,5 +426,65 @@
  "0x55750000": {
   "new": "0x55750000",
   "reason": "emulator scratch RAM (test_halation_all.py): the picture's record"
+ },
+ "0x53314d31": {
+  "new": "0x53314d31",
+  "reason": "not an address: the model file's magic \"1MS S\" (s1_model.c MAGIC), kept"
+ },
+ "0x53edf018": {
+  "new": "0x53ee06a8",
+  "reason": "aligned in 1.21 + 2 references agree (aligned + refs 0x53ee06a8x2); the CafProcess vtable the replay gives its objects; datacheck.py: 24/24 words agree up to relocation"
+ },
+ "0x53edf0b4": {
+  "new": "0x53ee0744",
+  "reason": "aligned in 1.21 (same shift +0x1690 as 0x53edf018 and 0x53edc7f0); the second CafProcess vtable; datacheck.py: 23/24 words agree up to relocation (word 13, past the slots the replay uses, points elsewhere)"
+ },
+ "0x54000000": {
+  "new": "0x54000000",
+  "reason": "not an address of the image: test_plain_units.py's frame base outside RAM (a rejected recipe), kept"
+ },
+ "0x54450000": {
+  "new": "0x54450000",
+  "reason": "not an address of the image: the link origin of the subject recognition runtime's position-independence check (gen.py), kept"
+ },
+ "0x550831d4": {
+  "new": "0x550831d4",
+  "reason": "RAM, its one reference agrees (0x550831d4x1); the UserData statics around it keep their place (0x55083194, 0x55083244, 0x550832a8: +0)"
+ },
+ "0x550873d8": {
+  "new": "0x550873d8",
+  "reason": "RAM, its one reference agrees (0x550873d8x1): the focus model's static-init guard, next to 0x550873e4 (+0)"
+ },
+ "0x550a2c38": {
+  "new": "0x550a2c40",
+  "reason": "RAM, its one reference (0x550a2c40x1) and the neighbours 0x550a2a5c and 0x550a569c (+8) agree"
+ },
+ "0x550a2c44": {
+  "new": "0x550a2c4c",
+  "reason": "RAM, its one reference (0x550a2c4cx1) and the neighbours 0x550a2a5c and 0x550a569c (+8) agree"
+ },
+ "0x550a2c5c": {
+  "new": "0x550a2c64",
+  "reason": "RAM, unreferenced (a field the replay sets): between 0x550a2c44 and 0x550a569c, both +8"
+ },
+ "0x550b6980": {
+  "new": "0x550b6988",
+  "reason": "RAM, its one reference (0x550b6988x1) and the neighbour 0x550b8848 (+8) agree"
+ },
+ "0x5537b298": {
+  "new": "0x5537b2a0",
+  "reason": "RAM, its one reference (0x5537b2a0x1) and the neighbour 0x5537b29c (+8, committed) agree"
+ },
+ "0x553a6344": {
+  "new": "0x553a634c",
+  "reason": "RAM, unreferenced (a field the replay sets): next to 0x553a6348 (+8) and after 0x553a26c4 .. 0x553a284c (+8)"
+ },
+ "0x553a6348": {
+  "new": "0x553a6350",
+  "reason": "RAM, its one reference (0x553a6350x1) and the neighbours 0x553a26c4 .. 0x553a284c (+8) agree"
+ },
+ "0x55839280": {
+  "new": "0x55839280",
+  "reason": "RAM, unreferenced: 512 bytes after the heap start 0x55839080 (same in 1.21: the start-up zero fill literal 0x53000460 and the heap's movw at 0x53ad4c4c name the same addresses); the heap start subject recognition moves to"
  }
 }

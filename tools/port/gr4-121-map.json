@@ -14,6 +14,12 @@
     "core/src/fw/gr4v120/patch.ts",
     "core/src/fw/gr4v120/profile.ts",
     "tools/gr4v120/adjslots/check.py",
+    "tools/gr4v120/afplain/build.ts",
+    "tools/gr4v120/afplain/evaluation/face_follow_rule_probe.py",
+    "tools/gr4v120/afplain/evaluation/fwemu.py",
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
+    "tools/gr4v120/afplain/runtime/stock_tier_lv.h",
     "tools/gr4v120/aspect/boot_checks.py",
     "tools/gr4v120/aspect/playback_check.py",
     "tools/gr4v120/awb2/test_fw.py",
@@ -42,6 +48,7 @@
    "how": "aligned",
    "ok": true,
    "files": [
+    "tools/gr4v120/afplain/evaluation/fwemu.py",
     "tools/gr4v120/shadowml/fwemu.py"
    ]
   },
@@ -57,6 +64,7 @@
     "core/src/fw/gr4v120/aspect/shadowml.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "core/src/fw/gr4v120/aspect/slots.ts",
+    "core/src/fw/gr4v120/aspect/subjectaf.ts",
     "tools/gr4v120/awb2/test_fw.py",
     "tools/gr4v120/battery/check.py",
     "tools/gr4v120/shadowml/test_fw.py",
@@ -5102,6 +5110,8 @@
     "core/src/fw/gr4v120/aspect/viewmenu.ts",
     "tools/gr4v120/adjslots/adjslots.c",
     "tools/gr4v120/adjslots/check.py",
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py",
     "tools/gr4v120/aspect/boot_checks.py",
     "tools/gr4v120/directflash/check.py",
     "tools/gr4v120/grain/fw_check.py",
@@ -5117,6 +5127,8 @@
    "how": "aligned + refs 0x53240e20x1819",
    "ok": true,
    "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py",
     "tools/gr4v120/exposure/check.py",
     "tools/gr4v120/shutdown/menu_check.py"
    ]
@@ -5153,6 +5165,8 @@
     "core/src/fw/gr4v120/aspect/viewmenu.ts",
     "tools/gr4v120/adjslots/adjslots.c",
     "tools/gr4v120/adjslots/check.py",
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py",
     "tools/gr4v120/aspect/boot_checks.py",
     "tools/gr4v120/aspect/native/crop_state.c",
     "tools/gr4v120/directflash/check.py",
@@ -7009,6 +7023,8 @@
    "how": "aligned + refs 0x533ae8fcx2",
    "ok": true,
    "files": [
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py",
+    "tools/gr4v120/afplain/runtime/stock_point_api.h",
     "tools/gr4v120/videoaf/test_inplace.py"
    ]
   },
@@ -11909,6 +11925,8 @@
     "core/src/fw/gr4v120/aspect/flttl.ts",
     "core/src/fw/gr4v120/aspect/shade.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py",
     "tools/gr4v120/grid/check.py",
     "tools/gr4v120/shade/draw_check.py",
     "tools/gr4v120/shutdown/menu_check.py",
@@ -12561,7 +12579,8 @@
    "how": "aligned + refs 0x538afc70x2",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/build.ts"
+    "core/src/fw/gr4v120/aspect/build.ts",
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
    ]
   },
   "0x538aefcc": {
@@ -12577,7 +12596,8 @@
    "how": "aligned + refs 0x538b0300x3",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/build.ts"
+    "core/src/fw/gr4v120/aspect/build.ts",
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
    ]
   },
   "0x538b2264": {
@@ -12908,6 +12928,8 @@
    "how": "aligned + refs 0x53903bc8x855",
    "ok": true,
    "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py",
     "tools/gr4v120/videoaf/cam.py"
    ]
   },
@@ -12924,6 +12946,7 @@
    "how": "aligned + refs 0x53905dc4x299",
    "ok": true,
    "files": [
+    "tools/gr4v120/afplain/runtime/diag_attach.c",
     "tools/gr4v120/datestamp/menu_check.py"
    ]
   },
@@ -12932,6 +12955,8 @@
    "how": "aligned + refs 0x539085c8x2274",
    "ok": true,
    "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py",
     "tools/gr4v120/shutdown/menu_check.py"
    ]
   },
@@ -12940,6 +12965,8 @@
    "how": "aligned + refs 0x5390871cx3395",
    "ok": true,
    "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py",
     "tools/gr4v120/shutdown/menu_check.py"
    ]
   },
@@ -12961,6 +12988,8 @@
     "core/src/fw/gr4v120/aspect/videoaf.ts",
     "tools/gr4v120/adjslots/adjslots.c",
     "tools/gr4v120/adjslots/check.py",
+    "tools/gr4v120/afplain/evaluation/fwemu.py",
+    "tools/gr4v120/afplain/runtime/runtime.c",
     "tools/gr4v120/aspect/playback_check.py",
     "tools/gr4v120/awb2/test_fw.py",
     "tools/gr4v120/datestamp/menu_check.py",
@@ -12988,6 +13017,7 @@
     "core/src/fw/gr4v120/aspect/halation.ts",
     "core/src/fw/gr4v120/aspect/hdrgain.ts",
     "tools/gr4v120/adjslots/check.py",
+    "tools/gr4v120/afplain/evaluation/fwemu.py",
     "tools/gr4v120/aspect/playback_check.py",
     "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/grain/grain.c",
@@ -13006,6 +13036,7 @@
    "ok": true,
    "files": [
     "tools/gr4v120/adjslots/check.py",
+    "tools/gr4v120/afplain/evaluation/fwemu.py",
     "tools/gr4v120/aspect/playback_check.py",
     "tools/gr4v120/datestamp/list_width_check.py",
     "tools/gr4v120/exposure/check.py",
@@ -13019,6 +13050,7 @@
    "ok": true,
    "files": [
     "tools/gr4v120/adjslots/check.py",
+    "tools/gr4v120/afplain/evaluation/fwemu.py",
     "tools/gr4v120/aspect/playback_check.py",
     "tools/gr4v120/exposure/check.py",
     "tools/gr4v120/lamp/check.py",
@@ -13046,6 +13078,8 @@
    "how": "aligned + refs 0x5390a920x460",
    "ok": true,
    "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
     "tools/gr4v120/hdrgain/check.py"
    ]
   },
@@ -13054,7 +13088,10 @@
    "how": "aligned + refs 0x5391224cx89",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/grid.ts"
+    "core/src/fw/gr4v120/aspect/grid.ts",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py",
+    "tools/gr4v120/afplain/runtime/stock_point_api.h",
+    "tools/gr4v120/afplain/runtime/tier_geometry.h"
    ]
   },
   "0x539117ec": {
@@ -13062,7 +13099,8 @@
    "how": "aligned + refs 0x53912484x100",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/grid.ts"
+    "core/src/fw/gr4v120/aspect/grid.ts",
+    "tools/gr4v120/afplain/runtime/tier_geometry.h"
    ]
   },
   "0x539117f4": {
@@ -13078,7 +13116,8 @@
    "how": "aligned + refs 0x53912494x105",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/grid.ts"
+    "core/src/fw/gr4v120/aspect/grid.ts",
+    "tools/gr4v120/afplain/runtime/tier_geometry.h"
    ]
   },
   "0x53911d14": {
@@ -13136,6 +13175,7 @@
    "how": "aligned + refs 0x53916230x8891",
    "ok": true,
    "files": [
+    "tools/gr4v120/afplain/evaluation/fwemu.py",
     "tools/gr4v120/aspect/boot_checks.py",
     "tools/gr4v120/aspect/playback_check.py",
     "tools/gr4v120/battery/check.py",
@@ -13153,6 +13193,8 @@
    "how": "aligned + refs 0x53916d9cx465",
    "ok": true,
    "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py",
     "tools/gr4v120/aspect/playback_check.py",
     "tools/gr4v120/datestamp/menu_check.py"
    ]
@@ -13165,6 +13207,8 @@
     "core/src/fw/gr4v120/aspect/datestamp.ts",
     "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation.ts",
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
+    "tools/gr4v120/afplain/runtime/runtime.c",
     "tools/gr4v120/datestamp/datestamp.c",
     "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/grain/grain.c",
@@ -13179,6 +13223,8 @@
     "core/src/fw/gr4v120/aspect/datestamp.ts",
     "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation.ts",
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
+    "tools/gr4v120/afplain/runtime/runtime.c",
     "tools/gr4v120/datestamp/datestamp.c",
     "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/grain/grain.c",
@@ -14098,7 +14144,8 @@
    "ok": true,
    "why": "movw r3,#0x9080 of the heap set-up; same code",
    "files": [
-    "core/src/fw/gr4v120/aspect/battery.ts"
+    "core/src/fw/gr4v120/aspect/battery.ts",
+    "core/src/fw/gr4v120/aspect/subjectaf.ts"
    ]
   },
   "0x53b7318c": {
@@ -14896,6 +14943,7 @@
    "ok": true,
    "why": "the module test's own emulator layout in tools/*/grain/check.py (module code, stubs, return address, tables, config), not a firmware address: the same on every release",
    "files": [
+    "tools/gr4v120/afplain/runtime/runtime.c",
     "tools/gr4v120/grain/check.py"
    ]
   },
@@ -15073,6 +15121,8 @@
     "core/src/fw/gr4v120/aspect/directflash.ts",
     "core/src/fw/gr4v120/aspect/softfocus.ts",
     "core/src/fw/gr4v120/profile.ts",
+    "tools/gr4v120/afplain/evaluation/fwemu.py",
+    "tools/gr4v120/afplain/runtime/runtime.c",
     "tools/gr4v120/aspect/boot_checks.py",
     "tools/gr4v120/aspect/playback_check.py",
     "tools/gr4v120/awb2/test_fw.py",
@@ -15276,6 +15326,9 @@
    "ok": true,
    "why": "zero-initialised RAM: the 1.21 code that referenced it in 1.20 references the same address (RAM; refs 0x55083244x1)",
    "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
+    "tools/gr4v120/afplain/runtime/runtime.c",
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/directflash/check.py",
     "tools/gr4v120/slotparams/test_wb_per_look.py",
@@ -15301,6 +15354,9 @@
     "core/src/fw/gr4v120/aspect/viewmenu.ts",
     "tools/gr4v120/adjslots/adjslots.c",
     "tools/gr4v120/adjslots/check.py",
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
+    "tools/gr4v120/afplain/runtime/runtime.c",
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/directflash/check.py",
     "tools/gr4v120/directflash/settings_check.py",
@@ -15361,7 +15417,9 @@
    "how": "refs 0x5537b2a4x2",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/datestamp.ts"
+    "core/src/fw/gr4v120/aspect/datestamp.ts",
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/runtime/runtime.c"
    ]
   },
   "0x5537e7b0": {
@@ -15549,6 +15607,7 @@
    "ok": true,
    "why": "the emulator's heap in tools/*/shadowml/fwemu.py, inside the heap: the 1.21 RAM layout is unchanged (start-up literals 0x53000454..0x53000460 equal)",
    "files": [
+    "tools/gr4v120/afplain/evaluation/fwemu.py",
     "tools/gr4v120/shadowml/fwemu.py"
    ]
   },
@@ -15573,6 +15632,7 @@
     "core/src/fw/gr4v120/aspect/shadowml.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "core/src/fw/gr4v120/aspect/slots.ts",
+    "core/src/fw/gr4v120/aspect/subjectaf.ts",
     "tools/gr4v120/battery/check.py",
     "tools/gr4v120/shadowml/test_fw.py",
     "tools/gr4v120/shutdown/menu_check.py"
@@ -15695,6 +15755,8 @@
     "core/src/fw/gr4v120/aspect/shift.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "core/src/fw/gr4v120/aspect/slots.ts",
+    "core/src/fw/gr4v120/aspect/subjectaf.ts",
+    "tools/gr4v120/afplain/runtime/runtime.c",
     "tools/gr4v120/battery/check.py",
     "tools/gr4v120/shutdown/menu_check.py"
    ]
@@ -15761,7 +15823,11 @@
     "core/src/fw/gr4v120/aspect/lamp.ts",
     "core/src/fw/gr4v120/aspect/moviesr.ts",
     "core/src/fw/gr4v120/aspect/shift.ts",
+    "core/src/fw/gr4v120/aspect/subjectaf.ts",
     "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
+    "tools/gr4v120/afplain/runtime/runtime.c",
     "tools/gr4v120/awb2/test_fw.py",
     "tools/gr4v120/battery/check.py"
    ]
@@ -15773,6 +15839,1205 @@
    "why": "emulator scratch RAM (test_wb_per_look.py): the module state",
    "files": [
     "tools/gr4v120/slotparams/test_wb_per_look.py"
+   ]
+  },
+  "0x530008ec": {
+   "new": "0x530008ec",
+   "how": "aligned + refs 0x530008ecx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x530651ec": {
+   "new": "0x530651e4",
+   "how": "aligned + refs 0x530651e4x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53065208": {
+   "new": "0x53065200",
+   "how": "aligned + refs 0x53065200x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53067358": {
+   "new": "0x53067350",
+   "how": "aligned + refs 0x53067350x5",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5306749c": {
+   "new": "0x53067494",
+   "how": "aligned + refs 0x53067494x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5306752c": {
+   "new": "0x53067524",
+   "how": "aligned + refs 0x53067524x5",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5306764c": {
+   "new": "0x53067644",
+   "how": "aligned + refs 0x53067644x5",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53067e2c": {
+   "new": "0x53067e24",
+   "how": "aligned + refs 0x53067e24x6",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py"
+   ]
+  },
+  "0x53067f04": {
+   "new": "0x53067efc",
+   "how": "aligned + refs 0x53067efcx6",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x530680d8": {
+   "new": "0x530680d0",
+   "how": "aligned + refs 0x530680d0x5",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53068240": {
+   "new": "0x53068238",
+   "how": "aligned + refs 0x53068238x5",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53068384": {
+   "new": "0x5306837c",
+   "how": "aligned + refs 0x5306837cx3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x530684c8": {
+   "new": "0x530684c0",
+   "how": "aligned + refs 0x530684c0x7",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+   ]
+  },
+  "0x53240758": {
+   "new": "0x53240d60",
+   "how": "aligned + refs 0x53240d60x71",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53240ab8": {
+   "new": "0x532410c0",
+   "how": "aligned + refs 0x532410c0x219",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53240b78": {
+   "new": "0x53241180",
+   "how": "aligned + refs 0x53241180x28",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5324105c": {
+   "new": "0x53241664",
+   "how": "aligned + refs 0x53241664x124",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5324111c": {
+   "new": "0x53241724",
+   "how": "aligned + refs 0x53241724x129",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+   ]
+  },
+  "0x5325d2a4": {
+   "new": "0x5325daf0",
+   "how": "aligned + refs 0x5325daf0x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5325e104": {
+   "new": "0x5325e950",
+   "how": "aligned + refs 0x5325e950x114",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts"
+   ]
+  },
+  "0x5325e2d8": {
+   "new": "0x5325eb24",
+   "how": "aligned + refs 0x5325eb24x1559",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+   ]
+  },
+  "0x5329b458": {
+   "new": "0x5329bca8",
+   "how": "aligned + refs 0x5329bca8x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/runtime/stock_point_api.h"
+   ]
+  },
+  "0x532a16d8": {
+   "new": "0x532a1f28",
+   "how": "aligned + refs 0x532a1f28x10",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/face_follow_rule_probe.py",
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+   ]
+  },
+  "0x532a20fc": {
+   "new": "0x532a294c",
+   "how": "aligned + refs 0x532a294cx2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/face_follow_rule_probe.py"
+   ]
+  },
+  "0x532adc18": {
+   "new": "0x532ae468",
+   "how": "aligned + refs 0x532ae468x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts"
+   ]
+  },
+  "0x532adc20": {
+   "new": "0x532ae470",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts",
+    "tools/gr4v120/afplain/evaluation/face_follow_rule_probe.py"
+   ]
+  },
+  "0x532adc24": {
+   "new": "0x532ae474",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/face_follow_rule_probe.py"
+   ]
+  },
+  "0x532adc28": {
+   "new": "0x532ae478",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/face_follow_rule_probe.py"
+   ]
+  },
+  "0x532b44c0": {
+   "new": "0x532b4d10",
+   "how": "aligned + refs 0x532b4d10x5",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/face_follow_rule_probe.py"
+   ]
+  },
+  "0x53314d31": {
+   "new": "0x53314d31",
+   "how": "override",
+   "ok": true,
+   "why": "not an address: the model file's magic \"1MS S\" (s1_model.c MAGIC), kept",
+   "files": [
+    "tools/gr4v120/afplain/runtime/s1_model.c"
+   ]
+  },
+  "0x5339c4b4": {
+   "new": "0x5339cd64",
+   "how": "aligned + refs 0x5339cd64x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x533a1dfc": {
+   "new": "0x533a26ac",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
+    "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x533acd04": {
+   "new": "0x533ad5b4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts"
+   ]
+  },
+  "0x533ae234": {
+   "new": "0x533aeae4",
+   "how": "aligned + refs 0x533aeae4x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py",
+    "tools/gr4v120/afplain/runtime/stock_point_api.h"
+   ]
+  },
+  "0x533ae354": {
+   "new": "0x533aec04",
+   "how": "aligned + refs 0x533aec04x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/runtime/stock_point_api.h"
+   ]
+  },
+  "0x533ae5d8": {
+   "new": "0x533aee88",
+   "how": "aligned + refs 0x533aee88x6",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/runtime/stock_point_api.h"
+   ]
+  },
+  "0x533af280": {
+   "new": "0x533afb30",
+   "how": "aligned + refs 0x533afb30x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+   ]
+  },
+  "0x533af920": {
+   "new": "0x533b01d0",
+   "how": "aligned + refs 0x533b01d0x7",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/runtime/tier_geometry.h"
+   ]
+  },
+  "0x533af9e0": {
+   "new": "0x533b0290",
+   "how": "aligned + refs 0x533b0290x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py",
+    "tools/gr4v120/afplain/runtime/stock_point_api.h"
+   ]
+  },
+  "0x533b0530": {
+   "new": "0x533b0de0",
+   "how": "aligned + refs 0x533b0de0x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts"
+   ]
+  },
+  "0x533b060c": {
+   "new": "0x533b0ebc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts"
+   ]
+  },
+  "0x536087f0": {
+   "new": "0x53609130",
+   "how": "aligned + refs 0x53609130x22",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53609484": {
+   "new": "0x53609dc4",
+   "how": "aligned + refs 0x53609dc4x5",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5360a9b8": {
+   "new": "0x5360b2f8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5360de60": {
+   "new": "0x5360e7a0",
+   "how": "aligned + refs 0x5360e7a0x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5360ebd0": {
+   "new": "0x5360f510",
+   "how": "aligned + refs 0x5360f510x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts"
+   ]
+  },
+  "0x5360ebd4": {
+   "new": "0x5360f514",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts"
+   ]
+  },
+  "0x5360ecd0": {
+   "new": "0x5360f610",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
+    "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x53610ef8": {
+   "new": "0x53611838",
+   "how": "aligned + refs 0x53611838x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53610fb4": {
+   "new": "0x536118f4",
+   "how": "aligned + refs 0x536118f4x4",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53611020": {
+   "new": "0x53611960",
+   "how": "aligned + refs 0x53611960x4",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x536116f4": {
+   "new": "0x53612034",
+   "how": "aligned + refs 0x53612034x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53611a9c": {
+   "new": "0x536123dc",
+   "how": "aligned + refs 0x536123dcx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53612034": {
+   "new": "0x53612974",
+   "how": "aligned + refs 0x53612974x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x536120b0": {
+   "new": "0x536129f0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
+    "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x53613a1c": {
+   "new": "0x5361435c",
+   "how": "aligned + refs 0x5361435cx3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x536142f4": {
+   "new": "0x53614c34",
+   "how": "aligned + refs 0x53614c34x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+   ]
+  },
+  "0x53615f48": {
+   "new": "0x53616888",
+   "how": "aligned + refs 0x53616888x4",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53616a58": {
+   "new": "0x53617398",
+   "how": "aligned + refs 0x53617398x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53619adc": {
+   "new": "0x5361a41c",
+   "how": "aligned + refs 0x5361a41cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5361a920": {
+   "new": "0x5361b260",
+   "how": "aligned + refs 0x5361b260x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+   ]
+  },
+  "0x5361aa98": {
+   "new": "0x5361b3d8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5361aaa4": {
+   "new": "0x5361b3e4",
+   "how": "aligned + refs 0x5361b3e4x4",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+   ]
+  },
+  "0x5361aaa8": {
+   "new": "0x5361b3e8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5361acb0": {
+   "new": "0x5361b5f0",
+   "how": "aligned + refs 0x5361b5f0x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5361adf0": {
+   "new": "0x5361b730",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5361adf4": {
+   "new": "0x5361b734",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
+    "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x5361aff4": {
+   "new": "0x5361b934",
+   "how": "aligned + refs 0x5361b934x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5361b14c": {
+   "new": "0x5361ba8c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x536246c4": {
+   "new": "0x53625004",
+   "how": "aligned + refs 0x53625004x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x536263a0": {
+   "new": "0x53626ce0",
+   "how": "aligned + refs 0x53626ce0x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53626410": {
+   "new": "0x53626d50",
+   "how": "aligned + refs 0x53626d50x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts",
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53626414": {
+   "new": "0x53626d54",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts",
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x536264c0": {
+   "new": "0x53626e00",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53643078": {
+   "new": "0x536439b8",
+   "how": "aligned + refs 0x536439b8x10",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x536431c8": {
+   "new": "0x53643b08",
+   "how": "aligned + refs 0x53643b08x14",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5365cba8": {
+   "new": "0x5365d4e8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts",
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5365cbac": {
+   "new": "0x5365d4ec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5366bc80": {
+   "new": "0x5366c5c0",
+   "how": "aligned + refs 0x5366c5c0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts"
+   ]
+  },
+  "0x5366be20": {
+   "new": "0x5366c760",
+   "how": "aligned + refs 0x5366c760x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5377ba40": {
+   "new": "0x5377c6d0",
+   "how": "aligned + refs 0x5377c6d0x7",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x5377c3f4": {
+   "new": "0x5377d084",
+   "how": "aligned + refs 0x5377d084x8",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x5377c84c": {
+   "new": "0x5377d4dc",
+   "how": "aligned + refs 0x5377d4dcx16",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x5377c890": {
+   "new": "0x5377d520",
+   "how": "aligned + refs 0x5377d520x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/runtime/stock_point_api.h"
+   ]
+  },
+  "0x5377e7b8": {
+   "new": "0x5377f448",
+   "how": "aligned + refs 0x5377f448x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/runtime/stock_point_api.h"
+   ]
+  },
+  "0x5377e7e8": {
+   "new": "0x5377f478",
+   "how": "aligned + refs 0x5377f478x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+   ]
+  },
+  "0x53780190": {
+   "new": "0x53780e20",
+   "how": "aligned + refs 0x53780e20x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+   ]
+  },
+  "0x537a0dd8": {
+   "new": "0x537a1af0",
+   "how": "aligned + refs 0x537a1af0x38",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/runtime/tier_geometry.h"
+   ]
+  },
+  "0x5380d520": {
+   "new": "0x5380e318",
+   "how": "aligned + refs 0x5380e318x473",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/runtime/diag_attach.c"
+   ]
+  },
+  "0x5380dcb0": {
+   "new": "0x5380eaa8",
+   "how": "aligned + refs 0x5380eaa8x265",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/runtime/diag_attach.c"
+   ]
+  },
+  "0x5380e728": {
+   "new": "0x5380f520",
+   "how": "aligned + refs 0x5380f520x15",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
+    "tools/gr4v120/afplain/runtime/diag_attach.c"
+   ]
+  },
+  "0x538299f4": {
+   "new": "0x5382a8bc",
+   "how": "aligned + refs 0x5382a8bcx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts"
+   ]
+  },
+  "0x538299f8": {
+   "new": "0x5382a8c0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts"
+   ]
+  },
+  "0x53831044": {
+   "new": "0x53831f0c",
+   "how": "aligned + refs 0x53831f0cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts"
+   ]
+  },
+  "0x53831048": {
+   "new": "0x53831f10",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts"
+   ]
+  },
+  "0x53835ac0": {
+   "new": "0x53836988",
+   "how": "aligned + refs 0x53836988x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts",
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py"
+   ]
+  },
+  "0x538aed78": {
+   "new": "0x538afa20",
+   "how": "aligned + refs 0x538afa20x4",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+   ]
+  },
+  "0x538b3fb8": {
+   "new": "0x538b4c60",
+   "how": "aligned + refs 0x538b4c60x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x539010cc": {
+   "new": "0x53901d64",
+   "how": "aligned + refs 0x53901d64x6",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53902fe8": {
+   "new": "0x53903c80",
+   "how": "aligned + refs 0x53903c80x689",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+   ]
+  },
+  "0x539030a0": {
+   "new": "0x53903d38",
+   "how": "aligned + refs 0x53903d38x354",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53903e68": {
+   "new": "0x53904b00",
+   "how": "aligned + refs 0x53904b00x8",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53904548": {
+   "new": "0x539051e0",
+   "how": "aligned + refs 0x539051e0x7",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53904f3c": {
+   "new": "0x53905bd4",
+   "how": "aligned + refs 0x53905bd4x294",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+   ]
+  },
+  "0x53908120": {
+   "new": "0x53908db8",
+   "how": "aligned + refs 0x53908db8x235",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53908e70": {
+   "new": "0x53909b08",
+   "how": "aligned + refs 0x53909b08x131",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53909abc": {
+   "new": "0x5390a754",
+   "how": "aligned + refs 0x5390a754x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5390a2d0": {
+   "new": "0x5390af68",
+   "how": "aligned + refs 0x5390af68x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53911730": {
+   "new": "0x539123c8",
+   "how": "aligned + refs 0x539123c8x138",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/runtime/tier_geometry.h"
+   ]
+  },
+  "0x53911738": {
+   "new": "0x539123d0",
+   "how": "aligned + refs 0x539123d0x137",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/runtime/tier_geometry.h"
+   ]
+  },
+  "0x53922b1c": {
+   "new": "0x539240e0",
+   "how": "aligned + refs 0x539240e0x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53922b88": {
+   "new": "0x5392414c",
+   "how": "aligned + refs 0x5392414cx2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53aa5214": {
+   "new": "0x53aa67dc",
+   "how": "aligned + refs 0x53aa67dcx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53aa530c": {
+   "new": "0x53aa68d4",
+   "how": "aligned + refs 0x53aa68d4x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53aa5a48": {
+   "new": "0x53aa7010",
+   "how": "aligned + refs 0x53aa7010x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53aa5aa8": {
+   "new": "0x53aa7070",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53aa5fbc": {
+   "new": "0x53aa7584",
+   "how": "aligned + refs 0x53aa7584x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53edc7f0": {
+   "new": "0x53edde80",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53edf018": {
+   "new": "0x53ee06a8",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 1.21 + 2 references agree (aligned + refs 0x53ee06a8x2); the CafProcess vtable the replay gives its objects; datacheck.py: 24/24 words agree up to relocation",
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53edf0b4": {
+   "new": "0x53ee0744",
+   "how": "override",
+   "ok": true,
+   "why": "aligned in 1.21 (same shift +0x1690 as 0x53edf018 and 0x53edc7f0); the second CafProcess vtable; datacheck.py: 23/24 words agree up to relocation (word 13, past the slots the replay uses, points elsewhere)",
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x53fddf34": {
+   "new": "0x53fdf6bc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts",
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py"
+   ]
+  },
+  "0x54000000": {
+   "new": "0x54000000",
+   "how": "override",
+   "ok": true,
+   "why": "not an address of the image: test_plain_units.py's frame base outside RAM (a rejected recipe), kept",
+   "files": [
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py"
+   ]
+  },
+  "0x540179b8": {
+   "new": "0x54019198",
+   "how": "aligned + refs 0x54019198x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x54450000": {
+   "new": "0x54450000",
+   "how": "override",
+   "ok": true,
+   "why": "not an address of the image: the link origin of the subject recognition runtime's position-independence check (gen.py), kept",
+   "files": [
+    "tools/gr4v120/afplain/build.ts",
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
+    "tools/gr4v120/afplain/gen.py"
+   ]
+  },
+  "0x550831d4": {
+   "new": "0x550831d4",
+   "how": "override",
+   "ok": true,
+   "why": "RAM, its one reference agrees (0x550831d4x1); the UserData statics around it keep their place (0x55083194, 0x55083244, 0x550832a8: +0)",
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x55084958": {
+   "new": "0x55084958",
+   "how": "refs 0x55084958x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x550873d8": {
+   "new": "0x550873d8",
+   "how": "override",
+   "ok": true,
+   "why": "RAM, its one reference agrees (0x550873d8x1): the focus model's static-init guard, next to 0x550873e4 (+0)",
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
+    "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x550873e4": {
+   "new": "0x550873e4",
+   "how": "refs 0x550873e4x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
+    "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x55087450": {
+   "new": "0x55087450",
+   "how": "refs 0x55087450x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
+    "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x550a2a5c": {
+   "new": "0x550a2a64",
+   "how": "refs 0x550a2a64x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x550a2c38": {
+   "new": "0x550a2c40",
+   "how": "override",
+   "ok": true,
+   "why": "RAM, its one reference (0x550a2c40x1) and the neighbours 0x550a2a5c and 0x550a569c (+8) agree",
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x550a2c44": {
+   "new": "0x550a2c4c",
+   "how": "override",
+   "ok": true,
+   "why": "RAM, its one reference (0x550a2c4cx1) and the neighbours 0x550a2a5c and 0x550a569c (+8) agree",
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x550a2c5c": {
+   "new": "0x550a2c64",
+   "how": "override",
+   "ok": true,
+   "why": "RAM, unreferenced (a field the replay sets): between 0x550a2c44 and 0x550a569c, both +8",
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x550a569c": {
+   "new": "0x550a56a4",
+   "how": "refs 0x550a56a4x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/evaluation/test_plain_units.py",
+    "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x550b6980": {
+   "new": "0x550b6988",
+   "how": "override",
+   "ok": true,
+   "why": "RAM, its one reference (0x550b6988x1) and the neighbour 0x550b8848 (+8) agree",
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5537b298": {
+   "new": "0x5537b2a0",
+   "how": "override",
+   "ok": true,
+   "why": "RAM, its one reference (0x5537b2a0x1) and the neighbour 0x5537b29c (+8, committed) agree",
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x553a1bec": {
+   "new": "0x553a1bf4",
+   "how": "refs 0x553a1bf4x12",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x553a1bf0": {
+   "new": "0x553a1bf8",
+   "how": "refs 0x553a1bf8x4",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x553a1bf4": {
+   "new": "0x553a1bfc",
+   "how": "refs 0x553a1bfcx12",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x553a1d30": {
+   "new": "0x553a1d38",
+   "how": "refs 0x553a1d38x19",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x553a6344": {
+   "new": "0x553a634c",
+   "how": "override",
+   "ok": true,
+   "why": "RAM, unreferenced (a field the replay sets): next to 0x553a6348 (+8) and after 0x553a26c4 .. 0x553a284c (+8)",
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x553a6348": {
+   "new": "0x553a6350",
+   "how": "override",
+   "ok": true,
+   "why": "RAM, its one reference (0x553a6350x1) and the neighbours 0x553a26c4 .. 0x553a284c (+8) agree",
+   "files": [
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x55839280": {
+   "new": "0x55839280",
+   "how": "override",
+   "ok": true,
+   "why": "RAM, unreferenced: 512 bytes after the heap start 0x55839080 (same in 1.21: the start-up zero fill literal 0x53000460 and the heap's movw at 0x53ad4c4c name the same addresses); the heap start subject recognition moves to",
+   "files": [
+    "core/src/fw/gr4v120/aspect/subjectaf.ts"
    ]
   }
  }
