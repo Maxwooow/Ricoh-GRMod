@@ -51,6 +51,7 @@ export const TOURS: Record<TourId, Step[]> = {
     step('ic-tabs', 'IcTabs', 'bottom'),
     step('ic-mode', 'IcMode', 'bottom'),
     step('ic-preview', 'IcPreview', 'left'),
+    step('ic-halo', 'IcHalo', 'top'),
     step('write', 'IcWrite', 'top'),
   ],
   ratio: [
@@ -85,6 +86,7 @@ export const TOURS: Record<TourId, Step[]> = {
     { target: 'ex-f-shift', title: 'navShift', body: 'tIcFShiftB' },
     { target: 'ex-f-units', title: 'navUnits', body: 'tIcFUnitsB' },
     { target: 'ex-f-wblook', title: 'navWbLook', body: 'tIcFWbLookB' },
+    { target: 'ex-f-lock', title: 'navLockProtect', body: 'tIcFLockB' },
     { target: 'ex-f-grid', title: 'navGrid', body: 'tGridB' },
     { target: 'ex-f-adj', title: 'navAdjSlots', body: 'tIcFAdjB' },
     { target: 'ex-f-bright', title: 'navBrightAuto', body: 'tIcFBrightB' },

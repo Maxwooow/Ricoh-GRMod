@@ -110,6 +110,12 @@ export function setSubjectAf(subjectAf: boolean): void {
   set({ subjectAf }); scheduleSave();
 }
 export function subjectAfOn(s: State = state): boolean { return !!s.subjectAf && !!s.info?.features.subjectAf; }
+/** The mode dial's lock button protects the picture in single-picture playback (GR IV 1.20 / 1.21). */
+export function setLockProtect(lockProtect: boolean): void {
+  if (lockProtect && !state.info?.features.lockProtect) return;
+  set({ lockProtect }); scheduleSave();
+}
+export function lockProtectOn(s: State = state): boolean { return !!s.lockProtect && !!s.info?.features.lockProtect; }
 export function setVideoAf(videoAf: boolean): void {
   if (videoAf && !state.info?.features.videoAf) return;
   set({ videoAf }); scheduleSave();
@@ -165,7 +171,7 @@ export function setAdjSlots(adjSlots: number): void {
 /** The ADJ lever slots the build gets (5: none added). */
 export function adjSlotsOf(s: State = state): number { const max = s.info?.features.maxAdjSlots ?? 5; return s.adjSlots > 5 && s.adjSlots <= max ? s.adjSlots : 5; }
 /** Any addition that is not a slot or a ratio. */
-export function extrasOn(s: State = state): boolean { return !!brightAutoOf(s) || exposurePreviewOn(s) || filmGrainOn(s) || flashTtlOn(s) || subjectAfOn(s) || videoAfOn(s) || awbLearnOn(s) || wbPerLookOn(s) || movieExposureOn(s) || sensorShiftOn(s) || movie4kOn(s) || movieSrOn(s) || distanceFeetOn(s) || constantLightOn(s) || softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hasLookLayout(s) || directFlashOn(s) || adjSlotsOf(s) > 5 || hdrOn(s) || batteryOn(s) || (!!customGridOf(s) || (!!s.customGrid && !!s.info?.features.framing && framingValuesOn(s))) || shadowLearnOn(s); }
+export function extrasOn(s: State = state): boolean { return !!brightAutoOf(s) || exposurePreviewOn(s) || filmGrainOn(s) || flashTtlOn(s) || subjectAfOn(s) || lockProtectOn(s) || videoAfOn(s) || awbLearnOn(s) || wbPerLookOn(s) || movieExposureOn(s) || sensorShiftOn(s) || movie4kOn(s) || movieSrOn(s) || distanceFeetOn(s) || constantLightOn(s) || softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hasLookLayout(s) || directFlashOn(s) || adjSlotsOf(s) > 5 || hdrOn(s) || batteryOn(s) || (!!customGridOf(s) || (!!s.customGrid && !!s.info?.features.framing && framingValuesOn(s))) || shadowLearnOn(s); }
 const MINUS = '\u2212';
 const strengthLabel = (st: SoftFocusStrength | 'custom'): string => t(st === 'weak' ? 'softWeak' : st === 'medium' ? 'softMedium' : st === 'strong' ? 'softStrong' : 'softCustom');
 /** "−2 weak / −3 medium" (−1 first), for confirmations and the copies page. */

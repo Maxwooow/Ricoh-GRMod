@@ -134,6 +134,8 @@ const FEATURE4_MORE = 128;
 const FEATURE5_WB_PER_LOOK = 1;
 /** Fifth feature byte: bit 1, halation for every look (`halation-all.ts`; needs added slots). */
 const FEATURE5_HALATION_ALL = 2;
+/** Fifth feature byte: bit 2, the mode dial's lock button protects the picture in single-picture playback (`lockprotect.ts`). */
+const FEATURE5_LOCK_PROTECT = 4;
 
 /**
  * `u8 count, then per ratio: u8 length + ratio text, u8 length + name`, (revision 3: `u8 features`),
@@ -169,7 +171,7 @@ function encodeRecord(specs: readonly RatioSpec[], revision: BuildRevision, feat
   const f4own = (features.constantLight ? FEATURE4_CONSTANT_LIGHT : 0) | (features.sensorShift ? FEATURE4_SENSOR_SHIFT : 0) | (features.movie4k ? FEATURE4_MOVIE_4K : 0) | (features.movieSr ? FEATURE4_MOVIE_SR : 0) | (features.framing ? FEATURE4_FRAMING : 0) | (features.distanceFeet ? FEATURE4_DISTANCE_FEET : 0) | (features.subjectAf ? FEATURE4_SUBJECT_AF : 0);
   if (features.wbPerLook && slots === 0) fail('internal', 'white balance per look needs added slots');
   if (features.halationAll && slots === 0) fail('internal', 'halation for every look needs added slots');
-  const f5 = (features.wbPerLook ? FEATURE5_WB_PER_LOOK : 0) | (features.halationAll ? FEATURE5_HALATION_ALL : 0);
+  const f5 = (features.wbPerLook ? FEATURE5_WB_PER_LOOK : 0) | (features.halationAll ? FEATURE5_HALATION_ALL : 0) | (features.lockProtect ? FEATURE5_LOCK_PROTECT : 0);
   const f4 = f4own | (f5 ? FEATURE4_MORE : 0);
   if (features.brightAuto || features.hdrGainMap || (features.adjSlots && features.adjSlots > 5) || features.exposurePreview || features.softFocusMenu || features.shadowLearn || features.filmGrain || f3 || f4) {
     if (revision < 3) fail('internal', 'the HDR gain map, ADJ slots, bright Auto, exposure preview, the soft focus line, the learned shadow correction, the film grain and the third and fourth feature bytes need revision 3');
@@ -336,9 +338,10 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
           if (f4 & FEATURE4_MORE) {
             if (p >= rec.length) return null;
             const f5 = rec[p++];
-            if (f5 === 0 || (f5 & ~(FEATURE5_WB_PER_LOOK | FEATURE5_HALATION_ALL)) !== 0) return null;
+            if (f5 === 0 || (f5 & ~(FEATURE5_WB_PER_LOOK | FEATURE5_HALATION_ALL | FEATURE5_LOCK_PROTECT)) !== 0) return null;
             if ((f5 & FEATURE5_HALATION_ALL) && extraSlots === 0) return null;
             if (f5 & FEATURE5_HALATION_ALL) features.halationAll = true;
+            if (f5 & FEATURE5_LOCK_PROTECT) features.lockProtect = true;
             if (f5 & FEATURE5_WB_PER_LOOK) {
               if (extraSlots === 0) return null;
               features.wbPerLook = true;
@@ -347,7 +350,7 @@ function parseRecord(rtos: Uint8Array): ParsedRecord | null {
         } else if (f3 === 0) return null;
       }
     }
-    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.framing && !features.shadowLearn && !features.filmGrain && !features.flashTtl && !features.videoAf && !features.awbLearn && !features.movieExposure && !features.sensorShift && !features.movie4k && !features.movieSr && !features.constantLight && !features.distanceFeet && !features.wbPerLook && !features.halationAll && !features.subjectAf) return null;
+    if (count === 0 && !features.adjSoftFocus && !features.dateStamp && !features.monoUnlock && !features.guard && extraSlots === 0 && shutdownPictures === 0 && !features.lookLayout && !features.directFlash && !features.hdrGainMap && !features.adjSlots && !features.exposurePreview && !features.brightAuto && !features.batteryPercent && !features.customGrid && !features.framing && !features.shadowLearn && !features.filmGrain && !features.flashTtl && !features.videoAf && !features.awbLearn && !features.movieExposure && !features.sensorShift && !features.movie4k && !features.movieSr && !features.constantLight && !features.distanceFeet && !features.wbPerLook && !features.halationAll && !features.subjectAf && !features.lockProtect) return null;
   }
   for (; p < rec.length; p++) if (rec[p] !== 0) return null;
   return { specs: out, features, extraSlots, shutdownPictures };

@@ -5,7 +5,7 @@ import { FirmwareHero } from '../firmware';
 import { t } from '../i18n';
 import {
   useStore, loadFirmwareFile, gridOffered, setSoft, setDateStamp, setMonoUnlock, setFlashPlus, flashPlusOn, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain,
-  setShadowLearn, setBattery, setSubjectAf, setVideoAf, setMovieExposure, setAwbLearn, setWbPerLook, setConstantLight, setSensorShift, setMovie4k, setMovieSr, setDistanceFeet, setBrightAuto, setCustomGrid,
+  setShadowLearn, setBattery, setSubjectAf, setLockProtect, setVideoAf, setMovieExposure, setAwbLearn, setWbPerLook, setConstantLight, setSensorShift, setMovie4k, setMovieSr, setDistanceFeet, setBrightAuto, setCustomGrid,
 } from '../store';
 import { isFirmware } from './files';
 import { GridDetail, GridThumb, closeGrid, openGrid, useGridArrival } from './grid';
@@ -90,6 +90,8 @@ function ExtrasList() {
   const batteryOk = useStore((s) => !!s.info?.features.batteryPercent);
   const saf = useStore((s) => s.subjectAf);
   const safOk = useStore((s) => !!s.info?.features.subjectAf);
+  const lockP = useStore((s) => s.lockProtect);
+  const lockOk = useStore((s) => !!s.info?.features.lockProtect);
   const vaf = useStore((s) => s.videoAf);
   const vafOk = useStore((s) => !!s.info?.features.videoAf);
   const mexp = useStore((s) => s.movieExposure);
@@ -142,6 +144,7 @@ function ExtrasList() {
           options={[{ value: 'm', label: t('unitsMetre') }, { value: 'ft', label: t('unitsFeet') }]} />
       )}
       {wbLookOk && <FeatureCapsule icon={Ico.wb} title={t('navWbLook')} sub={t('wbLookSub')} on={wbLook} onChange={setWbPerLook} tour="ex-f-wblook" />}
+      {lockOk && <FeatureCapsule icon={Ico.lock} title={t('navLockProtect')} sub={t('lockProtectSub')} on={lockP} onChange={setLockProtect} tour="ex-f-lock" />}
       {gridOk && <GridCapsule />}
       {adjMax > 5 && (
         <ChoiceCapsule icon={Ico.adj} title={t('navAdjSlots')} sub={t('adjSlotsSub')} on={adj > 5} tour="ex-f-adj"
