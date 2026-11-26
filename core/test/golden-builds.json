@@ -310,7 +310,7 @@
  },
  "gr3x-1.70": {
   "version": "1.70",
-  "info": "7083913b40d26ae2a945ba8f3604ab32d5fae4ac502cbd3c711142eaf9e01188",
+  "info": "03b6ec431111f3ff7ba970ada75624a492e3e16cb0584f08f680b474bd83f9c6",
   "ratios": "3438e75acc2fe624c9cc9e277a639b42ccd637f8dd363ee05430058d052635ae",
   "ratios / inspect": "ad5a8645bfb34befff03b67514fc1b2df33bb31f998624158b159cc1e5d4cc7b",
   "ratios, no guard": "2759402626f451f1eac3518149048dd47ffec94787eb462a7fad228267f8a5cd",
@@ -345,7 +345,7 @@
  },
  "gr3x-1.71": {
   "version": "1.71",
-  "info": "b016bd56065ed8571b17637cc3812dbf8af357e78a82f19eae75ac9109543d6e",
+  "info": "13b08c53987d28f06cd79f42caca7647517de4987c6679d1c62c362961003bf5",
   "ratios": "655471b558582032b70efb30851ab8adebc2307d5e1c5a860ba1b407beae2bf3",
   "ratios / inspect": "d646141e7769e9afe14c52119d451bdab526129f40b9f5b214194f806e82f6c9",
   "ratios, no guard": "d56c8483cfbc350c24e819effefeb2bf41b3ac1734a73be5d3185ff4e990f852",
