@@ -16,10 +16,10 @@ from unicorn.arm_const import *
 ADDR = {
     '1.20': dict(translator=0x53257a14, hook=0x53257e38, trigger=0x5325784c, app=0x532406a4, queue=0x53240818,
                  playback=0x53240998, media=0x532409f8, getid=0x53261f1c, allowed=0x532684fc, protect=0x5326676c,
-                 onevent=0x53196528, hook2=0x5319661c, restart=0x531939d4),
+                 onevent=0x53196528, hook2=0x5319661c, restart=0x531939d4, screen=0x53185054, display=0x53193950),
     '1.21': dict(translator=0x53258260, hook=0x53258684, trigger=0x53258098, app=0x53240cac, queue=0x53240e20,
                  playback=0x53240fa0, media=0x53241000, getid=0x5326276c, allowed=0x53268d4c, protect=0x53266fbc,
-                 onevent=0x53196528, hook2=0x5319661c, restart=0x531939d4),
+                 onevent=0x53196528, hook2=0x5319661c, restart=0x531939d4, screen=0x53185054, display=0x53193950),
 }
 ver, official, built, without = sys.argv[1:5]
 A = ADDR[ver]
@@ -109,7 +109,33 @@ def first_call(image, event):
     mu.emu_start(A['onevent'], 0, count=300)
     return out
 assert first_call(img, 0x135) == [('call', A['restart'])] == first_call(base, 0x135)
-assert first_call(img, 0x134) == [('call', A['restart'])] and first_call(base, 0x134) == [('return', 0)]
+assert first_call(base, 0x134) == [('return', 0)]
+def done(screen):
+    mu = Uc(UC_ARCH_ARM, UC_MODE_ARM)
+    mu.mem_map(BASE, (len(img) + 0xfff) & ~0xfff); mu.mem_write(BASE, img)
+    mu.mem_map(0x10000000, 0x10000); mu.mem_map(STACK - 0x10000, 0x10000); mu.mem_map(RET, 0x1000)
+    mu.mem_write(EVT, struct.pack('<H', 0x134))
+    out = []
+    def leave(v):
+        mu.reg_write(UC_ARM_REG_R0, v)
+        for r in (UC_ARM_REG_R1, UC_ARM_REG_R2, UC_ARM_REG_R3, UC_ARM_REG_IP): mu.reg_write(r, 0xdead0000)
+        mu.reg_write(UC_ARM_REG_PC, mu.reg_read(UC_ARM_REG_LR))
+    def code(mu_, pc, size, _):
+        if pc == RET: mu.emu_stop()
+        elif pc == A['screen']: assert mu.reg_read(UC_ARM_REG_R0) == THIS; out.append('screen'); leave(screen)
+        elif pc == A['display']: out.append(('display', mu.reg_read(UC_ARM_REG_R0), mu.reg_read(UC_ARM_REG_R1), mu.reg_read(UC_ARM_REG_R2))); leave(1)
+        elif not (A['onevent'] <= pc < A['onevent'] + 0x308 or pc >= BASE + len(off)): raise AssertionError(hex(pc))
+    mu.hook_add(UC_HOOK_CODE, code)
+    saved = {UC_ARM_REG_R4: 0x44444444, UC_ARM_REG_R5: 0x55, UC_ARM_REG_R11: 0xbb, UC_ARM_REG_SP: SP0}
+    for k, v in saved.items(): mu.reg_write(k, v)
+    mu.reg_write(UC_ARM_REG_R0, THIS); mu.reg_write(UC_ARM_REG_R1, EVT); mu.reg_write(UC_ARM_REG_LR, RET)
+    mu.emu_start(A['onevent'], 0, count=300)
+    assert mu.reg_read(UC_ARM_REG_PC) == RET and mu.reg_read(UC_ARM_REG_R0) == 0
+    for k, v in saved.items(): assert mu.reg_read(k) == v
+    return out
+assert done(0x04000001) == ['screen', ('display', THIS, 2, 0)]
+for scr in (0x04000000, 0x04000004, 0x0400002c, 0x04000011, 0x02000063, 0):
+    assert done(scr) == ['screen'], hex(scr)
 for e in range(0, 0x200):
     if e != 0x134: assert first_call(img, e) == first_call(base, e), hex(e)
 print(ver, 'ok')

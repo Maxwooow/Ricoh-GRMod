@@ -141,6 +141,7 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/grain.ts",
+    "core/src/fw/gr4v120/aspect/lockprotect.ts",
     "tools/gr4v120/adjslots/adjslots.c",
     "tools/gr4v120/adjslots/check.py",
     "tools/gr4v120/grain/fw_check.py"
@@ -445,9 +446,17 @@
     "tools/gr4v120/shade/draw_check.py"
    ]
   },
-  "0x531939d4": {
-   "new": "0x531939d4",
-   "how": "aligned + refs 0x531939d4x1",
+  "0x53193950": {
+   "new": "0x53193950",
+   "how": "aligned + refs 0x53193950x7",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/lockprotect.ts"
+   ]
+  },
+  "0x53195b64": {
+   "new": "0x53195b64",
+   "how": "aligned + refs 0x53195b64x1",
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/lockprotect.ts"
@@ -477,9 +486,9 @@
     "core/src/fw/gr4v120/aspect/lockprotect.ts"
    ]
   },
-  "0x53196768": {
-   "new": "0x53196768",
-   "how": "aligned + refs 0x53196768x1",
+  "0x531966c0": {
+   "new": "0x531966c0",
+   "how": "aligned + refs 0x531966c0x10",
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/lockprotect.ts"

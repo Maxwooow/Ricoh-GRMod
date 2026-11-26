@@ -31,10 +31,13 @@
  * in every other case it passes trigger 4 on as before.
  *
  * When the request is done MediaModel empties PlaybackModel's record of the displayed file
- * (0x5326923C) and posts event 0x134. The menu then closes and playback starts over; the single
- * picture's controller ignores 0x134 (first camera test: no Protect mark, the direction keys dead
- * until the screen was drawn again). Its handler (0x53196528) does have the restart of the single
- * picture, for event 0x135 (0x531939D4: PlaybackModel 0x53262F28). 0x134 now takes that case too.
+ * (0x5326923C) and posts event 0x134. After the menu's request the menu closes and the single
+ * picture's controller is started again, which asks for the picture to be displayed
+ * (0x53195B64: 0x53193950(this, 2, 0)). The controller's event handler (0x53196528) ignores 0x134,
+ * so after the button's request nothing asked for the picture again (camera tests 119 and 121: no
+ * Protect mark, the direction keys dead until the screen was drawn again; passing 0x134 to the
+ * case of 0x135, PlaybackModel 0x53262F28, changed nothing). On 0x134 the handler now makes the
+ * request of the start, when the single picture is the controller's screen (0x53185054).
  */
 import { assembleWords, branchWord } from './arm';
 import { Patch, expectWord } from './build';
@@ -46,7 +49,11 @@ const LOCK_PUSHED = adr(0x53257e38);
 const MODE_TRIGGER = adr(0x5325784c);
 /** PlaybackSingleController's event handler: `movw r2, #0x135` of its compare, and the case of that event. */
 const SINGLE_EVENT_135 = adr(0x5319661c);
-const SINGLE_RESTART = adr(0x53196768);
+/** The handler's exit for an event it does nothing with (`mov r0, #0`, return). */
+const SINGLE_EVENT_DONE = adr(0x531966c0);
+/** The controller's screen id (this), and its request to display the picture: (this, 2, 0) at its start. */
+const CONTROLLER_SCREEN = adr(0x53185054);
+const SINGLE_DISPLAY = adr(0x53193950);
 /** The application object, and from it the controller queue, PlaybackModel and MediaModel. */
 const APP = adr(0x532406a4);
 const CONTROLLER_QUEUE = adr(0x53240818);
@@ -75,7 +82,10 @@ export function installLockProtect(patch: Patch): void {
   expectWord(patch, REQUEST_ALLOWED + 0x10, 0xe16f0f10); // clz r0, r0
   expectWord(patch, SINGLE_EVENT_135, 0xe3002135); // movw r2, #0x135
   expectWord(patch, SINGLE_EVENT_135 + 4, 0xe1530002); // cmp r3, r2
-  expectWord(patch, SINGLE_EVENT_135 + 8, condition(branchWord(SINGLE_EVENT_135 + 8, SINGLE_RESTART), 0)); // beq
+  expectWord(patch, SINGLE_EVENT_DONE, 0xe3a00000); // mov r0, #0
+  expectWord(patch, SINGLE_EVENT_DONE + 4, 0xe89da800); // ldm sp, {fp, sp, pc}
+  expectWord(patch, CONTROLLER_SCREEN, 0xe5900124); // ldr r0, [r0, #0x124]
+  expectWord(patch, SINGLE_DISPLAY, 0xe1a0c00d);
 
   const stub = patch.append((at) => assembleWords(
     `push {r0, r4, r5, lr}
@@ -114,8 +124,20 @@ export function installLockProtect(patch: Patch): void {
   const event = patch.append((at) => assembleWords(
     `movw r2, #0x134
      cmp r3, r2
-     beq #${SINGLE_RESTART}
      movw r2, #0x135
-     b #${SINGLE_EVENT_135 + 4}`, at), 4);
-  patch.setWord(SINGLE_EVENT_135, branchWord(SINGLE_EVENT_135, event), 'single picture: start over when a request is done (event 0x134)');
+     bne #${SINGLE_EVENT_135 + 4}
+     push {r4, lr}
+     mov r4, r0
+     bl #${CONTROLLER_SCREEN}
+     sub r0, r0, #${PLAYBACK}
+     cmp r0, #1
+     bne over
+     mov r0, r4
+     mov r1, #2
+     mov r2, #0
+     bl #${SINGLE_DISPLAY}
+     over:
+     pop {r4, lr}
+     b #${SINGLE_EVENT_DONE}`, at), 4);
+  patch.setWord(SINGLE_EVENT_135, branchWord(SINGLE_EVENT_135, event), 'single picture: display it again when a request is done (event 0x134)');
 }
