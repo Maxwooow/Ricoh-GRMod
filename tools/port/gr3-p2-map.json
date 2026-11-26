@@ -2009,6 +2009,14 @@
 "how": "aligned + refs 0x532a9c20x1",
 "ok": true
 },
+"0x532abce0": {
+"new": "0x532abdd0",
+"how": "aligned + refs 0x532abdd0x2",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/battery.ts"
+]
+},
 "0x532aca68": {
 "new": "0x532acb58",
 "how": "aligned + refs 0x532acb58x1",
@@ -4875,6 +4883,23 @@
 "how": "refs 0x553458b0x2",
 "ok": true
 },
+"0x55348f6c": {
+"new": "0x55348f6c",
+"how": "refs 0x55348f6cx3",
+"ok": true,
+"files": [
+"core/src/fw/gr3x/battery.ts"
+]
+},
+"0x55349090": {
+"new": "0x55349090",
+"how": "override",
+"ok": true,
+"why": "battery percentage: guard of CpuInformationService's holder; 2.20's getter 0x5356e678 is 2.10's 0x5356e588 with the same guard 0x55349090 and object 0x55348f6c",
+"files": [
+"core/src/fw/gr3x/battery.ts"
+]
+},
 "0x55357000": {
 "new": "0x55357000",
 "how": "override",
@@ -4983,6 +5008,15 @@
 "how": "override",
 "ok": true,
 "why": "GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends"
+},
+"0x558043a4": {
+"new": "0x55803c64",
+"how": "override",
+"ok": true,
+"why": "battery percentage: GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends",
+"files": [
+"core/src/fw/gr3x/battery.ts"
+]
 },
 "0x558043c0": {
 "new": "0x55803c80",

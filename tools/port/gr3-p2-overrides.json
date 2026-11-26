@@ -290,5 +290,13 @@
  "0x55018e4c": {
   "new": "0x55018e54",
   "reason": "datacheck: 16/16 words agree (16 relocated pointers); one reference agrees"
+ },
+ "0x55349090": {
+  "new": "0x55349090",
+  "reason": "battery percentage: guard of CpuInformationService's holder; 2.20's getter 0x5356e678 is 2.10's 0x5356e588 with the same guard 0x55349090 and object 0x55348f6c"
+ },
+ "0x558043a4": {
+  "new": "0x55803c64",
+  "reason": "battery percentage: GR Mod's words between the start-up zero fill (end 0x55803c34) and the heap (0x55803c80): -0x740 as both ends"
  }
 }

@@ -28,6 +28,7 @@ import { GR3X_FILL_OFFICIAL, GR3X_FILL_R10, GR3X_ZERO_FILL_LITERAL, installGr3xS
 import { normalizeGr3xExtras } from './extras';
 import type { Gr3xExtras } from './extras';
 import { installGr3xCustomGrid } from './grid';
+import { GR3X_BATTERY_ICON_COUNT, GR3X_BATTERY_ICON_H, GR3X_BATTERY_ICON_W, gr3xBatteryIconPixels, installGr3xBatteryPercent } from './battery';
 import { GR3X_SNAP_FEET, GR3X_SNAP_METRES, GR3X_SNAP_TEXT_IDS, GR3X_UNIT_ICON_H, GR3X_UNIT_ICON_W, GR3X_UNIT_LABELS, gr3xUnitLabelPixels, installGr3xScaleFeet } from './units';
 import { installGr3xGuardR10 } from './guard';
 import { gr3xRawDevelopmentWordsR10 } from './datestamp';
@@ -314,7 +315,9 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
 
   // Extras' icons come last: the manual focus scale's labels in feet and inches (units.ts).
   const unitIcon = m.iconCount + additions.length + (softFocus ? 1 : 0) + dateIconCount + pictureCount + (pictureSub ? GR3X_FACTORY_PICTURES.length : 0);
-  const iconCount = unitIcon + (extras?.distanceFeet ? GR3X_UNIT_LABELS.length : 0);
+  // Then the battery percentage's 10 %..100 %, "?", "!" (battery.ts).
+  const batteryIcon = unitIcon + (extras?.distanceFeet ? GR3X_UNIT_LABELS.length : 0);
+  const iconCount = batteryIcon + (extras?.batteryPercent ? GR3X_BATTERY_ICON_COUNT : 0);
   const iconCatalog = new Uint8Array(iconCount * 4);
   iconCatalog.set(read(m.iconRoot, m.iconCount * 4));
   const pixels = additions.map(r => drawRatioIcon(r.ratio));
@@ -367,6 +370,15 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
     });
     installGr3xScaleFeet({ patch, word }, unitIcon);
   }
+  const batteryEntries = extras?.batteryPercent ? (() => {
+    gr3xBatteryIconPixels().forEach((icon, k) => {
+      if (iconOffset % 4) fail('IIIx ICONBIN alignment');
+      const descriptor = append(Uint8Array.from([GR3X_BATTERY_ICON_W, 0, GR3X_BATTERY_ICON_H, 0, ...words([iconOffset / 4])]));
+      new DataView(iconCatalog.buffer).setUint32((batteryIcon + k) * 4, descriptor, true);
+      pixels.push(icon); iconOffset += icon.length;
+    });
+    return installGr3xBatteryPercent({ code, patch, word }, batteryIcon, extras.batteryDiag === true);
+  })() : {};
   const iconRoot = append(iconCatalog);
   for (const [low, r] of m.iconRootSites) pair(low, low + 4, r, m.iconRoot, iconRoot, 'extended IIIx icon directory');
   for (const [at, r] of m.iconBounds) patch(at, movWord(r, m.iconCount - 1), movWord(r, iconCount - 1), 'extended IIIx icon bound');
@@ -450,7 +462,7 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
     schema: 1, kind: 'gr3x-adj-patchset' as const, profile: profile.id,
     originalRtosSha256: profile.rtosSha256, originalLength: p.rtosLength, base: BASE,
     sites, append: { address: geometry.append.address, bytes: hex(payload) }, geometry,
-    entries: { ...geometry.entries, ...scaffold, ratioText, ratioIcon, fnCycle, ...imageEntries, ...developEntries, ...afEntries, ...mapEntries, ...liveEntries, ...rawEntries, ...shadingEntries, ...fullRawEntries, ...gridEntries, ...softEntries, ...dateEntries, ...lookEntries },
+    entries: { ...geometry.entries, ...scaffold, ratioText, ratioIcon, fnCycle, ...imageEntries, ...developEntries, ...afEntries, ...mapEntries, ...liveEntries, ...rawEntries, ...shadingEntries, ...fullRawEntries, ...gridEntries, ...batteryEntries, ...softEntries, ...dateEntries, ...lookEntries },
     catalogs: { order, textRoots, textColumns: columns, iconRoot, iconCount },
     adjSoftFocus: softFocus,
     dateImprint: dateImprint ? { ...dateIds, form: dateForm, ...(round7 ? { iconOff: 296, iconOn: 297 } : {}), ...(lookNames ? { names: lookNames } : {}) } : undefined,
