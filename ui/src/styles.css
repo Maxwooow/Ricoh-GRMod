@@ -843,7 +843,8 @@ html.ios .m-lens.held { -webkit-backdrop-filter: saturate(1.45) brightness(1.06)
 .app.mobile .cards, .app.mobile .ratio-list { overflow: visible; padding-right: 0; min-height: auto; }
 .app.mobile .ic > .pane, .app.mobile .ratio > .pane { order: -1; flex: none; }
 .app.mobile .ic > .pane { container-type: inline-size; }
-.app.mobile .ic > .pane .pane-body { flex: none; height: calc(100cqw / 1.5 + 4px); }
+/* the photo keeps its size: what goes under it (the halation row) adds to the height instead of taking from the photo */
+.app.mobile .ic > .pane .pane-body { flex: none; height: calc(100cqw / 1.5 + 4px + var(--below, 0px)); }
 /* the phone has no hover to read the rest: the descriptions of the switches are shown whole */
 .app.mobile .soft-switch .soft-text .ellipsis { display: block; -webkit-line-clamp: unset; overflow: visible; }
 .app.mobile .ratio-body { flex: none; height: auto; container-type: inline-size; }
