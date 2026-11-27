@@ -29,6 +29,9 @@ class ListProbe:
     """Runs the three functions with the active set substituted; records assertions instead of raising."""
     def __init__(self,probe,original=False):
         self.p=probe;self.uc=probe.uc;self.set=0;self.asserts=0
+        # The RAM after the heap's start (the live layout's word, 0 before the settings load: the tables answer).
+        try:self.uc.mem_map(0x55800000,0x100000)
+        except Exception:pass
         self.uc.hook_add(1<<2,self._hook,begin=ACTIVE_SET,end=ACTIVE_SET)   # UC_HOOK_CODE
         self.uc.hook_add(1<<2,self._diag,begin=DIAGNOSTIC,end=DIAGNOSTIC)
         # The original image: the user-data getter as AdjProbe substitutes it (0x5320dbd4).

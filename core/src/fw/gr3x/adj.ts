@@ -36,6 +36,7 @@ import { installGr3xRawDevelopment } from './raw-development';
 import { installGr3xShading } from './shading';
 import { installGr3xFullFrameRaw } from './raw-full-frame';
 import { gr3xDimLightAfOffered, installGr3xDimLightAf } from './dimaf';
+import { gr3xWbPerLookOffered } from './wbperlook';
 import { adr, byRelease } from './target';
 
 export const GR3X_ADJ = {
@@ -133,6 +134,14 @@ export interface Gr3xAdjFeatures {
   lookLayout?: Gr3xLookLayout;
   /** Dim-light AF: nineteen words of the contrast AF (dimaf.ts). GR III / IIIx. */
   dimLightAf?: boolean;
+  /** White balance per look (wbperlook.ts): round 10 with films, GR III 2.10 / IIIx 1.60. */
+  wbPerLook?: boolean;
+  /** The two Custom entries before the films in the still Image Control lists (custom-position.ts): round 10 with films, 1.60. */
+  customsBeforeFilms?: boolean;
+  /** The lists' order and hidden looks kept in the camera (HTData 15, films.c -DLIVE_LAYOUT): round 10 with films, 1.60. */
+  liveLayout?: boolean;
+  /** The order's screen in the camera's still menu (look-menu.ts): with liveLayout, not with the date imprint or End Screen pictures. */
+  lookMenu?: boolean;
 }
 /** How the image-control layer builds on this one (not recorded: it follows from the films). */
 export interface Gr3xAdjLayer {
@@ -173,6 +182,10 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
   const { decoded, profile } = await openGr3xOfficial(raw);
   const dimLightAf = features.dimLightAf === true;
   if (dimLightAf && !gr3xDimLightAfOffered(profile)) fail('IIIx dim-light AF: GR III / IIIx only');
+  if (features.wbPerLook === true && (!round10 || !layer.looksFollow || !gr3xWbPerLookOffered())) fail('IIIx white balance per look: round 10 with films, GR III 2.10 / IIIx 1.60');
+  if (features.customsBeforeFilms === true && (!round10 || !layer.looksFollow || !gr3xWbPerLookOffered())) fail('IIIx Custom entries before the films: round 10 with films, GR III 2.10 / IIIx 1.60');
+  if (features.liveLayout === true && (!round10 || !layer.looksFollow || !gr3xWbPerLookOffered())) fail('IIIx layout kept in the camera: round 10 with films, GR III 2.10 / IIIx 1.60');
+  if (features.lookMenu === true && (features.liveLayout !== true || dateImprint || (features.pictures?.length ?? 0) > 0)) fail('IIIx look menu: with the layout kept in the camera, not with the date imprint or End Screen pictures');
   const p = GR3X_PROFILE, m = GR3X_ADJ;
   const rtos = decoded.subarray(p.rtosOffset, p.rtosOffset + p.rtosLength);
   const iconSection = sectionsOf(decoded).find(s => s.name === 'ICONBIN');
@@ -426,7 +439,7 @@ export async function buildGr3xAdjResearch(raw: Uint8Array, ratioMenu: readonly 
     adjSoftFocus: softFocus,
     dateImprint: dateImprint ? { ...dateIds, form: dateForm, ...(round7 ? { iconOff: 296, iconOn: 297 } : {}), ...(lookNames ? { names: lookNames } : {}) } : undefined,
     round7,
-    ...(round8 ? { round8 } : {}), ...(round9 ? { round9 } : {}), ...(round10 ? { round10 } : {}), ...(dimLightAf ? { dimLightAf } : {}),
+    ...(round8 ? { round8 } : {}), ...(round9 ? { round9 } : {}), ...(round10 ? { round10 } : {}), ...(dimLightAf ? { dimLightAf } : {}), ...(features.wbPerLook === true ? { wbPerLook: true } : {}), ...(features.customsBeforeFilms === true ? { customsBeforeFilms: true } : {}), ...(features.liveLayout === true ? { liveLayout: true } : {}), ...(features.lookMenu === true ? { lookMenu: true } : {}),
     ...(round8 && !layer.looksFollow && features.lookLayout && !isGr3xFactoryLayout(features.lookLayout, 0) ? { lookLayout: { order: [...features.lookLayout.order], hidden: [...features.lookLayout.hidden] } } : {}),
     pictures: pictureCount ? (pictureSub ? { form: 'submenu' as const, count: pictureCount, ...endIds, names: pictures.map((_, k) => endIds.factoryText + 1 + k),
       factoryIcons: [...endIds.factoryIcons], icons: [...endIds.icons], choices: pictures.map(x => x.id!) }

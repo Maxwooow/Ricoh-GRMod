@@ -45,6 +45,8 @@ import type { QuantizedSlot } from '../../color/camera';
 import { GR3X_FILM_NAMES, gr3xLookResources, validateGr3xLookName } from './look-resources';
 import { gr3xLookBadge } from './look-icons';
 import { adr, adrHex, adrText } from './target';
+import { installGr3xCustomPosition } from './custom-position';
+import { GR3X_LOOK_MENU_MOVING, GR3X_LOOK_MENU_NAMES, GR3X_LOOK_MENU_SEPARATOR, installGr3xLookMenu } from './look-menu';
 
 export interface Gr3xFilmLook {
   /** Default name (menus of languages without their own name). */
@@ -194,6 +196,10 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
   // Round 10 (films-r10.ts): the films as looks of their own, GR IV's way.
   const round10 = features.round10 === true;
   if (round10 && !round9) throw new FirmwareError('bad-edit', 'IIIx round 10 builds on round 9');
+  // White balance per look (wbperlook.ts): in the films' module of round 10.
+  if (features.wbPerLook === true && !round10) throw new FirmwareError('bad-edit', 'IIIx white balance per look needs round 10 with films');
+  if (features.customsBeforeFilms === true && !round10) throw new FirmwareError('bad-edit', 'IIIx Custom entries before the films need round 10 with films');
+  if (features.liveLayout === true && !round10) throw new FirmwareError('bad-edit', 'IIIx layout kept in the camera needs round 10 with films');
   if (round6 && (!extended || options.ownParameters !== true || options.jpegDiagnostics || !Number.isInteger(options.filmCount) ||
       options.filmCount! < 1 || options.filmCount! > GR3X_MAX_FILMS || options.films?.some(f => f.halation !== undefined)))
     throw new FirmwareError('bad-edit', 'IIIx film count: 1..20 films with their own parameters (Halation is set in the camera)');
@@ -222,8 +228,14 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
   const monoFilms = round7 ? films.map(f => !!f.preset && monoLook(Array.from(f.preset.matrixQ13), f.preset.curves.map(c => Array.from(c)), f.preset.postQ9 ? Array.from(f.preset.postQ9) : undefined)) : undefined;
   // Round 8: the films' names for the date imprint, as the camera's English menu shows them.
   const filmNames = round8Date ? films.map(f => f.names?.en || f.name) : undefined;
+  // The order's menu screen (look-menu.ts): its line's name after the halation's texts.
+  const lookMenu = features.lookMenu === true;
+  if (lookMenu && (!round10 || features.liveLayout !== true)) throw new FirmwareError('bad-edit', 'IIIx look menu needs round 10 and the layout kept in the camera');
+  const extras = round6 ? halationResources(decoded, round7, round8) : undefined;
+  if (lookMenu && extras) extras.texts.push([...GR3X_LOOK_MENU_NAMES], [...GR3X_LOOK_MENU_SEPARATOR], [...GR3X_LOOK_MENU_MOVING]);
   const menu = await buildGr3xLookMenuResearch(raw, specs as Gr3xResearchLook[], displayIcons, ratioMenu, features,
-    round6 ? halationResources(decoded, round7, round8) : undefined, monoFilms, filmNames);
+    extras, monoFilms, filmNames);
+  const lookMenuTexts = lookMenu && extras ? [menu.extraTextIds[extras.texts.length - 3], menu.extraTextIds[extras.texts.length - 2], menu.extraTextIds[extras.texts.length - 1]] as const : undefined;
   const p = GR3X_PROFILE;
   const rtos = decoded.subarray(p.rtosOffset, p.rtosOffset + p.rtosLength);
   const originalRead = (va: number, size: number) => {
@@ -444,15 +456,38 @@ export async function buildGr3xImageControls(raw: Uint8Array, options: Gr3xLookO
   const r10Program = { code, append, patch, u32, read: originalRead, sites, next };
   const r10 = round10 ? (() => {
     const layout = features.lookLayout && !isGr3xFactoryLayout(features.lookLayout, capacity) ? features.lookLayout : undefined;
-    const hiddenMask = (layout?.hidden ?? []).filter(id => id >= GR3X_FIRST_FILM && id < GR3X_FIRST_FILM + capacity).reduce((m, id) => (m | (1 << (id - GR3X_FIRST_FILM))) >>> 0, 0);
+    // With the menu screen the camera shows and hides the looks (and never hides one in use): no build-time hiding
+    // in the guard or the films' module (a look shown again would be put back to Standard).
+    const buildHidden = lookMenu ? [] : (layout?.hidden ?? []);
+    const hiddenMask = buildHidden.filter(id => id >= GR3X_FIRST_FILM && id < GR3X_FIRST_FILM + capacity).reduce((m, id) => (m | (1 << (id - GR3X_FIRST_FILM))) >>> 0, 0);
     const tables = installGr3xR10Tables(r10Program, slots.filter(s => s.record).map(s => ({ id: s.id, record: s.record, iconId: s.iconId, print: s.print })));
-    const params = installGr3xR10Parameters(r10Program, { films: capacity, prints: slots.slice(0, capacity).map(s => s.print >>> 0), hiddenMask, setterSites: GR3X_PARAMETER_SETTER_LOOKS });
-    const guard = installGr3xGuardR10({ code, patch, u32, sites }, { films: capacity, maxRatio: gr3xMaxId(menu.menu), ...(layout ? { hidden: layout.hidden } : {}),
+    // The lists' order kept in the camera (films.c -DLIVE_LAYOUT): the build's entries in menu order, hidden ones
+    // with bit 7, the two Custom entries (0x7e, 0x7f) before the first film when asked, else at the end.
+    const live = features.liveLayout === true;
+    const fullOrder = layout ? [...layout.order] : gr3xFactoryLookOrder(capacity);
+    const hiddenSet = new Set(layout?.hidden ?? []);
+    const filmAt = fullOrder.findIndex(id => id >= GR3X_FIRST_FILM);
+    const customsAt = features.customsBeforeFilms === true && filmAt >= 0 ? filmAt : fullOrder.length;
+    const liveEntries = live ? [...fullOrder.slice(0, customsAt), 0x7e, 0x7f, ...fullOrder.slice(customsAt)].map(id => id >= 0x7e ? id : id | (hiddenSet.has(id) ? 0x80 : 0)) : undefined;
+    const params = installGr3xR10Parameters(r10Program, { films: capacity, prints: slots.slice(0, capacity).map(s => s.print >>> 0), hiddenMask, setterSites: GR3X_PARAMETER_SETTER_LOOKS,
+      ...(features.wbPerLook === true ? { wbPerLook: true } : {}), ...(liveEntries ? { liveLayout: liveEntries } : {}), ...(lookMenuTexts ? { lookMenuTexts } : {}) });
+    const guard = installGr3xGuardR10({ code, patch, u32, sites }, { films: capacity, maxRatio: gr3xMaxId(menu.menu), ...(layout && !lookMenu ? { hidden: layout.hidden } : {}),
       ...(features.adjSoftFocus ? { softFocusR10: true } : {}) }, params.moduleSymbols.sp_before_recall);
     const order = (layout ? layout.order.filter(id => !layout.hidden.includes(id)) : gr3xFactoryLookOrder(capacity));
-    const raw = installGr3xR10Raw(r10Program, { films: capacity, order, module: params.moduleSymbols });
+    // The Custom entries' place in RAW development's list too (as in the still lists, custom-position.ts).
+    const shownFilm = order.findIndex(id => id >= GR3X_FIRST_FILM);
+    const raw = installGr3xR10Raw(r10Program, { films: capacity, order, module: params.moduleSymbols, ...(live ? { live: true } : {}),
+      ...(features.customsBeforeFilms === true && shownFilm >= 0 ? { customsAt: shownFilm } : {}) });
     const info = installGr3xR10PictureInfo(r10Program, capacity, slots[0].iconId);
-    return { ...tables, ...params, ...guard, ...raw, ...info };
+    // The two Custom entries before the films (custom-position.ts): after the looks shown before the first film.
+    const firstFilm = order.findIndex(id => id >= GR3X_FIRST_FILM);
+    // Live: the Custom entries are where the camera's layout has them (the build's position until then).
+    const customs = features.customsBeforeFilms === true || live
+      ? installGr3xCustomPosition({ code, patch, u32 }, features.customsBeforeFilms === true && firstFilm >= 0 ? firstFilm : order.length, live) : {};
+    // The order's menu screen (look-menu.ts).
+    const screen = lookMenu ? installGr3xLookMenu({ code, append, patch, u32, read: originalRead }, { module: params.moduleSymbols, entries: liveEntries!.length, text: lookMenuTexts![0] }) : {};
+    return { ...tables, ...params, ...guard, ...raw, ...info, ...customs, ...screen, ...(lookMenuTexts ? { lookMenuTexts: [...lookMenuTexts] } : {}),
+      ...(liveEntries ? { liveEntries } : {}) };
   })() : undefined;
   const own = adjustable && options.ownParameters === true && !round10 ? (() => {
     const native = own2 ?? GR3X_SLOTS_NATIVE;

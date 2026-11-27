@@ -131,6 +131,10 @@ export interface State {
   distanceFeet: boolean;
   /** White balance per look (GR IV 1.20 / 1.21, with added slots): every look keeps its own still white balance. */
   wbPerLook: boolean;
+  /** GR III 2.10 / IIIx 1.60 with films: Custom 1 / 2 before the films in the still Image Control lists. */
+  customsFirst: boolean;
+  /** GR III 2.10 / IIIx 1.60 with films: the looks' order kept in the camera, with its screen in the shooting menu. */
+  lookMenu: boolean;
   /**
    * Halation for every look (GR IV 1.20 / 1.21, with added slots): every look of the camera has the Halation row and
    * the effect; off, none has. `haloPreview` and `haloColour` are what the photo preview shows (chosen in the camera).
@@ -176,7 +180,7 @@ export const emptySlot = (): SlotState => ({ names: {}, icon: { mode: 'keep', te
 export const emptySlots = (): Record<SlotId, SlotState> => Object.fromEntries(SLOT_IDS.map(id => [id, emptySlot()])) as Record<SlotId, SlotState>;
 export let state: State = {
   ready: false, page: 'ic', extrasView: 'list', fwBusy: false, model: 'HDF', lang: cameraLang(), langAuto: uiLangPref() === '',
-  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hdr: false, exposurePreview: false, filmGrain: false, shadowLearn: false, ratioShade: false, ratioShadeTone: 'dark', shadePreview: '75', battery: false, customGrid: false, gridLines: cameraGrid(), framing: defaultFramingGuides(), flashTtl: false, subjectAf: false, lockProtect: false, videoAf: false, dimLightAf: false, awbLearn: false, movieExposure: false, sensorShift: false, movie4k: false, movieSr: false, distanceFeet: false, wbPerLook: false, halationAll: false, haloPreview: 0, haloColour: 'red', constantLight: false, adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', compareWith: 'orig', library: [], volumes: [],
+  slots: emptySlots(), extras: [], lookOrder: [], lookHidden: [], lookOrder3: [], lookHidden3: [], wall: [], ratios: [], ratioBackdrop: 'photo', brightAuto: false, soft: false, dateStamp: false, monoUnlock: false, directFlash: false, hdr: false, exposurePreview: false, filmGrain: false, shadowLearn: false, ratioShade: false, ratioShadeTone: 'dark', shadePreview: '75', battery: false, customGrid: false, gridLines: cameraGrid(), framing: defaultFramingGuides(), flashTtl: false, subjectAf: false, lockProtect: false, videoAf: false, dimLightAf: false, awbLearn: false, movieExposure: false, sensorShift: false, movie4k: false, movieSr: false, distanceFeet: false, wbPerLook: false, customsFirst: false, lookMenu: false, halationAll: false, haloPreview: 0, haloColour: 'red', constantLight: false, adjSlots: 5, filmCount: 0, previewMode: 'photo', photoRev: 0, activeSlot: 'CY', compareWith: 'orig', library: [], volumes: [],
   copySource: 'card', parked: [], backups: [], copySel: [], copyInfo: {}, builds: [], showAll: false, toasts: [], onlineOpen: false, toursSeen: [],
 };
 const listeners = new Set<() => void>();

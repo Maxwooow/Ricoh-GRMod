@@ -72,6 +72,54 @@
 #define OLD_V1_TBYTES (OLD_V1_OWNERS * OLD_SETS * OLD_NP)
 #define OLD_V1_WORDS (3u + (OLD_V1_TBYTES + 3u) / 4u + 1u) /* 72 */
 
+#ifdef WB_PER_LOOK
+/* White balance per look (built with -DWB_PER_LOOK: gen_films.py writes films-wb-native.ts; as GR
+ * IV's wbPerLook, tools/gr4v120/slotparams/slot_params.c): each look remembers the still white
+ * balance it was last used with and gets it back when it is chosen again (a look change in the
+ * photo set in use, or another photo set chosen). The 28 fields of UserData's record, each a value
+ * byte followed by a byte that the record's copy routine treats as its flag: StillWhiteBalance
+ * 0x178, the G-M shift of the 13 modes from 0x17a, their B-A shift from 0x194,
+ * StillWhiteBalanceColorTemp 0x1ae (a half-word); field k is at 0x178 + 2k. They are given back
+ * through the camera's own setters (those its settings text interface calls: the value stored, then
+ * the listeners told; bound by films-r10.ts, the G-M and B-A ones 0x20 apart), the mode last. The
+ * custom WB capture and movie WB are not touched. Saved as a record of its own, HTData 14 (the
+ * films' table is 12, the End Screen's 13; the camera uses 0 and 2..8; 0..15 are valid), so that a
+ * build without the option reads record 12 as before. See docs/technical-notes.md. */
+/* The photo sets Custom 1 and 2 have a white balance of their own, whatever their look: the rows
+ * after the looks' (version 2; version 1 had the looks' rows only and is taken over). */
+#define WB_N 28u
+#define WB_BYTES 29u                       /* mode, 13 G-M, 13 B-A, colour temperature (2) */
+#define WB_LOOKS 52u                       /* looks 0..31, then films 64..83 */
+#define WB_ROWS (WB_LOOKS + 2u)            /* then Custom 1, Custom 2 */
+#define WB_REC_ID 14u
+#define WB_MAGIC 0x33575247u               /* 'GRW3' */
+#define WB_VERSION 2u
+#define WB_DATA (WB_ROWS + WB_ROWS * WB_BYTES)          /* 1620: have, values */
+#define WB_REC_WORDS (3u + (WB_DATA + 3u) / 4u + 1u)    /* 409 */
+#define WB_V1_DATA (WB_LOOKS + WB_LOOKS * WB_BYTES)     /* 1560 */
+#define WB_V1_WORDS (3u + (WB_V1_DATA + 3u) / 4u + 1u)  /* 394 */
+#define ACTIVE_SET 0x1c0u                  /* StillActiveImageControlSet: the photo set in use */
+#endif
+
+#ifdef LIVE_LAYOUT
+/* The Image Control lists' order and hidden looks kept in the camera (core/src/fw/gr3x170/look-layout.ts,
+ * custom-position.ts, films-r10.ts's RAW development list ask ll_query through the RAM word ll_word,
+ * set when the settings are loaded; before that, or with no answer, they use the build's tables).
+ * The entries in menu order: a look (11..22, films 64..), Custom 1 (LL_C1) or Custom 2 (LL_C2), bit 7
+ * set when hidden. The build's layout (ll_default: count, entries) is the start; the camera's is HTData
+ * record 15, used when it holds exactly the build's entries (another set of films: the build's). */
+#define LL_MAX 40u
+#define LL_C1 0x7eu
+#define LL_C2 0x7fu
+#define LL_HIDDEN 0x80u
+#define LL_NONE 0xffffffffu                /* no answer: the build's tables */
+#define LL_NATIVE 0xfffffffeu              /* past the list: the camera's own code */
+#define LL_REC_ID 15u
+#define LL_MAGIC 0x4c335247u               /* 'GR3L' */
+#define LL_VERSION 1u
+#define LL_REC_WORDS (3u + LL_MAX / 4u + 1u)  /* magic, version, count, entries, checksum */
+#endif
+
 extern uint8_t *storage_singleton(void);
 extern uint32_t store_write(void *store, uint32_t id, uint32_t size, const void *data);
 extern uint32_t store_read(void *store, uint32_t id, uint32_t size, void *data);
@@ -84,6 +132,21 @@ extern uint8_t settings_object[];       /* UserDataModel (0x55063f30): the recor
 /* The fingerprint of each film's preset in this build; after them one word, bit k set when film k
  * is hidden from the Image Control lists. */
 extern const uint32_t slot_prints[];
+#ifdef LIVE_LAYOUT
+extern const uint8_t ll_default[];      /* the build's layout: count, then the entries */
+extern volatile uint32_t ll_word[];     /* [0]: ll_query once the settings are loaded (zeroed at every start) */
+/* The camera's menu screen of the lists' order (look-menu.ts): the End Screen list (GoodByeDisplaySetController)
+ * in a mode of its own; its handlers come here with the controller. The camera's functions it calls and the
+ * screen's title, from the build (look-menu.ts LM_FUNCTIONS, in this order). */
+extern const uint32_t lm_ctx[];
+enum { LM_SELECTED, LM_ITEM, LM_FOCUS, LM_MOVE, LM_CHECK, LM_TEXT, LM_VISIBLE, LM_SHOWN, LM_TITLE_SET, LM_APP, LM_UI_MODEL, LM_NAME,
+       LM_TITLE, LM_SEPARATOR, LM_MOVING, LM_WORDS };
+#endif
+#ifdef WB_PER_LOOK
+/* The camera's white balance setters (UserDataModel*, value): StillWhiteBalance, the first G-M and
+ * B-A ones (the others follow 0x20 apart), StillWhiteBalanceColorTemp. */
+extern uint8_t wb_mode_set[], wb_gm_set[], wb_ba_set[], wb_temp_set[];
+#endif
 
 /* Bleach Bypass's fields in a record, per parameter and combination (0 = none: no Clarity in movies). */
 static const uint16_t FIELD[NP][COMBOS] = {
@@ -140,6 +203,15 @@ typedef struct {
     Raw raw;
     uint8_t ot[OWNERS][OLD_SETS][OLD_NP];   /* rounds 6..9's table, when taken over */
     uint8_t oh[MAXFILMS][OLD_SETS];
+#ifdef WB_PER_LOOK
+    uint32_t wb_dirty, wb_pending, wb_last_write;
+    uint32_t wb_rec[WB_REC_WORDS];          /* record 14 as stored: header, have, values, checksum */
+#endif
+#ifdef LIVE_LAYOUT
+    uint32_t ll_dirty, ll_last_write;
+    uint32_t lm_grab;                       /* the menu screen: 1 + the row being moved, 0 none */
+    uint32_t ll_rec[LL_REC_WORDS];          /* record 15 as stored: header, entries, checksum */
+#endif
 } State;
 
 static State *state(void) {
@@ -200,12 +272,385 @@ static void move_owner(State *s, uint8_t *ud, uint32_t c, int from, int to) {
     s->dirty = 1;
 }
 
+#ifdef LIVE_LAYOUT
+/* ---- the lists' order and hidden looks ------------------------------------------------------ */
+static volatile uint8_t *ll_entries(State *s) { return (volatile uint8_t *)&s->ll_rec[3]; }
+
+/* The entries in use: the camera's (record 15) once loaded, else the build's. */
+static const volatile uint8_t *ll_now(uint32_t *n) {
+    State *s = state();
+    if (s && s->loaded && s->ll_rec[2] == ll_default[0]) { *n = s->ll_rec[2]; return ll_entries(s); }
+    *n = ll_default[0] <= LL_MAX ? ll_default[0] : 0u;
+    return &ll_default[1];
+}
+
+/* Is look x in list `kind`: 0 still (Image Control, ADJ: every look), 1 movie (the camera's ten, the
+ * films), 2 RAW development's model (the camera's twelve), 3 the RAW development list (every look). */
+static int ll_in(uint32_t x, uint32_t kind) {
+    if (x == LL_C1 || x == LL_C2) return 0;
+    if (kind == 0u || kind == 3u) return 1;
+    if (kind == 1u) return x >= FIRST || (x >= 11u && x <= 22u && x != 14u && x != 20u);
+    if (kind == 2u) return x >= 11u && x <= 22u;
+    return 0;
+}
+
+static uint32_t ll_count(const volatile uint8_t *e, uint32_t n, uint32_t kind) {
+    uint32_t c = 0;
+    for (uint32_t i = 0; i < n; i++) if (!(e[i] & LL_HIDDEN) && ll_in(e[i], kind)) c++;
+    return c;
+}
+
+/* What the lists ask (look-layout.ts, custom-position.ts, films-r10.ts):
+ *   op 0  the length of list a;
+ *   op 1  entry b of list a (LL_NATIVE past its end);
+ *   op 2  the entry of look b in list a (its length when the list does not have it, as the camera's);
+ *   op 3  the still lists with the two Custom entries: shown entry a as the camera's entry (looks
+ *         0..n-1, Custom 1 n, Custom 2 n + 1), or with b = 1 the other way. */
+uint32_t ll_query(uint32_t op, uint32_t a, uint32_t b) {
+    uint32_t n, k = 0, pos = 0;
+    const volatile uint8_t *e = ll_now(&n);
+    if (!n) return LL_NONE;
+    if (op == 0u) return a <= 3u ? ll_count(e, n, a) : LL_NONE;
+    if (op == 1u) {
+        if (a > 3u) return LL_NONE;
+        for (uint32_t i = 0; i < n; i++) {
+            if ((e[i] & LL_HIDDEN) || !ll_in(e[i], a)) continue;
+            if (k++ == b) return e[i];
+        }
+        return LL_NATIVE;
+    }
+    if (op == 2u) {
+        if (a > 3u) return LL_NONE;
+        for (uint32_t i = 0; i < n; i++) {
+            if ((e[i] & LL_HIDDEN) || !ll_in(e[i], a)) continue;
+            if (e[i] == b) return k;
+            k++;
+        }
+        return k;
+    }
+    if (op == 3u) {
+        uint32_t looks = ll_count(e, n, 0u);
+        for (uint32_t i = 0; i < n; i++) {
+            uint32_t x = e[i];
+            if (x & LL_HIDDEN) continue;
+            uint32_t phys = x == LL_C1 ? looks : x == LL_C2 ? looks + 1u : k;
+            if (b == 0u && pos == a) return phys;
+            if (b != 0u && phys == a) return pos;
+            if (x != LL_C1 && x != LL_C2) k++;
+            pos++;
+        }
+        return a;
+    }
+    return LL_NONE;
+}
+
+static uint32_t checksum(const uint32_t *w, uint32_t n);
+
+/* Record 15, if it holds exactly the build's entries (each once, Standard and the Custom entries shown). */
+static void ll_read(State *s) {
+    void *st = ht_store();
+    uint32_t *r = s->ll_rec, n = ll_default[0];
+    int ok = n >= 3u && n <= LL_MAX && st && store_size(st, LL_REC_ID) == LL_REC_WORDS * 4u &&
+             store_read(st, LL_REC_ID, LL_REC_WORDS * 4u, r) && r[0] == LL_MAGIC && r[1] == LL_VERSION && r[2] == n &&
+             r[LL_REC_WORDS - 1u] == checksum(r, LL_REC_WORDS - 1u);
+    const volatile uint8_t *e = ll_entries(s);
+    for (uint32_t i = 0; ok && i < n; i++) {
+        uint32_t x = e[i] & ~LL_HIDDEN, found = 0;
+        if ((e[i] & LL_HIDDEN) && (x == STANDARD || x == LL_C1 || x == LL_C2)) ok = 0;
+        for (uint32_t j = 0; j < n; j++) if ((ll_default[1u + j] & ~LL_HIDDEN) == x) found++;
+        for (uint32_t j = 0; j < i; j++) if ((e[j] & ~LL_HIDDEN) == x) found = 0;
+        if (found != 1u) ok = 0;
+    }
+    if (!ok) {
+        /* The build's. */
+        for (uint32_t i = 0; i < LL_REC_WORDS; i++) ((volatile uint32_t *)r)[i] = 0;
+        if (n > LL_MAX) n = 0;
+        r[0] = LL_MAGIC; r[1] = LL_VERSION; r[2] = n;
+        for (uint32_t i = 0; i < n; i++) ll_entries(s)[i] = ll_default[1u + i];
+        s->ll_dirty = 0;
+    }
+}
+
+/* ---- the menu screen (look-menu.ts) ---------------------------------------------------------- */
+/* Its rows: the shown entries in order, a separator row ("Hidden"), then the hidden entries. OK takes the row
+ * under the cursor (the title says so, the row is ticked); up / down then move it, across the separator it is
+ * hidden or shown again (not Standard, the Custom entries or a look selected in a set: they stay above); OK
+ * puts it down. Without a row taken up / down move the cursor. The list is made taller in this mode (six rows
+ * instead of the End Screen list's two, whose picture is not shown); lm_camera gives the End Screen its own. */
+#define LM_SEP 0xffu
+typedef uint32_t (*lm1_fn)(void *);
+typedef void *(*lm_item_fn)(void *, uint32_t);
+typedef void (*lm2_fn)(void *, uint32_t);
+typedef void (*lm_move_fn)(void *, int, uint32_t);
+typedef void *(*lm0_fn)(void);
+typedef uint32_t (*lm_name_fn)(void *, uint32_t);
+typedef void *(*lm0p_fn)(void *);
+typedef void (*lm_rect_fn)(void *, const int32_t *);
+
+static void *lm_list(void *controller) { return *(void **)((uint8_t *)controller + 0x168); }
+
+/* The entries the screen edits: the camera's (loaded), else none. */
+static volatile uint8_t *lm_entries(State **ps, uint32_t *n) {
+    State *s = state();
+    *ps = s;
+    if (!s || !s->loaded || s->ll_rec[2] != ll_default[0] || !ll_default[0] || ll_default[0] > LL_MAX) { *n = 0; return 0; }
+    *n = s->ll_rec[2];
+    return ll_entries(s);
+}
+
+/* The rows (entries' values, LM_SEP the separator): n + 1 of them. */
+static void lm_rows(const volatile uint8_t *e, uint32_t n, uint8_t *rows) {
+    uint32_t k = 0;
+    for (uint32_t i = 0; i < n; i++) if (!(e[i] & LL_HIDDEN)) rows[k++] = e[i];
+    rows[k++] = LM_SEP;
+    for (uint32_t i = 0; i < n; i++) if (e[i] & LL_HIDDEN) rows[k++] = e[i];
+}
+
+/* The entries from the rows: above the separator shown, below it hidden. */
+static void lm_store(State *s, volatile uint8_t *e, uint32_t n, const uint8_t *rows) {
+    uint32_t k = 0, hidden = 0;
+    for (uint32_t r = 0; r <= n; r++) {
+        if (rows[r] == LM_SEP) { hidden = 1; continue; }
+        e[k++] = (uint8_t)((rows[r] & ~LL_HIDDEN) | (hidden ? LL_HIDDEN : 0u));
+    }
+    s->ll_dirty = 1;
+}
+
+static uint32_t lm_text(uint32_t x) {
+    if (x == LM_SEP) return lm_ctx[LM_SEPARATOR];
+    void *ui = ((lm0p_fn)lm_ctx[LM_UI_MODEL])(((lm0_fn)lm_ctx[LM_APP])());
+    x &= ~LL_HIDDEN;
+    return ((lm_name_fn)lm_ctx[LM_NAME])(ui, x == LL_C1 ? 0x17u : x == LL_C2 ? 0x18u : x);
+}
+
+static void lm_row(void *list, const uint8_t *rows, uint32_t r, uint32_t grab) {
+    void *item = ((lm_item_fn)lm_ctx[LM_ITEM])(list, r);
+    ((lm2_fn)lm_ctx[LM_CHECK])(item, grab == r + 1u);
+    ((lm2_fn)lm_ctx[LM_TEXT])(item, lm_text(rows[r]));
+}
+
+static void lm_title(void *controller, uint32_t moving) {
+    ((lm2_fn)lm_ctx[LM_TITLE_SET])(*(void **)((uint8_t *)controller + 0x15c), lm_ctx[moving ? LM_MOVING : LM_TITLE]);
+}
+
+/* The list's place (ScrollListView's SetRect, its vtable + 0x18): x, y, width, height. */
+static void lm_rect(void *list, int32_t y, int32_t h) {
+    int32_t rect[4] = { 0, y, 720, h };
+    ((lm_rect_fn)(*(uint32_t **)list)[6])(list, rect);
+}
+
+/* The End Screen list in the camera's own mode: its place again (under its picture, two rows). */
+void lm_camera(void *controller) { lm_rect(lm_list(controller), 300, 120); }
+
+/* The list opens: taller, its rows, the title, no footer picture, the cursor on the first, nothing taken. */
+void lm_refresh(void *controller) {
+    State *s; uint32_t n;
+    uint8_t rows[LL_MAX + 1u];
+    volatile uint8_t *e = lm_entries(&s, &n);
+    void *list = lm_list(controller);
+    lm_rect(list, 60, 360);
+    ((lm2_fn)lm_ctx[LM_SHOWN])(list, n ? n + 1u : 0u);
+    lm_title(controller, 0);
+    ((lm2_fn)lm_ctx[LM_VISIBLE])(*(void **)((uint8_t *)controller + 0x164), 0);
+    if (!n) return;
+    s->lm_grab = 0;
+    lm_rows(e, n, rows);
+    for (uint32_t r = 0; r <= n; r++) lm_row(list, rows, r, 0);
+    ((lm2_fn)lm_ctx[LM_FOCUS])(list, 0);
+}
+
+void lm_footer(void *controller) {
+    ((lm2_fn)lm_ctx[LM_VISIBLE])(*(void **)((uint8_t *)controller + 0x164), 0);
+}
+
+/* Is look x selected in a photo or movie set of the record in use or a stored one (modes, U1..U3)? */
+static int lm_in_use(uint32_t x) {
+    for (uint32_t r = 0; r < RECORDS; r++) {
+        const uint8_t *rec = record_of(settings_object, r);
+        if (!rec) continue;
+        for (uint32_t c = 0; c < COMBOS; c++) if (look_at(rec, c) == x) return 1;
+    }
+    return 0;
+}
+
+/* The row taken moves by one (`by` -1 / +1); across the separator its entry is hidden / shown. */
+static void lm_carry(State *s, volatile uint8_t *e, uint32_t n, void *list, int by) {
+    uint8_t rows[LL_MAX + 1u];
+    uint32_t r = s->lm_grab - 1u, j = r + (uint32_t)by;
+    if (r > n || j > n) return;
+    lm_rows(e, n, rows);
+    uint8_t x = rows[r];
+    if (x == LM_SEP) return;
+    if (rows[j] == LM_SEP && by > 0) {
+        uint32_t look = x & ~LL_HIDDEN;
+        if (look == STANDARD || look == LL_C1 || look == LL_C2 || lm_in_use(look)) return;
+    }
+    rows[r] = rows[j]; rows[j] = x;
+    lm_store(s, e, n, rows);
+    lm_rows(e, n, rows);
+    s->lm_grab = j + 1u;
+    lm_row(list, rows, r, s->lm_grab); lm_row(list, rows, j, s->lm_grab);
+    /* The cursor follows by one row, as a key press moves it (setting it at j would scroll the list: the
+     * camera's "focus" goes to the last row, then back). */
+    ((lm_move_fn)lm_ctx[LM_MOVE])(list, by, 1);
+}
+
+/* Up / down: the row taken, or the cursor (as the End Screen list's: a single press wraps, the key
+ * repeat `stop`s at the ends). */
+void lm_up(void *controller, uint32_t stop) {
+    State *s; uint32_t n;
+    volatile uint8_t *e = lm_entries(&s, &n);
+    void *list = lm_list(controller);
+    if (n && s->lm_grab) { lm_carry(s, e, n, list, -1); return; }
+    if (!((lm1_fn)lm_ctx[LM_SELECTED])(list) && stop) return;
+    ((lm_move_fn)lm_ctx[LM_MOVE])(list, -1, 1);
+}
+
+void lm_down(void *controller, uint32_t stop) {
+    State *s; uint32_t n;
+    volatile uint8_t *e = lm_entries(&s, &n);
+    void *list = lm_list(controller);
+    if (n && s->lm_grab) { lm_carry(s, e, n, list, 1); return; }
+    if (n && ((lm1_fn)lm_ctx[LM_SELECTED])(list) >= n && stop) return;
+    ((lm_move_fn)lm_ctx[LM_MOVE])(list, 1, 1);
+}
+
+/* OK: take the row under the cursor (not the separator), or put the row taken down. Returns 1. */
+uint32_t lm_toggle(void *controller) {
+    State *s; uint32_t n;
+    uint8_t rows[LL_MAX + 1u];
+    volatile uint8_t *e = lm_entries(&s, &n);
+    void *list = lm_list(controller);
+    if (!n) return 1;
+    lm_rows(e, n, rows);
+    if (s->lm_grab) {
+        uint32_t r = s->lm_grab - 1u;
+        s->lm_grab = 0;
+        if (r <= n) lm_row(list, rows, r, 0);
+        lm_title(controller, 0);
+        return 1;
+    }
+    uint32_t r = ((lm1_fn)lm_ctx[LM_SELECTED])(list);
+    if (r > n || rows[r] == LM_SEP) return 1;
+    s->lm_grab = r + 1u;
+    lm_row(list, rows, r, s->lm_grab);
+    lm_title(controller, 1);
+    return 1;
+}
+
+static void ll_write(State *s) {
+    void *st = ht_store();
+    uint32_t *r = s->ll_rec;
+    if (!st) return;
+    r[0] = LL_MAGIC; r[1] = LL_VERSION;
+    r[LL_REC_WORDS - 1u] = checksum(r, LL_REC_WORDS - 1u);
+    s->ll_last_write = store_write(st, LL_REC_ID, LL_REC_WORDS * 4u, r) ? 1u : 2u;
+    if (s->ll_last_write == 1u) s->ll_dirty = 0;
+}
+#endif
+
+#ifdef WB_PER_LOOK
+/* ---- white balance per look ----------------------------------------------------------------- */
+typedef uint32_t (*wb_setter_fn)(void *ud, uint32_t value);
+
+static uint32_t wb_off(uint32_t k) { return 0x178u + 2u * k; }
+
+/* Field k's setter: StillWhiteBalance, the 13 G-M ones (0x20 apart), the 13 B-A ones, ColorTemp. */
+static uint32_t wb_setter(uint32_t k) {
+    if (k == 0u) return (uint32_t)wb_mode_set;
+    if (k <= 13u) return (uint32_t)wb_gm_set + 0x20u * (k - 1u);
+    if (k <= 26u) return (uint32_t)wb_ba_set + 0x20u * (k - 14u);
+    return (uint32_t)wb_temp_set;
+}
+
+/* The row of a photo set's white balance: in the standard set (0) its look's (0..31 the camera's
+ * looks, 32 + k film k), in Custom 1 / 2 the set's own (WB_LOOKS, WB_LOOKS + 1); -1 for any other. */
+static int wb_index(uint32_t set, uint32_t look) {
+    if (set == 1u || set == 2u) return (int)(WB_LOOKS + set - 1u);
+    if (set != 0u) return -1;
+    if (look < 32u) return (int)look;
+    if (look >= FIRST && look < FIRST + MAXFILMS) return (int)(32u + look - FIRST);
+    return -1;
+}
+
+static volatile uint8_t *wb_have(State *s) { return (volatile uint8_t *)&s->wb_rec[3]; }
+static volatile uint8_t *wb_row(State *s, uint32_t i) { return (volatile uint8_t *)&s->wb_rec[3] + WB_ROWS + i * WB_BYTES; }
+
+/* Field k of a record, and of a saved row (the colour temperature: two bytes, low first). */
+static uint32_t wb_now(const volatile uint8_t *rec, uint32_t k) {
+    uint32_t o = wb_off(k);
+    return k == WB_N - 1u ? (uint32_t)rec[o] | ((uint32_t)rec[o + 1u] << 8) : rec[o];
+}
+static uint32_t wb_saved(const volatile uint8_t *v, uint32_t k) {
+    return k == WB_N - 1u ? (uint32_t)v[k] | ((uint32_t)v[k + 1u] << 8) : v[k];
+}
+
+/* The white balance in the record now belongs to row `i`. */
+static void wb_take(State *s, const volatile uint8_t *rec, int i) {
+    if (i < 0) return;
+    volatile uint8_t *v = wb_row(s, (uint32_t)i), *have = wb_have(s);
+    for (uint32_t k = 0; k < WB_N - 1u; k++) {
+        uint8_t x = rec[wb_off(k)];
+        if (v[k] != x) { v[k] = x; s->wb_dirty = 1; }
+    }
+    for (uint32_t b = 0; b < 2u; b++) {
+        uint8_t x = rec[wb_off(WB_N - 1u) + b];
+        if (v[WB_N - 1u + b] != x) { v[WB_N - 1u + b] = x; s->wb_dirty = 1; }
+    }
+    if (!have[i]) { have[i] = 1; s->wb_dirty = 1; }
+}
+
+/* Row `i`'s white balance, if it has one, through the camera's setters, the mode last (a look or
+ * set never used before keeps the white balance in use). */
+static void wb_give(State *s, int i) {
+    const volatile uint8_t *rec = record_of(settings_object, 0);
+    if (i < 0 || !rec || !wb_have(s)[i]) return;
+    const volatile uint8_t *v = wb_row(s, (uint32_t)i);
+    for (uint32_t n = 0; n < WB_N; n++) {
+        uint32_t k = (n + 1u) % WB_N, x = wb_saved(v, k);
+        if (wb_now(rec, k) != x) ((wb_setter_fn)wb_setter(k))(settings_object, x);
+    }
+}
+
+/* Hook at the entry of the StillActiveImageControlSet setter, before it runs: the row of the set
+ * in use (its look's, or a Custom set's own) takes the white balance; the new set's row gets its
+ * own afterwards. */
+void sp_active(uint8_t *ud, uint32_t set) {
+    State *s = state();
+    const volatile uint8_t *rec = record_of(ud, 0);
+    if (!s || !s->loaded || !rec || ud != settings_object) return;
+    uint32_t a = rec[ACTIVE_SET];
+    if (set >= 3u || a >= 3u || set == a) return;
+    int from = wb_index(a, look_at((const uint8_t *)rec, a)), to = wb_index(set, look_at((const uint8_t *)rec, set));
+    wb_take(s, rec, from);
+    if (to >= 0 && to != from) s->wb_pending = (uint32_t)to + 1u;
+}
+
+/* After the camera's look or photo-set setter has run: the new row's white balance. */
+void sp_wb_done(void) {
+    State *s = state();
+    if (!s || !s->loaded || !s->wb_pending) return;
+    int i = (int)s->wb_pending - 1;
+    s->wb_pending = 0;
+    wb_give(s, i);
+}
+#endif
+
 /* Hook at the entry of the camera's "look of set c" setter (photo 0x5327b46c.., movie
  * 0x5327b624..), before it writes the look and pushes the record to the live values. */
 void sp_style_set(uint8_t *ud, uint32_t look, uint32_t c) {
     State *s = state();
     uint8_t *rec = record_of(ud, 0);
     if (!s || !s->loaded || !rec || c >= COMBOS) return;
+#ifdef WB_PER_LOOK
+    /* The standard photo set in use: its present look takes the white balance, `look` gets its own
+     * after the setter (sp_wb_done). A Custom set keeps its own white balance whatever its look. */
+    if (c == 0u && ud == settings_object && rec[ACTIVE_SET] == 0u && look_at(rec, 0u) != look) {
+        int to = wb_index(0u, look);
+        wb_take(s, rec, wb_index(0u, look_at(rec, 0u)));
+        if (to >= 0) s->wb_pending = (uint32_t)to + 1u;
+    }
+#endif
     int from = owner(rec, c), to = owner_of(look);
     if (to < 0) to = 0;
     if (from != to) move_owner(s, ud, c, from, to);
@@ -225,6 +670,11 @@ void sp_before_recall(uint8_t *ud) {
             if (s->t[o][c][j] != v) { s->t[o][c][j] = v; s->dirty = 1; }
         }
     }
+#ifdef WB_PER_LOOK
+    /* The white balance in use belongs to the look in use (the recalled record's to its own). */
+    if (ud == settings_object && rec[ACTIVE_SET] < 3u) wb_take(s, rec, wb_index(rec[ACTIVE_SET], look_at((const uint8_t *)rec, rec[ACTIVE_SET])));
+    s->wb_pending = 0;
+#endif
 }
 
 /* ---- Halation (the Toning byte: GR IV's states 0..11, aspect/halation-ui.ts) ------------------ */
@@ -377,6 +827,43 @@ static void write_record(State *s) {
     s->last_write = store_write(st, REC_ID, REC_WORDS * 4u, s->rec) ? 1u : 2u;
     if (s->last_write == 1u) s->dirty = 0;
 }
+
+#ifdef WB_PER_LOOK
+/* Record 14, if it is there and whole; otherwise no look has a white balance yet. Version 1 (the
+ * looks' rows only) is taken over: its rows move behind the two have bytes the Custom rows add, which
+ * start without a white balance; it is written as version 2 at the next save. */
+static void wb_read(State *s) {
+    void *st = ht_store();
+    uint32_t *r = s->wb_rec;
+    uint32_t size = st ? store_size(st, WB_REC_ID) : 0u;
+    int ok = 0;
+    if (size == WB_REC_WORDS * 4u)
+        ok = store_read(st, WB_REC_ID, WB_REC_WORDS * 4u, r) && r[0] == WB_MAGIC && r[1] == WB_VERSION && r[2] == WB_DATA &&
+             r[WB_REC_WORDS - 1u] == checksum(r, WB_REC_WORDS - 1u);
+    else if (size == WB_V1_WORDS * 4u && store_read(st, WB_REC_ID, WB_V1_WORDS * 4u, r) && r[0] == WB_MAGIC && r[1] == 1u &&
+             r[2] == WB_V1_DATA && r[WB_V1_WORDS - 1u] == checksum(r, WB_V1_WORDS - 1u)) {
+        volatile uint8_t *b = (volatile uint8_t *)&r[3];
+        for (uint32_t i = WB_LOOKS * WB_BYTES; i-- > 0u;) b[WB_ROWS + i] = b[WB_LOOKS + i];
+        for (uint32_t i = WB_LOOKS; i < WB_ROWS; i++) b[i] = 0;
+        for (uint32_t i = WB_ROWS + WB_LOOKS * WB_BYTES; i < WB_DATA; i++) b[i] = 0;
+        for (uint32_t i = 3u + (WB_DATA + 3u) / 4u; i < WB_REC_WORDS; i++) r[i] = 0;
+        s->wb_dirty = 1;
+        ok = 1;
+    }
+    for (uint32_t i = 0; ok && i < WB_ROWS; i++) if (wb_have(s)[i] > 1u) ok = 0;
+    if (!ok) { for (uint32_t i = 0; i < WB_REC_WORDS; i++) ((volatile uint32_t *)r)[i] = 0; s->wb_dirty = 0; }
+}
+
+static void wb_write(State *s) {
+    void *st = ht_store();
+    uint32_t *r = s->wb_rec;
+    if (!st) return;
+    r[0] = WB_MAGIC; r[1] = WB_VERSION; r[2] = WB_DATA;
+    r[WB_REC_WORDS - 1u] = checksum(r, WB_REC_WORDS - 1u);
+    s->wb_last_write = store_write(st, WB_REC_ID, WB_REC_WORDS * 4u, r) ? 1u : 2u;
+    if (s->wb_last_write == 1u) s->wb_dirty = 0;
+}
+#endif
 
 /* Rounds 6..9: 3 (version 3, Halation strength / white), 2 (version 2, levels 0..2), 1 (version 1,
  * nine films, no Halation), 0 none. `ot` gets the old table (owner 0 Standard), `oh` the Halation. */
@@ -538,9 +1025,23 @@ uint32_t sp_load(uint8_t *ud) {
             for (uint32_t j = 0; j < NP; j++) if (FIELD[j][c]) u[FIELD[j][c]] = owner(rec, c) == 0 ? rec[FIELD[j][c]] : s->t[0][c][j];
         }
     }
+#ifdef WB_PER_LOOK
+    wb_read(s);
+#endif
+#ifdef LIVE_LAYOUT
+    ll_read(s);
+#endif
     s->loaded = 1;
     s->magic = STATE_MAGIC;
     sp_gap[0] = (uint32_t)s;
+#ifdef LIVE_LAYOUT
+    if (ll_default[0] >= 3u && ll_default[0] <= LL_MAX) {
+        /* movw / movt (the generator relocates those, not a literal word). */
+        uint32_t q;
+        __asm__("movw %0, #:lower16:ll_query\n\tmovt %0, #:upper16:ll_query" : "=r"(q));
+        ll_word[0] = q;
+    }
+#endif
     return r;
 }
 
@@ -552,5 +1053,11 @@ uint32_t sp_save(uint8_t *ud) {
         write_record(s);
         if (s->last_write != 1u) write_record(s);   /* once more: until it is written, the next start takes the old table over again */
     }
+#ifdef WB_PER_LOOK
+    if (s && s->loaded && s->wb_dirty) wb_write(s);
+#endif
+#ifdef LIVE_LAYOUT
+    if (s && s->loaded && s->ll_dirty) ll_write(s);
+#endif
     return r;
 }

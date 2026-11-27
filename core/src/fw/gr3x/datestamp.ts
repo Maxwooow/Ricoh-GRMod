@@ -621,3 +621,10 @@ export function installGr3xMenuAdditions(p: Gr3xDateProgram, o: { date?: Gr3xDat
   void assembleWords;
   return { ...entries, dateListTable: table, dateSetCurrent: current, dateFactory: factory, dateKeys: keys };
 }
+
+/** The still menu's descriptor, the factory and the key map as this module relies on them (look-menu.ts adds a line the same way). */
+export const GR3X_MENU_SITES = {
+  BUILDER, MENU_TABLE, STILL_MENU, DESCRIPTOR, MAX_ITEMS, D_PAGES, D_FIRST, D_COUNT, D_DRAW, D_ID, D_VISIBLE, ND_ITEM, HDF_ITEM,
+  OFFICIAL_FIRSTS, FIRSTS_WITHOUT_ND, FIRSTS_WITHOUT_HDF, APP, SPEC_MODEL, MODEL_NUMBER, FACTORY, FACTORY_LAST, FACTORY_MOVW,
+  KEY_MAP_READ, CURRENT_ID_GETTER, LINE_VALUE_ICON, TOP_SET_TITLE, HORIZON_ID,
+} as const;

@@ -5,7 +5,7 @@ import { FirmwareHero } from '../firmware';
 import { t } from '../i18n';
 import {
   useStore, loadFirmwareFile, gridOffered, setSoft, setDateStamp, setMonoUnlock, setFlashPlus, flashPlusOn, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain,
-  setShadowLearn, setBattery, setSubjectAf, setLockProtect, setVideoAf, setDimLightAf, setMovieExposure, setAwbLearn, setWbPerLook, setConstantLight, setSensorShift, setMovie4k, setMovieSr, setDistanceFeet, setBrightAuto, setCustomGrid,
+  setShadowLearn, setBattery, setSubjectAf, setLockProtect, setVideoAf, setDimLightAf, setMovieExposure, setAwbLearn, setWbPerLook, setCustomsFirst, setLookMenu, setConstantLight, setSensorShift, setMovie4k, setMovieSr, setDistanceFeet, setBrightAuto, setCustomGrid,
 } from '../store';
 import { isFirmware } from './files';
 import { GridDetail, GridThumb, closeGrid, openGrid, useGridArrival } from './grid';
@@ -112,6 +112,10 @@ function ExtrasList() {
   const unitsOk = useStore((s) => !!s.info?.features.distanceFeet);
   const wbLook = useStore((s) => s.wbPerLook);
   const wbLookOk = useStore((s) => !!s.info?.features.wbPerLook);
+  const customs = useStore((s) => s.customsFirst);
+  const customsOk = useStore((s) => !!s.info?.features.customsBeforeFilms);
+  const lookMenu = useStore((s) => s.lookMenu);
+  const lookMenuOk = useStore((s) => !!s.info?.features.lookMenu);
   const gridOk = useStore((s) => gridOffered(s));
   // the level names without their "Auto brightness · " prefix, first letter up
   const level = (key: 'brightAutoOff' | 'brightAutoBalanced' | 'brightAutoBright'): string => ((x) => x.charAt(0).toUpperCase() + x.slice(1))(t(key).split(' · ').pop()!);
@@ -146,7 +150,9 @@ function ExtrasList() {
           value={feet ? 'ft' : 'm'} onChange={(v) => setDistanceFeet(v === 'ft')}
           options={[{ value: 'm', label: t('unitsMetre') }, { value: 'ft', label: t('unitsFeet') }]} />
       )}
-      {wbLookOk && <FeatureCapsule icon={Ico.wb} title={t('navWbLook')} sub={t('wbLookSub')} on={wbLook} onChange={setWbPerLook} tour="ex-f-wblook" />}
+      {wbLookOk && <FeatureCapsule icon={Ico.wb} title={t('navWbLook')} sub={t(gr3x ? 'wbLookSub3' : 'wbLookSub')} on={wbLook} onChange={setWbPerLook} tour="ex-f-wblook" />}
+      {customsOk && <FeatureCapsule icon={Ico.tool} title={t('navCustomsFirst')} sub={t('customsFirstSub')} on={customs} onChange={setCustomsFirst} tour="ex-f-customs" />}
+      {lookMenuOk && <FeatureCapsule icon={Ico.updown} title={t('navLookMenu')} sub={t('lookMenuSub')} on={lookMenu} onChange={setLookMenu} tour="ex-f-lookmenu" />}
       {lockOk && <FeatureCapsule icon={Ico.lock} title={t('navLockProtect')} sub={t('lockProtectSub')} on={lockP} onChange={setLockProtect} tour="ex-f-lock" />}
       {gridOk && <GridCapsule />}
       {adjMax > 5 && (

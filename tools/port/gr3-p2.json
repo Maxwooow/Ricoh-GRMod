@@ -10,7 +10,11 @@
   ],
   "exclude": [
     "__pycache__",
-    "fixtures"
+    "fixtures",
+    "wbperlook_probe.py",
+    "custom_position_probe.py",
+    "live_layout_probe.py",
+    "look_menu_probe.py"
   ],
   "rename": [
     [

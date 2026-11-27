@@ -83,6 +83,8 @@ def entries_of(manifest):
 def verify(data,manifest,seed=1107,rounds=400):
     g=entries_of(manifest);films=g['films'];max_ratio=max(r['id'] for r in manifest['menu'])
     hidden=tuple((manifest.get('lookLayout') or {}).get('hidden',()))
+    # The order's screen in the camera (look-menu.ts): the camera shows and hides the looks, the guard none.
+    if manifest.get('lookMenu'):hidden=()
     assert not hidden or manifest.get('round8')
     r10=bool(manifest.get('round10'));soft_r10=r10 and bool(manifest.get('adjSoftFocus'))
     want=lambda rec,f,m:guarded(rec,f,m,hidden,soft_r10)

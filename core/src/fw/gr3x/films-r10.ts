@@ -70,9 +70,12 @@ import { branchWord, movWord, wordsToBytes } from '../aspect/arm';
 import { linkModule } from '../aspect/native-link';
 import { FirmwareError } from '../types';
 import { GR3X_FILMS_MODULE } from './films-native';
+import { GR3X_FILMS_WB_MODULE } from './films-wb-native';
 import { GR3X_R10, GR3X_SETTINGS_LOAD, GR3X_SETTINGS_SAVE, gr3xSettingsHook, gr3xSettingsPrior } from './round10';
 import type { Gr3xSite } from './round10';
 import { adr, byRelease } from './target';
+import { GR3X_LIVE_LAYOUT_WORD, gr3xLiveQuery } from './look-layout';
+import { GR3X_LOOK_MENU_FUNCTIONS } from './look-menu';
 
 export const GR3X_BLEACH = 18;
 export const GR3X_FILM_LOOKS = 84;
@@ -140,6 +143,9 @@ export const GR3X_BLEACH_CHECKS: readonly (readonly [number, number])[] = [
 /** The photo / movie "look of set n" setters. */
 const STYLE_SETTERS = [[adr(0x5327b394), 0xe5903004, 'ldr r3,[r0,#4]'], [adr(0x5327b3b4), 0xe5903004, 'ldr r3,[r0,#4]'], [adr(0x5327b3d4), 0xe5903004, 'ldr r3,[r0,#4]'],
   [adr(0x5327b54c), 0xe1a03000, 'mov r3,r0'], [adr(0x5327b584), 0xe1a03000, 'mov r3,r0'], [adr(0x5327b5bc), 0xe1a03000, 'mov r3,r0']] as const;
+/** StillActiveImageControlSet's setter (the photo set in use): `ldr r3,[r0,#4]`, then `mov ip,sp`. Looked up only
+ * for the white balance per look, which is offered on 1.60 alone (wbperlook.ts): 1.70 / 1.71 do not map it. */
+const activeSetSetter = () => adr(0x5327b374);
 const MENU_ROWS = [[adr(0x5326c238), adr(0x5326c22c)], [adr(0x5326c3ec), adr(0x5326c3e0)]] as const;
 const DEV_TONING = adr(0x536dbd48), SLIDER_MAP = adr(0x531ac654);
 const STORAGE = adr(0x53828014), STORE_WRITE = adr(0x53829a08), STORE_READ = adr(0x53829fcc), STORE_SIZE = adr(0x53829e50), HEAP_ALLOC = adr(0x536af2a8);
@@ -161,6 +167,12 @@ export interface Gr3xR10ParameterOptions {
   prints: readonly number[];
   hiddenMask: number;
   setterSites: readonly number[];
+  /** White balance per look (GR III 2.10 / IIIx 1.60: films.c built with -DWB_PER_LOOK). */
+  wbPerLook?: boolean;
+  /** The lists' order kept in the camera: the build's entries (look | 0x80 hidden, 0x7e / 0x7f Custom 1 / 2), 1.60 only. */
+  liveLayout?: readonly number[];
+  /** The menu screen of the order (look-menu.ts): its texts (title, separator, title while moving). */
+  lookMenuTexts?: readonly [number, number, number];
 }
 
 export function installGr3xR10Parameters(p: Gr3xR10Program, o: Gr3xR10ParameterOptions) {
@@ -196,12 +208,23 @@ export function installGr3xR10Parameters(p: Gr3xR10Program, o: Gr3xR10ParameterO
   });
   // The module.
   const prints = p.append(u32le([...o.prints, o.hiddenMask]));
+  const wb = o.wbPerLook === true, live = !!o.liveLayout;
+  if (live && (o.liveLayout!.length < 3 || o.liveLayout!.length > 40)) fail('live layout entries');
+  // The extended module (films.c -DWB_PER_LOOK -DLIVE_LAYOUT) for either; without a layout its count is 0 (no answers).
+  const ext = wb || live;
+  // The menu screen's camera functions and title (native/films.c LM_), zeros without it.
+  const lookMenuContext = ext ? p.append(u32le(o.lookMenuTexts ? [...GR3X_LOOK_MENU_FUNCTIONS(), ...o.lookMenuTexts] : new Array(15).fill(0))) : 0;
+  const liveDefault = ext ? p.append(Uint8Array.from([...(live ? [o.liveLayout!.length, ...o.liveLayout!] : [0]), 0, 0, 0])) : 0;
   const origin = p.next();
   const priorLoad = gr3xSettingsPrior(p, 'load'), priorSave = gr3xSettingsPrior(p, 'save');
-  const mod = linkModule(GR3X_FILMS_MODULE, 'films', n, origin, {
+  const mod = linkModule(ext ? GR3X_FILMS_WB_MODULE : GR3X_FILMS_MODULE, 'films', n, origin, {
     prior_native_save: priorSave, prior_native_load: priorLoad, storage_singleton: STORAGE, store_write: STORE_WRITE,
     store_read: STORE_READ, store_size: STORE_SIZE, heap_alloc: HEAP_ALLOC, sp_gap: GR3X_R10.slotState,
     settings_object: GR3X_SETTINGS_OBJECT, slot_prints: prints,
+    // White balance per look: the camera's StillWhiteBalance setter, the first G-M and B-A setters (the others 0x20
+    // apart) and StillWhiteBalanceColorTemp's (docs/technical-notes.md). Looked up only then (1.60 only, wbperlook.ts).
+    ...(ext ? { wb_mode_set: adr(0x532721e4), wb_gm_set: adr(0x53272378), wb_ba_set: adr(0x5327292c), wb_temp_set: adr(0x53272ee0),
+      ll_default: liveDefault, ll_word: GR3X_LIVE_LAYOUT_WORD(), lm_ctx: lookMenuContext } : {}),
   });
   if (p.append(mod.code) !== origin) fail('module address changed');
   const sym = mod.symbols;
@@ -209,12 +232,27 @@ export function installGr3xR10Parameters(p: Gr3xR10Program, o: Gr3xR10ParameterO
   gr3xSettingsHook(p, 'save', sym.sp_save, 'films: the settings save, then their table');
   void GR3X_SETTINGS_LOAD; void GR3X_SETTINGS_SAVE;
   // The look of a set: the owners' values are swapped before the camera's setter runs.
+  // White balance per look: for a photo set the setter runs inside the stub (`orig`), and after it
+  // sp_wb_done gives the new look its white balance through the camera's own WB setters; the setter's
+  // result (r0) is kept. Every setter here takes (UserDataModel*, value) and nothing on the stack.
+  const after = (hook: string, at: number, first: string) =>
+    `push {r0-r3,r4,lr};${hook}ldr r0,[sp];ldr r1,[sp,#4];ldr r2,[sp,#8];ldr r3,[sp,#12];bl orig;mov r4,r0;` +
+    `bl #${sym.sp_wb_done};mov r0,r4;add sp,sp,#16;pop {r4,pc};orig:${first};b #${at + 4};`;
   const styles = STYLE_SETTERS.map(([at, word, first], c) => {
     if (p.u32(at) !== word || p.u32(at + 4) !== 0xe1a0c00d) fail(`look setter at ${at.toString(16)}`);
-    const stub = p.code(`push {r0-r3,ip,lr};mov r2,#${c};bl #${sym.sp_style_set};pop {r0-r3,ip,lr};${first};b #${at + 4};`);
-    p.patch(at, word, branchWord(at, stub), `films: the owners' values when the look of ${c < 3 ? 'photo' : 'movie'} set ${c % 3} changes`);
+    const stub = wb && c < 3 ? p.code(after(`mov r2,#${c};bl #${sym.sp_style_set};`, at, first))
+      : p.code(`push {r0-r3,ip,lr};mov r2,#${c};bl #${sym.sp_style_set};pop {r0-r3,ip,lr};${first};b #${at + 4};`);
+    p.patch(at, word, branchWord(at, stub), `films: the owners' values when the look of ${c < 3 ? 'photo' : 'movie'} set ${c % 3} changes` +
+      (wb && c < 3 ? ', and the white balance per look' : ''));
     return stub;
   });
+  const activeSet = wb ? (() => {
+    const at = activeSetSetter();
+    if (p.u32(at) !== 0xe5903004 || p.u32(at + 4) !== 0xe1a0c00d) fail('photo set setter');
+    const stub = p.code(after(`bl #${sym.sp_active};`, at, 'ldr r3,[r0,#4]'));
+    p.patch(at, 0xe5903004, branchWord(at, stub), 'white balance per look: the photo set in use changes');
+    return stub;
+  })() : undefined;
   // The main menu's Image Control line (r3 set 0's look): a film is answered itself.
   const menuRows = MENU_ROWS.map(([at, done]) => {
     if (p.u32(at) !== 0xe3530016 || p.u32(at + 4) !== 0x979ff103) fail(`menu Image Control line at ${at.toString(16)}`);
@@ -231,7 +269,7 @@ export function installGr3xR10Parameters(p: Gr3xR10Program, o: Gr3xR10ParameterO
   if (p.u32(SLIDER_MAP) !== 0xe1a0c00d) fail('Toning slider map');
   const sliderMap = p.code(`sub ip,r0,#1;cmp ip,#2;movhi r0,#1;mov ip,sp;b #${SLIDER_MAP + 4};`);
   p.patch(SLIDER_MAP, 0xe1a0c00d, branchWord(SLIDER_MAP, sliderMap), 'Bleach Bypass Toning 1..3 for its slider');
-  return { setters, checks, defaults, module: origin, moduleSymbols: { ...sym }, prints, styles, menuRows, clampTable, devToning, sliderMap };
+  return { setters, checks, defaults, module: origin, moduleSymbols: { ...sym }, prints, styles, menuRows, clampTable, devToning, sliderMap, ...(activeSet ? { activeSet } : {}) };
 }
 
 // ------------------------------------------------------------------ RAW development
@@ -251,6 +289,10 @@ export interface Gr3xR10RawOptions {
   /** The looks of the RAW development list in order (the camera's 12 and the films; the layout's order without hidden ones). */
   order: readonly number[];
   module: Record<string, number>;
+  /** The order kept in the camera (films.c -DLIVE_LAYOUT): the list from the module, `order` when it has no answer. */
+  live?: boolean;
+  /** The two Custom entries after this many looks (custom-position.ts; live: where the camera's layout has them). */
+  customsAt?: number;
 }
 
 export function installGr3xR10Raw(p: Gr3xR10Program, o: Gr3xR10RawOptions) {
@@ -300,19 +342,46 @@ export function installGr3xR10Raw(p: Gr3xR10Program, o: Gr3xR10RawOptions) {
     [RAW_BASE, 0xe5d03005], [RAW_LOOK, 0xe1a0c00d], [RAW_LOOK + 4, movWord(3, byRelease({ '1.60': 0xacb4, '1.70': 0xa5dc, '1.71': 0xf80c }))], [RAW_CAPACITY, 0xe3a0000f], [RAW_CAPACITY + 4, 0xe12fff1e]];
   for (const [at, w] of guards) if (p.u32(at) !== w >>> 0) fail(`RAW development list at ${at.toString(16)}`);
   const table = p.append(Uint8Array.from(looks));
-  const count = p.code(`ldrb r3,[r0,#5];cmp r3,#0;movne r0,#${L + 3};moveq r0,#${L + 2};bx lr;`);
+  // Live: the list's length and its looks (styles, numbered here) from the module (list 3), the table when it has none.
+  const styleToRaw = o.live ? p.append(Uint8Array.from({ length: 256 }, (_, id) => id >= FIRST && id < FIRST + n ? R + id - FIRST : RAW_OF_STYLE[id] ?? 0)) : 0;
+  const lengthOf = o.live ? p.code(`push {r1,r2,r3,lr};${gr3xLiveQuery(0, '#3', '#0', 'gfail')}pop {r1,r2,r3,pc};gfail:mov r0,#${L};pop {r1,r2,r3,pc};`) : 0;
+  const lookOf = o.live ? p.code(`push {r1,r2,r3,r4,ip,lr};mov r4,r0;${gr3xLiveQuery(1, '#3', 'r4', 'tfail')}cmn r0,#2;beq tfail;${addr('ip', styleToRaw)}ldrb r0,[ip,r0];pop {r1,r2,r3,r4,ip,pc};
+      tfail:${addr('ip', table)}ldrb r0,[ip,r4];pop {r1,r2,r3,r4,ip,pc};`) : 0;
+  const count = o.live
+    ? p.code(`push {r4,lr};mov r4,r0;bl #${lengthOf};ldrb r3,[r4,#5];cmp r3,#0;addne r0,r0,#3;addeq r0,r0,#2;pop {r4,pc};`)
+    : p.code(`ldrb r3,[r0,#5];cmp r3,#0;movne r0,#${L + 3};moveq r0,#${L + 2};bx lr;`);
   p.patch(RAW_COUNT, 0xe5d03005, branchWord(RAW_COUNT, count), 'films as looks: RAW development list length');
   // Entry i -> base: 0 for as shot and the looks, 1 / 2 for Custom 1 / 2.
-  const base = p.code(`ldrb r3,[r0,#5];cmp r3,#0;addne r1,r1,#0;addeq r1,r1,#1;sub r1,r1,#${L + 1};cmp r1,#1;movhi r0,#0;addls r0,r1,#1;bx lr;`);
+  // The Custom entries elsewhere than after the looks (custom-position.ts), or live: entry j (after as shot) is
+  // mapped to the list's own (the looks 0..L-1, Custom 1 L, Custom 2 L + 1) first, as the still lists are.
+  const P = o.customsAt ?? L;
+  const mapped = !!o.live || P < L;
+  const lengthFn = mapped ? (o.live ? lengthOf : p.code(`mov r0,#${L};bx lr;`)) : 0;
+  const rmap = mapped ? p.code(`push {r0,r2,r3,r4,ip,lr};mov r4,r1;
+      ${o.live ? `${gr3xLiveQuery(3, 'r4', '#0', 'rst')}mov r1,r0;pop {r0,r2,r3,r4,ip,pc};rst:` : ''}
+      bl #${lengthFn};mov r2,#${P};cmp r2,r0;bhs rid;cmp r4,r2;blo rid;beq rc1;add r3,r2,#1;cmp r4,r3;beq rc2;
+      add r3,r0,#2;cmp r4,r3;bhs rid;sub r4,r4,#2;b rid;rc1:mov r4,r0;b rid;rc2:add r4,r0,#1;
+      rid:mov r1,r4;pop {r0,r2,r3,r4,ip,pc};`) : 0;
+  const lookAt = (r: string) => o.live ? `mov r0,${r};bl #${lookOf};` : `${addr('ip', table)}ldrb r0,[ip,${r}];`;
+  const base = mapped
+    ? p.code(`push {r4,lr};mov r4,r0;ldrb r3,[r4,#5];cmp r3,#0;beq bnoshot;cmp r1,#0;moveq r0,#0;beq bdone;sub r1,r1,#1;
+      bnoshot:bl #${rmap};bl #${lengthFn};sub r1,r1,r0;cmp r1,#1;movhi r0,#0;addls r0,r1,#1;bdone:pop {r4,pc};`)
+    : p.code(`ldrb r3,[r0,#5];cmp r3,#0;addne r1,r1,#0;addeq r1,r1,#1;sub r1,r1,#${L + 1};cmp r1,#1;movhi r0,#0;addls r0,r1,#1;bx lr;`);
   p.patch(RAW_BASE, 0xe5d03005, branchWord(RAW_BASE, base), 'films as looks: RAW development list base');
   // Entry i -> RAW look: as shot 0, the looks from the table, Custom 1 / 2 the base's look.
-  const look = p.code(`ldrb ip,[r0,#5];cmp ip,#0;beq lnoshot;cmp r1,#0;moveq r0,#0;bxeq lr;sub r1,r1,#1;
+  const look = mapped
+    ? p.code(`push {r4,r5,r6,lr};mov r4,r0;ldrb ip,[r0,#5];cmp ip,#0;beq lnoshot;cmp r1,#0;moveq r0,#0;beq ldone;sub r1,r1,#1;
+      lnoshot:bl #${rmap};mov r5,r1;bl #${lengthFn};cmp r5,r0;bhs lcustom;${lookAt('r5')}b ldone;
+      lcustom:sub r5,r5,r0;add r5,r5,#1;cmp r5,#2;movhi r5,#1;add r0,r4,r5;ldrb r0,[r0,#0x83];ldone:pop {r4,r5,r6,pc};`)
+    : p.code(`ldrb ip,[r0,#5];cmp ip,#0;beq lnoshot;cmp r1,#0;moveq r0,#0;bxeq lr;sub r1,r1,#1;
     lnoshot:cmp r1,#${L};bhs lcustom;${addr('ip', table)}ldrb r0,[ip,r1];bx lr;
     lcustom:sub r1,r1,#${L - 1};cmp r1,#2;movhi r1,#1;add r0,r0,r1;ldrb r0,[r0,#0x83];bx lr;`);
   p.patch(RAW_LOOK, 0xe1a0c00d, branchWord(RAW_LOOK, look), 'films as looks: RAW development list look');
-  if (L + 3 > 17) p.patch(RAW_CAPACITY, 0xe3a0000f, (0xe3a00000 | (L + 3)) >>> 0, 'films as looks: RAW development list capacity');
+  // The list's capacity: live, every look may be shown (the camera's twelve and the films).
+  const capacity = o.live ? 12 + n + 3 : L + 3;
+  if (capacity > 17) p.patch(RAW_CAPACITY, 0xe3a0000f, (0xe3a00000 | capacity) >>> 0, 'films as looks: RAW development list capacity');
   return { rawToRaw: toRaw, rawToStyle: toStyle, rawRows: rowStubs, rawRowR1: rowR1, rawFill: fill, rawAsShot: asShot, rawApply: apply,
-    rawColumn: column, rawList: table, rawCount: count, rawBase: base, rawLook: look };
+    rawColumn: column, rawList: table, rawCount: count, rawBase: base, rawLook: look, ...(o.live ? { rawLength: lengthOf, rawLookOf: lookOf, rawStyleToRaw: styleToRaw } : {}), ...(mapped ? { rawMap: rmap, rawCustomsAt: P } : {}) };
 }
 
 // ------------------------------------------------------------------ the picture's information
