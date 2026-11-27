@@ -138,15 +138,44 @@ copy routine (0x53247288) treats as its flag. Found through the settings text in
 parsers 0x532df1bc.., which call the setters): StillWhiteBalance 0x532721e4, G-M 0x53272378 + 0x20 k, B-A
 0x5327292c + 0x20 k, ColorTemp 0x53272ee0 (each stores the value, then tells the listeners), StillActiveImageControlSet
 0x5327b374. When the look of the photo set in use changes (the hook before the look setter, `sp_style_set`) or another
-photo set is chosen (a new hook before 0x5327b374, `sp_active`), the old look takes the white balance; after the setter
-(`sp_wb_done`, the setter runs inside the stub) the new look gets its own back through the camera's setters, the mode
-last; a look never used before keeps the white balance in use. A mode recall (`sp_before_recall`) first gives the white
-balance in use to the look in use. The table (52 looks: 0..31 and films 64..83, 29 bytes each) is HTData record 14
-('GRW3', version 1; the camera uses records 0 and 2..8 and accepts 0..15; HTData.cpp formats them as files), written at
-power off. Custom WB captures and movie WB are not touched. `tools/gr3x/wbperlook_probe.py` runs the look, photo-set
-and white balance setters natively in the built image (their notifications and the record push recorded) against a
-model, over random sequences with power cycles and recalls, and the films check of the round (`films_probe.py`) on
-the same build. Not offered on 1.70 / 1.71 (2.20 / 2.21): those addresses are not mapped there.
+photo set is chosen (a new hook before 0x5327b374, `sp_active`), the old row takes the white balance; after the setter
+(`sp_wb_done`, the setter runs inside the stub) the new row gets its own back through the camera's setters, the mode
+last; a row never used before keeps the white balance in use. The row is the look's in the standard set, and Custom 1's
+or Custom 2's own in those sets, whatever look they hold. A mode recall (`sp_before_recall`) first gives the white
+balance in use to the row in use. The table (54 rows: looks 0..31, films 64..83, Custom 1, Custom 2; 29 bytes each) is
+HTData record 14 ('GRW3', version 2; version 1, without the Custom rows, is taken over; the camera uses records 0 and
+2..8 and accepts 0..15; HTData.cpp formats them as files), written at power off. Custom WB captures and movie WB are
+not touched. `tools/gr3x/wbperlook_probe.py` runs the look, photo-set and white balance setters natively in the built
+image (their notifications and the record push recorded) against a model, over random sequences with power cycles and
+recalls, and the films check of the round (`films_probe.py`) on the same build.
+
+Custom 1 / 2 first (`custom-position.ts`, option `customsBeforeFilms`): the still lists put ImageControlModel's looks at
+entries 0..n-1 and Custom 1 / 2 at n, n+1, each screen by itself. A map (`forward`: shown entry to the camera's;
+`inverse`) is put in front of every place that turns an entry into a look: the functions of the Image Control menu row
+(text 0x531a0538, icon 0x531a0690, current 0x531a1500, select 0x531a0ba0, in the row table at 0x53b39d54), the
+Image Control screen's strip (this + 0x174: entry reads 0x531ab764 / 0x531ab9ac, current 0x531abe0c, the items it
+draws 0x531ab854 / 884 / 8ac) and RAW development's list (films-r10.ts). The ADJ lever's Image Control list
+(ADJ mode settings) is drawn by the menu row's icon function, which sets the icon on item r1 of this + 0x1f0 itself
+(0x531a06f0): that item goes through `inverse` too, or the icons stay in the camera's order while the names follow.
+`tools/gr3x/custom_position_probe.py` runs these functions natively.
+
+Look order on the camera (`look-menu.ts`, options `liveLayout` and `lookMenu`; the app's one switch sets both): the
+order and hidden looks (Custom 1 / 2 included, 0x7e / 0x7f, bit 0x80 hidden) are HTData record 15 ('GR3L', version 1,
+used only when it holds exactly the build's entries), read at the settings load; the lists ask the module (`ll_query`)
+through the RAM word 0x5580438c, 0 until the load, and use the build's tables otherwise (`look-layout.ts`). The screen
+is the End Screen list (GoodByeDisplaySetController, vtable 0x53b4d248) in a mode of its own (word 0x55804390, id
+0x020001a8), opened by a line added to the still menu as the date imprint's (so not with the date imprint or End
+Screen pictures). Its rows are the shown entries, a separator, the hidden ones. OK takes or puts down the row under the
+cursor (event 0xd8), up / down move it (0xd0 / 0xd1; the cursor follows with the list's move by one, 0x53395260, not its
+focus 0x53395430, which scrolls), below the separator it is hidden; Standard, a look in use in any set or stored mode and
+Custom 1 / 2 cannot be hidden. The keys: ActionModel::OnEvent (0x53221a1c) translates a key by the controller's id; for
+this id OK (keys 14 and 50) takes the keys of 0x04000023 (0xd8 alone), every other key the End Screen list's (left 0xd8
+then 0xa2, MENU 0xda then 0x35). Its three texts exist in the camera's 21 languages, each made of words its own texts
+use there (so its font has every character) and at most 24 characters. `tools/gr3x/live_layout_probe.py` and
+`look_menu_probe.py` run the lists and the screen natively.
+
+All three are offered on the 2.10 / 1.60 program only (`gr3xWbPerLookOffered`) and tested on a GR III 2.10; the
+addresses are not mapped for 2.20 / 2.21 (1.70 / 1.71).
 
 One program for both families: GR IV files are built exactly as by GR Mod 0.8.4 (GR IV's code is
 shared and unchanged; `core/test/gr4-unchanged.test.ts` pins its outputs), and the GR III / IIIx code
