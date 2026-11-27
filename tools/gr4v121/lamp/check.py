@@ -24,7 +24,12 @@ tools/gr4v121/datestamp/menu_check.py), next to a build of the same recipe witho
  6. The Fn function 0x29: name and icon of every function, the list of the four buttons (as data
     and as the list controller's vector, filled by the camera's own code), the function switch for
     every function, pressed and released: 0x29 switches the lamp over on a press and nothing else,
-    every other function goes where it goes in the control. The Movie button: its two lists (pressed,
+    every other function goes where it goes in the control. The press as the camera asks for it,
+    through the capture-ready switch model's own code (its "press" and "release" wrappers,
+    GetEventSwitch, the four buttons' handlers, the function switch): the lamp is switched over
+    when the asker is one of the three functions that post the answer (the switch handler, the fast
+    path of a switch message, its replay), not when it only looks at the answer (the shooting
+    screen's key guide, twice for a drawing; the idle timers), not on a release. The Movie button: its two lists (pressed,
     held) the same way, its switch 0x53398320 for every function and event (2 pressed, 3 held, 4):
     0x29 switches the lamp over on events 2 and 3, nothing and no assertion on 4.
  7. The text in the 21 languages, the icon.
@@ -72,6 +77,18 @@ FN_LIST_OFFICIAL = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 
 NAMES = ['Trvalé světlo', 'Konstant lys', 'Constant Light', 'Jatkuva valo', 'Lumière continue', 'Dauerlicht', 'Συνεχές φως', 'Folyamatos fény',
          'Luce continua', '補助光常時点灯', '보조광 상시 점등', 'Continu licht', 'Światło ciągłe', 'Luz contínua', 'Постоянный свет', '辅助灯常亮',
          'Luz continua', 'Konstant ljus', 'ไฟส่องต่อเนื่อง', '輔助燈常亮', 'Sürekli ışık']
+
+# The capture-ready switch model: its vtable, its "press" and "release" wrappers, and what runs of its code in the
+# checks (the wrappers; the function switch and the four buttons' handlers; GetEventSwitch).
+SWITCH_MODEL_VT, GET_PRESS, GET_RELEASE = 0x53de8b68, 0x53392274, 0x53392314
+MODEL_CODE = ((0x53392274, 0x5339233c), (0x53399990, 0x5339cd64), (0x5339cffc, 0x5339dfbc))
+FN_HANDLERS = {0x1b: 0x5339c068, 0x0a: 0x5339c248, 0x0b: 0x5339c5fc, 0x0c: 0x5339c9b0}  # switch: its handler
+FN_OF_FN_BUTTON, TYPE_MATCH = 0x5329f50c, 0x53b4c150
+# Where the press wrapper returns to. They post the answer: the switch handler (one place a button), the fast path of a
+# switch message, its replay. They only look at it: the shooting screen's key guide, the idle timers.
+POSTERS = {0x1b: 0x53245cdc, 0x0a: 0x532453d4, 0x0b: 0x53245d04, 0x0c: 0x53245c64}
+FAST_PRESS, FAST_RELEASE, FAST_REPLAY, FAST_ASKS_RELEASE = 0x533a1c00, 0x533a1c88, 0x533a221c, 0x533a1844
+GUIDE_ASKS, TIMERS_ASK = 0x5318de08, 0x53260f14
 
 # Where the LED objects are made for the checks; the device's on / off are two addresses that only record.
 FACTORY, SELF_LED, AF_LED, LAMP, DEVICE, DEVICE_VT, DEV_ON, DEV_OFF = 0x70100000, 0x70100080, 0x70100100, 0x70100200, 0x70100300, 0x70100400, 0x70180000, 0x70180010
@@ -462,7 +479,7 @@ def fn_vector(img):
     return list(e.mu.mem_read(a, b - a))
 
 
-def run_switch(img, fn, released):
+def run_switch(img, fn, released, asked_from=POSTERS[0x1b]):
     """The Fn function switch 0x53399990 (this, shared pointer, function, released, key); returns what it called."""
     e = lamp_emu(img)
     sp_pair = 0x70300000
@@ -490,6 +507,12 @@ def run_switch(img, fn, released):
     mu.mem_write(0x600f0000 - 8, struct.pack('<2I', 0x2e, 0))
     for r, v in zip((UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2, UC_ARM_REG_R3), (0x70000000, sp_pair, fn, released)):
         mu.reg_write(r, v)
+    # the frames above the switch's: the button's handler, GetEventSwitch, the wrapper, which returns to `asked_from`
+    frames = 0x70320000
+    mu.mem_write(frames + 0x100 - 0xc, struct.pack('<I', frames + 0x200))
+    mu.mem_write(frames + 0x200 - 0xc, struct.pack('<I', frames + 0x300))
+    mu.mem_write(frames + 0x300 - 4, struct.pack('<I', asked_from))
+    mu.reg_write(UC_ARM_REG_R11, frames + 0x100)
     mu.reg_write(UC_ARM_REG_LR, 0x100)
     try:
         mu.emu_start(0x53399990, 0x100, count=200000)
@@ -497,6 +520,82 @@ def run_switch(img, fn, released):
         trace.append(f'error {ex}')
     done = mu.reg_read(UC_ARM_REG_PC) == 0x100 and mu.reg_read(UC_ARM_REG_SP) == 0x600f0000 - 8
     return done, trace, e
+
+
+def ask(img, switch, fn, asked_from, wrapper=GET_PRESS, word=0, times=1):
+    """What a button would do, as the camera asks: the switch model's wrapper (result, model, switch), returning to
+    `asked_from`, through GetEventSwitch, the button's handler and the function switch, all the camera's own code. Calls
+    out of the model's code are recorded and skipped; the button's function is `fn`. Returns (done, calls, emulator)."""
+    e = lamp_emu(img, word)
+    mu = e.mu
+    model, result = 0x70000000, 0x70300000
+    mu.mem_write(model, struct.pack('<I', SWITCH_MODEL_VT))
+    getters = {FN_OF_FN_BUTTON} | {branch_target(img, h + 0x110 - 0x1c) for s, h in FN_HANDLERS.items() if s != 0x1b}
+    inside = lambda a: any(lo <= a < hi for lo, hi in MODEL_CODE)
+    trace = []
+    state = {'prev': 0}
+
+    def hook(uc, addr, size, ud):
+        prev, state['prev'] = state['prev'], addr
+        if addr == asked_from or not inside(prev) or inside(addr):
+            return
+        if addr >= dm.BASE + dm.OFFICIAL_LEN:
+            trace.append('ours')
+            return
+        trace.append(addr)
+        if addr not in (0x53909154, 0x53905dc4) and addr not in e.stubs:  # operator new and the harness's stubs: theirs
+            uc.reg_write(UC_ARM_REG_R0, fn if addr in getters else 1 if addr == TYPE_MATCH else 0)
+        uc.reg_write(UC_ARM_REG_PC, uc.reg_read(UC_ARM_REG_LR))
+        state['prev'] = 0
+    mu.hook_add(UC_HOOK_CODE, hook)
+    done = True
+    for _ in range(times):
+        mu.mem_write(result, bytes(8))
+        for r, v in zip((UC_ARM_REG_R0, UC_ARM_REG_R1, UC_ARM_REG_R2), (result, model, switch)):
+            mu.reg_write(r, v)
+        mu.reg_write(UC_ARM_REG_SP, 0x600f0000)
+        mu.reg_write(UC_ARM_REG_R11, 0)
+        mu.reg_write(UC_ARM_REG_LR, asked_from)
+        state['prev'] = 0
+        try:
+            mu.emu_start(wrapper, asked_from, count=200000)
+        except UcError as ex:
+            trace.append(f'error {ex}')
+        done = done and mu.reg_read(UC_ARM_REG_PC) == asked_from and mu.reg_read(UC_ARM_REG_SP) == 0x600f0000 and e.u32(result) != 0
+    return done, trace, e
+
+
+def check_asked(new, ctl):
+    """The press of a button set to Constant Light, as each of the camera's askers asks for it."""
+    n = 0
+    for switch, handler in FN_HANDLERS.items():
+        check(new.u32(SWITCH_MODEL_VT + {0x1b: 0x3c, 0x0a: 0x58, 0x0b: 0x5c, 0x0c: 0x60}[switch]) == handler, f'switch {switch:#x}: its handler')
+        posts = [('the switch handler', POSTERS[switch]), ('the fast path', FAST_PRESS), ('the fast path\'s replay', FAST_REPLAY)]
+        looks = [('the key guide', GUIDE_ASKS), ('the idle timers', TIMERS_ASK)]
+        for name, at in posts + looks:
+            acts = (name, at) in posts
+            for word in (0, HANDLE):
+                d, t, e = ask(new, switch, FN_LAMP, at, word=word)
+                want = ([] if not acts else ['off'] if word else ['on'], word if not acts else 0 if word else HANDLE)
+                check(d and 'ours' in t and 0x53916230 not in t and (e.events, e.u32(LAMP_WORD)) == want, f'switch {switch:#x} pressed, asked by {name} ({at:#x}), lamp {"on" if word else "off"}: {e.events} {e.u32(LAMP_WORD):#x} {t}')
+                n += 1
+            # the same question for another function, and in the control: no lamp, and what is called does not depend on the asker
+            d, t, e = ask(new, switch, 0, at)
+            dc, tc, ec = ask(ctl, switch, 0, at)
+            check(d and dc and e.events == [] and e.u32(LAMP_WORD) == 0 and [x for x in t if x != 'ours'] == tc, f'switch {switch:#x}, function 0, asked by {name}: {t} (control {tc})')
+        # a release, whoever asks: nothing
+        for name, at in (('the fast path', FAST_RELEASE), ('the fast path\'s question', FAST_ASKS_RELEASE)):
+            d, t, e = ask(new, switch, FN_LAMP, at, wrapper=GET_RELEASE, word=HANDLE)
+            check(d and e.events == [] and e.u32(LAMP_WORD) == HANDLE, f'switch {switch:#x} released, asked by {name}: {e.events} {t}')
+            n += 1
+    # the key guide asks twice for a drawing, any number of drawings: the lamp stays as it is
+    for word in (0, HANDLE):
+        d, t, e = ask(new, 0x1b, FN_LAMP, GUIDE_ASKS, word=word, times=6)
+        check(d and e.events == [] and e.u32(LAMP_WORD) == word, f'the key guide, six questions, lamp {"on" if word else "off"}: {e.events}')
+    # two real presses: on, off
+    d, t, e = ask(new, 0x1b, FN_LAMP, POSTERS[0x1b], times=2)
+    check(d and e.events == ['on', 'off'] and e.u32(LAMP_WORD) == 0, f'two presses of Fn: {e.events}')
+    print(f'  asked through the switch model\'s own code ({n} questions): a press is carried out for the switch handler, the fast path and its replay; not for the key guide, the idle timers or a release')
 
 
 def check_fn(new, ctl, lamp_set):
@@ -543,7 +642,7 @@ def check_fn(new, ctl, lamp_set):
                 check(dn == dc and [t for t in tn if t != 'ours'] == tc and en.events == [] and en.u32(LAMP_WORD) == 0, f'switch, function {f:#x} released {released}: {tn} (control {tc})')
     # a second press: off
     e = lamp_emu(new, HANDLE)
-    toggle = bls(new, branch_target(new, 0x533999bc), 8)[0]
+    toggle = bls(new, branch_target(new, 0x533999bc), 32)[0]
     e.call(toggle, ())
     check(e.u32(LAMP_WORD) == 0 and e.events == ['off'], f'toggle from on: {e.events}')
     e = lamp_emu(new, 0)
@@ -551,6 +650,11 @@ def check_fn(new, ctl, lamp_set):
     check(e.u32(LAMP_WORD) == HANDLE and e.events == ['on'], f'toggle from off: {e.events}')
     check(branch_target(new, toggle + 24) == lamp_set, 'toggle goes through `set`')
     print(f'  the function switch: {FN_LAMP:#x} switches the lamp over on a press, nothing on release, no assertion; functions 0..0x2f otherwise as the control')
+    # a press that is only looked at
+    for name, at in (('the key guide', GUIDE_ASKS), ('the idle timers', TIMERS_ASK)):
+        dn, tn, en = run_switch(new, FN_LAMP, 0, at)
+        check(dn and en.events == [] and en.u32(LAMP_WORD) == 0 and 0x53916230 not in tn, f'switch, {FN_LAMP:#x} pressed, asked by {name}: {en.events} {tn}')
+    check_asked(new, ctl)
 
 
 def fn_vector_model(img, model, fill=0x531dd104, vec=0x1b4):

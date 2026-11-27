@@ -3755,7 +3755,7 @@ diff --git a/core/src/fw/gr4v120/aspect/lamp.ts b/core/src/fw/gr4v120/aspect/lam
 new file mode 100644
 --- /dev/null
 +++ b/core/src/fw/gr4v120/aspect/lamp.ts
-@@ -0,0 +1,522 @@
+@@ -0,0 +1,592 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * The lamp on the front of the camera (AF assist light and self-timer lamp, one LED) kept lit:
@@ -3801,14 +3801,14 @@ new file mode 100644
 + *    table copied with one more record (as `exposure.ts` does for 0x15; after it when both are in
 + *    the build), the function's name and icon;
 + *  - the Fn functions: 0x29 is a number the camera does not use. 0x26..0x29 share the name and the
-+ *    icon of Preview, but only 0x26 is in a list (the held Movie button's) and has a case; 0x27..0x29
-+ *    are in no list and go to the default of both function switches (0x533990E0, 0x53397A70), so
-+ *    no button can hold them. The list of the functions the four
++ *    icon of Preview, but only 0x26 is in a list (the held Movie button's); 0x29 is in no list and
++ *    goes to the default of both function switches (0x533990E0, 0x53397A70), so no button can hold
++ *    it. The list of the functions the four
 + *    buttons offer (39 bytes at 0x53DE50C4, read by 0x531DCAFC into the list controller's vector
 + *    +0x1B4) is copied with 0x29 at its end; name (0x5338FBAC) and icon (0x533914BC) get a case at
 + *    their entries; the function switch gets a case before its bounds check (0x5339910C): on a
-+ *    press (r6 = 0, as the camera's own cases) the lamp is switched over, then the switch's common
-+ *    end (0x5339927C). The Movie button has its own lists (pressed: 35 bytes at 0x53DE515C, vector
++ *    real press (r6 = 0 and asked by the code that carries the answer out, see below) the lamp is
++ *    switched over, then the switch's common end (0x5339927C). The Movie button has its own lists (pressed: 35 bytes at 0x53DE515C, vector
 + *    +0x1C0; held: 37 bytes at 0x53DE52BC, vector +0x1CC), copied the same way, and its own switch
 + *    0x53397A70 (this, shared pointer, event): event 2 takes the pressed function, 3 the held one,
 + *    both to the jump table at 0x53397BD8, which gets the case before its bounds check (the lamp
@@ -3816,6 +3816,20 @@ new file mode 100644
 + *    its own for the held function (0x53397CA0: nothing but for Preview, an assertion for the
 + *    functions the held list does not offer), where 0x29 gets the entry of the functions that do
 + *    nothing.
++ *
++ * The function switch only answers a question. It is the end of GetEventSwitch (0x5339C74C, the
++ * capture-ready switch model's; its wrappers 0x533919C4.. ask for a press, a hold, .. a release),
++ * which returns the events a button would post: the camera's own cases build events and do nothing
++ * else. The answer is carried out (the events posted) by the capture-ready switch handler
++ * (0x532438B8) and by the two functions of the switch messages' fast path (0x533A1088,
++ * 0x533A186C). Others only look at it: the shooting screen's key guide asks what a press of Fn
++ * would do every time it is drawn (0x5318DDE4, once or twice), the idle timers on every key event
++ * (0x5326064C). The lamp's case acts where it is asked, so it must tell the two apart: it follows
++ * the frames (the button's handler, GetEventSwitch, the wrapper) to the wrapper's return address
++ * and switches the lamp over only when that is in one of the three functions that post. (Without
++ * this, an Fn button set to Constant Light switched the lamp over at every drawing of the key
++ * guide: a dim, flickering lamp on the shooting screen that no switch could put out.)
++ * The Movie button's switch is asked with events 2 and 3 by the switch handlers only.
 + *
 + * Going back to a firmware without this: an Fn button left on 0x29 does nothing there (the
 + * official switch logs it and returns); an ADJ slot left on the added function must be set to
@@ -3887,6 +3901,22 @@ new file mode 100644
 +const FN_SWITCH_BOUND = adr(0x5339910c); // cmp r2, #0x2d
 +const FN_SWITCH_END = adr(0x5339927c); // the cases' common end
 +const FN_SWITCH_DEFAULT = adr(0x5339b0d4);
++/** GetEventSwitch of the capture-ready switch model (result, this, switch, 0 press .. 4 release) and its "press" wrapper. */
++const GET_EVENT_SWITCH = adr(0x5339c74c);
++const GET_EVENT_PRESS = adr(0x533919c4);
++/** The four buttons' handlers (this, shared pointer, 0 press ..): each calls the function switch with its button's function. */
++const FN_HANDLERS = [adr(0x5339b7b8), adr(0x5339b998), adr(0x5339bd4c), adr(0x5339c100)];
++/** The functions that post what GetEventSwitch answers: [start, end]. The switch handler, the fast path of a switch message, its replay. */
++const FN_POSTERS: readonly (readonly [number, number])[] = [
++  [adr(0x532438b8), adr(0x53245700)],
++  [adr(0x533a1088), adr(0x533a13e0)],
++  [adr(0x533a186c), adr(0x533a1acc)],
++];
++/** The switch handler's press of Fn: mov r2, #0x1b; ldr r3, [r3, #8]; mov r0, r5; blx r3. */
++const FN_PRESS_SITE = adr(0x532456c0);
++/** The key guide's question (mov r2, #0x1b .. blx r3 at +0x14) and the idle timers' (ldr r3, [r3, #8] .. blx r3 at +8): outside the posters. */
++const FN_ASKED_BY_GUIDE = adr(0x5318de18);
++const FN_ASKED_BY_TIMERS = adr(0x532606b8);
 +/** The Movie button's lists: [list, its official bytes, movw r4, movt r4, add r6 r4 #length]. */
 +const MOVIE_LIST_PRESSED = [
 +  0x00, 0x01, 0x02, 0x03, 0x04, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f, 0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16,
@@ -4239,6 +4269,38 @@ new file mode 100644
 +  expectWord(patch, FN_SWITCH_BOUND + 12 + FN_LAMP * 4, FN_SWITCH_DEFAULT);
 +  expectWord(patch, FN_SWITCH_BOUND + 12, FN_SWITCH_END); // function 0 (none): the common end
 +  expectWord(patch, FN_SWITCH_END, 0xe3560000); // cmp r6, #0
++  // The frames from the switch up: [fp - 0xc] the caller's fp, [fp - 4] the return address, in each.
++  expectWord(patch, FN_SWITCH + 4, 0xe92ddbf0); // push {r4-r9, fp, ip, lr, pc}
++  expectWord(patch, FN_SWITCH + 0x10, 0xe24cb004); // sub fp, ip, #4
++  for (const handler of FN_HANDLERS) {
++    expectWord(patch, handler, 0xe1a0c00d);
++    expectWord(patch, handler + 4, 0xe92ddff0); // push {r4-r10, fp, ip, lr, pc}
++    expectWord(patch, handler + 0x10, 0xe24cb004);
++  }
++  if (!FN_HANDLERS.every((h) => [0xa0, 0x110, 0x110, 0x110].some((o) => patch.word(h + o) === branchWord(h + o, FN_SWITCH, 14, true)))) fail('unexpected-layout', 'the buttons\' handlers do not call the function switch');
++  expectWord(patch, GET_EVENT_SWITCH, 0xe1a0c00d);
++  expectWord(patch, GET_EVENT_SWITCH + 4, 0xe92ddff0);
++  expectWord(patch, GET_EVENT_SWITCH + 0x14, 0xe24cb004);
++  expectWord(patch, GET_EVENT_PRESS, 0xe1a0c00d);
++  expectWord(patch, GET_EVENT_PRESS + 4, 0xe92dd818); // push {r3, r4, fp, ip, lr, pc}
++  expectWord(patch, GET_EVENT_PRESS + 8, 0xe24cb004);
++  expectWord(patch, GET_EVENT_PRESS + 0x14, 0xe593c01c); // ldr ip, [r3, #0x1c]: GetEventSwitch
++  expectWord(patch, GET_EVENT_PRESS + 0x18, 0xe3a03000); // mov r3, #0: a press
++  expectWord(patch, GET_EVENT_PRESS + 0x1c, 0xe12fff3c); // blx ip
++  for (const [start, end] of FN_POSTERS) {
++    expectWord(patch, start, 0xe1a0c00d);
++    if (end <= start || end - start > 0xffff) fail('unexpected-layout', 'the functions that post a button\'s events are not where expected');
++  }
++  expectWord(patch, FN_PRESS_SITE, 0xe3a0201b); // mov r2, #0x1b
++  expectWord(patch, FN_PRESS_SITE + 4, 0xe5933008); // ldr r3, [r3, #8]
++  expectWord(patch, FN_PRESS_SITE + 0xc, 0xe12fff33); // blx r3
++  expectWord(patch, FN_ASKED_BY_GUIDE, 0xe3a0201b);
++  expectWord(patch, FN_ASKED_BY_GUIDE + 0x10, 0xe5933008);
++  expectWord(patch, FN_ASKED_BY_GUIDE + 0x14, 0xe12fff33);
++  expectWord(patch, FN_ASKED_BY_TIMERS, 0xe5933008);
++  expectWord(patch, FN_ASKED_BY_TIMERS + 8, 0xe12fff33);
++  const posts = (at: number): boolean => FN_POSTERS.some(([start, end]) => at >= start && at < end);
++  if (!posts(FN_PRESS_SITE + 0x10) || posts(FN_ASKED_BY_GUIDE + 0x18) || posts(FN_ASKED_BY_TIMERS + 0xc)) fail('unexpected-layout', 'the functions that post a button\'s events are not where expected');
 +
 +  const name = patch.append((a) => assembleWords(
 +    `cmp r1, #${FN_LAMP}; movweq r0, #${LAMP_TEXT_ID}; bxeq lr
@@ -4257,11 +4319,19 @@ new file mode 100644
 +    patch.setWord(length, 0xe2846000 | (bytes.length + 1), `constant light: ${name} function list length`);
 +  }
 +
-+  // The switch: on a press (r6 = 0) the lamp is switched over; then the common end, as function 0.
++  // The switch: on a press (r6 = 0) that will be carried out (the press wrapper returns into a function that posts
++  // the answer) the lamp is switched over; then the common end, as function 0.
 +  const press = patch.append((a) => assembleWords(
 +    `cmp r2, #${FN_LAMP}; bne native
 +     cmp r6, #0; bne #${FN_SWITCH_END}
-+     bl #${code.toggle}
++     ldr r0, [fp, #-0xc]
++     ldr r0, [r0, #-0xc]
++     ldr r0, [r0, #-0xc]
++     ldr r0, [r0, #-4]
++     ${FN_POSTERS.map(([start, end]) => `movw r1, #${lo(start)}; movt r1, #${hi(start)}; sub r1, r0, r1
++     movw r3, #${end - start}; cmp r1, r3; blo act`).join('\n     ')}
++     b #${FN_SWITCH_END}
++     act: bl #${code.toggle}
 +     b #${FN_SWITCH_END}
 +     native: cmp r2, #0x2d
 +     b #${FN_SWITCH_BOUND + 4}`, a), 16);

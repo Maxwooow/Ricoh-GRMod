@@ -66,6 +66,47 @@ describe.each(files)('Constant Light: GR IV %s', (release, path) => {
     expect(lampAdjFunction(true)).toBe(0x16);
   });
 
+  it('the Fn function acts on a press only for the camera code that posts a button\'s events, not for what only asks', async () => {
+    // The function switch is the end of a getter ("what would this button do"). The shooting screen's key guide and
+    // the idle timers call it without a press; acting for them left an Fn button's lamp dim and flickering (0.9.4).
+    const at = release === '1.21'
+      ? { bound: 0x533999bc, end: 0x53399b2c, handler: 0x53245cdc, fast: 0x533a1c00, replay: 0x533a221c, guide: 0x5318de08, timers: 0x53260f14 }
+      : { bound: 0x5339910c, end: 0x5339927c, handler: 0x532456d0, fast: 0x533a1350, replay: 0x533a196c, guide: 0x5318de30, timers: 0x532606c4 };
+    const eng = await Engine.open(official);
+    const rtos = rtosOf((await eng.buildFirmware([], [], [], { constantLight: true })).file);
+    const dv = new DataView(rtos.buffer, rtos.byteOffset, rtos.byteLength);
+    const word = (a: number): number => dv.getUint32(a - 0x53000000, true);
+    const target = (a: number): number => a + 8 + (((word(a) & 0xffffff) ^ 0x800000) - 0x800000) * 4;
+    const imm16 = (w: number): number => ((w >>> 4) & 0xf000) | (w & 0xfff);
+    expect(word(at.bound) >>> 24).toBe(0xea);
+    const stub = target(at.bound);
+    expect(word(stub)).toBe(0xe3520029); // cmp r2, #0x29
+    expect(word(stub + 8)).toBe(0xe3560000); // cmp r6, #0: a press
+    expect(word(stub + 12) >>> 24).toBe(0x1a);
+    expect(target(stub + 12)).toBe(at.end);
+    // the frames: the button's handler, GetEventSwitch, its wrapper; the wrapper's return address
+    expect([16, 20, 24, 28].map((o) => word(stub + o))).toEqual([0xe51b000c, 0xe510000c, 0xe510000c, 0xe5100004]);
+    const ranges: [number, number][] = [];
+    let a = stub + 32;
+    for (; (word(a) & 0xfff0f000) >>> 0 === 0xe3001000; a += 24) {
+      expect((word(a + 4) & 0xfff0f000) >>> 0).toBe(0xe3401000); // movt r1
+      expect(word(a + 8)).toBe(0xe0401001); // sub r1, r0, r1
+      expect((word(a + 12) & 0xfff0f000) >>> 0).toBe(0xe3003000); // movw r3, #length
+      expect(word(a + 16)).toBe(0xe1510003); // cmp r1, r3
+      expect(word(a + 20) >>> 24).toBe(0x3a); // blo: act
+      const start = (imm16(word(a)) | (imm16(word(a + 4)) << 16)) >>> 0;
+      ranges.push([start, start + imm16(word(a + 12))]);
+    }
+    expect(ranges).toHaveLength(3);
+    expect(word(a) >>> 24).toBe(0xea); // none of them: the end, nothing done
+    expect(target(a)).toBe(at.end);
+    expect(word(a + 4) >>> 24).toBe(0xeb); // act: the lamp switched over
+    expect(target(a + 8)).toBe(at.end);
+    const posts = (ret: number): boolean => ranges.some(([lo, hi]) => ret >= lo && ret < hi);
+    expect([at.handler, at.fast, at.replay].map(posts)).toEqual([true, true, true]);
+    expect([at.guide, at.timers].map(posts)).toEqual([false, false]);
+  });
+
   it('every character of the name is in the camera\'s own texts of that language', () => {
     const d = new fw.Firmware(official).decoded;
     LANGS.forEach((lang, k) => {
