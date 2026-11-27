@@ -137,6 +137,18 @@ export function setWbPerLook(wbPerLook: boolean): void {
 }
 /** White balance per look: offered on GR IV 1.20 / 1.21, built only with at least one added look (output.ts). */
 export function wbPerLookOn(s: State = state): boolean { return !!s.wbPerLook && !!s.info?.features.wbPerLook; }
+/** Custom 1 / 2 before the films (GR III 2.10 / IIIx 1.60), built only with at least one film (output.ts). */
+export function setCustomsFirst(customsFirst: boolean): void {
+  if (customsFirst && !state.info?.features.customsBeforeFilms) return;
+  set({ customsFirst }); scheduleSave();
+}
+export function customsFirstOn(s: State = state): boolean { return !!s.customsFirst && !!s.info?.features.customsBeforeFilms; }
+/** The looks' order kept in the camera and its screen (GR III 2.10 / IIIx 1.60), built only with at least one film. */
+export function setLookMenu(lookMenu: boolean): void {
+  if (lookMenu && !state.info?.features.lookMenu) return;
+  set({ lookMenu }); scheduleSave();
+}
+export function lookMenuOn(s: State = state): boolean { return !!s.lookMenu && !!s.info?.features.lookMenu; }
 export function setMovieExposure(movieExposure: boolean): void {
   if (movieExposure && !state.info?.features.movieExposure) return;
   set({ movieExposure }); scheduleSave();
@@ -176,7 +188,7 @@ export function setAdjSlots(adjSlots: number): void {
 /** The ADJ lever slots the build gets (5: none added). */
 export function adjSlotsOf(s: State = state): number { const max = s.info?.features.maxAdjSlots ?? 5; return s.adjSlots > 5 && s.adjSlots <= max ? s.adjSlots : 5; }
 /** Any addition that is not a slot or a ratio. */
-export function extrasOn(s: State = state): boolean { return !!brightAutoOf(s) || exposurePreviewOn(s) || filmGrainOn(s) || flashTtlOn(s) || subjectAfOn(s) || lockProtectOn(s) || videoAfOn(s) || dimLightAfOn(s) || awbLearnOn(s) || wbPerLookOn(s) || movieExposureOn(s) || sensorShiftOn(s) || movie4kOn(s) || movieSrOn(s) || distanceFeetOn(s) || constantLightOn(s) || softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hasLookLayout(s) || directFlashOn(s) || adjSlotsOf(s) > 5 || hdrOn(s) || batteryOn(s) || (!!customGridOf(s) || (!!s.customGrid && !!s.info?.features.framing && framingValuesOn(s))) || shadowLearnOn(s); }
+export function extrasOn(s: State = state): boolean { return !!brightAutoOf(s) || exposurePreviewOn(s) || filmGrainOn(s) || flashTtlOn(s) || subjectAfOn(s) || lockProtectOn(s) || videoAfOn(s) || dimLightAfOn(s) || awbLearnOn(s) || wbPerLookOn(s) || customsFirstOn(s) || lookMenuOn(s) || movieExposureOn(s) || sensorShiftOn(s) || movie4kOn(s) || movieSrOn(s) || distanceFeetOn(s) || constantLightOn(s) || softOn(s) || !!s.dateStamp || monoUnlockOn(s) || hasLookLayout(s) || directFlashOn(s) || adjSlotsOf(s) > 5 || hdrOn(s) || batteryOn(s) || (!!customGridOf(s) || (!!s.customGrid && !!s.info?.features.framing && framingValuesOn(s))) || shadowLearnOn(s); }
 const MINUS = '\u2212';
 const strengthLabel = (st: SoftFocusStrength | 'custom'): string => t(st === 'weak' ? 'softWeak' : st === 'medium' ? 'softMedium' : st === 'strong' ? 'softStrong' : 'softCustom');
 /** "−2 weak / −3 medium" (−1 first), for confirmations and the copies page. */
