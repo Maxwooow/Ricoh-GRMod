@@ -12,7 +12,7 @@ import type { Gr3xAdjFeatures } from './adj';
 import type { Gr3xMenuRatio } from './geometry';
 import { GR3X_PROFILE, openGr3xOfficial } from './profile';
 import { GR3X_FONT_VERIFIED_CHARS, GR3X_TEXT_ROWS, gr3xAllowedChars, validateGr3xLookNameFor } from './look-resources';
-import { GR3X_MOVIE_COUNT, installGr3xLookLayout, isGr3xFactoryLayout, validateGr3xLookLayout } from './look-layout';
+import { GR3X_MOVIE_COUNT, gr3xFactoryLookOrder, installGr3xLookLayout, isGr3xFactoryLayout, validateGr3xLookLayout } from './look-layout';
 import { adr, adrHex, byRelease } from './target';
 
 export const GR3X_LOOK_RESEARCH = {
@@ -217,12 +217,15 @@ export async function buildGr3xLookMenuResearch(raw: Uint8Array, looks: readonly
   const lookTileIcon = displayIcons ? hookLookup(cfg.tileIcon, 0xe351000a, 'iconId') : undefined;
   // Round 8: with an Image Control order or hidden looks, the lists come from look-layout.ts (the
   // films included); otherwise the films follow the camera's twelve looks.
-  const layout = features.round8 && features.lookLayout && !isGr3xFactoryLayout(features.lookLayout, slots.length) ? features.lookLayout : undefined;
+  // Live layout (the order kept in the camera, films.c -DLIVE_LAYOUT): the layout's lists always, the camera's order when none.
+  const live = features.liveLayout === true && !!features.round10;
+  const layout = live ? (features.lookLayout ?? { order: gr3xFactoryLookOrder(slots.length), hidden: [] })
+    : features.round8 && features.lookLayout && !isGr3xFactoryLayout(features.lookLayout, slots.length) ? features.lookLayout : undefined;
   if (features.lookLayout) validateGr3xLookLayout(features.lookLayout, slots.length);
   let count: number, item: number, index: number, layoutEntries: Record<string, number> = {};
   if (layout) {
     if (slots.some((s, i) => s.id !== cfg.firstId + i)) throw new FirmwareError('bad-edit', 'IIIx look layout: the films are looks 64..');
-    layoutEntries = installGr3xLookLayout({ code, append, patch, u32: va => new DataView(originalRead(va, 4).buffer).getUint32(0, true), read: originalRead }, layout, slots.length, !!features.round10);
+    layoutEntries = installGr3xLookLayout({ code, append, patch, u32: va => new DataView(originalRead(va, 4).buffer).getUint32(0, true), read: originalRead }, layout, slots.length, !!features.round10, live);
     count = layoutEntries.lookLayoutCount; item = layoutEntries.lookLayoutItem; index = layoutEntries.lookLayoutIndex;
   } else {
     const order = append(Uint8Array.from(slots.map(s => s.id)));

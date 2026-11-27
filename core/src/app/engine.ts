@@ -123,8 +123,14 @@ export interface FirmwareInfo {
     movieSr?: boolean;
     /** Distances can be shown in feet: Snap Focus Distance and the manual focus scale (GR IV 1.20 / 1.21; see `gr4v120/aspect/units.ts`). */
     distanceFeet?: boolean;
-    /** White balance per look: every look remembers its own still white balance (GR IV 1.20 and 1.21, with added slots; see `gr4v120/aspect/slots.ts`). */
+    /** White balance per look: every look remembers its own still white balance (GR IV 1.20 and 1.21, with added slots; see `gr4v120/aspect/slots.ts`; GR III 2.10 / IIIx 1.60 with films, see `gr3x/wbperlook.ts`). */
     wbPerLook?: boolean;
+    /** The two Custom entries can go before the films in the still Image Control lists (GR III 2.10 / IIIx 1.60 with films; see `gr3x/custom-position.ts`). */
+    customsBeforeFilms?: boolean;
+    /** The Image Control lists' order and hidden looks can be kept in the camera (GR III 2.10 / IIIx 1.60 with films; see `gr3x/native/films.c`). */
+    liveLayout?: boolean;
+    /** A screen of the still menu can order the Image Control lists and show / hide their looks (GR III 2.10 / IIIx 1.60; see `gr3x/look-menu.ts`). */
+    lookMenu?: boolean;
     /** Halation for every look: every look, factory or added, has the Halation row and the effect (GR IV 1.20 and 1.21, with added slots; see `gr4v120/aspect/halation-all.ts`). */
     halationAll?: boolean;
     /** Subject recognition for photo AF can be added (GR IV 1.20 / 1.21; see `gr4v120/aspect/subjectaf.ts`). */
@@ -284,6 +290,12 @@ export interface FirmwareSummary {
   distanceFeet?: boolean;
   /** True when every look of the file remembers its own still white balance. */
   wbPerLook?: boolean;
+  /** True when the file shows the two Custom entries before the films (GR III / IIIx). */
+  customsBeforeFilms?: boolean;
+  /** True when the file keeps the Image Control lists' order in the camera (GR III / IIIx). */
+  liveLayout?: boolean;
+  /** True when the file has the order's screen in the still menu (GR III / IIIx). */
+  lookMenu?: boolean;
   /** True when every look of the file has halation. */
   halationAll?: boolean;
   /** True when the file has subject recognition for photo AF. */
@@ -465,6 +477,16 @@ export interface BuildOptions {
    * asked for.
    */
   wbPerLook?: boolean;
+  /** GR III 2.10 / IIIx 1.60 with films (`features.customsBeforeFilms`): the two Custom entries of the still Image Control
+   * lists (menu and strip) right before the first film shown, instead of after the films. */
+  customsBeforeFilms?: boolean;
+  /** GR III 2.10 / IIIx 1.60 with films (`features.liveLayout`): the Image Control lists' order and hidden looks (and
+   * the Custom entries' place) kept in the camera, HTData record 15, starting from this build's. */
+  liveLayout?: boolean;
+  /** GR III 2.10 / IIIx 1.60 (`features.lookMenu`, needs `liveLayout`): a line "Image Control Order" at the end of the still
+   * menu opens a screen of the layout's entries: up / down the cursor, left / right move the entry, OK shows / hides it.
+   * Not with the date imprint or End Screen pictures. */
+  lookMenu?: boolean;
   /**
    * Halation for every look (GR IV 1.20 and 1.21, `features.halationAll`; needs at least one added slot): every look,
    * the camera's own and the added ones, has the Halation row on its parameter screens (Off / On, Fn for strength and
@@ -604,20 +626,20 @@ export class Engine {
   private readonly g4: Gr4Program;
 
   private fixedGr3x(softFocus: readonly SoftFocusRequest[] = [], looks?: Gr3xLookOptions, menu: readonly Gr3xMenuRatio[] = GR3X_T4_MENU, adjSoftFocus = false, dateImprint = false, pictures: readonly Gr3xPictureSpec[] = [], dateMenu: 'list' | 'submenu' = 'submenu', pictureMenu: 'list' | 'submenu' = 'submenu',
-    round: { round7?: boolean; round8?: boolean; round9?: boolean; round10?: boolean; lookLayout?: Gr3xLookLayout; dimLightAf?: boolean } = {}): Promise<FirmwareBuild> {
+    round: { round7?: boolean; round8?: boolean; round9?: boolean; round10?: boolean; lookLayout?: Gr3xLookLayout; dimLightAf?: boolean; wbPerLook?: boolean; customsBeforeFilms?: boolean; liveLayout?: boolean; lookMenu?: boolean } = {}): Promise<FirmwareBuild> {
     const requests = [...softFocus].sort((a, b) => a.level - b.level);
     const round7 = round.round7 === true, round8 = round7 && round.round8 === true, round9 = round8 && round.round9 === true, round10 = round9 && round.round10 === true, lookLayout = round8 ? round.lookLayout : undefined;
-    const dimLightAf = round.dimLightAf === true;
-    const key = JSON.stringify({ requests, looks, menu, adjSoftFocus, dateImprint, dateMenu, pictureMenu, round7, round8, round9, round10, lookLayout, dimLightAf, pictures: pictures.map(p => ({ id: p.id, name: p.name, jpeg: Array.from(p.jpeg) })) });
+    const dimLightAf = round.dimLightAf === true, wbPerLook = round.wbPerLook === true, customsBeforeFilms = round.customsBeforeFilms === true, liveLayout = round.liveLayout === true, lookMenu = round.lookMenu === true;
+    const key = JSON.stringify({ requests, looks, menu, adjSoftFocus, dateImprint, dateMenu, pictureMenu, round7, round8, round9, round10, lookLayout, dimLightAf, wbPerLook, customsBeforeFilms, liveLayout, lookMenu, pictures: pictures.map(p => ({ id: p.id, name: p.name, jpeg: Array.from(p.jpeg) })) });
     let candidate = this.gr3xCandidates.get(key);
     if (candidate) return candidate;
     candidate = this.gr3!.buildGr3xTestFirmware(this.raw, requests, looks, menu, { adjSoftFocus, ...(dateImprint ? { dateImprint, dateMenu } : {}), ...(pictures.length ? { pictures, pictureMenu } : {}), ...(round7 ? { round7 } : {}),
-      ...(round8 ? { round8 } : {}), ...(round9 ? { round9 } : {}), ...(round10 ? { round10 } : {}), ...(lookLayout ? { lookLayout } : {}), ...(dimLightAf ? { dimLightAf } : {}) }).then(r => { const built: FirmwareBuild = {
+      ...(round8 ? { round8 } : {}), ...(round9 ? { round9 } : {}), ...(round10 ? { round10 } : {}), ...(lookLayout ? { lookLayout } : {}), ...(dimLightAf ? { dimLightAf } : {}), ...(wbPerLook ? { wbPerLook } : {}), ...(customsBeforeFilms ? { customsBeforeFilms } : {}), ...(liveLayout ? { liveLayout } : {}), ...(lookMenu ? { lookMenu } : {}) }).then(r => { const built: FirmwareBuild = {
       file: r.bytes, sha256: r.report.outputSha256, decodedSha256: r.decodedSha256,
       changedFrames: r.changedFrames, changedBytes: r.changedBytes,
       ranges: r.report.ranges, checks: r.report.checks, features: { ...(looks?.monoReplicas ? { monoUnlock: true } : {}), ...(adjSoftFocus ? { adjSoftFocus: true } : {}), ...(dateImprint ? { dateStamp: true } : {}),
         ...(pictures.length ? { shutdown: { pictures: pictures.map((p, k) => ({ id: p.id ?? k + 1, name: p.name, jpeg: p.jpeg })), factory: [] } } : {}),
-        ...(lookLayout ? { lookLayout: { order: [...lookLayout.order], hidden: [...lookLayout.hidden] } } : {}) },
+        ...(lookLayout ? { lookLayout: { order: [...lookLayout.order], hidden: [...lookLayout.hidden] } } : {}), ...(wbPerLook ? { wbPerLook: true } : {}), ...(customsBeforeFilms ? { customsBeforeFilms: true } : {}), ...(liveLayout ? { liveLayout: true } : {}), ...(lookMenu ? { lookMenu: true } : {}) },
       ratios: gr3xCustoms(r.manifest.menu).map(x => {
         const plan = planGr3xRatio(x.ratio);
         return { id: x.id, name: x.name, ratio: x.ratio, actual: plan.actual, sizes: plan.sizes };
@@ -671,7 +693,7 @@ export class Engine {
         // GR Mod 0.8 dropped that route, and it was never tested on these cameras: not offered.
         // Power-off pictures, the date imprint, 20 films, the menu order: GR III 2.10 and GR IIIx 1.60 (one program).
         capabilities: { build: true, presets: true, wallpaper: false, factoryEntry: false, menuPictures: profile.fullFeatures, lookLayout: profile.fullFeatures },
-        features: { softFocus: 'adj', dateStamp: profile.fullFeatures, monoUnlock: false, maxFilms: profile.fullFeatures ? GR3X_MAX_FILMS : 9, ...(gr3.gr3xDimLightAfOffered(profile) ? { dimLightAf: true } : {}) },
+        features: { softFocus: 'adj', dateStamp: profile.fullFeatures, monoUnlock: false, maxFilms: profile.fullFeatures ? GR3X_MAX_FILMS : 9, ...(gr3.gr3xDimLightAfOffered(profile) ? { dimLightAf: true } : {}), ...(profile.fullFeatures && gr3.gr3xWbPerLookOffered() ? { wbPerLook: true, customsBeforeFilms: true, liveLayout: true, lookMenu: true } : {}) },
         version: profile.version, sha256: profile.sha256,
         slots: GR3X_FILM_IDS.slice(0, profile.fullFeatures ? GR3X_MAX_FILMS : 9).map((id, i) => ({
           id, defaultName: GR3X_FILM_NAMES[i], icon: lookResources.film.slice(),
@@ -775,7 +797,7 @@ export class Engine {
       let pictureMenu: 'list' | 'submenu' = 'list';
       let round7 = false, round8 = false, round9 = false, round10 = false;
       let lookLayout: Gr3xLookLayout | undefined;
-      let dimLightAf = false;
+      let dimLightAf = false, wbPerLook = false, customsBeforeFilms = false, liveLayout = false, lookMenu = false;
       if (!official) try {
         // Read only recognized negative gain rows, rebuild from the verified
         // original, and compare the entire file. A valid container or metadata
@@ -790,7 +812,7 @@ export class Engine {
           const build = this.gr3!.readGr3xBuildRecipe(appended);
           if (build) {
             menu = planGr3xMenu(build.ratios); adjSoftFocus = build.adjSoftFocus; dateImprint = build.dateImprint; dateMenu = build.dateMenu; pictureMenu = build.pictureMenu; round7 = build.round7;
-            round8 = build.round8; round9 = build.round9; round10 = build.round10; lookLayout = build.lookLayout; dimLightAf = build.dimLightAf;
+            round8 = build.round8; round9 = build.round9; round10 = build.round10; lookLayout = build.lookLayout; dimLightAf = build.dimLightAf; wbPerLook = build.wbPerLook; customsBeforeFilms = build.customsBeforeFilms; liveLayout = build.liveLayout; lookMenu = build.lookMenu;
             // Power-off pictures: the names from the recipe, the JPEGs from the file's own RES section.
             if (build.pictures.length) {
               if (build.pictures.length > this.gr3!.GR3X_MAX_PICTURES) throw new FirmwareError('bad-edit', 'IIIx picture recipe');
@@ -806,7 +828,7 @@ export class Engine {
         const changes = this.g4.clarityChanges(decoded, this.gr3!.GR3X_CLARITY_OFFSET);
 
         if (changes.every(c => this.g4.SOFT_FOCUS_LEVELS.includes(c.level as SoftFocusLevel) && c.strength !== 'custom')) {
-          candidate = await this.fixedGr3x(changes as SoftFocusRequest[], looks ?? undefined, menu, adjSoftFocus, dateImprint, pictures, dateMenu, pictureMenu, { round7, round8, round9, round10, ...(lookLayout ? { lookLayout } : {}), ...(dimLightAf ? { dimLightAf } : {}) });
+          candidate = await this.fixedGr3x(changes as SoftFocusRequest[], looks ?? undefined, menu, adjSoftFocus, dateImprint, pictures, dateMenu, pictureMenu, { round7, round8, round9, round10, ...(lookLayout ? { lookLayout } : {}), ...(dimLightAf ? { dimLightAf } : {}), ...(wbPerLook ? { wbPerLook } : {}), ...(customsBeforeFilms ? { customsBeforeFilms } : {}), ...(liveLayout ? { liveLayout } : {}), ...(lookMenu ? { lookMenu } : {}) });
           softFocus = changes;
         }
       } catch { /* unrecognized input remains non-writable */ }
@@ -822,7 +844,7 @@ export class Engine {
         adjSoftFocus: matched && adjSoftFocus, dateStamp: matched && dateImprint, monoUnlock: matched && looks?.monoReplicas === true, extraSlots: [],
         ...(matched && pictures.length ? { shutdownPictures: pictures.map((p, k) => ({ id: p.id ?? k + 1, name: p.name, jpeg: p.jpeg })) } : {}),
         ...(matched && lookLayout ? { lookLayout: { order: [...lookLayout.order], hidden: [...lookLayout.hidden] } } : {}),
-        ...(matched && dimLightAf ? { dimLightAf: true } : {}) };
+        ...(matched && dimLightAf ? { dimLightAf: true } : {}), ...(matched && wbPerLook ? { wbPerLook: true } : {}), ...(matched && customsBeforeFilms ? { customsBeforeFilms: true } : {}), ...(matched && liveLayout ? { liveLayout: true } : {}), ...(matched && lookMenu ? { lookMenu: true } : {}) };
     }
     const describe = (d: Uint8Array): FirmwareSummary['slots'] =>
       this.g4.SLOTS.map((s) => {
@@ -1166,7 +1188,7 @@ export class Engine {
     if (options.dimLightAf !== undefined && typeof options.dimLightAf !== 'boolean') throw new FirmwareError('bad-edit', 'dimLightAf must be boolean');
     if (options.dimLightAf && !this.info.features.dimLightAf) throw new FirmwareError('bad-edit', 'the dim-light AF needs GR III / IIIx firmware');
     if (this.info.family === 'gr3x') {
-      if (Object.entries(options).some(([k, v]) => k !== 'monoUnlock' && k !== 'adjSoftFocus' && k !== 'dateStamp' && k !== 'shutdownPictures' && k !== 'filmCount' && k !== 'guard' && k !== 'lookLayout' && k !== 'gr3Round' && k !== 'dimLightAf' && v !== undefined && v !== false && !(Array.isArray(v) && !v.length)))
+      if (Object.entries(options).some(([k, v]) => k !== 'monoUnlock' && k !== 'adjSoftFocus' && k !== 'dateStamp' && k !== 'shutdownPictures' && k !== 'filmCount' && k !== 'guard' && k !== 'lookLayout' && k !== 'gr3Round' && k !== 'dimLightAf' && k !== 'wbPerLook' && k !== 'customsBeforeFilms' && k !== 'liveLayout' && k !== 'lookMenu' && v !== undefined && v !== false && !(Array.isArray(v) && !v.length)))
         throw new FirmwareError('gr3x-unsupported', 'added Image Control slots and the test settings of the date imprint are not ported to GR III / IIIx');
       if (options.shutdownPictures?.length && !this.info.capabilities.menuPictures)
         throw new FirmwareError('gr3x-unsupported', 'this GR III / IIIx file has no End Screen pictures');
@@ -1218,10 +1240,27 @@ export class Engine {
       const round10 = round9 && options.gr3Round !== 9;
       if (options.lookLayout && !round8) throw new FirmwareError('bad-look-layout', 'the Image Control order needs a round 8 build');
       const lookLayout = options.lookLayout && !isGr3xFactoryLayout(options.lookLayout, filmCount ?? 0) ? options.lookLayout : undefined;
+      // White balance per look (gr3x/wbperlook.ts): in the films' module of round 10, so with at least one film.
+      if (options.wbPerLook !== undefined && typeof options.wbPerLook !== 'boolean') throw new FirmwareError('bad-edit', 'wbPerLook must be boolean');
+      if (options.wbPerLook && !this.info.features.wbPerLook) throw new FirmwareError('bad-edit', 'white balance per look needs GR III 2.10 or GR IIIx 1.60 firmware');
+      if (options.wbPerLook && (!round10 || !looks || looks.filmCount === undefined)) throw new FirmwareError('bad-edit', 'white balance per look needs at least one added film (round 10)');
+      // The two Custom entries before the films (gr3x/custom-position.ts): with films, round 10.
+      if (options.customsBeforeFilms !== undefined && typeof options.customsBeforeFilms !== 'boolean') throw new FirmwareError('bad-edit', 'customsBeforeFilms must be boolean');
+      if (options.customsBeforeFilms && !this.info.features.customsBeforeFilms) throw new FirmwareError('bad-edit', 'the Custom entries before the films need GR III 2.10 or GR IIIx 1.60 firmware');
+      if (options.customsBeforeFilms && (!round10 || !looks || looks.filmCount === undefined)) throw new FirmwareError('bad-edit', 'the Custom entries before the films need at least one added film (round 10)');
+      // The lists' order kept in the camera (gr3x/native/films.c -DLIVE_LAYOUT): with films, round 10.
+      if (options.liveLayout !== undefined && typeof options.liveLayout !== 'boolean') throw new FirmwareError('bad-edit', 'liveLayout must be boolean');
+      if (options.liveLayout && !this.info.features.liveLayout) throw new FirmwareError('bad-edit', 'the layout kept in the camera needs GR III 2.10 or GR IIIx 1.60 firmware');
+      if (options.liveLayout && (!round10 || !looks || looks.filmCount === undefined)) throw new FirmwareError('bad-edit', 'the layout kept in the camera needs at least one added film (round 10)');
+      // The order's screen in the still menu (gr3x/look-menu.ts): with the layout kept in the camera.
+      if (options.lookMenu !== undefined && typeof options.lookMenu !== 'boolean') throw new FirmwareError('bad-edit', 'lookMenu must be boolean');
+      if (options.lookMenu && !this.info.features.lookMenu) throw new FirmwareError('bad-edit', 'the look menu needs GR III 2.10 or GR IIIx 1.60 firmware');
+      if (options.lookMenu && !options.liveLayout) throw new FirmwareError('bad-edit', 'the look menu needs the layout kept in the camera (liveLayout)');
+      if (options.lookMenu && (options.dateStamp || options.shutdownPictures?.length)) throw new FirmwareError('bad-edit', 'the look menu cannot be combined with the date imprint or End Screen pictures yet');
       if (options.lookLayout) validateGr3xLookLayout(options.lookLayout, filmCount ?? 0);
       const r = await this.fixedGr3x(softFocus, looks, menu, !!options.adjSoftFocus, !!options.dateStamp,
         (options.shutdownPictures ?? []).map(p => ({ id: p.id, name: p.name, jpeg: p.jpeg })), 'submenu', 'submenu',
-        { round7, round8, round9, round10, ...(lookLayout ? { lookLayout } : {}), ...(options.dimLightAf ? { dimLightAf: true } : {}) });
+        { round7, round8, round9, round10, ...(lookLayout ? { lookLayout } : {}), ...(options.dimLightAf ? { dimLightAf: true } : {}), ...(options.wbPerLook ? { wbPerLook: true } : {}), ...(options.customsBeforeFilms ? { customsBeforeFilms: true } : {}), ...(options.liveLayout ? { liveLayout: true } : {}), ...(options.lookMenu ? { lookMenu: true } : {}) });
       return { ...r, file: r.file.slice() };
     }
     if (this.layout === null || !this.info.capabilities.build) requireGr3xPort('custom firmware');

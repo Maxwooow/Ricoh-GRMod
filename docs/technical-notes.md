@@ -128,6 +128,26 @@ ratios or films are added until the user adds them.
 
 ## GR III and GR IIIx
 
+White balance per look on GR III 2.10 / GR IIIx 1.60 (`core/src/fw/gr3x/wbperlook.ts`, option `wbPerLook`, round 10
+with at least one film): `tools/gr3x/native/films.c` built with `-DWB_PER_LOOK` (`python3 tools/gr3x/gen_films.py --wb`
+writes `films-wb-native.ts`), the same idea as GR IV's (PR #57). UserData's record (UserDataModel 0x55063f30, the record
+in use at +4) keeps the still white balance at 0x178..0x1af: StillWhiteBalance 0x178, the G-M shift of the 13 modes
+(Auto, Multi, Daylight, Shade, Cloudiness, Flu D/N/W/L, Tungsten, CTE, Manual 1, Colour Temp 1) at 0x17a.., their B-A
+shift at 0x194.., StillWhiteBalanceColorTemp 0x1ae (a half-word); each value byte is followed by a byte the record's
+copy routine (0x53247288) treats as its flag. Found through the settings text interface (names at 0x53b23d1c..,
+parsers 0x532df1bc.., which call the setters): StillWhiteBalance 0x532721e4, G-M 0x53272378 + 0x20 k, B-A
+0x5327292c + 0x20 k, ColorTemp 0x53272ee0 (each stores the value, then tells the listeners), StillActiveImageControlSet
+0x5327b374. When the look of the photo set in use changes (the hook before the look setter, `sp_style_set`) or another
+photo set is chosen (a new hook before 0x5327b374, `sp_active`), the old look takes the white balance; after the setter
+(`sp_wb_done`, the setter runs inside the stub) the new look gets its own back through the camera's setters, the mode
+last; a look never used before keeps the white balance in use. A mode recall (`sp_before_recall`) first gives the white
+balance in use to the look in use. The table (52 looks: 0..31 and films 64..83, 29 bytes each) is HTData record 14
+('GRW3', version 1; the camera uses records 0 and 2..8 and accepts 0..15; HTData.cpp formats them as files), written at
+power off. Custom WB captures and movie WB are not touched. `tools/gr3x/wbperlook_probe.py` runs the look, photo-set
+and white balance setters natively in the built image (their notifications and the record push recorded) against a
+model, over random sequences with power cycles and recalls, and the films check of the round (`films_probe.py`) on
+the same build. Not offered on 1.70 / 1.71 (2.20 / 2.21): those addresses are not mapped there.
+
 One program for both families: GR IV files are built exactly as by GR Mod 0.8.4 (GR IV's code is
 shared and unchanged; `core/test/gr4-unchanged.test.ts` pins its outputs), and the GR III / IIIx code
 (`core/src/fw/gr3x`, `tools/gr3x`) is used only for the exact official GR III 2.10 / IIIx 1.60

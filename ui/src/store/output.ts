@@ -194,8 +194,9 @@ export async function outputFirmware(dest: Dest, stock = false): Promise<void> {
   if (!stock && (hasNameErrors() || hasRatioErrors())) return;
   if (!stock && hasExtraErrors()) { toast(t('extraIncomplete'), 'error'); return; }
   const extras = stock ? [] : extraSpecs();
-  // White balance per look lives in the module of the added looks: only with at least one.
-  const wbPerLook = !stock && wbPerLookOn() && extras.length > 0;
+  // White balance per look lives in the module of the added looks (GR III / IIIx: of the films): only with at least one.
+  const wbFilms = filmCountChoosable() ? state.filmCount : 0;
+  const wbPerLook = !stock && wbPerLookOn() && (state.info?.family === 'gr3x' ? wbFilms > 0 : extras.length > 0);
   // Halation for every look lives in the same module: only with at least one added look.
   const halationAll = !stock && halationAllOffered() && state.halationAll && extras.length > 0;
   // GR III / IIIx: power-off pictures only on GR III / IIIx (End Screen › Picture, as

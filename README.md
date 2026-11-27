@@ -62,7 +62,7 @@ Use only firmware intended for your camera model and a base version listed above
 - **Constant Light:** keeps the AF assist lamp lit, switched in the shooting menu, in ADJ mode or by an Fn button, on GR IV 1.20 / 1.21.
 - **Sensor Shift:** shift and turn the sensor by hand with the shake reduction unit to fine-tune the framing, from ADJ mode, the Fn button or the held Movie button, on GR IV 1.20 / 1.21.
 - **Distance unit:** Snap Focus Distance and the manual focus scale in feet (and inches) instead of metres, on GR IV 1.20 / 1.21.
-- **White balance per look:** each Image Control look, the camera's own and the added ones, remembers its own still white balance and gets it back when chosen again, on GR IV 1.20 / 1.21 with added slots.
+- **White balance per look:** each Image Control look, the camera's own and the added ones, remembers its own still white balance and gets it back when chosen again, on GR IV 1.20 / 1.21 with added slots, and on GR III 2.10 / GR IIIx 1.60 with at least one film (emulator-tested; not yet tested on a camera).
 - **Custom grid lines:** choose which lines a 3x3 and a 4x4 grid draw, on the GR IV (firmware 1.11, 1.20 and 1.21; on 1.20 / 1.21 they are extra values of the camera's Grid Style list, next to its own).
 - **Faster AF in low light:** faster contrast AF in low light (a milder peak detector, and 49 instead of 29 frames per second while it searches), on the GR IIIx (firmware 1.60, 1.70, 1.71), where it was tuned and tested, and the GR III (2.10, 2.20, 2.21), which runs the same AF program (not yet tried on a GR III).
 

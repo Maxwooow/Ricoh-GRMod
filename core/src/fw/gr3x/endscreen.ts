@@ -201,3 +201,8 @@ export function installGr3xEndScreen(p: Gr3xEndScreenProgram, o: Gr3xEndScreenOp
     endScreenFooter: footer, endScreenRefresh: refresh, endScreenTypes: types, endScreenTypesAt: typesAt, picturePick: pick,
     endScreenLineType: lineType, endScreenLinePicture: linePicture };
 }
+
+/** The End Screen list's handlers and parts as this module relies on them (look-menu.ts uses the list in a mode of its own). */
+export const GR3X_END_SCREEN_SITES = {
+  REFRESH, CONFIRM, UP, DOWN, FOOTER, ROWS_AT, TYPES_AT, ROW_TYPE, TITLE, LIST_SHOWN, TITLE_SET, GRAPHIC_VISIBLE, APP, UI_MODEL,
+} as const;

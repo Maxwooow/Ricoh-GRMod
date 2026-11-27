@@ -111,31 +111,59 @@ export function checkGr3xLookLayoutSites(p: Pick<Gr3xLookLayoutProgram, 'u32' | 
  * The lists of a layout. `films`: the build's films (their entries come from here too: in a build
  * with films this replaces image-control-research.ts's count, entry and reverse lookups).
  */
-export function installGr3xLookLayout(p: Gr3xLookLayoutProgram, layout: Gr3xLookLayout, films: number, round10 = false) {
+/** The RAM word through which the lists ask the films' module for the layout kept in the camera
+ * (native/films.c -DLIVE_LAYOUT, ll_query): 0 until the settings are loaded, then the function. */
+export const GR3X_LIVE_LAYOUT_WORD = () => adr(0x5580438c);
+
+/** Assembly: r0 = ll_query(op, a, b) through the live word, or branch to `fail` (r0..r3, ip, lr not kept). */
+export function gr3xLiveQuery(op: number, a: string, b: string, fail: string): string {
+  const word = GR3X_LIVE_LAYOUT_WORD();
+  return `${addr('ip', word)}ldr ip,[ip];cmp ip,#0;beq ${fail};mov r2,${b};mov r1,${a};mov r0,#${op};mov lr,pc;bx ip;cmn r0,#1;beq ${fail};`;
+}
+
+export function installGr3xLookLayout(p: Gr3xLookLayoutProgram, layout: Gr3xLookLayout, films: number, round10 = false, live = false) {
   checkGr3xLookLayoutSites(p);
   const L = gr3xLookLists(layout, films, round10);
   if (!L.still.length || !L.movie.length || !L.raw.length || L.still.length > 255 || L.movie.length > GR3X_MOVIE_LOOKS.length + (round10 ? films : 0)) fail('internal', 'list lengths');
   const still = p.append(Uint8Array.from(L.still)), movie = p.append(Uint8Array.from(L.movie)), raw = p.append(Uint8Array.from(L.raw));
   // Count: still (byte 0) or RAW development (2); r3 holds the byte, the flags are those of `cmp r0,#2`.
-  const count = p.code(`bhi #${COUNT_STILL + 4};cmp r3,#0;moveq r0,#${L.still.length};movne r0,#${L.raw.length};b #${COUNT_STILL + 8};`);
+  // Live (the layout kept in the camera): the module's answer first, the build's tables when it has none.
+  const count = live
+    ? p.code(`bhi #${COUNT_STILL + 4};push {r3,lr};cmp r3,#0;movne r3,#2;${gr3xLiveQuery(0, 'r3', '#0', 'cfail')}pop {r3,lr};b #${COUNT_STILL + 8};
+        cfail:pop {r3,lr};cmp r3,#0;moveq r0,#${L.still.length};movne r0,#${L.raw.length};b #${COUNT_STILL + 8};`)
+    : p.code(`bhi #${COUNT_STILL + 4};cmp r3,#0;moveq r0,#${L.still.length};movne r0,#${L.raw.length};b #${COUNT_STILL + 8};`);
   p.patch(COUNT_STILL, 0x93a0000c, branchWord(COUNT_STILL, count), 'look layout: still / RAW development list count');
-  p.patch(COUNT_MOVIE, 0x93a0000a, (0x93a00000 | L.movie.length) >>> 0, 'look layout: movie list count');
+  // The movie count: `movls r0,#10`, then `bls` to the end of the function (COUNT_MOVIE + 4).
+  const end = COUNT_MOVIE - 0xc;
+  const movieCount = live ? p.code(`push {r3,lr};${gr3xLiveQuery(0, '#1', '#0', 'mfail')}pop {r3,lr};b #${end};mfail:pop {r3,lr};mov r0,#${L.movie.length};b #${end};`) : 0;
+  if (live) {
+    if (p.u32(COUNT_MOVIE + 4) !== branchWord(COUNT_MOVIE + 4, end, 9)) fail('unexpected-instruction', 'movie count end');
+    p.patch(COUNT_MOVIE, 0x93a0000a, branchWord(COUNT_MOVIE, movieCount, 9), 'look layout (live): movie list count');
+  } else p.patch(COUNT_MOVIE, 0x93a0000a, (0x93a00000 | L.movie.length) >>> 0, 'look layout: movie list count');
   // RAW development's dial counts its values itself (twelve): its list's length.
-  p.patch(RAW_COUNT, 0xe3a0000c, (0xe3a00000 | L.raw.length) >>> 0, 'look layout: RAW development dial count');
+  const rawCount = live ? p.code(`push {r4,lr};${gr3xLiveQuery(0, '#2', '#0', 'rfail')}pop {r4,pc};rfail:mov r0,#${L.raw.length};pop {r4,pc};`) : 0;
+  if (live) p.patch(RAW_COUNT, 0xe3a0000c, branchWord(RAW_COUNT, rawCount), 'look layout (live): RAW development dial count');
+  else p.patch(RAW_COUNT, 0xe3a0000c, (0xe3a00000 | L.raw.length) >>> 0, 'look layout: RAW development dial count');
+  // Live: entry i / the entry of a look from the module (past the list: the camera's code), else the tables.
+  const liveItem = live ? `push {r0,r1,r2,lr};ldrb r3,[r0,#0x1b];cmp r3,#2;bhi ifail;${gr3xLiveQuery(1, 'r3', 'r1', 'ifail')}
+    cmn r0,#2;beq inat;add sp,sp,#12;pop {pc};inat:pop {r0,r1,r2,lr};b inative;ifail:pop {r0,r1,r2,lr};` : '';
+  const liveIndex = live ? `push {r0,r1,r2,lr};ldrb r3,[r0,#0x1b];cmp r3,#2;bhi xfail;${gr3xLiveQuery(2, 'r3', 'r1', 'xfail')}
+    add sp,sp,#12;pop {pc};xfail:pop {r0,r1,r2,lr};` : '';
   // Entry i of the list (this = r0, i = r1).
-  const item = p.code(`ldrb ip,[r0,#0x1b];cmp ip,#1;beq imovie;cmp ip,#2;beq iraw;cmp ip,#0;bne inative;
+  const item = p.code(liveItem + `ldrb ip,[r0,#0x1b];cmp ip,#1;beq imovie;cmp ip,#2;beq iraw;cmp ip,#0;bne inative;
     cmp r1,#${L.still.length};bhs inative;${addr('ip', still)}ldrb r0,[ip,r1];bx lr;
     imovie:cmp r1,#${L.movie.length};bhs inative;${addr('ip', movie)}ldrb r0,[ip,r1];bx lr;
     iraw:cmp r1,#${L.raw.length};bhs inative;${addr('ip', raw)}ldrb r0,[ip,r1];bx lr;
     inative:mov ip,sp;b #${ITEM + 4};`);
   p.patch(ITEM, 0xe1a0c00d, branchWord(ITEM, item), 'look layout: entry of the list');
   // The entry of look r1, or the count when the list does not have it (as the camera's).
-  const index = p.code(`ldrb ip,[r0,#0x1b];cmp ip,#1;beq xmovie;cmp ip,#2;beq xraw;cmp ip,#0;bne xnative;
+  const index = p.code(liveIndex + `ldrb ip,[r0,#0x1b];cmp ip,#1;beq xmovie;cmp ip,#2;beq xraw;cmp ip,#0;bne xnative;
     ${addr('r2', still)}mov r3,#${L.still.length};b xsearch;
     xmovie:${addr('r2', movie)}mov r3,#${L.movie.length};b xsearch;
     xraw:${addr('r2', raw)}mov r3,#${L.raw.length};
     xsearch:mov r0,#0;xloop:cmp r0,r3;bhs xdone;ldrb ip,[r2,r0];cmp ip,r1;beq xdone;add r0,r0,#1;b xloop;xdone:bx lr;
     xnative:mov ip,sp;b #${INDEX + 4};`);
   p.patch(INDEX, 0xe1a0c00d, branchWord(INDEX, index), 'look layout: entry of a look');
-  return { lookLayoutCount: count, lookLayoutItem: item, lookLayoutIndex: index, lookLayoutStill: still, lookLayoutMovie: movie, lookLayoutRaw: raw };
+  return { lookLayoutCount: count, lookLayoutItem: item, lookLayoutIndex: index, lookLayoutStill: still, lookLayoutMovie: movie, lookLayoutRaw: raw,
+    ...(live ? { lookLayoutMovieCount: movieCount, lookLayoutRawCount: rawCount } : {}) };
 }
