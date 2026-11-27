@@ -105,6 +105,7 @@ You can restore the official firmware from the Image Control page or the firmwar
 - [Automatic screen brightness](docs/bright-auto.md)
 - [Development guide](docs/development.md)—tests, the generated files, adding a firmware release
 - [Releasing](docs/releasing.md)—version numbers, packages, signing, publishing
+- [GR III 2.10 internals](docs/gr3-internals.md)—looks, settings records, Image Control lists, menus, keys, texts and the settings store
 - [Technical notes and release archive](docs/technical-notes.md)—implementation details, emulator checks, firmware research, and earlier release notes
 
 GR Mod does not include Ricoh firmware. It reads a firmware file supplied by the user or downloads one from Ricoh's official website under Ricoh's licence terms.

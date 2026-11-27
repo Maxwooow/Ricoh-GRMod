@@ -174,6 +174,9 @@ then 0xa2, MENU 0xda then 0x35). Its three texts exist in the camera's 21 langua
 use there (so its font has every character) and at most 24 characters. `tools/gr3x/live_layout_probe.py` and
 `look_menu_probe.py` run the lists and the screen natively.
 
+What this work found about the firmware's organisation (looks, settings records, lists, widgets, menus, keys, texts,
+store) is gathered in [gr3-internals.md](gr3-internals.md).
+
 All three are offered on the 2.10 / 1.60 program only (`gr3xWbPerLookOffered`) and tested on a GR III 2.10; the
 addresses are not mapped for 2.20 / 2.21 (1.70 / 1.71).
 
