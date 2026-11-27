@@ -1284,7 +1284,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
     installLookOrder(patch, features.lookLayout.order);
     installFactoryHidden(patch, features.lookLayout.hidden);
   }
-  if (halation.length > 0) icons = installHalation(patch, icons, halation, halAll ? { ui: slotModule.symbols!.sp_hal_ui } : undefined);
+  if (halation.length > 0) icons = installHalation(patch, icons, halation, halAll ? { ui: slotModule.symbols!.sp_hal_ui, now: slotModule.symbols!.sp_hal_now } : undefined);
   // After halation and the date imprint: wraps the JPEG step they hook at its entry.
   if (features.hdrGainMap) installHdrGainMap(patch, !!test.hdrDiag);
   if (shutdown) icons = installShutdownMenu(patch, icons, shutdown.pictures, shutdown.factory);

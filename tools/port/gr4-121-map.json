@@ -17462,6 +17462,24 @@
    "files": [
     "tools/gr4v120/lamp/check.py"
    ]
+  },
+  "0x533d02a8": {
+   "new": "0x533d0b10",
+   "how": "override",
+   "ok": true,
+   "why": "the parameter screen's snapshot of Toning (bl 0x5377d224): snapshot function 0x533d0210 -> 0x533d0a78, 80 words equal up to branch offsets; the site at +0x98 (the backup 0x533d03d0 -> 0x533d0c38 in this map moves by the same 0x868)",
+   "files": [
+    "core/src/fw/gr4v120/aspect/halation-all.ts"
+   ]
+  },
+  "0x5377d224": {
+   "new": "0x5377deb4",
+   "how": "override",
+   "ok": true,
+   "why": "live Toning getter: the bl at the snapshot site and the one in SHOOT_CUR (0x533cc288 -> 0x533ccaf0, +0x1c) both call 0x5377deb4 in 1.21",
+   "files": [
+    "core/src/fw/gr4v120/aspect/halation-all.ts"
+   ]
   }
  }
 }

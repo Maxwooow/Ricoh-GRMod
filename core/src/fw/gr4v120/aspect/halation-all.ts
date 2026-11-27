@@ -22,7 +22,8 @@
  * white glow whatever colour is set: red light on a monochrome picture would be a coloured cast.
  */
 import { FirmwareError } from '../../types';
-import { Patch } from './build';
+import { assembleWords, branchWord } from './arm';
+import { Patch, expectWord } from './build';
 import { adr } from '../target';
 
 function fail(code: string, message: string): never {
@@ -97,4 +98,35 @@ export function installHalationRows(p: Patch): void {
       p.setWord(w, (p.word(w) | (1 << shift)) >>> 0, 'halation for every look: RAW development may set parameter 8');
     }
   }
+}
+
+/**
+ * The parameter screen's snapshot (ImageControlDetailController, 0x533D0210: taken when the screen opens and after
+ * each change) reads every parameter of the look being set from the live properties, Toning at 0x533D02A8 through
+ * 0x5377D224, and 0x533D03D4 writes the snapshot back through the setters when a change is not kept (the screen
+ * left without OK, the shutter pressed half-way, a cancelled slider). A factory look's halation is kept in the
+ * slot-parameters module, which those live properties never see: the write-back put a stale Toning (Off or red)
+ * over it, so a look set to white came back red (0.9.5, reported 2026-11-27). Here the snapshot takes, for the
+ * looks the module keeps (`sp_hal_now` of the look of the photo set in use answers below 0x100), the module's
+ * setting; Cinema and the added looks keep the live property, as natively.
+ */
+const SNAP_TONING = adr(0x533d02a8);
+const LIVE_TONING = adr(0x5377d224);
+/** The settings object: +0x152 the photo set in use (0..3), +0x153 + set the look of each photo set (slot_params.c). */
+const SETTINGS = adr(0x550832a8);
+
+/** Make the parameter screen's snapshot keep a factory look's halation (`halNow`: the module's `sp_hal_now`). */
+export function installHalationSnapshot(p: Patch, halNow: number): void {
+  expectWord(p, SNAP_TONING, branchWord(SNAP_TONING, LIVE_TONING, 14, true));
+  const stub = p.append((a) => assembleWords(
+    `push {r4,lr}
+     bl #${LIVE_TONING}
+     mov r4,r0
+     movw r3,#${SETTINGS & 65535};movt r3,#${SETTINGS >>> 16}
+     ldrb r1,[r3,#0x152];cmp r1,#4;bhs done
+     add r3,r3,r1;ldrb r0,[r3,#0x153]
+     bl #${halNow}
+     cmp r0,#0x100;movlo r4,r0
+     done:mov r0,r4;pop {r4,pc}`, a), 16);
+  p.setWord(SNAP_TONING, branchWord(SNAP_TONING, stub, 14, true), 'halation for every look: the parameter screen\'s snapshot keeps a factory look\'s halation');
 }

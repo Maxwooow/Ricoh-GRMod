@@ -40,7 +40,7 @@ import { SLOT_PARAMETERS, SLOT_PARAMS_MODULE } from './slotparams-native';
 import { SLOT_PARAMS_EXT_MODULE } from './slotparams-ext-native';
 import { HALATION_COLOUR_NAMES, HALATION_LOOKS, HALATION_NAMES, halationColourIcon, halationColourScale, halationIcon, installHalationModule, readHalation } from './halation';
 import { installHalationClamps, installHalationUi } from './halation-ui';
-import { installHalationRows } from './halation-all';
+import { installHalationRows, installHalationSnapshot } from './halation-all';
 import type { HalationLook } from './halation';
 import { HUE_LIMIT, HUE_VALUES, hueBlockBytes, hueFromBlock } from '../../../color/hue';
 import { FirmwareError } from '../../types';
@@ -892,7 +892,7 @@ function lookupAsm(dst: string, reg: string, tmp: string, table: number): string
  * Colour); the setting is kept in the Toning byte (`halation-ui.ts`). Which looks: two tables of 64
  * bytes (by style, by RAW development's number).
  */
-export function installHalation(p: Patch, iconbin: Uint8Array, looks: readonly HalationLook[], all?: { ui: number }): Uint8Array {
+export function installHalation(p: Patch, iconbin: Uint8Array, looks: readonly HalationLook[], all?: { ui: number; now: number }): Uint8Array {
   if (looks.length === 0) return iconbin;
   const byStyle = new Uint8Array(HALATION_LOOKS);
   const byRaw = new Uint8Array(HALATION_LOOKS);
@@ -951,7 +951,7 @@ export function installHalation(p: Patch, iconbin: Uint8Array, looks: readonly H
   });
   installHalationClamps(p, !!all);
   // Halation for every look: the Halation row on every look's parameter screens.
-  if (all) installHalationRows(p);
+  if (all) { installHalationRows(p); installHalationSnapshot(p, all.now); }
 
   // The look of the picture for the JPEG step: without added slots their hook is not there.
   if (p.word(adr(0x53939148)) === 0xe5d3279c) installLookStash(p);

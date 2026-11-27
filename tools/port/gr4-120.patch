@@ -854,7 +854,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      installFactoryHidden(patch, features.lookLayout.hidden);
    }
 -  if (halation.length > 0) icons = installHalation(patch, icons, halation);
-+  if (halation.length > 0) icons = installHalation(patch, icons, halation, halAll ? { ui: slotModule.symbols!.sp_hal_ui } : undefined);
++  if (halation.length > 0) icons = installHalation(patch, icons, halation, halAll ? { ui: slotModule.symbols!.sp_hal_ui, now: slotModule.symbols!.sp_hal_now } : undefined);
    // After halation and the date imprint: wraps the JPEG step they hook at its entry.
    if (features.hdrGainMap) installHdrGainMap(patch, !!test.hdrDiag);
    if (shutdown) icons = installShutdownMenu(patch, icons, shutdown.pictures, shutdown.factory);
@@ -3386,7 +3386,7 @@ diff --git a/core/src/fw/gr4v120/aspect/halation-all.ts b/core/src/fw/gr4v120/as
 new file mode 100644
 --- /dev/null
 +++ b/core/src/fw/gr4v120/aspect/halation-all.ts
-@@ -0,0 +1,100 @@
+@@ -0,0 +1,132 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * Halation for every look (option halationAll, GR IV 1.20 / 1.21): every Image Control look, the
@@ -3411,7 +3411,8 @@ new file mode 100644
 + * white glow whatever colour is set: red light on a monochrome picture would be a coloured cast.
 + */
 +import { FirmwareError } from '../../types';
-+import { Patch } from './build';
++import { assembleWords, branchWord } from './arm';
++import { Patch, expectWord } from './build';
 +import { adr } from '../target';
 +
 +function fail(code: string, message: string): never {
@@ -3486,6 +3487,37 @@ new file mode 100644
 +      p.setWord(w, (p.word(w) | (1 << shift)) >>> 0, 'halation for every look: RAW development may set parameter 8');
 +    }
 +  }
++}
++
++/**
++ * The parameter screen's snapshot (ImageControlDetailController, 0x533D0210: taken when the screen opens and after
++ * each change) reads every parameter of the look being set from the live properties, Toning at 0x533D02A8 through
++ * 0x5377D224, and 0x533D03D4 writes the snapshot back through the setters when a change is not kept (the screen
++ * left without OK, the shutter pressed half-way, a cancelled slider). A factory look's halation is kept in the
++ * slot-parameters module, which those live properties never see: the write-back put a stale Toning (Off or red)
++ * over it, so a look set to white came back red (0.9.5, reported 2026-11-27). Here the snapshot takes, for the
++ * looks the module keeps (`sp_hal_now` of the look of the photo set in use answers below 0x100), the module's
++ * setting; Cinema and the added looks keep the live property, as natively.
++ */
++const SNAP_TONING = adr(0x533d02a8);
++const LIVE_TONING = adr(0x5377d224);
++/** The settings object: +0x152 the photo set in use (0..3), +0x153 + set the look of each photo set (slot_params.c). */
++const SETTINGS = adr(0x550832a8);
++
++/** Make the parameter screen's snapshot keep a factory look's halation (`halNow`: the module's `sp_hal_now`). */
++export function installHalationSnapshot(p: Patch, halNow: number): void {
++  expectWord(p, SNAP_TONING, branchWord(SNAP_TONING, LIVE_TONING, 14, true));
++  const stub = p.append((a) => assembleWords(
++    `push {r4,lr}
++     bl #${LIVE_TONING}
++     mov r4,r0
++     movw r3,#${SETTINGS & 65535};movt r3,#${SETTINGS >>> 16}
++     ldrb r1,[r3,#0x152];cmp r1,#4;bhs done
++     add r3,r3,r1;ldrb r0,[r3,#0x153]
++     bl #${halNow}
++     cmp r0,#0x100;movlo r4,r0
++     done:mov r0,r4;pop {r4,pc}`, a), 16);
++  p.setWord(SNAP_TONING, branchWord(SNAP_TONING, stub, 14, true), 'halation for every look: the parameter screen\'s snapshot keeps a factory look\'s halation');
 +}
 diff --git a/core/src/fw/gr4v120/aspect/halation-ui.ts b/core/src/fw/gr4v120/aspect/halation-ui.ts
 --- a/core/src/fw/gr4v120/aspect/halation-ui.ts
@@ -6798,7 +6830,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
 +import { SLOT_PARAMS_EXT_MODULE } from './slotparams-ext-native';
  import { HALATION_COLOUR_NAMES, HALATION_LOOKS, HALATION_NAMES, halationColourIcon, halationColourScale, halationIcon, installHalationModule, readHalation } from './halation';
  import { installHalationClamps, installHalationUi } from './halation-ui';
-+import { installHalationRows } from './halation-all';
++import { installHalationRows, installHalationSnapshot } from './halation-all';
  import type { HalationLook } from './halation';
  import { HUE_LIMIT, HUE_VALUES, hueBlockBytes, hueFromBlock } from '../../../color/hue';
  import { FirmwareError } from '../../types';
@@ -7282,7 +7314,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   * bytes (by style, by RAW development's number).
   */
 -export function installHalation(p: Patch, iconbin: Uint8Array, looks: readonly HalationLook[]): Uint8Array {
-+export function installHalation(p: Patch, iconbin: Uint8Array, looks: readonly HalationLook[], all?: { ui: number }): Uint8Array {
++export function installHalation(p: Patch, iconbin: Uint8Array, looks: readonly HalationLook[], all?: { ui: number; now: number }): Uint8Array {
    if (looks.length === 0) return iconbin;
    const byStyle = new Uint8Array(HALATION_LOOKS);
    const byRaw = new Uint8Array(HALATION_LOOKS);
@@ -7310,7 +7342,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
 -  installHalationClamps(p);
 +  installHalationClamps(p, !!all);
 +  // Halation for every look: the Halation row on every look's parameter screens.
-+  if (all) installHalationRows(p);
++  if (all) { installHalationRows(p); installHalationSnapshot(p, all.now); }
  
    // The look of the picture for the JPEG step: without added slots their hook is not there.
    if (p.word(adr(0x53939148)) === 0xe5d3279c) installLookStash(p);
@@ -10359,7 +10391,7 @@ diff --git a/tools/gr4v120/slotparams/test_halation_all.py b/tools/gr4v120/slotp
 new file mode 100644
 --- /dev/null
 +++ b/tools/gr4v120/slotparams/test_halation_all.py
-@@ -0,0 +1,195 @@
+@@ -0,0 +1,211 @@
 +# SPDX-License-Identifier: GPL-2.0-only
 +"""Halation for every look (option halationAll: halation-all.ts, slot_params.c built with SP_EXT) in a built GR IV
 +1.20 RTOS.
@@ -10374,7 +10406,8 @@ new file mode 100644
 + 4. the development step's hook: the look and level it leaves for the JPEG step when shooting (a factory look's
 +    setting from the module, a Cinema or added look's from the picture's record), in RAW development (the record's),
 +    and the white glow for a black-and-white look;
-+ 5. settings save and load: the halation table in record 13 and back.
++ 5. the parameter screen's snapshot of Toning: a factory look's halation from the module (0.9.6);
++ 6. settings save and load: the halation table in record 13 and back.
 +
 +    python3 tools/gr4v120/slotparams/test_halation_all.py RTOS
 +
@@ -10542,6 +10575,21 @@ new file mode 100644
 +check('RAW development, Standard: the record\'s setting (Strong white)', develop(False, STD, 6) == (STD, 3, True, True))
 +check('RAW development, Monotone with red: white', develop(False, MONO, 3) == (MONO, 2, True, True))
 +check('a setting of Off: level 0', develop(True, CY, 7) == (CY, 0, False, True))
++
++# ---- 4b. the parameter screen's snapshot of Toning (0.9.6): it is written back when a change is not kept, so a
++# factory look's must be the module's setting, not the live property (which never sees it); Cinema and added looks
++# keep the live property
++SNAP_SITE, LIVE_TONING = 0x533d02a8, 0x5377d224
++check('the snapshot\'s read of Toning is hooked', iw(SNAP_SITE) >> 24 == 0xeb and target(SNAP_SITE, iw(SNAP_SITE)) != LIVE_TONING)
++SNAP = target(SNAP_SITE, iw(SNAP_SITE))
++STUBS[LIVE_TONING] = lambda mm: bc.ret(mm, 1)   # a stale live Toning: Weak red
++check('snapshot, Standard in photo set 0: the module\'s setting (Medium white), not the live Toning', call(SNAP, setup=setup_set(0, STD)) == 5)
++check('snapshot, Standard in photo set 2: that set\'s setting', call(SNAP, setup=setup_set(2, STD)) == 2)
++check('snapshot, Monotone: the module\'s setting', call(SNAP, setup=setup_set(0, MONO)) == 1)
++check('snapshot, Cinema Yellow and an added look: the live Toning, as natively', call(SNAP, setup=setup_set(0, CY)) == 1 and call(SNAP, setup=setup_set(0, ADDED0)) == 1)
++STUBS[LIVE_TONING] = lambda mm: bc.ret(mm, 0)
++check('snapshot, a photo set the module does not know (4): the live Toning', call(SNAP, setup=lambda: wr(SETTINGS + 0x152, bytes([4]))) == 0)
++del STUBS[LIVE_TONING]
 +
 +# ---- 5. save and load
 +wr(FAKE_STATE + 8, struct.pack('<I', 1))

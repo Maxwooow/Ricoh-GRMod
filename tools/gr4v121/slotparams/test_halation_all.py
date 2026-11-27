@@ -12,7 +12,8 @@ Runs the patched RTOS in this release's emulator (../aspect/boot_checks.py, Mach
  4. the development step's hook: the look and level it leaves for the JPEG step when shooting (a factory look's
     setting from the module, a Cinema or added look's from the picture's record), in RAW development (the record's),
     and the white glow for a black-and-white look;
- 5. settings save and load: the halation table in record 13 and back.
+ 5. the parameter screen's snapshot of Toning: a factory look's halation from the module (0.9.6);
+ 6. settings save and load: the halation table in record 13 and back.
 
     python3 tools/gr4v121/slotparams/test_halation_all.py RTOS
 
@@ -180,6 +181,21 @@ check('shooting, an added look: the record\'s setting (Medium white)', develop(T
 check('RAW development, Standard: the record\'s setting (Strong white)', develop(False, STD, 6) == (STD, 3, True, True))
 check('RAW development, Monotone with red: white', develop(False, MONO, 3) == (MONO, 2, True, True))
 check('a setting of Off: level 0', develop(True, CY, 7) == (CY, 0, False, True))
+
+# ---- 4b. the parameter screen's snapshot of Toning (0.9.6): it is written back when a change is not kept, so a
+# factory look's must be the module's setting, not the live property (which never sees it); Cinema and added looks
+# keep the live property
+SNAP_SITE, LIVE_TONING = 0x533d0b10, 0x5377deb4
+check('the snapshot\'s read of Toning is hooked', iw(SNAP_SITE) >> 24 == 0xeb and target(SNAP_SITE, iw(SNAP_SITE)) != LIVE_TONING)
+SNAP = target(SNAP_SITE, iw(SNAP_SITE))
+STUBS[LIVE_TONING] = lambda mm: bc.ret(mm, 1)   # a stale live Toning: Weak red
+check('snapshot, Standard in photo set 0: the module\'s setting (Medium white), not the live Toning', call(SNAP, setup=setup_set(0, STD)) == 5)
+check('snapshot, Standard in photo set 2: that set\'s setting', call(SNAP, setup=setup_set(2, STD)) == 2)
+check('snapshot, Monotone: the module\'s setting', call(SNAP, setup=setup_set(0, MONO)) == 1)
+check('snapshot, Cinema Yellow and an added look: the live Toning, as natively', call(SNAP, setup=setup_set(0, CY)) == 1 and call(SNAP, setup=setup_set(0, ADDED0)) == 1)
+STUBS[LIVE_TONING] = lambda mm: bc.ret(mm, 0)
+check('snapshot, a photo set the module does not know (4): the live Toning', call(SNAP, setup=lambda: wr(SETTINGS + 0x152, bytes([4]))) == 0)
+del STUBS[LIVE_TONING]
 
 # ---- 5. save and load
 wr(FAKE_STATE + 8, struct.pack('<I', 1))

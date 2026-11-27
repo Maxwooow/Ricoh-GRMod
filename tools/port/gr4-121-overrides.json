@@ -486,5 +486,13 @@
  "0x55839280": {
   "new": "0x55839280",
   "reason": "RAM, unreferenced: 512 bytes after the heap start 0x55839080 (same in 1.21: the start-up zero fill literal 0x53000460 and the heap's movw at 0x53ad4c4c name the same addresses); the heap start subject recognition moves to"
+ },
+ "0x533d02a8": {
+  "new": "0x533d0b10",
+  "reason": "the parameter screen's snapshot of Toning (bl 0x5377d224): snapshot function 0x533d0210 -> 0x533d0a78, 80 words equal up to branch offsets; the site at +0x98 (the backup 0x533d03d0 -> 0x533d0c38 in this map moves by the same 0x868)"
+ },
+ "0x5377d224": {
+  "new": "0x5377deb4",
+  "reason": "live Toning getter: the bl at the snapshot site and the one in SHOOT_CUR (0x533cc288 -> 0x533ccaf0, +0x1c) both call 0x5377deb4 in 1.21"
  }
 }
