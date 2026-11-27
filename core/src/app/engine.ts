@@ -470,7 +470,8 @@ export interface BuildOptions {
    */
   distanceFeet?: boolean;
   /**
-   * White balance per look (GR IV 1.20 and 1.21, `features.wbPerLook`; needs at least one added slot): every look,
+   * White balance per look (GR IV 1.20 and 1.21 with at least one added slot, GR III 2.10 / IIIx 1.60 with at least one
+   * film; `features.wbPerLook`; on GR III / IIIx Custom 1 and Custom 2 keep their own too): every look,
    * factory or added, remembers its own still white balance (the WB mode, the G-M and B-A shift of each mode, the
    * colour temperature) and gets it back when it is chosen again, also after power-off. A look not used before starts
    * from the current white balance. The custom WB captures stay shared; movie white balance is not changed. Off unless
@@ -484,8 +485,9 @@ export interface BuildOptions {
    * the Custom entries' place) kept in the camera, HTData record 15, starting from this build's. */
   liveLayout?: boolean;
   /** GR III 2.10 / IIIx 1.60 (`features.lookMenu`, needs `liveLayout`): a line "Image Control Order" at the end of the still
-   * menu opens a screen of the layout's entries: up / down the cursor, left / right move the entry, OK shows / hides it.
-   * Not with the date imprint or End Screen pictures. */
+   * menu opens a screen of the layout's entries, shown ones, a "--- Hidden ---" line, then the hidden ones: OK takes or
+   * puts down the entry under the cursor, up / down move it (below the line hides it), left or MENU goes back. Not with
+   * the date imprint or End Screen pictures. */
   lookMenu?: boolean;
   /**
    * Halation for every look (GR IV 1.20 and 1.21, `features.halationAll`; needs at least one added slot): every look,

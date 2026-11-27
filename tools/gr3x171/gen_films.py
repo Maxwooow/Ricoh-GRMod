@@ -37,7 +37,7 @@ COUNTS = range(1, 21)
 BINDINGS = ['prior_native_save', 'prior_native_load', 'storage_singleton', 'store_write', 'store_read', 'store_size',
             'heap_alloc', 'sp_gap', 'settings_object', 'slot_prints'] + (['wb_mode_set', 'wb_gm_set', 'wb_ba_set', 'wb_temp_set', 'll_default', 'll_word', 'lm_ctx'] if WB else [])
 EXPORTS = ['sp_load', 'sp_save', 'sp_style_set', 'sp_before_recall', 'sp_hal', 'sp_hal_put', 'sp_col', 'sp_col_put',
-           'sp_hal_text', 'sp_raw_init', 'sp_raw_own', 'sp_raw_sync'] + (['sp_active', 'sp_wb_done', 'll_query', 'lm_refresh', 'lm_footer', 'lm_up', 'lm_down', 'lm_shift', 'lm_toggle'] if WB else [])
+           'sp_hal_text', 'sp_raw_init', 'sp_raw_own', 'sp_raw_sync'] + (['sp_active', 'sp_wb_done', 'll_query', 'lm_refresh', 'lm_footer', 'lm_up', 'lm_down', 'lm_toggle', 'lm_camera'] if WB else [])
 # --wb: the extended module (the white balance per look and the lists' order kept in the camera).
 DEFINES = '#define WB_PER_LOOK 1\n#define LIVE_LAYOUT 1\n' if WB else ''
 

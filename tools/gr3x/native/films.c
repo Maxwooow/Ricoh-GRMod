@@ -490,7 +490,9 @@ static void lm_carry(State *s, volatile uint8_t *e, uint32_t n, void *list, int 
     lm_rows(e, n, rows);
     s->lm_grab = j + 1u;
     lm_row(list, rows, r, s->lm_grab); lm_row(list, rows, j, s->lm_grab);
-    ((lm2_fn)lm_ctx[LM_FOCUS])(list, j);
+    /* The cursor follows by one row, as a key press moves it (setting it at j would scroll the list: the
+     * camera's "focus" goes to the last row, then back). */
+    ((lm_move_fn)lm_ctx[LM_MOVE])(list, by, 1);
 }
 
 /* Up / down: the row taken, or the cursor (as the End Screen list's: a single press wraps, the key

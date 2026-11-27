@@ -41,16 +41,78 @@ export const GR3X_LOOK_MENU_MODE = () => adr(0x55804390);
 /** The camera's functions the module calls, in native/films.c's LM_ order, then the title. */
 export const GR3X_LOOK_MENU_FUNCTIONS = () => [adr(0x53394820), adr(0x53394758), adr(0x53395430), adr(0x53395260), adr(0x5339e738), adr(0x5339e7a0),
   adr(0x533ad3c0), adr(0x53394e8c), adr(0x533a2ba0), adr(0x5320ad88), adr(0x5320b67c), adr(0x532a985c)];
-/** The texts (21 camera languages, GR3X_TEXT_ROWS): the line's and screen's name, the separator, the title while moving. */
+/** The texts, one per camera language (GR3X_TEXT_ROWS order), each at most 24 characters and only characters that
+ * language's own camera texts use (so its font has them), built from the camera's words ("Image Control", the "Order"
+ * of "Bracketing Order"): the line's and screen's name, the separator, the title while moving. */
 export const GR3X_LOOK_MENU_NAMES: readonly string[] = [
-  'Image Control Order', 'Image Control Order', 'Ordre contrôle image', 'Image Control Order', 'Image Control Order', 'Image Control Order',
-  'Image Control Order', 'Image Control Order', 'Image Control Order', 'Image Control Order', 'Image Control Order', 'Image Control Order',
-  'Image Control Order', 'Image Control Order', 'Image Control Order', 'Image Control Order', 'Image Control Order', 'Image Control Order',
-  'Image Control Order', 'Image Control Order', 'Image Control Order',
+  /* ja */ 'イメージコントロール順序',
+  /* en */ 'Image Control Order',
+  /* fr */ 'Ordre contrôle image',
+  /* de */ 'Reihenf. Bildsteuerung',
+  /* es */ 'Orden control de imagen',
+  /* pt */ 'Ordem Controlo Imagem',
+  /* it */ 'Ordine controllo immag.',
+  /* nl */ 'Volgorde beeldregeling',
+  /* da */ 'Rækkefølge billedkontr.',
+  /* sv */ 'Ordning bildkontroll',
+  /* fi */ 'Kuvansäädön järjestys',
+  /* pl */ 'Kolejność ster. obrazem',
+  /* cs */ 'Pořadí ovládání obrazu',
+  /* hu */ 'Képvezérlés sorrendje',
+  /* tr */ 'Görüntü Kontrolü Sırası',
+  /* el */ 'Σειρά Ελέγχου Εικόνας',
+  /* ru */ 'Порядок упр. изобр.',
+  /* ko */ '화상 컨트롤 순서',
+  /* zh-TW */ '影像控制順序',
+  /* zh-CN */ '影像控制顺序',
+  /* th */ 'ลำดับควบคุมภาพ',
 ];
-const en = (t: string, fr: string) => Array.from({ length: 21 }, (_, i) => i === 2 ? fr : t);
-export const GR3X_LOOK_MENU_SEPARATOR: readonly string[] = en('--- Hidden ---', '--- Masqués ---');
-export const GR3X_LOOK_MENU_MOVING: readonly string[] = en('Move: up/down, then OK', 'Déplacer : haut/bas, OK');
+export const GR3X_LOOK_MENU_SEPARATOR: readonly string[] = [
+  /* ja */ '--- 表示しない ---',
+  /* en */ '--- Hidden ---',
+  /* fr */ '--- Masqués ---',
+  /* de */ '--- Ausgeblendet ---',
+  /* es */ '--- Ocultos ---',
+  /* pt */ '--- Ocultos ---',
+  /* it */ '--- Nascosti ---',
+  /* nl */ '--- Verborgen ---',
+  /* da */ '--- Skjulte ---',
+  /* sv */ '--- Dolda ---',
+  /* fi */ '--- Piilotetut ---',
+  /* pl */ '--- Ukryte ---',
+  /* cs */ '--- Skryté ---',
+  /* hu */ '--- Rejtett ---',
+  /* tr */ '--- Gizli ---',
+  /* el */ '--- Κρυφά ---',
+  /* ru */ '--- Скрытые ---',
+  /* ko */ '--- 표시 안 함 ---',
+  /* zh-TW */ '--- 不顯示 ---',
+  /* zh-CN */ '--- 不显示 ---',
+  /* th */ '--- ซ่อน ---',
+];
+export const GR3X_LOOK_MENU_MOVING: readonly string[] = [
+  /* ja */ '上下で移動、OKで決定',
+  /* en */ 'Move: up/down, then OK',
+  /* fr */ 'Déplacer : haut/bas, OK',
+  /* de */ 'Auf/ab verschieben, OK',
+  /* es */ 'Mover: arriba/abajo, OK',
+  /* pt */ 'Mover: cima/baixo, OK',
+  /* it */ 'Sposta: alto/basso, OK',
+  /* nl */ 'Verplaats: op/neer, OK',
+  /* da */ 'Flyt: op/ned, så OK',
+  /* sv */ 'Flytta: upp/ner, OK',
+  /* fi */ 'Siirrä: ylös/alas, OK',
+  /* pl */ 'Przesuń: góra/dół, OK',
+  /* cs */ 'Přesun: nahoru/dolů, OK',
+  /* hu */ 'Mozgatás: fel/le, OK',
+  /* tr */ 'Taşı: yukarı/aşağı, OK',
+  /* el */ 'Μετακ.: πάνω/κάτω, OK',
+  /* ru */ 'Вверх/вниз, затем OK',
+  /* ko */ '위/아래로 이동, OK',
+  /* zh-TW */ '上下移動，按 OK 確定',
+  /* zh-CN */ '上下移动，按 OK 确定',
+  /* th */ 'เลื่อนขึ้น/ลง แล้ว OK',
+];
 
 /** A controller id whose keys (ActionModel's handler 0x53214138, reached at 0x53222a74) are the End Screen list's but OK
  * confirms without going back. */

@@ -184,6 +184,8 @@ def verify(data,manifest,seed=1128,steps=1500):
                     if rs[j]==SEP:counts['hidden' if d>0 else 'shown']+=1
                     rs[grab],rs[j]=rs[j],rs[grab];st['entries']=store_rows(rs);st['grab']=j
                     assert n.sel==j;rows_ok(n.log,[grab,j]);counts['carried']+=1
+                    # The cursor follows by one row (a 'focus' would scroll the list: it goes to the last row, then back).
+                    assert not [x for x in n.log if x[0]=='focus'] and [x for x in n.log if x[0]=='move']==[('move',j-grab)],n.log
         else:
             n.writes=[];n.power_off();w=[d for k,d in n.writes if k==15]
             if w:assert w[-1]==record(st['entries']),'record 15'

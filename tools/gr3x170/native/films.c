@@ -139,7 +139,8 @@ extern volatile uint32_t ll_word[];     /* [0]: ll_query once the settings are l
  * in a mode of its own; its handlers come here with the controller. The camera's functions it calls and the
  * screen's title, from the build (look-menu.ts LM_FUNCTIONS, in this order). */
 extern const uint32_t lm_ctx[];
-enum { LM_SELECTED, LM_ITEM, LM_FOCUS, LM_MOVE, LM_CHECK, LM_TEXT, LM_VISIBLE, LM_SHOWN, LM_TITLE_SET, LM_APP, LM_UI_MODEL, LM_NAME, LM_TITLE, LM_WORDS };
+enum { LM_SELECTED, LM_ITEM, LM_FOCUS, LM_MOVE, LM_CHECK, LM_TEXT, LM_VISIBLE, LM_SHOWN, LM_TITLE_SET, LM_APP, LM_UI_MODEL, LM_NAME,
+       LM_TITLE, LM_SEPARATOR, LM_MOVING, LM_WORDS };
 #endif
 #ifdef WB_PER_LOOK
 /* The camera's white balance setters (UserDataModel*, value): StillWhiteBalance, the first G-M and
@@ -208,6 +209,7 @@ typedef struct {
 #endif
 #ifdef LIVE_LAYOUT
     uint32_t ll_dirty, ll_last_write;
+    uint32_t lm_grab;                       /* the menu screen: 1 + the row being moved, 0 none */
     uint32_t ll_rec[LL_REC_WORDS];          /* record 15 as stored: header, entries, checksum */
 #endif
 } State;
@@ -370,6 +372,12 @@ static void ll_read(State *s) {
 }
 
 /* ---- the menu screen (look-menu.ts) ---------------------------------------------------------- */
+/* Its rows: the shown entries in order, a separator row ("Hidden"), then the hidden entries. OK takes the row
+ * under the cursor (the title says so, the row is ticked); up / down then move it, across the separator it is
+ * hidden or shown again (not Standard, the Custom entries or a look selected in a set: they stay above); OK
+ * puts it down. Without a row taken up / down move the cursor. The list is made taller in this mode (six rows
+ * instead of the End Screen list's two, whose picture is not shown); lm_camera gives the End Screen its own. */
+#define LM_SEP 0xffu
 typedef uint32_t (*lm1_fn)(void *);
 typedef void *(*lm_item_fn)(void *, uint32_t);
 typedef void (*lm2_fn)(void *, uint32_t);
@@ -377,6 +385,7 @@ typedef void (*lm_move_fn)(void *, int, uint32_t);
 typedef void *(*lm0_fn)(void);
 typedef uint32_t (*lm_name_fn)(void *, uint32_t);
 typedef void *(*lm0p_fn)(void *);
+typedef void (*lm_rect_fn)(void *, const int32_t *);
 
 static void *lm_list(void *controller) { return *(void **)((uint8_t *)controller + 0x168); }
 
@@ -389,62 +398,69 @@ static volatile uint8_t *lm_entries(State **ps, uint32_t *n) {
     return ll_entries(s);
 }
 
-/* The text of an entry: the look's name (the films' through GR Mod's lookup), Custom 1 / 2. */
+/* The rows (entries' values, LM_SEP the separator): n + 1 of them. */
+static void lm_rows(const volatile uint8_t *e, uint32_t n, uint8_t *rows) {
+    uint32_t k = 0;
+    for (uint32_t i = 0; i < n; i++) if (!(e[i] & LL_HIDDEN)) rows[k++] = e[i];
+    rows[k++] = LM_SEP;
+    for (uint32_t i = 0; i < n; i++) if (e[i] & LL_HIDDEN) rows[k++] = e[i];
+}
+
+/* The entries from the rows: above the separator shown, below it hidden. */
+static void lm_store(State *s, volatile uint8_t *e, uint32_t n, const uint8_t *rows) {
+    uint32_t k = 0, hidden = 0;
+    for (uint32_t r = 0; r <= n; r++) {
+        if (rows[r] == LM_SEP) { hidden = 1; continue; }
+        e[k++] = (uint8_t)((rows[r] & ~LL_HIDDEN) | (hidden ? LL_HIDDEN : 0u));
+    }
+    s->ll_dirty = 1;
+}
+
 static uint32_t lm_text(uint32_t x) {
+    if (x == LM_SEP) return lm_ctx[LM_SEPARATOR];
     void *ui = ((lm0p_fn)lm_ctx[LM_UI_MODEL])(((lm0_fn)lm_ctx[LM_APP])());
     x &= ~LL_HIDDEN;
     return ((lm_name_fn)lm_ctx[LM_NAME])(ui, x == LL_C1 ? 0x17u : x == LL_C2 ? 0x18u : x);
 }
 
-static void lm_row(void *list, const volatile uint8_t *e, uint32_t i) {
-    void *item = ((lm_item_fn)lm_ctx[LM_ITEM])(list, i);
-    ((lm2_fn)lm_ctx[LM_CHECK])(item, !(e[i] & LL_HIDDEN));
-    ((lm2_fn)lm_ctx[LM_TEXT])(item, lm_text(e[i]));
+static void lm_row(void *list, const uint8_t *rows, uint32_t r, uint32_t grab) {
+    void *item = ((lm_item_fn)lm_ctx[LM_ITEM])(list, r);
+    ((lm2_fn)lm_ctx[LM_CHECK])(item, grab == r + 1u);
+    ((lm2_fn)lm_ctx[LM_TEXT])(item, lm_text(rows[r]));
 }
 
-/* The list opens: its rows (shown or hidden as the tick), the title, no footer picture, the cursor on the first. */
+static void lm_title(void *controller, uint32_t moving) {
+    ((lm2_fn)lm_ctx[LM_TITLE_SET])(*(void **)((uint8_t *)controller + 0x15c), lm_ctx[moving ? LM_MOVING : LM_TITLE]);
+}
+
+/* The list's place (ScrollListView's SetRect, its vtable + 0x18): x, y, width, height. */
+static void lm_rect(void *list, int32_t y, int32_t h) {
+    int32_t rect[4] = { 0, y, 720, h };
+    ((lm_rect_fn)(*(uint32_t **)list)[6])(list, rect);
+}
+
+/* The End Screen list in the camera's own mode: its place again (under its picture, two rows). */
+void lm_camera(void *controller) { lm_rect(lm_list(controller), 300, 120); }
+
+/* The list opens: taller, its rows, the title, no footer picture, the cursor on the first, nothing taken. */
 void lm_refresh(void *controller) {
     State *s; uint32_t n;
+    uint8_t rows[LL_MAX + 1u];
     volatile uint8_t *e = lm_entries(&s, &n);
     void *list = lm_list(controller);
-    ((lm2_fn)lm_ctx[LM_SHOWN])(list, n);
-    ((lm2_fn)lm_ctx[LM_TITLE_SET])(*(void **)((uint8_t *)controller + 0x15c), lm_ctx[LM_TITLE]);
+    lm_rect(list, 60, 360);
+    ((lm2_fn)lm_ctx[LM_SHOWN])(list, n ? n + 1u : 0u);
+    lm_title(controller, 0);
     ((lm2_fn)lm_ctx[LM_VISIBLE])(*(void **)((uint8_t *)controller + 0x164), 0);
-    for (uint32_t i = 0; i < n; i++) lm_row(list, e, i);
-    if (n) ((lm2_fn)lm_ctx[LM_FOCUS])(list, 0);
+    if (!n) return;
+    s->lm_grab = 0;
+    lm_rows(e, n, rows);
+    for (uint32_t r = 0; r <= n; r++) lm_row(list, rows, r, 0);
+    ((lm2_fn)lm_ctx[LM_FOCUS])(list, 0);
 }
 
 void lm_footer(void *controller) {
     ((lm2_fn)lm_ctx[LM_VISIBLE])(*(void **)((uint8_t *)controller + 0x164), 0);
-}
-
-/* Up / down: as the End Screen list (a single press wraps, the key repeat `stop`s at the ends). */
-void lm_up(void *controller, uint32_t stop) {
-    void *list = lm_list(controller);
-    if (!((lm1_fn)lm_ctx[LM_SELECTED])(list) && stop) return;
-    ((lm_move_fn)lm_ctx[LM_MOVE])(list, -1, 1);
-}
-
-void lm_down(void *controller, uint32_t stop) {
-    State *s; uint32_t n;
-    lm_entries(&s, &n);
-    void *list = lm_list(controller);
-    if (n && ((lm1_fn)lm_ctx[LM_SELECTED])(list) >= n - 1u && stop) return;
-    ((lm_move_fn)lm_ctx[LM_MOVE])(list, 1, 1);
-}
-
-/* Left / right: the entry under the cursor goes up / down by one, the cursor with it. */
-void lm_shift(void *controller, int by) {
-    State *s; uint32_t n;
-    volatile uint8_t *e = lm_entries(&s, &n);
-    void *list = lm_list(controller);
-    if (!n) return;
-    uint32_t i = ((lm1_fn)lm_ctx[LM_SELECTED])(list), j = i + (uint32_t)by;
-    if (i >= n || j >= n) return;
-    uint8_t t = e[i]; e[i] = e[j]; e[j] = t;
-    s->ll_dirty = 1;
-    lm_row(list, e, i); lm_row(list, e, j);
-    ((lm2_fn)lm_ctx[LM_FOCUS])(list, j);
 }
 
 /* Is look x selected in a photo or movie set of the record in use or a stored one (modes, U1..U3)? */
@@ -457,21 +473,68 @@ static int lm_in_use(uint32_t x) {
     return 0;
 }
 
-/* OK: the entry under the cursor shown / hidden. Standard and the Custom entries stay shown; a look selected
- * in a set (in use or stored) is not hidden. Returns 1 (as the camera's confirm). */
-uint32_t lm_toggle(void *controller) {
+/* The row taken moves by one (`by` -1 / +1); across the separator its entry is hidden / shown. */
+static void lm_carry(State *s, volatile uint8_t *e, uint32_t n, void *list, int by) {
+    uint8_t rows[LL_MAX + 1u];
+    uint32_t r = s->lm_grab - 1u, j = r + (uint32_t)by;
+    if (r > n || j > n) return;
+    lm_rows(e, n, rows);
+    uint8_t x = rows[r];
+    if (x == LM_SEP) return;
+    if (rows[j] == LM_SEP && by > 0) {
+        uint32_t look = x & ~LL_HIDDEN;
+        if (look == STANDARD || look == LL_C1 || look == LL_C2 || lm_in_use(look)) return;
+    }
+    rows[r] = rows[j]; rows[j] = x;
+    lm_store(s, e, n, rows);
+    lm_rows(e, n, rows);
+    s->lm_grab = j + 1u;
+    lm_row(list, rows, r, s->lm_grab); lm_row(list, rows, j, s->lm_grab);
+    /* The cursor follows by one row, as a key press moves it (setting it at j would scroll the list: the
+     * camera's "focus" goes to the last row, then back). */
+    ((lm_move_fn)lm_ctx[LM_MOVE])(list, by, 1);
+}
+
+/* Up / down: the row taken, or the cursor (as the End Screen list's: a single press wraps, the key
+ * repeat `stop`s at the ends). */
+void lm_up(void *controller, uint32_t stop) {
     State *s; uint32_t n;
     volatile uint8_t *e = lm_entries(&s, &n);
     void *list = lm_list(controller);
+    if (n && s->lm_grab) { lm_carry(s, e, n, list, -1); return; }
+    if (!((lm1_fn)lm_ctx[LM_SELECTED])(list) && stop) return;
+    ((lm_move_fn)lm_ctx[LM_MOVE])(list, -1, 1);
+}
+
+void lm_down(void *controller, uint32_t stop) {
+    State *s; uint32_t n;
+    volatile uint8_t *e = lm_entries(&s, &n);
+    void *list = lm_list(controller);
+    if (n && s->lm_grab) { lm_carry(s, e, n, list, 1); return; }
+    if (n && ((lm1_fn)lm_ctx[LM_SELECTED])(list) >= n && stop) return;
+    ((lm_move_fn)lm_ctx[LM_MOVE])(list, 1, 1);
+}
+
+/* OK: take the row under the cursor (not the separator), or put the row taken down. Returns 1. */
+uint32_t lm_toggle(void *controller) {
+    State *s; uint32_t n;
+    uint8_t rows[LL_MAX + 1u];
+    volatile uint8_t *e = lm_entries(&s, &n);
+    void *list = lm_list(controller);
     if (!n) return 1;
-    uint32_t i = ((lm1_fn)lm_ctx[LM_SELECTED])(list);
-    if (i >= n) return 1;
-    uint32_t x = e[i] & ~LL_HIDDEN;
-    if (x == STANDARD || x == LL_C1 || x == LL_C2) return 1;
-    if (!(e[i] & LL_HIDDEN) && lm_in_use(x)) return 1;
-    e[i] ^= LL_HIDDEN;
-    s->ll_dirty = 1;
-    lm_row(list, e, i);
+    lm_rows(e, n, rows);
+    if (s->lm_grab) {
+        uint32_t r = s->lm_grab - 1u;
+        s->lm_grab = 0;
+        if (r <= n) lm_row(list, rows, r, 0);
+        lm_title(controller, 0);
+        return 1;
+    }
+    uint32_t r = ((lm1_fn)lm_ctx[LM_SELECTED])(list);
+    if (r > n || rows[r] == LM_SEP) return 1;
+    s->lm_grab = r + 1u;
+    lm_row(list, rows, r, s->lm_grab);
+    lm_title(controller, 1);
     return 1;
 }
 
