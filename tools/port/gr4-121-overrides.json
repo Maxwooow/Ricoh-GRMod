@@ -486,5 +486,17 @@
  "0x55839280": {
   "new": "0x55839280",
   "reason": "RAM, unreferenced: 512 bytes after the heap start 0x55839080 (same in 1.21: the start-up zero fill literal 0x53000460 and the heap's movw at 0x53ad4c4c name the same addresses); the heap start subject recognition moves to"
+ },
+ "0x53157380": {
+  "new": "0x53157380",
+  "reason": "the C library's memcpy: the same words at the same address in 1.21 (both releases: mov ip, r0; cmp r2, #0x40; ...)"
+ },
+ "0x537b656c": {
+  "new": "0x537b7284",
+  "reason": "bl memcpy in 0x537B64E8 (1.21 0x537B7200, the SRIC command's message: malloc, malloc, memcpy, post): the function's words equal up to relocation, the call at the same offset +0x84"
+ },
+ "0x537b7520": {
+  "new": "0x537b8238",
+  "reason": "bl memcpy in 0x537B74A0 (1.21 0x537B81B8, the periodic message of the same kind): the function's words equal up to relocation, the call at the same offset +0x80"
  }
 }

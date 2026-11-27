@@ -10,7 +10,8 @@ import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { Engine, fw } from '../src';
 import { MOVIE_4K_BIT, MOVIE_BYTE_OFFSET, MOVIE_SENSOR_SR_BIT, RESOLUTION_NAMES } from '../src/fw/gr4v120/aspect/movie4k';
-import { MOVIESR_ELECTRONIC_NAMES, MOVIESR_ICON_ID, MOVIESR_SENSOR_NAMES, drawElectronicIcon } from '../src/fw/gr4v120/aspect/moviesr';
+import { MOVIESR_ELECTRONIC_NAMES, MOVIESR_ICON_ID, MOVIESR_LATCH, MOVIESR_SENSOR_NAMES, MOVIESR_SENT, drawElectronicIcon } from '../src/fw/gr4v120/aspect/moviesr';
+import { MOVIE4K_LATCH } from '../src/fw/gr4v120/aspect/movie4k';
 import { SHIFT_ICON_ID } from '../src/fw/gr4v120/aspect/shift';
 import { readExtensionFeatures } from '../src/fw/gr4v120/aspect/package';
 import * as names120 from '../src/fw/gr4v120/names';
@@ -33,6 +34,10 @@ describe('The movie menu additions: constants', () => {
     expect(MOVIE_SENSOR_SR_BIT).toBe(1);
     expect(MOVIE_4K_BIT).toBe(2);
     expect(MOVIESR_ICON_ID).not.toBe(SHIFT_ICON_ID);
+  });
+  it('keep the record of the state sent to the unit after the two latches, before Sensor Shift\'s state', () => {
+    expect(MOVIE4K_LATCH).toBe(MOVIESR_LATCH + 1);
+    expect(MOVIESR_SENT).toBe(MOVIESR_LATCH + 2);
   });
   it('the Electronic icon is the hand with something added, the hand itself untouched elsewhere', () => {
     const hand = new Uint8Array(40 * 40 * 4).fill(0x80);
