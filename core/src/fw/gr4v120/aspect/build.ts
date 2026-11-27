@@ -67,7 +67,7 @@ import { MOVIE_4K_BIT, MOVIE_SENSOR_SR_BIT, installMovie4k } from './movie4k';
 import { installMovieSr, installMovieSrAssets } from './moviesr';
 import { installDistanceFeet } from './units';
 import { installShiftAdj, installShiftAssets, installShiftCore, installShiftFn, shiftAdjFunction } from './shift';
-import { FRAME_LOOK, LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
+import { FRAME_LOOK, LOOK_STASH, STASH_TEST, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
 import type { ShutdownPictureSpec } from './shutdown';
 import { adr, adrHEX, adrHex, adrText, byRelease } from '../target';
 
@@ -1141,10 +1141,12 @@ export function installRatios(rtos: Uint8Array, iconbin: Uint8Array, ratios: rea
 export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
   if (test.halationDiag && (!features.dateStamp || test.directFlashDiag)) fail('internal', 'halation diagnostics need the date imprint (and no Direct Flash diagnostics)');
   HALATION_TEST.statusWord = test.halationDiag ? HALATION_STATUS_WORD : 0;
+  STASH_TEST.mark = !!test.halationDiag;
   try {
     return installExtensionsInner(rtos, iconbin, ratios, features, revision, test);
   } finally {
     HALATION_TEST.statusWord = 0;
+    STASH_TEST.mark = false;
   }
 }
 
