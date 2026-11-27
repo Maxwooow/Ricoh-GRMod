@@ -485,6 +485,70 @@
  },
  "0x55839280": {
   "new": "0x55839280",
-  "reason": "RAM, unreferenced: 512 bytes after the heap start 0x55839080 (same in 1.21: the start-up zero fill literal 0x53000460 and the heap's movw at 0x53ad4c4c name the same addresses); the heap start subject recognition moves to"
+  "reason": "RAM, unreferenced: 512 bytes after the heap start 0x55839080 (same in 1.21: the start-up zero fill literal 0x53000460 and the heap's movw at 0x53ad4c4c name the same addresses); the heap start subject recognition moves to; handheld night's state word"
+ },
+ "0x53ece4e0": {
+  "new": "0x53ecfb78",
+  "reason": "a stock View vtable (the handheld night screen test's child view copies it): aligned, and its 4 references name 0x53ECFB78 in 1.21"
+ },
+ "0x53fbb4e8": {
+  "new": "0x53fbcc08",
+  "reason": "the still recipe's vtable (handheld night): aligned, and 6 literal references (0x537355C4, 0x53736624, ...) name 0x53FBCC08 in 1.21"
+ },
+ "0x5453464d": {
+  "new": "0x5453464d",
+  "reason": "not an address: the handheld night module's state magic \"MFST\""
+ },
+ "0x550830a0": {
+  "new": "0x550830a0",
+  "reason": "CaptureReadyModel's construction guard (handheld night): the movw/movt of its getter 0x53240F40 (1.21 0x53241548) and 6 more references name the same address in 1.21"
+ },
+ "0x5508317c": {
+  "new": "0x5508317c",
+  "reason": "the App's playback command model guard (handheld night): the getter's movw/movt 0x532409A0 (1.21 0x53240FA8) and 2 more references, same address"
+ },
+ "0x550831c8": {
+  "new": "0x550831c8",
+  "reason": "the App's event queue guard (handheld night): the getter's movw/movt 0x53240820 (1.21 0x53240E28) and 16 more references, same address"
+ },
+ "0x55083240": {
+  "new": "0x55083240",
+  "reason": "CaptureImageModel's construction guard (handheld night): its getter's movw/movt 0x532417F0 (1.21 0x53241DFC), the one reference, same address; its object 0x55083138 (mapped) follows it as in 1.20"
+ },
+ "0x550832ac": {
+  "new": "0x550832ac",
+  "reason": "CURRENT() + 4, the saved user settings (handheld night): CURRENT() 0x550832A8 is the same in 1.21; three references of +4 (0x53240C58, 0x53240C74, 0x53242220) agree"
+ },
+ "0x55084d7c": {
+  "new": "0x55084d7c",
+  "reason": "the App's live-view manager guard (handheld night tests): the getter's movw/movt 0x53240AC0 (1.21 0x532410C8) and one more reference, same address"
+ },
+ "0x550873d4": {
+  "new": "0x550873d4",
+  "reason": "an App singleton guard read by the handheld night review test: the getter's movw/movt 0x532414F0 (1.21 0x53241AFC) and 2 more references, same address"
+ },
+ "0x550874fc": {
+  "new": "0x550874fc",
+  "reason": "an App singleton guard read by the handheld night review test: the getter's movw/movt 0x53240940 (1.21 0x53240F48) and 7 more references, same address"
+ },
+ "0x551331b8": {
+  "new": "0x551331c0",
+  "reason": "the back end's still recipe singleton area (handheld night hold test): the movw/movt at 0x53736CDC (1.21 0x5373772C) names 0x551331C0; the back end's RAM is 8 bytes later in 1.21 (as 0x5512ED5C -> 0x5512ED64)"
+ },
+ "0x5537b218": {
+  "new": "0x5537b220",
+  "reason": "the still back end's construction guard (handheld night): its getter's movw/movt 0x5373D690 (1.21 0x5373E0E0) and 4 more references name 0x5537B220 (8 later, as its object 0x5537A540 -> 0x5537A548)"
+ },
+ "0x5537b2a0": {
+  "new": "0x5537b2a8",
+  "reason": "the ComPropIf slot, singleton 0x5537B29C + 4 (handheld night): 13 references of the singleton and its words (0x53750028 movw/movt, 1.21 0x53750A78) name 0x5537B2A4 + 4"
+ },
+ "0x553a281c": {
+  "new": "0x553a2824",
+  "reason": "the LCD screen device slot, ScreenDeviceFactory 0x553A2814 + 8 (handheld night): the factory is 0x553A281C in 1.21 (mapped), 22 references of its words agree on 0x553A2824"
+ },
+ "0x55839300": {
+  "new": "0x55839300",
+  "reason": "RAM, unreferenced: where handheld night moves the heap start (its state word 0x55839280 before it); the heap and the start-up zero fill are where they are in 1.20 (see 0x55839080)"
  }
 }

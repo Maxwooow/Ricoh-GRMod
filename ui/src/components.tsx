@@ -61,6 +61,8 @@ export const Ico = {
   grain: <svg viewBox="0 0 20 20" {...P}><rect x="2.8" y="2.8" width="14.4" height="14.4" rx="2" /><circle cx="6.6" cy="6.8" r="1" fill="currentColor" stroke="none" /><circle cx="12.2" cy="5.9" r="0.6" fill="currentColor" stroke="none" /><circle cx="9.6" cy="10.2" r="1.4" fill="currentColor" stroke="none" /><circle cx="14" cy="11.4" r="0.8" fill="currentColor" stroke="none" /><circle cx="6.2" cy="13.4" r="0.7" fill="currentColor" stroke="none" /><circle cx="11.6" cy="14.4" r="0.9" fill="currentColor" stroke="none" /></svg>,
   /* a focus frame round a head */
   subject: <svg viewBox="0 0 20 20" {...P}><path d="M3 6.6V4.2C3 3.5 3.5 3 4.2 3h2.4M13.4 3h2.4c.7 0 1.2.5 1.2 1.2v2.4M17 13.4v2.4c0 .7-.5 1.2-1.2 1.2h-2.4M6.6 17H4.2C3.5 17 3 16.5 3 15.8v-2.4" /><circle cx="10" cy="8.4" r="2.2" /><path d="M6.3 14.2c.6-1.8 2-2.8 3.7-2.8s3.1 1 3.7 2.8" /></svg>,
+  /* a crescent moon over a stack of frames */
+  night: <svg viewBox="0 0 20 20" {...P}><path d="M12.6 3.2a4.6 4.6 0 1 0 4.2 6.4 3.6 3.6 0 0 1-4.2-6.4z" /><path d="M3 13.2h9.4M3.8 15.4h7.8M4.6 17.6h6.2" /></svg>,
   /* a movie camera with a focus frame */
   af: <svg viewBox="0 0 20 20" {...P}><path d="M3 7V4.5A1.5 1.5 0 0 1 4.5 3H7M13 3h2.5A1.5 1.5 0 0 1 17 4.5V7M17 13v2.5a1.5 1.5 0 0 1-1.5 1.5H13M7 17H4.5A1.5 1.5 0 0 1 3 15.5V13" /><circle cx="10" cy="10" r="1.6" /></svg>,
   movie: <svg viewBox="0 0 20 20" {...P}><rect x="2" y="5.6" width="11" height="8.8" rx="1.6" /><path d="M13 8.8l4.6-2.4v7.2L13 11.2" /><path d="M5.6 8.4v-.8h.8M9.4 7.6h.8v.8M10.2 11.6v.8h-.8M6.4 12.4h-.8v-.8" /></svg>,

@@ -200,6 +200,8 @@ export interface ExtensionFeatures {
   subjectAf?: boolean;
   /** GR IV 1.20 and 1.21 only (`fw/gr4v120/aspect/lockprotect.ts`; the engine refuses it on 1.11): the mode dial's lock button protects the picture in single-picture playback. */
   lockProtect?: boolean;
+  /** GR IV 1.20 and 1.21 only (`fw/gr4v120/aspect/handnight.ts`; the engine refuses it on 1.11): Handheld Night. */
+  handheldNight?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
