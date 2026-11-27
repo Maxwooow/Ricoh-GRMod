@@ -226,6 +226,209 @@ diff --git a/core/src/fw/gr4v120/aspect/adjslots.ts b/core/src/fw/gr4v120/aspect
    after(TOUCHABLE, `mov r1, #${n}; bl #${module + E.touchable_more}`, 'ADJ slots: icons that can be touched, slots 6..N');
    const taps = Array.from({ length: n - 5 }, (_, j) => stub(`ldrb r3, [r0, #0x1fc]; cmp r3, #${5 + j}; bxeq lr; mov r1, #${5 + j}; b #${TAP_SELECT}`));
    const tapTable = patch.append(u32le(taps.length ? taps : [0]), 4);
+diff --git a/core/src/fw/gr4v120/aspect/afdist.ts b/core/src/fw/gr4v120/aspect/afdist.ts
+new file mode 100644
+--- /dev/null
++++ b/core/src/fw/gr4v120/aspect/afdist.ts
+@@ -0,0 +1,198 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/**
++ * The focus distance while autofocusing (test builds only, `TestOptions.afDistance`; GR IV 1.20 and 1.21): the
++ * camera's distance scale is shown in the autofocus settings while an autofocus is asked for, and the distance is
++ * written under it as a number. NOT YET TRIED ON A CAMERA: whether the distance the camera keeps follows the lens
++ * after an autofocus is what the first test build is for.
++ *
++ * What the camera has (1.20 addresses).
++ *  - The shooting screen (LiveViewController) builds 0x5E views from a table (0x53DBFFBC, 0x18 bytes a view: the
++ *    type, x, y, width, height, the parent's number; built by 0x53184428, called at 0x5318BB90; the view factory is
++ *    0x535AD1B4). View 0 is the root; the first 0x30 are the screen's items: item i's view is at screen + 0x15C +
++ *    4 i, its place for each of the four layouts in 0x53DBF9BC, and a function (table 0x53DBF798) shows or hides it
++ *    at every update of the screen.
++ *  - Item 26 is the manual focus distance scale (view type 4, constructor 0x53592D24, 60 x 200 at the left edge,
++ *    allocated with 0x128 bytes at 0x535AD788). Its function (0x53189E30) decides by the Focus setting (settings byte
++ *    0xC1D, in the screen's record + 0x998): manual focus always; 10 and 11 when the depth of field is known; the
++ *    autofocus settings (0..4, 14, 15, the case at 0x5318A0F0) only while the autofocus was started the way that
++ *    sets byte 0xC of the focus request state (0x5324105C; 0x533AEAAC sets it) and record + 0x549 is set. When
++ *    shown it updates the scale (0x53593040) with the focus distance in mm (record + 0x6E8, a copy of the live
++ *    record's + 0x6B8, which the app's own "move the lens to a distance" 0x533ACB20 compares with what it wants
++ *    before it moves the lens; 30000 is the far end) and the depth of field. All its paths leave through
++ *    0x53189E58 (r4 the screen, r6 the view, r5 shown or not).
++ *  - The focus request state has a byte for each way an autofocus is asked for: 8 the half-press (the shooting
++ *    screen reads it for its focus frames, 0x533ACE38), 0xB, 0xC, 0xD and 0x11 the others, 0x12 "started for the
++ *    half-press"; every one starts the autofocus through 0x533ACC90.
++ *
++ * The change.
++ *  - The scale in the autofocus settings: the case at 0x5318A0F0 first looks at the bytes 8, 0xB, 0xD, 0x11 and
++ *    0x12; with one of them set the scale is shown (the function's "show" 0x53189F88), else the camera's own test.
++ *  - The number: a small text view (type 0, the kind the screen's own small texts are) is made when the screen has
++ *    built its views, as a child of the root view. Its address and what it shows are kept in three words after the
++ *    scale's view (allocated with 0x134 bytes; the scale's constructor 0x53592D24 clears them, in every screen that
++ *    has a scale). A view does not free its children: a screen frees the views of its table (0x531844E8), and the
++ *    scale's destructor (0x535925A8) frees the scale's own children one by one. The number is freed there too,
++ *    before the scale's base destructor, the way those are (the view's deleting destructor). Where item 26's function leaves,
++ *    the module (tools/afdist/afdist.c) shows it with the scale in the autofocus settings, 2 px in and 202 px
++ *    down from the scale's place in the layout, with the distance: "0.35M", "1.8M", "12M", "INF"; with distances
++ *    in feet "13.8IN", "5.9FT", "41FT". (Capitals: the camera's own texts of this kind have no small letters.)
++ *
++ * No state outside the views. 1.21 through the address table.
++ */
++import { FirmwareError } from '../../types';
++import { assembleWords, branchWord, movWord } from './arm';
++import { Patch, expectWord, u32le } from './build';
++import { AFDIST_CODE, AFDIST_CODE_LENGTH } from './afdist-code';
++import { adr } from '../target';
++
++export const AFDIST_MAGIC = 0x41464453; // "SDFA" (bytes)
++
++/** The shooting screen: its view table, the call that builds the views, the places of the items, the item functions. */
++const LV_VIEWS = adr(0x53dbffbc);
++const LV_BUILD_CALL = adr(0x5318bb90);
++const BUILD_VIEWS = adr(0x53184428);
++const LV_LAYOUT = adr(0x5318bbb0);
++const LV_PLACES = adr(0x53dbf9bc);
++const LV_ITEMS = adr(0x53dbf798);
++const SCALE_ITEM = 26;
++/** Item 26's function: the autofocus settings' case, "show", "hide", the way out. */
++const SCALE_FN = adr(0x53189e30);
++const SCALE_AF_CASE = adr(0x5318a0f0);
++const SCALE_SHOW = adr(0x53189f88);
++const SCALE_HIDE = adr(0x53189ec8);
++const SCALE_EXIT = adr(0x53189e58);
++/** The scale's allocation in the view factory: mov r0, #0x128. */
++const SCALE_ALLOC = adr(0x535ad788);
++const SCALE_CTOR = adr(0x53592d24);
++const SCALE_BYTES = 0x128;
++/** In the constructor: str r5, [r4, #0xec] (r5 = 0), the first of the children's addresses. In the destructor: mov r0, r4 before the base destructor. */
++const SCALE_CTOR_CLEARS = adr(0x53592da0);
++const SCALE_DTOR = adr(0x535925a8);
++const SCALE_DTOR_BASE = adr(0x535926b0);
++const VIEW_BASE_DTOR = adr(0x53593234);
++/** The focus request state and three of its readers (bytes 8, 0xB, 0x12). */
++const FOCUS_REQUESTS = adr(0x5324105c);
++const REQUEST_C = adr(0x533ace10);
++const REQUEST_READERS: readonly (readonly [number, number])[] = [[adr(0x533ace38), 8], [adr(0x533ace08), 0xb], [adr(0x533ace30), 0x12]];
++/** Views. */
++const VIEW_FACTORY = adr(0x535ad1b4);
++const ADD_CHILD = adr(0x535ab428);
++const SET_VISIBLE = adr(0x535acd84);
++const SET_TEXT = adr(0x53590490);
++const SET_ALIGN = adr(0x5359043c);
++const SET_FONT = adr(0x53590458);
++const SET_EDGE = adr(0x53590590);
++const MOVE = adr(0x535ac024);
++
++function fail(code: string, message: string): never {
++  throw new FirmwareError(code, message);
++}
++const lo = (v: number): number => v & 0xffff;
++const hi = (v: number): number => v >>> 16;
++
++/** `feet`: the number in feet and inches (with `distanceFeet`). */
++export function installAfDistance(patch: Patch, feet: boolean): void {
++  // The views: view 0 the root, item 26 the scale, 60 x 200; the scale's function; its place in the first layout.
++  if ((patch.word(LV_VIEWS) & 0xff) !== 1 || (patch.word(LV_VIEWS + SCALE_ITEM * 0x18) & 0xff) !== 4) fail('unexpected-layout', 'focus distance: the shooting screen\'s views are not as expected');
++  expectWord(patch, LV_VIEWS + SCALE_ITEM * 0x18 + 0xc, 60);
++  expectWord(patch, LV_VIEWS + SCALE_ITEM * 0x18 + 0x10, 200);
++  expectWord(patch, LV_ITEMS + SCALE_ITEM * 8, SCALE_FN);
++  expectWord(patch, LV_PLACES + SCALE_ITEM * 8, 0);
++  expectWord(patch, LV_PLACES + SCALE_ITEM * 8 + 4, 160);
++  expectWord(patch, LV_LAYOUT + 0x48, 0xe5d432d4); // ldrb r3, [r4, #0x2d4]: the layout
++  expectWord(patch, LV_LAYOUT + 0x60, movWord(2, lo(LV_PLACES))); // the places
++  expectWord(patch, LV_BUILD_CALL, branchWord(LV_BUILD_CALL, BUILD_VIEWS, 14, true));
++  expectWord(patch, LV_BUILD_CALL + 4, 0xe1a00004); // mov r0, r4: the builder's result is not used
++  expectWord(patch, SCALE_ALLOC, 0xe3a00f4a); // mov r0, #0x128
++  expectWord(patch, SCALE_ALLOC + 0x14, branchWord(SCALE_ALLOC + 0x14, SCALE_CTOR, 14, true));
++  expectWord(patch, SCALE_CTOR_CLEARS - 4, 0xe3a08014); // mov r8, #0x14
++  expectWord(patch, SCALE_CTOR_CLEARS, 0xe58450ec); // str r5, [r4, #0xec]
++  expectWord(patch, SCALE_CTOR_CLEARS + 4, 0xe58450f0);
++  expectWord(patch, SCALE_CTOR + 0x40, 0xe3a05000); // mov r5, #0
++  expectWord(patch, SCALE_DTOR, 0xe1a0c00d);
++  expectWord(patch, SCALE_DTOR_BASE - 0x18, 0xe5940110); // ldr r0, [r4, #0x110]: the last of the scale's own children
++  expectWord(patch, SCALE_DTOR_BASE - 0xc, 0xe5903000); // ldr r3, [r0]
++  expectWord(patch, SCALE_DTOR_BASE - 8, 0xe5933004); // ldr r3, [r3, #4]: the deleting destructor
++  expectWord(patch, SCALE_DTOR_BASE - 4, 0xe12fff33); // blx r3
++  expectWord(patch, SCALE_DTOR_BASE, 0xe1a00004); // mov r0, r4
++  expectWord(patch, SCALE_DTOR_BASE + 4, branchWord(SCALE_DTOR_BASE + 4, VIEW_BASE_DTOR, 14, true));
++  // Item 26's function.
++  expectWord(patch, SCALE_FN, 0xe1a0c00d);
++  expectWord(patch, SCALE_FN + 0x20, 0xe591615c); // ldr r6, [r1, #0x15c]: the view
++  expectWord(patch, SCALE_EXIT, 0xe24bc030); // sub ip, fp, #0x30
++  expectWord(patch, SCALE_EXIT + 4, 0xe1a00006); // mov r0, r6
++  expectWord(patch, SCALE_EXIT + 8, 0xe1a01005); // mov r1, r5
++  expectWord(patch, SCALE_EXIT + 0x18, branchWord(SCALE_EXIT + 0x18, SET_VISIBLE));
++  expectWord(patch, SCALE_HIDE, 0xe3a05000); // mov r5, #0
++  expectWord(patch, SCALE_HIDE + 4, branchWord(SCALE_HIDE + 4, SCALE_EXIT));
++  expectWord(patch, SCALE_AF_CASE, 0xe1a00009); // mov r0, sb
++  expectWord(patch, SCALE_AF_CASE + 4, branchWord(SCALE_AF_CASE + 4, FOCUS_REQUESTS, 14, true));
++  expectWord(patch, SCALE_AF_CASE + 8, branchWord(SCALE_AF_CASE + 8, REQUEST_C, 14, true));
++  expectWord(patch, SCALE_AF_CASE + 0x10, branchWord(SCALE_AF_CASE + 0x10, SCALE_HIDE, 0));
++  expectWord(patch, SCALE_AF_CASE + 0x14, 0xe59434ec); // ldr r3, [r4, #0x4ec]: the screen's record
++  expectWord(patch, SCALE_AF_CASE + 0x20, branchWord(SCALE_AF_CASE + 0x20, SCALE_SHOW, 1));
++  expectWord(patch, SCALE_AF_CASE - 0x50, 0xe5d33998); // ldrb r3, [r3, #0x998]: the Focus setting
++  expectWord(patch, SCALE_SHOW + 0x3c, 0xe59396e8); // ldr sb, [r3, #0x6e8]: the distance, mm
++  expectWord(patch, REQUEST_C, 0xe5d0000c);
++  for (const [reader, byte] of REQUEST_READERS) expectWord(patch, reader, 0xe5d00000 | byte); // ldrb r0, [r0, #byte]
++  for (const f of [BUILD_VIEWS, VIEW_FACTORY, ADD_CHILD, SET_TEXT, MOVE, SCALE_CTOR]) expectWord(patch, f, 0xe1a0c00d);
++  expectWord(patch, SET_VISIBLE, 0xe5d0209e); // ldrb r2, [r0, #0x9e]
++  expectWord(patch, SET_ALIGN, 0xe5d020ec);
++  expectWord(patch, SET_FONT + 4, 0xe5d00108);
++  expectWord(patch, SET_EDGE, 0xe5d020f4);
++
++  const module = Uint8Array.from(atob(AFDIST_CODE), (c) => c.charCodeAt(0));
++  if (module.length !== AFDIST_CODE_LENGTH) fail('internal', 'focus distance: embedded module length');
++  const code = patch.append(module, 16);
++  const ctx = patch.append(u32le([AFDIST_MAGIC, VIEW_FACTORY, ADD_CHILD, SET_VISIBLE, SET_TEXT, SET_ALIGN, SET_FONT, SET_EDGE, MOVE, LV_PLACES, feet ? 1 : 0]), 16);
++  const loadCtx = `movw r0, #${lo(ctx)}; movt r0, #${hi(ctx)}`;
++
++  // The scale's view with three more words (afdist.c: VIEW_WORDS).
++  patch.setWord(SCALE_ALLOC, 0xe3a00f4d, 'focus distance: three more words after the distance scale\'s view'); // mov r0, #0x134
++  if (SCALE_BYTES + 12 !== 0x134) fail('internal', 'focus distance: the view\'s size');
++  const clears = patch.append((at) => assembleWords(
++    `str r5, [r4, #0xec]
++     str r5, [r4, #${SCALE_BYTES}]; str r5, [r4, #${SCALE_BYTES + 4}]; str r5, [r4, #${SCALE_BYTES + 8}]
++     b #${SCALE_CTOR_CLEARS + 4}`, at), 16);
++  patch.setWord(SCALE_CTOR_CLEARS, branchWord(SCALE_CTOR_CLEARS, clears), 'focus distance: a new distance scale has no number yet');
++  const frees = patch.append((at) => assembleWords(
++    `ldr r0, [r4, #${SCALE_BYTES}]
++     cmp r0, #0; beq done
++     mov r3, #0; str r3, [r4, #${SCALE_BYTES}]
++     ldr r3, [r0]; ldr r3, [r3, #4]
++     mov lr, pc; bx r3
++     done: mov r0, r4
++     b #${SCALE_DTOR_BASE + 4}`, at), 16);
++  patch.setWord(SCALE_DTOR_BASE, branchWord(SCALE_DTOR_BASE, frees), 'focus distance: the number is freed with the distance scale');
++  // The screen has built its views (r1 the views): the number's view.
++  const create = patch.append((at) => assembleWords(
++    `push {r4, lr}
++     mov r4, r1
++     bl #${BUILD_VIEWS}
++     mov r2, r4; mov r1, #0
++     ${loadCtx}; bl #${code}
++     pop {r4, pc}`, at), 16);
++  patch.setWord(LV_BUILD_CALL, branchWord(LV_BUILD_CALL, create, 14, true), 'focus distance: the number\'s view, when the shooting screen has built its views');
++  // The autofocus settings: the scale while an autofocus is asked for (half-press and the other ways); else the camera's own test.
++  const asked = patch.append((at) => assembleWords(
++    `mov r0, sb
++     bl #${FOCUS_REQUESTS}
++     ldrb r1, [r0, #8]
++     ldrb r2, [r0, #0xb]; orr r1, r1, r2
++     ldrb r2, [r0, #0xd]; orr r1, r1, r2
++     ldrb r2, [r0, #0x11]; orr r1, r1, r2
++     ldrb r2, [r0, #0x12]; orrs r1, r1, r2
++     bne #${SCALE_SHOW}
++     mov r0, sb
++     b #${SCALE_AF_CASE + 4}`, at), 16);
++  patch.setWord(SCALE_AF_CASE, branchWord(SCALE_AF_CASE, asked), 'focus distance: the distance scale while an autofocus is asked for');
++  // The way out of the scale's function (r4 the screen, r6 the scale, r5 shown): the number with it.
++  const number = patch.append((at) => assembleWords(
++    `mov r2, r4; mov r3, r6
++     cmp r5, #0
++     moveq r1, #1; movne r1, #2
++     ${loadCtx}; bl #${code}
++     sub ip, fp, #0x30
++     b #${SCALE_EXIT + 4}`, at), 16);
++  patch.setWord(SCALE_EXIT, branchWord(SCALE_EXIT, number), 'focus distance: the number under the distance scale');
++}
 diff --git a/core/src/fw/gr4v120/aspect/awb2.ts b/core/src/fw/gr4v120/aspect/awb2.ts
 new file mode 100644
 --- /dev/null
@@ -438,7 +641,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  import type { HalationLook } from './halation';
  import { installFactoryHidden, installLookOrder, validateLookLayout } from './looks';
  import type { LookLayout } from './looks';
-@@ -47,27 +54,40 @@
+@@ -47,27 +54,41 @@
  import { installAdjSlots } from './adjslots';
  import { extendBatteryZeroFill, installBatteryPercent } from './battery';
  import { installCustomGrid, isCameraGrid, validCustomGrid } from './grid';
@@ -452,6 +655,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +import { installExposurePreviewOff } from './lvpreview';
 +import { installMovieExposure } from './movieexp';
 +import { installLockProtect } from './lockprotect';
++import { installAfDistance } from './afdist';
 +import { MOVIE_4K_BIT, MOVIE_SENSOR_SR_BIT, installMovie4k } from './movie4k';
 +import { installMovieSr, installMovieSrAssets } from './moviesr';
 +import { installDistanceFeet } from './units';
@@ -487,7 +691,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  export const LANGUAGES = 21;
  const ROW_STRIDE = TEXT_CAPACITY * 4;
  const NATIVE_ICON_CATALOG = adr(0x55014280);
-@@ -90,10 +110,10 @@
+@@ -90,10 +111,10 @@
    return id;
  }
  
@@ -501,7 +705,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  }
  
  export interface RatioSpec {
-@@ -155,16 +175,18 @@
+@@ -155,16 +176,18 @@
    /** ADJ lever slots, 6 to 8 (see `adjslots.ts`); absent or 5: the camera's five. */
    adjSlots?: number;
    /**
@@ -523,7 +727,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    /**
     * Live view of an added ratio shows the whole 3:2 frame, the part outside the ratio darkened
     * (see `shade.ts`); the photo is cropped as before. Needs at least one added ratio.
-@@ -174,46 +196,69 @@
+@@ -174,46 +197,71 @@
    ratioShadeTone?: ShadeTone;
    /** A learned Auto for Shadow Correction (see `shadowml.ts`); GR IV 1.11, 1.20 and 1.21. Off unless asked for. */
    shadowLearn?: boolean;
@@ -599,6 +803,8 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 -}
 +  /** Exposure preview off (issue #17), always on: the live view keeps a normal brightness (`lvpreview.ts`). */
 +  exposurePreviewOff?: boolean;
++  /** The focus distance while autofocusing: the distance scale and a number (`afdist.ts`). Not yet tried on a camera. */
++  afDistance?: boolean;
 +}
 +
 +/** Test builds only: the halation module's status (the 44 bytes before the heap; Direct Flash diagnostics' word otherwise). */
@@ -606,7 +812,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  export interface AspectResult {
    revision: BuildRevision;
-@@ -376,7 +421,7 @@
+@@ -376,7 +424,7 @@
    for (let l = 0; l < LANGUAGES; l++) textRows.push(patch.readMapped(roots.getUint32(l * 4, true), TEXT_COUNT * 4));
    const rowsStart = TEXT_CATALOG + 0x100;
    const end = rowsStart + LANGUAGES * ROW_STRIDE;
@@ -615,7 +821,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    patch.extendTo(end - BASE);
    patch.write(ICON_CATALOG, icons);
    const relocated: number[] = [];
-@@ -388,8 +433,15 @@
+@@ -388,8 +436,15 @@
    // language directory themselves.
    patch.setWord(adr(0x534013f8), movWord(0, ICON_CATALOG & 65535), 'use the extended icon catalog');
    patch.setWord(adr(0x534013fc), movWord(0, ICON_CATALOG >>> 16, true), 'use the extended icon catalog');
@@ -633,7 +839,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    }
    for (const [low, high] of [[adr(0x535967cc), adr(0x535967d0)], [adr(0x53595db4), adr(0x53595dbc)]] as const) {
      patch.setWord(low, movWord(3, TEXT_CATALOG & 65535), 'extended language catalog, low half');
-@@ -420,7 +472,10 @@
+@@ -420,7 +475,10 @@
  // --------------------------------------------------------------------------------------------
  // crop_icons.py
  
@@ -645,7 +851,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
  
  function installIcons(patch: Patch, iconbin: Uint8Array, ratios: readonly RatioEntry[]): { iconbin: Uint8Array; ids: Map<number, number> } {
    const parts: Uint8Array[] = [iconbin];
-@@ -512,7 +567,7 @@
+@@ -512,7 +570,7 @@
    // Complete language rows again, now wide enough for the new names; every original entry is kept.
    let priorColumns = TEXT_CAPACITY;
    for (const site of patch.textBoundSites) priorColumns = Math.max(priorColumns, movImmediate(patch.word(site)) + 1);
@@ -654,7 +860,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    for (const id of allIds) upper = Math.max(upper, textId(id));
    const columns = Math.max(priorColumns, upper + 1);
    const catalogs: Uint8Array[] = [];
-@@ -641,7 +696,7 @@
+@@ -641,7 +699,7 @@
    p.hook(adr(0x538b40ec), out);
    out = `push {r0-r3,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;pop {r0-r3,ip,lr};movne r0,r3;bne #${adrHEX(0x538B41CC)};b #${p.target(adr(0x538b41b4))};`;
    p.hook(adr(0x538b41b4), out);
@@ -663,7 +869,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x53664430), out);
    // Both callers select the cropped window only for their original 2..5 range; a computed window
    // is invisible if selector 0 copies the untouched full canvas instead.
-@@ -704,7 +759,7 @@
+@@ -704,7 +762,7 @@
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
    out += adrText('cmp r2,#5;beq #0x5367298C;b #0x536728E8;');
@@ -672,7 +878,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x536728e4), out);
    out = '';
    for (const row of rows) out += `cmp r2,#${row.id};beq ratio${row.id};`;
-@@ -725,8 +780,8 @@
+@@ -725,8 +783,8 @@
      out = '';
      for (const row of rows) out += `cmp ip,#${row.id};beq custom;`;
      out += `bic ip,ip,#4;b #${resume};custom:`;
@@ -683,7 +889,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      out += adrText('ldr lr,[ip];str lr,[r1];ldr lr,[ip,#4];str lr,[r1,#4];b #0x53672668;');
      p.hook(entry, out);
    }
-@@ -812,7 +867,7 @@
+@@ -812,7 +870,7 @@
    const get = p.emit(lookup + 'mov r0,#0;bx lr;');
    // The native code at 0x53726698 divides s15 by the crop magnification; the other branch writes
    // it directly. Both contracts are kept.
@@ -692,7 +898,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    p.hook(adr(0x537266e8), code);
    // r8 / sb are the source dimensions: exact known sizes first, then fit the ratio for anything else.
    code = `push {r0,r4-r7,r10,ip,lr};mov r0,r3;bl #${get};cmp r0,#0;beq old;mov r4,r0;mov r5,r8;mov r6,sb;`;
-@@ -946,7 +1001,7 @@
+@@ -946,7 +1004,7 @@
  function installState(patch: Patch, ratios: readonly RatioEntry[], activeBitmap: number): void {
    const priorSave = branchTarget(adr(0x533f3674), patch.word(adr(0x533f3674)));
    const priorLoad = branchTarget(adr(0x533f3254), patch.word(adr(0x533f3254)));
@@ -701,7 +907,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    expectWord(patch, adr(0x5381d6bc), 0xe1a0c00d);
    // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
    const rects: Uint8Array[] = [];
-@@ -1084,13 +1139,30 @@
+@@ -1084,13 +1142,30 @@
   * features this is `installRatios`, byte for byte. With features the revision is 3.
   */
  export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
@@ -733,7 +939,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    if (extra) revision = 3;
    if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
    if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
-@@ -1101,8 +1173,18 @@
+@@ -1101,8 +1176,18 @@
    });
    if (features.brightAuto !== undefined && ![true, false, 'bright', 'balanced'].includes(features.brightAuto)) fail('bad-edit', 'brightAuto must be boolean, bright or balanced');
    if (features.shadowLearn !== undefined && typeof features.shadowLearn !== 'boolean') fail('bad-edit', 'shadowLearn must be boolean');
@@ -754,7 +960,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    const patch = new Patch(rtos);
    const ramCopy = new DataView(patch.read(BASE + 0x450, 12).buffer);
    if (ramCopy.getUint32(0, true) !== RAM.source || ramCopy.getUint32(4, true) !== RAM.destination || ramCopy.getUint32(8, true) !== RAM.length) {
-@@ -1116,33 +1198,75 @@
+@@ -1116,33 +1201,75 @@
      const menu = installMenu(patch, ratios, installed.ids);
      const { p, get, scale } = buildGeometry(patch, ratios);
      installDevelop(p, scale, ratios);
@@ -838,7 +1044,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      const style = CINEMA_STYLES[id];
      // The engine asks for it only with a preset (curves of its own: Toning does nothing then). The
      // check of a built file installs this on the official image too, to find the hook places.
-@@ -1150,13 +1274,17 @@
+@@ -1150,13 +1277,17 @@
      halation.push({ style, light: colour.ownCurves ? halationLight(colour.curves, colour.postQ9) : halationLight() });
    }
    // Last: the added slots compose with the monochrome looks' visibility check.
@@ -858,7 +1064,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    // After halation and the date imprint: wraps the JPEG step they hook at its entry.
    if (features.hdrGainMap) installHdrGainMap(patch, !!test.hdrDiag);
    if (shutdown) icons = installShutdownMenu(patch, icons, shutdown.pictures, shutdown.factory);
-@@ -1164,19 +1292,63 @@
+@@ -1164,19 +1295,64 @@
    if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
    // The HDR line's list: after the additions that copy the list table first.
    if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
@@ -915,6 +1121,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +  // own words (and the record of the additions).
 +  if (features.movieExposure) installMovieExposure(patch);
 +  if (features.lockProtect || test.lockProtect) installLockProtect(patch);
++  if (test.afDistance) installAfDistance(patch, !!features.distanceFeet);
 +  // Distances in feet: texts, icons and the scale's words only; last, so that a build with it differs from the one
 +  // without only by its own words, texts and icons (and the record of the additions).
 +  if (features.distanceFeet) icons = installDistanceFeet(patch, icons);

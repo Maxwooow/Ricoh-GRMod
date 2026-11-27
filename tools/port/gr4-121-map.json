@@ -148,6 +148,7 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/adjslots.ts",
+    "core/src/fw/gr4v120/aspect/afdist.ts",
     "tools/gr4v120/adjslots/adjslots.c",
     "tools/gr4v120/adjslots/check.py"
    ]
@@ -8288,6 +8289,7 @@
    "how": "aligned + refs 0x53590db8x292",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts",
     "core/src/fw/gr4v120/aspect/shift.ts"
    ]
   },
@@ -9001,6 +9003,7 @@
    "how": "aligned + refs 0x535ad6acx1227",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts",
     "core/src/fw/gr4v120/aspect/grid.ts",
     "core/src/fw/gr4v120/aspect/shade.ts",
     "tools/gr4v120/adjslots/adjslots.c",
@@ -9017,6 +9020,7 @@
    "how": "aligned + refs 0x535adadcx157",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts",
     "tools/gr4v120/adjslots/check.py"
    ]
   },
@@ -14204,6 +14208,7 @@
    "how": "aligned + refs 0x53dc0fc4x1",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts",
     "core/src/fw/gr4v120/aspect/movieexp.ts"
    ]
   },
@@ -15985,6 +15990,7 @@
    "how": "aligned + refs 0x53241664x124",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts",
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
    ]
   },
@@ -17461,6 +17467,239 @@
    "ok": true,
    "files": [
     "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x53189e30": {
+   "new": "0x53189e08",
+   "how": "aligned + refs 0x53189e08x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x53189e58": {
+   "new": "0x53189e30",
+   "how": "aligned + refs 0x53189e30x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x53189ec8": {
+   "new": "0x53189ea0",
+   "how": "aligned + refs 0x53189ea0x12",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x53189f88": {
+   "new": "0x53189f60",
+   "how": "aligned + refs 0x53189f60x7",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x5318a0f0": {
+   "new": "0x5318a0c8",
+   "how": "aligned + refs 0x5318a0c8x7",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x5318bb90": {
+   "new": "0x5318bb68",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x5318bbb0": {
+   "new": "0x5318bb88",
+   "how": "aligned + refs 0x5318bb88x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x533acb20": {
+   "new": "0x533ad3d0",
+   "how": "aligned + refs 0x533ad3d0x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x533acc90": {
+   "new": "0x533ad540",
+   "how": "aligned + refs 0x533ad540x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x533ace08": {
+   "new": "0x533ad6b8",
+   "how": "aligned + refs 0x533ad6b8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x533ace10": {
+   "new": "0x533ad6c0",
+   "how": "aligned + refs 0x533ad6c0x9",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x533ace30": {
+   "new": "0x533ad6e0",
+   "how": "aligned + refs 0x533ad6e0x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x533ace38": {
+   "new": "0x533ad6e8",
+   "how": "aligned + refs 0x533ad6e8x14",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x533aeaac": {
+   "new": "0x533af35c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x5359043c": {
+   "new": "0x53590d64",
+   "how": "aligned + refs 0x53590d64x46",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x53590458": {
+   "new": "0x53590d80",
+   "how": "aligned + refs 0x53590d80x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x53590590": {
+   "new": "0x53590eb8",
+   "how": "aligned + refs 0x53590eb8x97",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x53592d24": {
+   "new": "0x5359364c",
+   "how": "aligned + refs 0x5359364cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x53593040": {
+   "new": "0x53593968",
+   "how": "aligned + refs 0x53593968x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x535ab428": {
+   "new": "0x535abd50",
+   "how": "aligned + refs 0x535abd50x207",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x535ac024": {
+   "new": "0x535ac94c",
+   "how": "aligned + refs 0x535ac94cx42",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x535ad788": {
+   "new": "0x535ae0b0",
+   "how": "aligned + refs 0x535ae0b0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x53dbf798": {
+   "new": "0x53dc0da0",
+   "how": "override",
+   "ok": true,
+   "why": "the shooting screen's item functions (8 bytes an item): item 26 there is 0x53189e08 and item 36 0x5318eb20, the 1.21 places of 0x53189e30 and 0x5318eb48 (read side by side)",
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x53dbffbc": {
+   "new": "0x53dc15c4",
+   "how": "aligned + refs 0x53dc15c4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x531844e8": {
+   "new": "0x531844e8",
+   "how": "aligned + refs 0x531844e8x96",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x535925a8": {
+   "new": "0x53592ed0",
+   "how": "aligned + refs 0x53592ed0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x535926b0": {
+   "new": "0x53592fd8",
+   "how": "aligned + refs 0x53592fd8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x53592da0": {
+   "new": "0x535936c8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
+   ]
+  },
+  "0x53593234": {
+   "new": "0x53593b5c",
+   "how": "aligned + refs 0x53593b5cx22",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/afdist.ts"
    ]
   }
  }

@@ -63,6 +63,7 @@ import type { ShadeTone } from './shade';
 import { installExposurePreviewOff } from './lvpreview';
 import { installMovieExposure } from './movieexp';
 import { installLockProtect } from './lockprotect';
+import { installAfDistance } from './afdist';
 import { MOVIE_4K_BIT, MOVIE_SENSOR_SR_BIT, installMovie4k } from './movie4k';
 import { installMovieSr, installMovieSrAssets } from './moviesr';
 import { installDistanceFeet } from './units';
@@ -255,6 +256,8 @@ export interface TestOptions {
   batteryDiag?: boolean;
   /** Exposure preview off (issue #17), always on: the live view keeps a normal brightness (`lvpreview.ts`). */
   exposurePreviewOff?: boolean;
+  /** The focus distance while autofocusing: the distance scale and a number (`afdist.ts`). Not yet tried on a camera. */
+  afDistance?: boolean;
 }
 
 /** Test builds only: the halation module's status (the 44 bytes before the heap; Direct Flash diagnostics' word otherwise). */
@@ -1341,6 +1344,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   // own words (and the record of the additions).
   if (features.movieExposure) installMovieExposure(patch);
   if (features.lockProtect || test.lockProtect) installLockProtect(patch);
+  if (test.afDistance) installAfDistance(patch, !!features.distanceFeet);
   // Distances in feet: texts, icons and the scale's words only; last, so that a build with it differs from the one
   // without only by its own words, texts and icons (and the record of the additions).
   if (features.distanceFeet) icons = installDistanceFeet(patch, icons);

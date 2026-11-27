@@ -344,6 +344,8 @@ export interface BuildOptions {
   hdrDiag?: boolean;
   /** Test builds only (GR IV 1.20): exposure preview always off (issue #17). */
   exposurePreviewOff?: boolean;
+  /** Test builds only (GR IV 1.20 / 1.21): the focus distance while autofocusing, as the distance scale and a number. */
+  afDistance?: boolean;
   /**
    * GR IV 1.11 / 1.20 / 1.21 (`features.batteryPercent`): the battery icon shows the charge in steps of 10 % (a
    * number inside the battery) instead of the bars (see `aspect/battery.ts`).
@@ -1346,6 +1348,7 @@ export class Engine {
       ...(options && options.halationDiag ? { halationDiag: true } : {}),
       ...(options && options.hdrDiag ? { hdrDiag: true } : {}),
       ...(options && options.exposurePreviewOff ? { exposurePreviewOff: true } : {}),
+      ...(options && options.afDistance ? { afDistance: true } : {}),
       ...(batteryPercent && options.batteryDiag ? { batteryDiag: true } : {}),
     };
     const { decoded: _decoded, ...rest } = await this.g4.buildFirmware(this.raw, edits, ratios, clarity, features, test);

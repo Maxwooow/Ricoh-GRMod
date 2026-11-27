@@ -486,5 +486,9 @@
  "0x55839280": {
   "new": "0x55839280",
   "reason": "RAM, unreferenced: 512 bytes after the heap start 0x55839080 (same in 1.21: the start-up zero fill literal 0x53000460 and the heap's movw at 0x53ad4c4c name the same addresses); the heap start subject recognition moves to"
+ },
+ "0x53dbf798": {
+  "new": "0x53dc0da0",
+  "reason": "the shooting screen's item functions (8 bytes an item): item 26 there is 0x53189e08 and item 36 0x5318eb20, the 1.21 places of 0x53189e30 and 0x5318eb48 (read side by side)"
  }
 }
