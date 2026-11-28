@@ -530,5 +530,77 @@
  "0x537b7520": {
   "new": "0x537b8238",
   "reason": "bl memcpy in 0x537B74A0 (1.21 0x537B81B8, the periodic message of the same kind): the function's words equal up to relocation, the call at the same offset +0x80"
+ },
+ "0x531e5470": {
+  "new": "0x531e5a78",
+  "reason": "SvSetController constructor's literal load (vtable.ts provenance): its function 0x531e545c..0x531e54ec equal up to relocation, 36 words (word by word, relocations masked); the disagreeing reference 0x531e6a38 is a data word at 0x53cf701c that decodes as a branch"
+ },
+ "0x53dc9d88": {
+  "new": "0x53dcb420",
+  "reason": "vtable of 17AdjModeController: the same RTTI name, 17 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words"
+ },
+ "0x53dcb268": {
+  "new": "0x53dcc900",
+  "reason": "vtable of 16FnListController: the same RTTI name, 16 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words"
+ },
+ "0x53dcbe30": {
+  "new": "0x53dcd4c8",
+  "reason": "vtable of 22ImageControlController: the same RTTI name, 16 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words"
+ },
+ "0x53dcd220": {
+  "new": "0x53dce8b8",
+  "reason": "vtable of 19DriveModeController: the same RTTI name, 16 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words"
+ },
+ "0x53dcd3d0": {
+  "new": "0x53dcea68",
+  "reason": "vtable of 20SelectMenuController: the same RTTI name, 16 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words"
+ },
+ "0x53dd05e8": {
+  "new": "0x53dd1c80",
+  "reason": "vtable of 22WhiteBalanceController: the same RTTI name, 16 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words"
+ },
+ "0x53dd0e68": {
+  "new": "0x53dd2500",
+  "reason": "vtable of 17SubMenuController: the same RTTI name, 16 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words"
+ },
+ "0x53ece200": {
+  "new": "0x53ecf898",
+  "reason": "vtable of 9AsciiView: the same RTTI name, 22 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words"
+ },
+ "0x53ece4e0": {
+  "new": "0x53ecfb78",
+  "reason": "vtable of 9GroupView: the same RTTI name, 22 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words; also a stock View vtable (the handheld night screen test's child view copies it): aligned, and its 4 references name 0x53ECFB78 in 1.21"
+ },
+ "0x53ece550": {
+  "new": "0x53ecfbe8",
+  "reason": "vtable of 8LineView: the same RTTI name, 22 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words"
+ },
+ "0x53ecec40": {
+  "new": "0x53ed02d8",
+  "reason": "vtable of 8IconView: the same RTTI name, 22 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words"
+ },
+ "0x53ececd8": {
+  "new": "0x53ed0370",
+  "reason": "vtable of 17FunctionGuideView: the same RTTI name, 22 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words"
+ },
+ "0x53ecf240": {
+  "new": "0x53ed08d8",
+  "reason": "vtable of 15SpiritLevelView: the same RTTI name, 22 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words"
+ },
+ "0x53ecf3d0": {
+  "new": "0x53ed0a68",
+  "reason": "vtable of 18SingleItemLineView: the same RTTI name, 25 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words"
+ },
+ "0x53ecf588": {
+  "new": "0x53ed0c20",
+  "reason": "vtable of 10HeaderView: the same RTTI name, 22 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words"
+ },
+ "0x53ecf6d8": {
+  "new": "0x53ed0d70",
+  "reason": "vtable of 10FooterView: the same RTTI name, 22 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words"
+ },
+ "0x53ecf988": {
+  "new": "0x53ed1020",
+  "reason": "vtable of 13HistogramView: the same RTTI name, 22 slots in both, every slot the old slot's function mapped (word by word, relocations masked); addrmap: a window of masked pointers has too few distinct words"
  }
 }

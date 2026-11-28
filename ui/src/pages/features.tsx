@@ -5,7 +5,7 @@ import { FirmwareHero } from '../firmware';
 import { t } from '../i18n';
 import {
   useStore, loadFirmwareFile, gridOffered, setSoft, setDateStamp, setMonoUnlock, setFlashPlus, flashPlusOn, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain,
-  setShadowLearn, setBattery, setSubjectAf, setLockProtect, setVideoAf, setDimLightAf, setMovieExposure, setAwbLearn, setWbPerLook, setConstantLight, setSensorShift, setMovie4k, setMovieSr, setDistanceFeet, setBrightAuto, setCustomGrid,
+  setShadowLearn, setBattery, setSubjectAf, setLockProtect, setTheme, setVideoAf, setDimLightAf, setMovieExposure, setAwbLearn, setWbPerLook, setConstantLight, setSensorShift, setMovie4k, setMovieSr, setDistanceFeet, setBrightAuto, setCustomGrid,
 } from '../store';
 import { isFirmware } from './files';
 import { GridDetail, GridThumb, closeGrid, openGrid, useGridArrival } from './grid';
@@ -92,6 +92,8 @@ function ExtrasList() {
   const safOk = useStore((s) => !!s.info?.features.subjectAf);
   const lockP = useStore((s) => s.lockProtect);
   const lockOk = useStore((s) => !!s.info?.features.lockProtect);
+  const theme = useStore((s) => s.theme);
+  const themeOk = useStore((s) => !!s.info?.features.modernTheme);
   const vaf = useStore((s) => s.videoAf);
   const vafOk = useStore((s) => !!s.info?.features.videoAf);
   const dimAf = useStore((s) => s.dimLightAf);
@@ -148,6 +150,11 @@ function ExtrasList() {
       )}
       {wbLookOk && <FeatureCapsule icon={Ico.wb} title={t('navWbLook')} sub={t('wbLookSub')} on={wbLook} onChange={setWbPerLook} tour="ex-f-wblook" />}
       {lockOk && <FeatureCapsule icon={Ico.lock} title={t('navLockProtect')} sub={t('lockProtectSub')} on={lockP} onChange={setLockProtect} tour="ex-f-lock" />}
+      {themeOk && (
+        <ChoiceCapsule icon={Ico.swatch} title={t('navTheme')} sub={t('themeSub')} on={theme === 'modern'} tour="ex-f-theme"
+          value={theme} onChange={(v) => setTheme(v === 'modern' ? 'modern' : 'original')}
+          options={[{ value: 'original', label: t('themeOriginal') }, { value: 'modern', label: t('themeModern') }]} />
+      )}
       {gridOk && <GridCapsule />}
       {adjMax > 5 && (
         <ChoiceCapsule icon={Ico.adj} title={t('navAdjSlots')} sub={t('adjSlotsSub')} on={adj > 5} tour="ex-f-adj"

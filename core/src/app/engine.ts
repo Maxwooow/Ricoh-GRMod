@@ -131,6 +131,8 @@ export interface FirmwareInfo {
     subjectAf?: boolean;
     /** The mode dial's lock button can protect the picture in single-picture playback (GR IV 1.20 / 1.21; see `gr4v120/aspect/lockprotect.ts`). */
     lockProtect?: boolean;
+    /** The interface theme can be Modern (GR IV 1.20 / 1.21; see `gr4v120/aspect/uiskin/`). */
+    modernTheme?: boolean;
     /** GR III / IIIx: the most films a build can have (9; 20 on GR III 2.10, where
      * the number is chosen with BuildOptions.filmCount and Halation is set in the camera). */
     maxFilms?: number };
@@ -290,6 +292,8 @@ export interface FirmwareSummary {
   subjectAf?: boolean;
   /** True when the file's lock button protects the picture in single-picture playback. */
   lockProtect?: boolean;
+  /** 'modern' when the file has the Modern interface theme. */
+  theme?: 'modern';
   /** ADJ lever slots (6..8) when the file has more than the camera's five. */
   adjSlots?: number;
   /** True when the file's battery icon shows the charge in steps of 10 %. */
@@ -485,6 +489,12 @@ export interface BuildOptions {
    * Off unless asked for.
    */
   lockProtect?: boolean;
+  /**
+   * Interface theme (GR IV 1.20 and 1.21, `features.modernTheme`): 'original' (default) keeps the camera's interface;
+   * 'modern' redraws live view, playback, ADJ, the direct-setting pages and the menus (`gr4v120/aspect/uiskin/`), drawing only:
+   * what every page does and where it is touched stay the camera's. Not with more than five ADJ lever slots yet.
+   */
+  theme?: 'original' | 'modern';
   /** GR III 2.10: the number of films, 1..20 (`features.maxFilms`), each with a Halation
    * line in the camera. Absent: the nine-film T6 build. */
   filmCount?: number;
@@ -721,7 +731,7 @@ export class Engine {
       family: 'gr4', filename: 'fwdc248b.bin', models: ['STANDARD', 'HDF', 'MONO'],
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
       capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, menuPictures: true, lookLayout: true },
-      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, batteryPercent: true, customGrid: true, ratioShade: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== Gr4Program111 ? { filmGrain: true } : {}), shadowLearn: true, ...(g4 !== Gr4Program111 ? { flashTtl: true, framing: true, shadeMenu: true, gridMenu: true } : {}), ...(g4 !== Gr4Program111 ? { videoAf: true } : {}), ...(g4 !== Gr4Program111 ? { awbLearn: true } : {}), ...(g4 !== Gr4Program111 ? { movieExposure: true } : {}), ...(g4 !== Gr4Program111 ? { constantLight: true, sensorShift: true, movie4k: true, movieSr: true, distanceFeet: true, wbPerLook: true, halationAll: true, subjectAf: true, lockProtect: true } : {}) },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, batteryPercent: true, customGrid: true, ratioShade: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== Gr4Program111 ? { filmGrain: true } : {}), shadowLearn: true, ...(g4 !== Gr4Program111 ? { flashTtl: true, framing: true, shadeMenu: true, gridMenu: true } : {}), ...(g4 !== Gr4Program111 ? { videoAf: true } : {}), ...(g4 !== Gr4Program111 ? { awbLearn: true } : {}), ...(g4 !== Gr4Program111 ? { movieExposure: true } : {}), ...(g4 !== Gr4Program111 ? { constantLight: true, sensorShift: true, movie4k: true, movieSr: true, distanceFeet: true, wbPerLook: true, halationAll: true, subjectAf: true, lockProtect: true, modernTheme: true } : {}) },
       version: g4.FIRMWARE_VERSION,
       looks: { factory: [...g4.aspect.FACTORY_LOOK_IDS], extraFirst: g4.aspect.EXTRA_FIRST_STYLE, monoOnly: g4.aspect.FACTORY_LOOK_IDS.filter((n) => n >= 25) },
       sha256: await sha256Hex(input),
@@ -956,6 +966,7 @@ export class Engine {
       ...(features.halationAll ? { halationAll: true } : {}),
       ...(features.subjectAf ? { subjectAf: true } : {}),
       ...(features.lockProtect ? { lockProtect: true } : {}),
+      ...(features.modernTheme ? { theme: 'modern' as const } : {}),
     });
     if (!specs) return modified(false, [], aligned);
     let ratios: BuiltRatio[] = [];
@@ -1166,7 +1177,7 @@ export class Engine {
     if (options.dimLightAf !== undefined && typeof options.dimLightAf !== 'boolean') throw new FirmwareError('bad-edit', 'dimLightAf must be boolean');
     if (options.dimLightAf && !this.info.features.dimLightAf) throw new FirmwareError('bad-edit', 'the dim-light AF needs GR III / IIIx firmware');
     if (this.info.family === 'gr3x') {
-      if (Object.entries(options).some(([k, v]) => k !== 'monoUnlock' && k !== 'adjSoftFocus' && k !== 'dateStamp' && k !== 'shutdownPictures' && k !== 'filmCount' && k !== 'guard' && k !== 'lookLayout' && k !== 'gr3Round' && k !== 'dimLightAf' && v !== undefined && v !== false && !(Array.isArray(v) && !v.length)))
+      if (Object.entries(options).some(([k, v]) => k !== 'monoUnlock' && k !== 'adjSoftFocus' && k !== 'dateStamp' && k !== 'shutdownPictures' && k !== 'filmCount' && k !== 'guard' && k !== 'lookLayout' && k !== 'gr3Round' && k !== 'dimLightAf' && !(k === 'theme' && v === 'original') && v !== undefined && v !== false && !(Array.isArray(v) && !v.length)))
         throw new FirmwareError('gr3x-unsupported', 'added Image Control slots and the test settings of the date imprint are not ported to GR III / IIIx');
       if (options.shutdownPictures?.length && !this.info.capabilities.menuPictures)
         throw new FirmwareError('gr3x-unsupported', 'this GR III / IIIx file has no End Screen pictures');
@@ -1332,15 +1343,20 @@ export class Engine {
     if (halationAll && extraSlots.length === 0) throw new FirmwareError('bad-edit', 'halation for every look needs at least one added Image Control slot');
     const subjectAf = added('subjectAf', 'subject recognition');
     const lockProtect = added('lockProtect', 'the lock button\'s Protect');
+    if (options.theme !== undefined && options.theme !== 'original' && options.theme !== 'modern') throw new FirmwareError('bad-edit', 'theme must be original or modern');
+    const modernTheme = options.theme === 'modern';
+    if (modernTheme && !this.info.features.modernTheme) throw new FirmwareError('bad-edit', 'the Modern theme needs GR IV firmware 1.20 or 1.21');
+    if (modernTheme && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the Modern theme cannot be combined with the clarity-table soft focus of 0.4.x');
+    if (modernTheme && adjSlots > 5) throw new FirmwareError('bad-edit', 'the Modern theme cannot be combined with more than five ADJ lever slots yet');
     if (hdrGainMap && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the HDR gain map cannot be combined with the clarity-table soft focus of 0.4.x');
     if (directFlash && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Direct Flash cannot be combined with the clarity-table soft focus of 0.4.x');
     if (pictures.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'power-off pictures cannot be combined with the clarity-table soft focus of 0.4.x');
     if (adjSoftFocus && clarity.length > 0) throw new FirmwareError('bad-clarity', 'soft focus on the ADJ lever and on the clarity table cannot be combined');
     if (dateStamp && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the date imprint cannot be combined with the clarity-table soft focus of 0.4.x');
     if (extraSlots.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'added slots cannot be combined with the clarity-table soft focus of 0.4.x');
-    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash && adjSlots === 5 && !hdrGainMap && !exposurePreview && !filmGrain && !shadowLearn && !flashTtl && !videoAf && !awbLearn && !constantLight && !options.brightAuto && !batteryPercent && !customGrid && !framing && !movieExposure && !sensorShift && !movie4k && !movieSr && !distanceFeet && !subjectAf && !lockProtect) throw new FirmwareError('bad-edit', 'nothing to change');
+    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash && adjSlots === 5 && !hdrGainMap && !exposurePreview && !filmGrain && !shadowLearn && !flashTtl && !videoAf && !awbLearn && !constantLight && !options.brightAuto && !batteryPercent && !customGrid && !framing && !movieExposure && !sensorShift && !movie4k && !movieSr && !distanceFeet && !subjectAf && !lockProtect && !modernTheme) throw new FirmwareError('bad-edit', 'nothing to change');
     if (Object.keys(cinemaHalation).length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'halation cannot be combined with the clarity-table soft focus of 0.4.x');
-    const features = { ...(options.brightAuto ? { brightAuto: options.brightAuto } : {}), adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(hdrGainMap ? { hdrGainMap } : {}), ...(exposurePreview ? { exposurePreview } : {}), ...(softFocusMenu ? { softFocusMenu } : {}), ...(batteryPercent ? { batteryPercent } : {}), ...(customGrid ? { customGrid } : {}), ...(framing ? { framing } : {}), ...(ratioShade ? { ratioShade } : {}), ...(ratioShadeTone ? { ratioShadeTone } : {}), ...(shadowLearn ? { shadowLearn } : {}), ...(filmGrain ? { filmGrain } : {}), ...(flashTtl ? { flashTtl } : {}), ...(videoAf ? { videoAf } : {}), ...(awbLearn ? { awbLearn } : {}), ...(movieExposure ? { movieExposure } : {}), ...(constantLight ? { constantLight } : {}), ...(sensorShift ? { sensorShift } : {}), ...(movie4k ? { movie4k } : {}), ...(movieSr ? { movieSr } : {}), ...(distanceFeet ? { distanceFeet } : {}) , ...(wbPerLook ? { wbPerLook } : {}), ...(halationAll ? { halationAll } : {}), ...(subjectAf ? { subjectAf } : {}), ...(lockProtect ? { lockProtect } : {}) };
+    const features = { ...(options.brightAuto ? { brightAuto: options.brightAuto } : {}), adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(hdrGainMap ? { hdrGainMap } : {}), ...(exposurePreview ? { exposurePreview } : {}), ...(softFocusMenu ? { softFocusMenu } : {}), ...(batteryPercent ? { batteryPercent } : {}), ...(customGrid ? { customGrid } : {}), ...(framing ? { framing } : {}), ...(ratioShade ? { ratioShade } : {}), ...(ratioShadeTone ? { ratioShadeTone } : {}), ...(shadowLearn ? { shadowLearn } : {}), ...(filmGrain ? { filmGrain } : {}), ...(flashTtl ? { flashTtl } : {}), ...(videoAf ? { videoAf } : {}), ...(awbLearn ? { awbLearn } : {}), ...(movieExposure ? { movieExposure } : {}), ...(constantLight ? { constantLight } : {}), ...(sensorShift ? { sensorShift } : {}), ...(movie4k ? { movie4k } : {}), ...(movieSr ? { movieSr } : {}), ...(distanceFeet ? { distanceFeet } : {}) , ...(wbPerLook ? { wbPerLook } : {}), ...(halationAll ? { halationAll } : {}), ...(subjectAf ? { subjectAf } : {}), ...(lockProtect ? { lockProtect } : {}), ...(modernTheme ? { modernTheme } : {}) };
     const test = {
       ...(options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {}),
       ...(options && options.halationDiag ? { halationDiag: true } : {}),
