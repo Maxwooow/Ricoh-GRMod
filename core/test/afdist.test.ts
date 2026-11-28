@@ -28,9 +28,10 @@ function changedInImage(official: Uint8Array, a: Uint8Array, b: Uint8Array): num
 for (const [version, path] of files) {
   describe(`focus distance while autofocusing (${version})`, () => {
     const raw = new Uint8Array(readFileSync(path));
-    // the scale's allocation, its constructor and destructor, the screen's builder call, the scale function's autofocus case and way out
-    const places = version === '1.21' ? [0x53189e30, 0x5318a0c8, 0x5318bb68, 0x53592fd8, 0x535936c8, 0x535ae0b0] : [0x53189e58, 0x5318a0f0, 0x5318bb90, 0x535926b0, 0x53592da0, 0x535ad788];
-    it('built only when asked for: six words of the camera\'s code, the rest appended', async () => {
+    // the scale's allocation, its constructor and destructor, the screen's builder call, the scale function's autofocus case and way out,
+    // the way out of the focus frames' function
+    const places = version === '1.21' ? [0x53189e30, 0x5318a0c8, 0x5318bb68, 0x5318d7f8, 0x53592fd8, 0x535936c8, 0x535ae0b0] : [0x53189e58, 0x5318a0f0, 0x5318bb90, 0x5318d820, 0x535926b0, 0x53592da0, 0x535ad788];
+    it('built only when asked for: seven words of the camera\'s code, the rest appended', async () => {
       const e = await Engine.open(raw);
       const plain = await e.buildFirmware([], [], [], { batteryPercent: true });
       const again = await e.buildFirmware([], [], [], { batteryPercent: true, afDistance: false } as BuildOptions);

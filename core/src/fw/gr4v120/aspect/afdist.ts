@@ -2,8 +2,8 @@
 /**
  * The focus distance while autofocusing (test builds only, `TestOptions.afDistance`; GR IV 1.20 and 1.21): the
  * camera's distance scale is shown in the autofocus settings while an autofocus is asked for, and the distance is
- * written under it as a number. NOT YET TRIED ON A CAMERA: whether the distance the camera keeps follows the lens
- * after an autofocus is what the first test build is for.
+ * written under the focus frame as a number. Tried on a camera with the number under the scale (GR IV 1.21, test
+ * firmware 131: the scale and the number follow the autofocus); the number under the focus frame is the next build.
  *
  * What the camera has (1.20 addresses).
  *  - The shooting screen (LiveViewController) builds 0x5E views from a table (0x53DBFFBC, 0x18 bytes a view: the
@@ -28,14 +28,25 @@
  *  - The scale in the autofocus settings: the case at 0x5318A0F0 first looks at the bytes 8, 0xB, 0xD, 0x11 and
  *    0x12; with one of them set the scale is shown (the function's "show" 0x53189F88), else the camera's own test.
  *  - The number: a small text view (type 0, the kind the screen's own small texts are) is made when the screen has
- *    built its views, as a child of the root view. Its address and what it shows are kept in three words after the
- *    scale's view (allocated with 0x134 bytes; the scale's constructor 0x53592D24 clears them, in every screen that
+ *    built its views, as a child of the root view. Its address and what it shows are kept in four words after the
+ *    scale's view (allocated with 0x138 bytes; the scale's constructor 0x53592D24 clears them, in every screen that
  *    has a scale). A view does not free its children: a screen frees the views of its table (0x531844E8), and the
  *    scale's destructor (0x535925A8) frees the scale's own children one by one. The number is freed there too,
  *    before the scale's base destructor, the way those are (the view's deleting destructor). Where item 26's function leaves,
- *    the module (tools/afdist/afdist.c) shows it with the scale in the autofocus settings, 2 px in and 202 px
- *    down from the scale's place in the layout, with the distance: "0.35M", "1.8M", "12M", "INF"; with distances
- *    in feet "13.8IN", "5.9FT", "41FT". (Capitals: the camera's own texts of this kind have no small letters.)
+ *    the module (tools/afdist/afdist.c) shows it with the scale in the autofocus settings, with the distance:
+ *    "0.35M", "1.8M", "12M", "INF"; with distances in feet "13.8IN", "5.9FT", "41FT". (Capitals: the camera's own
+ *    texts of this kind have no small letters.)
+ *  - Its place: under the focus frame. Item 44 (0x5318D7D0) is the view that holds the focus frames: 25 frames
+ *    (views 62..86, type 5) and a 68 x 68 target (view 87). Its function hides them all (0x5318CBAC) and shows and
+ *    places the ones of the Focus setting and of what the autofocus found (one frame; the several frames of an area
+ *    in focus, kind 0x1B, 0x5318D350; the faces); every path leaves through 0x5318D820 (r5 the screen). The screen
+ *    runs its items in order at every update (0x5318BEE0), so the frames are placed after the scale's function has
+ *    run: the module is called there again and places the number centred 4 px under the first shown frame (under
+ *    all of them when they are an area's), over it where the screen's bottom line would be in the way, and under
+ *    the scale (2 px in, 202 px down from the scale's place in the layout; over the scale in the two layouts that
+ *    have it at the bottom of the screen) while no frame is shown. The
+ *    view is made as wide as its text (0x53590BE0 measures, 0x535AC264 sets the width: what the camera's own lists
+ *    do, 0x53593A40), so the text is in the middle of it whatever the view's alignment does.
  *
  * No state outside the views. 1.21 through the address table.
  */
@@ -83,6 +94,17 @@ const SET_ALIGN = adr(0x5359043c);
 const SET_FONT = adr(0x53590458);
 const SET_EDGE = adr(0x53590590);
 const MOVE = adr(0x535ac024);
+const TEXT_WIDTH = adr(0x53590be0);
+const SET_WIDTH = adr(0x535ac264);
+/** Item 44, the view that holds the focus frames: its function, the way out, "hide every frame", "the frames of an area in focus", a frame's kind. */
+const FRAMES_ITEM = 44;
+const FRAME_FIRST = 62;
+const FRAME_COUNT = 25;
+const FRAMES_FN = adr(0x5318d7d0);
+const FRAMES_EXIT = adr(0x5318d820);
+const FRAMES_HIDE_ALL = adr(0x5318cbac);
+const FRAMES_AREA = adr(0x5318d350);
+const FRAME_SET_KIND = adr(0x53597ae4);
 
 function fail(code: string, message: string): never {
   throw new FirmwareError(code, message);
@@ -140,19 +162,45 @@ export function installAfDistance(patch: Patch, feet: boolean): void {
   expectWord(patch, SET_ALIGN, 0xe5d020ec);
   expectWord(patch, SET_FONT + 4, 0xe5d00108);
   expectWord(patch, SET_EDGE, 0xe5d020f4);
+  // The focus frames: item 44's view holds views 62..86 (frames) and 87; its function; what the module reads of a view.
+  if ((patch.word(LV_VIEWS + FRAMES_ITEM * 0x18) & 0xff) !== 9) fail('unexpected-layout', 'focus distance: the focus frames\' view is not as expected');
+  for (let i = 0; i < FRAME_COUNT; i++) {
+    if ((patch.word(LV_VIEWS + (FRAME_FIRST + i) * 0x18) & 0xff) !== 5) fail('unexpected-layout', 'focus distance: the focus frames are not as expected');
+    expectWord(patch, LV_VIEWS + (FRAME_FIRST + i) * 0x18 + 0x14, FRAMES_ITEM);
+  }
+  if ((patch.word(LV_VIEWS + (FRAME_FIRST + FRAME_COUNT) * 0x18) & 0xff) !== 0xa) fail('unexpected-layout', 'focus distance: the focus target is not as expected');
+  expectWord(patch, LV_VIEWS + (FRAME_FIRST + FRAME_COUNT) * 0x18 + 0x14, FRAMES_ITEM);
+  expectWord(patch, LV_ITEMS + FRAMES_ITEM * 8, FRAMES_FN);
+  expectWord(patch, FRAMES_FN, 0xe1a0c00d);
+  expectWord(patch, FRAMES_FN + 0x24, 0xe1a05000); // mov r5, r0: the screen
+  expectWord(patch, FRAMES_EXIT - 4, branchWord(FRAMES_EXIT - 4, SET_VISIBLE, 14, true));
+  expectWord(patch, FRAMES_EXIT, 0xe51b2030); // ldr r2, [fp, #-0x30]
+  expectWord(patch, FRAMES_EXIT + 4, 0xe5943000); // ldr r3, [r4]
+  expectWord(patch, FRAMES_EXIT + 0x10, 0xe24bd028); // sub sp, fp, #0x28
+  expectWord(patch, FRAMES_FN + 0x70, branchWord(FRAMES_FN + 0x70, FRAMES_EXIT, 1)); // the two early ways out
+  expectWord(patch, FRAMES_FN + 0x80, branchWord(FRAMES_FN + 0x80, FRAMES_EXIT, 1));
+  expectWord(patch, FRAMES_HIDE_ALL + 0x10, 0xe5900254); // ldr r0, [r0, #0x254]: the first frame, view 62
+  expectWord(patch, FRAMES_HIDE_ALL + 0x13c, 0xe59402b8); // ldr r0, [r4, #0x2b8]: view 87
+  expectWord(patch, FRAMES_AREA + 0xe0, 0xe3a0101b); // mov r1, #0x1b: an area's frame
+  expectWord(patch, FRAMES_AREA + 0xe4, branchWord(FRAMES_AREA + 0xe4, FRAME_SET_KIND, 14, true));
+  expectWord(patch, FRAME_SET_KIND, 0xe5d020ee); // ldrb r2, [r0, #0xee]
+  expectWord(patch, MOVE + 4, 0xe2803020); // add r3, r0, #0x20: a view's rectangle
+  expectWord(patch, TEXT_WIDTH, 0xe1a0c00d);
+  expectWord(patch, SET_WIDTH, 0xe1a0c00d);
+  expectWord(patch, SET_WIDTH + 4, 0xe2803020);
 
   const module = Uint8Array.from(atob(AFDIST_CODE), (c) => c.charCodeAt(0));
   if (module.length !== AFDIST_CODE_LENGTH) fail('internal', 'focus distance: embedded module length');
   const code = patch.append(module, 16);
-  const ctx = patch.append(u32le([AFDIST_MAGIC, VIEW_FACTORY, ADD_CHILD, SET_VISIBLE, SET_TEXT, SET_ALIGN, SET_FONT, SET_EDGE, MOVE, LV_PLACES, feet ? 1 : 0]), 16);
+  const ctx = patch.append(u32le([AFDIST_MAGIC, VIEW_FACTORY, ADD_CHILD, SET_VISIBLE, SET_TEXT, SET_ALIGN, SET_FONT, SET_EDGE, MOVE, LV_PLACES, feet ? 1 : 0, TEXT_WIDTH, SET_WIDTH]), 16);
   const loadCtx = `movw r0, #${lo(ctx)}; movt r0, #${hi(ctx)}`;
 
-  // The scale's view with three more words (afdist.c: VIEW_WORDS).
-  patch.setWord(SCALE_ALLOC, 0xe3a00f4d, 'focus distance: three more words after the distance scale\'s view'); // mov r0, #0x134
-  if (SCALE_BYTES + 12 !== 0x134) fail('internal', 'focus distance: the view\'s size');
+  // The scale's view with four more words (afdist.c: VIEW_WORDS).
+  patch.setWord(SCALE_ALLOC, 0xe3a00f4e, 'focus distance: four more words after the distance scale\'s view'); // mov r0, #0x138
+  if (SCALE_BYTES + 16 !== 0x138) fail('internal', 'focus distance: the view\'s size');
   const clears = patch.append((at) => assembleWords(
     `str r5, [r4, #0xec]
-     str r5, [r4, #${SCALE_BYTES}]; str r5, [r4, #${SCALE_BYTES + 4}]; str r5, [r4, #${SCALE_BYTES + 8}]
+     str r5, [r4, #${SCALE_BYTES}]; str r5, [r4, #${SCALE_BYTES + 4}]; str r5, [r4, #${SCALE_BYTES + 8}]; str r5, [r4, #${SCALE_BYTES + 12}]
      b #${SCALE_CTOR_CLEARS + 4}`, at), 16);
   patch.setWord(SCALE_CTOR_CLEARS, branchWord(SCALE_CTOR_CLEARS, clears), 'focus distance: a new distance scale has no number yet');
   const frees = patch.append((at) => assembleWords(
@@ -194,5 +242,12 @@ export function installAfDistance(patch: Patch, feet: boolean): void {
      ${loadCtx}; bl #${code}
      sub ip, fp, #0x30
      b #${SCALE_EXIT + 4}`, at), 16);
-  patch.setWord(SCALE_EXIT, branchWord(SCALE_EXIT, number), 'focus distance: the number under the distance scale');
+  patch.setWord(SCALE_EXIT, branchWord(SCALE_EXIT, number), 'focus distance: the number with the distance scale');
+  // The way out of the focus frames' function (r5 the screen; r0..r3 are free there): the number under the frames as they are now.
+  const under = patch.append((at) => assembleWords(
+    `mov r2, r5; mov r1, #3
+     ${loadCtx}; bl #${code}
+     ldr r2, [fp, #-0x30]
+     b #${FRAMES_EXIT + 4}`, at), 16);
+  patch.setWord(FRAMES_EXIT, branchWord(FRAMES_EXIT, under), 'focus distance: the number under the focus frame');
 }
