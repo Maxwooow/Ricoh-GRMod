@@ -34,13 +34,13 @@
 import { assembleWords, branchTarget, branchWord, movImmediate, movWord } from './arm';
 import { BASE, ICON_CATALOG, LOOKUP_BOUNDS, OFFICIAL_RTOS_LENGTH, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z } from './build';
 import { linkModule } from './native-link';
-import { FRAME_LOOK, STASH_ASM, installLookStash, stashAsm } from './lookstash';
+import { FRAME_LOOK, STASH_ASM, installLookStash, stashAsm, STASH_TEST } from './lookstash';
 import { installExposureOrientation } from './datestamp';
 import { SLOT_PARAMETERS, SLOT_PARAMS_MODULE } from './slotparams-native';
 import { SLOT_PARAMS_EXT_MODULE } from './slotparams-ext-native';
 import { HALATION_COLOUR_NAMES, HALATION_LOOKS, HALATION_NAMES, halationColourIcon, halationColourScale, halationIcon, installHalationModule, readHalation } from './halation';
 import { installHalationClamps, installHalationUi } from './halation-ui';
-import { installHalationRows } from './halation-all';
+import { installHalationLive, installHalationRows, installHalationSnapshot } from './halation-all';
 import type { HalationLook } from './halation';
 import { HUE_LIMIT, HUE_VALUES, hueBlockBytes, hueFromBlock } from '../../../color/hue';
 import { FirmwareError } from '../../types';
@@ -114,6 +114,14 @@ export const HALATION_RED_ICON_ID = 790;
 export const HALATION_WHITE_ICON_ID = 791;
 /** Text of Cinema's Toning (and of the black-and-white toning, which no added look has); 1.11: 339. */
 const TONING_TEXT = 357;
+/**
+ * The parameter row kind of Cinema's Toning (the row that becomes Halation). The name table (shooting 0x53DC4E4C,
+ * RAW development 0x53DC4DFC; {icon, text} per kind, the site's r3 its base, r6 / r7 the row's entry) gives kinds 7,
+ * 9, 10 and 11 the same name (the black-and-white looks' Toning, and the Toning of three other looks): only kind 8
+ * is renamed. Only with halation for every look, where those looks have halation (0.9.6; 0.9.5 called their
+ * Toning rows Halation too); without it the looks with halation have no other row of that name.
+ */
+const KIND_TONING = 8;
 /** Toning's list icon (1.11: 0x16F). */
 const TONING_ICON = 0x184;
 /** The native two-position (Off / On) scale whose panel and track the colour scale reuses (1.11: 0x3A). */
@@ -409,7 +417,7 @@ export function installExtraSlots(p: Patch, iconbin: Uint8Array, slots: readonly
   // (through a word set once the module is placed, below) and gives black-and-white looks the white glow.
   const halNow = options.ext?.hal ? p.append(u32le([0]), 4) : undefined;
   const halMono = options.ext?.hal ? p.append(options.halMono ?? new Uint8Array(64), 4) : undefined;
-  const stash = options.ext?.hal ? stashAsm({ halNow, mono: halMono }) : options.stashLook ? STASH_ASM : '';
+  const stash = options.ext?.hal ? stashAsm({ halNow, mono: halMono, mark: STASH_TEST.mark }) : options.stashLook ? STASH_ASM : '';
   hook(p, adr(0x53939148), 0xe5d3279c, `${stash}ldrb r2,[r3,#0x79c];sub ip,r2,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};movls r2,#${CY};b #${adrHex(0x5393914c)}`, 'added slots: Cinema input fields');
 
   const layout = options.layout;
@@ -892,7 +900,7 @@ function lookupAsm(dst: string, reg: string, tmp: string, table: number): string
  * Colour); the setting is kept in the Toning byte (`halation-ui.ts`). Which looks: two tables of 64
  * bytes (by style, by RAW development's number).
  */
-export function installHalation(p: Patch, iconbin: Uint8Array, looks: readonly HalationLook[], all?: { ui: number }): Uint8Array {
+export function installHalation(p: Patch, iconbin: Uint8Array, looks: readonly HalationLook[], all?: { ui: number; now: number }): Uint8Array {
   if (looks.length === 0) return iconbin;
   const byStyle = new Uint8Array(HALATION_LOOKS);
   const byRaw = new Uint8Array(HALATION_LOOKS);
@@ -931,13 +939,13 @@ export function installHalation(p: Patch, iconbin: Uint8Array, looks: readonly H
   for (const [site, r] of LOOKUP_BOUNDS) p.setWord(site, movWord(r, Math.max(HALATION_WHITE_ICON_ID, movImmediate(p.word(site)))), 'icon upper bound');
 
   // Shooting: subtitle (r6 the table entry, r5 the controller).
-  hook(p, adr(0x531cbf68), 0xe1d610b2, `ldrh r1,[r6,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;ldrb ip,[r5,#0x19c];push {r0};${lookupAsm('ip', 'ip', 'r0', styles)};pop {r0};cmp ip,#0;movwne r1,#${HALATION_TEXT_ID};done:b #${adrHex(0x531cbf6c)}`, 'halation: name of the parameter');
+  hook(p, adr(0x531cbf68), 0xe1d610b2, `ldrh r1,[r6,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;${all ? `sub ip,r6,r3;cmp ip,#${KIND_TONING * 4};bne done;` : ''}ldrb ip,[r5,#0x19c];push {r0};${lookupAsm('ip', 'ip', 'r0', styles)};pop {r0};cmp ip,#0;movwne r1,#${HALATION_TEXT_ID};done:b #${adrHex(0x531cbf6c)}`, 'halation: name of the parameter');
   // Shooting: list icon (controller r7, r6).
   for (const [at, ctl] of [[adr(0x531cae48), 'r7'], [adr(0x531caf38), 'r6']] as const) {
     hook(p, at, 0xe3a01f61, `ldrb r1,[${ctl},#0x19c];push {r0};${lookupAsm('r1', 'r1', 'r0', styles)};pop {r0};cmp r1,#0;movw r1,#${TONING_ICON};movwne r1,#${HALATION_ICON_ID};b #${at + 4}`, 'halation: list icon');
   }
   // RAW development: subtitle (r7 the table entry).
-  hook(p, adr(0x531a97dc), 0xe1d710b2, `ldrh r1,[r7,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_TEXT};movwne r1,#${HALATION_TEXT_ID};pop {r0,r2,r3,lr};done:b #${adrHex(0x531a97e0)}`, 'halation: name of the parameter (RAW development)');
+  hook(p, adr(0x531a97dc), 0xe1d710b2, `ldrh r1,[r7,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;${all ? `sub ip,r7,r3;cmp ip,#${KIND_TONING * 4};bne done;` : ''}push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_TEXT};movwne r1,#${HALATION_TEXT_ID};pop {r0,r2,r3,lr};done:b #${adrHex(0x531a97e0)}`, 'halation: name of the parameter (RAW development)');
   // RAW development: list icon.
   for (const at of [adr(0x531a9d70), adr(0x531a9e88)]) {
     hook(p, at, 0xe3a01f61, `push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_ICON};movwne r1,#${HALATION_ICON_ID};pop {r0,r2,r3,lr};b #${at + 4}`, 'halation: list icon (RAW development)');
@@ -951,7 +959,7 @@ export function installHalation(p: Patch, iconbin: Uint8Array, looks: readonly H
   });
   installHalationClamps(p, !!all);
   // Halation for every look: the Halation row on every look's parameter screens.
-  if (all) installHalationRows(p);
+  if (all) { installHalationRows(p); installHalationSnapshot(p, all.now); installHalationLive(p, all.now); }
 
   // The look of the picture for the JPEG step: without added slots their hook is not there.
   if (p.word(adr(0x53939148)) === 0xe5d3279c) installLookStash(p);

@@ -59,7 +59,7 @@ import { LIST_SET_ITEM, TEXT_OFF, installTexts, listTable } from './datestamp-me
 import { SHIFT_CODE, SHIFT_CODE_LENGTH } from './shift-code';
 import { adr } from '../target';
 
-/** The module's state: 0x29 bytes of the sbrk arena (0x55839040..0x55839080, `battery.ts`: 0x40 the battery's byte, 0x74 Constant Light's word, 0x78 and 0x7C the white balance's and movie AF's pointers). */
+/** The module's state: 0x29 bytes of the sbrk arena (0x55839040..0x55839080, `battery.ts`: 0x40 the battery's byte, 0x44 / 0x45 / 0x46 Movie SR's and 4K's latches and the record of the state sent to the SR unit (`moviesr.ts`, `movie4k.ts`), 0x74 Constant Light's word, 0x78 and 0x7C the white balance's and movie AF's pointers). */
 export const SHIFT_STATE = adr(0x55839048);
 export const SHIFT_STATE_BYTES = 0x29;
 export const SHIFT_TEXT_IDS = { name: 1041, adjust: 1042, center: 1043 } as const;

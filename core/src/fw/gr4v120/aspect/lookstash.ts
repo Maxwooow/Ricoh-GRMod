@@ -72,7 +72,15 @@ export const MONO_LOOKS = [13, 14, 15, 16, 25, 26, 27, 28, 29, 30, 31, 32];
  * module (it answers 0x100 for a look whose record has it). `mono`: a 64-byte table of the
  * black-and-white looks, which take the white glow.
  */
-export function stashAsm(o: { halNow?: number; mono?: number } = {}): string {
+/**
+ * Test builds only (`TestOptions.halationDiag`): `mark` sets bit 18 of the look words when the halation setting came
+ * from the slot-parameters module (`sp_hal_now`) rather than from the picture's record, so the diagnostic imprint
+ * shows where it was read. Set and cleared by `installExtensions`; false in every released build.
+ */
+export const STASH_TEST: { mark: boolean } = { mark: false };
+export const STASH_FROM_MODULE = 0x40000;
+
+export function stashAsm(o: { halNow?: number; mono?: number; mark?: boolean } = {}): string {
   let s = `ldr r2,[r1,#0x2d0];push {r0,r1};
   ldrb r0,[r1,#0x2ac];cmp r0,#0;bne stashlook;
   add r0,r2,#0x71000;ldrb r1,[r0,#0xe83];cmp r1,#0;ldrbne r2,[r0,#0xe84];ldrbeq r2,[r2,#0xd8];cmp r2,#3;movhi r2,#0;
@@ -91,7 +99,7 @@ export function stashAsm(o: { halNow?: number; mono?: number } = {}): string {
 `, `  stashlook:ldrb r0,[r3,#0x79c];ldrb r1,[r3,#0x7a6];
   ldr ip,[sp,#4];ldrb ip,[ip,#0x2ac];cmp ip,#0;beq halrec;
   push {r0,r1,r3,lr};movw ip,#${o.halNow & 65535};movt ip,#${o.halNow >>> 16};ldr ip,[ip];mov lr,pc;bx ip;mov r2,r0;pop {r0,r1,r3,lr};
-  cmp r2,#0x100;movlo r1,r2;
+  cmp r2,#0x100;movlo r1,r2;${o.mark ? 'orrlo r0,r0,#0x40000;' : ''}
   halrec:
 `);
   }

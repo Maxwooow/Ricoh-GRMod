@@ -68,7 +68,7 @@ import { MOVIE_4K_BIT, MOVIE_SENSOR_SR_BIT, installMovie4k } from './movie4k';
 import { installMovieSr, installMovieSrAssets } from './moviesr';
 import { installDistanceFeet } from './units';
 import { installShiftAdj, installShiftAssets, installShiftCore, installShiftFn, shiftAdjFunction } from './shift';
-import { FRAME_LOOK, LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
+import { FRAME_LOOK, LOOK_STASH, STASH_TEST, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
 import type { ShutdownPictureSpec } from './shutdown';
 import { adr, adrHEX, adrHex, adrText, byRelease } from '../target';
 
@@ -1146,10 +1146,12 @@ export function installRatios(rtos: Uint8Array, iconbin: Uint8Array, ratios: rea
 export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
   if (test.halationDiag && (!features.dateStamp || test.directFlashDiag)) fail('internal', 'halation diagnostics need the date imprint (and no Direct Flash diagnostics)');
   HALATION_TEST.statusWord = test.halationDiag ? HALATION_STATUS_WORD : 0;
+  STASH_TEST.mark = !!test.halationDiag;
   try {
     return installExtensionsInner(rtos, iconbin, ratios, features, revision, test);
   } finally {
     HALATION_TEST.statusWord = 0;
+    STASH_TEST.mark = false;
   }
 }
 
@@ -1289,7 +1291,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
     installLookOrder(patch, features.lookLayout.order);
     installFactoryHidden(patch, features.lookLayout.hidden);
   }
-  if (halation.length > 0) icons = installHalation(patch, icons, halation, halAll ? { ui: slotModule.symbols!.sp_hal_ui } : undefined);
+  if (halation.length > 0) icons = installHalation(patch, icons, halation, halAll ? { ui: slotModule.symbols!.sp_hal_ui, now: slotModule.symbols!.sp_hal_now } : undefined);
   // After halation and the date imprint: wraps the JPEG step they hook at its entry.
   if (features.hdrGainMap) installHdrGainMap(patch, !!test.hdrDiag);
   if (shutdown) icons = installShutdownMenu(patch, icons, shutdown.pictures, shutdown.factory);

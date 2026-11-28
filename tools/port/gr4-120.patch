@@ -715,7 +715,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
 +import { installMovieSr, installMovieSrAssets } from './moviesr';
 +import { installDistanceFeet } from './units';
 +import { installShiftAdj, installShiftAssets, installShiftCore, installShiftFn, shiftAdjFunction } from './shift';
-+import { FRAME_LOOK, LOOK_STASH, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
++import { FRAME_LOOK, LOOK_STASH, STASH_TEST, installLookStash, monoLook, monoTable, styleColour } from './lookstash';
  import type { ShutdownPictureSpec } from './shutdown';
 -import { adr, adrHEX, adrText } from '../target';
 +import { adr, adrHEX, adrHex, adrText, byRelease } from '../target';
@@ -965,16 +965,18 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    expectWord(patch, adr(0x5381d6bc), 0xe1a0c00d);
    // {identity, magnification (float bits), rectangle[4]} for the photo-info display.
    const rects: Uint8Array[] = [];
-@@ -1086,13 +1144,30 @@
+@@ -1086,13 +1144,32 @@
   * features this is `installRatios`, byte for byte. With features the revision is 3.
   */
  export function installExtensions(rtos: Uint8Array, iconbin: Uint8Array, ratios: readonly RatioEntry[], features: ExtensionFeatures, revision: BuildRevision = BUILD_REVISION, test: TestOptions = {}): AspectResult {
 +  if (test.halationDiag && (!features.dateStamp || test.directFlashDiag)) fail('internal', 'halation diagnostics need the date imprint (and no Direct Flash diagnostics)');
 +  HALATION_TEST.statusWord = test.halationDiag ? HALATION_STATUS_WORD : 0;
++  STASH_TEST.mark = !!test.halationDiag;
 +  try {
 +    return installExtensionsInner(rtos, iconbin, ratios, features, revision, test);
 +  } finally {
 +    HALATION_TEST.statusWord = 0;
++    STASH_TEST.mark = false;
 +  }
 +}
 +
@@ -997,7 +999,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    if (extra) revision = 3;
    if (revision !== 1 && revision !== 2 && revision !== 3) fail('internal', 'unknown build revision');
    if (rtos.length !== OFFICIAL_RTOS_LENGTH || iconbin.length !== OFFICIAL_ICONBIN_LENGTH) fail('unexpected-layout', 'RTOS or ICONBIN does not have the official length');
-@@ -1103,8 +1178,18 @@
+@@ -1103,8 +1180,18 @@
    });
    if (features.brightAuto !== undefined && ![true, false, 'bright', 'balanced'].includes(features.brightAuto)) fail('bad-edit', 'brightAuto must be boolean, bright or balanced');
    if (features.shadowLearn !== undefined && typeof features.shadowLearn !== 'boolean') fail('bad-edit', 'shadowLearn must be boolean');
@@ -1018,7 +1020,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
    const patch = new Patch(rtos);
    const ramCopy = new DataView(patch.read(BASE + 0x450, 12).buffer);
    if (ramCopy.getUint32(0, true) !== RAM.source || ramCopy.getUint32(4, true) !== RAM.destination || ramCopy.getUint32(8, true) !== RAM.length) {
-@@ -1118,33 +1203,75 @@
+@@ -1118,33 +1205,75 @@
      const menu = installMenu(patch, ratios, installed.ids);
      const { p, get, scale } = buildGeometry(patch, ratios);
      installDevelop(p, scale, ratios);
@@ -1102,7 +1104,7 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      const style = CINEMA_STYLES[id];
      // The engine asks for it only with a preset (curves of its own: Toning does nothing then). The
      // check of a built file installs this on the official image too, to find the hook places.
-@@ -1152,13 +1279,17 @@
+@@ -1152,13 +1281,17 @@
      halation.push({ style, light: colour.ownCurves ? halationLight(colour.curves, colour.postQ9) : halationLight() });
    }
    // Last: the added slots compose with the monochrome looks' visibility check.
@@ -1118,11 +1120,11 @@ diff --git a/core/src/fw/gr4v120/aspect/build.ts b/core/src/fw/gr4v120/aspect/bu
      installFactoryHidden(patch, features.lookLayout.hidden);
    }
 -  if (halation.length > 0) icons = installHalation(patch, icons, halation);
-+  if (halation.length > 0) icons = installHalation(patch, icons, halation, halAll ? { ui: slotModule.symbols!.sp_hal_ui } : undefined);
++  if (halation.length > 0) icons = installHalation(patch, icons, halation, halAll ? { ui: slotModule.symbols!.sp_hal_ui, now: slotModule.symbols!.sp_hal_now } : undefined);
    // After halation and the date imprint: wraps the JPEG step they hook at its entry.
    if (features.hdrGainMap) installHdrGainMap(patch, !!test.hdrDiag);
    if (shutdown) icons = installShutdownMenu(patch, icons, shutdown.pictures, shutdown.factory);
-@@ -1166,19 +1297,64 @@
+@@ -1166,19 +1299,64 @@
    if (features.directFlash) icons = installDirectFlashMenu(patch, icons);
    // The HDR line's list: after the additions that copy the list table first.
    if (features.hdrGainMap) installHdrMenu(patch, HDR_SWITCH_BYTE);
@@ -3651,7 +3653,7 @@ diff --git a/core/src/fw/gr4v120/aspect/halation-all.ts b/core/src/fw/gr4v120/as
 new file mode 100644
 --- /dev/null
 +++ b/core/src/fw/gr4v120/aspect/halation-all.ts
-@@ -0,0 +1,100 @@
+@@ -0,0 +1,197 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * Halation for every look (option halationAll, GR IV 1.20 / 1.21): every Image Control look, the
@@ -3676,7 +3678,8 @@ new file mode 100644
 + * white glow whatever colour is set: red light on a monochrome picture would be a coloured cast.
 + */
 +import { FirmwareError } from '../../types';
-+import { Patch } from './build';
++import { assembleWords, branchWord } from './arm';
++import { Patch, expectWord } from './build';
 +import { adr } from '../target';
 +
 +function fail(code: string, message: string): never {
@@ -3751,6 +3754,102 @@ new file mode 100644
 +      p.setWord(w, (p.word(w) | (1 << shift)) >>> 0, 'halation for every look: RAW development may set parameter 8');
 +    }
 +  }
++}
++
++/**
++ * The parameter screen's snapshot (ImageControlDetailController, 0x533D0210: taken when the screen opens and after
++ * each change) reads every parameter of the look being set from the live properties, Toning at 0x533D02A8 through
++ * 0x5377D224, and 0x533D03D4 writes the snapshot back through the setters when a change is not kept (the screen
++ * left without OK, the shutter pressed half-way, a cancelled slider). A factory look's halation is kept in the
++ * slot-parameters module, which those live properties never see: the write-back put a stale Toning (Off or red)
++ * over it, so a look set to white came back red (0.9.5, reported 2026-11-27). Here the snapshot takes, for the
++ * looks the module keeps (`sp_hal_now` of the look of the photo set in use answers below 0x100), the module's
++ * setting; Cinema and the added looks keep the live property, as natively.
++ */
++const SNAP_TONING = adr(0x533d02a8);
++const LIVE_TONING = adr(0x5377d224);
++/** The settings object: +0x152 the photo set in use (0..3), +0x153 + set the look of each photo set (slot_params.c). */
++const SETTINGS = adr(0x550832a8);
++
++/** Make the parameter screen's snapshot keep a factory look's halation (`halNow`: the module's `sp_hal_now`). */
++export function installHalationSnapshot(p: Patch, halNow: number): void {
++  expectWord(p, SNAP_TONING, branchWord(SNAP_TONING, LIVE_TONING, 14, true));
++  const stub = p.append((a) => assembleWords(
++    `push {r4,lr}
++     bl #${LIVE_TONING}
++     mov r4,r0
++     movw r3,#${SETTINGS & 65535};movt r3,#${SETTINGS >>> 16}
++     ldrb r1,[r3,#0x152];cmp r1,#4;bhs done
++     add r3,r3,r1;ldrb r0,[r3,#0x153]
++     bl #${halNow}
++     cmp r0,#0x100;movlo r4,r0
++     done:mov r0,r4;pop {r4,pc}`, a), 16);
++  p.setWord(SNAP_TONING, branchWord(SNAP_TONING, stub, 14, true), 'halation for every look: the parameter screen\'s snapshot keeps a factory look\'s halation');
++}
++
++/**
++ * The picture's Toning (record +0x7A6, read by the development step for the picture, by the maker note and so by
++ * RAW development) is the live Toning property. The camera sets it from the look's own Toning byte in the settings
++ * (0x53380AFC, applying the look's parameters when the look or the photo set changes; 0x53380BA8 when Toning is set)
++ * for the looks the look table gives Toning, which here is every look (RAW_HAS above). A factory look's halation is
++ * kept in the slot-parameters module and its own Toning byte is never written, so the live Toning, and the picture,
++ * had a stale value: test firmware 134 showed a Standard picture set to Strong white developed as Weak red (0.9.5).
++ *
++ * Here a factory look's halation from the module becomes the live Toning:
++ *  - applying (0x53380B84, `ldrb r1,[r3,#0xa9]`, the look's own Toning byte; r0 the settings, r2 the look in the
++ *    camera's own numbering 1..22, which 0x53382BC0 turns into the style: 1..6 -> 11..16, 7 -> 24, 8 -> 17, ...)
++ *    takes `sp_hal_now(style)` instead;
++ *  - setting the selected look's Toning (0x533C7010, SHOOT_SET's call of the parameter-8 setter, which the module
++ *    takes for those looks) sets the live Toning after the module has kept the value.
++ * Cinema and the added looks are untouched (`sp_hal_now` answers 0x100). The native readers of the live Toning that
++ * use it as Toning are clamped to 0..2 already (`installHalationClamps`), as for the added looks.
++ */
++const APPLY_TONING = adr(0x53380b84);
++const LIVE_TONING_SET = adr(0x5378a220);
++const SHOOT_SET_CALL = adr(0x533c7010);
++const TONING_SETTER = adr(0x533c2ae0);
++const CONTEXT = adr(0x53750008);
++/** The look in the settings' numbering (r1, 1..22; r0 the settings) to its style. */
++const LOOK_STYLE = adr(0x53382bc0);
++
++/** Keep the live Toning of a factory look its halation (`halNow`: the module's `sp_hal_now`). */
++export function installHalationLive(p: Patch, halNow: number): void {
++  expectWord(p, APPLY_TONING, 0xe5d310a9);
++  expectWord(p, SHOOT_SET_CALL, branchWord(SHOOT_SET_CALL, TONING_SETTER, 14, true));
++  const apply = p.append((a) => assembleWords(
++    `ldrb r1,[r3,#0xa9]
++     push {r0,r1,r2,lr}
++     sub r3,r2,#1;cmp r3,#21;bhi back
++     mov r1,r2
++     bl #${LOOK_STYLE}
++     bl #${halNow}
++     cmp r0,#0x100;strlo r0,[sp,#4]
++     back:pop {r0,r1,r2,lr}
++     b #${APPLY_TONING + 4}`, a), 16);
++  p.setWord(APPLY_TONING, branchWord(APPLY_TONING, apply, 14, false), 'halation for every look: applying a factory look sets the live Toning to its halation');
++  const set = p.append((a) => assembleWords(
++    `push {r4,r5,r6,lr}
++     ldr r4,[sp,#16]
++     mov r5,r3
++     mov r6,r1
++     sub sp,sp,#8
++     str r4,[sp]
++     bl #${TONING_SETTER}
++     add sp,sp,#8
++     mov r4,r0
++     cmp r6,#0;bne out
++     mov r0,r5
++     bl #${halNow}
++     cmp r0,#0x100;bhs out
++     mov r5,r0
++     bl #${CONTEXT}
++     ldr r0,[r0,#4]
++     ldr r0,[r0,#0x518]
++     mov r1,r5
++     bl #${LIVE_TONING_SET}
++     out:mov r0,r4
++     pop {r4,r5,r6,pc}`, a), 16);
++  p.setWord(SHOOT_SET_CALL, branchWord(SHOOT_SET_CALL, set, 14, true), 'halation for every look: setting a factory look\'s halation sets the live Toning too');
 +}
 diff --git a/core/src/fw/gr4v120/aspect/halation-ui.ts b/core/src/fw/gr4v120/aspect/halation-ui.ts
 --- a/core/src/fw/gr4v120/aspect/halation-ui.ts
@@ -4903,7 +5002,7 @@ diff --git a/core/src/fw/gr4v120/aspect/lookstash.ts b/core/src/fw/gr4v120/aspec
  
  /**
   * Store the look: keeps every register but r2 (which the site's own instruction loads next) and the
-@@ -65,7 +65,15 @@
+@@ -65,7 +65,23 @@
   * 1 Weak, 2 Medium, 3 Strong) and STASH_WHITE for the white glow. 0, 1, 2 (Off, Weak and Strong red,
   * as up to test 042) stay Off, Weak, Strong.
   */
@@ -4915,12 +5014,20 @@ diff --git a/core/src/fw/gr4v120/aspect/lookstash.ts b/core/src/fw/gr4v120/aspec
 + * module (it answers 0x100 for a look whose record has it). `mono`: a 64-byte table of the
 + * black-and-white looks, which take the white glow.
 + */
-+export function stashAsm(o: { halNow?: number; mono?: number } = {}): string {
++/**
++ * Test builds only (`TestOptions.halationDiag`): `mark` sets bit 18 of the look words when the halation setting came
++ * from the slot-parameters module (`sp_hal_now`) rather than from the picture's record, so the diagnostic imprint
++ * shows where it was read. Set and cleared by `installExtensions`; false in every released build.
++ */
++export const STASH_TEST: { mark: boolean } = { mark: false };
++export const STASH_FROM_MODULE = 0x40000;
++
++export function stashAsm(o: { halNow?: number; mono?: number; mark?: boolean } = {}): string {
 +  let s = `ldr r2,[r1,#0x2d0];push {r0,r1};
    ldrb r0,[r1,#0x2ac];cmp r0,#0;bne stashlook;
    add r0,r2,#0x71000;ldrb r1,[r0,#0xe83];cmp r1,#0;ldrbne r2,[r0,#0xe84];ldrbeq r2,[r2,#0xd8];cmp r2,#3;movhi r2,#0;
    orr r2,r2,#0x${ORIENT_VALID.toString(16)};movw r1,#${ORIENT_WORD & 65535};movt r1,#${ORIENT_WORD >>> 16};str r2,[r1];
-@@ -78,6 +86,23 @@
+@@ -78,6 +94,23 @@
    ldr r1,[sp,#4];ldrb r1,[r1,#0x2ac];cmp r1,#0;bne stashdone;
    movw r1,#${FRAME_LOOK & 65535};movt r1,#${FRAME_LOOK >>> 16};str r0,[r1];
    stashdone:pop {r0,r1};`;
@@ -4929,7 +5036,7 @@ diff --git a/core/src/fw/gr4v120/aspect/lookstash.ts b/core/src/fw/gr4v120/aspec
 +`, `  stashlook:ldrb r0,[r3,#0x79c];ldrb r1,[r3,#0x7a6];
 +  ldr ip,[sp,#4];ldrb ip,[ip,#0x2ac];cmp ip,#0;beq halrec;
 +  push {r0,r1,r3,lr};movw ip,#${o.halNow & 65535};movt ip,#${o.halNow >>> 16};ldr ip,[ip];mov lr,pc;bx ip;mov r2,r0;pop {r0,r1,r3,lr};
-+  cmp r2,#0x100;movlo r1,r2;
++  cmp r2,#0x100;movlo r1,r2;${o.mark ? 'orrlo r0,r0,#0x40000;' : ''}
 +  halrec:
 +`);
 +  }
@@ -5905,7 +6012,7 @@ diff --git a/core/src/fw/gr4v120/aspect/moviesr.ts b/core/src/fw/gr4v120/aspect/
 new file mode 100644
 --- /dev/null
 +++ b/core/src/fw/gr4v120/aspect/moviesr.ts
-@@ -0,0 +1,265 @@
+@@ -0,0 +1,349 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * Shake reduction for movies by sensor shift (GR IV firmware 1.20 and 1.21): the movie menu's
@@ -5936,16 +6043,40 @@ new file mode 100644
 + *    function 0x53390E18 at 0x531B2C78 and 0x533A6AEC): the hand of the still shake reduction for
 + *    Sensor Shift, the hand with an "E" for Electronic;
 + *  - the state for the unit, a movie's field 0x13 (0x537BB2D8, `mov r2, #0`): on with Sensor
-+ *    Shift, unless Sensor Shift's composition adjustment (`shift.ts`) holds the sensor;
++ *    Shift, unless Sensor Shift's composition adjustment (`shift.ts`) holds the sensor; on with
++ *    Movie SR while the live view has no margin (below);
++ *  - the two copies of the state into a message (0x537B656C, 0x537B7520: `bl 0x53157380`): 0x13
++ *    held at 0 while a change of still / movie reaches the unit (below);
 + *  - the state is sent again for property 0xFA too (0x536AF4DC), and at once when the list sets
 + *    the value;
 + *  - the margin: only with Electronic. As in test 093 it is decided when the live view is set up
 + *    (Movie SR as the camera side has it then) and kept for as long as that live view runs, in a
 + *    byte of the sbrk arena (`battery.ts`), so that window and margin cannot disagree: a change of
 + *    the setting moves the picture's edge at the next set-up (the shooting mode changed, or the
-+ *    camera switched on).
++ *    camera switched on); a set-up that changes it builds the state for the unit again.
 + * Off therefore records the whole read-out as well: about 11 % more of the scene than the
 + * official firmware's movies.
++ *
++ * Changing between still and movie with the sensor shift on in both. Field 0x0B of the state is still / movie; the unit
++ * (its program is the firmware's SRIC section) takes each state as it comes, at its next control cycle, and when 0x0B
++ * changes (0x128B0 of its program) it switches its filter's coefficient and limits and scales two of its state
++ * registers by 3 at once, without a ramp, also while it stabilises. With Shake Reduction on for stills and Sensor
++ * Shift for movies, 0x13 is 1 on both sides, so the change reaches the unit while it stabilises and the whole camera
++ * gives a knock (camera test, GR IV 1.21). With 0x13 = 0 on one side there is none: in the same cycle the unit's state
++ * machine (0x14802) runs first, leaves stabilising (its registers cleared, a ramp back to the centre) or has not yet
++ * entered it, and the parameters change on zeros. The state goes to the unit as copies of its buffer, made by
++ * 0x53157380 in the explicit send (0x537B64E8) and in the periodic one (0x537B74A0, another task); the buffer itself
++ * is only written (0x537BB254 and the other fields' functions). So both copies are looked at: when 0x0B differs from
++ * the last copy's and this copy and the last one both say 0x13 = 1, this copy and the next MOVIESR_HOLD - 1 say
++ * 0x13 = 0 (or fewer, when the state itself says 0 before). The unit then gets the change with 0x13 = 0, as when
++ * one side is off, and 0x13 = 1 afterwards, as when Sensor Shift is chosen in a movie; while it moves back to the
++ * centre (1600 cycles) it keeps that 1 for afterwards. Any other copy is left as it is, so with either side off the
++ * unit gets what it got before. The record is a byte of the sbrk arena (MOVIESR_SENT); two copies made at the same
++ * time in the two tasks can leave it one copy behind (at worst one change as before, or one more copy with 0).
++ *
++ * Movie SR switched on while a live view without the margin runs (an Fn button's Shake Reduction, or Electronic
++ * chosen without a new set-up): its window has no margin to move in until the next set-up, so 0x13 is on meanwhile
++ * (the sensor shift stands in). The state is built again when a set-up changes the margin, so that 0x13 follows.
 + */
 +import { FirmwareError } from '../../types';
 +import { assembleWords, branchTarget, branchWord, movImmediate, movWord } from './arm';
@@ -5960,6 +6091,10 @@ new file mode 100644
 +export const MOVIESR_ICON_ID = 740;
 +/** "No margin in this live view": a byte of the sbrk arena (0x55839040..0x55839080, `battery.ts`), zero at start-up. */
 +export const MOVIESR_LATCH = adr(0x55839044);
++/** The last copy of the state for the unit (the byte after the 4K latch): bit 0 one made, 1 its 0x0B, 2 its 0x13, 3 0x13 held at 0, 4.. copies held. */
++export const MOVIESR_SENT = adr(0x55839044) + 2;
++/** Copies with 0x13 = 0 after a change of still / movie. */
++export const MOVIESR_HOLD = 3;
 +
 +const ICON_SR_OFF = 467;
 +const ICON_SR_ON = 469;
@@ -5978,6 +6113,11 @@ new file mode 100644
 +const MARGIN_SETUP = adr(0x5365c87c); // mov r3, #1 (then strb r3, [r5, #0x74c])
 +const MARGIN_UPDATE = adr(0x5365ab70); // mov r3, #1 (then strb r3, [r6, #0x74c])
 +const CAMERA_MOVIE_SR = adr(0x5377db4c); // (camera properties) -> Movie SR
++const COPY = adr(0x53157380); // (to, from, bytes)
++const COPY_SENT = adr(0x537b656c); // bl COPY in 0x537B64E8: a command's data copied into its message (the explicit send of the state)
++const COPY_PERIODIC = adr(0x537b7520); // bl COPY in 0x537B74A0: the same for the periodic send
++/** The state's bytes (the field table at 0x5501A858): 0x0B is byte 2 bit 6, 0x13 byte 5 bit 5. */
++const STATE_MODE_BYTE = 2, STATE_MODE_BIT = 6, STATE_SR_BYTE = 5, STATE_SR_BIT = 5;
 +/** Movie SR's list record (62 of the list table) and its handlers. */
 +const SR_RECORD = 62;
 +const LIST_RECORD = 0x4c;
@@ -6078,6 +6218,13 @@ new file mode 100644
 +    expectWord(patch, site + 4, (0xe5c0374c | (register << 16)) >>> 0); // strb r3, [rX, #0x74c]
 +  }
 +  expectWord(patch, CAMERA_MOVIE_SR + 4, 0xe1a0c00d); // mov ip, sp
++  expectWord(patch, COPY, 0xe1a0c000); // mov ip, r0
++  expectWord(patch, COPY + 4, 0xe3520040); // cmp r2, #0x40
++  for (const site of [COPY_SENT, COPY_PERIODIC]) {
++    expectWord(patch, site - 8, 0xe5942008); // ldr r2, [r4, #8]: the bytes
++    expectWord(patch, site - 4, 0xe5961010); // ldr r1, [r6, #0x10]: the data
++    expectWord(patch, site, branchWord(site, COPY, 14, true));
++  }
 +  const record = listTable(patch) + SR_RECORD * LIST_RECORD;
 +  const rv = new DataView(patch.read(record, LIST_RECORD).buffer);
 +  if (rv.getUint32(0, true) !== 0x00010000 || rv.getUint16(4, true) !== SR_TITLE || rv.getUint32(0x0c, true) !== SR_COUNT || rv.getUint32(0x14, true) !== SR_DRAW || rv.getUint32(0x24, true) !== SR_SET
@@ -6132,7 +6279,8 @@ new file mode 100644
 +  patch.setWord(LINE_ICON_CALL, branchWord(LINE_ICON_CALL, icon, 14, true), 'movie shake reduction: the menu line\'s icon');
 +  patch.setWord(SCREEN_ICON_TAIL, branchWord(SCREEN_ICON_TAIL, icon), 'movie shake reduction: the shooting screen\'s icon');
 +
-+  // --- The state for the unit, a movie: field 0x13 = Sensor Shift chosen, Movie SR off, the sensor not held. r0, r1 kept.
++  // --- The state for the unit, a movie: field 0x13 = Sensor Shift chosen, Movie SR off, the sensor not held; with Movie SR
++  // on, only while this live view has no margin. r0, r1 kept.
 +  // Movie SR as the function itself has it (r6, from the camera side, what field 0x14 is made of just after): the two
 +  // fields then always belong to the same value, also while a change of the setting is still on its way to the camera side.
 +  const held = shift ? `cmp r2, #0; bxeq lr
@@ -6143,7 +6291,9 @@ new file mode 100644
 +     movne r2, #0` : '';
 +  const state = patch.append((at) => assembleWords(
 +    `${BYTE}; ldrb r2, [r3]; and r2, r2, #${MOVIE_SENSOR_SR_BIT}
-+     cmp r6, #0; movne r2, #0
++     cmp r6, #0; beq have
++     movw ip, #${lo(MOVIESR_LATCH)}; movt ip, #${hi(MOVIESR_LATCH)}; ldrb r2, [ip]; and r2, r2, #1
++     have:
 +     ${held}
 +     bx lr`, at), 16);
 +  patch.setWord(SR_STATE_MOVIE, branchWord(SR_STATE_MOVIE, state, 14, true), 'movie shake reduction: the sensor shift on for a movie');
@@ -6155,21 +6305,62 @@ new file mode 100644
 +     b #${SR_PROPERTY + 8}`, at), 16);
 +  patch.setWord(SR_PROPERTY, branchWord(SR_PROPERTY, property), 'movie shake reduction: the state sent again when Movie SR changes');
 +
-+  // --- The margin: with Electronic only; decided when the live view is set up (r4 = the live view), kept while it runs.
++  // --- The margin: with Electronic only; decided when the live view is set up (r4 = the live view), kept while it runs;
++  // the state for the unit built again when it changes.
 +  const LATCH = `movw r3, #${lo(MOVIESR_LATCH)}; movt r3, #${hi(MOVIESR_LATCH)}`;
 +  const setup = patch.append((at) => assembleWords(
 +    `push {r0, r1, r2, r3, ip, lr}
 +     ldr r0, [r4, #0x3bc]; bl #${CAMERA_MOVIE_SR}
 +     cmp r0, #0; moveq r1, #1; movne r1, #0
-+     ${LATCH}; strb r1, [r3]
-+     eor r1, r1, #1; str r1, [sp, #0xc]
-+     pop {r0, r1, r2, r3, ip, pc}`, at), 16);
++     ${LATCH}; ldrb r2, [r3]; strb r1, [r3]
++     eor r0, r1, #1; str r0, [sp, #0xc]
++     cmp r1, r2; beq same
++     movw r0, #${lo(SR_HOLDER + 4)}; movt r0, #${hi(SR_HOLDER + 4)}; ldr r0, [r0]
++     cmp r0, #0; ldrne r0, [r0, #0x60]; cmpne r0, #0
++     blne #${SR_STATE}
++     same: pop {r0, r1, r2, r3, ip, pc}`, at), 16);
 +  const update = patch.append((at) => assembleWords(
 +    `${LATCH}; ldrb r3, [r3]
 +     eor r3, r3, #1
 +     bx lr`, at), 16);
 +  patch.setWord(MARGIN_SETUP, branchWord(MARGIN_SETUP, setup, 14, true), 'movie shake reduction: the margin with Electronic only');
 +  patch.setWord(MARGIN_UPDATE, branchWord(MARGIN_UPDATE, update, 14, true), 'movie shake reduction: the margin as decided at set-up');
++
++  // --- The copies of the state for the unit (to = r0, from = r1, bytes = r2): 0x13 held at 0 while a change of still /
++  // movie reaches the unit with 0x13 = 1 on both sides.
++  const copy = patch.append((at) => assembleWords(
++    `push {r4, r5, r6, r7, r8, lr}
++     mov r4, r0; mov r5, r1; mov r6, r2
++     bl #${COPY}
++     movw r0, #${lo(SR_HOLDER + 4)}; movt r0, #${hi(SR_HOLDER + 4)}; ldr r0, [r0]
++     cmp r0, #0; ldrne r0, [r0, #0x60]; cmpne r0, #0; ldrne r0, [r0, #0x14]; cmpne r0, #0
++     beq done
++     cmp r0, r5; bne done
++     cmp r6, #${STATE_SR_BYTE + 1}; blo done
++     ldrb r0, [r4, #${STATE_MODE_BYTE}]; mov r0, r0, lsr #${STATE_MODE_BIT}; and r0, r0, #1
++     ldrb r1, [r4, #${STATE_SR_BYTE}]; mov r1, r1, lsr #${STATE_SR_BIT}; and r1, r1, #1
++     movw r7, #${lo(MOVIESR_SENT)}; movt r7, #${hi(MOVIESR_SENT)}; ldrb r2, [r7]
++     tst r2, #1; beq plain
++     mov r3, r2, lsr #1; and r3, r3, #1; eor r3, r3, r0
++     tst r2, #8; bne holding
++     cmp r3, #0; beq plain
++     cmp r1, #0; beq plain
++     tst r2, #4; beq plain
++     mov r8, #0; b hold
++     holding: cmp r1, #0; beq plain
++     mov r8, r2, lsr #4
++     cmp r3, #0; movne r8, #0
++     hold: ldrb r3, [r4, #${STATE_SR_BYTE}]; bic r3, r3, #${1 << STATE_SR_BIT}; strb r3, [r4, #${STATE_SR_BYTE}]
++     add r8, r8, #1
++     mov r2, r0, lsl #1; orr r2, r2, #1
++     cmp r8, #${MOVIESR_HOLD}
++     orrlo r2, r2, #8; orrlo r2, r2, r8, lsl #4
++     b store
++     plain: mov r2, r0, lsl #1; orr r2, r2, #1; orr r2, r2, r1, lsl #2
++     store: strb r2, [r7]
++     done: mov r0, r4
++     pop {r4, r5, r6, r7, r8, pc}`, at), 16);
++  for (const site of [COPY_SENT, COPY_PERIODIC]) patch.setWord(site, branchWord(site, copy, 14, true), 'movie shake reduction: 0x13 held at 0 while a change of still / movie reaches the unit');
 +}
 diff --git a/core/src/fw/gr4v120/aspect/package.ts b/core/src/fw/gr4v120/aspect/package.ts
 --- a/core/src/fw/gr4v120/aspect/package.ts
@@ -6424,7 +6615,7 @@ new file mode 100644
 +import { SHIFT_CODE, SHIFT_CODE_LENGTH } from './shift-code';
 +import { adr } from '../target';
 +
-+/** The module's state: 0x29 bytes of the sbrk arena (0x55839040..0x55839080, `battery.ts`: 0x40 the battery's byte, 0x74 Constant Light's word, 0x78 and 0x7C the white balance's and movie AF's pointers). */
++/** The module's state: 0x29 bytes of the sbrk arena (0x55839040..0x55839080, `battery.ts`: 0x40 the battery's byte, 0x44 / 0x45 / 0x46 Movie SR's and 4K's latches and the record of the state sent to the SR unit (`moviesr.ts`, `movie4k.ts`), 0x74 Constant Light's word, 0x78 and 0x7C the white balance's and movie AF's pointers). */
 +export const SHIFT_STATE = adr(0x55839048);
 +export const SHIFT_STATE_BYTES = 0x29;
 +export const SHIFT_TEXT_IDS = { name: 1041, adjust: 1042, center: 1043 } as const;
@@ -7060,13 +7251,13 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  import { BASE, ICON_CATALOG, LOOKUP_BOUNDS, OFFICIAL_RTOS_LENGTH, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z } from './build';
  import { linkModule } from './native-link';
 -import { LOOK_STASH, STASH_ASM, installLookStash } from './lookstash';
-+import { FRAME_LOOK, STASH_ASM, installLookStash, stashAsm } from './lookstash';
++import { FRAME_LOOK, STASH_ASM, installLookStash, stashAsm, STASH_TEST } from './lookstash';
 +import { installExposureOrientation } from './datestamp';
  import { SLOT_PARAMETERS, SLOT_PARAMS_MODULE } from './slotparams-native';
 +import { SLOT_PARAMS_EXT_MODULE } from './slotparams-ext-native';
  import { HALATION_COLOUR_NAMES, HALATION_LOOKS, HALATION_NAMES, halationColourIcon, halationColourScale, halationIcon, installHalationModule, readHalation } from './halation';
  import { installHalationClamps, installHalationUi } from './halation-ui';
-+import { installHalationRows } from './halation-all';
++import { installHalationLive, installHalationRows, installHalationSnapshot } from './halation-all';
  import type { HalationLook } from './halation';
  import { HUE_LIMIT, HUE_VALUES, hueBlockBytes, hueFromBlock } from '../../../color/hue';
  import { FirmwareError } from '../../types';
@@ -7101,7 +7292,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  /** Icon number of the first added slot's icon: slots 0..11 768..779 (780, 781 are halation's), slots 12.. 782..789 (790, 791 halation's). */
  export const EXTRA_ICON_ID = 768;
  const EXTRA_ICON_SPLIT = 12;
-@@ -98,22 +106,28 @@
+@@ -98,22 +106,36 @@
   * row's name, the colour slider's scale and the red and white row icons. (Icon 781 was the Off /
   * Weak / Strong scale up to test 042.)
   */
@@ -7125,6 +7316,14 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
 -const TONES = 34;
 +/** Text of Cinema's Toning (and of the black-and-white toning, which no added look has); 1.11: 339. */
 +const TONING_TEXT = 357;
++/**
++ * The parameter row kind of Cinema's Toning (the row that becomes Halation). The name table (shooting 0x53DC4E4C,
++ * RAW development 0x53DC4DFC; {icon, text} per kind, the site's r3 its base, r6 / r7 the row's entry) gives kinds 7,
++ * 9, 10 and 11 the same name (the black-and-white looks' Toning, and the Toning of three other looks): only kind 8
++ * is renamed. Only with halation for every look, where those looks have halation (0.9.6; 0.9.5 called their
++ * Toning rows Halation too); without it the looks with halation have no other row of that name.
++ */
++const KIND_TONING = 8;
 +/** Toning's list icon (1.11: 0x16F). */
 +const TONING_ICON = 0x184;
 +/** The native two-position (Off / On) scale whose panel and track the colour scale reuses (1.11: 0x3A). */
@@ -7142,7 +7341,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  const VARIANTS = 3;
  const CY = 18;
  const STANDARD = 11;
-@@ -121,7 +135,7 @@
+@@ -121,7 +143,7 @@
  const MA_TABLE = adr(0x55054554);
  const YCC_TABLE = adr(0x55053ce4);
  const GAMMA_TABLE = adr(0x55054158);
@@ -7151,7 +7350,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  const TABLES = [
    [TONE_TABLE, adr(0x5394dfb0), adr(0x5394dfb4), adr(0x5394dfbc)],
    [MA_TABLE, adr(0x5394dfdc), adr(0x5394dfe0), adr(0x5394dfe8)],
-@@ -137,7 +151,8 @@
+@@ -137,7 +159,8 @@
  const POST_STRIDE = 20;
  const MA_POINTERS = 8;
  const ORDER_TABLE = adr(0x53de8cd0);
@@ -7161,7 +7360,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  const TILE_BG = [53, 53, 54];
  
  function fail(code: string, message: string): never {
-@@ -256,7 +271,7 @@
+@@ -256,7 +279,7 @@
    return out;
  }
  
@@ -7170,7 +7369,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  // handles the new styles and otherwise runs the overwritten instruction and branches back.
  function hook(p: Patch, at: number, expected: number, body: string, reason: string): void {
    expectWord(p, at, expected);
-@@ -284,7 +299,7 @@
+@@ -284,7 +307,7 @@
   * Install `slots` (1..MAX_EXTRA_SLOTS) into an RTOS image that already has the scaffold of
   * `build.ts` (extended catalogs), appending their icons to `iconbin`. Returns the new ICONBIN data.
   */
@@ -7179,7 +7378,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
    const count = slots.length;
    if (!(count >= 1 && count <= MAX_EXTRA_SLOTS)) fail('too-many-slots', `1 to ${MAX_EXTRA_SLOTS} slots can be added`);
    if (p.textBoundSites.length === 0) fail('internal', 'the catalog scaffold is not installed');
-@@ -370,7 +385,7 @@
+@@ -370,7 +393,7 @@
    for (const site of p.textBoundSites) p.setWord(site, movWord(3, Math.max(lastText, movImmediate(p.word(site)))), 'text upper bound');
    for (const [site, r] of LOOKUP_BOUNDS) p.setWord(site, movWord(r, Math.max(lastIcon, movImmediate(p.word(site)))), 'icon upper bound');
  
@@ -7188,7 +7387,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
    TABLES.forEach(([old, stride, low, high], t) => {
      const out: number[] = [];
      for (let v = 0; v < VARIANTS; v++) {
-@@ -383,14 +398,18 @@
+@@ -383,14 +406,18 @@
      pointer(p, low, high, 3, old, table, 'added slots: style table');
    });
  
@@ -7207,11 +7406,11 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
 +  // (through a word set once the module is placed, below) and gives black-and-white looks the white glow.
 +  const halNow = options.ext?.hal ? p.append(u32le([0]), 4) : undefined;
 +  const halMono = options.ext?.hal ? p.append(options.halMono ?? new Uint8Array(64), 4) : undefined;
-+  const stash = options.ext?.hal ? stashAsm({ halNow, mono: halMono }) : options.stashLook ? STASH_ASM : '';
++  const stash = options.ext?.hal ? stashAsm({ halNow, mono: halMono, mark: STASH_TEST.mark }) : options.stashLook ? STASH_ASM : '';
    hook(p, adr(0x53939148), 0xe5d3279c, `${stash}ldrb r2,[r3,#0x79c];sub ip,r2,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};movls r2,#${CY};b #${adrHex(0x5393914c)}`, 'added slots: Cinema input fields');
  
    const layout = options.layout;
-@@ -425,16 +444,19 @@
+@@ -425,16 +452,19 @@
    hook(p, adr(0x533905d8), 0xe351000a, `sub ip,r1,#${EXTRA_FIRST_STYLE};cmp ip,#${count - 1};bhi native;cmp r2,#0;movne r0,#0;bxne lr;${iconAsm('r0', 'ip')};bx lr;native:cmp r1,#10;b #${adrHex(0x533905dc)}`, 'added slots: ADJ icon');
    early(p, adr(0x533a66c8), textAsm('r0', 'ip'), count, 'added slots: name');
    early(p, adr(0x533a6868), iconAsm('r0', 'ip'), count, 'added slots: icon');
@@ -7238,7 +7437,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
    installPreviewMapping(p, count);
    installChangeFunctors(p, count);
    installLookChecks(p, count);
-@@ -450,6 +472,8 @@
+@@ -450,6 +480,8 @@
  const DEFAULTS = [adr(0x533d053c), adr(0x533d0fe8), adr(0x533d1a94), adr(0x533d2b90), adr(0x533d3bac), adr(0x533d4bc8), adr(0x533d5be4), adr(0x533d6ce0), adr(0x533d7800), adr(0x533d7c40), adr(0x533d7fa0), adr(0x533d82fc), adr(0x533d8548), adr(0x533d88a8), adr(0x533d8d58), adr(0x533d9604), adr(0x533d9eb0), adr(0x533da75c), adr(0x533db778), adr(0x533dbfd4), adr(0x533dc770), adr(0x533dcf0c), adr(0x533dd6a8)];
  /** "Style of set" setters: photo standard, custom 1..3, then movie. */
  const STYLE_SETTERS = [adr(0x532bbe84), adr(0x532bc014), adr(0x532bc1a4), adr(0x532bc334), adr(0x53305a6c), adr(0x53305c00), adr(0x53305d94), adr(0x53305f28)];
@@ -7247,7 +7446,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  /**
   * The values an added slot starts from and shows as its default on the parameter screen ("0"):
   * the middle of the -4..+4 scales, parameter 8 off (what Standard, which lacks it, gets), grain
-@@ -482,7 +506,19 @@
+@@ -482,7 +514,19 @@
    return h || 1;
  }
  
@@ -7268,7 +7467,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
    if (prints.length !== count) fail('internal', 'a fingerprint per added slot');
    const normalize = (at: number, reg: string, original: number, tail: string): void => {
      // The flags are set again by every native entry before use; no callee-saved register, LR or SP changes.
-@@ -507,11 +543,12 @@
+@@ -507,11 +551,12 @@
    const priorSave = branchTarget(SETTINGS_SAVE, p.word(SETTINGS_SAVE));
    const priorLoad = branchTarget(SETTINGS_LOAD, p.word(SETTINGS_LOAD));
    if (priorSave < BASE + OFFICIAL_RTOS_LENGTH || priorLoad < BASE + OFFICIAL_RTOS_LENGTH) fail('internal', 'the settings save/load scaffold is not installed');
@@ -7284,7 +7483,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
      prior_native_save: priorSave, prior_native_load: priorLoad, storage_singleton: adr(0x53aa958c), store_write: adr(0x53aa6764),
      store_read: adr(0x53aa6680), store_size: adr(0x53aa6524), heap_alloc: adr(0x539084bc), sp_gap: SLOT_STATE, settings_object: adr(0x550832a8), slot_prints: printTable,
    });
-@@ -521,6 +558,7 @@
+@@ -521,6 +566,7 @@
      p.setWord(SETTERS[i], branchWord(SETTERS[i], mod.symbols[`sp_set_stub_${j}`]), 'added slots: own parameters (setter)');
    });
    STYLE_SETTERS.forEach((at, k) => p.setWord(at, branchWord(at, mod.symbols[`sp_style_stub_${k}`]), 'added slots: own parameters (look of a set changes)'));
@@ -7292,7 +7491,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
    p.setWord(SETTINGS_SAVE, branchWord(SETTINGS_SAVE, mod.symbols.sp_save), 'settings save, then the added slots\' parameters');
    p.setWord(SETTINGS_LOAD, branchWord(SETTINGS_LOAD, mod.symbols.sp_load), 'settings load, then the added slots\' parameters');
    // The module keeps its state pointer in the 44 bytes between the end of the zero fill and the
-@@ -547,11 +585,12 @@
+@@ -547,11 +593,12 @@
  ];
  const FUNCTOR_AREA = [adr(0x53270000), adr(0x532a0000)] as const;
  const FUNCTOR_LOADS: Readonly<Record<number, 'half' | 'byte' | 'word'>> = {
@@ -7310,7 +7509,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  };
  const FUNCTOR_NEXT: Readonly<Record<string, readonly number[]>> = { half: [0xe3530c12], byte: [0xe3530012], word: [0xe3a02001, 0xe3a02002] };
  
-@@ -570,7 +609,7 @@
+@@ -570,7 +617,7 @@
      const found: number[] = [];
      for (let a = starts[0], k = 0; k < 30; k++, a += 4) {
        const w = p.word(a);
@@ -7319,7 +7518,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
        if (w >>> 24 === 0xea) break;
      }
      if (found.length !== 1) fail('unexpected-layout', `change functor of field 0x${field.toString(16)}: ${found.length} style loads`);
-@@ -588,10 +627,10 @@
+@@ -588,10 +635,10 @@
  /**
   * Looks shown as their own, not as Standard or with Standard's parameter list:
   *  - the parameter screens pick their list of parameters from the look (0x531C80B0 shooting,
@@ -7332,7 +7531,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   *    themselves, the icon lookup knows them (test 033);
   *  - whether a picture goes through the digital-filter step (grain, Clarity, the setting before
   *    it) is decided from the look by 0x53739A5C with a chain of compares that includes Cinema
-@@ -609,40 +648,50 @@
+@@ -609,40 +656,50 @@
  }
  
  /**
@@ -7399,7 +7598,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
      return ((p.word(next) & 0xfffff000) >>> 0) === CMP_R3;
    };
    for (const load of GENERATOR_LOADS) {
-@@ -650,11 +699,6 @@
+@@ -650,11 +707,6 @@
      if (sites.length !== load.sites) fail('unexpected-layout', `live-view parameters: ${sites.length} loads of ${load.word.toString(16)}, expected ${load.sites}`);
      for (const at of sites) {
        if (!cmpFollows(at)) fail('unexpected-layout', `live-view parameters: load at 0x${at.toString(16)} is not followed by a compare`);
@@ -7411,7 +7610,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
      }
      const map = load.kind === 'half'
        ? `sub r3,r3,#${EXTRA_FIRST_STYLE << 8};cmp r3,#${count << 8};andlo r3,r3,#0xff;orrlo r3,r3,#${CY << 8};addhs r3,r3,#${EXTRA_FIRST_STYLE << 8}`
-@@ -677,20 +721,22 @@
+@@ -677,20 +729,22 @@
  
  // -------------------------------------------------------------- RAW development
  
@@ -7439,7 +7638,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   * "absent": the parameter screen showed -4 everywhere and developing stopped the camera (reported
   * on 0.7.0). The added looks now use Cinema Yellow's row, as the shooting side does with Cinema
   * Yellow's fields; the look itself (name, icon, the style given to development) stays the added
-@@ -704,11 +750,12 @@
+@@ -704,11 +758,12 @@
    const sites: number[] = [];
    for (let at = RAW_MODEL[0]; at < RAW_MODEL[1]; at += 4) {
      if (p.word(at) !== RAW_LOOK_LOAD) continue;
@@ -7454,7 +7653,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
      }
      if (!row) continue;
      if (p.word(at + 4) !== 0xe3520000) fail('unexpected-layout', `RAW development: load at 0x${at.toString(16)} is not followed by cmp r2,#0`);
-@@ -726,31 +773,32 @@
+@@ -726,31 +781,32 @@
    // Applying a look: the row goes to the looks now selected.
    hook(p, adr(0x53382e20), 0xe1a0c00d, `push {r0-r4,lr};bl #${module.sp_raw_sync};pop {r0-r4,lr};mov ip,sp;b #${adrHex(0x53382e24)}`, 'added slots: own RAW development parameters');
    // The RAW development screen makes its list as long as the longest of its lists (0x531A2680):
@@ -7496,7 +7695,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   *    wrote Standard otherwise), and has the parameters of Cinema Yellow (each parameter's writer
   *    looks the style up in a list of the looks that have it; the added looks join every list
   *    Cinema Yellow is in);
-@@ -764,7 +812,7 @@
+@@ -764,7 +820,7 @@
  function installPictureInfo(p: Patch, count: number): void {
    const n = count - 1;
    // Writer: r1 the maker note, r2 the frame record; tail-calls 0x5380DD48(note, 0, code).
@@ -7505,7 +7704,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
    // Parameter lists: the ones with Cinema Yellow get the added styles appended (new copies).
    const calls: number[] = [];
    for (let at = PARAM_LISTS[0]; at < PARAM_LISTS[1]; at += 4) if (p.word(at) === branchWord(at, LIST_ASSIGN, 14, true) || p.word(at) === branchWord(at, LIST_ASSIGN)) calls.push(at);
-@@ -795,12 +843,12 @@
+@@ -795,12 +851,12 @@
    }
    if (extended !== PARAM_LISTS_WITH_CY) fail('unexpected-layout', `maker note parameter lists: ${extended} with Cinema Yellow, expected ${PARAM_LISTS_WITH_CY}`);
    // Readers: RAW development's record, then playback's numbering and its style.
@@ -7522,7 +7721,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
  }
  
  // -------------------------------------------------------------- halation
-@@ -810,10 +858,16 @@
+@@ -810,10 +866,16 @@
  /** Cinema Yellow and Green: style numbers and RAW development's. */
  export const CINEMA_STYLES = { CY: 18, CG: 19 } as const;
  const CINEMA_RAW: Readonly<Record<number, number>> = { 18: 9, 19: 10 };
@@ -7539,7 +7738,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
    const raw = CINEMA_RAW[style];
    if (raw === undefined) fail('internal', 'halation: a look without a RAW development number');
    return raw;
-@@ -833,12 +887,12 @@
+@@ -833,12 +895,12 @@
   * For such a look, Cinema's Toning on the parameter screens (shooting: ImageControlDetail-
   * Controller, the style at +0x19C; RAW development: RawDevelopmentImageControlDetailSetController,
   * the look asked from the model) shows as Halation: its name (the subtitle, from a table of texts
@@ -7550,19 +7749,24 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
   * bytes (by style, by RAW development's number).
   */
 -export function installHalation(p: Patch, iconbin: Uint8Array, looks: readonly HalationLook[]): Uint8Array {
-+export function installHalation(p: Patch, iconbin: Uint8Array, looks: readonly HalationLook[], all?: { ui: number }): Uint8Array {
++export function installHalation(p: Patch, iconbin: Uint8Array, looks: readonly HalationLook[], all?: { ui: number; now: number }): Uint8Array {
    if (looks.length === 0) return iconbin;
    const byStyle = new Uint8Array(HALATION_LOOKS);
    const byRaw = new Uint8Array(HALATION_LOOKS);
-@@ -880,25 +934,30 @@
-   hook(p, adr(0x531cbf68), 0xe1d610b2, `ldrh r1,[r6,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;ldrb ip,[r5,#0x19c];push {r0};${lookupAsm('ip', 'ip', 'r0', styles)};pop {r0};cmp ip,#0;movwne r1,#${HALATION_TEXT_ID};done:b #${adrHex(0x531cbf6c)}`, 'halation: name of the parameter');
+@@ -877,28 +939,33 @@
+   for (const [site, r] of LOOKUP_BOUNDS) p.setWord(site, movWord(r, Math.max(HALATION_WHITE_ICON_ID, movImmediate(p.word(site)))), 'icon upper bound');
+ 
+   // Shooting: subtitle (r6 the table entry, r5 the controller).
+-  hook(p, adr(0x531cbf68), 0xe1d610b2, `ldrh r1,[r6,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;ldrb ip,[r5,#0x19c];push {r0};${lookupAsm('ip', 'ip', 'r0', styles)};pop {r0};cmp ip,#0;movwne r1,#${HALATION_TEXT_ID};done:b #${adrHex(0x531cbf6c)}`, 'halation: name of the parameter');
++  hook(p, adr(0x531cbf68), 0xe1d610b2, `ldrh r1,[r6,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;${all ? `sub ip,r6,r3;cmp ip,#${KIND_TONING * 4};bne done;` : ''}ldrb ip,[r5,#0x19c];push {r0};${lookupAsm('ip', 'ip', 'r0', styles)};pop {r0};cmp ip,#0;movwne r1,#${HALATION_TEXT_ID};done:b #${adrHex(0x531cbf6c)}`, 'halation: name of the parameter');
    // Shooting: list icon (controller r7, r6).
    for (const [at, ctl] of [[adr(0x531cae48), 'r7'], [adr(0x531caf38), 'r6']] as const) {
 -    hook(p, at, 0xe300116f, `ldrb r1,[${ctl},#0x19c];push {r0};${lookupAsm('r1', 'r1', 'r0', styles)};pop {r0};cmp r1,#0;movw r1,#${TONING_ICON};movwne r1,#${HALATION_ICON_ID};b #${at + 4}`, 'halation: list icon');
 +    hook(p, at, 0xe3a01f61, `ldrb r1,[${ctl},#0x19c];push {r0};${lookupAsm('r1', 'r1', 'r0', styles)};pop {r0};cmp r1,#0;movw r1,#${TONING_ICON};movwne r1,#${HALATION_ICON_ID};b #${at + 4}`, 'halation: list icon');
    }
    // RAW development: subtitle (r7 the table entry).
-   hook(p, adr(0x531a97dc), 0xe1d710b2, `ldrh r1,[r7,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_TEXT};movwne r1,#${HALATION_TEXT_ID};pop {r0,r2,r3,lr};done:b #${adrHex(0x531a97e0)}`, 'halation: name of the parameter (RAW development)');
+-  hook(p, adr(0x531a97dc), 0xe1d710b2, `ldrh r1,[r7,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_TEXT};movwne r1,#${HALATION_TEXT_ID};pop {r0,r2,r3,lr};done:b #${adrHex(0x531a97e0)}`, 'halation: name of the parameter (RAW development)');
++  hook(p, adr(0x531a97dc), 0xe1d710b2, `ldrh r1,[r7,#2];movw ip,#${TONING_TEXT};cmp r1,ip;bne done;${all ? `sub ip,r7,r3;cmp ip,#${KIND_TONING * 4};bne done;` : ''}push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_TEXT};movwne r1,#${HALATION_TEXT_ID};pop {r0,r2,r3,lr};done:b #${adrHex(0x531a97e0)}`, 'halation: name of the parameter (RAW development)');
    // RAW development: list icon.
    for (const at of [adr(0x531a9d70), adr(0x531a9e88)]) {
 -    hook(p, at, 0xe300116f, `push {r0,r2,r3,lr};${RAW_LOOK_CALLS};${lookupAsm('r0', 'r0', 'r2', raws)};cmp r0,#0;movw r1,#${TONING_ICON};movwne r1,#${HALATION_ICON_ID};pop {r0,r2,r3,lr};b #${at + 4}`, 'halation: list icon (RAW development)');
@@ -7578,7 +7782,7 @@ diff --git a/core/src/fw/gr4v120/aspect/slots.ts b/core/src/fw/gr4v120/aspect/sl
 -  installHalationClamps(p);
 +  installHalationClamps(p, !!all);
 +  // Halation for every look: the Halation row on every look's parameter screens.
-+  if (all) installHalationRows(p);
++  if (all) { installHalationRows(p); installHalationSnapshot(p, all.now); installHalationLive(p, all.now); }
  
    // The look of the picture for the JPEG step: without added slots their hook is not there.
    if (p.word(adr(0x53939148)) === 0xe5d3279c) installLookStash(p);
@@ -10627,7 +10831,7 @@ diff --git a/tools/gr4v120/slotparams/test_halation_all.py b/tools/gr4v120/slotp
 new file mode 100644
 --- /dev/null
 +++ b/tools/gr4v120/slotparams/test_halation_all.py
-@@ -0,0 +1,195 @@
+@@ -0,0 +1,249 @@
 +# SPDX-License-Identifier: GPL-2.0-only
 +"""Halation for every look (option halationAll: halation-all.ts, slot_params.c built with SP_EXT) in a built GR IV
 +1.20 RTOS.
@@ -10642,7 +10846,9 @@ new file mode 100644
 + 4. the development step's hook: the look and level it leaves for the JPEG step when shooting (a factory look's
 +    setting from the module, a Cinema or added look's from the picture's record), in RAW development (the record's),
 +    and the white glow for a black-and-white look;
-+ 5. settings save and load: the halation table in record 13 and back.
++ 5. the parameter screen's snapshot of Toning: a factory look's halation from the module (0.9.6);
++    and the live Toning: a factory look's halation when the look is applied or its halation set (0.9.6);
++ 6. settings save and load: the halation table in record 13 and back.
 +
 +    python3 tools/gr4v120/slotparams/test_halation_all.py RTOS
 +
@@ -10810,6 +11016,58 @@ new file mode 100644
 +check('RAW development, Standard: the record\'s setting (Strong white)', develop(False, STD, 6) == (STD, 3, True, True))
 +check('RAW development, Monotone with red: white', develop(False, MONO, 3) == (MONO, 2, True, True))
 +check('a setting of Off: level 0', develop(True, CY, 7) == (CY, 0, False, True))
++
++# ---- 4b. the parameter screen's snapshot of Toning (0.9.6): it is written back when a change is not kept, so a
++# factory look's must be the module's setting, not the live property (which never sees it); Cinema and added looks
++# keep the live property
++SNAP_SITE, LIVE_TONING = 0x533d02a8, 0x5377d224
++check('the snapshot\'s read of Toning is hooked', iw(SNAP_SITE) >> 24 == 0xeb and target(SNAP_SITE, iw(SNAP_SITE)) != LIVE_TONING)
++SNAP = target(SNAP_SITE, iw(SNAP_SITE))
++STUBS[LIVE_TONING] = lambda mm: bc.ret(mm, 1)   # a stale live Toning: Weak red
++check('snapshot, Standard in photo set 0: the module\'s setting (Medium white), not the live Toning', call(SNAP, setup=setup_set(0, STD)) == 5)
++check('snapshot, Standard in photo set 2: that set\'s setting', call(SNAP, setup=setup_set(2, STD)) == 2)
++check('snapshot, Monotone: the module\'s setting', call(SNAP, setup=setup_set(0, MONO)) == 1)
++check('snapshot, Cinema Yellow and an added look: the live Toning, as natively', call(SNAP, setup=setup_set(0, CY)) == 1 and call(SNAP, setup=setup_set(0, ADDED0)) == 1)
++STUBS[LIVE_TONING] = lambda mm: bc.ret(mm, 0)
++check('snapshot, a photo set the module does not know (4): the live Toning', call(SNAP, setup=lambda: wr(SETTINGS + 0x152, bytes([4]))) == 0)
++del STUBS[LIVE_TONING]
++
++# ---- 4c. the live Toning (0.9.6): the picture's Toning is the live Toning property, which the camera sets from the
++# look's own Toning byte (every look has Toning here); a factory look's halation from the module instead, when the
++# look is applied and when its halation is set on the parameter screen
++APPLY, APPLY_TONING, LIVE_SET = 0x53380afc, 0x53380b84, 0x5378a220
++SHOOT_SET, CONTEXT, LOOK_GET, SET_GET = 0x533c6fcc, 0x53750008, 0x5377cfc0, 0x533c6c9c
++check('applying Toning: the read of the look\'s own Toning byte is hooked', iw(APPLY_TONING) >> 24 == 0xea)
++live = []
++STUBS[LIVE_SET] = lambda mm: (live.append((r(0), r(1))), bc.ret(mm, 1))
++OBJ, PROP = bc.STACK + 0x2000, 0xC0FFEE00
++def applying(s, look, style, own):
++    def f():
++        setup_set(s, style)()
++        wr(OBJ + 0x9c, bytes([s])); wr(OBJ + 0x9d + s, bytes([look])); wr(OBJ + 0x18, struct.pack('<I', PROP))
++        wr(OBJ + 0x1b5 * s + 0x13 * look + 0xa9, bytes([own]))
++    return f
++live.clear(); call(APPLY, OBJ, setup=applying(0, 1, STD, 1))
++check('applying Standard (look 1 -> style 11), photo set 0: its halation (Medium white), not its own stale Toning', live == [(PROP, 5)])
++live.clear(); call(APPLY, OBJ, setup=applying(2, 1, STD, 1))
++check('applying Standard, photo set 2: that set\'s halation', live == [(PROP, 2)])
++live.clear(); call(APPLY, OBJ, setup=applying(0, 3, MONO, 0))
++check('applying Monotone (look 3 -> style 13): its halation', live == [(PROP, 1)])
++live.clear(); call(APPLY, OBJ, setup=applying(0, 9, CY, 3))
++check('applying Cinema Yellow (look 9): its own Toning, as natively', live == [(PROP, 3)])
++CTX_OBJ = bc.STACK + 0x3000
++STUBS[CONTEXT] = lambda mm: (wr(CTX_OBJ + 4, struct.pack('<I', CTX_OBJ + 0x100)), wr(CTX_OBJ + 0x100 + 0x518, struct.pack('<I', PROP)), bc.ret(mm, CTX_OBJ))
++def shoot_set(s, style, value):
++    STUBS[LOOK_GET] = lambda mm: bc.ret(mm, style); STUBS[SET_GET] = lambda mm: bc.ret(mm, s)
++    live.clear(); native_calls.clear()
++    call(SHOOT_SET, SETTINGS, value, setup=lambda: (setup_set(s, style)(), wr(SETTINGS + 0x1f, bytes([0]))))
++shoot_set(0, STD, 6)
++check('setting Standard\'s halation (Strong white): kept by the module and made the live Toning', hal(STD, 0) == 6 and live == [(PROP, 6)])
++shoot_set(0, STD, 5)
++check('... and back (Medium white)', hal(STD, 0) == 5 and live == [(PROP, 5)])
++shoot_set(0, CY, 3)
++check('setting Cinema Yellow\'s Toning: the native setter, the live Toning left to the camera', live == [] and len(native_calls) == 1)
++for k in (LIVE_SET, CONTEXT, LOOK_GET, SET_GET): del STUBS[k]
 +
 +# ---- 5. save and load
 +wr(FAKE_STATE + 8, struct.pack('<I', 1))

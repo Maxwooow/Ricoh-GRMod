@@ -8,18 +8,27 @@ build with them (the calls they make out replaced by recorders):
 
   A. the image: below the official end the two builds differ only at the places the two files name;
   B. the state for the shake reduction unit (0x537BB254), still / movie, both settings, the Sensor Shift bit, Movie
-     SR in effect (and the composition adjustment holding the sensor, when Sensor Shift is in the build): a still as
-     without the options; a movie reports field 0x13 exactly for "Sensor Shift" and field 0x14 as before;
+     SR in effect, the margin of the live view (and the composition adjustment holding the sensor, when Sensor Shift
+     is in the build): a still as without the options; a movie reports field 0x13 for "Sensor Shift", and for Movie
+     SR on while the live view has no margin, and field 0x14 as before;
   C. the margin (0x5365C850 at set-up, 0x5365AB38 while the live view runs): as without the options but for a
      movie live view, where it is Movie SR as the camera side has it at set-up, kept until the next set-up; 1 before
-     any set-up; every register but r3 as without the options;
+     any set-up; every register but r3 as without the options; the state built again when a set-up changes it;
   D. the unit's property handler: 0xFA builds the state as 0xF9 does, every other property goes where it went;
   E. Movie SR's list: three rows, their icons and texts, set (the bit, the camera's setter, the state sent),
      current; the icon of the setting on the menu line and on the screen;
   F. 4K: the setting taken where the live view is started; the switch, the sensor's drive mode and the size recorded follow it, for 60p / 30p / 24p, whatever the setting becomes afterwards;
   G. the Frame Rate record's set (the list's OK: 60p clears 4K, then the camera's own code; the camera's two functions that set a
      row before OK do not), the Resolution list (4K at 60p sets
-     30p), the menu line and the two submenu lines.
+     30p), the menu line and the two submenu lines;
+  H. what the unit gets: the state builder, the still / movie field (0x537BB360), the field setter and the two
+     functions that copy the state into a message (the explicit send 0x537B64E8, the periodic one 0x537B74A0, with
+     the real copy function), for still SR on / off, Movie SR Off / Sensor Shift / Electronic (also with the bit
+     left set, as an Fn button leaves it), both directions of the change of still / movie and several orders of the
+     properties and the sends; each packet's bytes against the same build with its copies left as they are: the
+     same bytes unless a change of still / movie would reach the unit with 0x13 = 1 on both sides; then that packet
+     and the next HOLD - 1 say 0x13 = 0, every other byte the same; never a change of still / movie with 0x13 = 1 on
+     both sides.
 
     python3 check.py 1.20|1.21 BUILT-WITHOUT-RTOS BUILT-WITH-RTOS [shift]      (shift: Sensor Shift is in both builds)
 """
@@ -42,9 +51,11 @@ u32 = lambda d, a: struct.unpack_from('<I', d, a - BASE)[0]
 
 S = 0x550832a8
 MOVIE_BYTE, FRAME_RATE, SR_KEPT, SR_LIVE = S + 0x775, S + 0x772, S + 0x77f, S + 0x12c3
-LATCH, SHIFT_STATE = 0x55839044, 0x55839048
+LATCH, SENT, SHIFT_STATE, HOLD = 0x55839044, 0x55839046, 0x55839048, 3
 SR_HOLDER = B(0x550b9b20, 0x550b9b28)
 SR_STATE, SR_SETTER, SR_STATE_MOVIE = B(0x537bb254, 0x537bbf6c), B(0x537b986c, 0x537ba584), B(0x537bb2d8, 0x537bbff0)
+MODE_FIELD, FIELD_TABLE, COPY = B(0x537bb360, 0x537bc078), 0x5501a858, 0x53157380
+COPY_SENT_FN, COPY_PERIODIC_FN, COPY_SENT, COPY_PERIODIC = B(0x537b64e8, 0x537b7200), B(0x537b74a0, 0x537b81b8), B(0x537b656c, 0x537b7284), B(0x537b7520, 0x537b8238)
 PROPS, GET_MODE, GET_STILL_SR, GET_MOVIE_SR, GET_RATE = B(0x53750008, 0x53750a58), B(0x5377cab8, 0x5377d748), B(0x5377db08, 0x5377e798), B(0x5377db4c, 0x5377e7dc), B(0x5377da3c, 0x5377e6cc)
 MARGIN_SETUP_FN, MARGIN_SETUP_END, MARGIN_UPDATE_FN, MARGIN_UPDATE_END = B(0x5365c850, 0x5365d190), B(0x5365c8a0, 0x5365d1e0), B(0x5365ab38, 0x5365b478), B(0x5365ab98, 0x5365b4d8)
 MARGIN_SETUP, MARGIN_UPDATE = B(0x5365c87c, 0x5365d1bc), B(0x5365ab70, 0x5365b4b0)
@@ -85,6 +96,7 @@ class Emu:
         mu.mem_write(0x55000000, d[DATA_SRC - BASE:DATA_SRC - BASE + 0x58500])
         mu.mem_map(SCR, 0x01000000); mu.mem_map(STOP, 0x1000)
         self.stubs = {}; self.log = []; self.stops = {STOP}; self.stopped = None
+        mu.reg_write(UC_ARM_REG_C1_C0_2, mu.reg_read(UC_ARM_REG_C1_C0_2) | (0xf << 20)); mu.reg_write(UC_ARM_REG_FPEXC, 0x40000000)   # the copy function uses NEON
         mu.hook_add(UC_HOOK_CODE, self._code)
         mu.hook_add(UC_HOOK_MEM_UNMAPPED, lambda uc, access, addr, size, value, ud: self.log.append(('BAD', hex(addr), hex(uc.reg_read(UC_ARM_REG_PC)))) or False)
 
@@ -99,6 +111,7 @@ class Emu:
     def r(self, i): return self.mu.reg_read(REGS[i])
     def w32(self, a, v): self.mu.mem_write(a, struct.pack('<I', v & 0xffffffff))
     def r8(self, a): return self.mu.mem_read(a, 1)[0]
+    def r32(self, a): return struct.unpack('<I', self.mu.mem_read(a, 4))[0]
     def w8(self, a, v): self.mu.mem_write(a, bytes([v & 0xff]))
 
     def call(self, at, args=(), regs=None, stops=(), lr=STOP):
@@ -120,7 +133,7 @@ class Emu:
 # ---- A: the image
 select = mov16(img, SELECT_LOW, SELECT_HIGH); select_plain = mov16(plain, SELECT_LOW, SELECT_HIGH)
 sr_record = select + 62 * 0x4c
-named = {SR_STATE_MOVIE, SR_PROPERTY, MARGIN_SETUP, MARGIN_UPDATE, LINE_ICON_CALL, SCREEN_ICON_TAIL, SWITCH, START_SIZE_CALL}
+named = {SR_STATE_MOVIE, SR_PROPERTY, MARGIN_SETUP, MARGIN_UPDATE, LINE_ICON_CALL, SCREEN_ICON_TAIL, SWITCH, START_SIZE_CALL, COPY_SENT, COPY_PERIODIC}
 if sr_record < OFFICIAL_END: named |= {sr_record + o for o in (0x0c, 0x14, 0x24, 0x2c)}
 named |= {MOVIE_MENU + 0x8c + 12 * 8, MOVIE_MENU + 0x1bc + 12 * 4}
 # may differ: the menus' shared places (the controller factory, the two "current menu" functions, the end of the official
@@ -150,8 +163,8 @@ def machine(d):
 
 
 # ---- B: the state for the unit
-def state(e, mode, still, movie, bit, live, held):
-    e.w8(MOVIE_BYTE, bit); e.w8(SR_LIVE, live)
+def state(e, mode, still, movie, bit, live, held, latch=0):
+    e.w8(MOVIE_BYTE, bit); e.w8(SR_LIVE, live); e.w8(LATCH, latch)
     st = bytearray(0x2c); st[6] = 0xA5 if held else 0; e.mu.mem_write(SHIFT_STATE, bytes(st))
     e.stubs.update({PROPS: lambda e: P, GET_MODE: lambda e: mode, GET_STILL_SR: lambda e: still, GET_MOVIE_SR: lambda e: movie})
     calls = []
@@ -162,15 +175,16 @@ def state(e, mode, still, movie, bit, live, held):
 
 
 ep, ew = machine(plain), machine(img); n = 0
-for mode, still, movie, bit, live, held in itertools.product((0, 1), (0, 1), (0, 1, 7), (0, 1, 2, 3, 0xff), (0, 1), (0, 1) if with_shift else (0,)):
-    got = state(ew, mode, still, movie, bit, live, held)
+for mode, still, movie, bit, live, held, latch in itertools.product((0, 1), (0, 1), (0, 1, 7), (0, 1, 2, 3, 0xff), (0, 1), (0, 1) if with_shift else (0,), (0, 1)):
+    got = state(ew, mode, still, movie, bit, live, held, latch)
     if mode == 0: assert got == state(ep, mode, still, movie, bit, live, held), ('still', got)
     else:
-        mech = 1 if (bit & 1) and not movie and not held else 0      # Movie SR as the camera side has it, whatever the settings' byte says
-        assert got == [(0x13, mech), (0x14, 1 if movie else 0)], (mode, still, movie, bit, live, held, got)
+        # Movie SR as the camera side has it, whatever the settings' byte says: off, Sensor Shift; on, a live view without the margin
+        mech = 0 if held else (latch if movie else bit & 1)
+        assert got == [(0x13, mech), (0x14, 1 if movie else 0)], (mode, still, movie, bit, live, held, latch, got)
         assert state(ep, mode, still, movie, bit, live, held) == [(0x13, 0), (0x14, 1 if movie else 0)]
     n += 1
-print(f'B. the state for the unit: {n} combinations; a movie reports the sensor shift exactly for "Sensor Shift"' + (' and not while the composition adjustment holds the sensor' if with_shift else ''))
+print(f'B. the state for the unit: {n} combinations; a movie reports the sensor shift for "Sensor Shift" and for Movie SR on while the live view has no margin' + (', not while the composition adjustment holds the sensor' if with_shift else ''))
 
 
 # ---- C: the margin
@@ -178,9 +192,12 @@ def margin(e, fn, end, flags, f97a4, msr):
     obj = SCR + 0x20000
     e.mu.mem_write(obj, b'\0' * 0xa000); e.w32(obj + 0x6c, flags); e.w8(obj + 0x97a4, f97a4); e.w32(obj + 0x3bc, SCR + 0x500); e.w32(obj + 0x3a4, SCR + 0x600)
     e.stubs[GET_MOVIE_SR] = lambda e: msr
-    e.w8(obj + 0x874c, 0x77)
+    e.w8(obj + 0x874c, 0x77); built = []
+    e.stubs[SR_STATE] = lambda e: built.append(e.r(0)) or None
     e.call(fn, [obj], stops=[end])
+    del e.stubs[SR_STATE]
     assert e.stopped == end
+    e.built = built
     return e.r8(obj + 0x874c), [e.r(i) for i in (0, 1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12)], e.mu.reg_read(UC_ARM_REG_SP)
 
 
@@ -193,11 +210,14 @@ for flags, f97a4, msr in itertools.product((0, 1, 2, 3), (0, 1), (0, 1, 5)):
     assert margin(ew, MARGIN_UPDATE_FN, MARGIN_UPDATE_END, flags, f97a4, msr) == official(MARGIN_UPDATE_FN, MARGIN_UPDATE_END)
     got = margin(ew, MARGIN_SETUP_FN, MARGIN_SETUP_END, flags, f97a4, msr); want = official(MARGIN_SETUP_FN, MARGIN_SETUP_END)
     assert got[1:] == want[1:] and got[0] == ((1 if msr else 0) if on_path else want[0]), (flags, f97a4, msr, got[0])
+    assert ew.built == ([SCR + 0x3000] if on_path and not msr else []) and ep.built == [], (flags, f97a4, msr, ew.built)   # the latch was 0
+    if on_path:                                     # set up again with the same: not built again
+        margin(ew, MARGIN_SETUP_FN, MARGIN_SETUP_END, flags, f97a4, msr); assert ew.built == []
     for later in (0, 1):                            # while the live view runs, whatever Movie SR becomes
         got = margin(ew, MARGIN_UPDATE_FN, MARGIN_UPDATE_END, flags, f97a4, later); want = official(MARGIN_UPDATE_FN, MARGIN_UPDATE_END, later)
         assert got[1:] == want[1:] and got[0] == ((1 if msr else 0) if on_path else want[0]), (flags, f97a4, msr, later, got[0])
     n += 1
-print(f'C. the margin: {n} combinations; for a movie live view it is Movie SR at set-up, kept while the live view runs')
+print(f'C. the margin: {n} combinations; for a movie live view it is Movie SR at set-up, kept while the live view runs; the state built again when a set-up changes it')
 
 
 # ---- D: the unit's property handler
@@ -369,4 +389,82 @@ for byte, fps in itertools.product((0, 1, 2, 3), (0, 1, 2)):
     log.clear(); ew.call(line_res, [SCR, SCR + 0x900]); assert ew.kept() and log == [('sub', SCR + 0x900, T['uhd'] if uhd else T['fhd'])], log
     n += 1
 print(f'G. the menu: 60p confirmed sets FHD (not the row under the cursor, not the row set again on leaving), 4K at 60p sets 30p; the Resolution list (set by OK only), the line and the submenu\'s two lines ({n})')
+# ---- H: what the unit gets
+D = SCR + 0x3000; HEAP = SCR + 0x200000
+copy_hook = target(img, COPY_SENT)
+assert target(plain, COPY_SENT) == COPY == target(plain, COPY_PERIODIC) and copy_hook == target(img, COPY_PERIODIC) >= OFFICIAL_END
+
+
+def calls_in(d, fn, n): return [target(d, a) for a in range(fn, fn + 4 * n, 4) if (u32(d, a) >> 24) == 0xeb]
+
+
+def unit(as_built):
+    e = machine(img); e.w32(SR_HOLDER + 4, SCR + 0x2000); e.w32(SCR + 0x2000 + 0x60, D)
+    buf = SCR + 0x3800; e.mu.mem_write(buf, b'\0' * 0x40)
+    e.w32(D + 4, 0x5e00eeee); e.w8(D + 8, 0x02); e.w32(D + 0x0c, 0x17); e.w32(D + 0x14, buf); e.w32(D + 0x18, FIELD_TABLE)
+    e.heap = HEAP; e.packets = []
+    def alloc(e):
+        a = e.heap; e.heap += (e.r(0) + 15) & ~15; e.mu.mem_write(a, b'\0' * e.r(0)); return a
+    for fn in (COPY_SENT_FN, COPY_PERIODIC_FN):
+        cs = calls_in(img, fn, 60)
+        for t in cs[:2]: e.stubs[t] = alloc
+        e.stubs[cs[3]] = lambda e: e.packets.append(bytes(e.mu.mem_read(e.r32(e.r(1) + 0x10), e.r32(e.r(1) + 8)))) or 0
+    if not as_built:                                # the copies left as they are
+        e.stubs[copy_hook] = lambda e: e.mu.mem_write(e.r(0), bytes(e.mu.mem_read(e.r(1), e.r(2)))) or e.r(0)
+    return e
+
+
+def step(e, what):
+    if what == 'A0': e.call(MODE_FIELD, [D])
+    elif what == 'F9': e.call(SR_STATE, [D])
+    elif what == '89': e.call(SR_STATE, [D]); e.call(MODE_FIELD, [D])
+    elif what == 'flip': e.mode ^= 1
+    elif what == 'sent': e.call(COPY_SENT_FN, [0x1111, D + 4, 0x14]); assert e.kept()
+    elif what == 'periodic': e.call(COPY_PERIODIC_FN, [0x2222, D + 4]); assert e.kept()
+
+
+fields = lambda p: (p[2] >> 6 & 1, p[5] >> 5 & 1, p[5] >> 7 & 1)
+knocks = lambda ps: [i + 1 for i, (a, b) in enumerate(zip(ps, ps[1:])) if fields(a)[0] != fields(b)[0] and fields(a)[1] and fields(b)[1]]
+ORDERS = [['A0', 'periodic', '89', 'periodic', 'sent', 'periodic', 'periodic', 'periodic', 'periodic'],
+          ['89', 'periodic', 'periodic', 'sent', 'periodic', 'periodic', 'periodic'],
+          ['A0', 'sent', 'sent', 'F9', 'periodic', 'periodic', 'periodic', 'periodic'],
+          ['A0', 'periodic', 'periodic', 'periodic', 'periodic', 'periodic'],
+          ['89', 'periodic', 'flip', '89', 'periodic', 'periodic', 'flip', '89', 'periodic', 'periodic', 'periodic', 'periodic', 'periodic']]
+
+
+def model(packets):
+    """The copies as the build should leave them: from a change of still / movie with 0x13 = 1 in this copy and the
+    last one, HOLD copies with 0x13 = 0 (fewer when the state itself says 0 first; counted again on another change)."""
+    out, last, hold, count = [], None, False, 0
+    for p in packets:
+        mode, sr, _ = fields(p)
+        if last is not None:
+            changed = mode != last[0]
+            if hold and (not sr): hold = False
+            elif hold and changed: count = 0
+            elif not hold and changed and sr and last[1]: hold, count = True, 0
+        if hold:
+            p = bytes(x & ~0x20 if j == 5 else x for j, x in enumerate(p)); count += 1
+            if count >= HOLD: hold = False
+        out.append(p); last = fields(p)[:2]
+    return out
+
+
+eb, ea = unit(False), unit(True); n = changed = 0
+for (msr, bit), still, start, order in itertools.product(((0, 0), (0, 1), (1, 0), (1, 1)), (0, 1), (0, 1), ORDERS):
+    out = []
+    for e in (eb, ea):
+        e.packets = []; e.mu.mem_write(SENT, b'\0'); e.mu.mem_write(SCR + 0x3800, b'\0' * 0x40); e.w8(LATCH, 0)
+        e.w8(MOVIE_BYTE, bit); e.w8(SR_LIVE, msr); e.mu.mem_write(SHIFT_STATE, bytes(0x2c)); e.mode = start
+        e.stubs.update({PROPS: lambda e: P, GET_MODE: lambda e: e.mode, GET_STILL_SR: lambda e, s=still: s, GET_MOVIE_SR: lambda e, m=msr: m})
+        e.stubs.pop(SR_SETTER, None)
+        for w in ['89', 'periodic', 'periodic', 'periodic', 'flip'] + order: step(e, w)
+        out.append(e.packets)
+    before, after = out
+    assert len(before) == len(after) and not knocks(after), (msr, bit, still, start, order, [fields(p) for p in after])
+    assert after == model(before), (msr, bit, still, start, order, [fields(p) for p in before], [fields(p) for p in after])
+    changed += before != after
+    assert (before != after) == bool(knocks(before))
+    n += 1
+print(f'H. what the unit gets: {n} sequences; {changed} would reach the unit with a change of still / movie and 0x13 = 1 on both sides: there 0x13 = 0 for {HOLD} packets from the change (a model of the rule, byte for byte); the others the same bytes; none left')
 print('ok')

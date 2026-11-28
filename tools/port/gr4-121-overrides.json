@@ -487,6 +487,50 @@
   "new": "0x55839280",
   "reason": "RAM, unreferenced: 512 bytes after the heap start 0x55839080 (same in 1.21: the start-up zero fill literal 0x53000460 and the heap's movw at 0x53ad4c4c name the same addresses); the heap start subject recognition moves to"
  },
+ "0x533d02a8": {
+  "new": "0x533d0b10",
+  "reason": "the parameter screen's snapshot of Toning (bl 0x5377d224): snapshot function 0x533d0210 -> 0x533d0a78, 80 words equal up to branch offsets; the site at +0x98 (the backup 0x533d03d0 -> 0x533d0c38 in this map moves by the same 0x868)"
+ },
+ "0x5377d224": {
+  "new": "0x5377deb4",
+  "reason": "live Toning getter: the bl at the snapshot site and the one in SHOOT_CUR (0x533cc288 -> 0x533ccaf0, +0x1c) both call 0x5377deb4 in 1.21"
+ },
+ "0x5378a220": {
+  "new": "0x5378aeb0",
+  "reason": "live Toning setter: the applier's tail call (+0x94) is b 0x5378aeb0 in 1.21"
+ },
+ "0x533c7010": {
+  "new": "0x533c7878",
+  "reason": "SHOOT_SET (0x533c6fcc -> 0x533c7834 in this map) +0x44, its call of the Toning setter (0x533c2ae0 -> 0x533c3348)"
+ },
+ "0x53380b84": {
+  "new": "0x53381430",
+  "reason": "applying Toning (0x53380afc -> 0x533813a8: 44 words equal up to branch offsets and movw/movt immediates; the look table 0x53de61c0 -> 0x53de7860): its ldrb r1,[r3,#0xa9] at +0x88"
+ },
+ "0x53380afc": {
+  "new": "0x533813a8",
+  "reason": "applying Toning: 44 words equal up to branch offsets and movw/movt immediates; called by the apply-all function 0x53382e20 -> 0x533836cc"
+ },
+ "0x5377cfc0": {
+  "new": "0x5377dc50",
+  "reason": "the live look getter: SHOOT_SET +0x20 (0x533c6fcc -> 0x533c7834) calls 0x5377dc50 in 1.21"
+ },
+ "0x533c6c9c": {
+  "new": "0x533c7504",
+  "reason": "the photo set of the settings: SHOOT_SET +0x2c (0x533c6fcc -> 0x533c7834) calls 0x533c7504 in 1.21"
+ },
+ "0x53157380": {
+  "new": "0x53157380",
+  "reason": "the C library's memcpy: the same words at the same address in 1.21 (both releases: mov ip, r0; cmp r2, #0x40; ...)"
+ },
+ "0x537b656c": {
+  "new": "0x537b7284",
+  "reason": "bl memcpy in 0x537B64E8 (1.21 0x537B7200, the SRIC command's message: malloc, malloc, memcpy, post): the function's words equal up to relocation, the call at the same offset +0x84"
+ },
+ "0x537b7520": {
+  "new": "0x537b8238",
+  "reason": "bl memcpy in 0x537B74A0 (1.21 0x537B81B8, the periodic message of the same kind): the function's words equal up to relocation, the call at the same offset +0x80"
+ },
  "0x53dbf798": {
   "new": "0x53dc0da0",
   "reason": "the shooting screen's item functions (8 bytes an item): item 26 there is 0x53189e08 and item 36 0x5318eb20, the 1.21 places of 0x53189e30 and 0x5318eb48 (read side by side)"
