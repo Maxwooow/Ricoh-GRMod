@@ -10161,6 +10161,15 @@
     "core/src/fw/aspect/shade.ts",
     "tools/grid/check.py"
    ]
+  },
+  "0x535899fc": {
+   "new": "0x535acccc",
+   "how": "aligned + refs 0x535accccx80",
+   "ok": true,
+   "files": [
+    "core/src/fw/aspect/shade.ts",
+    "tools/shade/draw_check.py"
+   ]
   }
  }
 }

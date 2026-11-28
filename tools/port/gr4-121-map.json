@@ -9574,7 +9574,9 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/handnight.ts",
-    "tools/gr4v120/handnight/test_screen.py"
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/handnight/test_screen.py",
+    "tools/gr4v120/shade/draw_check.py"
    ]
   },
   "0x535acd84": {

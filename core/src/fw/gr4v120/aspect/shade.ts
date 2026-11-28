@@ -24,10 +24,19 @@
  *     - GridView constructor: the word store at 0x5359B780 clears +0xF4..+0xF7 (the native code
  *       clears +0xF4 / +0xF5 only), so +0xF6 starts at 0 in every grid view.
  *     - The live-view controller's UpdateViewGrid (0x531902F4) ends in SetVisible(grid, on) at
- *       0x53190318..CC. There it marks its grid view: +0xF6 = 1 | (grid lines on ? 2 : 0), and
- *       with an added ratio selected it keeps the view visible even with the grid off.
- *     - GridView::Draw (vtable slot 19): for a marked view with an added ratio selected (user
- *       setting byte 0x49F, as in crop_state.c), fill the bands outside the ratio, centred on the
+ *       0x53190318..CC. There it marks its grid view: +0xF6 = 1 | (grid lines on ? 2 : 0) |
+ *       aspect << 2, and with an added ratio selected it keeps the view visible even with the
+ *       grid off. When the aspect is not the one of the last mark, the view is invalidated
+ *       (0x535ACCCC, as SetVisible does for a change), so that it is drawn again.
+ *     - "Selected" is the capture aspect (CommonProperty +0x7DA, 0x5377D960), the one the
+ *       live-view mode reads, not the user setting byte 0x49F: while a ratio is being chosen
+ *       with ADJ the camera sets the capture aspect to the highlighted one (the factory ratios
+ *       show their bars at once), and the user setting only on OK. With the setting byte
+ *       (0.9.6 and before) an added ratio showed no shade until OK; the update hook is what
+ *       makes the view drawn again, since an added ratio leaves the live-view mode at 3:2 and
+ *       the camera has no other reason to redraw the grid (reported 2026-11-27).
+ *     - GridView::Draw (vtable slot 19): for a marked view with an added ratio selected, fill
+ *       the bands outside the ratio, centred on the
  *       canvas (width +0x18, height +0x1A of the drawing surface), then draw the grid
  *       lines only if they are on; otherwise the native Draw. With the grid off the view's line
  *       views (the diagonals, its children) keep the visibility of the last layout, because the
@@ -65,9 +74,9 @@ const GRID_DRAW = adr(0x5359bb14);
 const VIEW_BASE_DRAW = adr(0x535ab380);
 const GRID_CTOR_CLEAR = adr(0x5359b780);
 const SET_VISIBLE = adr(0x535acd84);
+/** View: invalidate unless already invalid (+0xA0), as SetVisible does on a change. */
+const INVALIDATE = adr(0x535acccc);
 const UPDATE_GRID_VISIBLE = adr(0x53190318);
-const CURRENT_USERDATA = adr(0x53240c38);
-const ASPECT_BYTE = 0x49f;
 const FILL_FACTORY = adr(0x5323d7f0);
 const FILL_GET = adr(0x5323d968);
 const FILL_RECT = adr(0x5323e1c0);
@@ -127,6 +136,7 @@ export function installRatioShade(geometry: Program, get: number, scale: number,
   p.expect(GRID_CTOR_CLEAR, 'strb r5,[r4,#0xf4]', 'grid view constructor has changed');
   p.expect(UPDATE_GRID_VISIBLE, 'mov r1,r5', 'live-view grid update has changed');
   p.expect(UPDATE_GRID_VISIBLE + 12, `b #${SET_VISIBLE}`, 'live-view grid update tail has changed');
+  p.expect(INVALIDATE, 'ldrb r3,[r0,#0xa0]', 'view invalidate has changed');
   for (const call of LIVE_MODE_CALLS) p.expect(call, `bl #${CAPTURE_ASPECT}`, 'live-view mode: capture aspect call has changed');
   p.expect(GRID_DRAW + 0x3c, `add r2,r0,#${FRAME}`, 'grid view Draw: the frame has moved');
   p.expect(VIEW_BASE_DRAW + 0x34, `add r3,r0,#${FRAME}`, 'view Draw: the frame has moved');
@@ -139,15 +149,21 @@ export function installRatioShade(geometry: Program, get: number, scale: number,
   const live = p.emit(`push {r4,lr};bl #${CAPTURE_ASPECT};mov r4,r0;bl #${get};cmp r0,#0;movne r0,#0;moveq r0,r4;pop {r4,pc};`);
   for (const call of LIVE_MODE_CALLS) p.patch.setWord(call, assembleWords(`bl #${live}`, call)[0], 'live-view mode: added ratios as 3:2');
 
+  // r0 = the capture aspect (the one highlighted while choosing with ADJ), or 0xFF in movie mode. Keeps r4-r11.
+  const aspect = p.emit(`push {r4,lr};bl #${SETTING_ROOT};ldr r4,[r0,#4];mov r0,r4;bl #${IS_MOVIE};cmp r0,#0;movne r0,#0xff;bne done;mov r0,r4;bl #${CAPTURE_ASPECT};done:pop {r4,pc};`);
   // r0 = the geometry row of the selected still ratio, or 0 (also in movie mode). Keeps r4-r11.
-  const selected = p.emit(`push {r4,lr};bl #${SETTING_ROOT};ldr r0,[r0,#4];bl #${IS_MOVIE};cmp r0,#0;movne r0,#0;bne none;bl #${CURRENT_USERDATA};cmp r0,#0;beq none;ldrb r0,[r0,#${ASPECT_BYTE}];bl #${get};pop {r4,pc};none:pop {r4,pc};`);
+  const selected = p.emit(`push {r4,lr};bl #${aspect};cmp r0,#0xff;moveq r0,#0;beq none;bl #${get};none:pop {r4,pc};`);
 
   // Constructor: clear +0xF4..+0xF7 (r5 = 0 there).
   p.patch.setWord(GRID_CTOR_CLEAR, assembleWords('str r5,[r4,#0xf4]', GRID_CTOR_CLEAR)[0], 'grid view constructor: clear the shade mark');
 
-  // UpdateViewGrid tail: r6 = the grid view, r5 = grid on.
+  // UpdateViewGrid tail: r6 = the grid view, r5 = grid on. Mark = 1 | 2 * grid on | aspect << 2 (6 bits;
+  // movie mode 0x3F); a changed aspect invalidates the view.
   p.hook(UPDATE_GRID_VISIBLE,
-    `push {r0,r2,r3,r4,ip,lr};cmp r5,#0;movne r0,#3;moveq r0,#1;strb r0,[r6,#${MARK}];bl #${selected};cmp r0,#0;mov r1,r5;movne r1,#1;pop {r0,r2,r3,r4,ip,lr};b #${UPDATE_GRID_VISIBLE + 4};`);
+    `push {r0,r2,r3,r4,ip,lr};bl #${aspect};mov r4,r0;cmp r5,#0;movne r0,#3;moveq r0,#1;orr r0,r0,r4,lsl #2;` +
+    `ldrb r1,[r6,#${MARK}];strb r0,[r6,#${MARK}];eor r1,r1,r0;tst r1,#0xfc;beq same;mov r0,r6;bl #${INVALIDATE};` +
+    `same:mov r0,#0;cmp r4,#0xff;beq vis;mov r0,r4;bl #${get};` +
+    `vis:cmp r0,#0;mov r1,r5;movne r1,#1;pop {r0,r2,r3,r4,ip,lr};b #${UPDATE_GRID_VISIBLE + 4};`);
 
   // Draw(view = r0, context = r1).
   // Stack: [sp..+31] the fill's arguments, [sp+32..+47] the saved frame, [sp+48] the geometry row,
