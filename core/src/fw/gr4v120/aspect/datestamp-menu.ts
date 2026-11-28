@@ -60,7 +60,7 @@ import {
   ICON_CATALOG, LANGUAGES, LOOKUP_BOUNDS, NATIVE_TEXT_ROOTS, Patch, TEXT_CATALOG, concat, expectWord, u16le, u32le, utf16z, widenTextRows,
 } from './build';
 import { DATESTAMP_AS_STORED, DATESTAMP_BYTE, DATESTAMP_LONG, DATESTAMP_NAME } from './datestamp';
-import { OFFICIAL_ITEMS, WIDE_DESCRIPTOR, WIDE_ITEMS, W_DRAW, W_ID, W_VISIBLE, installWideMenus } from './menuwide';
+import { OFFICIAL_ITEMS, W_DRAW, installWideMenus, wideLayoutFor } from './menuwide';
 import { adr } from '../target';
 
 /** Controller ids of the submenu and of its two lists. */
@@ -896,8 +896,10 @@ function stillMenuForModels(patch: Patch, still: Uint8Array, dateDraw: number, l
     return order;
   };
   const drops = [[HDF_ITEM, RED_FILTER_ITEM], [GR4_ONLY_ITEM, RED_FILTER_ITEM], [GR4_ONLY_ITEM, HDF_ITEM]] as const;
-  const wide = drops.some((d) => orderFor(d).length > MAX_ITEMS);
-  const [n, drawAt, idAt, visibleAt, size] = wide ? [WIDE_ITEMS, W_DRAW, W_ID, W_VISIBLE, WIDE_DESCRIPTOR] : [MAX_ITEMS, D_DRAW, D_ID, D_VISIBLE, DESCRIPTOR];
+  const most = Math.max(...drops.map((d) => orderFor(d).length));
+  // More than 38 lines: the wide layout, with room for 42 lines, or for 49 when there are more (`menuwide.ts`).
+  const wide = most > MAX_ITEMS ? wideLayoutFor(most) : null;
+  const [n, drawAt, idAt, visibleAt, size] = wide ? [wide.items, W_DRAW, wide.W_ID, wide.W_VISIBLE, wide.WIDE_DESCRIPTOR] : [MAX_ITEMS, D_DRAW, D_ID, D_VISIBLE, DESCRIPTOR];
   const descriptor = (drop: readonly number[]): Uint8Array => {
     const d = new Uint8Array(size);
     d.set(still.subarray(0, D_DRAW));
@@ -931,7 +933,7 @@ function stillMenuForModels(patch: Patch, still: Uint8Array, dateDraw: number, l
   const mono = patch.append(descriptor(drops[2]), 16);
   if (wide) {
     if (OFFICIAL_ITEMS !== MAX_ITEMS) fail('internal', 'still menu: official item count');
-    installWideMenus(patch, { gr4, hdf, mono }, { app: APP, specModel: SPEC_MODEL, number: MODEL_NUMBER, builder: BUILDER }, what);
+    installWideMenus(patch, { gr4, hdf, mono }, { app: APP, specModel: SPEC_MODEL, number: MODEL_NUMBER, builder: BUILDER }, what, wide);
     return;
   }
   const builder = patch.append((at) => assembleWords(

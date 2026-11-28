@@ -44,7 +44,7 @@ import { installVideoAf } from './videoaf';
 import { installSubjectAf } from './subjectaf';
 import { installAwbLearn } from './awb2';
 import { handNightStillLine, installHandNight } from './handnight';
-import { OFFICIAL_ITEMS, WIDE_ITEMS } from './menuwide';
+import { OFFICIAL_ITEMS, WIDE_ITEMS_MAX } from './menuwide';
 import { CINEMA_STYLES, FACTORY_STYLES, installExtraSlots, installHalation } from './slots';
 import { HALATION_TEST, halationLight } from './halation';
 import type { HalationLook } from './halation';
@@ -1252,9 +1252,10 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   }
   // Handheld Night: only the line's draw function here (after Color Space, and after the HDR line when it is there); the rest is last.
   if (features.handheldNight) {
-    // Every model's still menu keeps 36 of the 38 official lines; the wide layout (`menuwide.ts`) holds 42.
+    // Every model's still menu keeps 36 of the 38 official lines; the wide layout (`menuwide.ts`) holds up to 49
+    // (0.9.7; 42 before, so that Handheld Night was refused besides the six other added lines).
     const added = stillLines.length + (features.dateStamp && !test.dateStampFixed ? 1 : 0) + 1;
-    if (added > WIDE_ITEMS - (OFFICIAL_ITEMS - 2)) fail('bad-edit', `Handheld Night: the still menu has no room for another line (${added - 1} lines added already, ${WIDE_ITEMS - (OFFICIAL_ITEMS - 2)} fit)`);
+    if (added > WIDE_ITEMS_MAX - (OFFICIAL_ITEMS - 2)) fail('bad-edit', `Handheld Night: the still menu has no room for another line (${added - 1} lines added already, ${WIDE_ITEMS_MAX - (OFFICIAL_ITEMS - 2)} fit)`);
     stillLines.push(handNightStillLine(patch));
   }
   // Sensor Shift: the module and the shooting screen's hooks, its texts and icon.

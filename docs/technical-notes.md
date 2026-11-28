@@ -58,6 +58,10 @@ moved). Soft focus, until now only on the ADJ lever, is also a line of the still
 Settings, after Image Control). The camera's menus hold at most 38 lines a tab and the still menu was
 full, so with these lines every tab of the menu holds 42 (`core/src/fw/gr4v120/aspect/menuwide.ts`).
 Checked on a GR IV HDF with test firmware 078 and 080; emulator checks in `tools/gr4v120/exposure/check.py`.
+From 0.9.7 a still menu of more than 42 lines (Handheld Night besides HDR, Soft Focus, Exposure Preview,
+the live-view shade, Constant Light and the date imprint: 43) gets the same layout with room for 49, which
+is seven 7-line pages, the most the camera's menu builder has room for; builds of up to 42 lines are as
+before. Emulator checks in `tools/menuwide/check.py`; a seventh page is not yet tried on a camera.
 Also in 0.8.11, on firmware 1.20 and 1.11: optional Auto curves for the rear screen (Setup › Outdoor View
 Setting › Auto: stock, balanced or bright; PR #16 by orbitsail, test firmware 079, `docs/bright-auto.md`).
 The About dialog's acknowledgements come from `credits.json` on the main branch (fetched by the

@@ -11,6 +11,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { Engine, fw } from '../src';
 import type { BuildOptions } from '../src';
+import { testRatios } from './fw-helpers/test-firmware';
 import * as code120 from '../src/fw/gr4v120/aspect/handnight-code';
 import * as code121 from '../src/fw/gr4v121/aspect/handnight-code';
 
@@ -95,6 +96,25 @@ for (const { version, path, HOOKS, HEAP, code } of releases) describe.skipIf(!ex
     expect(Buffer.from(a.file).equals(Buffer.from(b.file))).toBe(true);
     expect((await e.inspect(b.file)).handheldNight).toBeUndefined();
   }, 60000);
+  // 0.9.7: the still menu's wide layout holds 49 lines when 42 are not enough (`menuwide.ts`; checked in the emulator by tools/menuwide/check.py).
+  it('besides the six other added lines (refused before 0.9.7): a still menu of 43 lines, the layout for 49; 42 without it, as before', async () => {
+    const e = await Engine.open(raw);
+    const [OK_SITE, ALLOC] = version === '1.21' ? [0x531b3a48, 0x53188890] : [0x531b3664, 0x53188530];
+    // HDR, Soft Focus, Exposure Preview, the live-view shade (with a ratio), Constant Light, the date imprint
+    const six: BuildOptions = { hdrGainMap: true, adjSoftFocus: true, exposurePreview: true, constantLight: true, dateStamp: true };
+    const ratios = testRatios(e);
+    const without = await e.buildFirmware([], ratios, [], six);
+    const withNight = await e.buildFirmware([], ratios, [], { ...six, handheldNight: true });
+    expect(Object.values(withNight.checks).every((v) => v === true)).toBe(true);
+    expect(await e.inspect(withNight.file)).toMatchObject({ verified: true, handheldNight: true, ratioShade: true, hdrGainMap: true, exposurePreview: true, dateStamp: true, constantLight: true });
+    const a = rtos(without.file), b = rtos(withNight.file);
+    // OK on a line: `mov r3, #lines`; the controller's allocation: 0x13EC + 5 tabs * lines * 20 bytes
+    expect([word(a, OK_SITE), word(a, ALLOC)]).toEqual([0xe3a0302a, 0xe3020454]);
+    expect([word(b, OK_SITE), word(b, ALLOC)]).toEqual([0xe3a03031, 0xe3020710]);
+    // five added lines and Handheld Night still fit the layout for 42
+    const five = await e.buildFirmware([], [], [], { ...six, handheldNight: true });
+    expect(word(rtos(five.file), OK_SITE)).toBe(0xe3a0302a);
+  }, 240000);
   it('refuses a non-boolean switch', async () => {
     const e = await Engine.open(raw);
     await expect(e.buildFirmware([], [], [], { handheldNight: 1 } as unknown as BuildOptions)).rejects.toMatchObject({ code: 'bad-edit' });
