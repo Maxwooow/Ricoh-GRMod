@@ -26,9 +26,11 @@ bits below the field set, those above clear), the others with code 0. Needs the 
     bytes, and none of its first 40 methods reads +0xF6 or +0xF7; the UI palette's colours 16 and
     19 are 0x80000000 (black at half opacity) and 0x40555555 (grey at a quarter).
  2. UpdateViewGrid's tail (0x5318F0C0), patched and official, for grid off / on and every still
-    aspect (factory, each added ratio, an unknown one, no user settings): SetVisible gets the
-    official arguments unless an added ratio is selected, and then (view, 1); the mark +0xF6 is
-    1 | 2 * (grid on); the restored registers are the official ones.
+    capture aspect (factory, each added ratio, an unknown one): SetVisible gets the official
+    arguments unless an added ratio is selected, and then (view, 1); the mark +0xF6 is
+    1 | 2 * (grid on) | aspect << 2; an aspect other than the last mark's invalidates the view
+    once, the same one again does not; the restored registers are the official ones. "Selected"
+    is the capture aspect getter's answer (what ADJ highlights), stubbed here.
  3. GridView::Draw (vtable slot 19) for every mark, aspect, grid style, several canvases and grid
     frames, with the camera's own rectangle fill (the 32-bit path) writing into a canvas in memory
     and the camera's own grid and base view Draw (only the line drawer is stubbed and its
@@ -79,10 +81,9 @@ GRID_CTOR_CLEAR = 0x535784b4
 GRID_ALLOC_CALL = 0x5358a45c
 SET_VISIBLE = 0x53589ab4
 UPDATE_GRID_VISIBLE = 0x5318f0c0
-CURRENT_USERDATA = 0x5323f018
+INVALIDATE = 0x535899fc  # view: invalidate unless already invalid
 FILL_FACTORY, FILL_GET = 0x5323bbb8, 0x5323bd30
 PALETTE = 0x540414e4
-ASPECT_BYTE = 0x49f
 MARK = 0xf6
 GRID_LINE = 0x53578548
 FRAME_OFF, DRAWN_OFF, DRAWN_FLAG = 0x30, 0x44, 0x40
@@ -98,7 +99,6 @@ LINE_SET_COLOUR = 0x5356e7ac
 
 # Scratch memory.
 STACK = 0x600f0000
-USERDATA = 0x600a0000
 VIEW = 0x60090000
 CTX = 0x60080000
 FRAME = 0x600c0000
@@ -106,6 +106,7 @@ PIXELS = 0x61000000
 
 failures = []
 MOVIE = 0  # what the movie test answers (movie mode: non-zero)
+ASPECT = 0  # what the capture aspect getter answers (the shade's "selected")
 
 
 def check(cond, what):
@@ -157,8 +158,12 @@ class Emu:
         self.calls = []
         self.stubs = {}
         # Asked by the shade's "added ratio selected" (any function that runs it): movie mode or not.
-        self.base = {SETTINGS_PROP: ('settings', PROP), IS_MOVIE: ('movie', MOVIE)}
+        self.base = {SETTINGS_PROP: ('settings', PROP), IS_MOVIE: ('movie', MOVIE), CAPTURE_ASPECT: ('capture', ASPECT)}
         mu.hook_add(UC_HOOK_CODE, self._hook)
+
+    def aspect(self, value):
+        """The capture aspect the shade reads (as while a ratio is highlighted with ADJ); None: 3:2."""
+        self.base[CAPTURE_ASPECT] = ('capture', 0 if value is None else value)
 
     def _hook(self, uc, addr, size, ud):
         if addr in self.stubs or addr in self.base:
@@ -321,9 +326,8 @@ def update_grid(img, aspects, patched):
     for grid in (0, 1, 2):
         for aspect in aspects:
             e = Emu(img)
-            e.stubs = {SET_VISIBLE: ('visible', None), CURRENT_USERDATA: ('userdata', 0 if aspect is None else USERDATA)}
-            if aspect is not None:
-                e.w8(USERDATA + ASPECT_BYTE, aspect)
+            e.stubs = {SET_VISIBLE: ('visible', None), INVALIDATE: ('invalidate', None)}
+            e.aspect(aspect)
             e.w8(VIEW + MARK, 0x55)
             # The frame the tail restores: r4, r5, r6, r7, fp, sp, lr at fp - 0x1C.
             saved = [0x44, 0x55, 0x66, 0x77, 0xbb, STACK - 0x100, STOP]
@@ -333,7 +337,14 @@ def update_grid(img, aspects, patched):
                                         UC_ARM_REG_R4: 0x1234, UC_ARM_REG_R7: 0x5678})
             regs = [e.mu.reg_read(r) for r in (UC_ARM_REG_R4, UC_ARM_REG_R5, UC_ARM_REG_R6, UC_ARM_REG_R7, UC_ARM_REG_R11, UC_ARM_REG_SP)]
             visible = [c[1:] for c in e.calls if c[0] == 'visible']
-            out[(grid, aspect)] = (visible, e.r8(VIEW + MARK), regs)
+            invalidated = [c[1] for c in e.calls if c[0] == 'invalidate']
+            # Again with the mark it left: the same aspect does not invalidate the view.
+            mark = e.r8(VIEW + MARK)
+            e.calls.clear()
+            e.run(UPDATE_GRID_VISIBLE, {UC_ARM_REG_R0: VIEW, UC_ARM_REG_R5: grid, UC_ARM_REG_R6: VIEW, UC_ARM_REG_R11: FRAME,
+                                        UC_ARM_REG_R4: 0x1234, UC_ARM_REG_R7: 0x5678})
+            again = [c[1] for c in e.calls if c[0] == 'invalidate']
+            out[(grid, aspect)] = (visible, mark, regs, invalidated, again)
     return out
 
 
@@ -372,14 +383,14 @@ def native_lines(img, frame, style):
 SETTING = None
 
 
-def draw(img, aspect, mark, width, height, userdata=True, frame=(0, 0, 720, 480), style=0, visible=1, code=0):
+def draw(img, aspect, mark, width, height, frame=(0, 0, 720, 480), style=0, visible=1, code=0):
     """The Draw slot with the camera's own grid Draw, base view Draw and fill; only the line drawer
     is stubbed (its rectangles are recorded). The view has its two line views (the diagonals) as
     children, visible as after a 4x4 layout; their Draw is stubbed and recorded with their visible
     flag at that moment."""
     e = Emu(img)
     e.stubs = {
-        CURRENT_USERDATA: ('userdata', USERDATA if userdata else 0), FILL_FACTORY: ('factory', 0x600d0000), FILL_GET: ('filler', 0x600d0100),
+        FILL_FACTORY: ('factory', 0x600d0000), FILL_GET: ('filler', 0x600d0100),
         GRID_LINE: ('line', None), CHILD_DRAW: ('child draw', None),
     }
     lines, seen = [], []
@@ -396,7 +407,7 @@ def draw(img, aspect, mark, width, height, userdata=True, frame=(0, 0, 720, 480)
     e.w32(VIEW + 0x10, CHILD_LIST + 4 * len(CHILD))
     e.w32(VIEW + 0xec, CHILD[0])
     e.w32(VIEW + 0xf0, CHILD[1])
-    e.w8(USERDATA + ASPECT_BYTE, aspect)
+    e.aspect(aspect)
     if SETTING:
         byte, shift, mask, _ = SETTING
         # The bits below the field set (Direct Flash's), the ones above clear (the custom grid's
@@ -446,7 +457,7 @@ def layout(img, style, w, h, aspect):
     """The calls of the grid view's layout to its two line views (frame, points, colour, visibility), in order."""
     e = Emu(img)
     e.stubs = {LINE_SET_POINTS: ('points', None), LINE_SET_COLOUR: ('colour', None), SET_VISIBLE: ('visible', None),
-               CHILD_FRAME: ('child frame', None), CURRENT_USERDATA: ('userdata', USERDATA if aspect is not None else 0)}
+               CHILD_FRAME: ('child frame', None)}
     calls = []
 
     def hook(uc, addr, size, ud):
@@ -469,8 +480,7 @@ def layout(img, style, w, h, aspect):
     e.mu.mem_write(VIEW + 0x20, struct.pack('<4i', 0, 0, w, h))
     e.w8(VIEW + 0xf4, style)
     e.w8(VIEW + 0xf5, TONES['dark'])
-    if aspect is not None:
-        e.w8(USERDATA + ASPECT_BYTE, aspect)
+    e.aspect(aspect)
     e.run(LAYOUT, {UC_ARM_REG_R0: VIEW})
     return calls
 
@@ -520,8 +530,9 @@ def movie_checks(new, old, ids):
     try:
         aspects = [0, *ids]
         a = update_grid(new, aspects, True)
-        for (grid, aspect), (visible, mark, regs) in a.items():
+        for (grid, aspect), (visible, mark, regs, invalidated, again) in a.items():
             check(visible == [(VIEW, grid)], f'movie: UpdateViewGrid grid={grid} aspect={aspect}: SetVisible {visible}')
+            check(mark == (3 if grid else 1) | 0xfc, f'movie: UpdateViewGrid grid={grid} aspect={aspect}: mark {mark:#x}')
             n += 1
         full = (0, 0, 720, 480)
         for aspect in aspects:
@@ -579,17 +590,22 @@ def main():
     a = update_grid(new, aspects, True)
     o = update_grid(old, aspects, False)
     n = 0
-    for (grid, aspect), (visible, mark, regs) in a.items():
-        ovis, omark, oregs = o[(grid, aspect)]
+    for (grid, aspect), (visible, mark, regs, invalidated, again) in a.items():
+        ovis, omark, oregs, oinv, _ = o[(grid, aspect)]
         added = aspect in ids
         want = [(VIEW, 1)] if added else ovis
+        key = (0 if aspect is None else aspect) & 0x3f
         check(ovis == [(VIEW, grid)], f'official UpdateViewGrid grid={grid}: {ovis}')
         check(visible == want, f'UpdateViewGrid grid={grid} aspect={aspect}: SetVisible {visible}, want {want}')
-        check(mark == (3 if grid else 1), f'UpdateViewGrid grid={grid} aspect={aspect}: mark {mark}')
-        check(omark == 0x55, 'official UpdateViewGrid wrote the mark byte')
+        check(mark == (3 if grid else 1) | key << 2, f'UpdateViewGrid grid={grid} aspect={aspect}: mark {mark:#x}')
+        # The mark before was 0x55 (aspect 21): any other aspect invalidates the view, once.
+        check(invalidated == ([] if key == 0x55 >> 2 else [VIEW]), f'UpdateViewGrid grid={grid} aspect={aspect}: invalidated {invalidated}')
+        check(again == [], f'UpdateViewGrid grid={grid} aspect={aspect}: invalidated again with the same aspect: {again}')
+        check(omark == 0x55 and oinv == [], 'official UpdateViewGrid wrote the mark byte or invalidated')
         check(regs == oregs, f'UpdateViewGrid grid={grid} aspect={aspect}: registers {regs} vs official {oregs}')
         n += 1
-    print(f'UpdateViewGrid: {n} cases; SetVisible as official unless an added ratio is selected, then (view, 1); mark 1 | 2 * grid on')
+    print(f'UpdateViewGrid: {n} cases; SetVisible as official unless an added ratio is selected, then (view, 1); mark 1 | 2 * grid on | aspect << 2;'
+          ' a changed aspect invalidates the view once')
 
     canvases = [(720, 480), (720, 0), (960, 640), (640, 480), (0, 480)]
     full = (0, 0, 720, 480)
@@ -666,12 +682,6 @@ def main():
                               # The lines' window on the full frame is the bands' window.
                               check(window_of(ids[aspect], full) == (left, top, w, h), f'{what}: lines window {window_of(ids[aspect], full)}, bands window {(left, top, w, h)}')
                           shaded_cases += 1
-            # No user settings at all: the native Draw only.
-            if aspect in ids and width:
-                px, after, kept, _ = draw(new, aspect, 3, width, height, userdata=False)
-                check(after['calls'] == [('grid draw', VIEW, CTX), ('base draw', VIEW, CTX)] and after['frames'] == [full, full]
-                      and all(p == CANVAS_FILL for p in px) and kept, f'Draw {width}x{height} without user settings')
-                n += 1
             # Not visible: the native Draw draws no line; the frame comes back and its copy is left alone.
             if aspect in ids and (width, height) == (720, 480):
                 px, after, kept, _ = draw(new, aspect, 3, width, height, visible=0)
