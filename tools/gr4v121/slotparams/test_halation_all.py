@@ -13,6 +13,7 @@ Runs the patched RTOS in this release's emulator (../aspect/boot_checks.py, Mach
     setting from the module, a Cinema or added look's from the picture's record), in RAW development (the record's),
     and the white glow for a black-and-white look;
  5. the parameter screen's snapshot of Toning: a factory look's halation from the module (0.9.6);
+    and the live Toning: a factory look's halation when the look is applied or its halation set (0.9.6);
  6. settings save and load: the halation table in record 13 and back.
 
     python3 tools/gr4v121/slotparams/test_halation_all.py RTOS
@@ -196,6 +197,43 @@ check('snapshot, Cinema Yellow and an added look: the live Toning, as natively',
 STUBS[LIVE_TONING] = lambda mm: bc.ret(mm, 0)
 check('snapshot, a photo set the module does not know (4): the live Toning', call(SNAP, setup=lambda: wr(SETTINGS + 0x152, bytes([4]))) == 0)
 del STUBS[LIVE_TONING]
+
+# ---- 4c. the live Toning (0.9.6): the picture's Toning is the live Toning property, which the camera sets from the
+# look's own Toning byte (every look has Toning here); a factory look's halation from the module instead, when the
+# look is applied and when its halation is set on the parameter screen
+APPLY, APPLY_TONING, LIVE_SET = 0x533813a8, 0x53381430, 0x5378aeb0
+SHOOT_SET, CONTEXT, LOOK_GET, SET_GET = 0x533c7834, 0x53750a58, 0x5377dc50, 0x533c7504
+check('applying Toning: the read of the look\'s own Toning byte is hooked', iw(APPLY_TONING) >> 24 == 0xea)
+live = []
+STUBS[LIVE_SET] = lambda mm: (live.append((r(0), r(1))), bc.ret(mm, 1))
+OBJ, PROP = bc.STACK + 0x2000, 0xC0FFEE00
+def applying(s, look, style, own):
+    def f():
+        setup_set(s, style)()
+        wr(OBJ + 0x9c, bytes([s])); wr(OBJ + 0x9d + s, bytes([look])); wr(OBJ + 0x18, struct.pack('<I', PROP))
+        wr(OBJ + 0x1b5 * s + 0x13 * look + 0xa9, bytes([own]))
+    return f
+live.clear(); call(APPLY, OBJ, setup=applying(0, 1, STD, 1))
+check('applying Standard (look 1 -> style 11), photo set 0: its halation (Medium white), not its own stale Toning', live == [(PROP, 5)])
+live.clear(); call(APPLY, OBJ, setup=applying(2, 1, STD, 1))
+check('applying Standard, photo set 2: that set\'s halation', live == [(PROP, 2)])
+live.clear(); call(APPLY, OBJ, setup=applying(0, 3, MONO, 0))
+check('applying Monotone (look 3 -> style 13): its halation', live == [(PROP, 1)])
+live.clear(); call(APPLY, OBJ, setup=applying(0, 9, CY, 3))
+check('applying Cinema Yellow (look 9): its own Toning, as natively', live == [(PROP, 3)])
+CTX_OBJ = bc.STACK + 0x3000
+STUBS[CONTEXT] = lambda mm: (wr(CTX_OBJ + 4, struct.pack('<I', CTX_OBJ + 0x100)), wr(CTX_OBJ + 0x100 + 0x518, struct.pack('<I', PROP)), bc.ret(mm, CTX_OBJ))
+def shoot_set(s, style, value):
+    STUBS[LOOK_GET] = lambda mm: bc.ret(mm, style); STUBS[SET_GET] = lambda mm: bc.ret(mm, s)
+    live.clear(); native_calls.clear()
+    call(SHOOT_SET, SETTINGS, value, setup=lambda: (setup_set(s, style)(), wr(SETTINGS + 0x1f, bytes([0]))))
+shoot_set(0, STD, 6)
+check('setting Standard\'s halation (Strong white): kept by the module and made the live Toning', hal(STD, 0) == 6 and live == [(PROP, 6)])
+shoot_set(0, STD, 5)
+check('... and back (Medium white)', hal(STD, 0) == 5 and live == [(PROP, 5)])
+shoot_set(0, CY, 3)
+check('setting Cinema Yellow\'s Toning: the native setter, the live Toning left to the camera', live == [] and len(native_calls) == 1)
+for k in (LIVE_SET, CONTEXT, LOOK_GET, SET_GET): del STUBS[k]
 
 # ---- 5. save and load
 wr(FAKE_STATE + 8, struct.pack('<I', 1))

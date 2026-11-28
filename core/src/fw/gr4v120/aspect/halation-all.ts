@@ -130,3 +130,68 @@ export function installHalationSnapshot(p: Patch, halNow: number): void {
      done:mov r0,r4;pop {r4,pc}`, a), 16);
   p.setWord(SNAP_TONING, branchWord(SNAP_TONING, stub, 14, true), 'halation for every look: the parameter screen\'s snapshot keeps a factory look\'s halation');
 }
+
+/**
+ * The picture's Toning (record +0x7A6, read by the development step for the picture, by the maker note and so by
+ * RAW development) is the live Toning property. The camera sets it from the look's own Toning byte in the settings
+ * (0x53380AFC, applying the look's parameters when the look or the photo set changes; 0x53380BA8 when Toning is set)
+ * for the looks the look table gives Toning, which here is every look (RAW_HAS above). A factory look's halation is
+ * kept in the slot-parameters module and its own Toning byte is never written, so the live Toning, and the picture,
+ * had a stale value: test firmware 134 showed a Standard picture set to Strong white developed as Weak red (0.9.5).
+ *
+ * Here a factory look's halation from the module becomes the live Toning:
+ *  - applying (0x53380B84, `ldrb r1,[r3,#0xa9]`, the look's own Toning byte; r0 the settings, r2 the look in the
+ *    camera's own numbering 1..22, which 0x53382BC0 turns into the style: 1..6 -> 11..16, 7 -> 24, 8 -> 17, ...)
+ *    takes `sp_hal_now(style)` instead;
+ *  - setting the selected look's Toning (0x533C7010, SHOOT_SET's call of the parameter-8 setter, which the module
+ *    takes for those looks) sets the live Toning after the module has kept the value.
+ * Cinema and the added looks are untouched (`sp_hal_now` answers 0x100). The native readers of the live Toning that
+ * use it as Toning are clamped to 0..2 already (`installHalationClamps`), as for the added looks.
+ */
+const APPLY_TONING = adr(0x53380b84);
+const LIVE_TONING_SET = adr(0x5378a220);
+const SHOOT_SET_CALL = adr(0x533c7010);
+const TONING_SETTER = adr(0x533c2ae0);
+const CONTEXT = adr(0x53750008);
+/** The look in the settings' numbering (r1, 1..22; r0 the settings) to its style. */
+const LOOK_STYLE = adr(0x53382bc0);
+
+/** Keep the live Toning of a factory look its halation (`halNow`: the module's `sp_hal_now`). */
+export function installHalationLive(p: Patch, halNow: number): void {
+  expectWord(p, APPLY_TONING, 0xe5d310a9);
+  expectWord(p, SHOOT_SET_CALL, branchWord(SHOOT_SET_CALL, TONING_SETTER, 14, true));
+  const apply = p.append((a) => assembleWords(
+    `ldrb r1,[r3,#0xa9]
+     push {r0,r1,r2,lr}
+     sub r3,r2,#1;cmp r3,#21;bhi back
+     mov r1,r2
+     bl #${LOOK_STYLE}
+     bl #${halNow}
+     cmp r0,#0x100;strlo r0,[sp,#4]
+     back:pop {r0,r1,r2,lr}
+     b #${APPLY_TONING + 4}`, a), 16);
+  p.setWord(APPLY_TONING, branchWord(APPLY_TONING, apply, 14, false), 'halation for every look: applying a factory look sets the live Toning to its halation');
+  const set = p.append((a) => assembleWords(
+    `push {r4,r5,r6,lr}
+     ldr r4,[sp,#16]
+     mov r5,r3
+     mov r6,r1
+     sub sp,sp,#8
+     str r4,[sp]
+     bl #${TONING_SETTER}
+     add sp,sp,#8
+     mov r4,r0
+     cmp r6,#0;bne out
+     mov r0,r5
+     bl #${halNow}
+     cmp r0,#0x100;bhs out
+     mov r5,r0
+     bl #${CONTEXT}
+     ldr r0,[r0,#4]
+     ldr r0,[r0,#0x518]
+     mov r1,r5
+     bl #${LIVE_TONING_SET}
+     out:mov r0,r4
+     pop {r4,r5,r6,pc}`, a), 16);
+  p.setWord(SHOOT_SET_CALL, branchWord(SHOOT_SET_CALL, set, 14, true), 'halation for every look: setting a factory look\'s halation sets the live Toning too');
+}

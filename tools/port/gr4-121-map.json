@@ -6368,10 +6368,11 @@
   },
   "0x53382bc0": {
    "new": "0x5338346c",
-   "how": "aligned + refs 0x5338346cx5",
+   "how": "override",
    "ok": true,
+   "why": "look number to style (a 23-way table, the same constants): called at +0x1c of the apply-all function 0x53382e20 -> 0x533836cc (40 words equal up to branch offsets and movw/movt immediates), which calls the Toning applier 0x533813a8",
    "files": [
-    "core/src/fw/gr4v120/aspect/slots.ts"
+    "core/src/fw/gr4v120/aspect/halation-all.ts"
    ]
   },
   "0x53382e20": {
@@ -17479,6 +17480,60 @@
    "why": "live Toning getter: the bl at the snapshot site and the one in SHOOT_CUR (0x533cc288 -> 0x533ccaf0, +0x1c) both call 0x5377deb4 in 1.21",
    "files": [
     "core/src/fw/gr4v120/aspect/halation-all.ts"
+   ]
+  },
+  "0x5378a220": {
+   "new": "0x5378aeb0",
+   "how": "override",
+   "ok": true,
+   "why": "live Toning setter: the applier's tail call (+0x94) is b 0x5378aeb0 in 1.21",
+   "files": [
+    "core/src/fw/gr4v120/aspect/halation-all.ts"
+   ]
+  },
+  "0x533c7010": {
+   "new": "0x533c7878",
+   "how": "override",
+   "ok": true,
+   "why": "SHOOT_SET (0x533c6fcc -> 0x533c7834 in this map) +0x44, its call of the Toning setter (0x533c2ae0 -> 0x533c3348)",
+   "files": [
+    "core/src/fw/gr4v120/aspect/halation-all.ts"
+   ]
+  },
+  "0x53380b84": {
+   "new": "0x53381430",
+   "how": "override",
+   "ok": true,
+   "why": "applying Toning (0x53380afc -> 0x533813a8: 44 words equal up to branch offsets and movw/movt immediates; the look table 0x53de61c0 -> 0x53de7860): its ldrb r1,[r3,#0xa9] at +0x88",
+   "files": [
+    "core/src/fw/gr4v120/aspect/halation-all.ts"
+   ]
+  },
+  "0x53380afc": {
+   "new": "0x533813a8",
+   "how": "override",
+   "ok": true,
+   "why": "applying Toning: 44 words equal up to branch offsets and movw/movt immediates; called by the apply-all function 0x53382e20 -> 0x533836cc",
+   "files": [
+    "tools/gr4v120/slotparams/test_halation_all.py"
+   ]
+  },
+  "0x5377cfc0": {
+   "new": "0x5377dc50",
+   "how": "override",
+   "ok": true,
+   "why": "the live look getter: SHOOT_SET +0x20 (0x533c6fcc -> 0x533c7834) calls 0x5377dc50 in 1.21",
+   "files": [
+    "tools/gr4v120/slotparams/test_halation_all.py"
+   ]
+  },
+  "0x533c6c9c": {
+   "new": "0x533c7504",
+   "how": "override",
+   "ok": true,
+   "why": "the photo set of the settings: SHOOT_SET +0x2c (0x533c6fcc -> 0x533c7834) calls 0x533c7504 in 1.21",
+   "files": [
+    "tools/gr4v120/slotparams/test_halation_all.py"
    ]
   }
  }
