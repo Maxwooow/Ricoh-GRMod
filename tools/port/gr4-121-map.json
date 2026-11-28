@@ -6368,10 +6368,10 @@
   },
   "0x53382bc0": {
    "new": "0x5338346c",
-   "how": "override",
+   "how": "aligned + refs 0x5338346cx5",
    "ok": true,
-   "why": "look number to style (a 23-way table, the same constants): called at +0x1c of the apply-all function 0x53382e20 -> 0x533836cc (40 words equal up to branch offsets and movw/movt immediates), which calls the Toning applier 0x533813a8",
    "files": [
+    "core/src/fw/gr4v120/aspect/slots.ts",
     "core/src/fw/gr4v120/aspect/halation-all.ts"
    ]
   },
@@ -17534,6 +17534,33 @@
    "why": "the photo set of the settings: SHOOT_SET +0x2c (0x533c6fcc -> 0x533c7834) calls 0x533c7504 in 1.21",
    "files": [
     "tools/gr4v120/slotparams/test_halation_all.py"
+   ]
+  },
+  "0x53157380": {
+   "new": "0x53157380",
+   "how": "override",
+   "ok": true,
+   "why": "the C library's memcpy: the same words at the same address in 1.21 (both releases: mov ip, r0; cmp r2, #0x40; ...)",
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
+   ]
+  },
+  "0x537b656c": {
+   "new": "0x537b7284",
+   "how": "override",
+   "ok": true,
+   "why": "bl memcpy in 0x537B64E8 (1.21 0x537B7200, the SRIC command's message: malloc, malloc, memcpy, post): the function's words equal up to relocation, the call at the same offset +0x84",
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
+   ]
+  },
+  "0x537b7520": {
+   "new": "0x537b8238",
+   "how": "override",
+   "ok": true,
+   "why": "bl memcpy in 0x537B74A0 (1.21 0x537B81B8, the periodic message of the same kind): the function's words equal up to relocation, the call at the same offset +0x80",
+   "files": [
+    "core/src/fw/gr4v120/aspect/moviesr.ts"
    ]
   }
  }
