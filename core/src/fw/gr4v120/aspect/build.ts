@@ -52,6 +52,7 @@ import type { ExtraSlotSpec } from './slots';
 import { installShutdownMenu } from './shutdown';
 import { FIRST_ADDED_LOOK, installSettingsGuard } from './guard';
 import { installAdjSlots } from './adjslots';
+import { installUiSkin } from './uiskin/install';
 import { extendBatteryZeroFill, installBatteryPercent } from './battery';
 import { installCustomGrid, isCameraGrid, validCustomGrid } from './grid';
 import type { FramingGuides } from './framing';
@@ -172,6 +173,8 @@ export interface ExtensionFeatures {
   directFlash?: boolean;
   /** An HDR gain map in every JPEG (test builds of 0.8.6, see `hdrgain.ts`). */
   hdrGainMap?: boolean;
+  /** Interface theme Modern (`uiskin/`): the camera's interface redrawn; 1.20 and 1.21. Absent or false: Original, the camera's own. */
+  modernTheme?: boolean;
   /** ADJ lever slots, 6 to 8 (see `adjslots.ts`); absent or 5: the camera's five. */
   adjSlots?: number;
   /**
@@ -1155,7 +1158,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
   const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
   const adjSlots = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
-  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.framing || !!features.ratioShade || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn || !!features.movieExposure || !!features.sensorShift || !!features.movie4k || !!features.movieSr || !!features.constantLight || !!features.distanceFeet || !!features.subjectAf || !!features.lockProtect;
+  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.framing || !!features.ratioShade || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn || !!features.movieExposure || !!features.sensorShift || !!features.movie4k || !!features.movieSr || !!features.constantLight || !!features.distanceFeet || !!features.subjectAf || !!features.lockProtect || !!features.modernTheme;
   if (features.customGrid && (!validCustomGrid(features.customGrid) || isCameraGrid(features.customGrid))) fail('internal', 'a custom grid must differ from the camera’s');
   if (features.framing && features.customGrid) fail('internal', 'custom grid lines and framing guides together');
   if (features.framing) {
@@ -1174,6 +1177,9 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
     if (r.id !== FIRST_CUSTOM_ID + i) fail('internal', 'ratio identities must be consecutive');
   });
   if (features.brightAuto !== undefined && ![true, false, 'bright', 'balanced'].includes(features.brightAuto)) fail('bad-edit', 'brightAuto must be boolean, bright or balanced');
+  if (features.modernTheme !== undefined && typeof features.modernTheme !== 'boolean') fail('bad-edit', 'modernTheme must be boolean');
+  // The theme draws the ADJ lever's strip for the camera's five slots and binds its views at the call that adjslots.ts also takes.
+  if (features.modernTheme && adjSlots > 0) fail('bad-edit', 'the Modern theme cannot be combined with more than five ADJ slots yet');
   if (features.shadowLearn !== undefined && typeof features.shadowLearn !== 'boolean') fail('bad-edit', 'shadowLearn must be boolean');
   // Its two RAM words are those of the diagnostics of Direct Flash and halation and the HDR gain map's counters (test builds).
   if (features.shadowLearn && (test.directFlashDiag || test.hdrDiag || test.halationDiag)) fail('internal', 'the learned shadow correction cannot be built with diagnostics');
@@ -1350,7 +1356,9 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   // the appended module (and the record of the additions). It moves the heap start and the end of the start-up zero fill
   // (after the zero fill over the sbrk arena above).
   if (features.subjectAf) installSubjectAf(patch);
+  // The Modern theme last: it redraws what the camera and the additions above show, and a build without it is unchanged.
+  if (features.modernTheme) icons = installUiSkin(patch, icons);
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.framing ? { framing: features.framing } : {}), ...(features.ratioShade ? { ratioShade: true } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}), ...(features.videoAf ? { videoAf: true } : {}), ...(features.awbLearn ? { awbLearn: true } : {}), ...(features.movieExposure ? { movieExposure: true } : {}), ...(features.sensorShift ? { sensorShift: true } : {}), ...(features.movie4k ? { movie4k: true } : {}), ...(features.movieSr ? { movieSr: true } : {}), ...(features.constantLight ? { constantLight: true } : {}), ...(features.distanceFeet ? { distanceFeet: true } : {}) , ...(features.wbPerLook ? { wbPerLook: true } : {}), ...(features.halationAll ? { halationAll: true } : {}), ...(features.subjectAf ? { subjectAf: true } : {}), ...(features.lockProtect ? { lockProtect: true } : {}) } };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.framing ? { framing: features.framing } : {}), ...(features.ratioShade ? { ratioShade: true } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}), ...(features.videoAf ? { videoAf: true } : {}), ...(features.awbLearn ? { awbLearn: true } : {}), ...(features.movieExposure ? { movieExposure: true } : {}), ...(features.sensorShift ? { sensorShift: true } : {}), ...(features.movie4k ? { movie4k: true } : {}), ...(features.movieSr ? { movieSr: true } : {}), ...(features.constantLight ? { constantLight: true } : {}), ...(features.distanceFeet ? { distanceFeet: true } : {}) , ...(features.wbPerLook ? { wbPerLook: true } : {}), ...(features.halationAll ? { halationAll: true } : {}), ...(features.subjectAf ? { subjectAf: true } : {}), ...(features.lockProtect ? { lockProtect: true } : {}), ...(features.modernTheme ? { modernTheme: true } : {}) } };
 }

@@ -19,6 +19,7 @@ import { countChangedBytes, selfCheck, selfCheckGrown } from './selfcheck';
 import { gr4Sizes, installExtensions, planRatios, ratioText } from './aspect';
 import type { ExtensionFeatures, TestOptions } from './aspect';
 import type { RatioSpec } from './aspect';
+import { assertUiSkinSizeBudget } from './aspect/uiskin/budget';
 import { grownRanges, growPayload } from './aspect/package';
 import { Patch } from './aspect/build';
 import { installMonoUnlock } from './aspect/monounlock';
@@ -206,7 +207,7 @@ function transparentPixels(icon: Uint8Array): number[] {
 export async function buildFirmware(officialRaw: Uint8Array, edits: SlotEdit[], ratios: readonly RatioSpec[] = [], clarity: readonly ClarityEdit[] = [], features: ExtensionFeatures = {}, test: TestOptions = {}): Promise<BuildResult> {
   // Additions that append code or icons need the grown layout. The monochrome looks change 13
   // words in place: on their own (or with only same-length edits) the file keeps the official layout.
-  const grows = !!features.brightAuto || ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash || (features.adjSlots ?? 5) > 5 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.framing || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn || !!features.movieExposure || !!features.sensorShift || !!features.movie4k || !!features.movieSr || !!features.constantLight || !!features.distanceFeet || !!features.subjectAf;
+  const grows = !!features.brightAuto || ratios.length > 0 || !!features.adjSoftFocus || !!features.dateStamp || (features.extraSlots?.length ?? 0) > 0 || (features.shutdown?.pictures.length ?? 0) > 0 || !!features.guard || !!features.cinemaHalation || !!features.directFlash || (features.adjSlots ?? 5) > 5 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.framing || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn || !!features.movieExposure || !!features.sensorShift || !!features.movie4k || !!features.movieSr || !!features.constantLight || !!features.distanceFeet || !!features.subjectAf || !!features.modernTheme;
   const inPlaceMono = !grows && !!features.monoUnlock;
   const inPlaceLooks = !grows && !!features.lookLayout;
   const { fw, DEC, img, ranges } = await editPayload(officialRaw, edits, clarity, inPlaceMono, inPlaceLooks ? features.lookLayout : undefined);
@@ -276,7 +277,9 @@ async function buildWithRatios(officialRaw: Uint8Array, fw: Firmware, DEC: Uint8
     if (grown.decoded[grown.decoded.length - i] !== DEC[DEC.length - i]) bad('assert-failed', 'last payload word changed');
   }
 
+  assertUiSkinSizeBudget({ decodedBytes: grown.decoded.length }, features);
   const built = buildGrown(fw, grown.decoded, grown.insertions);
+  assertUiSkinSizeBudget({ fileBytes: built.out.length, decodedBytes: grown.decoded.length }, features);
   const checks = selfCheckGrown(officialRaw, built.out, all, grown.decoded);
   const failed = Object.keys(checks).filter((k) => checks[k] !== true);
   if (failed.length > 0) throw new FirmwareError('selfcheck-failed', failed.join(', '), checks);

@@ -1,0 +1,464 @@
+{
+  "schemaVersion": 1,
+  "canvas": {
+    "width": 720,
+    "height": 480
+  },
+  "icons": {
+    "alphaBytes": {
+      "a75": 217,
+      "a50": 153,
+      "a32": 115,
+      "a18": 77
+    },
+    "darkRGB": [
+      20,
+      20,
+      22
+    ],
+    "neutralTolerance": 12
+  },
+  "palette": {
+    "colors": [
+      "#FFFFFFD9",
+      "#FFFFFF99",
+      "#FFFFFF73",
+      "#FFFFFF4D",
+      "#000000BF",
+      "#00000000",
+      "#00000000",
+      "#00000000",
+      "#FFFFFF99",
+      "#141416FF",
+      "#666668FF",
+      "#A4A4A5FF",
+      "#303031FF",
+      "#FFD60AFF",
+      "#00000059",
+      "#00000080",
+      "#FFD60AFF"
+    ],
+    "aaDarkBackground": [
+      28,
+      28,
+      29
+    ],
+    "aaWhiteBackground": [
+      255,
+      255,
+      255
+    ]
+  },
+  "assets": {
+    "menu-bg": "menu-bg",
+    "menu-focus-row-inrow": "menu-focus-row-inrow",
+    "menu-focus-row-glass": "menu-focus-row-glass",
+    "select-focus-row-inrow": "select-focus-row-inrow",
+    "select-focus-row-glass": "select-focus-row-glass",
+    "select-message-panel": "select-message-panel",
+    "menu-focus-outer-glow": "menu-focus-outer-glow",
+    "select-focus-outer-glow": "select-focus-outer-glow",
+    "level-arc": "level-arc",
+    "level-arc-level": "level-arc-level",
+    "level-dot": "level-dot",
+    "level-dot-level": "level-dot-level",
+    "vf-capsule-left": "vf-capsule-left",
+    "vf-capsule-mid": "vf-capsule-mid",
+    "vf-capsule-right": "vf-capsule-right",
+    "vf-mode-circle": "vf-mode-circle",
+    "select-current-dot": "select-current-dot",
+    "wheel-current-dot-dark": "wheel-current-dot-dark",
+    "page-focus": "page-focus",
+    "page-current": "page-current",
+    "page-normal": "page-normal",
+    "switch-off": "switch-off",
+    "switch-on": "switch-on",
+    "menu-trailing-chevron": "menu-trailing-chevron"
+  },
+  "wheel": {
+    "list": {
+      "right": 702,
+      "y": 84,
+      "height": 337,
+      "extraWidth": 18,
+      "minWidth": 216,
+      "maxWidth": 216,
+      "measurePadding": 52
+    },
+    "row": {
+      "selectedY": 145,
+      "selectedHeight": 47,
+      "height": 35,
+      "gap": 5,
+      "contentLeft": 16,
+      "contentRight": 32,
+      "maxContentHeight": 40,
+      "markerRight": 28,
+      "markerWidth": 20,
+      "markerHeight": 35
+    },
+    "font": {
+      "selected": 24,
+      "normal": 22,
+      "header": 18,
+      "hint": 17,
+      "page": 16
+    },
+    "header": {
+      "y": 66,
+      "height": 20,
+      "reserveRight": 118,
+      "minWidth": 48
+    },
+    "page": {
+      "x": 606,
+      "y": 66,
+      "width": 96,
+      "height": 18
+    },
+    "hints": {
+      "right": 702,
+      "y": 426,
+      "height": 36,
+      "paddingX": 14,
+      "gap": 8,
+      "minLeft": 18,
+      "maxContentWidth": 580
+    },
+    "top": {
+      "right": 702,
+      "y": 21,
+      "height": 35,
+      "cellPaddingX": 9,
+      "minCellWidth": 56,
+      "maxCellWidth": 128,
+      "gap": 2,
+      "outerPaddingX": 6,
+      "groupPaddingY": 5
+    },
+    "scroll": {
+      "x": 705,
+      "y": 82,
+      "minHeight": 14,
+      "topHeight": 6,
+      "endHeights": 8
+    },
+    "pieces": {
+      "focus": {
+        "name": "wheel05-focus",
+        "cap": 20,
+        "offsetX": 16,
+        "offsetY": 12
+      },
+      "focusGlow": {
+        "name": "wheel-focus-outer-glow",
+        "cap": 18,
+        "offsetX": 24,
+        "offsetY": 24,
+        "radius": 12,
+        "peakAlpha": 0,
+        "logicalHeight": 47
+      },
+      "topGlass": {
+        "name": "wheel05-top-glass",
+        "cap": 23,
+        "offsetX": 16,
+        "offsetY": 12
+      },
+      "tabFocus": {
+        "name": "wheel05-tab-focus",
+        "cap": 18,
+        "offsetX": 16,
+        "offsetY": 10
+      },
+      "hintGlass": {
+        "name": "wheel05-hint-glass",
+        "cap": 19,
+        "offsetX": 12,
+        "offsetY": 10
+      }
+    },
+    "assets": {
+      "adjBackground": "adj-list-bg",
+      "icBackground": "ic-list-bg",
+      "okKey": "wheel05-key-ok",
+      "scrollPrefix": "wheel05-scroll",
+      "checkPrefix": "wheel05-check"
+    },
+    "background": {
+      "x": 220,
+      "adjY": 60,
+      "icY": 0
+    }
+  },
+  "menu": {
+    "title": {
+      "xList": 120,
+      "xCategory": 10,
+      "y": 10,
+      "width": 400,
+      "height": 40,
+      "fontSize": 28,
+      "colorIndex": 243,
+      "outlineIndex": 243
+    },
+    "sectionLabel": {
+      "visible": true,
+      "x": 65,
+      "y": 15,
+      "width": 30,
+      "height": 30
+    },
+    "glow": {
+      "radius": 9,
+      "peakAlpha": 0,
+      "offsetX": 24,
+      "offsetY": 24,
+      "menuFrame": [
+        620,
+        60
+      ],
+      "menuShape": [
+        4,
+        4,
+        600,
+        52,
+        20
+      ],
+      "selectFrame": [
+        720,
+        60
+      ],
+      "selectShape": [
+        14,
+        4,
+        692,
+        52,
+        20
+      ]
+    },
+    "glassInset": 0,
+    "row": {
+      "normalColor": 31,
+      "normalSecondaryColor": 243,
+      "focusColor": 241,
+      "focusSecondaryColor": 242
+    }
+  },
+  "playback": {
+    "top": {
+      "fontSize": 16,
+      "color": "#FFFFFF99",
+      "marginX": 18,
+      "centerY": 24,
+      "gap": 16,
+      "minGap": 11,
+      "shadow": [
+        {
+          "dx": 0,
+          "dy": 1,
+          "color": "#000000CC"
+        },
+        {
+          "dx": 1,
+          "dy": 2,
+          "color": "#00000080"
+        }
+      ]
+    },
+    "bottom": {
+      "fontSize": 24,
+      "color": "#FFFFFFFF",
+      "gap": 22,
+      "isoGap": 6,
+      "marginBottom": 20
+    }
+  },
+  "viewfinder": {
+    "top": {
+      "fontSize": 16,
+      "marginX": 18,
+      "right": 702,
+      "rowCenterY": 24,
+      "secondRowCenterY": 66,
+      "gap": 16,
+      "minGap": 11,
+      "usableWidth": 684,
+      "secondaryWidth": 242,
+      "itemOffsets": [
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        }
+      ],
+      "wbTextMaxWidth": 108,
+      "counterTextMaxWidth": 140,
+      "colorIndex": 232,
+      "counterColorIndex": 240
+    },
+    "bottom": {
+      "paddingX": 6,
+      "extraWidth": 24,
+      "groupGap": 26,
+      "innerGap": 6,
+      "groupY": 419,
+      "backdropY": 416,
+      "modeCircleY": 422,
+      "partCenterY": 20,
+      "groupHeight": 40,
+      "fontMax": 28,
+      "fontMin": 16,
+      "fontStep": 2,
+      "textMaxWidth": 240,
+      "auxFirstY": 395,
+      "auxSecondY": 379,
+      "guideY": 369,
+      "auxAnchorOffset": 20,
+      "auxFirstOffset": 16,
+      "auxSecondOffset": 20
+    },
+    "level": {
+      "radius": 280,
+      "centerX": 360,
+      "centerY": 318,
+      "maximumAngle": 15,
+      "assetX": 280,
+      "assetY": 40
+    }
+  },
+  "direct": {
+    "title": {
+      "x": 18,
+      "y": 16,
+      "width": 360,
+      "height": 20,
+      "fontSize": 17,
+      "color": 233,
+      "shadowColor": 233
+    },
+    "subtitle": {
+      "x": 18,
+      "y": 42,
+      "width": 360,
+      "height": 20,
+      "fontSize": 16,
+      "color": 233,
+      "shadowColor": 233
+    },
+    "hints": {
+      "y": 426,
+      "right": 702,
+      "gap": 8,
+      "height": 36,
+      "padding": 14
+    },
+    "focus": {
+      "insetX": 8,
+      "offsetY": 6
+    },
+    "nativeList": {
+      "x": 0,
+      "y": 60,
+      "width": 720,
+      "height": 360
+    },
+    "background": {
+      "x": 220,
+      "y": 0
+    },
+    "assets": {
+      "background": "ic-list-bg",
+      "hint": "wheel05-hint-glass"
+    },
+    "row": {
+      "fontSize": 20,
+      "focusFontSize": 22,
+      "color": 232,
+      "shadowColor": 232,
+      "focusColor": 241
+    },
+    "driveAuxList": {
+      "x": 620,
+      "y": 60,
+      "width": 100,
+      "height": 360
+    },
+    "info": {
+      "x": 10,
+      "y": 90,
+      "width": 640,
+      "height": 120,
+      "fontSize": 16,
+      "color": 232,
+      "shadowColor": 232
+    }
+  }
+}
