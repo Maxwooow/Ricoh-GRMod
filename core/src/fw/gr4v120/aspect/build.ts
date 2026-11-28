@@ -43,6 +43,8 @@ import { installFlashTtl } from './flttl';
 import { installVideoAf } from './videoaf';
 import { installSubjectAf } from './subjectaf';
 import { installAwbLearn } from './awb2';
+import { handNightStillLine, installHandNight } from './handnight';
+import { OFFICIAL_ITEMS, WIDE_ITEMS } from './menuwide';
 import { CINEMA_STYLES, FACTORY_STYLES, installExtraSlots, installHalation } from './slots';
 import { HALATION_TEST, halationLight } from './halation';
 import type { HalationLook } from './halation';
@@ -235,6 +237,8 @@ export interface ExtensionFeatures {
   lockProtect?: boolean;
   /** The focus distance while autofocusing: the distance scale and a number under the focus frame, in feet with `distanceFeet` (`afdist.ts`); 1.20 and 1.21. Off unless asked for. */
   afDistance?: boolean;
+  /** Handheld Night (`handnight.ts`): a line of the still menu; in the dark one press takes 4 frames, merged in the camera; 1.20 and 1.21. Off unless asked for. */
+  handheldNight?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */
@@ -1160,7 +1164,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   const shutdown = features.shutdown && features.shutdown.pictures.length > 0 ? features.shutdown : undefined;
   const cinema = (['CY', 'CG'] as const).filter((id) => features.cinemaHalation?.[id] === true);
   const adjSlots = features.adjSlots && features.adjSlots > 5 ? features.adjSlots : 0;
-  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.framing || !!features.ratioShade || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn || !!features.movieExposure || !!features.sensorShift || !!features.movie4k || !!features.movieSr || !!features.constantLight || !!features.distanceFeet || !!features.subjectAf || !!features.lockProtect || !!features.afDistance;
+  const extra = !!features.brightAuto || !!features.exposurePreview || !!features.adjSoftFocus || !!features.dateStamp || !!features.monoUnlock || slots.length > 0 || !!shutdown || !!features.guard || cinema.length > 0 || !!features.directFlash || adjSlots > 0 || !!features.hdrGainMap || !!features.batteryPercent || !!features.customGrid || !!features.framing || !!features.ratioShade || !!features.shadowLearn || !!features.filmGrain || !!features.flashTtl || !!features.videoAf || !!features.awbLearn || !!features.movieExposure || !!features.sensorShift || !!features.movie4k || !!features.movieSr || !!features.constantLight || !!features.distanceFeet || !!features.subjectAf || !!features.lockProtect || !!features.afDistance || !!features.handheldNight;
   if (features.customGrid && (!validCustomGrid(features.customGrid) || isCameraGrid(features.customGrid))) fail('internal', 'a custom grid must differ from the camera’s');
   if (features.framing && features.customGrid) fail('internal', 'custom grid lines and framing guides together');
   if (features.framing) {
@@ -1188,7 +1192,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   if (features.awbLearn !== undefined && typeof features.awbLearn !== 'boolean') fail('bad-edit', 'awbLearn must be boolean');
   if (features.movieExposure !== undefined && typeof features.movieExposure !== 'boolean') fail('bad-edit', 'movieExposure must be boolean');
   if (features.constantLight !== undefined && typeof features.constantLight !== 'boolean') fail('bad-edit', 'constantLight must be boolean');
-  for (const name of ['sensorShift', 'movie4k', 'movieSr', 'distanceFeet', 'subjectAf', 'lockProtect', 'afDistance'] as const) if (features[name] !== undefined && typeof features[name] !== 'boolean') fail('bad-edit', `${name} must be boolean`);
+  for (const name of ['sensorShift', 'movie4k', 'movieSr', 'distanceFeet', 'subjectAf', 'lockProtect', 'afDistance', 'handheldNight'] as const) if (features[name] !== undefined && typeof features[name] !== 'boolean') fail('bad-edit', `${name} must be boolean`);
   if (features.wbPerLook !== undefined && typeof features.wbPerLook !== 'boolean') fail('bad-edit', 'wbPerLook must be boolean');
   if (features.wbPerLook && slots.length === 0) fail('bad-edit', 'white balance per look needs at least one added Image Control slot');
   if (features.halationAll !== undefined && typeof features.halationAll !== 'boolean') fail('bad-edit', 'halationAll must be boolean');
@@ -1246,6 +1250,13 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
     icons = installLampAssets(patch, icons);
     stillLines.push(lampStillLine(patch));
   }
+  // Handheld Night: only the line's draw function here (after Color Space, and after the HDR line when it is there); the rest is last.
+  if (features.handheldNight) {
+    // Every model's still menu keeps 36 of the 38 official lines; the wide layout (`menuwide.ts`) holds 42.
+    const added = stillLines.length + (features.dateStamp && !test.dateStampFixed ? 1 : 0) + 1;
+    if (added > WIDE_ITEMS - (OFFICIAL_ITEMS - 2)) fail('bad-edit', `Handheld Night: the still menu has no room for another line (${added - 1} lines added already, ${WIDE_ITEMS - (OFFICIAL_ITEMS - 2)} fit)`);
+    stillLines.push(handNightStillLine(patch));
+  }
   // Sensor Shift: the module and the shooting screen's hooks, its texts and icon.
   const shift = features.sensorShift ? installShiftCore(patch) : null;
   if (shift) icons = installShiftAssets(patch, icons);
@@ -1260,7 +1271,7 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
     if (!fixed) icons = installDateStampMenu(patch, icons, stillLines);
     if (look && slots.length === 0) installLookStash(patch);
   }
-  if (stillLines.length && (!features.dateStamp || test.dateStampFixed)) installStillLines(patch, stillLines, lineOpts ? 'exposure preview and soft focus' : hdrDraw ? 'HDR gain map' : features.ratioShade ? 'live-view shade' : 'constant light');
+  if (stillLines.length && (!features.dateStamp || test.dateStampFixed)) installStillLines(patch, stillLines, lineOpts ? 'exposure preview and soft focus' : hdrDraw ? 'HDR gain map' : features.ratioShade ? 'live-view shade' : lamp ? 'constant light' : 'handheld night');
   // Halation: added slots that have it, Cinema slots with a preset that are asked to; with halationAll
   // (halation-all.ts) every look, the factory ones and the added ones.
   const halation: HalationLook[] = [];
@@ -1356,7 +1367,10 @@ function installExtensionsInner(rtos: Uint8Array, iconbin: Uint8Array, ratios: r
   // the appended module (and the record of the additions). It moves the heap start and the end of the start-up zero fill
   // (after the zero fill over the sbrk arena above).
   if (features.subjectAf) installSubjectAf(patch);
+  // Handheld Night: last (its list, texts, module and hooks), so that a build with it differs from the one without only by its
+  // menu line and what is appended after everything else. It moves the heap start and the end of the start-up zero fill.
+  if (features.handheldNight) installHandNight(patch);
   if (patch.length % 4 !== 0) fail('internal', 'image length is not a multiple of 4');
   if (BASE + patch.length >= APPEND_LIMIT) fail('too-many-ratios', 'the appended area would reach the RAM area');
-  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.framing ? { framing: features.framing } : {}), ...(features.ratioShade ? { ratioShade: true } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}), ...(features.videoAf ? { videoAf: true } : {}), ...(features.awbLearn ? { awbLearn: true } : {}), ...(features.movieExposure ? { movieExposure: true } : {}), ...(features.sensorShift ? { sensorShift: true } : {}), ...(features.movie4k ? { movie4k: true } : {}), ...(features.movieSr ? { movieSr: true } : {}), ...(features.constantLight ? { constantLight: true } : {}), ...(features.distanceFeet ? { distanceFeet: true } : {}) , ...(features.wbPerLook ? { wbPerLook: true } : {}), ...(features.halationAll ? { halationAll: true } : {}), ...(features.subjectAf ? { subjectAf: true } : {}), ...(features.lockProtect ? { lockProtect: true } : {}), ...(features.afDistance ? { afDistance: true } : {}) } };
+  return { revision, rtos: patch.bytes(), iconbin: icons, ratios: [...ratios], words: patch.words, features: { ...(features.brightAuto ? { brightAuto: features.brightAuto === 'balanced' ? 'balanced' as const : 'bright' as const } : {}), adjSoftFocus: !!features.adjSoftFocus, ...(features.dateStamp ? { dateStamp: true } : {}), ...(features.monoUnlock ? { monoUnlock: true } : {}), ...(slots.length > 0 ? { extraSlots: [...slots] } : {}), ...(shutdown ? { shutdown } : {}), ...(features.guard ? { guard: true } : {}), ...(cinema.length > 0 ? { cinemaHalation: Object.fromEntries(cinema.map((id) => [id, true])) } : {}), ...(features.lookLayout ? { lookLayout: features.lookLayout } : {}), ...(features.directFlash ? { directFlash: true } : {}), ...(features.hdrGainMap ? { hdrGainMap: true } : {}), ...(adjSlots > 0 ? { adjSlots } : {}), ...(features.exposurePreview ? { exposurePreview: true } : {}), ...(features.softFocusMenu ? { softFocusMenu: true } : {}), ...(features.batteryPercent ? { batteryPercent: true } : {}), ...(features.customGrid ? { customGrid: features.customGrid } : {}), ...(features.framing ? { framing: features.framing } : {}), ...(features.ratioShade ? { ratioShade: true } : {}), ...(features.shadowLearn ? { shadowLearn: true } : {}), ...(features.filmGrain ? { filmGrain: true } : {}), ...(features.flashTtl ? { flashTtl: true } : {}), ...(features.videoAf ? { videoAf: true } : {}), ...(features.awbLearn ? { awbLearn: true } : {}), ...(features.movieExposure ? { movieExposure: true } : {}), ...(features.sensorShift ? { sensorShift: true } : {}), ...(features.movie4k ? { movie4k: true } : {}), ...(features.movieSr ? { movieSr: true } : {}), ...(features.constantLight ? { constantLight: true } : {}), ...(features.distanceFeet ? { distanceFeet: true } : {}) , ...(features.wbPerLook ? { wbPerLook: true } : {}), ...(features.halationAll ? { halationAll: true } : {}), ...(features.subjectAf ? { subjectAf: true } : {}), ...(features.lockProtect ? { lockProtect: true } : {}), ...(features.afDistance ? { afDistance: true } : {}), ...(features.handheldNight ? { handheldNight: true } : {}) } };
 }

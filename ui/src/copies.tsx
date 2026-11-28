@@ -66,6 +66,7 @@ function FirmwareLine({ info, builds, lang, name }: { info: CopyInfo | undefined
           {s.subjectAf && <span className="chip tiny" title={t('subjectAfLine')}><b>{t('navSubjectAf')}</b></span>}
           {s.lockProtect && <span className="chip tiny" title={t('lockProtectLine')}><b>{t('navLockProtect')}</b></span>}
           {s.afDistance && <span className="chip tiny" title={t('afDistanceLine')}><b>{t('navAfDistance')}</b></span>}
+          {s.handheldNight && <span className="chip tiny" title={t('nightLine')}><b>{t('navNight')}</b></span>}
           {s.videoAf && <span className="chip tiny" title={t('videoAfLine')}><b>{t('navVideoAf')}</b></span>}
           {s.dimLightAf && <span className="chip tiny" title={t('dimAfLine')}><b>{t('navDimAf')}</b></span>}
           {s.awbLearn && <span className="chip tiny" title={t('awbLine')}><b>{t('navAwb')}</b></span>}

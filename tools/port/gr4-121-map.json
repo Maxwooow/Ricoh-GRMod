@@ -32,6 +32,9 @@
     "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/grid/check.py",
     "tools/gr4v120/halation/check.py",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_hold.py",
     "tools/gr4v120/hdrgain/check.py",
     "tools/gr4v120/shade/draw_check.py",
     "tools/gr4v120/shadowml/fwemu.py",
@@ -59,6 +62,7 @@
    "files": [
     "core/src/fw/gr4v120/aspect/battery.ts",
     "core/src/fw/gr4v120/aspect/directflash.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/hdrgain.ts",
     "core/src/fw/gr4v120/aspect/lookstash.ts",
     "core/src/fw/gr4v120/aspect/shadowml.ts",
@@ -151,6 +155,39 @@
     "core/src/fw/gr4v120/aspect/afdist.ts",
     "tools/gr4v120/adjslots/adjslots.c",
     "tools/gr4v120/adjslots/check.py"
+   ]
+  },
+  "0x53184634": {
+   "new": "0x53184634",
+   "how": "aligned + refs 0x53184634x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
+  "0x5318473c": {
+   "new": "0x5318473c",
+   "how": "aligned + refs 0x5318473cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
+  "0x5318480c": {
+   "new": "0x5318480c",
+   "how": "aligned + refs 0x5318480cx111",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
+  "0x531848b0": {
+   "new": "0x531848b0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
    ]
   },
   "0x53185054": {
@@ -263,13 +300,22 @@
     "core/src/fw/gr4v120/aspect/shift.ts"
    ]
   },
+  "0x5318b19c": {
+   "new": "0x5318b174",
+   "how": "aligned + refs 0x5318b174x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
   "0x5318bee0": {
    "new": "0x5318beb8",
    "how": "aligned + refs 0x5318beb8x3",
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/afdist.ts",
-    "core/src/fw/gr4v120/aspect/shift.ts"
+    "core/src/fw/gr4v120/aspect/shift.ts",
+    "tools/gr4v120/handnight/mfmod.c"
    ]
   },
   "0x5318c118": {
@@ -432,12 +478,46 @@
     "core/src/fw/gr4v120/aspect/shift.ts"
    ]
   },
+  "0x5318f2f4": {
+   "new": "0x5318f2cc",
+   "how": "aligned + refs 0x5318f2ccx2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
   "0x5318f504": {
    "new": "0x5318f4dc",
    "how": "aligned + refs 0x5318f4dcx1",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/shift.ts"
+    "core/src/fw/gr4v120/aspect/shift.ts",
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x5318f52c": {
+   "new": "0x5318f504",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x5318f5a8": {
+   "new": "0x5318f580",
+   "how": "aligned + refs 0x5318f580x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
+  "0x5318f748": {
+   "new": "0x5318f720",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
    ]
   },
   "0x53190264": {
@@ -3771,6 +3851,14 @@
     "core/src/fw/gr4v120/aspect/shift.ts"
    ]
   },
+  "0x531d5314": {
+   "new": "0x531d591c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
   "0x531d53d8": {
    "new": "0x531d59e0",
    "how": "aligned + refs 0x531d59e0x1",
@@ -4943,6 +5031,40 @@
     "core/src/fw/gr4v120/aspect/datestamp-menu.ts"
    ]
   },
+  "0x531eaf2c": {
+   "new": "0x531eb534",
+   "how": "aligned + refs 0x531eb534x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_review.py"
+   ]
+  },
+  "0x531eb178": {
+   "new": "0x531eb780",
+   "how": "aligned + refs 0x531eb780x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_review.py"
+   ]
+  },
+  "0x531eb220": {
+   "new": "0x531eb828",
+   "how": "aligned + refs 0x531eb828x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_review.py"
+   ]
+  },
+  "0x531eb268": {
+   "new": "0x531eb870",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_review.py"
+   ]
+  },
   "0x53225650": {
    "new": "0x53225c58",
    "how": "aligned + refs 0x53225c58x1",
@@ -5038,7 +5160,9 @@
    "how": "aligned + refs 0x5323ddf8x49",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/handnight/test_screen.py",
     "tools/gr4v120/shade/draw_check.py"
    ]
   },
@@ -5047,8 +5171,19 @@
    "how": "aligned + refs 0x5323df70x37",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/handnight/test_screen.py",
     "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x5323da14": {
+   "new": "0x5323e01c",
+   "how": "aligned + refs 0x5323e01cx7",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_screen.py"
    ]
   },
   "0x5323dbb4": {
@@ -5064,7 +5199,9 @@
    "how": "aligned + refs 0x5323e7c8x46",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/shade.ts"
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "core/src/fw/gr4v120/aspect/shade.ts",
+    "tools/gr4v120/handnight/test_screen.py"
    ]
   },
   "0x5323e40c": {
@@ -5075,6 +5212,22 @@
     "core/src/fw/gr4v120/aspect/build.ts"
    ]
   },
+  "0x5323e870": {
+   "new": "0x5323ee78",
+   "how": "aligned + refs 0x5323ee78x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
+  "0x5323edd0": {
+   "new": "0x5323f3d8",
+   "how": "aligned + refs 0x5323f3d8x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
   "0x5323f7ec": {
    "new": "0x5323fdf4",
    "how": "aligned + refs 0x5323fdf4x2",
@@ -5082,6 +5235,15 @@
    "files": [
     "core/src/fw/gr4v120/aspect/build.ts",
     "tools/gr4v120/aspect/boot_checks.py"
+   ]
+  },
+  "0x53240038": {
+   "new": "0x53240640",
+   "how": "aligned + refs 0x53240640x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_screen.py"
    ]
   },
   "0x53240064": {
@@ -5106,6 +5268,7 @@
     "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/guard.ts",
     "core/src/fw/gr4v120/aspect/halation-ui.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/lockprotect.ts",
     "core/src/fw/gr4v120/aspect/movie4k.ts",
     "core/src/fw/gr4v120/aspect/moviesr.ts",
@@ -5120,6 +5283,9 @@
     "tools/gr4v120/aspect/boot_checks.py",
     "tools/gr4v120/directflash/check.py",
     "tools/gr4v120/grain/fw_check.py",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_screen.py",
+    "tools/gr4v120/handnight/test_ui.py",
     "tools/gr4v120/lamp/check.py",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/shutdown/shutdown.c",
@@ -5132,10 +5298,13 @@
    "how": "aligned + refs 0x53240e20x1819",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/lockprotect.ts",
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
     "tools/gr4v120/afplain/evaluation/stock_fixture.py",
     "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
     "tools/gr4v120/shutdown/menu_check.py"
    ]
   },
@@ -5144,7 +5313,9 @@
    "how": "aligned + refs 0x53240fa0x175",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/lockprotect.ts",
+    "tools/gr4v120/handnight/mfmod.c",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/shutdown/shutdown.c"
    ]
@@ -5154,6 +5325,7 @@
    "how": "aligned + refs 0x53241060x128",
    "ok": true,
    "files": [
+    "tools/gr4v120/handnight/test_screen.py",
     "tools/gr4v120/shutdown/menu_check.py"
    ]
   },
@@ -5164,6 +5336,7 @@
    "files": [
     "core/src/fw/gr4v120/aspect/directflash.ts",
     "core/src/fw/gr4v120/aspect/guard.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/movie4k.ts",
     "core/src/fw/gr4v120/aspect/moviesr.ts",
     "core/src/fw/gr4v120/aspect/shade.ts",
@@ -5178,6 +5351,9 @@
     "tools/gr4v120/aspect/native/crop_state.c",
     "tools/gr4v120/directflash/check.py",
     "tools/gr4v120/grid/check.py",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_ui.py",
     "tools/gr4v120/shade/draw_check.py",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/shutdown/shutdown.c",
@@ -5213,6 +5389,14 @@
     "tools/gr4v120/grain/fw_check.py"
    ]
   },
+  "0x53240f38": {
+   "new": "0x53241540",
+   "how": "aligned + refs 0x53241540x104",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
   "0x53240f98": {
    "new": "0x532415a0",
    "how": "aligned + refs 0x532415a0x561",
@@ -5233,6 +5417,14 @@
    "files": [
     "core/src/fw/gr4v120/aspect/halation-ui.ts",
     "tools/gr4v120/grain/fw_check.py"
+   ]
+  },
+  "0x532417e8": {
+   "new": "0x53241df4",
+   "how": "aligned + refs 0x53241df4x39",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
    ]
   },
   "0x53241b48": {
@@ -5395,6 +5587,15 @@
     "tools/gr4v120/aspect/boot_checks.py"
    ]
   },
+  "0x5325d0e8": {
+   "new": "0x5325d934",
+   "how": "aligned + refs 0x5325d934x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_review.py"
+   ]
+  },
   "0x5325e4b8": {
    "new": "0x5325ed04",
    "how": "aligned + refs 0x5325ed04x58",
@@ -5403,12 +5604,39 @@
     "tools/gr4v120/exposure/check.py"
    ]
   },
+  "0x5325e4dc": {
+   "new": "0x5325ed28",
+   "how": "aligned + refs 0x5325ed28x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_groups.py"
+   ]
+  },
+  "0x5325e618": {
+   "new": "0x5325ee64",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
+  "0x5325e644": {
+   "new": "0x5325ee90",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
   "0x5325e674": {
    "new": "0x5325eec0",
    "how": "aligned + refs 0x5325eec0x46",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
+    "tools/gr4v120/handnight/mfmod.c",
     "tools/gr4v120/shutdown/menu_check.py"
    ]
   },
@@ -5453,6 +5681,18 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/shutdown.ts"
+   ]
+  },
+  "0x53262d1c": {
+   "new": "0x5326356c",
+   "how": "aligned + refs 0x5326356cx59",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_groups.py",
+    "tools/gr4v120/handnight/test_review.py"
    ]
   },
   "0x53263ff0": {
@@ -5537,6 +5777,46 @@
     "core/src/fw/gr4v120/aspect/brightauto.ts"
    ]
   },
+  "0x5326a040": {
+   "new": "0x5326a890",
+   "how": "aligned + refs 0x5326a890x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
+  "0x5326a0e4": {
+   "new": "0x5326a934",
+   "how": "aligned + refs 0x5326a934x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
+  "0x5326a1e4": {
+   "new": "0x5326aa34",
+   "how": "aligned + refs 0x5326aa34x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
+  "0x5326a20c": {
+   "new": "0x5326aa5c",
+   "how": "aligned + refs 0x5326aa5cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
+  "0x5326fe60": {
+   "new": "0x532706b0",
+   "how": "aligned + refs 0x532706b0x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
   "0x53270000": {
    "new": "0x53270850",
    "how": "aligned + refs 0x53270850x1",
@@ -5559,6 +5839,14 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/slots.ts"
+   ]
+  },
+  "0x5329b218": {
+   "new": "0x5329ba68",
+   "how": "aligned + refs 0x5329ba68x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
    ]
   },
   "0x5329b300": {
@@ -5592,6 +5880,23 @@
    "ok": true,
    "files": [
     "tools/gr4v120/videoaf/test_inplace.py"
+   ]
+  },
+  "0x5329ec14": {
+   "new": "0x5329f464",
+   "how": "aligned + refs 0x5329f464x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x5329ec18": {
+   "new": "0x5329f468",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
    ]
   },
   "0x5329ecec": {
@@ -5842,6 +6147,26 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/movieexp.ts"
+   ]
+  },
+  "0x532b6a28": {
+   "new": "0x532b7278",
+   "how": "aligned + refs 0x532b7278x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_ui.py"
+   ]
+  },
+  "0x532b6d50": {
+   "new": "0x532b75a0",
+   "how": "aligned + refs 0x532b75a0x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_ui.py"
    ]
   },
   "0x532b6ee0": {
@@ -6145,6 +6470,46 @@
     "tools/gr4v120/slotparams/gen_slotparams.py"
    ]
   },
+  "0x532fb170": {
+   "new": "0x532fb9c0",
+   "how": "aligned + refs 0x532fb9c0x8",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_ui.py"
+   ]
+  },
+  "0x532fbacc": {
+   "new": "0x532fc31c",
+   "how": "aligned + refs 0x532fc31cx10",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_ui.py"
+   ]
+  },
+  "0x532fd208": {
+   "new": "0x532fda58",
+   "how": "aligned + refs 0x532fda58x10",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_ui.py"
+   ]
+  },
+  "0x532fdcf4": {
+   "new": "0x532fe544",
+   "how": "aligned + refs 0x532fe544x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_ui.py"
+   ]
+  },
   "0x53305a6c": {
    "new": "0x533062bc",
    "how": "aligned + refs 0x533062bcx14",
@@ -6204,6 +6569,49 @@
    "ok": true,
    "files": [
     "tools/gr4v120/viewmenu/check.py"
+   ]
+  },
+  "0x5333e520": {
+   "new": "0x5333ed70",
+   "how": "aligned + refs 0x5333ed70x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x5333e538": {
+   "new": "0x5333ed88",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x5333e554": {
+   "new": "0x5333eda4",
+   "how": "aligned + refs 0x5333eda4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x5333e5f8": {
+   "new": "0x5333ee48",
+   "how": "aligned + refs 0x5333ee48x7",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_ui.py"
+   ]
+  },
+  "0x5333e630": {
+   "new": "0x5333ee80",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
    ]
   },
   "0x5333f0e8": {
@@ -7260,6 +7668,14 @@
     "core/src/fw/gr4v120/aspect/slots.ts"
    ]
   },
+  "0x533bcfcc": {
+   "new": "0x533bd834",
+   "how": "aligned + refs 0x533bd834x17",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_review.py"
+   ]
+  },
   "0x533bd260": {
    "new": "0x533bdac8",
    "how": "aligned + refs 0x533bdac8x2",
@@ -8116,12 +8532,71 @@
     "tools/gr4v120/looks/looks_check.py"
    ]
   },
+  "0x533ea758": {
+   "new": "0x533eb020",
+   "how": "aligned + refs 0x533eb020x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_review.py"
+   ]
+  },
+  "0x533ea808": {
+   "new": "0x533eb0d0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x533ea82c": {
+   "new": "0x533eb0f4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x533ea934": {
+   "new": "0x533eb1fc",
+   "how": "aligned + refs 0x533eb1fcx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x533eab6c": {
+   "new": "0x533eb434",
+   "how": "aligned + refs 0x533eb434x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_review.py"
+   ]
+  },
+  "0x533ead3c": {
+   "new": "0x533eb604",
+   "how": "aligned + refs 0x533eb604x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
   "0x533ead4c": {
    "new": "0x533eb614",
    "how": "aligned + refs 0x533eb614x2",
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/shift.ts"
+   ]
+  },
+  "0x533eafdc": {
+   "new": "0x533eb8a4",
+   "how": "aligned + refs 0x533eb8a4x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_review.py"
    ]
   },
   "0x533f1dbc": {
@@ -8164,6 +8639,7 @@
     "core/src/fw/gr4v120/aspect/build.ts",
     "core/src/fw/gr4v120/aspect/directflash.ts",
     "core/src/fw/gr4v120/aspect/guard.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "core/src/fw/gr4v120/aspect/slots.ts",
     "tools/gr4v120/adjslots/check.py",
@@ -8171,6 +8647,7 @@
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/directflash/settings_check.py",
     "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/handnight/mfmod.c",
     "tools/gr4v120/hdrgain/menu_check.py",
     "tools/gr4v120/lamp/check.py",
     "tools/gr4v120/looks/looks_check.py",
@@ -8184,6 +8661,14 @@
    "ok": true,
    "files": [
     "tools/gr4v120/shutdown/menu_check.py"
+   ]
+  },
+  "0x533f37a0": {
+   "new": "0x533f40c8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
    ]
   },
   "0x533f7844": {
@@ -8257,7 +8742,9 @@
     "core/src/fw/gr4v120/aspect/adjslots.ts",
     "core/src/fw/gr4v120/aspect/directflash.ts",
     "core/src/fw/gr4v120/aspect/exposure.ts",
-    "core/src/fw/gr4v120/aspect/softfocus.ts"
+    "core/src/fw/gr4v120/aspect/softfocus.ts",
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_ui.py"
    ]
   },
   "0x53560000": {
@@ -8303,6 +8790,24 @@
     "core/src/fw/gr4v120/aspect/afdist.ts"
    ]
   },
+  "0x535910ac": {
+   "new": "0x535919d4",
+   "how": "aligned + refs 0x535919d4x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
+  "0x53591178": {
+   "new": "0x53591aa0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
   "0x5359191c": {
    "new": "0x53592244",
    "how": "aligned + refs 0x53592244x2",
@@ -8330,6 +8835,15 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/units.ts"
+   ]
+  },
+  "0x5359332c": {
+   "new": "0x53593c54",
+   "how": "aligned + refs 0x53593c54x25",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_screen.py"
    ]
   },
   "0x53593404": {
@@ -8464,6 +8978,14 @@
     "tools/gr4v120/exposure/check.py"
    ]
   },
+  "0x53595ac8": {
+   "new": "0x535963f0",
+   "how": "aligned + refs 0x535963f0x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
   "0x53595da4": {
    "new": "0x535966cc",
    "how": "aligned",
@@ -8525,7 +9047,8 @@
    "how": "aligned + refs 0x53596940x3",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/datestamp-menu.ts"
+    "core/src/fw/gr4v120/aspect/datestamp-menu.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts"
    ]
   },
   "0x535960fc": {
@@ -8544,6 +9067,14 @@
     "core/src/fw/gr4v120/aspect/directflash.ts",
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/directflash/check.py"
+   ]
+  },
+  "0x53596774": {
+   "new": "0x5359709c",
+   "how": "aligned + refs 0x5359709cx1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
    ]
   },
   "0x535967c0": {
@@ -8761,6 +9292,7 @@
     "core/src/fw/gr4v120/aspect/datestamp-menu.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "tools/gr4v120/datestamp/menu_check.py",
+    "tools/gr4v120/handnight/test_ui.py",
     "tools/gr4v120/shutdown/menu_check.py"
    ]
   },
@@ -8787,10 +9319,12 @@
    "files": [
     "core/src/fw/gr4v120/aspect/datestamp-menu.ts",
     "core/src/fw/gr4v120/aspect/exposure.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/lamp.ts",
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "core/src/fw/gr4v120/aspect/viewmenu.ts",
     "tools/gr4v120/datestamp/menu_check.py",
+    "tools/gr4v120/handnight/test_ui.py",
     "tools/gr4v120/shutdown/menu_check.py"
    ]
   },
@@ -8865,7 +9399,8 @@
     "core/src/fw/gr4v120/aspect/datestamp-menu.ts",
     "core/src/fw/gr4v120/aspect/directflash.ts",
     "tools/gr4v120/datestamp/menu_check.py",
-    "tools/gr4v120/directflash/check.py"
+    "tools/gr4v120/directflash/check.py",
+    "tools/gr4v120/handnight/test_ui.py"
    ]
   },
   "0x535a0000": {
@@ -8975,6 +9510,7 @@
    "how": "aligned + refs 0x535abca8x29",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/shade.ts",
     "tools/gr4v120/grid/check.py",
     "tools/gr4v120/shade/draw_check.py"
@@ -9032,6 +9568,15 @@
     "tools/gr4v120/grain/fw_check.py"
    ]
   },
+  "0x535acccc": {
+   "new": "0x535ad5f4",
+   "how": "aligned + refs 0x535ad5f4x80",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
   "0x535acd84": {
    "new": "0x535ad6ac",
    "how": "aligned + refs 0x535ad6acx1227",
@@ -9047,6 +9592,22 @@
     "tools/gr4v120/shade/draw_check.py",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/shutdown/shutdown.c"
+   ]
+  },
+  "0x535acdd4": {
+   "new": "0x535ad6fc",
+   "how": "aligned + refs 0x535ad6fcx2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
+  "0x535ace9c": {
+   "new": "0x535ad7c4",
+   "how": "aligned + refs 0x535ad7c4x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_screen.py"
    ]
   },
   "0x535ad1b4": {
@@ -10274,6 +10835,15 @@
     "core/src/fw/gr4v120/aspect/datestamp.ts"
    ]
   },
+  "0x536520e0": {
+   "new": "0x53652a20",
+   "how": "aligned + refs 0x53652a20x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
   "0x53652d98": {
    "new": "0x536536d8",
    "how": "aligned + refs 0x536536d8x1",
@@ -10312,6 +10882,22 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/movie4k.ts"
+   ]
+  },
+  "0x53653478": {
+   "new": "0x53653db8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x536535ec": {
+   "new": "0x53653f2c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
    ]
   },
   "0x536568d4": {
@@ -10685,6 +11271,58 @@
     "tools/gr4v120/flash/ttl/evidence.py"
    ]
   },
+  "0x5367e1e4": {
+   "new": "0x5367eb24",
+   "how": "aligned + refs 0x5367eb24x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x5367e680": {
+   "new": "0x5367efc0",
+   "how": "aligned + refs 0x5367efc0x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x5367e6ac": {
+   "new": "0x5367efec",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/read_mf.py",
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x5367e6b0": {
+   "new": "0x5367eff0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x5367e6f0": {
+   "new": "0x5367f030",
+   "how": "aligned + refs 0x5367f030x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x5367eb94": {
+   "new": "0x5367f4d4",
+   "how": "aligned + refs 0x5367f4d4x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
   "0x5367f15c": {
    "new": "0x5367fa9c",
    "how": "aligned + refs 0x5367fa9cx1",
@@ -10699,6 +11337,169 @@
    "ok": true,
    "files": [
     "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x5367f838": {
+   "new": "0x53680178",
+   "how": "aligned + refs 0x53680178x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_fe.py",
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x5367f904": {
+   "new": "0x53680244",
+   "how": "aligned + refs 0x53680244x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_fe.py",
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x5367fa00": {
+   "new": "0x53680340",
+   "how": "aligned + refs 0x53680340x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_fe.py",
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x5368068c": {
+   "new": "0x53680fcc",
+   "how": "aligned + refs 0x53680fccx4",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x536806c0": {
+   "new": "0x53681000",
+   "how": "aligned + refs 0x53681000x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x53680b08": {
+   "new": "0x53681448",
+   "how": "aligned + refs 0x53681448x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x53681268": {
+   "new": "0x53681ba8",
+   "how": "aligned + refs 0x53681ba8x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x5368163c": {
+   "new": "0x53681f7c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x53681654": {
+   "new": "0x53681f94",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x53681eb4": {
+   "new": "0x536827f4",
+   "how": "aligned + refs 0x536827f4x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x53681f4c": {
+   "new": "0x5368288c",
+   "how": "aligned + refs 0x5368288cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x536827f0": {
+   "new": "0x53683130",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x5368407c": {
+   "new": "0x536849bc",
+   "how": "aligned + refs 0x536849bcx11",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x53684114": {
+   "new": "0x53684a54",
+   "how": "aligned + refs 0x53684a54x10",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x536841bc": {
+   "new": "0x53684afc",
+   "how": "aligned + refs 0x53684afcx4",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x53684210": {
+   "new": "0x53684b50",
+   "how": "aligned + refs 0x53684b50x10",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x5368424c": {
+   "new": "0x53684b8c",
+   "how": "aligned + refs 0x53684b8cx9",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x53684330": {
+   "new": "0x53684c70",
+   "how": "aligned + refs 0x53684c70x15",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x536843c4": {
+   "new": "0x53684d04",
+   "how": "aligned + refs 0x53684d04x5",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_tap.py"
    ]
   },
   "0x53684ca4": {
@@ -10718,6 +11519,33 @@
     "core/src/fw/gr4v120/aspect/flttl.ts",
     "tools/gr4v120/flash/ttl/flttl.c",
     "tools/gr4v120/flash/ttl/test_arm.py"
+   ]
+  },
+  "0x53688048": {
+   "new": "0x53688988",
+   "how": "aligned + refs 0x53688988x29",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_fe.py",
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x53689374": {
+   "new": "0x53689cb4",
+   "how": "aligned + refs 0x53689cb4x7",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_fe.py",
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x536894d8": {
+   "new": "0x53689e18",
+   "how": "aligned + refs 0x53689e18x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_fe.py",
+    "tools/gr4v120/handnight/test_tap.py"
    ]
   },
   "0x5368a8d0": {
@@ -11052,6 +11880,70 @@
     "tools/gr4v120/flash/ttl/evidence.py"
    ]
   },
+  "0x5369f780": {
+   "new": "0x536a00c0",
+   "how": "aligned + refs 0x536a00c0x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x5369f864": {
+   "new": "0x536a01a4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x536a02a8": {
+   "new": "0x536a0be8",
+   "how": "aligned + refs 0x536a0be8x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_ae.py"
+   ]
+  },
+  "0x536a0434": {
+   "new": "0x536a0d74",
+   "how": "aligned + refs 0x536a0d74x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_ae.py"
+   ]
+  },
+  "0x536a0680": {
+   "new": "0x536a0fc0",
+   "how": "aligned + refs 0x536a0fc0x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_ae.py"
+   ]
+  },
+  "0x536a08d8": {
+   "new": "0x536a1218",
+   "how": "aligned + refs 0x536a1218x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_ae.py"
+   ]
+  },
+  "0x536a1734": {
+   "new": "0x536a2074",
+   "how": "aligned + refs 0x536a2074x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_ae.py"
+   ]
+  },
+  "0x536a1884": {
+   "new": "0x536a21c4",
+   "how": "aligned + refs 0x536a21c4x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_ae.py"
+   ]
+  },
   "0x536a1a9c": {
    "new": "0x536a23dc",
    "how": "aligned",
@@ -11260,6 +12152,17 @@
    "ok": true,
    "files": [
     "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x536a7d1c": {
+   "new": "0x536a865c",
+   "how": "aligned + refs 0x536a865cx18",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/read_mf.py",
+    "tools/gr4v120/handnight/test_ae.py"
    ]
   },
   "0x536a7d44": {
@@ -11864,6 +12767,55 @@
     "tools/gr4v120/slotparams/gen_slotparams.py"
    ]
   },
+  "0x537314c4": {
+   "new": "0x53731f14",
+   "how": "aligned + refs 0x53731f14x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_keep.py"
+   ]
+  },
+  "0x537316c0": {
+   "new": "0x53732110",
+   "how": "aligned + refs 0x53732110x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_keep.py"
+   ]
+  },
+  "0x5373177c": {
+   "new": "0x537321cc",
+   "how": "aligned + refs 0x537321ccx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_keep.py"
+   ]
+  },
+  "0x5373186c": {
+   "new": "0x537322bc",
+   "how": "aligned + refs 0x537322bcx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_keep.py"
+   ]
+  },
+  "0x537319c8": {
+   "new": "0x53732418",
+   "how": "aligned + refs 0x53732418x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x53731a58": {
+   "new": "0x537324a8",
+   "how": "aligned + refs 0x537324a8x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
   "0x53731f8c": {
    "new": "0x537329dc",
    "how": "aligned",
@@ -11880,12 +12832,125 @@
     "core/src/fw/gr4v120/aspect/build.ts"
    ]
   },
+  "0x537329c8": {
+   "new": "0x53733418",
+   "how": "aligned + refs 0x53733418x6",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x537329d0": {
+   "new": "0x53733420",
+   "how": "aligned + refs 0x53733420x8",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x537335e4": {
+   "new": "0x53734034",
+   "how": "aligned + refs 0x53734034x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x53733880": {
+   "new": "0x537342d0",
+   "how": "aligned + refs 0x537342d0x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x53733ce4": {
+   "new": "0x53734734",
+   "how": "aligned + refs 0x53734734x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x5373406c": {
+   "new": "0x53734abc",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
   "0x53734134": {
    "new": "0x53734b84",
    "how": "aligned",
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/datestamp.ts"
+   ]
+  },
+  "0x53734828": {
+   "new": "0x53735278",
+   "how": "aligned + refs 0x53735278x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
+  "0x53735460": {
+   "new": "0x53735eb0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
+  "0x53735fa4": {
+   "new": "0x537369f4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x53736cd4": {
+   "new": "0x53737724",
+   "how": "aligned + refs 0x53737724x5",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x537374fc": {
+   "new": "0x53737f4c",
+   "how": "aligned + refs 0x53737f4cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x53738dcc": {
+   "new": "0x5373981c",
+   "how": "aligned + refs 0x5373981cx5",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x53738e70": {
+   "new": "0x537398c0",
+   "how": "aligned + refs 0x537398c0x6",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
+  "0x53739840": {
+   "new": "0x5373a290",
+   "how": "aligned + refs 0x5373a290x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c"
    ]
   },
   "0x53739a5c": {
@@ -11954,6 +13019,224 @@
     "core/src/fw/gr4v120/aspect/softfocus.ts"
    ]
   },
+  "0x53739f04": {
+   "new": "0x5373a954",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x5373b660": {
+   "new": "0x5373c0b0",
+   "how": "aligned + refs 0x5373c0b0x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x5373d688": {
+   "new": "0x5373e0d8",
+   "how": "aligned + refs 0x5373e0d8x27",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x5374085c": {
+   "new": "0x537412ac",
+   "how": "aligned + refs 0x537412acx2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x53742e7c": {
+   "new": "0x537438cc",
+   "how": "aligned + refs 0x537438ccx7",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x53742f24": {
+   "new": "0x53743974",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x53742f4c": {
+   "new": "0x5374399c",
+   "how": "aligned + refs 0x5374399cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x53742f84": {
+   "new": "0x537439d4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x53743004": {
+   "new": "0x53743a54",
+   "how": "aligned + refs 0x53743a54x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x537435cc": {
+   "new": "0x5374401c",
+   "how": "aligned + refs 0x5374401cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x53743f48": {
+   "new": "0x53744998",
+   "how": "aligned + refs 0x53744998x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x53745684": {
+   "new": "0x537460d4",
+   "how": "aligned + refs 0x537460d4x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
+  "0x53745688": {
+   "new": "0x537460d8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
+  "0x53745e50": {
+   "new": "0x537468a0",
+   "how": "aligned + refs 0x537468a0x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x5374aa3c": {
+   "new": "0x5374b48c",
+   "how": "aligned + refs 0x5374b48cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x5374aae0": {
+   "new": "0x5374b530",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x5374aae4": {
+   "new": "0x5374b534",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x5374ac9c": {
+   "new": "0x5374b6ec",
+   "how": "aligned + refs 0x5374b6ecx6",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x5374af28": {
+   "new": "0x5374b978",
+   "how": "aligned + refs 0x5374b978x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x5374b030": {
+   "new": "0x5374ba80",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x5374b034": {
+   "new": "0x5374ba84",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x5374b290": {
+   "new": "0x5374bce0",
+   "how": "aligned + refs 0x5374bce0x6",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x5374b394": {
+   "new": "0x5374bde4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x5374b398": {
+   "new": "0x5374bde8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x5374d984": {
+   "new": "0x5374e3d4",
+   "how": "aligned + refs 0x5374e3d4x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x5374dbf0": {
+   "new": "0x5374e640",
+   "how": "aligned + refs 0x5374e640x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
   "0x5374f734": {
    "new": "0x53750184",
    "how": "aligned",
@@ -11973,6 +13256,8 @@
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
     "tools/gr4v120/afplain/evaluation/stock_fixture.py",
     "tools/gr4v120/grid/check.py",
+    "tools/gr4v120/handnight/test_fe.py",
+    "tools/gr4v120/handnight/test_tap.py",
     "tools/gr4v120/shade/draw_check.py",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/shutdown/shutdown.c"
@@ -11983,7 +13268,34 @@
    "how": "aligned + refs 0x53750a78x2",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/datestamp.ts"
+    "core/src/fw/gr4v120/aspect/datestamp.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x5375002c": {
+   "new": "0x53750a7c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x5376dca8": {
+   "new": "0x5376e938",
+   "how": "aligned + refs 0x5376e938x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_fe.py",
+    "tools/gr4v120/handnight/test_tap.py"
+   ]
+  },
+  "0x5376f5d4": {
+   "new": "0x53770264",
+   "how": "aligned + refs 0x53770264x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_fe.py",
+    "tools/gr4v120/handnight/test_tap.py"
    ]
   },
   "0x5376fb10": {
@@ -11993,6 +13305,15 @@
    "files": [
     "core/src/fw/gr4v120/aspect/build.ts",
     "tools/gr4v120/aspect/boot_checks.py"
+   ]
+  },
+  "0x53770000": {
+   "new": "0x53770c90",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_ui.py"
    ]
   },
   "0x5377b1b0": {
@@ -12079,6 +13400,22 @@
    "files": [
     "core/src/fw/gr4v120/aspect/shutdown.ts",
     "tools/gr4v120/shutdown/shutdown.c"
+   ]
+  },
+  "0x5378ffff": {
+   "new": "0x53790c8f",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_ui.py"
+   ]
+  },
+  "0x53790000": {
+   "new": "0x53790c90",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/sim.py"
    ]
   },
   "0x5379637c": {
@@ -12216,6 +13553,14 @@
     "core/src/fw/gr4v120/aspect/battery.ts"
    ]
   },
+  "0x537a488c": {
+   "new": "0x537a55a4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
   "0x537a6c20": {
    "new": "0x537a7938",
    "how": "aligned + refs 0x537a7938x2",
@@ -12254,6 +13599,9 @@
    "how": "aligned + refs 0x537d0668x101",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
     "tools/gr4v120/videoaf/cam.py",
     "tools/gr4v120/videoaf/layout.py",
     "tools/gr4v120/videoaf/test_quick.py"
@@ -12478,6 +13826,22 @@
     "tools/gr4v120/aspect/gen_facts.py"
    ]
   },
+  "0x53824590": {
+   "new": "0x5382545c",
+   "how": "aligned + refs 0x5382545cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x53824710": {
+   "new": "0x538255dc",
+   "how": "aligned + refs 0x538255dcx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
   "0x538257d4": {
    "new": "0x5382669c",
    "how": "aligned + refs 0x5382669cx1",
@@ -12485,6 +13849,14 @@
    "files": [
     "core/src/fw/gr4v120/aspect/lookstash.ts",
     "tools/gr4v120/datestamp/datestamp.c"
+   ]
+  },
+  "0x53829454": {
+   "new": "0x5382a31c",
+   "how": "aligned + refs 0x5382a31cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
    ]
   },
   "0x5382b814": {
@@ -12551,6 +13923,14 @@
     "core/src/fw/gr4v120/aspect/build.ts"
    ]
   },
+  "0x538356d8": {
+   "new": "0x538365a0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
   "0x53863330": {
    "new": "0x53863fdc",
    "how": "aligned + refs 0x53863fdcx365",
@@ -12572,7 +13952,17 @@
    "how": "aligned + refs 0x53892bc0x229",
    "ok": true,
    "files": [
+    "tools/gr4v120/handnight/test_fe.py",
+    "tools/gr4v120/handnight/test_tap.py",
     "tools/gr4v120/shade/draw_check.py"
+   ]
+  },
+  "0x5389e858": {
+   "new": "0x5389f500",
+   "how": "aligned + refs 0x5389f500x10",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/sim.py"
    ]
   },
   "0x5389ec44": {
@@ -12609,6 +13999,33 @@
    "files": [
     "core/src/fw/gr4v120/aspect/build.ts",
     "tools/gr4v120/aspect/boot_checks.py"
+   ]
+  },
+  "0x5389fd0c": {
+   "new": "0x538a09b4",
+   "how": "aligned + refs 0x538a09b4x9",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x538a067c": {
+   "new": "0x538a1324",
+   "how": "aligned + refs 0x538a1324x73",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x538a0e68": {
+   "new": "0x538a1b10",
+   "how": "aligned + refs 0x538a1b10x32",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_hold.py"
    ]
   },
   "0x538ad500": {
@@ -12880,12 +14297,31 @@
     "core/src/fw/gr4v120/aspect/grain.ts"
    ]
   },
+  "0x538e21f4": {
+   "new": "0x538e2e9c",
+   "how": "aligned + refs 0x538e2e9cx10",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_keep.py"
+   ]
+  },
+  "0x538e40f8": {
+   "new": "0x538e4d9c",
+   "how": "aligned + refs 0x538e4d9cx1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
   "0x538f6604": {
    "new": "0x538f729c",
    "how": "aligned + refs 0x538f729cx452",
    "ok": true,
    "files": [
-    "tools/gr4v120/aspect/playback_check.py"
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/aspect/playback_check.py",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
    ]
   },
   "0x538f666c": {
@@ -12893,7 +14329,29 @@
    "how": "aligned + refs 0x538f7304x180",
    "ok": true,
    "files": [
-    "tools/gr4v120/aspect/playback_check.py"
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/aspect/playback_check.py",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x538f66d8": {
+   "new": "0x538f7370",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x538f677c": {
+   "new": "0x538f7414",
+   "how": "aligned + refs 0x538f7414x8",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
    ]
   },
   "0x538f6a28": {
@@ -12901,7 +14359,10 @@
    "how": "aligned + refs 0x538f76c0x181",
    "ok": true,
    "files": [
-    "tools/gr4v120/aspect/playback_check.py"
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/aspect/playback_check.py",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
    ]
   },
   "0x538f6db0": {
@@ -12975,6 +14436,8 @@
    "files": [
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
     "tools/gr4v120/afplain/evaluation/stock_fixture.py",
+    "tools/gr4v120/handnight/test_fe.py",
+    "tools/gr4v120/handnight/test_tap.py",
     "tools/gr4v120/videoaf/cam.py"
    ]
   },
@@ -12993,7 +14456,70 @@
    "files": [
     "tools/gr4v120/afplain/runtime/diag_attach.c",
     "tools/gr4v120/datestamp/menu_check.py",
+    "tools/gr4v120/handnight/test_screen.py",
     "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x53905a28": {
+   "new": "0x539066c0",
+   "how": "aligned + refs 0x539066c0x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x53905b14": {
+   "new": "0x539067ac",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
+  "0x53905db0": {
+   "new": "0x53906a48",
+   "how": "aligned + refs 0x53906a48x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x53905db4": {
+   "new": "0x53906a4c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x53905dfc": {
+   "new": "0x53906a94",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x53905e5c": {
+   "new": "0x53906af4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x53905e90": {
+   "new": "0x53906b28",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
    ]
   },
   "0x53907930": {
@@ -13001,8 +14527,10 @@
    "how": "aligned + refs 0x539085c8x2274",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
     "tools/gr4v120/afplain/evaluation/stock_fixture.py",
+    "tools/gr4v120/handnight/sim.py",
     "tools/gr4v120/shutdown/menu_check.py"
    ]
   },
@@ -13013,6 +14541,7 @@
    "files": [
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
     "tools/gr4v120/afplain/evaluation/stock_fixture.py",
+    "tools/gr4v120/handnight/sim.py",
     "tools/gr4v120/shutdown/menu_check.py"
    ]
   },
@@ -13027,6 +14556,7 @@
     "core/src/fw/gr4v120/aspect/flttl.ts",
     "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/hdrgain.ts",
     "core/src/fw/gr4v120/aspect/menuwide.ts",
     "core/src/fw/gr4v120/aspect/shadowml.ts",
@@ -13043,6 +14573,8 @@
     "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/grain/grain.c",
     "tools/gr4v120/halation/halation.c",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
     "tools/gr4v120/hdrgain/check.py",
     "tools/gr4v120/hdrgain/hdrgain.c",
     "tools/gr4v120/lamp/check.py",
@@ -13062,6 +14594,7 @@
    "files": [
     "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/hdrgain.ts",
     "tools/gr4v120/adjslots/check.py",
     "tools/gr4v120/afplain/evaluation/fwemu.py",
@@ -13069,6 +14602,8 @@
     "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/grain/grain.c",
     "tools/gr4v120/halation/halation.c",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
     "tools/gr4v120/hdrgain/check.py",
     "tools/gr4v120/hdrgain/hdrgain.c",
     "tools/gr4v120/lamp/check.py",
@@ -13087,6 +14622,7 @@
     "tools/gr4v120/aspect/playback_check.py",
     "tools/gr4v120/datestamp/list_width_check.py",
     "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/handnight/sim.py",
     "tools/gr4v120/lamp/check.py",
     "tools/gr4v120/shadowml/fwemu.py"
    ]
@@ -13100,6 +14636,7 @@
     "tools/gr4v120/afplain/evaluation/fwemu.py",
     "tools/gr4v120/aspect/playback_check.py",
     "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/handnight/sim.py",
     "tools/gr4v120/lamp/check.py",
     "tools/gr4v120/shadowml/fwemu.py"
    ]
@@ -13112,12 +14649,68 @@
     "tools/gr4v120/lamp/check.py"
    ]
   },
+  "0x5390928c": {
+   "new": "0x53909f24",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
   "0x539092dc": {
    "new": "0x53909f74",
    "how": "aligned + refs 0x53909f74x53",
    "ok": true,
    "files": [
     "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x53909348": {
+   "new": "0x53909fe0",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x53909350": {
+   "new": "0x53909fe8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x53909500": {
+   "new": "0x5390a198",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x5390976c": {
+   "new": "0x5390a404",
+   "how": "aligned + refs 0x5390a404x72",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x53909800": {
+   "new": "0x5390a498",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x53909aa8": {
+   "new": "0x5390a740",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
    ]
   },
   "0x53909c88": {
@@ -13128,6 +14721,22 @@
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
     "tools/gr4v120/afplain/evaluation/test_plain_units.py",
     "tools/gr4v120/hdrgain/check.py"
+   ]
+  },
+  "0x53909ce0": {
+   "new": "0x5390a978",
+   "how": "aligned + refs 0x5390a978x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x53909e0c": {
+   "new": "0x5390aaa4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
    ]
   },
   "0x539115b4": {
@@ -13214,7 +14823,8 @@
    "how": "aligned + refs 0x53915138x4281",
    "ok": true,
    "files": [
-    "tools/gr4v120/aspect/playback_check.py"
+    "tools/gr4v120/aspect/playback_check.py",
+    "tools/gr4v120/handnight/test_tap.py"
    ]
   },
   "0x539154f8": {
@@ -13227,6 +14837,9 @@
     "tools/gr4v120/aspect/playback_check.py",
     "tools/gr4v120/battery/check.py",
     "tools/gr4v120/datestamp/menu_check.py",
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_fe.py",
+    "tools/gr4v120/handnight/test_tap.py",
     "tools/gr4v120/hdrgain/check.py",
     "tools/gr4v120/lamp/check.py",
     "tools/gr4v120/shade/draw_check.py",
@@ -13254,12 +14867,15 @@
     "core/src/fw/gr4v120/aspect/datestamp.ts",
     "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "tools/gr4v120/afplain/evaluation/test_plain_units.py",
     "tools/gr4v120/afplain/runtime/runtime.c",
     "tools/gr4v120/datestamp/datestamp.c",
     "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/grain/grain.c",
-    "tools/gr4v120/halation/halation.c"
+    "tools/gr4v120/halation/halation.c",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
    ]
   },
   "0x5391808c": {
@@ -13270,12 +14886,15 @@
     "core/src/fw/gr4v120/aspect/datestamp.ts",
     "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "tools/gr4v120/afplain/evaluation/test_plain_units.py",
     "tools/gr4v120/afplain/runtime/runtime.c",
     "tools/gr4v120/datestamp/datestamp.c",
     "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/grain/grain.c",
-    "tools/gr4v120/halation/halation.c"
+    "tools/gr4v120/halation/halation.c",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
    ]
   },
   "0x539180a0": {
@@ -13286,10 +14905,13 @@
     "core/src/fw/gr4v120/aspect/datestamp.ts",
     "core/src/fw/gr4v120/aspect/grain.ts",
     "core/src/fw/gr4v120/aspect/halation.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "tools/gr4v120/datestamp/datestamp.c",
     "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/grain/grain.c",
-    "tools/gr4v120/halation/halation.c"
+    "tools/gr4v120/halation/halation.c",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
    ]
   },
   "0x53919d68": {
@@ -13299,8 +14921,11 @@
    "files": [
     "core/src/fw/gr4v120/aspect/datestamp.ts",
     "core/src/fw/gr4v120/aspect/flttl.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/videoaf.ts",
     "tools/gr4v120/datestamp/datestamp.c",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
     "tools/gr4v120/videoaf/cam.py",
     "tools/gr4v120/videoaf/test_quick.py"
    ]
@@ -13335,7 +14960,10 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/flttl.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
     "tools/gr4v120/videoaf/cam.py",
     "tools/gr4v120/videoaf/test_quick.py"
    ]
@@ -13346,9 +14974,19 @@
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/flttl.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/videoaf.ts",
+    "tools/gr4v120/handnight/mfmod.c",
     "tools/gr4v120/videoaf/cam.py",
     "tools/gr4v120/videoaf/test_quick.py"
+   ]
+  },
+  "0x5391d140": {
+   "new": "0x5391de78",
+   "how": "aligned + refs 0x5391de78x11",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
    ]
   },
   "0x5391f1d4": {
@@ -13425,7 +15063,16 @@
    "ok": true,
    "why": "aligned in 1.21 (aligned + refs 0x5393a4c0x2); +-8 words equal up to relocation except at [-8, -7, -6, -5, -4, -3, -2, -1] words (neighbouring code Ricoh changed; checked side by side)",
    "files": [
-    "core/src/fw/gr4v120/aspect/halation-ui.ts"
+    "core/src/fw/gr4v120/aspect/halation-ui.ts",
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x53939070": {
+   "new": "0x5393a638",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
    ]
   },
   "0x53939148": {
@@ -13896,6 +15543,14 @@
     "core/src/fw/gr4v120/aspect/videoaf.ts"
    ]
   },
+  "0x5395a240": {
+   "new": "0x5395b808",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
   "0x539609d4": {
    "new": "0x53961f9c",
    "how": "aligned + refs 0x53961f9cx1",
@@ -14039,6 +15694,14 @@
    "files": [
     "core/src/fw/gr4v120/aspect/lamp.ts",
     "tools/gr4v120/lamp/check.py"
+   ]
+  },
+  "0x5396aa38": {
+   "new": "0x5396c000",
+   "how": "aligned + refs 0x5396c000x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_ae.py"
    ]
   },
   "0x53a5cf90": {
@@ -14185,6 +15848,30 @@
     "tools/gr4v120/slotparams/test_wb_per_look.py"
    ]
   },
+  "0x53aab1f4": {
+   "new": "0x53aac7bc",
+   "how": "aligned + refs 0x53aac7bcx8",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x53aac558": {
+   "new": "0x53aadb20",
+   "how": "aligned + refs 0x53aadb20x17",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x53aac55c": {
+   "new": "0x53aadb24",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
   "0x53ad3684": {
    "new": "0x53ad4c4c",
    "how": "override",
@@ -14192,6 +15879,7 @@
    "why": "movw r3,#0x9080 of the heap set-up; same code",
    "files": [
     "core/src/fw/gr4v120/aspect/battery.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/subjectaf.ts"
    ]
   },
@@ -14226,7 +15914,11 @@
    "ok": true,
    "why": "LiveViewController's vtable: data aligned and its one reference agrees; the word at +0xc is the predicate 0x5318ae30 -> 0x5318ae08 in both",
    "files": [
-    "core/src/fw/gr4v120/aspect/shift.ts"
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "core/src/fw/gr4v120/aspect/shift.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_groups.py",
+    "tools/gr4v120/handnight/test_screen.py"
    ]
   },
   "0x53dbf95c": {
@@ -14244,6 +15936,14 @@
    "files": [
     "core/src/fw/gr4v120/aspect/afdist.ts",
     "core/src/fw/gr4v120/aspect/movieexp.ts"
+   ]
+  },
+  "0x53dc08a4": {
+   "new": "0x53dc1eac",
+   "how": "aligned + refs 0x53dc1eacx2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
    ]
   },
   "0x53dc08e0": {
@@ -14533,13 +16233,40 @@
     "core/src/fw/gr4v120/aspect/monounlock.ts"
    ]
   },
+  "0x53ece26c": {
+   "new": "0x53ecf904",
+   "how": "aligned + refs 0x53ecf904x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x53ece290": {
+   "new": "0x53ecf928",
+   "how": "aligned + refs 0x53ecf928x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
+  "0x53ece4e0": {
+   "new": "0x53ecfb78",
+   "how": "override",
+   "ok": true,
+   "why": "a stock View vtable (the handheld night screen test's child view copies it): aligned, and its 4 references name 0x53ECFB78 in 1.21",
+   "files": [
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
   "0x53ece708": {
    "new": "0x53ecfda0",
    "how": "override",
    "ok": true,
    "why": "aligned in 1.21 (aligned + refs 0x53ecfda0x3); +-8 words equal up to relocation",
    "files": [
-    "core/src/fw/gr4v120/aspect/datestamp-menu.ts"
+    "core/src/fw/gr4v120/aspect/datestamp-menu.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts"
    ]
   },
   "0x53ecee00": {
@@ -14603,6 +16330,40 @@
    "ok": true,
    "files": [
     "tools/gr4v120/flash/ttl/evidence.py"
+   ]
+  },
+  "0x53f05468": {
+   "new": "0x53f06b8c",
+   "how": "aligned + refs 0x53f06b8cx14",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x53fbb4e8": {
+   "new": "0x53fbcc08",
+   "how": "override",
+   "ok": true,
+   "why": "the still recipe's vtable (handheld night): aligned, and 6 literal references (0x537355C4, 0x53736624, ...) name 0x53FBCC08 in 1.21",
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x53fc54d8": {
+   "new": "0x53fc6c68",
+   "how": "aligned + refs 0x53fc6c68x2",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_ui.py"
+   ]
+  },
+  "0x53fc54dc": {
+   "new": "0x53fc6c6c",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_ui.py"
    ]
   },
   "0x53fc5600": {
@@ -14674,11 +16435,21 @@
     "core/src/fw/gr4v120/factory.ts"
    ]
   },
+  "0x5401cd84": {
+   "new": "0x5401e574",
+   "how": "aligned + refs 0x5401e574x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
   "0x540781ec": {
    "new": "0x540799dc",
    "how": "aligned + refs 0x540799dcx1",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/shade.ts",
     "core/src/fw/gr4v120/aspect/viewmenu.ts",
     "tools/gr4v120/shade/draw_check.py",
@@ -14945,6 +16716,14 @@
     "tools/gr4v120/flash/ttl/evidence.py"
    ]
   },
+  "0x5438c484": {
+   "new": "0x5438dc74",
+   "how": "aligned + refs 0x5438dc74x9958",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
   "0x543b3100": {
    "new": "0x543b4900",
    "how": "override",
@@ -14964,6 +16743,7 @@
     "tools/gr4v120/exposure/check.py",
     "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/grid/check.py",
+    "tools/gr4v120/handnight/sim.py",
     "tools/gr4v120/lamp/check.py",
     "tools/gr4v120/shade/draw_check.py",
     "tools/gr4v120/shutdown/menu_check.py",
@@ -15080,6 +16860,7 @@
     "core/src/fw/gr4v120/aspect/build.ts",
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/directflash/check.py",
+    "tools/gr4v120/handnight/test_screen.py",
     "tools/gr4v120/shutdown/menu_check.py",
     "tools/gr4v120/softfocus/check.py"
    ]
@@ -15096,6 +16877,7 @@
     "tools/gr4v120/flash/ttl/gen.py",
     "tools/gr4v120/grain/gen.py",
     "tools/gr4v120/halation/gen.py",
+    "tools/gr4v120/handnight/gen.py",
     "tools/gr4v120/hdrgain/gen.py",
     "tools/gr4v120/shadowml/gen.py",
     "tools/gr4v120/shutdown/gen.py",
@@ -15140,6 +16922,17 @@
     "tools/gr4v120/hdrgain/hdrgain.c"
    ]
   },
+  "0x5453464d": {
+   "new": "0x5453464d",
+   "how": "override",
+   "ok": true,
+   "why": "not an address: the handheld night module's state magic \"MFST\"",
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_screen.py"
+   ]
+  },
   "0x54540000": {
    "new": "0x54540000",
    "how": "override",
@@ -15167,6 +16960,7 @@
     "core/src/fw/gr4v120/aspect/datestamp-menu.ts",
     "core/src/fw/gr4v120/aspect/directflash-menu.ts",
     "core/src/fw/gr4v120/aspect/directflash.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/softfocus.ts",
     "core/src/fw/gr4v120/profile.ts",
     "tools/gr4v120/afplain/evaluation/fwemu.py",
@@ -15182,6 +16976,11 @@
     "tools/gr4v120/grain/fw_check.py",
     "tools/gr4v120/grid/check.py",
     "tools/gr4v120/halation/check.py",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_fe.py",
+    "tools/gr4v120/handnight/test_hold.py",
+    "tools/gr4v120/handnight/test_tap.py",
     "tools/gr4v120/hdrgain/menu_check.py",
     "tools/gr4v120/lamp/check.py",
     "tools/gr4v120/shade/draw_check.py",
@@ -15347,7 +17146,19 @@
    "files": [
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/directflash/check.py",
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_review.py",
     "tools/gr4v120/softfocus/check.py"
+   ]
+  },
+  "0x550830a0": {
+   "new": "0x550830a0",
+   "how": "override",
+   "ok": true,
+   "why": "CaptureReadyModel's construction guard (handheld night): the movw/movt of its getter 0x53240F40 (1.21 0x53241548) and 6 more references name the same address in 1.21",
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_groups.py"
    ]
   },
   "0x55083138": {
@@ -15355,7 +17166,20 @@
    "how": "refs 0x55083138x3",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/shift.ts"
+    "core/src/fw/gr4v120/aspect/shift.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_groups.py",
+    "tools/gr4v120/handnight/test_review.py"
+   ]
+  },
+  "0x5508317c": {
+   "new": "0x5508317c",
+   "how": "override",
+   "ok": true,
+   "why": "the App's playback command model guard (handheld night): the getter's movw/movt 0x532409A0 (1.21 0x53240FA8) and 2 more references, same address",
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_review.py"
    ]
   },
   "0x55083194": {
@@ -15366,6 +17190,15 @@
    "files": [
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/directflash/check.py"
+   ]
+  },
+  "0x550831c8": {
+   "new": "0x550831c8",
+   "how": "override",
+   "ok": true,
+   "why": "the App's event queue guard (handheld night): the getter's movw/movt 0x53240820 (1.21 0x53240E28) and 16 more references, same address",
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
    ]
   },
   "0x55083244": {
@@ -15379,6 +17212,8 @@
     "tools/gr4v120/afplain/runtime/runtime.c",
     "tools/gr4v120/datestamp/menu_check.py",
     "tools/gr4v120/directflash/check.py",
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_review.py",
     "tools/gr4v120/slotparams/test_wb_per_look.py",
     "tools/gr4v120/softfocus/check.py"
    ]
@@ -15393,6 +17228,7 @@
     "core/src/fw/gr4v120/aspect/directflash.ts",
     "core/src/fw/gr4v120/aspect/exposure.ts",
     "core/src/fw/gr4v120/aspect/guard.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/hdrgain.ts",
     "core/src/fw/gr4v120/aspect/movie4k.ts",
     "core/src/fw/gr4v120/aspect/moviesr.ts",
@@ -15409,6 +17245,8 @@
     "tools/gr4v120/directflash/check.py",
     "tools/gr4v120/directflash/settings_check.py",
     "tools/gr4v120/exposure/check.py",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py",
     "tools/gr4v120/hdrgain/check.py",
     "tools/gr4v120/hdrgain/menu_check.py",
     "tools/gr4v120/slotparams/slot_params.c",
@@ -15417,12 +17255,22 @@
     "tools/gr4v120/viewmenu/check.py"
    ]
   },
+  "0x550832ac": {
+   "new": "0x550832ac",
+   "how": "override",
+   "ok": true,
+   "why": "CURRENT() + 4, the saved user settings (handheld night): CURRENT() 0x550832A8 is the same in 1.21; three references of +4 (0x53240C58, 0x53240C74, 0x53242220) agree",
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
   "0x55088534": {
    "new": "0x55088534",
    "how": "refs 0x55088534x3",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/shift.ts"
+    "core/src/fw/gr4v120/aspect/shift.ts",
+    "tools/gr4v120/handnight/sim.py"
    ]
   },
   "0x5508a010": {
@@ -15430,7 +17278,18 @@
    "how": "refs 0x5508a010x3",
    "ok": true,
    "files": [
-    "core/src/fw/gr4v120/aspect/shift.ts"
+    "core/src/fw/gr4v120/aspect/shift.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_groups.py"
+   ]
+  },
+  "0x5508ba28": {
+   "new": "0x5508ba28",
+   "how": "refs 0x5508ba28x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/sim.py",
+    "tools/gr4v120/handnight/test_ui.py"
    ]
   },
   "0x550b8848": {
@@ -15460,14 +17319,61 @@
     "core/src/fw/gr4v120/aspect/shift.ts"
    ]
   },
+  "0x5512ed5c": {
+   "new": "0x5512ed64",
+   "how": "refs 0x5512ed64x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x551331b8": {
+   "new": "0x551331c0",
+   "how": "override",
+   "ok": true,
+   "why": "the back end's still recipe singleton area (handheld night hold test): the movw/movt at 0x53736CDC (1.21 0x5373772C) names 0x551331C0; the back end's RAM is 8 bytes later in 1.21 (as 0x5512ED5C -> 0x5512ED64)",
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x5537a540": {
+   "new": "0x5537a548",
+   "how": "refs 0x5537a548x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_groups.py"
+   ]
+  },
+  "0x5537b218": {
+   "new": "0x5537b220",
+   "how": "override",
+   "ok": true,
+   "why": "the still back end's construction guard (handheld night): its getter's movw/movt 0x5373D690 (1.21 0x5373E0E0) and 4 more references name 0x5537B220 (8 later, as its object 0x5537A540 -> 0x5537A548)",
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_groups.py"
+   ]
+  },
   "0x5537b29c": {
    "new": "0x5537b2a4",
    "how": "refs 0x5537b2a4x2",
    "ok": true,
    "files": [
     "core/src/fw/gr4v120/aspect/datestamp.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
     "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x5537b2a0": {
+   "new": "0x5537b2a8",
+   "how": "override",
+   "ok": true,
+   "why": "the ComPropIf slot, singleton 0x5537B29C + 4 (handheld night): 13 references of the singleton and its words (0x53750028 movw/movt, 1.21 0x53750A78) name 0x5537B2A4 + 4",
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_ui.py"
    ]
   },
   "0x5537e7b0": {
@@ -15533,6 +17439,24 @@
     "tools/gr4v120/datestamp/orient_check.py",
     "tools/gr4v120/datestamp/render_check.py",
     "tools/gr4v120/directflash/diag_check.py"
+   ]
+  },
+  "0x553a2814": {
+   "new": "0x553a281c",
+   "how": "refs 0x553a281cx3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x553a281c": {
+   "new": "0x553a2824",
+   "how": "override",
+   "ok": true,
+   "why": "the LCD screen device slot, ScreenDeviceFactory 0x553A2814 + 8 (handheld night): the factory is 0x553A281C in 1.21 (mapped), 22 references of its words agree on 0x553A2824",
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_groups.py"
    ]
   },
   "0x553a2830": {
@@ -15675,6 +17599,7 @@
    "files": [
     "core/src/fw/gr4v120/aspect/battery.ts",
     "core/src/fw/gr4v120/aspect/directflash.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/hdrgain.ts",
     "core/src/fw/gr4v120/aspect/lookstash.ts",
     "core/src/fw/gr4v120/aspect/shadowml.ts",
@@ -15795,6 +17720,7 @@
     "core/src/fw/gr4v120/aspect/build.ts",
     "core/src/fw/gr4v120/aspect/directflash.ts",
     "core/src/fw/gr4v120/aspect/flttl.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/hdrgain.ts",
     "core/src/fw/gr4v120/aspect/lamp.ts",
     "core/src/fw/gr4v120/aspect/lookstash.ts",
@@ -15846,7 +17772,8 @@
    "files": [
     "core/src/fw/gr4v120/aspect/awb2.ts",
     "core/src/fw/gr4v120/aspect/battery.ts",
-    "tools/gr4v120/awb2/test_fw.py"
+    "tools/gr4v120/awb2/test_fw.py",
+    "tools/gr4v120/handnight/mfmod.c"
    ]
   },
   "0x5583907c": {
@@ -15868,6 +17795,7 @@
    "files": [
     "core/src/fw/gr4v120/aspect/awb2.ts",
     "core/src/fw/gr4v120/aspect/battery.ts",
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "core/src/fw/gr4v120/aspect/lamp.ts",
     "core/src/fw/gr4v120/aspect/moviesr.ts",
     "core/src/fw/gr4v120/aspect/shift.ts",
@@ -15921,6 +17849,15 @@
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
    ]
   },
+  "0x53067478": {
+   "new": "0x53067470",
+   "how": "aligned + refs 0x53067470x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
   "0x5306749c": {
    "new": "0x53067494",
    "how": "aligned + refs 0x53067494x3",
@@ -15937,12 +17874,55 @@
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
    ]
   },
+  "0x53067628": {
+   "new": "0x53067620",
+   "how": "aligned + refs 0x53067620x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
   "0x5306764c": {
    "new": "0x53067644",
    "how": "aligned + refs 0x53067644x5",
    "ok": true,
    "files": [
-    "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
+  "0x530677fc": {
+   "new": "0x530677f4",
+   "how": "aligned + refs 0x530677f4x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
+  "0x53067820": {
+   "new": "0x53067818",
+   "how": "aligned + refs 0x53067818x3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
+  "0x53067aa8": {
+   "new": "0x53067aa0",
+   "how": "aligned + refs 0x53067aa0x5",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
    ]
   },
   "0x53067e2c": {
@@ -15970,12 +17950,40 @@
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
    ]
   },
+  "0x53068144": {
+   "new": "0x5306813c",
+   "how": "aligned + refs 0x5306813cx3",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x530681b0": {
+   "new": "0x530681a8",
+   "how": "aligned + refs 0x530681a8x2",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
   "0x53068240": {
    "new": "0x53068238",
    "how": "aligned + refs 0x53068238x5",
    "ok": true,
    "files": [
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x530682f4": {
+   "new": "0x530682ec",
+   "how": "aligned + refs 0x530682ecx4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
    ]
   },
   "0x53068384": {
@@ -15986,6 +17994,16 @@
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
    ]
   },
+  "0x530683f0": {
+   "new": "0x530683e8",
+   "how": "aligned + refs 0x530683e8x4",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
   "0x530684c8": {
    "new": "0x530684c0",
    "how": "aligned + refs 0x530684c0x7",
@@ -15993,6 +18011,16 @@
    "files": [
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
     "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+   ]
+  },
+  "0x530684ec": {
+   "new": "0x530684e4",
+   "how": "aligned + refs 0x530684e4x6",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
    ]
   },
   "0x53240758": {
@@ -16058,8 +18086,11 @@
    "how": "aligned + refs 0x5325eb24x1559",
    "ok": true,
    "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
-    "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
    ]
   },
   "0x5329b458": {
@@ -16154,6 +18185,23 @@
    "files": [
     "tools/gr4v120/afplain/evaluation/test_plain_units.py",
     "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x533a2714": {
+   "new": "0x533a2fc4",
+   "how": "aligned + refs 0x533a2fc4x3",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_review.py"
+   ]
+  },
+  "0x533a27f0": {
+   "new": "0x533a30a0",
+   "how": "aligned + refs 0x533a30a0x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_review.py"
    ]
   },
   "0x533acd04": {
@@ -16518,6 +18566,16 @@
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
    ]
   },
+  "0x53643344": {
+   "new": "0x53643c84",
+   "how": "aligned + refs 0x53643c84x100",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
   "0x5365cba8": {
    "new": "0x5365d4e8",
    "how": "aligned",
@@ -16714,7 +18772,8 @@
    "ok": true,
    "files": [
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
-    "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py",
+    "tools/gr4v120/handnight/test_tap.py"
    ]
   },
   "0x539030a0": {
@@ -16747,7 +18806,16 @@
    "ok": true,
    "files": [
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
-    "tools/gr4v120/afplain/evaluation/stock_fixture.py"
+    "tools/gr4v120/afplain/evaluation/stock_fixture.py",
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
+  "0x53904f40": {
+   "new": "0x53905bd8",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/sim.py"
    ]
   },
   "0x53908120": {
@@ -16780,6 +18848,46 @@
    "ok": true,
    "files": [
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
+   ]
+  },
+  "0x5390a61c": {
+   "new": "0x5390b2b4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x5390acf0": {
+   "new": "0x5390b988",
+   "how": "aligned + refs 0x5390b988x1",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c"
+   ]
+  },
+  "0x5390ad0c": {
+   "new": "0x5390b9a4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x5390ad1c": {
+   "new": "0x5390b9b4",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x5390ad78": {
+   "new": "0x5390ba10",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
    ]
   },
   "0x53911730": {
@@ -16906,6 +19014,23 @@
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py"
    ]
   },
+  "0x540183c8": {
+   "new": "0x54019ba8",
+   "how": "aligned + refs 0x54019ba8x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
+  "0x540184a0": {
+   "new": "0x54019c80",
+   "how": "aligned + refs 0x54019c80x2149",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_hold.py"
+   ]
+  },
   "0x54450000": {
    "new": "0x54450000",
    "how": "override",
@@ -16928,6 +19053,17 @@
     "tools/gr4v120/afplain/runtime/runtime.c"
    ]
   },
+  "0x55083240": {
+   "new": "0x55083240",
+   "how": "override",
+   "ok": true,
+   "why": "CaptureImageModel's construction guard (handheld night): its getter's movw/movt 0x532417F0 (1.21 0x53241DFC), the one reference, same address; its object 0x55083138 (mapped) follows it as in 1.20",
+   "files": [
+    "tools/gr4v120/handnight/mfmod.c",
+    "tools/gr4v120/handnight/test_groups.py",
+    "tools/gr4v120/handnight/test_review.py"
+   ]
+  },
   "0x55084958": {
    "new": "0x55084958",
    "how": "refs 0x55084958x3",
@@ -16935,6 +19071,24 @@
    "files": [
     "tools/gr4v120/afplain/evaluation/native_plain_probe.py",
     "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x55084d7c": {
+   "new": "0x55084d7c",
+   "how": "override",
+   "ok": true,
+   "why": "the App's live-view manager guard (handheld night tests): the getter's movw/movt 0x53240AC0 (1.21 0x532410C8) and one more reference, same address",
+   "files": [
+    "tools/gr4v120/handnight/test_review.py"
+   ]
+  },
+  "0x550873d4": {
+   "new": "0x550873d4",
+   "how": "override",
+   "ok": true,
+   "why": "an App singleton guard read by the handheld night review test: the getter's movw/movt 0x532414F0 (1.21 0x53241AFC) and 2 more references, same address",
+   "files": [
+    "tools/gr4v120/handnight/test_review.py"
    ]
   },
   "0x550873d8": {
@@ -16965,6 +19119,15 @@
    "files": [
     "tools/gr4v120/afplain/evaluation/test_plain_units.py",
     "tools/gr4v120/afplain/runtime/runtime.c"
+   ]
+  },
+  "0x550874fc": {
+   "new": "0x550874fc",
+   "how": "override",
+   "ok": true,
+   "why": "an App singleton guard read by the handheld night review test: the getter's movw/movt 0x53240940 (1.21 0x53240F48) and 7 more references, same address",
+   "files": [
+    "tools/gr4v120/handnight/test_review.py"
    ]
   },
   "0x550a2a5c": {
@@ -17087,7 +19250,18 @@
    "ok": true,
    "why": "RAM, unreferenced: 512 bytes after the heap start 0x55839080 (same in 1.21: the start-up zero fill literal 0x53000460 and the heap's movw at 0x53ad4c4c name the same addresses); the heap start subject recognition moves to",
    "files": [
-    "core/src/fw/gr4v120/aspect/subjectaf.ts"
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "core/src/fw/gr4v120/aspect/subjectaf.ts",
+    "tools/gr4v120/handnight/sim.py"
+   ]
+  },
+  "0x55839300": {
+   "new": "0x55839300",
+   "how": "override",
+   "ok": true,
+   "why": "RAM, unreferenced: where handheld night moves the heap start (its state word 0x55839280 before it); the heap and the start-up zero fill are where they are in 1.20 (see 0x55839080)",
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
    ]
   },
   "0x53193950": {
@@ -17282,6 +19456,31 @@
     "core/src/fw/gr4v120/aspect/afdist.ts"
    ]
   },
+  "0x53277af0": {
+   "new": "0x53278340",
+   "how": "aligned + refs 0x53278340x1",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "tools/gr4v120/handnight/test_ui.py"
+   ]
+  },
+  "0x53277af8": {
+   "new": "0x53278348",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
+  "0x53277b00": {
+   "new": "0x53278350",
+   "how": "aligned",
+   "ok": true,
+   "files": [
+    "core/src/fw/gr4v120/aspect/handnight.ts"
+   ]
+  },
   "0x5318dde4": {
    "new": "0x5318ddbc",
    "how": "aligned + refs 0x5318ddbcx2",
@@ -17455,6 +19654,14 @@
     "tools/gr4v120/lamp/check.py"
    ]
   },
+  "0x532611fc": {
+   "new": "0x53261a4c",
+   "how": "aligned + refs 0x53261a4cx91",
+   "ok": true,
+   "files": [
+    "tools/gr4v120/handnight/test_review.py"
+   ]
+  },
   "0x5329ecbc": {
    "new": "0x5329f50c",
    "how": "aligned + refs 0x5329f50cx7",
@@ -17613,7 +19820,9 @@
    "ok": true,
    "why": "the C library's memcpy: the same words at the same address in 1.21 (both releases: mov ip, r0; cmp r2, #0x40; ...)",
    "files": [
-    "core/src/fw/gr4v120/aspect/moviesr.ts"
+    "core/src/fw/gr4v120/aspect/handnight.ts",
+    "core/src/fw/gr4v120/aspect/moviesr.ts",
+    "tools/gr4v120/handnight/mfmod.c"
    ]
   },
   "0x537b656c": {

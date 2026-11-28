@@ -246,6 +246,7 @@
     "core/src/fw/gr4v120/aspect/videoaf-code.ts",
     "core/src/fw/gr4v120/aspect/awb2-code.ts",
     "core/src/fw/gr4v120/aspect/subjectaf-code.ts",
-    "core/src/fw/gr4v120/aspect/subjectaf-model-code.ts"
+    "core/src/fw/gr4v120/aspect/subjectaf-model-code.ts",
+    "core/src/fw/gr4v120/aspect/handnight-code.ts"
   ]
 }

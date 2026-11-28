@@ -78,6 +78,7 @@ export const TOURS: Record<TourId, Step[]> = {
     { target: 'ex-f-grain', title: 'navGrain', body: 'tIcFGrainB' },
     { target: 'ex-f-saf', title: 'navSubjectAf', body: 'tIcFSafB' },
     { target: 'ex-f-afdist', title: 'navAfDistance', body: 'tIcFAfDistB' },
+    { target: 'ex-f-night', title: 'navNight', body: 'tIcFNightB' },
     { target: 'ex-f-vaf', title: 'navVideoAf', body: 'tIcFVafB' },
     { target: 'ex-f-dimaf', title: 'navDimAf', body: 'tIcFDimAfB' },
     { target: 'ex-f-mexp', title: 'navMovieExp', body: 'tIcFMexpB' },

@@ -170,6 +170,7 @@ export function describeCopy(summary: FirmwareSummary, s: State = state): string
   if (summary.subjectAf) lines.push(t('subjectAfLine'));
   if (summary.lockProtect) lines.push(t('lockProtectLine'));
   if (summary.afDistance) lines.push(t('afDistanceLine'));
+  if (summary.handheldNight) lines.push(t('nightLine'));
   if (summary.videoAf) lines.push(t('videoAfLine'));
   if (summary.dimLightAf) lines.push(t('dimAfLine'));
   if (summary.awbLearn) lines.push(t('awbLine'));

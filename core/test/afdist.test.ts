@@ -55,6 +55,13 @@ for (const [version, path] of files) {
       const changed = changedInImage(rtosOf(raw), rtosOf(plain.file), rtosOf(on.file));
       for (const a of places) expect(changed).toContain(a);
       expect(await e.inspect(on.file)).toMatchObject({ verified: true, afDistance: true, distanceFeet: true, subjectAf: true, lockProtect: true });
+      // with Handheld Night (the next bit of the same record byte; it is installed last): both read back
+      const night = await e.buildFirmware([], [], [], { afDistance: true, handheldNight: true });
+      expect(await e.inspect(night.file)).toMatchObject({ verified: true, afDistance: true, handheldNight: true });
+      const nightOnly = await e.inspect((await e.buildFirmware([], [], [], { handheldNight: true })).file);
+      expect(nightOnly.handheldNight).toBe(true);
+      expect(nightOnly.afDistance).toBeUndefined();
+      for (const a of places) expect(changedInImage(rtosOf(raw), rtosOf(raw), rtosOf(night.file))).toContain(a);
       // alone it is a change too
       const alone = await e.buildFirmware([], [], [], { afDistance: true });
       expect((await e.inspect(alone.file)).afDistance).toBe(true);
