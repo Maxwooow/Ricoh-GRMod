@@ -5,7 +5,7 @@ import { FirmwareHero } from '../firmware';
 import { t } from '../i18n';
 import {
   useStore, loadFirmwareFile, gridOffered, setSoft, setDateStamp, setMonoUnlock, setFlashPlus, flashPlusOn, setAdjSlots, adjSlotsOf, setHdr, setExposurePreview, setFilmGrain,
-  setShadowLearn, setBattery, setSubjectAf, setLockProtect, setVideoAf, setDimLightAf, setMovieExposure, setAwbLearn, setWbPerLook, setConstantLight, setSensorShift, setMovie4k, setMovieSr, setDistanceFeet, setBrightAuto, setCustomGrid,
+  setShadowLearn, setBattery, setSubjectAf, setLockProtect, setAfDistance, setVideoAf, setDimLightAf, setMovieExposure, setAwbLearn, setWbPerLook, setConstantLight, setSensorShift, setMovie4k, setMovieSr, setDistanceFeet, setBrightAuto, setCustomGrid,
 } from '../store';
 import { isFirmware } from './files';
 import { GridDetail, GridThumb, closeGrid, openGrid, useGridArrival } from './grid';
@@ -92,6 +92,8 @@ function ExtrasList() {
   const safOk = useStore((s) => !!s.info?.features.subjectAf);
   const lockP = useStore((s) => s.lockProtect);
   const lockOk = useStore((s) => !!s.info?.features.lockProtect);
+  const afDist = useStore((s) => s.afDistance);
+  const afDistOk = useStore((s) => !!s.info?.features.afDistance);
   const vaf = useStore((s) => s.videoAf);
   const vafOk = useStore((s) => !!s.info?.features.videoAf);
   const dimAf = useStore((s) => s.dimLightAf);
@@ -133,6 +135,7 @@ function ExtrasList() {
           options={[{ value: 'camera', label: t('grainCamera') }, { value: 'mod', label: t('grainMod') }]} />
       )}
       {safOk && <FeatureCapsule icon={Ico.subject} title={t('navSubjectAf')} sub={t('subjectAfSub')} on={saf} onChange={setSubjectAf} tour="ex-f-saf" />}
+      {afDistOk && <FeatureCapsule icon={Ico.afDist} title={t('navAfDistance')} sub={t('afDistanceSub')} on={afDist} onChange={setAfDistance} tour="ex-f-afdist" />}
       {vafOk && <FeatureCapsule icon={Ico.movie} title={t('navVideoAf')} sub={t('videoAfSub')} on={vaf} onChange={setVideoAf} tour="ex-f-vaf" />}
       {dimAfOk && <FeatureCapsule icon={Ico.af} title={t('navDimAf')} on={dimAf} onChange={setDimLightAf} tour="ex-f-dimaf" />}
       {mexpOk && <FeatureCapsule icon={Ico.movieExp} title={t('navMovieExp')} sub={t('movieExpSub')} on={mexp} onChange={setMovieExposure} tour="ex-f-mexp" />}

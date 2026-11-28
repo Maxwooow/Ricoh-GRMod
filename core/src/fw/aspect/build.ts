@@ -200,6 +200,8 @@ export interface ExtensionFeatures {
   subjectAf?: boolean;
   /** GR IV 1.20 and 1.21 only (`fw/gr4v120/aspect/lockprotect.ts`; the engine refuses it on 1.11): the mode dial's lock button protects the picture in single-picture playback. */
   lockProtect?: boolean;
+  /** GR IV 1.20 and 1.21 only (`fw/gr4v120/aspect/afdist.ts`; the engine refuses it on 1.11): the focus distance while autofocusing, as the distance scale and a number under the focus frame. */
+  afDistance?: boolean;
 }
 
 /** For test builds only: a fixed setting byte (1 short, 3 long style) instead of the camera menu. */

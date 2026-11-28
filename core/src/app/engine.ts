@@ -131,6 +131,8 @@ export interface FirmwareInfo {
     subjectAf?: boolean;
     /** The mode dial's lock button can protect the picture in single-picture playback (GR IV 1.20 / 1.21; see `gr4v120/aspect/lockprotect.ts`). */
     lockProtect?: boolean;
+    /** The focus distance can be shown while autofocusing (GR IV 1.20 / 1.21; see `gr4v120/aspect/afdist.ts`). */
+    afDistance?: boolean;
     /** GR III / IIIx: the most films a build can have (9; 20 on GR III 2.10, where
      * the number is chosen with BuildOptions.filmCount and Halation is set in the camera). */
     maxFilms?: number };
@@ -290,6 +292,8 @@ export interface FirmwareSummary {
   subjectAf?: boolean;
   /** True when the file's lock button protects the picture in single-picture playback. */
   lockProtect?: boolean;
+  /** True when the file shows the focus distance while autofocusing. */
+  afDistance?: boolean;
   /** ADJ lever slots (6..8) when the file has more than the camera's five. */
   adjSlots?: number;
   /** True when the file's battery icon shows the charge in steps of 10 %. */
@@ -344,8 +348,6 @@ export interface BuildOptions {
   hdrDiag?: boolean;
   /** Test builds only (GR IV 1.20): exposure preview always off (issue #17). */
   exposurePreviewOff?: boolean;
-  /** Test builds only (GR IV 1.20 / 1.21): the focus distance while autofocusing, as the distance scale and a number. */
-  afDistance?: boolean;
   /**
    * GR IV 1.11 / 1.20 / 1.21 (`features.batteryPercent`): the battery icon shows the charge in steps of 10 % (a
    * number inside the battery) instead of the bars (see `aspect/battery.ts`).
@@ -487,6 +489,14 @@ export interface BuildOptions {
    * Off unless asked for.
    */
   lockProtect?: boolean;
+  /**
+   * Focus distance display (GR IV 1.20 and 1.21, `features.afDistance`): in the autofocus settings that are not
+   * Tracking or Continuous AF, while an autofocus is asked for (half-press and the other ways) the camera's manual
+   * focus distance scale is shown, and the distance is written as a number under the focus frame ("0.35M", "1.8M",
+   * "12M", "INF"; with `distanceFeet` "13.8IN", "5.9FT", "41FT"); manual focus and Snap are as before
+   * (`gr4v120/aspect/afdist.ts`). Off unless asked for.
+   */
+  afDistance?: boolean;
   /** GR III 2.10: the number of films, 1..20 (`features.maxFilms`), each with a Halation
    * line in the camera. Absent: the nine-film T6 build. */
   filmCount?: number;
@@ -723,7 +733,7 @@ export class Engine {
       family: 'gr4', filename: 'fwdc248b.bin', models: ['STANDARD', 'HDF', 'MONO'],
       factoryRatios: ['3:2', '4:3', '16:9', '1:1'],
       capabilities: { build: true, presets: true, wallpaper: true, factoryEntry: true, menuPictures: true, lookLayout: true },
-      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, batteryPercent: true, customGrid: true, ratioShade: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== Gr4Program111 ? { filmGrain: true } : {}), shadowLearn: true, ...(g4 !== Gr4Program111 ? { flashTtl: true, framing: true, shadeMenu: true, gridMenu: true } : {}), ...(g4 !== Gr4Program111 ? { videoAf: true } : {}), ...(g4 !== Gr4Program111 ? { awbLearn: true } : {}), ...(g4 !== Gr4Program111 ? { movieExposure: true } : {}), ...(g4 !== Gr4Program111 ? { constantLight: true, sensorShift: true, movie4k: true, movieSr: true, distanceFeet: true, wbPerLook: true, halationAll: true, subjectAf: true, lockProtect: true } : {}) },
+      features: { softFocus: 'adj', dateStamp: true, monoUnlock: true, brightAuto: true, directFlash: true, maxAdjSlots: 8, hdrGainMap: true, batteryPercent: true, customGrid: true, ratioShade: true, ...(g4 !== Gr4Program111 ? { exposurePreview: true } : {}), ...(g4 !== Gr4Program111 ? { filmGrain: true } : {}), shadowLearn: true, ...(g4 !== Gr4Program111 ? { flashTtl: true, framing: true, shadeMenu: true, gridMenu: true } : {}), ...(g4 !== Gr4Program111 ? { videoAf: true } : {}), ...(g4 !== Gr4Program111 ? { awbLearn: true } : {}), ...(g4 !== Gr4Program111 ? { movieExposure: true } : {}), ...(g4 !== Gr4Program111 ? { constantLight: true, sensorShift: true, movie4k: true, movieSr: true, distanceFeet: true, wbPerLook: true, halationAll: true, subjectAf: true, lockProtect: true, afDistance: true } : {}) },
       version: g4.FIRMWARE_VERSION,
       looks: { factory: [...g4.aspect.FACTORY_LOOK_IDS], extraFirst: g4.aspect.EXTRA_FIRST_STYLE, monoOnly: g4.aspect.FACTORY_LOOK_IDS.filter((n) => n >= 25) },
       sha256: await sha256Hex(input),
@@ -958,6 +968,7 @@ export class Engine {
       ...(features.halationAll ? { halationAll: true } : {}),
       ...(features.subjectAf ? { subjectAf: true } : {}),
       ...(features.lockProtect ? { lockProtect: true } : {}),
+      ...(features.afDistance ? { afDistance: true } : {}),
     });
     if (!specs) return modified(false, [], aligned);
     let ratios: BuiltRatio[] = [];
@@ -1313,7 +1324,7 @@ export class Engine {
     const constantLight = !!(options && options.constantLight);
     if (constantLight && !this.info.features.constantLight) throw new FirmwareError('bad-edit', 'Constant Light needs GR IV firmware 1.20 or 1.21');
     if (constantLight && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Constant Light cannot be combined with the clarity-table soft focus of 0.4.x');
-    const added = (name: 'sensorShift' | 'movie4k' | 'movieSr' | 'distanceFeet' | 'subjectAf' | 'lockProtect', what: string): boolean => {
+    const added = (name: 'sensorShift' | 'movie4k' | 'movieSr' | 'distanceFeet' | 'subjectAf' | 'lockProtect' | 'afDistance', what: string): boolean => {
       if (options && options[name] !== undefined && typeof options[name] !== 'boolean') throw new FirmwareError('bad-edit', `${name} must be boolean`);
       const on = !!(options && options[name]);
       if (on && !this.info.features[name]) throw new FirmwareError('bad-edit', `${what} needs GR IV firmware 1.20 or 1.21`);
@@ -1334,21 +1345,21 @@ export class Engine {
     if (halationAll && extraSlots.length === 0) throw new FirmwareError('bad-edit', 'halation for every look needs at least one added Image Control slot');
     const subjectAf = added('subjectAf', 'subject recognition');
     const lockProtect = added('lockProtect', 'the lock button\'s Protect');
+    const afDistance = added('afDistance', 'the focus distance display');
     if (hdrGainMap && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the HDR gain map cannot be combined with the clarity-table soft focus of 0.4.x');
     if (directFlash && clarity.length > 0) throw new FirmwareError('bad-clarity', 'Direct Flash cannot be combined with the clarity-table soft focus of 0.4.x');
     if (pictures.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'power-off pictures cannot be combined with the clarity-table soft focus of 0.4.x');
     if (adjSoftFocus && clarity.length > 0) throw new FirmwareError('bad-clarity', 'soft focus on the ADJ lever and on the clarity table cannot be combined');
     if (dateStamp && clarity.length > 0) throw new FirmwareError('bad-clarity', 'the date imprint cannot be combined with the clarity-table soft focus of 0.4.x');
     if (extraSlots.length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'added slots cannot be combined with the clarity-table soft focus of 0.4.x');
-    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash && adjSlots === 5 && !hdrGainMap && !exposurePreview && !filmGrain && !shadowLearn && !flashTtl && !videoAf && !awbLearn && !constantLight && !options.brightAuto && !batteryPercent && !customGrid && !framing && !movieExposure && !sensorShift && !movie4k && !movieSr && !distanceFeet && !subjectAf && !lockProtect) throw new FirmwareError('bad-edit', 'nothing to change');
+    if (edits.length === 0 && ratios.length === 0 && clarity.length === 0 && !adjSoftFocus && !dateStamp && !monoUnlock && extraSlots.length === 0 && pictures.length === 0 && !lookLayout && !directFlash && adjSlots === 5 && !hdrGainMap && !exposurePreview && !filmGrain && !shadowLearn && !flashTtl && !videoAf && !awbLearn && !constantLight && !options.brightAuto && !batteryPercent && !customGrid && !framing && !movieExposure && !sensorShift && !movie4k && !movieSr && !distanceFeet && !subjectAf && !lockProtect && !afDistance) throw new FirmwareError('bad-edit', 'nothing to change');
     if (Object.keys(cinemaHalation).length > 0 && clarity.length > 0) throw new FirmwareError('bad-clarity', 'halation cannot be combined with the clarity-table soft focus of 0.4.x');
-    const features = { ...(options.brightAuto ? { brightAuto: options.brightAuto } : {}), adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(hdrGainMap ? { hdrGainMap } : {}), ...(exposurePreview ? { exposurePreview } : {}), ...(softFocusMenu ? { softFocusMenu } : {}), ...(batteryPercent ? { batteryPercent } : {}), ...(customGrid ? { customGrid } : {}), ...(framing ? { framing } : {}), ...(ratioShade ? { ratioShade } : {}), ...(ratioShadeTone ? { ratioShadeTone } : {}), ...(shadowLearn ? { shadowLearn } : {}), ...(filmGrain ? { filmGrain } : {}), ...(flashTtl ? { flashTtl } : {}), ...(videoAf ? { videoAf } : {}), ...(awbLearn ? { awbLearn } : {}), ...(movieExposure ? { movieExposure } : {}), ...(constantLight ? { constantLight } : {}), ...(sensorShift ? { sensorShift } : {}), ...(movie4k ? { movie4k } : {}), ...(movieSr ? { movieSr } : {}), ...(distanceFeet ? { distanceFeet } : {}) , ...(wbPerLook ? { wbPerLook } : {}), ...(halationAll ? { halationAll } : {}), ...(subjectAf ? { subjectAf } : {}), ...(lockProtect ? { lockProtect } : {}) };
+    const features = { ...(options.brightAuto ? { brightAuto: options.brightAuto } : {}), adjSoftFocus, guard: clarity.length === 0 && options.guard !== false, ...(Object.keys(cinemaHalation).length > 0 ? { cinemaHalation } : {}), ...(dateStamp ? { dateStamp } : {}), ...(monoUnlock ? { monoUnlock } : {}), ...(extraSlots.length > 0 ? { extraSlots } : {}), ...(pictures.length > 0 ? { shutdown: { pictures, factory: this.g4.aspect.factoryShutdownJpegs(this.decoded) } } : {}), ...(lookLayout ? { lookLayout } : {}), ...(directFlash ? { directFlash } : {}), ...(adjSlots > 5 ? { adjSlots } : {}), ...(hdrGainMap ? { hdrGainMap } : {}), ...(exposurePreview ? { exposurePreview } : {}), ...(softFocusMenu ? { softFocusMenu } : {}), ...(batteryPercent ? { batteryPercent } : {}), ...(customGrid ? { customGrid } : {}), ...(framing ? { framing } : {}), ...(ratioShade ? { ratioShade } : {}), ...(ratioShadeTone ? { ratioShadeTone } : {}), ...(shadowLearn ? { shadowLearn } : {}), ...(filmGrain ? { filmGrain } : {}), ...(flashTtl ? { flashTtl } : {}), ...(videoAf ? { videoAf } : {}), ...(awbLearn ? { awbLearn } : {}), ...(movieExposure ? { movieExposure } : {}), ...(constantLight ? { constantLight } : {}), ...(sensorShift ? { sensorShift } : {}), ...(movie4k ? { movie4k } : {}), ...(movieSr ? { movieSr } : {}), ...(distanceFeet ? { distanceFeet } : {}) , ...(wbPerLook ? { wbPerLook } : {}), ...(halationAll ? { halationAll } : {}), ...(subjectAf ? { subjectAf } : {}), ...(lockProtect ? { lockProtect } : {}), ...(afDistance ? { afDistance } : {}) };
     const test = {
       ...(options && options.dateStampFixed ? { dateStampFixed: options.dateStampFixed, dateStampDiag: !!options.dateStampDiag } : {}),
       ...(options && options.halationDiag ? { halationDiag: true } : {}),
       ...(options && options.hdrDiag ? { hdrDiag: true } : {}),
       ...(options && options.exposurePreviewOff ? { exposurePreviewOff: true } : {}),
-      ...(options && options.afDistance ? { afDistance: true } : {}),
       ...(batteryPercent && options.batteryDiag ? { batteryDiag: true } : {}),
     };
     const { decoded: _decoded, ...rest } = await this.g4.buildFirmware(this.raw, edits, ratios, clarity, features, test);

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /**
- * The focus distance while autofocusing (test builds only, `TestOptions.afDistance`; GR IV 1.20 and 1.21): the
+ * The focus distance while autofocusing (a build option, `features.afDistance`, and `TestOptions.afDistance`; GR IV 1.20 and 1.21): the
  * camera's distance scale is shown in the autofocus settings while an autofocus is asked for, and the distance is
  * written under the focus frame as a number. Tried on a camera with the number under the scale (GR IV 1.21, test
  * firmware 131: the scale and the number follow the autofocus); the number under the focus frame is the next build.
